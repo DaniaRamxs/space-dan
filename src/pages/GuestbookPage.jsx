@@ -18,11 +18,10 @@ export default function GuestbookPage() {
 
         if (error) {
             console.error("Error fetching guestbook:", error);
-            // Mostrar el error real para debugging
             setMessages([{
                 id: 0,
-                name: 'System Error',
-                text: `Error: ${error.message}. Asegúrate de haber ejecutado el SQL en Supabase y que las credenciales en .env sean correctas.`,
+                name: 'System',
+                text: 'Temporalmente fuera de servicio. Vuelve pronto para firmar el libro. ✨',
                 created_at: new Date().toISOString()
             }]);
         } else {
