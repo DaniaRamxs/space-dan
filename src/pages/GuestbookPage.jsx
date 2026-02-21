@@ -19,7 +19,7 @@ export default function GuestbookPage() {
         if (error) {
             console.error("Error fetching guestbook:", error);
             // Fallback en caso de error (credenciales no seteadas aún)
-            setMessages([{ id: 0, name: 'System', text: 'Error al conectar con la base de datos global. Revisa tus credenciales.', date: '----' }]);
+            setMessages([{ id: 0, name: 'System', text: 'Error al conectar con la base de datos global. Revisa tus credenciales o el estado de tu tabla en Supabase.', created_at: new Date().toISOString() }]);
         } else {
             setMessages(data || []);
         }
@@ -99,15 +99,22 @@ export default function GuestbookPage() {
 
             <div className="messageList">
                 <p className="tinyText">{messages.length} mensajes firmados</p>
-                {messages.map(m => (
-                    <div key={m.id} className="guestbookEntry">
-                        <div className="entryHeader">
-                            <span className="entryName">👤 {m.name}</span>
-                            <span className="entryDate">{m.created_at ? new Date(m.created_at).toLocaleDateString() : '----'}</span>
-                        </div>
-                        <p className="entryText">{m.text}</p>
-                    </div>
-                ))}
+                {loading ? (
+                    <div className="blinkText" style={{ textAlign: 'center', padding: '20px' }}>conectando_con_la_nube...</div>
+                ) : (
+                    <>
+                        {messages.length === 0 && <p className="tinyText" style={{ textAlign: 'center' }}>No hay mensajes aún. ¡Sé el primero! ✨</p>}
+                        {messages.map(m => (
+                            <div key={m.id || m.created_at} className="guestbookEntry">
+                                <div className="entryHeader">
+                                    <span className="entryName">👤 {m.name}</span>
+                                    <span className="entryDate">{m.created_at ? new Date(m.created_at).toLocaleDateString() : '----'}</span>
+                                </div>
+                                <p className="entryText">{m.text}</p>
+                            </div>
+                        ))}
+                    </>
+                )}
             </div>
         </main>
     );
