@@ -16,10 +16,8 @@ export default function GuestbookPage() {
                 console.error("Error loading guestbook", e);
             }
         } else {
-            // Default messages
             setMessages([
-                { id: 1, name: 'Admin', text: '¡Bienvenido a mi libro de visitas! Deja un mensaje :3', date: '2026-02-21' },
-                { id: 2, name: 'CyberExplorer', text: 'Me encanta la estetica de este blog, muy nostálgica.', date: '2026-02-21' }
+                { id: 1, name: 'dan', text: '¡Bienvenido a mi libro de visitas! Deja un mensaje :3', date: '2026-02-21' }
             ]);
         }
     }, []);
