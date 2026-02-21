@@ -1,43 +1,70 @@
 import { useState, useEffect } from 'react';
-
-const LS_KEY = 'space-dan-guestbook';
+import { supabase } from '../supabaseClient';
 
 export default function GuestbookPage() {
     const [messages, setMessages] = useState([]);
     const [name, setName] = useState('');
     const [msg, setMsg] = useState('');
+    const [loading, setLoading] = useState(true);
+    const [sending, setSending] = useState(false);
+
+    // Cargar mensajes desde Supabase
+    const fetchMessages = async () => {
+        setLoading(true);
+        const { data, error } = await supabase
+            .from('guestbook')
+            .select('*')
+            .order('created_at', { ascending: false });
+
+        if (error) {
+            console.error("Error fetching guestbook:", error);
+            // Fallback en caso de error (credenciales no seteadas aún)
+            setMessages([{ id: 0, name: 'System', text: 'Error al conectar con la base de datos global. Revisa tus credenciales.', date: '----' }]);
+        } else {
+            setMessages(data || []);
+        }
+        setLoading(false);
+    };
 
     useEffect(() => {
-        const stored = localStorage.getItem(LS_KEY);
-        if (stored) {
-            try {
-                setMessages(JSON.parse(stored));
-            } catch (e) {
-                console.error("Error loading guestbook", e);
-            }
-        } else {
-            setMessages([
-                { id: 1, name: 'dan', text: '¡Bienvenido a mi libro de visitas! Deja un mensaje :3', date: '2026-02-21' }
-            ]);
-        }
+        fetchMessages();
+
+        // Suscripción en tiempo real opcional
+        const subscription = supabase
+            .channel('public:guestbook')
+            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'guestbook' }, payload => {
+                setMessages(prev => [payload.new, ...prev]);
+            })
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(subscription);
+        };
     }, []);
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
-        if (!name.trim() || !msg.trim()) return;
+        if (!name.trim() || !msg.trim() || sending) return;
 
-        const newMessage = {
-            id: Date.now(),
-            name: name.trim(),
-            text: msg.trim(),
-            date: new Date().toISOString().split('T')[0]
-        };
+        setSending(true);
+        const { error } = await supabase
+            .from('guestbook')
+            .insert([
+                {
+                    name: name.trim(),
+                    text: msg.trim(),
+                    created_at: new Date().toISOString()
+                }
+            ]);
 
-        const updated = [newMessage, ...messages];
-        setMessages(updated);
-        localStorage.setItem(LS_KEY, JSON.stringify(updated));
-        setName('');
-        setMsg('');
+        if (error) {
+            alert("No se pudo enviar el mensaje. Inténtalo de nuevo.");
+            console.error(error);
+        } else {
+            setName('');
+            setMsg('');
+        }
+        setSending(false);
     };
 
     return (
@@ -76,7 +103,7 @@ export default function GuestbookPage() {
                     <div key={m.id} className="guestbookEntry">
                         <div className="entryHeader">
                             <span className="entryName">👤 {m.name}</span>
-                            <span className="entryDate">{m.date}</span>
+                            <span className="entryDate">{m.created_at ? new Date(m.created_at).toLocaleDateString() : '----'}</span>
                         </div>
                         <p className="entryText">{m.text}</p>
                     </div>
