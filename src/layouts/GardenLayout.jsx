@@ -88,6 +88,9 @@ export default function GardenLayout({ children }) {
             <NavLink to="/timecapsule" onClick={closeMenu} className={({ isActive }) => "sideLink" + (isActive ? " active" : "")}>
               ⏳ Time Capsule
             </NavLink>
+            <NavLink to="/guestbook" onClick={closeMenu} className={({ isActive }) => "sideLink" + (isActive ? " active" : "")}>
+              📖 Libro de Visitas
+            </NavLink>
           </nav>
         </aside>
 
