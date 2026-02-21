@@ -18,8 +18,13 @@ export default function GuestbookPage() {
 
         if (error) {
             console.error("Error fetching guestbook:", error);
-            // Fallback en caso de error (credenciales no seteadas aún)
-            setMessages([{ id: 0, name: 'System', text: 'Error al conectar con la base de datos global. Revisa tus credenciales o el estado de tu tabla en Supabase.', created_at: new Date().toISOString() }]);
+            // Mostrar el error real para debugging
+            setMessages([{
+                id: 0,
+                name: 'System Error',
+                text: `Error: ${error.message}. Asegúrate de haber ejecutado el SQL en Supabase y que las credenciales en .env sean correctas.`,
+                created_at: new Date().toISOString()
+            }]);
         } else {
             setMessages(data || []);
         }
