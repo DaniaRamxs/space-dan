@@ -134,6 +134,10 @@ export default function DesktopPage() {
                     <div className="osIconImg">🔒</div>
                     <div className="osIconLabel">Top_Secret</div>
                 </div>
+                <div className="osIcon" onClick={() => openWindow('chat', 'Chat_Messenger.exe', <iframe src="https://www3.cbox.ws/box/?boxid=3551223&boxtag=TAHvLn" title="Shoutbox" sandbox="allow-scripts allow-same-origin allow-forms allow-popups" referrerPolicy="no-referrer" style={{ width: '100%', height: '400px', border: '0' }} />, { x: 120, y: 550 })}>
+                    <div className="osIconImg">💬</div>
+                    <div className="osIconLabel">Chat</div>
+                </div>
             </div>
 
             {/* Ventanas renderizadas */}

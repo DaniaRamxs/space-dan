@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import { NavLink, Link } from "react-router-dom";
-import ShoutboxPopout from "../ShoutboxPopout.jsx";
 import CursorTrail from "../components/CursorTrail.jsx";
 import StarfieldBg from "../components/StarfieldBg.jsx";
 import KonamiEasterEgg from "../components/KonamiEasterEgg.jsx";
@@ -28,7 +27,6 @@ export default function GardenLayout({ children }) {
       <StarfieldBg />
       <CursorTrail />
       <KonamiEasterEgg />
-      <ShoutboxPopout />
 
       {/* Overlay para cerrar el menu en mobile */}
       {sidebarOpen && (

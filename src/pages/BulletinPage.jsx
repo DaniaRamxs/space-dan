@@ -30,6 +30,7 @@ const bulletinPosts = [
   { id: 26, date: "2026-02-21", title: "responsive total", text: "todas las secciones nuevas ahora son 100% responsivas. el desktop y el dreamscape funcionan perfecto en celulares.", tags: ["update", "mobile"] },
   { id: 27, date: "2026-02-21", title: "limpieza de sitio", text: "elimine la antigua seccion del cuarto para mantener el blog mas limpio y enfocado en las nuevas experiencias.", tags: ["update"] },
   { id: 28, date: "2026-02-21", title: "libro de visitas (guestbook)", text: "¡estrenamos libro de visitas! deja tu firma y un mensaje para la posteridad. seccion creada usando un flujo de trabajo profesional con git branches.", tags: ["update", "git", "comunidad"] },
+  { id: 29, date: "2026-02-21", title: "shoutbox en desktop", text: "el chat global ahora es una aplicacion mas del escritorio (/desktop). se ha re-estilizado como 'Chat_Messenger.exe' con el look clasico de windows 98.", tags: ["update", "interactivo", "diseño"] },
 ];
 
 const PAGE_SIZE = 8;
