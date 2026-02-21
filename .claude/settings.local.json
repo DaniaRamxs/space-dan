@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install:*)",
+      "Bash(python scripts/with_server.py --server \"npm --prefix C:/Users/USUARIO/space-dan run dev\" --port 5173 -- python \"C:/Users/USUARIO/space-dan/test_app.py\")",
+      "Bash(pip install:*)",
+      "Bash(python -m playwright install:*)",
+      "Bash(where:*)",
+      "Bash(py --version)",
+      "Bash(/c/Users/USUARIO/AppData/Local/Python/bin/python3 -m pip install:*)",
+      "Bash(python scripts/with_server.py --server \"npm --prefix C:/Users/USUARIO/space-dan run dev\" --port 5173 -- /c/Users/USUARIO/AppData/Local/Python/bin/python3 \"C:/Users/USUARIO/space-dan/test_app.py\")"
+    ]
+  }
+}
