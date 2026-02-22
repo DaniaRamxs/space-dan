@@ -5,6 +5,7 @@ import remarkGfm from 'remark-gfm';
 import { getPostById } from '../data/postsData';
 import LikeButton from '../components/LikeButton';
 import usePostViews from '../hooks/usePostViews';
+import Comments from '../components/Comments';
 
 export default function PostPage() {
   const { id } = useParams();
@@ -36,7 +37,6 @@ export default function PostPage() {
           )}
         </div>
 
-        {/* Tags */}
         {post.tags?.length > 0 && (
           <div className="tagRow" style={{ marginTop: 8 }}>
             {post.tags.map((tag) => (
@@ -45,13 +45,11 @@ export default function PostPage() {
           </div>
         )}
 
-        {/* Like button */}
         <div style={{ marginTop: 10 }}>
           <LikeButton postId={post.id} />
         </div>
       </div>
 
-      {/* Content rendered as Markdown */}
       <div className="postBigText markdownContent">
         <ReactMarkdown remarkPlugins={[remarkGfm]}>
           {post.content}
@@ -81,6 +79,8 @@ export default function PostPage() {
           />
         </div>
       )}
+
+      <Comments postId={post.id} />
     </main>
   );
 }

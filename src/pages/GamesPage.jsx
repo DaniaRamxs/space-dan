@@ -1,6 +1,9 @@
 import { useState, useEffect, useRef, Suspense, lazy } from 'react';
 import { awardCoins } from '../hooks/useDancoins';
 import { unlockAchievement } from '../hooks/useAchievements';
+import { useAuthContext } from '../contexts/AuthContext';
+import { saveScore } from '../services/supabaseScores';
+import Leaderboard from '../components/Leaderboard';
 
 const TicTacToe    = lazy(() => import('../components/TicTacToe'));
 const SnakeGame    = lazy(() => import('../components/SnakeGame'));
@@ -61,31 +64,45 @@ function loadPlayedGames() {
 
 function markGamePlayed(gameId) {
   const played = loadPlayedGames();
-  if (played.has(gameId)) return false; // already played before
+  if (played.has(gameId)) return false;
   played.add(gameId);
   try { localStorage.setItem(PLAYED_KEY, JSON.stringify([...played])); } catch {}
-  return true; // first time!
+  return true;
 }
 
 export default function GamesPage() {
+  const { user } = useAuthContext();
   const [openId, setOpenId]       = useState(null);
   const [coinToast, setCoinToast] = useState(null);
+  const [lbKey, setLbKey]         = useState(0); // incrementar fuerza refresh del leaderboard
   const toastTimer                = useRef(null);
+  const openIdRef                 = useRef(null);
 
-  // Listen for game-score events (fired by individual games for high-score rewards)
+  // Mantener ref actualizada con el juego abierto
+  useEffect(() => { openIdRef.current = openId; }, [openId]);
+
+  // Escuchar scores de los juegos
   useEffect(() => {
     const onScore = (e) => {
       const { isHighScore, score } = e.detail || {};
       if (isHighScore) unlockAchievement('highscore');
+
       const bonus = Math.min(20, Math.floor((score || 0) / 50));
       if (bonus > 0) {
         awardCoins(bonus);
         showCoinToast(`+${bonus} ◈`);
       }
+
+      // Guardar en Supabase si el usuario está autenticado
+      const gameId = openIdRef.current;
+      if (user && gameId && score != null) {
+        saveScore(user.id, gameId, score).then(() => setLbKey(k => k + 1));
+      }
     };
+
     window.addEventListener('dan:game-score', onScore);
     return () => window.removeEventListener('dan:game-score', onScore);
-  }, []);
+  }, [user]);
 
   const showCoinToast = (msg) => {
     setCoinToast(msg);
@@ -97,7 +114,6 @@ export default function GamesPage() {
     setOpenId(isOpen ? null : gameId);
 
     if (!isOpen) {
-      // First-ever play: award coins + check gamer achievement
       const isNew = markGamePlayed(gameId);
       if (isNew) {
         awardCoins(5);
@@ -118,6 +134,12 @@ export default function GamesPage() {
         </div>
       </div>
 
+      {!user && (
+        <p className="tinyText" style={{ textAlign: 'center', marginBottom: 10, opacity: 0.6 }}>
+          inicia sesión para guardar tus scores en el leaderboard
+        </p>
+      )}
+
       <div style={{ display: 'grid', gap: 14 }}>
         {GAMES.map(game => {
           const isOpen = openId === game.id;
@@ -133,13 +155,16 @@ export default function GamesPage() {
                 <span style={{ fontSize: 10, opacity: 0.5 }}>{isOpen ? '▲' : '▼'}</span>
               </div>
               {isOpen && (
-                <div className="shBody" style={{ display: 'flex', justifyContent: 'center', padding: '16px 12px', overflowX: 'auto' }}>
-                  <div className="gameScale">
-                    <Suspense fallback={<div style={{ color: 'var(--accent)', fontSize: 12 }}>cargando_juego...</div>}>
-                      <GameComponent />
-                    </Suspense>
+                <>
+                  <div className="shBody" style={{ display: 'flex', justifyContent: 'center', padding: '16px 12px', overflowX: 'auto' }}>
+                    <div className="gameScale">
+                      <Suspense fallback={<div style={{ color: 'var(--accent)', fontSize: 12 }}>cargando_juego...</div>}>
+                        <GameComponent />
+                      </Suspense>
+                    </div>
                   </div>
-                </div>
+                  <Leaderboard gameId={game.id} refreshKey={lbKey} />
+                </>
               )}
             </section>
           );

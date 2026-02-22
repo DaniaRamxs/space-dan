@@ -3792,6 +3792,17 @@ textarea,
   font-weight: bold;
   color: var(--cyan);
   text-shadow: 0 0 5px var(--cyan-glow);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.entryAvatar {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1px solid var(--cyan);
 }
 
 .entryDate {
@@ -5116,6 +5127,79 @@ textarea,
 .dancoinsAmount { font-weight: 700; color: var(--accent); font-size: 13px; }
 .dancoinsLabel  { color: var(--text-muted); font-size: 11px; }
 
+/* ── Auth Widget ──────────────────────────────────────────────── */
+.authWidget {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 12px;
+}
+.authLoginLabel {
+  font-size: 10px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 2px;
+}
+.authProviderBtn {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 10px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 11px;
+  font-family: var(--font);
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+.authProviderBtn:hover {
+  background: var(--accent-dim);
+  border-color: var(--accent);
+}
+.authProviderIcon {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+}
+.authUserRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.authAvatar {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 1px solid var(--accent);
+  flex-shrink: 0;
+}
+.authUsername {
+  font-size: 11px;
+  color: var(--accent);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.authLogoutBtn {
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  font-size: 10px;
+  font-family: var(--font);
+  padding: 3px 8px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+}
+.authLogoutBtn:hover {
+  border-color: var(--accent);
+  color: var(--text);
+}
+
 /* Topbar coins (mobile) */
 .topbarCoins     { display: none; }
 .topbarCoinsLink { color: var(--accent); text-decoration: none; font-size: 12px; font-weight: 700; padding: 4px 8px; border: 1px solid var(--accent); border-radius: var(--radius-sm); }
@@ -5574,4 +5658,219 @@ textarea,
   .shopBuyBtn     { padding: 9px 0; font-size: 14px; }
   .achHeader      { flex-direction: column; }
   .shopHintCategories { flex-direction: column; gap: 4px; }
+}
+
+/* ── LEADERBOARD ─────────────────────────────────────────── */
+.leaderboard {
+  border-top: 1px solid rgba(180,120,255,0.15);
+  padding: 12px 16px 14px;
+  background: rgba(0,0,0,0.2);
+}
+
+.leaderboardTitle {
+  font-size: 10px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 8px;
+  opacity: 0.8;
+}
+
+.leaderboardList {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.leaderboardRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  padding: 4px 6px;
+  border-radius: 4px;
+  background: rgba(255,255,255,0.03);
+}
+
+.leaderboardRank {
+  width: 22px;
+  text-align: center;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.leaderboardAvatar {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1px solid var(--accent);
+  flex-shrink: 0;
+}
+
+.leaderboardName {
+  flex: 1;
+  color: var(--text-main);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.leaderboardScore {
+  font-weight: bold;
+  color: var(--cyan);
+  text-shadow: 0 0 6px var(--cyan-glow);
+  flex-shrink: 0;
+}
+
+.leaderboardEmpty {
+  font-size: 11px;
+  color: var(--text-muted);
+  text-align: center;
+  padding: 8px 0;
+}
+
+/* ── COMMENTS ────────────────────────────────────────────── */
+.commentsSection {
+  margin-top: 28px;
+  padding-top: 20px;
+  border-top: 1px solid rgba(180,120,255,0.2);
+}
+
+.commentsTitle {
+  font-size: 11px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin: 0 0 14px;
+}
+
+.commentsList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.commentEntry {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 6px;
+  padding: 10px 12px;
+}
+
+.commentHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+  flex-wrap: wrap;
+}
+
+.commentAuthor {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: bold;
+  color: var(--cyan);
+  text-shadow: 0 0 5px var(--cyan-glow);
+}
+
+.commentAvatar {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1px solid var(--cyan);
+}
+
+.commentDate {
+  font-size: 10px;
+  color: var(--text-muted);
+  margin-left: auto;
+}
+
+.commentDelete {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 10px;
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 3px;
+  line-height: 1;
+  transition: color 0.2s;
+}
+.commentDelete:hover { color: #ff6b6b; }
+
+.commentText {
+  font-size: 13px;
+  color: var(--text-main);
+  margin: 0;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.commentForm {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.commentForm textarea {
+  width: 100%;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 6px;
+  color: var(--text-main);
+  font-family: inherit;
+  font-size: 13px;
+  padding: 10px 12px;
+  resize: vertical;
+  box-sizing: border-box;
+  transition: border-color 0.2s;
+}
+.commentForm textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.commentFormFooter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.commentLoginMsg {
+  text-align: center;
+  margin-top: 12px;
+  opacity: 0.7;
+}
+
+/* ── GUESTBOOK: anon badge ──────────────────────────────── */
+.guestbookAnonCheck {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12px;
+  color: var(--text-muted);
+  cursor: pointer;
+  user-select: none;
+  margin-bottom: 4px;
+}
+.guestbookAnonCheck input { cursor: pointer; accent-color: var(--accent); }
+
+.entryBadgeAnon {
+  font-size: 9px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 3px;
+  padding: 1px 5px;
+  color: var(--text-muted);
+  vertical-align: middle;
 }
