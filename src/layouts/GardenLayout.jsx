@@ -5,6 +5,7 @@ import StarfieldBg   from "../components/StarfieldBg.jsx";
 import KonamiEasterEgg from "../components/KonamiEasterEgg.jsx";
 import LastFmWidget  from "../components/LastFmWidget.jsx";
 import RadioPlayer   from "../components/RadioPlayer.jsx";
+import AuthWidget    from "../components/AuthWidget.jsx";
 import useDancoins   from "../hooks/useDancoins.js";
 
 const PERSONAL_PATHS = ['/kinnies', '/tests', '/universo', '/dreamscape'];
@@ -71,6 +72,8 @@ export default function GardenLayout({ children }) {
             <span className="dancoinsAmount">{coins}</span>
             <span className="dancoinsLabel">Dancoins</span>
           </div>
+
+          <AuthWidget />
 
           <div className="sideHeaderDivider" aria-hidden="true" />
 

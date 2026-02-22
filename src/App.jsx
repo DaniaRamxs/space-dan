@@ -6,6 +6,7 @@ import Screensaver      from "./components/Screensaver";
 import { unlockAchievement } from "./hooks/useAchievements";
 import { trackPageVisit }    from "./hooks/useDancoins";
 import { applyTheme }        from "./hooks/useTheme";
+import { AuthProvider }      from "./contexts/AuthContext";
 
 const PostsPage       = lazy(() => import("./pages/PostsPage"));
 const PostPage        = lazy(() => import("./pages/PostPage"));
@@ -83,6 +84,7 @@ export default function App() {
   }, []);
 
   return (
+    <AuthProvider>
     <BrowserRouter>
       <AchievementToast />
       <Screensaver />
@@ -113,5 +115,6 @@ export default function App() {
         </Routes>
       </Suspense>
     </BrowserRouter>
+    </AuthProvider>
   );
 }
