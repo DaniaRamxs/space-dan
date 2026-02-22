@@ -185,25 +185,29 @@ export default function Screensaver() {
   const [saverKey, setSaverKey]   = useState('starfield');
   const canvasRef                 = useRef(null);
   const timerRef                  = useRef(null);
+  const activeRef                 = useRef(false);
+
+  // Keep ref in sync so the event handler never has stale closure
+  useEffect(() => { activeRef.current = active; }, [active]);
 
   const reset = useCallback(() => {
-    if (active) { setActive(false); return; }
+    if (activeRef.current) { setActive(false); return; }
     clearTimeout(timerRef.current);
     timerRef.current = setTimeout(() => {
       setSaverKey(getActiveScreensaver());
       setActive(true);
     }, IDLE_MS);
-  }, [active]);
+  }, []); // stable reference — no deps
 
   useEffect(() => {
     const events = ['mousemove', 'keydown', 'touchstart', 'click'];
     events.forEach(e => window.addEventListener(e, reset, { passive: true }));
-    reset();
+    reset(); // start idle timer on mount
     return () => {
       events.forEach(e => window.removeEventListener(e, reset));
       clearTimeout(timerRef.current);
     };
-  }, [reset]);
+  }, [reset]); // runs once since reset is stable
 
   if (!active) return null;
 

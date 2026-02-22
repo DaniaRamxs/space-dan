@@ -457,6 +457,8 @@ const START_LINKS = [
     { icon: '📖', label: 'Guestbook', to: '/guestbook' },
     { icon: '💻', label: 'Proyectos', to: '/proyectos' },
     { icon: '🏗️', label: 'Arquitectura', to: '/arquitectura' },
+    { icon: '🏆', label: 'Logros', to: '/logros' },
+    { icon: '🛍️', label: 'Tienda', to: '/tienda' },
 ];
 
 function StartMenu({ onClose }) {

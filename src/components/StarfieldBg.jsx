@@ -2,20 +2,41 @@ import { useEffect, useRef } from 'react';
 
 const STAR_COUNT = 180;
 
+const STAR_THEMES = {
+  default:     { r: 255, g: 255, b: 255, neon: ['255,0,255', '0,229,255'] },
+  stars_blue:  { r: 100, g: 180, b: 255, neon: ['0,200,255', '0,150,255'] },
+  stars_green: { r: 100, g: 255, b: 130, neon: ['57,255,20', '0,255,136'] },
+  stars_red:   { r: 255, g: 120, b: 80,  neon: ['255,80,30', '255,200,0'] },
+};
+
+function getStarTheme() {
+  try {
+    const equipped  = JSON.parse(localStorage.getItem('space-dan-shop-equipped') || '{}');
+    const purchased = JSON.parse(localStorage.getItem('space-dan-shop-purchased') || '[]');
+    const pick = equipped.stars;
+    if (pick && purchased.includes(pick) && STAR_THEMES[pick]) return STAR_THEMES[pick];
+  } catch {}
+  return STAR_THEMES.default;
+}
+
 export default function StarfieldBg() {
   const canvasRef = useRef(null);
 
   useEffect(() => {
     const canvas = canvasRef.current;
     const ctx    = canvas.getContext('2d');
+    let theme    = getStarTheme();
+
+    const onThemeChange = () => { theme = getStarTheme(); };
+    window.addEventListener('dan:item-equipped', onThemeChange);
 
     const stars = Array.from({ length: STAR_COUNT }, () => ({
-      x:       Math.random(),        // normalized 0-1
+      x:       Math.random(),
       y:       Math.random(),
       size:    Math.random() * 1.6 + 0.3,
       speed:   Math.random() * 0.00015 + 0.00005,
       opacity: Math.random() * 0.6 + 0.3,
-      phase:   Math.random() * Math.PI * 2,  // twinkle offset
+      phase:   Math.random() * Math.PI * 2,
     }));
 
     let raf;
@@ -31,27 +52,24 @@ export default function StarfieldBg() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
       for (const s of stars) {
-        // slow drift downward
         s.y += s.speed;
         if (s.y > 1) { s.y = 0; s.x = Math.random(); }
 
-        // subtle twinkle
         const alpha = s.opacity * (0.75 + 0.25 * Math.sin(s.phase + t * 0.018));
-
         const px = s.x * canvas.width;
         const py = s.y * canvas.height;
 
         ctx.beginPath();
         ctx.arc(px, py, s.size, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(255,255,255,${alpha.toFixed(2)})`;
+        ctx.fillStyle = `rgba(${theme.r},${theme.g},${theme.b},${alpha.toFixed(2)})`;
         ctx.fill();
       }
 
-      // occasional neon star (magenta/cyan)
+      // occasional neon accent star
       if (t % 120 === 0) {
         const nx = Math.random() * canvas.width;
         const ny = Math.random() * canvas.height;
-        const nc = Math.random() > 0.5 ? '255,0,255' : '0,229,255';
+        const nc = theme.neon[Math.random() > 0.5 ? 0 : 1];
         ctx.beginPath();
         ctx.arc(nx, ny, 1.5, 0, Math.PI * 2);
         ctx.fillStyle   = `rgba(${nc},0.9)`;
@@ -71,6 +89,7 @@ export default function StarfieldBg() {
     return () => {
       cancelAnimationFrame(raf);
       window.removeEventListener('resize', resize);
+      window.removeEventListener('dan:item-equipped', onThemeChange);
     };
   }, []);
 
