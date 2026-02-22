@@ -1,5 +1,25 @@
 import { useEffect } from 'react';
 
+const CURSOR_PALETTES = {
+  default:        () => Math.random() > 0.5 ? '#00e5ff' : '#ff00ff',
+  cursor_cyan:    () => Math.random() > 0.4 ? '#00e5ff' : '#00bcd4',
+  cursor_green:   () => Math.random() > 0.4 ? '#39ff14' : '#00ff88',
+  cursor_gold:    () => Math.random() > 0.4 ? '#ffd700' : '#ffaa00',
+  cursor_rainbow: () => `hsl(${Math.random() * 360},100%,60%)`,
+};
+
+function getColor() {
+  try {
+    const equipped  = JSON.parse(localStorage.getItem('space-dan-shop-equipped') || '{}');
+    const purchased = JSON.parse(localStorage.getItem('space-dan-shop-purchased') || '[]');
+    const theme = equipped.cursor;
+    if (theme && purchased.includes(theme) && CURSOR_PALETTES[theme]) {
+      return CURSOR_PALETTES[theme]();
+    }
+  } catch {}
+  return CURSOR_PALETTES.default();
+}
+
 export default function CursorTrail() {
   useEffect(() => {
     let last = 0;
@@ -9,9 +29,8 @@ export default function CursorTrail() {
       if (now - last < 25) return; // ~40 particles/sec max
       last = now;
 
-      const size = 5 + Math.random() * 7;
-      const cyan = Math.random() > 0.5;
-      const color = cyan ? '#00e5ff' : '#ff00ff';
+      const size  = 5 + Math.random() * 7;
+      const color = getColor();
       const tx = (Math.random() - 0.5) * 20;
       const ty = -(8 + Math.random() * 14);
 
