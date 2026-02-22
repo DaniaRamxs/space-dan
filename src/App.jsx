@@ -21,6 +21,7 @@ const DreamscapePage = lazy(() => import("./pages/DreamscapePage"));
 const TimeCapsulePage = lazy(() => import("./pages/TimeCapsulePage"));
 const GuestbookPage = lazy(() => import("./pages/GuestbookPage"));
 const ArquitecturaPage = lazy(() => import("./pages/ArquitecturaPage"));
+const ProjectsPage = lazy(() => import("./pages/ProjectsPage"));
 
 // Un indicador de carga temporal mientras baja el chunk de JS
 function FallbackLoader() {
@@ -114,6 +115,11 @@ export default function App() {
           <Route path="/arquitectura" element={
             <GardenLayout>
               <Suspense fallback={null}><ArquitecturaPage /></Suspense>
+            </GardenLayout>
+          } />
+          <Route path="/proyectos" element={
+            <GardenLayout>
+              <Suspense fallback={null}><ProjectsPage /></Suspense>
             </GardenLayout>
           } />
 
