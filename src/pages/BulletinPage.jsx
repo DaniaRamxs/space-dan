@@ -41,7 +41,12 @@ const bulletinPosts = [
   { id: 37, date: "2026-02-21", title: "Página de arquitectura",   text: "Nueva sección /arquitectura mostrando el stack completo, árbol de componentes, decisiones técnicas y proceso de desarrollo.", tags: ["update"] },
   { id: 38, date: "2026-02-22", title: "Estrellas de la tienda",   text: "Los temas de estrellas comprados en la tienda ahora cambian el color del fondo estelar en tiempo real. Azul, verde o rojo.", tags: ["update", "gamificación", "diseño"] },
   { id: 39, date: "2026-02-22", title: "Fix: screensaver",         text: "Corregido un bug donde el screensaver se activaba y se cerraba solo inmediatamente por un problema de stale closure en React.", tags: ["fix"] },
-  { id: 40, date: "2026-02-22", title: "Mejoras móvil en tienda",  text: "Las tarjetas de la tienda ahora tienen layout horizontal en móviles y botones más grandes para el tacto.", tags: ["update", "mobile"] },
+  { id: 40, date: "2026-02-22", title: "Mejoras móvil en tienda",   text: "Las tarjetas de la tienda ahora tienen layout horizontal en móviles y botones más grandes para el tacto.", tags: ["update", "mobile"] },
+  { id: 41, date: "2026-02-22", title: "OS Desktop mejorado",       text: "Añadí calculadora funcional, bloc de notas, player WinAmp y +15 comandos de terminal al escritorio /desktop. También: comando open [app] para abrir ventanas desde la terminal.", tags: ["update", "interactivo"] },
+  { id: 42, date: "2026-02-22", title: "OS Desktop en móvil",       text: "El escritorio es ahora 100% táctil: íconos en grid, doble-tap para abrir ventanas, calc con botones grandes, terminal y notepad sin zoom iOS, botón APPS en taskbar.", tags: ["update", "mobile", "interactivo"] },
+  { id: 43, date: "2026-02-22", title: "Fix: barra de tareas iOS",  text: "La barra de tareas del OS no aparecía en Safari iOS. Causa: 100vh incluye el chrome del browser + overflow:hidden la recortaba. Fix: 100dvh + env(safe-area-inset-bottom).", tags: ["fix", "mobile"] },
+  { id: 44, date: "2026-02-22", title: "Deploy: Netlify → Vercel",  text: "Migré el proyecto a Vercel y añadí vercel.json con rewrite catch-all. Las rutas de React Router ya no dan 404 al recargar o entrar directamente a /about, /games, etc.", tags: ["update", "performance"] },
+  { id: 45, date: "2026-02-22", title: "4 nuevos logros del OS",    text: "Nuevos achievements del escritorio: Usuario del OS, Hacker (usar la terminal), Multitarea (abrir 5 ventanas a la vez) y Dev Mode (usar la calculadora).", tags: ["update", "gamificación"] },
 ];
 
 const PAGE_SIZE = 8;

@@ -2945,6 +2945,11 @@ textarea,
   white-space: nowrap;
 }
 
+/* Botón APPS — solo visible en móvil */
+.osAppsBtn {
+  display: none;
+}
+
 .osStartBtn:hover,
 .osStartBtn.active {
   background: #e0e0e0;
@@ -3618,6 +3623,23 @@ textarea,
   .osStartMenuItem {
     font-size: 13px;
     padding: 7px 12px;
+  }
+
+  /* Botón APPS visible en móvil */
+  .osAppsBtn {
+    display: flex;
+    align-items: center;
+    background: #c0c0c0;
+    border-top: 2px solid #fff;
+    border-left: 2px solid #fff;
+    border-right: 2px solid #808080;
+    border-bottom: 2px solid #808080;
+    color: #000;
+    font-size: 11px;
+    cursor: pointer;
+    font-family: inherit;
+    padding: 2px 7px;
+    white-space: nowrap;
   }
 
   /* Dreamscape Mobile Text Display */

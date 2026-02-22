@@ -18,8 +18,12 @@ export const ACHIEVEMENTS = [
   { id: 'secret_finder',   icon: '🔮', title: 'Secreto Desvelado',   desc: 'Encuentra la página secreta',                   coins: 100 },
   { id: 'shopper',         icon: '🛍️', title: 'De Compras',          desc: 'Compra algo en la tienda',                      coins: 25  },
   { id: 'rich',            icon: '💰', title: 'Dan-Rico/a',          desc: 'Acumula 500 Dancoins',                          coins: 0   },
-  { id: 'five_achievements',icon: '🎖️','title': 'Coleccionista',     desc: 'Desbloquea 5 logros',                           coins: 60  },
-  { id: 'all_achievements', icon: '👑', title: 'Leyenda',             desc: 'Desbloquea todos los logros',                   coins: 500 },
+  { id: 'os_user',          icon: '🖥️', title: 'Usuario del OS',      desc: 'Abre una ventana en el OS Desktop',              coins: 20  },
+  { id: 'os_hacker',        icon: '💀', title: 'Hacker',              desc: 'Escribe un comando en la terminal del OS',        coins: 30  },
+  { id: 'os_multitask',     icon: '🪟', title: 'Multitarea',          desc: 'Abre 5 ventanas a la vez en el OS',               coins: 50  },
+  { id: 'os_dev',           icon: '🧮', title: 'Dev Mode',            desc: 'Usa la calculadora del OS',                       coins: 15  },
+  { id: 'five_achievements',icon: '🎖️', title: 'Coleccionista',       desc: 'Desbloquea 5 logros',                             coins: 60  },
+  { id: 'all_achievements', icon: '👑', title: 'Leyenda',             desc: 'Desbloquea todos los logros',                     coins: 500 },
 ];
 
 const ALL_IDS = ACHIEVEMENTS.map(a => a.id);
