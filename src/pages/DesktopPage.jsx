@@ -25,25 +25,30 @@ function TerminalWindow() {
 
         if (c === 'help') {
             out = [
-                '  help     — muestra este mensaje',
-                '  ls       — lista archivos del escritorio',
-                '  about    — sobre mí',
-                '  date     — fecha y hora actual',
-                '  whoami   — identidad del usuario',
-                '  skills   — stack técnico',
-                '  clear    — limpia la pantalla',
+                '  help       — muestra este mensaje',
+                '  ls         — lista archivos del escritorio',
+                '  about      — sobre mí',
+                '  date       — fecha y hora actual',
+                '  whoami     — identidad del usuario',
+                '  skills     — stack técnico completo',
+                '  projects   — proyectos destacados',
+                '  github     — perfil de GitHub',
+                '  contact    — cómo contactarme',
+                '  clear      — limpia la pantalla',
             ];
         } else if (c === 'ls' || c === 'dir') {
             out = [
                 '  README.txt      Posts.dir       Arcade.exe',
                 '  WinAmp.m3u      CLASSIFIED.log  Chat.exe',
                 '  Guestbook.db    SysInfo.exe     Terminal.exe',
+                '  Proyectos.dir   GitHub.lnk',
             ];
         } else if (c === 'about') {
             out = [
                 '  Hola! Soy Dan.',
                 '  Desarrolladora frontend y creadora de cosas raras.',
                 '  Este OS está hecho con React, CSS y mucho café.',
+                '  Escribe "skills" o "projects" para ver más.',
             ];
         } else if (c === 'date') {
             out = ['  ' + new Date().toLocaleString('es-PE', { dateStyle: 'full', timeStyle: 'short' })];
@@ -51,9 +56,46 @@ function TerminalWindow() {
             out = ['  dan@space-dan — acceso root concedido.'];
         } else if (c === 'skills') {
             out = [
+                '  ── Frontend ──────────────────────────────',
                 '  React 19 · Vite 7 · React Router 7',
-                '  Tailwind CSS · CSS custom (3300+ líneas)',
-                '  Supabase · JavaScript · Git',
+                '  JavaScript (ES2024) · HTML5 · CSS3',
+                '  Tailwind CSS · CSS custom (4200+ líneas)',
+                '  Web Audio API · Canvas API · SVG',
+                '  ── Backend / DB ──────────────────────────',
+                '  Supabase (PostgreSQL + Realtime)',
+                '  REST APIs · Fetch · LocalStorage',
+                '  ── Tools ─────────────────────────────────',
+                '  Git · GitHub · Netlify · Vite · ESLint',
+                '  React Lazy · Code Splitting · Suspense',
+            ];
+        } else if (c === 'projects') {
+            out = [
+                '  ── Proyectos ─────────────────────────────',
+                '  space-dan       → portafolio interactivo Y2K',
+                '    Tech: React 19, Vite, Tailwind, Supabase',
+                '    Features: 23 juegos, guestbook RT, OS desktop',
+                '    GitHub: github.com/DaniaRamxs/space-dan',
+                '  ──────────────────────────────────────────',
+                '  mini-games-engine → motor de juegos Canvas 2D',
+                '    Tech: JavaScript, Canvas API, HTML5',
+                '  ──────────────────────────────────────────',
+                '  Más en: /proyectos',
+            ];
+        } else if (c === 'github') {
+            out = [
+                '  ── GitHub ────────────────────────────────',
+                '  Usuario: @DaniaRamxs',
+                '  URL:     github.com/DaniaRamxs',
+                '  ──────────────────────────────────────────',
+                '  Para ver stats completos abre /proyectos',
+            ];
+        } else if (c === 'contact') {
+            out = [
+                '  ── Contacto ──────────────────────────────',
+                '  GitHub:    github.com/DaniaRamxs',
+                '  Guestbook: /guestbook  (deja un mensaje!)',
+                '  ──────────────────────────────────────────',
+                '  No tengo email público por ahora. 🌸',
             ];
         } else if (c === 'clear') {
             setLines(['> DAN-OS Terminal v1.0', '> Escribe "help" para ver comandos disponibles.', '']);
@@ -413,6 +455,7 @@ const START_LINKS = [
     { icon: '📺', label: 'Watchlist', to: '/watchlist' },
     { icon: '⏳', label: 'Time Capsule', to: '/timecapsule' },
     { icon: '📖', label: 'Guestbook', to: '/guestbook' },
+    { icon: '💻', label: 'Proyectos', to: '/proyectos' },
     { icon: '🏗️', label: 'Arquitectura', to: '/arquitectura' },
 ];
 
