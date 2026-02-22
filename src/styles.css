@@ -2682,7 +2682,8 @@ textarea,
   position: fixed;
   inset: 0;
   width: 100vw;
-  height: 100vh;
+  height: 100vh;        /* fallback */
+  height: 100dvh;       /* iOS Safari: dynamic viewport (excluye chrome del browser) */
   background: #000;
   overflow: hidden;
   font-family: 'Courier New', Courier, monospace;
@@ -2825,6 +2826,7 @@ textarea,
   align-items: center;
   justify-content: space-between;
   padding: 0 5px;
+  padding-bottom: env(safe-area-inset-bottom, 0); /* iPhone home indicator */
   z-index: 900;
   color: #000;
 }

@@ -932,7 +932,7 @@ export default function DesktopPage() {
             )}
 
             <div className="osTaskbar">
-                <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+                <div style={{ display: 'flex', gap: '4px', alignItems: 'center', flex: 1, minWidth: 0, overflow: 'hidden' }}>
                     <button
                         className={`osStartBtn${startOpen ? ' active' : ''}`}
                         onClick={() => { setStartOpen(o => !o); setCtxMenu(null); }}
