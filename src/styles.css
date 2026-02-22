@@ -5166,6 +5166,53 @@ textarea,
 .osWinAmpTrackName { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .osWinAmpTrackDur  { flex-shrink: 0; font-family: monospace; opacity: 0.7; }
 
+/* ── OS Apps — Mobile ─────────────────────────────────────────── */
+@media (max-width: 600px) {
+  /* Terminal: quitar max-height fijo, dejar que flex lo maneje */
+  .osTermLines {
+    max-height: none;
+    flex: 1;
+    min-height: 0;
+  }
+  /* ≥16px previene el auto-zoom de iOS en inputs */
+  .osTermInput {
+    font-size: 16px;
+  }
+
+  /* Calc: botones con mayor área táctil */
+  .osCalcBtn {
+    padding: 13px 6px;
+    font-size: 15px;
+  }
+  .osCalcNum {
+    font-size: 22px;
+  }
+
+  /* Notepad: ≥16px evita el zoom de iOS al enfocar el textarea */
+  .osNotepadArea {
+    font-size: 16px;
+    min-height: 120px;
+  }
+
+  /* WinAmp: portada más compacta, controles táctiles */
+  .osWinAmpCover {
+    width: 54px;
+    height: 54px;
+  }
+  .osWinAmpBtn {
+    padding: 7px 12px;
+    font-size: 16px;
+  }
+  .osWinAmpBtnMain {
+    padding: 8px 18px;
+    font-size: 18px;
+  }
+  .osWinAmpTrack {
+    padding: 9px 10px;
+    font-size: 12px;
+  }
+}
+
 /* ── Achievement Toast ─────────────────────────────────────────── */
 .achievementToast {
   position: fixed;

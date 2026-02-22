@@ -241,9 +241,11 @@ function TerminalWindow() {
                     value={input}
                     onChange={e => setInput(e.target.value)}
                     onKeyDown={handleKey}
-                    autoFocus
+                    autoFocus={window.innerWidth >= 600}
                     spellCheck={false}
                     autoComplete="off"
+                    autoCapitalize="off"
+                    autoCorrect="off"
                 />
             </div>
         </div>
@@ -339,6 +341,8 @@ function NotepadWindow() {
                 onChange={e => setText(e.target.value)}
                 placeholder="escribe aquí..."
                 spellCheck={false}
+                autoCapitalize="off"
+                autoCorrect="off"
             />
             <div className="osNotepadStatus">{text.length} chars · {words} palabras</div>
         </div>
