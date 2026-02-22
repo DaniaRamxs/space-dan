@@ -663,6 +663,8 @@ function DraggableWindow({ type, title, icon, initialPos, isActive, isMinimized,
         default:   { width: 300, height: 200 },
     };
     const size = WIN_SIZES[type] || WIN_SIZES.default;
+    const isMobile = window.innerWidth < 600;
+    const effectiveWidth = isMobile ? Math.min(size.width, window.innerWidth - 16) : size.width;
 
     return (
         <div
@@ -672,7 +674,7 @@ function DraggableWindow({ type, title, icon, initialPos, isActive, isMinimized,
                 left: pos.x, top: pos.y,
                 position: 'absolute',
                 zIndex: isActive ? 200 : 10,
-                width: size.width,
+                width: effectiveWidth,
                 minHeight: size.height,
                 boxShadow: isActive
                     ? '0 0 0 1px #0000ff, 4px 4px 0 rgba(0,0,0,0.5)'
@@ -813,6 +815,18 @@ export default function DesktopPage() {
     const [startOpen, setStartOpen]   = useState(false);
     const [ctxMenu, setCtxMenu]       = useState(null);
     const [clock, setClock]           = useState('');
+    const lastTap = useRef({});
+
+    // Funciona con doble clic (escritorio) y doble tap (móvil)
+    const handleIconActivate = (id) => {
+        const now = Date.now();
+        const prev = lastTap.current[id] || 0;
+        lastTap.current[id] = now;
+        if (now - prev < 400) {
+            openWindow(id);
+            lastTap.current[id] = 0;
+        }
+    };
 
     useEffect(() => {
         const update = () =>
@@ -871,9 +885,8 @@ export default function DesktopPage() {
                     <div
                         key={id}
                         className="osIcon"
-                        onDoubleClick={() => openWindow(id)}
-                        onClick={() => {}}
-                        title={`Doble clic para abrir ${label}`}
+                        onClick={() => handleIconActivate(id)}
+                        title={`Doble clic / doble tap para abrir ${label}`}
                     >
                         <div className="osIconImg">{icon}</div>
                         <div className="osIconLabel">{label}</div>
@@ -889,7 +902,11 @@ export default function DesktopPage() {
                         type={win.id}
                         title={meta.title}
                         icon={meta.icon}
-                        initialPos={INITIAL_POSITIONS[win.id] || { x: 80, y: 80 }}
+                        initialPos={
+                        window.innerWidth < 600
+                            ? { x: 8, y: 8 }
+                            : (INITIAL_POSITIONS[win.id] || { x: 80, y: 80 })
+                    }
                         isActive={activeWindow === win.id}
                         isMinimized={win.minimized}
                         onFocus={() => setActive(win.id)}

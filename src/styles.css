@@ -3554,13 +3554,68 @@ textarea,
    ========================================================== */
 @media (max-width: 768px) {
 
-  /* Desktop */
-  .osWindow {
-    max-width: 90vw;
+  /* ── OS Desktop ── */
+  .osIcons {
+    flex-direction: row !important;
+    flex-wrap: wrap;
+    top: 8px;
+    left: 8px;
+    right: 8px;
+    gap: 8px;
+    max-height: 42vh;
+    overflow-y: auto;
   }
 
-  .osIcons {
-    gap: 15px;
+  .osIcon {
+    width: 58px;
+  }
+
+  .osIconImg {
+    font-size: 22px;
+  }
+
+  .osIconLabel {
+    font-size: 9px;
+  }
+
+  .osWindow {
+    max-width: calc(100vw - 16px) !important;
+    max-height: calc(100vh - 60px) !important;
+  }
+
+  .osWindowContent {
+    overflow: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .osTaskbarOpenApps {
+    flex: 1;
+    min-width: 0;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .osTaskItem {
+    max-width: 72px;
+    font-size: 9px;
+    padding: 2px 5px;
+  }
+
+  .osStartMenu {
+    width: min(200px, 86vw);
+    max-height: calc(100vh - 55px);
+    overflow-y: auto;
+  }
+
+  .osStartMenuHeader {
+    height: 70px;
+    font-size: 14px;
+    padding: 8px;
+  }
+
+  .osStartMenuItem {
+    font-size: 13px;
+    padding: 7px 12px;
   }
 
   /* Dreamscape Mobile Text Display */
