@@ -3,10 +3,11 @@ import { useEffect, useRef } from 'react';
 const STAR_COUNT = 180;
 
 const STAR_THEMES = {
-  default:     { r: 255, g: 255, b: 255, neon: ['255,0,255', '0,229,255'] },
-  stars_blue:  { r: 100, g: 180, b: 255, neon: ['0,200,255', '0,150,255'] },
-  stars_green: { r: 100, g: 255, b: 130, neon: ['57,255,20', '0,255,136'] },
-  stars_red:   { r: 255, g: 120, b: 80,  neon: ['255,80,30', '255,200,0'] },
+  default:       { r: 255, g: 255, b: 255, neon: ['255,0,255', '0,229,255'] },
+  stars_blue:    { r: 100, g: 180, b: 255, neon: ['0,200,255', '0,150,255'] },
+  stars_green:   { r: 100, g: 255, b: 130, neon: ['57,255,20', '0,255,136'] },
+  stars_red:     { r: 255, g: 120, b: 80,  neon: ['255,80,30', '255,200,0'] },
+  stars_purple:  { r: 180, g: 100, b: 255, neon: ['180,0,255', '120,80,255'] },
 };
 
 function getStarTheme() {

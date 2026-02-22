@@ -15,9 +15,9 @@ const CATEGORIES = [
 
 export default function ShopPage() {
   const { coins, claimDailyBonus, canClaimDaily } = useDancoins();
-  const { hasPurchased, equip, getEquipped }       = useShopItems();
-  const [activeCategory, setActiveCategory]        = useState('all');
-  const [flash, setFlash]                          = useState(null);
+  const { hasPurchased, equip, unequip, getEquipped } = useShopItems();
+  const [activeCategory, setActiveCategory]          = useState('all');
+  const [flash, setFlash]                            = useState(null);
 
   useEffect(() => {
     trackPageVisit('/tienda');
@@ -25,39 +25,49 @@ export default function ShopPage() {
     if (h >= 0 && h < 5) unlockAchievement('night_owl');
   }, []);
 
-  // Check rich achievement
   useEffect(() => {
     if (coins >= 500) unlockAchievement('rich');
   }, [coins]);
 
+  const showFlash = (msg, ok) => {
+    setFlash({ msg, ok });
+    setTimeout(() => setFlash(null), 2500);
+  };
+
   const handleBuy = (item) => {
     if (hasPurchased(item.id)) {
       equip(item.category, item.id);
-      setFlash({ msg: `¡${item.title} equipado!`, ok: true });
+      showFlash(`¡${item.title} equipado!`, true);
     } else {
       const ok = purchaseItem(item.id);
       if (ok) {
         equip(item.category, item.id);
-        setFlash({ msg: `¡${item.title} comprado y equipado!`, ok: true });
+        showFlash(`¡${item.title} comprado y equipado!`, true);
       } else {
-        setFlash({ msg: coins < item.price ? 'Dancoins insuficientes' : 'Error al comprar', ok: false });
+        showFlash(coins < item.price ? 'Dancoins insuficientes' : 'Error al comprar', false);
       }
     }
-    setTimeout(() => setFlash(null), 2500);
+  };
+
+  const handleUnequip = (item) => {
+    unequip(item.category);
+    showFlash(`${item.title} desequipado`, true);
   };
 
   const handleDaily = () => {
     const claimed = claimDailyBonus();
-    setFlash(claimed
-      ? { msg: '¡+30 Dancoins! Bonus diario reclamado', ok: true }
-      : { msg: 'Ya reclamaste el bonus de hoy', ok: false }
+    showFlash(
+      claimed ? '¡+30 Dancoins! Bonus diario reclamado' : 'Ya reclamaste el bonus de hoy',
+      claimed
     );
-    setTimeout(() => setFlash(null), 2500);
   };
 
   const filtered = activeCategory === 'all'
     ? SHOP_ITEMS
     : SHOP_ITEMS.filter(i => i.category === activeCategory);
+
+  // Equipped summary — all currently equipped items
+  const equippedSummary = SHOP_ITEMS.filter(item => getEquipped(item.category) === item.id);
 
   return (
     <div className="shopPage">
@@ -75,6 +85,22 @@ export default function ShopPage() {
 
       {flash && (
         <div className={`shopFlash${flash.ok ? ' ok' : ' err'}`}>{flash.msg}</div>
+      )}
+
+      {equippedSummary.length > 0 && (
+        <div className="shopEquippedBar">
+          <span className="shopEquippedBarLabel">Equipado:</span>
+          {equippedSummary.map(item => (
+            <span key={item.id} className="shopEquippedBarItem">
+              {item.icon} {item.title}
+              <button
+                className="shopUnequipBtn"
+                title="Desequipar"
+                onClick={() => handleUnequip(item)}
+              >✕</button>
+            </span>
+          ))}
+        </div>
       )}
 
       <div className="shopHint">
@@ -101,9 +127,9 @@ export default function ShopPage() {
 
       <div className="shopGrid">
         {filtered.map(item => {
-          const owned    = hasPurchased(item.id);
+          const owned      = hasPurchased(item.id);
           const isEquipped = getEquipped(item.category) === item.id;
-          const canAfford = coins >= item.price;
+          const canAfford  = coins >= item.price;
 
           return (
             <div key={item.id} className={`shopCard${owned ? ' owned' : ''}${isEquipped ? ' equipped' : ''}`}>
@@ -111,23 +137,40 @@ export default function ShopPage() {
               <div className="shopCardBody">
                 <div className="shopCardTitle">{item.title}</div>
                 <div className="shopCardDesc">{item.desc}</div>
+                {item.swatch && (
+                  <div className="shopCardSwatches">
+                    {item.swatch.map(c => (
+                      <span key={c} className="shopCardSwatch" style={{ background: c }} />
+                    ))}
+                  </div>
+                )}
                 <div className="shopCardCategory">{item.category}</div>
               </div>
               <div className="shopCardFooter">
-                {isEquipped
-                  ? <span className="shopEquippedBadge">✓ Equipado</span>
-                  : owned
-                    ? <button className="shopBuyBtn secondary" onClick={() => handleBuy(item)}>Equipar</button>
-                    : (
-                      <button
-                        className={`shopBuyBtn${canAfford ? '' : ' disabled'}`}
-                        onClick={() => handleBuy(item)}
-                        disabled={!canAfford}
-                      >
-                        ◈ {item.price}
-                      </button>
-                    )
-                }
+                {isEquipped ? (
+                  <div className="shopEquippedState">
+                    <span className="shopEquippedBadge">✓ Equipado</span>
+                    <button
+                      className="shopUnequipCardBtn"
+                      onClick={() => handleUnequip(item)}
+                    >desequipar</button>
+                  </div>
+                ) : owned ? (
+                  <button className="shopBuyBtn secondary" onClick={() => handleBuy(item)}>Equipar</button>
+                ) : (
+                  <>
+                    <button
+                      className={`shopBuyBtn${canAfford ? '' : ' disabled'}`}
+                      onClick={() => handleBuy(item)}
+                      disabled={!canAfford}
+                    >
+                      ◈ {item.price}
+                    </button>
+                    {!canAfford && (
+                      <div className="shopShortfall">Te faltan {item.price - coins} ◈</div>
+                    )}
+                  </>
+                )}
               </div>
             </div>
           );

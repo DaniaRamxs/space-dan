@@ -6,18 +6,21 @@ const EQUIPPED_KEY = 'space-dan-shop-equipped';
 
 export const SHOP_ITEMS = [
   // ── Cursor trails ──────────────────────────────────────────────
-  { id: 'cursor_cyan',    category: 'cursor',      title: 'Trail Cian',       desc: 'Partículas cian eléctrico',        price: 50,  icon: '💠' },
-  { id: 'cursor_green',   category: 'cursor',      title: 'Trail Matrix',     desc: 'Partículas verde hacker',          price: 75,  icon: '💚' },
-  { id: 'cursor_gold',    category: 'cursor',      title: 'Trail Dorado',     desc: 'Partículas dorado exclusivo',      price: 100, icon: '✨' },
-  { id: 'cursor_rainbow', category: 'cursor',      title: 'Trail Arcoíris',   desc: 'Todos los colores a la vez',       price: 200, icon: '🌈' },
+  { id: 'cursor_cyan',    category: 'cursor',      title: 'Trail Cian',       desc: 'Partículas cian eléctrico',        price: 50,  icon: '💠', swatch: ['#00e5ff', '#00bcd4'] },
+  { id: 'cursor_green',   category: 'cursor',      title: 'Trail Matrix',     desc: 'Partículas verde hacker',          price: 75,  icon: '💚', swatch: ['#39ff14', '#00ff88'] },
+  { id: 'cursor_gold',    category: 'cursor',      title: 'Trail Dorado',     desc: 'Partículas dorado exclusivo',      price: 100, icon: '✨', swatch: ['#ffd700', '#ffaa00'] },
+  { id: 'cursor_rainbow', category: 'cursor',      title: 'Trail Arcoíris',   desc: 'Todos los colores a la vez',       price: 200, icon: '🌈', swatch: ['#ff3366', '#ffa500', '#ffff00', '#00ff88', '#00e5ff', '#b464ff'] },
+  { id: 'cursor_pink',    category: 'cursor',      title: 'Trail Magenta',    desc: 'Partículas rosa eléctrico',        price: 60,  icon: '🩷', swatch: ['#ff69b4', '#ff1493'] },
+  { id: 'cursor_white',   category: 'cursor',      title: 'Trail Blanco',     desc: 'Partículas blanco puro y suave',   price: 45,  icon: '🤍', swatch: ['#f0f0f0', '#c0c0c0'] },
   // ── Screensavers ───────────────────────────────────────────────
   { id: 'saver_matrix',   category: 'screensaver', title: 'Matrix Rain',      desc: 'Lluvia de código verde',           price: 100, icon: '🟩' },
   { id: 'saver_dvd',      category: 'screensaver', title: 'DVD Bounce',       desc: 'Logo clásico rebotando',           price: 80,  icon: '📀' },
   { id: 'saver_pipes',    category: 'screensaver', title: 'Tuberías 3D',      desc: 'Clásico Windows 95/98',            price: 120, icon: '🔧' },
   // ── Estrellas ──────────────────────────────────────────────────
-  { id: 'stars_blue',     category: 'stars',       title: 'Nebulosa Azul',    desc: 'Cambia el fondo estelar a azul profundo',   price: 80,  icon: '🔵' },
-  { id: 'stars_green',    category: 'stars',       title: 'Estrellas Matrix', desc: 'Cambia el fondo estelar a verde hacker',    price: 80,  icon: '🟢' },
-  { id: 'stars_red',      category: 'stars',       title: 'Inferno Stars',    desc: 'Cambia el fondo estelar a rojo carmesí',    price: 80,  icon: '🔴' },
+  { id: 'stars_blue',     category: 'stars',       title: 'Nebulosa Azul',    desc: 'Cambia el fondo estelar a azul profundo',      price: 80,  icon: '🔵', swatch: ['#64b4ff', '#0096ff'] },
+  { id: 'stars_green',    category: 'stars',       title: 'Estrellas Matrix', desc: 'Cambia el fondo estelar a verde hacker',        price: 80,  icon: '🟢', swatch: ['#64ff82', '#00ff88'] },
+  { id: 'stars_red',      category: 'stars',       title: 'Inferno Stars',    desc: 'Cambia el fondo estelar a rojo carmesí',        price: 80,  icon: '🔴', swatch: ['#ff7850', '#ff3300'] },
+  { id: 'stars_purple',   category: 'stars',       title: 'Nebulosa Púrpura', desc: 'Cambia el fondo estelar a púrpura cósmico',     price: 80,  icon: '🟣', swatch: ['#b464ff', '#8800ff'] },
   // ── Radio stations ─────────────────────────────────────────────
   { id: 'radio_jcore',    category: 'radio',       title: 'J-Core Station',   desc: 'Anime beats y J-pop',              price: 50,  icon: '🎌' },
   { id: 'radio_groove',   category: 'radio',       title: 'Groove Salad',     desc: 'Ambient electronica relajante',    price: 50,  icon: '🥗' },
@@ -29,6 +32,8 @@ export const CURSOR_COLORS = {
   cursor_green:   { a: '#39ff14', b: '#00ff88' },
   cursor_gold:    { a: '#ffd700', b: '#ffaa00' },
   cursor_rainbow: null, // handled separately
+  cursor_pink:    { a: '#ff69b4', b: '#ff1493' },
+  cursor_white:   { a: '#f0f0f0', b: '#c0c0c0' },
 };
 
 function loadPurchased() {
@@ -94,7 +99,15 @@ export default function useShopItems() {
     window.dispatchEvent(new CustomEvent('dan:item-equipped', { detail: { category, itemId } }));
   }, []);
 
+  const unequip = useCallback((category) => {
+    const current = loadEquipped();
+    const { [category]: _removed, ...rest } = current;
+    localStorage.setItem(EQUIPPED_KEY, JSON.stringify(rest));
+    setEquipped(rest);
+    window.dispatchEvent(new CustomEvent('dan:item-equipped', { detail: { category, itemId: null } }));
+  }, []);
+
   const getEquipped = useCallback((category) => equipped[category] || null, [equipped]);
 
-  return { shopItems: SHOP_ITEMS, purchased, hasPurchased, equip, getEquipped };
+  return { shopItems: SHOP_ITEMS, purchased, hasPurchased, equip, unequip, getEquipped };
 }
