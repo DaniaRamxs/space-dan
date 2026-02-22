@@ -5401,6 +5401,28 @@ textarea,
   to   { opacity: 1; transform: translateY(0)   scale(1);   }
 }
 
+/* ── Game scaler (mobile responsive) ──────────────────────────── */
+.gameScale { transform-origin: top center; display: inline-block; }
+@media (max-width: 430px) { .gameScale { zoom: 0.88; } }
+@media (max-width: 370px) { .gameScale { zoom: 0.78; } }
+@media (max-width: 320px) { .gameScale { zoom: 0.68; } }
+
+/* ── OS Arcade Window ──────────────────────────────────────────── */
+.osGamesWindow  { display: flex; flex-direction: column; height: 100%; min-height: 0; }
+.osGamesNav     { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-bottom: 1px solid #555; background: #1a1a2e; flex-shrink: 0; }
+.osGamesNavTitle{ font-size: 11px; color: #c0c0c0; }
+.osGamesBackBtn { background: #333; border: 1px solid #555; color: #c0c0c0; font-size: 11px; cursor: pointer; padding: 2px 8px; border-radius: 3px; font-family: inherit; }
+.osGamesBackBtn:hover { background: #444; color: #fff; }
+
+.osGamesList    { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 8px; overflow-y: auto; flex: 1; }
+.osGamesItem    { display: flex; align-items: center; gap: 6px; background: #1a1a2e; border: 1px solid #333; color: #c0c0c0; font-size: 12px; cursor: pointer; padding: 7px 8px; border-radius: 3px; font-family: inherit; text-align: left; transition: background 0.15s, border-color 0.15s; }
+.osGamesItem:hover { background: #000080; border-color: #1084d0; color: #fff; }
+.osGamesItemIcon{ font-size: 16px; flex-shrink: 0; }
+.osGamesItemLabel{ font-size: 11px; line-height: 1.2; }
+
+.osGamesPlay    { flex: 1; overflow: auto; padding: 6px; display: flex; justify-content: center; align-items: flex-start; background: #0a0a0a; }
+.osGamesPlay .gameScale { zoom: 1; } /* reset zoom inside OS window — use overflow instead */
+
 /* ── Last.fm Widget ────────────────────────────────────────────── */
 .lastfmWidget {
   display: flex; align-items: center; gap: 8px;

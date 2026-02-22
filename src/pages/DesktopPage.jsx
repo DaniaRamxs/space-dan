@@ -1,7 +1,37 @@
-import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
+import { useState, useRef, useEffect, useCallback, useMemo, lazy, Suspense } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { MUSIC_PLAYLIST } from '../data/musicPlaylist';
 import { unlockAchievement } from '../hooks/useAchievements';
+import { awardCoins } from '../hooks/useDancoins';
+
+// ─── OS ARCADE — lazy game components ──────────────────────────
+const OSSnake    = lazy(() => import('../components/SnakeGame'));
+const OSTetris   = lazy(() => import('../components/TetrisGame'));
+const OS2048     = lazy(() => import('../components/Game2048'));
+const OSFlappy   = lazy(() => import('../components/FlappyBird'));
+const OSInvaders = lazy(() => import('../components/SpaceInvaders'));
+const OSBreakout = lazy(() => import('../components/Breakout'));
+const OSDino     = lazy(() => import('../components/DinoRunner'));
+const OSWhack    = lazy(() => import('../components/WhackAMole'));
+const OSPong     = lazy(() => import('../components/Pong'));
+const OSMemory   = lazy(() => import('../components/MemoryGame'));
+const OSSimon    = lazy(() => import('../components/SimonSays'));
+const OSCookie   = lazy(() => import('../components/CookieClicker'));
+
+const OS_GAME_LIST = [
+    { id: 'snake',    icon: '🐍', label: 'Snake',         C: OSSnake    },
+    { id: 'tetris',   icon: '🟦', label: 'Tetris',         C: OSTetris   },
+    { id: '2048',     icon: '🔢', label: '2048',            C: OS2048     },
+    { id: 'flappy',   icon: '🐦', label: 'Flappy Bird',   C: OSFlappy   },
+    { id: 'invaders', icon: '👾', label: 'Space Invaders', C: OSInvaders },
+    { id: 'breakout', icon: '🧱', label: 'Breakout',        C: OSBreakout },
+    { id: 'dino',     icon: '🦕', label: 'Dino Runner',   C: OSDino     },
+    { id: 'whack',    icon: '🐭', label: 'Whack-a-Mole',   C: OSWhack    },
+    { id: 'pong',     icon: '🏓', label: 'Pong',            C: OSPong     },
+    { id: 'memory',   icon: '🃏', label: 'Memory',          C: OSMemory   },
+    { id: 'simon',    icon: '🔵', label: 'Simon Says',    C: OSSimon    },
+    { id: 'cookie',   icon: '🍪', label: 'Cookie Clicker', C: OSCookie   },
+];
 
 const fmtTime = (s) => isNaN(s) || !s ? '0:00' : `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
 
@@ -543,6 +573,66 @@ Build:   ✓ stable`}
     );
 }
 
+// ─── OS ARCADE WINDOW ────────────────────────────────────────
+const PLAYED_KEY_OS = 'space-dan-played-games'; // shared with GamesPage
+
+function GamesWindow() {
+    const [gameId, setGameId] = useState(null);
+    const game = OS_GAME_LIST.find(g => g.id === gameId);
+
+    useEffect(() => {
+        const onScore = (e) => {
+            const { isHighScore, score } = e.detail || {};
+            if (isHighScore) unlockAchievement('highscore');
+            const bonus = Math.min(20, Math.floor((score || 0) / 50));
+            if (bonus > 0) awardCoins(bonus);
+        };
+        window.addEventListener('dan:game-score', onScore);
+        return () => window.removeEventListener('dan:game-score', onScore);
+    }, []);
+
+    const openGame = (g) => {
+        try {
+            const played = new Set(JSON.parse(localStorage.getItem(PLAYED_KEY_OS) || '[]'));
+            if (!played.has(g.id)) {
+                played.add(g.id);
+                localStorage.setItem(PLAYED_KEY_OS, JSON.stringify([...played]));
+                awardCoins(5);
+                if (played.size >= 5) unlockAchievement('gamer');
+            }
+        } catch {}
+        setGameId(g.id);
+    };
+
+    const G = game?.C;
+    return (
+        <div className="osGamesWindow">
+            {gameId && G ? (
+                <>
+                    <div className="osGamesNav">
+                        <button className="osGamesBackBtn" onClick={() => setGameId(null)}>← Lista</button>
+                        <span className="osGamesNavTitle">{game.icon} {game.label}</span>
+                    </div>
+                    <div className="osGamesPlay">
+                        <Suspense fallback={<div style={{ padding: '20px', color: '#00ff00', fontSize: 12 }}>cargando_juego...</div>}>
+                            <G />
+                        </Suspense>
+                    </div>
+                </>
+            ) : (
+                <div className="osGamesList">
+                    {OS_GAME_LIST.map(g => (
+                        <button key={g.id} className="osGamesItem" onClick={() => openGame(g)}>
+                            <span className="osGamesItemIcon">{g.icon}</span>
+                            <span className="osGamesItemLabel">{g.label}</span>
+                        </button>
+                    ))}
+                </div>
+            )}
+        </div>
+    );
+}
+
 // ─── WINDOW CONTENT ROUTER ───────────────────────────────────
 function WindowContent({ type }) {
     const navigate = useNavigate();
@@ -582,18 +672,7 @@ Hecho con React, CSS y mucho café.
             );
 
         case 'games':
-            return (
-                <div className="osWindowBody">
-                    <div className="osWinBodyTitle">🕹️ Arcade.exe</div>
-                    <p className="osWinBodyDesc">
-                        24 juegos implementados desde cero:<br />
-                        <span style={{ fontSize: 11, opacity: 0.7 }}>
-                            Snake · Tetris · Flappy Bird · Breakout · 2048 · Asteroids · y más.
-                        </span>
-                    </p>
-                    <NavBtn to="/games" label="Abrir Arcade →" />
-                </div>
-            );
+            return <GamesWindow />;
 
         case 'music':
             return <WinAmpWindow />;
@@ -697,6 +776,7 @@ function DraggableWindow({ type, title, icon, initialPos, isActive, isMinimized,
         calc:      { width: 260, height: 340 },
         notepad:   { width: 380, height: 280 },
         music:     { width: 320, height: 280 },
+        games:     { width: 420, height: 540 },
         default:   { width: 300, height: 200 },
     };
     const size = WIN_SIZES[type] || WIN_SIZES.default;
