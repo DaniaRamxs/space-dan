@@ -5,43 +5,50 @@ const STACK = [
     icon: "⚛️",
     name: "React 19",
     role: "UI Framework",
-    desc: "Componentes funcionales, hooks personalizados, lazy loading por ruta con Suspense para performance óptima.",
+    desc: "Componentes funcionales, hooks personalizados, lazy loading por ruta con Suspense. Sistema de eventos custom para comunicación entre componentes sin prop-drilling.",
     color: "#61dafb",
   },
   {
     icon: "⚡",
     name: "Vite 7",
     role: "Build Tool",
-    desc: "HMR ultrarrápido en desarrollo y bundling con code-splitting automático por ruta en producción.",
+    desc: "HMR ultrarrápido en desarrollo y bundling con code-splitting automático por ruta. Cada página es un chunk JS independiente descargado bajo demanda.",
     color: "#b473f9",
   },
   {
     icon: "🛣️",
     name: "React Router 7",
     role: "Client Routing",
-    desc: "SPA con 16+ rutas. Cada página es un chunk JS independiente cargado bajo demanda.",
+    desc: "SPA con 20 rutas. Navegación instantánea entre páginas sin recarga. Integrado con lazy() para cargar solo el chunk necesario.",
     color: "#f44250",
   },
   {
     icon: "🎨",
-    name: "Tailwind CSS 3",
+    name: "CSS Custom",
     role: "Styling",
-    desc: "Utilidades base + ~3300 líneas de CSS custom para control total del aesthetic dark/neon/glassmorphism.",
+    desc: "~5300 líneas de CSS propio: variables de diseño, glassmorphism, animaciones neon, responsive completo y temas desbloqueables vía localStorage.",
     color: "#38bdf8",
   },
   {
     icon: "🗄️",
     name: "Supabase",
     role: "Backend / DB",
-    desc: "PostgreSQL + realtime subscriptions para el libro de visitas global con actualizaciones en vivo.",
+    desc: "PostgreSQL + realtime subscriptions para el libro de visitas global. Actualizaciones en vivo sin servidor propio.",
     color: "#3ecf8e",
   },
   {
-    icon: "🎭",
-    name: "Lucide React",
-    role: "Icon System",
-    desc: "Sistema de iconos consistente con tree-shaking: solo se importan los íconos usados.",
+    icon: "🎮",
+    name: "Canvas API",
+    role: "Gráficos & Juegos",
+    desc: "24 minijuegos, fondo de estrellas animado, visualizador de audio y 4 screensavers implementados con Canvas 2D y requestAnimationFrame.",
     color: "#fbbf24",
+  },
+  {
+    icon: "🌐",
+    name: "APIs externas",
+    role: "Integraciones",
+    desc: "GitHub API (proyectos y stats), Last.fm API (canción en vivo), CounterAPI (visitas globales) y streams de radio online.",
+    color: "#ff6eb4",
   },
 ];
 
@@ -49,81 +56,94 @@ const DECISIONS = [
   {
     title: "Lazy loading por ruta",
     icon: "🚀",
-    desc: "Cada página es un chunk JS separado. El usuario solo descarga el código de la página que visita, no todo el sitio de golpe.",
+    desc: "Cada página es un chunk JS separado. El usuario descarga solo lo que visita, no el sitio completo. Implementado con React.lazy() + Suspense.",
   },
   {
-    title: "CSS custom sobre Tailwind puro",
+    title: "CSS custom sobre framework",
     icon: "🎨",
-    desc: "Tailwind sirve de base utilitaria, pero el aesthetic neon/glassmorphism requiere control CSS fino: variables, animaciones complejas y keyframes personalizados.",
+    desc: "El aesthetic neon/glassmorphism requiere control CSS fino: variables de diseño, keyframes personalizados y pseudo-elementos. Un framework de utilidades no alcanza para esto.",
   },
   {
     title: "SPA sin SSR",
     icon: "📄",
-    desc: "Sin contenido dinámico crítico para SEO, una SPA estática es suficiente. Netlify sirve el index.html y React Router maneja el resto en el cliente.",
+    desc: "Sin contenido crítico para SEO, una SPA estática es suficiente. Netlify sirve el index.html y React Router maneja el resto en el cliente.",
   },
   {
     title: "Supabase para el guestbook",
     icon: "⚡",
-    desc: "En lugar de un backend propio, Supabase ofrece DB + API REST + realtime WebSockets sin servidores que mantener.",
+    desc: "En lugar de un backend propio, Supabase ofrece DB + API REST + realtime WebSockets sin servidores que mantener ni costos variables.",
   },
   {
-    title: "Componentes de juegos independientes",
-    icon: "🎮",
-    desc: "Cada uno de los 24 juegos es un componente autocontenido con su propio estado. Se montan/desmontan bajo demanda desde GamesPage.",
+    title: "Sistema de gamificación con localStorage",
+    icon: "◈",
+    desc: "Dancoins, logros y tienda viven en localStorage con eventos custom (dan:coins-changed, dan:achievement-unlocked, dan:item-purchased) para sincronizar cualquier componente sin context global.",
   },
   {
-    title: "Starfield y CursorTrail en Canvas",
+    title: "Canvas API para animaciones de fondo",
     icon: "✨",
-    desc: "Las animaciones de fondo y el cursor usan Canvas API con requestAnimationFrame para máximo rendimiento sin impactar el thread de React.",
+    desc: "El starfield, cursor trail y screensavers usan Canvas con requestAnimationFrame. Corren fuera del ciclo de React para no bloquear el thread principal.",
+  },
+  {
+    title: "Componentes de juegos autocontenidos",
+    icon: "🎮",
+    desc: "Cada uno de los 24 juegos es un componente aislado con su propio estado. Se montan/desmontan bajo demanda desde GamesPage sin afectar el resto.",
+  },
+  {
+    title: "Integración Last.fm por polling",
+    icon: "🎧",
+    desc: "El widget de Last.fm consulta la API cada 30 segundos. Sin WebSockets de Spotify directos: requiere que Spotify esté vinculado a Last.fm para el scrobbling.",
   },
 ];
 
 const TIMELINE = [
-  { phase: "01", label: "Base", desc: "Setup Vite + React + Router. Layout principal, sidebar, sistema de rutas." },
-  { phase: "02", label: "Diseño", desc: "Sistema de diseño: paleta neon, glassmorphism, tipografía monospace, animaciones CSS." },
-  { phase: "03", label: "Contenido", desc: "Páginas core: perfil, posts, galería, watchlist, bulletin board." },
-  { phase: "04", label: "Juegos", desc: "24 mini-juegos implementados desde cero: Tetris, Snake, Flappy Bird, Breakout, etc." },
-  { phase: "05", label: "Extras", desc: "OS Desktop draggable, Dreamscape, Time Capsule, easter eggs, Konami code." },
-  { phase: "06", label: "Backend", desc: "Integración Supabase: guestbook global con realtime subscriptions y contador de visitas." },
+  { phase: "01", label: "Base",            desc: "Setup Vite + React + Router. Layout principal, sidebar, sistema de rutas." },
+  { phase: "02", label: "Diseño",          desc: "Sistema de diseño: paleta neon, glassmorphism, tipografía monospace, animaciones CSS, starfield canvas." },
+  { phase: "03", label: "Contenido",       desc: "Páginas core: perfil, posts, galería, watchlist, kinnies, tests, bulletin board." },
+  { phase: "04", label: "Juegos",          desc: "24 minijuegos implementados desde cero con Canvas 2D: Tetris, Snake, Flappy Bird, Breakout, 2048 y más." },
+  { phase: "05", label: "Interactividad",  desc: "OS Desktop draggable, Dreamscape, Time Capsule, easter eggs, Konami code, shoutbox." },
+  { phase: "06", label: "Backend",         desc: "Integración Supabase: guestbook global con realtime. Contador de visitas. GitHub API para proyectos." },
+  { phase: "07", label: "Gamificación",    desc: "Sistema Dancoins + 16 logros + tienda. Radio en vivo, screensaver, Last.fm widget, temas de estrellas desbloqueables." },
 ];
 
 const STATS = [
-  { value: "16+", label: "páginas" },
-  { value: "24", label: "juegos" },
-  { value: "1", label: "DB realtime" },
-  { value: "~3300", label: "líneas CSS" },
-  { value: "6", label: "hooks custom" },
-  { value: "∞", label: "horas de iteración" },
+  { value: "18+",   label: "páginas"           },
+  { value: "24",    label: "juegos"             },
+  { value: "1",     label: "DB realtime"        },
+  { value: "~5300", label: "líneas CSS"         },
+  { value: "6",     label: "hooks custom"       },
+  { value: "16",    label: "logros"             },
 ];
 
-// Árbol de arquitectura de componentes
 const TREE = {
   label: "App.jsx",
   sub: "BrowserRouter + Suspense",
   children: [
-    {
-      label: "Wpage",
-      sub: "Landing page",
-    },
+    { label: "AchievementToast", sub: "Notificaciones logros" },
+    { label: "Screensaver",      sub: "30s inactividad" },
+    { label: "Wpage",            sub: "Landing page" },
     {
       label: "GardenLayout",
       sub: "Shell principal",
       children: [
-        { label: "StarfieldBg", sub: "Canvas animado" },
-        { label: "CursorTrail", sub: "Partículas cursor" },
-        { label: "KonamiEasterEgg", sub: "↑↑↓↓←→←→BA" },
-        { label: "Sidebar", sub: "Nav + visitas" },
-        { label: "Topbar", sub: "Header" },
+        { label: "StarfieldBg",      sub: "Canvas + temas tienda" },
+        { label: "CursorTrail",      sub: "Partículas cursor" },
+        { label: "KonamiEasterEgg",  sub: "↑↑↓↓←→←→BA" },
+        { label: "RadioPlayer",      sub: "Radio en vivo" },
+        { label: "LastFmWidget",     sub: "Sidebar now-playing" },
+        { label: "Sidebar",          sub: "Nav + visitas + Dancoins" },
+        { label: "Topbar",           sub: "Header + hamburger" },
         {
           label: "Pages (lazy)",
-          sub: "16 rutas",
+          sub: "20 rutas",
           children: [
-            { label: "ProfilePage", sub: "Sobre mí" },
-            { label: "GamesPage", sub: "24 juegos" },
-            { label: "GuestbookPage", sub: "→ Supabase" },
-            { label: "PostsPage / PostPage", sub: "Blog" },
-            { label: "DesktopPage", sub: "OS draggable" },
-            { label: "+ 11 páginas más", sub: "" },
+            { label: "ProfilePage",      sub: "+ LastFmNowPlaying" },
+            { label: "GamesPage",        sub: "24 juegos" },
+            { label: "GuestbookPage",    sub: "→ Supabase RT" },
+            { label: "DesktopPage",      sub: "OS draggable" },
+            { label: "ProjectsPage",     sub: "→ GitHub API" },
+            { label: "ShopPage",         sub: "Tienda Dancoins" },
+            { label: "AchievementsPage", sub: "16 logros" },
+            { label: "+ 13 páginas más", sub: "" },
           ],
         },
       ],
@@ -154,7 +174,6 @@ export default function ArquitecturaPage() {
   return (
     <main className="card archPage">
 
-      {/* Header */}
       <div className="pageHeader">
         <h1 style={{ margin: 0 }}>🏗️ Arquitectura</h1>
         <p className="tinyText">cómo está construido este sitio — stack, decisiones y proceso</p>
@@ -187,7 +206,7 @@ export default function ArquitecturaPage() {
         </div>
       </section>
 
-      {/* Diagrama de componentes */}
+      {/* Árbol de componentes */}
       <section className="archSection">
         <h2 className="archSectionTitle">🗺️ Árbol de Componentes</h2>
         <p className="archSectionNote">estructura de la aplicación desde el root hasta las páginas</p>
