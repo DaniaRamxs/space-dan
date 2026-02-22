@@ -1,11 +1,17 @@
 import { useEffect, useState } from 'react';
-import { NavLink, Link } from "react-router-dom";
+import { NavLink, Link, useLocation } from "react-router-dom";
 import CursorTrail from "../components/CursorTrail.jsx";
 import StarfieldBg from "../components/StarfieldBg.jsx";
 import KonamiEasterEgg from "../components/KonamiEasterEgg.jsx";
 
+const PERSONAL_PATHS = ['/kinnies', '/tests', '/universo', '/dreamscape'];
+
 export default function GardenLayout({ children }) {
+  const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [personalOpen, setPersonalOpen] = useState(
+    PERSONAL_PATHS.some(p => location.pathname.startsWith(p))
+  );
 
 
   // Cerrar sidebar al hacer click en un link
@@ -57,16 +63,10 @@ export default function GardenLayout({ children }) {
               ✍️ Posts
             </NavLink>
             <NavLink to="/music" onClick={closeMenu} className={({ isActive }) => "sideLink" + (isActive ? " active" : "")}>
-              🎧 Musica
+              🎧 Música
             </NavLink>
             <NavLink to="/games" onClick={closeMenu} className={({ isActive }) => "sideLink" + (isActive ? " active" : "")}>
               🎮 Juegos
-            </NavLink>
-            <NavLink to="/kinnies" onClick={closeMenu} className={({ isActive }) => "sideLink" + (isActive ? " active" : "")}>
-              🌟 Kinnies
-            </NavLink>
-            <NavLink to="/tests" onClick={closeMenu} className={({ isActive }) => "sideLink" + (isActive ? " active" : "")}>
-              🧪 Tests
             </NavLink>
             <NavLink to="/galeria" onClick={closeMenu} className={({ isActive }) => "sideLink" + (isActive ? " active" : "")}>
               🖼️ Galería
@@ -74,14 +74,8 @@ export default function GardenLayout({ children }) {
             <NavLink to="/watchlist" onClick={closeMenu} className={({ isActive }) => "sideLink" + (isActive ? " active" : "")}>
               📺 Watchlist
             </NavLink>
-            <NavLink to="/universo" onClick={closeMenu} className={({ isActive }) => "sideLink" + (isActive ? " active" : "")}>
-              🌌 Universo
-            </NavLink>
             <NavLink to="/desktop" onClick={closeMenu} className={({ isActive }) => "sideLink" + (isActive ? " active" : "")}>
               💻 OS Desktop
-            </NavLink>
-            <NavLink to="/dreamscape" onClick={closeMenu} className={({ isActive }) => "sideLink" + (isActive ? " active" : "")}>
-              🌙 Dreamscape
             </NavLink>
             <NavLink to="/timecapsule" onClick={closeMenu} className={({ isActive }) => "sideLink" + (isActive ? " active" : "")}>
               ⏳ Time Capsule
@@ -89,6 +83,33 @@ export default function GardenLayout({ children }) {
             <NavLink to="/guestbook" onClick={closeMenu} className={({ isActive }) => "sideLink" + (isActive ? " active" : "")}>
               📖 Libro de Visitas
             </NavLink>
+            <NavLink to="/arquitectura" onClick={closeMenu} className={({ isActive }) => "sideLink" + (isActive ? " active" : "")}>
+              🏗️ Arquitectura
+            </NavLink>
+
+            {/* Submenú Personal */}
+            <button
+              className={`sideLink sideSubmenuToggle${PERSONAL_PATHS.some(p => location.pathname.startsWith(p)) ? ' active' : ''}`}
+              onClick={() => setPersonalOpen(o => !o)}
+              aria-expanded={personalOpen}
+            >
+              <span>✦ Personal</span>
+              <span className={`submenuArrow${personalOpen ? ' open' : ''}`}>▾</span>
+            </button>
+            <div className={`submenuItems${personalOpen ? ' open' : ''}`}>
+              <NavLink to="/kinnies" onClick={closeMenu} className={({ isActive }) => "sideLink submenuLink" + (isActive ? " active" : "")}>
+                🌟 Kinnies
+              </NavLink>
+              <NavLink to="/tests" onClick={closeMenu} className={({ isActive }) => "sideLink submenuLink" + (isActive ? " active" : "")}>
+                🧪 Tests
+              </NavLink>
+              <NavLink to="/universo" onClick={closeMenu} className={({ isActive }) => "sideLink submenuLink" + (isActive ? " active" : "")}>
+                🌌 Universo
+              </NavLink>
+              <NavLink to="/dreamscape" onClick={closeMenu} className={({ isActive }) => "sideLink submenuLink" + (isActive ? " active" : "")}>
+                🌙 Dreamscape
+              </NavLink>
+            </div>
           </nav>
         </aside>
 

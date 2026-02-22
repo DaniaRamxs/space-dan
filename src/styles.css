@@ -1900,6 +1900,7 @@ textarea,
   letter-spacing: 0.01em;
   display: -webkit-box;
   -webkit-line-clamp: 3;
+  line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
@@ -3318,4 +3319,502 @@ textarea,
   line-height: 1.5;
   color: var(--text-soft);
   word-break: break-word;
+}
+
+/* =====================================================
+   SUBMENU PERSONAL (GardenLayout)
+   ===================================================== */
+.sideSubmenuToggle {
+  width: 100%;
+  background: none;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: inherit;
+  padding: 6px 12px;
+}
+
+.submenuArrow {
+  display: inline-block;
+  transition: transform 0.25s ease;
+  font-size: 12px;
+  color: var(--accent);
+  opacity: 0.7;
+}
+
+.submenuArrow.open {
+  transform: rotate(180deg);
+}
+
+.submenuItems {
+  overflow: hidden;
+  max-height: 0;
+  transition: max-height 0.3s ease, opacity 0.3s ease;
+  opacity: 0;
+}
+
+.submenuItems.open {
+  max-height: 200px;
+  opacity: 1;
+}
+
+.submenuLink {
+  padding-left: 24px !important;
+  font-size: 13px !important;
+  opacity: 0.85;
+}
+
+.submenuLink:hover {
+  opacity: 1;
+}
+
+/* =====================================================
+   MUSIC PAGE — COMING SOON
+   ===================================================== */
+.musicComingSoon {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 40px 20px;
+  margin: 20px 0;
+  background: rgba(255, 110, 180, 0.04);
+  border: 1px dashed rgba(255, 110, 180, 0.2);
+  border-radius: 12px;
+  text-align: center;
+}
+
+.musicComingSoonIcon {
+  font-size: 48px;
+  color: var(--accent);
+  opacity: 0.4;
+  animation: pulse 2.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 0.4; transform: scale(1); }
+  50% { opacity: 0.7; transform: scale(1.05); }
+}
+
+.musicComingSoonTitle {
+  font-size: 16px;
+  color: var(--accent);
+  font-weight: 600;
+  letter-spacing: 0.05em;
+}
+
+.musicComingSoonText {
+  font-size: 13px;
+  color: var(--text-soft);
+  max-width: 420px;
+  line-height: 1.6;
+}
+
+/* =====================================================
+   ARQUITECTURA PAGE
+   ===================================================== */
+.archPage {
+  display: flex;
+  flex-direction: column;
+  gap: 36px;
+}
+
+/* Stats bar */
+.archStats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 20px;
+  background: rgba(0, 229, 255, 0.04);
+  border: 1px solid rgba(0, 229, 255, 0.15);
+  border-radius: 12px;
+}
+
+.archStatItem {
+  flex: 1 1 100px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  text-align: center;
+}
+
+.archStatValue {
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--accent2);
+  text-shadow: 0 0 12px rgba(0, 229, 255, 0.5);
+  font-family: ui-monospace, monospace;
+}
+
+.archStatLabel {
+  font-size: 11px;
+  color: var(--text-soft);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+/* Section */
+.archSection {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.archSectionTitle {
+  font-size: 18px;
+  color: var(--accent);
+  margin: 0;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(255, 110, 180, 0.2);
+}
+
+.archSectionNote {
+  font-size: 12px;
+  color: var(--text-soft);
+  margin: -8px 0 0;
+}
+
+/* Stack grid */
+.archStackGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 12px;
+}
+
+.archStackCard {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 16px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-left: 3px solid var(--card-accent, var(--accent));
+  border-radius: 8px;
+  transition: background 0.2s;
+}
+
+.archStackCard:hover {
+  background: rgba(255, 255, 255, 0.055);
+}
+
+.archStackIcon {
+  font-size: 28px;
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+.archStackInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.archStackName {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--card-accent, var(--accent));
+}
+
+.archStackRole {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--text-soft);
+}
+
+.archStackDesc {
+  font-size: 12px;
+  color: var(--text-soft);
+  line-height: 1.55;
+  margin-top: 4px;
+}
+
+/* Component tree */
+.archTreeWrap {
+  padding: 20px;
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 10px;
+  overflow-x: auto;
+  font-family: ui-monospace, monospace;
+}
+
+.archTreeNode {
+  position: relative;
+  padding-left: 20px;
+}
+
+.archTreeNode.depth-0 {
+  padding-left: 0;
+}
+
+.archTreeNode:not(.depth-0)::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: rgba(255, 110, 180, 0.25);
+}
+
+.archTreeLabel {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 5px 0;
+  position: relative;
+}
+
+.archTreeLabel::before {
+  content: '├─';
+  color: rgba(255, 110, 180, 0.4);
+  font-size: 12px;
+  flex-shrink: 0;
+}
+
+.archTreeNode.depth-0 > .archTreeLabel::before {
+  content: '';
+}
+
+.archTreeName {
+  font-size: 13px;
+  color: var(--accent2);
+  font-weight: 600;
+}
+
+.archTreeSub {
+  font-size: 11px;
+  color: var(--text-soft);
+  opacity: 0.7;
+}
+
+.archTreeChildren {
+  margin-left: 12px;
+}
+
+/* Decisions */
+.archDecisionGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 12px;
+}
+
+.archDecisionCard {
+  display: flex;
+  gap: 14px;
+  padding: 16px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 8px;
+  transition: background 0.2s;
+}
+
+.archDecisionCard:hover {
+  background: rgba(255, 255, 255, 0.055);
+}
+
+.archDecisionIcon {
+  font-size: 24px;
+  flex-shrink: 0;
+  line-height: 1.2;
+}
+
+.archDecisionTitle {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 5px;
+}
+
+.archDecisionDesc {
+  font-size: 12px;
+  color: var(--text-soft);
+  line-height: 1.55;
+}
+
+/* Timeline */
+.archTimeline {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding-left: 20px;
+  border-left: 2px solid rgba(255, 110, 180, 0.25);
+}
+
+.archTimelineItem {
+  display: flex;
+  gap: 16px;
+  padding: 14px 0;
+  position: relative;
+}
+
+.archTimelineDot {
+  position: absolute;
+  left: -29px;
+  top: 16px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--bg);
+  border: 2px solid var(--accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.archTimelinePhase {
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--accent);
+  font-family: ui-monospace, monospace;
+}
+
+.archTimelineContent {
+  padding-left: 4px;
+}
+
+.archTimelineLabel {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--accent2);
+  margin-bottom: 4px;
+}
+
+.archTimelineDesc {
+  font-size: 12px;
+  color: var(--text-soft);
+  line-height: 1.55;
+}
+
+/* Móvil — 640px */
+@media (max-width: 640px) {
+  .archStackGrid,
+  .archDecisionGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .archStats {
+    gap: 8px;
+    padding: 14px 12px;
+  }
+
+  .archStatItem {
+    flex: 1 1 80px;
+  }
+
+  .archStatValue {
+    font-size: 20px;
+  }
+
+  .archStatLabel {
+    font-size: 10px;
+  }
+
+  .archSectionTitle {
+    font-size: 15px;
+  }
+
+  .archStackCard {
+    gap: 10px;
+    padding: 12px;
+  }
+
+  .archStackIcon {
+    font-size: 22px;
+  }
+
+  .archStackName {
+    font-size: 13px;
+  }
+
+  .archDecisionCard {
+    gap: 10px;
+    padding: 12px;
+  }
+
+  .archDecisionIcon {
+    font-size: 20px;
+  }
+
+  /* Árbol: scroll horizontal en móvil */
+  .archTreeWrap {
+    padding: 14px 12px;
+    font-size: 12px;
+  }
+
+  .archTreeName {
+    font-size: 12px;
+  }
+
+  .archTreeSub {
+    font-size: 10px;
+  }
+
+  /* Timeline: reducir indent para pantallas angostas */
+  .archTimeline {
+    padding-left: 16px;
+  }
+
+  .archTimelineDot {
+    left: -25px;
+    width: 18px;
+    height: 18px;
+  }
+
+  .archTimelinePhase {
+    font-size: 8px;
+  }
+
+  .archTimelineLabel {
+    font-size: 13px;
+  }
+
+  /* Music coming soon */
+  .musicComingSoon {
+    padding: 28px 16px;
+  }
+
+  .musicComingSoonIcon {
+    font-size: 36px;
+  }
+}
+
+/* Móvil muy pequeño — 420px */
+@media (max-width: 420px) {
+  .archPage {
+    gap: 24px;
+  }
+
+  .archStats {
+    padding: 12px 10px;
+    gap: 6px;
+  }
+
+  .archStatValue {
+    font-size: 17px;
+  }
+
+  .archStatLabel {
+    font-size: 9px;
+  }
+
+  .archStatItem {
+    flex: 1 1 70px;
+  }
+
+  .archDecisionCard,
+  .archStackCard {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .archTimelineContent {
+    padding-left: 0;
+  }
 }

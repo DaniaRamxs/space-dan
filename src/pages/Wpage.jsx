@@ -43,7 +43,7 @@ export default function Wpage() {
               <li>muchos gifs</li>
               <li>música (a veces)</li>
               <li>mucho texto</li>
-              <li>cosas sin optimizar (xd)</li>
+              <li>experimentos interactivos</li>
             </ul>
 
             <div className="wpageHint">
@@ -53,10 +53,6 @@ export default function Wpage() {
             <button className="wpageEnterBtn" onClick={enter}>
               ENTRAR ✦
             </button>
-
-            <div className="wpageFooter tinyText">
-              si algo carga lento: es estética, no lag (bueno… a veces es lag)
-            </div>
           </div>
         </div>
       </div>

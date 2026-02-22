@@ -31,7 +31,7 @@ export default function ProfilePage() {
             <span className="onlineText">ONLINE!</span>
           </div>
 
-          <p className="mood">Mood: feli</p>
+          <p className="mood">Mood: creando cosas</p>
         </div>
       </div>
 
@@ -132,7 +132,7 @@ export default function ProfilePage() {
       <li>-El tráfico (mental y literal)</li>
       <li>-Las conversaciones vacías</li>
       <li>-Que minimicen lo que siento</li>
-      <li>-las pasas xd</li>
+      <li>-las pasas</li>
 
     </ul>
     
