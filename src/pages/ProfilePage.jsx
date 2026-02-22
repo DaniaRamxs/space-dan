@@ -1,3 +1,5 @@
+import LastFmNowPlaying from '../components/LastFmNowPlaying.jsx';
+
 export default function ProfilePage() {
   return (
     <main className="card">
@@ -32,6 +34,7 @@ export default function ProfilePage() {
           </div>
 
           <p className="mood">Mood: creando cosas</p>
+          <LastFmNowPlaying />
         </div>
       </div>
 
