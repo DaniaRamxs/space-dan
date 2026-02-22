@@ -5,6 +5,7 @@ import AchievementToast from "./components/AchievementToast";
 import Screensaver      from "./components/Screensaver";
 import { unlockAchievement } from "./hooks/useAchievements";
 import { trackPageVisit }    from "./hooks/useDancoins";
+import { applyTheme }        from "./hooks/useTheme";
 
 const PostsPage       = lazy(() => import("./pages/PostsPage"));
 const PostPage        = lazy(() => import("./pages/PostPage"));
@@ -73,6 +74,14 @@ function Layout({ children }) {
 }
 
 export default function App() {
+  useEffect(() => {
+    const onEquip = (e) => {
+      if (e.detail?.category === 'theme') applyTheme(e.detail.itemId || 'theme_default');
+    };
+    window.addEventListener('dan:item-equipped', onEquip);
+    return () => window.removeEventListener('dan:item-equipped', onEquip);
+  }, []);
+
   return (
     <BrowserRouter>
       <AchievementToast />

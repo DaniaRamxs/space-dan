@@ -7,6 +7,7 @@ import { unlockAchievement } from '../hooks/useAchievements';
 
 const CATEGORIES = [
   { id: 'all',         label: '✦ Todo'         },
+  { id: 'theme',       label: '🎨 Temas'        },
   { id: 'cursor',      label: '🖱️ Cursores'     },
   { id: 'screensaver', label: '💤 Screensavers'  },
   { id: 'stars',       label: '⭐ Estrellas'     },
@@ -104,8 +105,9 @@ export default function ShopPage() {
       )}
 
       <div className="shopHint">
-        <div>Gana ◈ visitando páginas, jugando, desbloqueando logros y reclamando el bonus diario.</div>
+        <div>Gana ◈ visitando páginas, jugando juegos nuevos, desbloqueando logros y reclamando el bonus diario.</div>
         <div className="shopHintCategories">
+          <span>🎨 Temas — cambia la paleta de colores de todo el sitio</span>
           <span>🖱️ Cursores — trail de partículas al mover el mouse</span>
           <span>💤 Screensavers — animación tras 30s sin actividad</span>
           <span>⭐ Estrellas — color del fondo estelar animado</span>

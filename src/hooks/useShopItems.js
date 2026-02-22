@@ -22,8 +22,17 @@ export const SHOP_ITEMS = [
   { id: 'stars_red',      category: 'stars',       title: 'Inferno Stars',    desc: 'Cambia el fondo estelar a rojo carmesí',        price: 80,  icon: '🔴', swatch: ['#ff7850', '#ff3300'] },
   { id: 'stars_purple',   category: 'stars',       title: 'Nebulosa Púrpura', desc: 'Cambia el fondo estelar a púrpura cósmico',     price: 80,  icon: '🟣', swatch: ['#b464ff', '#8800ff'] },
   // ── Radio stations ─────────────────────────────────────────────
-  { id: 'radio_jcore',    category: 'radio',       title: 'J-Core Station',   desc: 'Anime beats y J-pop',              price: 50,  icon: '🎌' },
-  { id: 'radio_groove',   category: 'radio',       title: 'Groove Salad',     desc: 'Ambient electronica relajante',    price: 50,  icon: '🥗' },
+  { id: 'radio_jcore',       category: 'radio',   title: 'J-Core Station',   desc: 'Anime beats y J-pop',               price: 50,  icon: '🎌' },
+  { id: 'radio_groove',      category: 'radio',   title: 'Groove Salad',     desc: 'Ambient electronica relajante',     price: 50,  icon: '🥗' },
+  { id: 'radio_beatblender', category: 'radio',   title: 'Beat Blender',     desc: 'Deep house y electro nocturno',     price: 60,  icon: '🎛️' },
+  { id: 'radio_dronezone',   category: 'radio',   title: 'Drone Zone',       desc: 'Ambient cósmico y espacial',        price: 50,  icon: '🌌' },
+  { id: 'radio_secretagent', category: 'radio',   title: 'Secret Agent',     desc: 'Spy jazz y lounge 60s',             price: 55,  icon: '🕵️' },
+  // ── Temas visuales ─────────────────────────────────────────────
+  { id: 'theme_forest',  category: 'theme', title: 'Bosque Digital',    desc: 'Verde hacker sobre negro bosque',       price: 150, icon: '🌿', swatch: ['#39ff14', '#00ff88'] },
+  { id: 'theme_ocean',   category: 'theme', title: 'Deep Ocean',        desc: 'Azul celeste sobre azul profundo',      price: 150, icon: '🌊', swatch: ['#00c6ff', '#0072ff'] },
+  { id: 'theme_sunset',  category: 'theme', title: 'Sunset Retrowave',  desc: 'Naranja y hot pink, vibes 80s',         price: 200, icon: '🌅', swatch: ['#ff6b35', '#ff0090'] },
+  { id: 'theme_hacker',  category: 'theme', title: 'Terminal Verde',    desc: 'Negro puro y verde terminal clásico',   price: 120, icon: '💻', swatch: ['#39ff14', '#00ff00'] },
+  { id: 'theme_mono',    category: 'theme', title: 'Mono Minimal',      desc: 'Escala de grises, sin colores',         price: 100, icon: '⬛', swatch: ['#f0f0f0', '#888888'] },
 ];
 
 export const CURSOR_COLORS = {
