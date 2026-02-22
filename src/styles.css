@@ -5068,6 +5068,49 @@ textarea,
   100% { opacity: 0; }
 }
 
+/* ── OS: Calculadora ──────────────────────────────────────────── */
+.osCalc { padding: 10px; display: flex; flex-direction: column; gap: 8px; }
+.osCalcDisplay { background: #000; border: 1px solid var(--accent); border-radius: 4px; padding: 8px 12px; text-align: right; }
+.osCalcOp  { font-size: 10px; color: var(--text-muted); min-height: 14px; font-family: monospace; }
+.osCalcNum { font-size: 26px; font-weight: 700; color: var(--accent); font-family: monospace; }
+.osCalcBtns { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; }
+.osCalcBtn { padding: 10px; border: 1px solid var(--border); border-radius: 4px; background: rgba(15,15,30,0.9); color: var(--text); font-size: 14px; cursor: pointer; font-family: inherit; transition: all 0.1s; }
+.osCalcBtn:hover { background: rgba(40,40,80,0.9); border-color: var(--accent); }
+.osCalcBtn.fn    { background: rgba(40,20,60,0.8); color: var(--text-muted); }
+.osCalcBtn.op    { background: rgba(255,110,180,0.12); color: var(--accent); border-color: rgba(255,110,180,0.4); }
+.osCalcBtn.op:hover { background: rgba(255,110,180,0.25); }
+.osCalcBtn.eq    { background: var(--accent); color: #000; font-weight: 700; border-color: var(--accent); }
+.osCalcBtn.eq:hover { background: #ff9ed3; }
+.osCalcBtn.wide  { grid-column: span 2; }
+
+/* ── OS: Notepad ──────────────────────────────────────────────── */
+.osNotepad { display: flex; flex-direction: column; height: 100%; min-height: 200px; }
+.osNotepadArea { flex: 1; width: 100%; min-height: 200px; background: #000810; border: none; color: var(--text); font-family: 'Courier New', monospace; font-size: 12px; padding: 10px; resize: none; outline: none; line-height: 1.6; box-sizing: border-box; }
+.osNotepadArea::placeholder { color: var(--text-muted); opacity: 0.4; }
+.osNotepadStatus { font-size: 10px; color: var(--text-muted); padding: 3px 10px; border-top: 1px solid var(--border); background: rgba(10,10,20,0.95); flex-shrink: 0; }
+
+/* ── OS: WinAmp ───────────────────────────────────────────────── */
+.osWinAmp { display: flex; flex-direction: column; }
+.osWinAmpTop { display: flex; gap: 10px; padding: 12px; align-items: flex-start; }
+.osWinAmpCover { width: 72px; height: 72px; border-radius: 4px; object-fit: cover; flex-shrink: 0; border: 1px solid var(--accent); image-rendering: auto; }
+.osWinAmpInfo { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.osWinAmpTitle { font-size: 13px; font-weight: 700; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.osWinAmpArtist { font-size: 11px; color: var(--text-muted); }
+.osWinAmpBar { height: 3px; background: var(--border); border-radius: 2px; margin: 3px 0; overflow: hidden; }
+.osWinAmpFill { height: 100%; background: var(--accent); border-radius: 2px; transition: width 0.1s linear; }
+.osWinAmpTime { font-size: 10px; color: var(--text-muted); font-family: monospace; }
+.osWinAmpControls { display: flex; gap: 5px; align-items: center; margin-top: 4px; }
+.osWinAmpBtn { background: none; border: 1px solid var(--border); color: var(--text-muted); font-size: 13px; padding: 3px 8px; border-radius: 3px; cursor: pointer; font-family: inherit; transition: all 0.15s; }
+.osWinAmpBtn:hover { border-color: var(--accent); color: var(--accent); }
+.osWinAmpBtnMain { background: var(--accent-dim); border: 1px solid var(--accent); color: var(--accent); font-size: 15px; padding: 5px 14px; border-radius: 3px; cursor: pointer; font-family: inherit; transition: all 0.15s; }
+.osWinAmpBtnMain:hover { background: rgba(255,110,180,0.25); }
+.osWinAmpList { border-top: 1px solid var(--border); }
+.osWinAmpTrack { display: flex; justify-content: space-between; align-items: center; padding: 5px 12px; font-size: 11px; color: var(--text-muted); cursor: pointer; gap: 8px; }
+.osWinAmpTrack:hover  { background: rgba(255,110,180,0.08); color: var(--text); }
+.osWinAmpTrack.active { background: var(--accent-dim); color: var(--accent); }
+.osWinAmpTrackName { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.osWinAmpTrackDur  { flex-shrink: 0; font-family: monospace; opacity: 0.7; }
+
 /* ── Achievement Toast ─────────────────────────────────────────── */
 .achievementToast {
   position: fixed;

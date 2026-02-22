@@ -8,7 +8,15 @@
       "Bash(where:*)",
       "Bash(py --version)",
       "Bash(/c/Users/USUARIO/AppData/Local/Python/bin/python3 -m pip install:*)",
-      "Bash(python scripts/with_server.py --server \"npm --prefix C:/Users/USUARIO/space-dan run dev\" --port 5173 -- /c/Users/USUARIO/AppData/Local/Python/bin/python3 \"C:/Users/USUARIO/space-dan/test_app.py\")"
+      "Bash(python scripts/with_server.py --server \"npm --prefix C:/Users/USUARIO/space-dan run dev\" --port 5173 -- /c/Users/USUARIO/AppData/Local/Python/bin/python3 \"C:/Users/USUARIO/space-dan/test_app.py\")",
+      "Bash(npm run build:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(git status:*)",
+      "Bash(git fetch:*)",
+      "Bash(git checkout:*)",
+      "Bash(git merge:*)"
     ]
   }
 }

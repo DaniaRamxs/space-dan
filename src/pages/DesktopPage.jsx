@@ -1,6 +1,16 @@
 import { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 
+// ─── WINAMP PLAYLIST ─────────────────────────────────────────
+const WINAMP_PLAYLIST = [
+  { id: 1, title: 'lemon boy',  artist: 'cavetown',       src: '/music/lemonboy.mp3',  cover: 'https://i.pinimg.com/originals/61/1e/0a/611e0aad733633587aa5f97a332a0c35.jpg', duration: 272 },
+  { id: 2, title: 'mardy bum',  artist: 'arctic monkeys', src: '/music/mardybum.mp3',  cover: 'https://images.genius.com/779b9b4221140a2ffc0b7bc68bb291fd.600x600x1.jpg', duration: 175 },
+  { id: 3, title: 'creep',      artist: 'radiohead',      src: '/music/creep.mp3',     cover: 'https://upload.wikimedia.org/wikipedia/en/a/a4/Pablo_Honey.png', duration: 238 },
+  { id: 4, title: 'arms tonite',artist: 'mother mother',  src: '/music/armstonite.mp3',cover: 'https://i.scdn.co/image/ab67616d0000b273cf2a0403141b1f4b8488fc3f', duration: 216 },
+];
+
+const fmtTime = (s) => isNaN(s) || !s ? '0:00' : `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
+
 // ─── TERMINAL ────────────────────────────────────────────────
 function TerminalWindow() {
     const [lines, setLines] = useState([
@@ -25,23 +35,46 @@ function TerminalWindow() {
 
         if (c === 'help') {
             out = [
-                '  help       — muestra este mensaje',
-                '  ls         — lista archivos del escritorio',
-                '  about      — sobre mí',
-                '  date       — fecha y hora actual',
-                '  whoami     — identidad del usuario',
-                '  skills     — stack técnico completo',
-                '  projects   — proyectos destacados',
-                '  github     — perfil de GitHub',
-                '  contact    — cómo contactarme',
-                '  clear      — limpia la pantalla',
+                '  help         — muestra este mensaje',
+                '  ls           — lista archivos del escritorio',
+                '  ls -la       — listado detallado',
+                '  about        — sobre mí',
+                '  date         — fecha y hora actual',
+                '  time         — hora actual',
+                '  whoami       — identidad del usuario',
+                '  skills       — stack técnico completo',
+                '  projects     — proyectos destacados',
+                '  github       — perfil de GitHub',
+                '  contact      — cómo contactarme',
+                '  history      — historial de comandos',
+                '  echo [txt]   — imprime texto',
+                '  ping [host]  — simula un ping',
+                '  fortune      — cita aleatoria',
+                '  neofetch     — info del sistema',
+                '  motd         — mensaje de bienvenida',
+                '  matrix       — ???',
+                '  clear        — limpia la pantalla',
             ];
         } else if (c === 'ls' || c === 'dir') {
             out = [
                 '  README.txt      Posts.dir       Arcade.exe',
                 '  WinAmp.m3u      CLASSIFIED.log  Chat.exe',
                 '  Guestbook.db    SysInfo.exe     Terminal.exe',
-                '  Proyectos.dir   GitHub.lnk',
+                '  Calc.exe        Notepad.exe',
+            ];
+        } else if (c === 'ls -la' || c === 'ls -al' || c === 'dir /a') {
+            out = [
+                '  total 48',
+                '  -rw-r--r--  README.txt       1.2 KB  2026-01-03',
+                '  drwxr-xr-x  Posts.dir        8.4 KB  2026-02-21',
+                '  -rwxr-xr-x  Arcade.exe      16.8 KB  2026-02-17',
+                '  -rw-r--r--  WinAmp.m3u       0.9 KB  2026-02-21',
+                '  -rwx------  CLASSIFIED.log   [ACCESO DENEGADO]',
+                '  -rwxr-xr-x  Chat.exe         2.1 KB  2026-02-21',
+                '  -rw-r--r--  Guestbook.db    → Supabase',
+                '  -rwxr-xr-x  SysInfo.exe      0.5 KB  2026-02-22',
+                '  -rwxr-xr-x  Calc.exe         0.3 KB  2026-02-22',
+                '  -rw-r--r--  Notepad.exe      0.2 KB  2026-02-22',
             ];
         } else if (c === 'about') {
             out = [
@@ -52,6 +85,8 @@ function TerminalWindow() {
             ];
         } else if (c === 'date') {
             out = ['  ' + new Date().toLocaleString('es-PE', { dateStyle: 'full', timeStyle: 'short' })];
+        } else if (c === 'time' || c === 'clock') {
+            out = ['  ' + new Date().toLocaleTimeString('es-PE')];
         } else if (c === 'whoami') {
             out = ['  dan@space-dan — acceso root concedido.'];
         } else if (c === 'skills') {
@@ -59,11 +94,12 @@ function TerminalWindow() {
                 '  ── Frontend ──────────────────────────────',
                 '  React 19 · Vite 7 · React Router 7',
                 '  JavaScript (ES2024) · HTML5 · CSS3',
-                '  Tailwind CSS · CSS custom (4200+ líneas)',
-                '  Web Audio API · Canvas API · SVG',
+                '  CSS custom (~5300 líneas) · Canvas API',
+                '  Web Audio API · SVG · Responsive Design',
                 '  ── Backend / DB ──────────────────────────',
                 '  Supabase (PostgreSQL + Realtime)',
                 '  REST APIs · Fetch · LocalStorage',
+                '  GitHub API · Last.fm API',
                 '  ── Tools ─────────────────────────────────',
                 '  Git · GitHub · Netlify · Vite · ESLint',
                 '  React Lazy · Code Splitting · Suspense',
@@ -72,12 +108,9 @@ function TerminalWindow() {
             out = [
                 '  ── Proyectos ─────────────────────────────',
                 '  space-dan       → portafolio interactivo Y2K',
-                '    Tech: React 19, Vite, Tailwind, Supabase',
-                '    Features: 23 juegos, guestbook RT, OS desktop',
+                '    Tech: React 19, Vite, CSS custom, Supabase',
+                '    Features: 24 juegos, guestbook RT, OS desktop',
                 '    GitHub: github.com/DaniaRamxs/space-dan',
-                '  ──────────────────────────────────────────',
-                '  mini-games-engine → motor de juegos Canvas 2D',
-                '    Tech: JavaScript, Canvas API, HTML5',
                 '  ──────────────────────────────────────────',
                 '  Más en: /proyectos',
             ];
@@ -87,15 +120,70 @@ function TerminalWindow() {
                 '  Usuario: @DaniaRamxs',
                 '  URL:     github.com/DaniaRamxs',
                 '  ──────────────────────────────────────────',
-                '  Para ver stats completos abre /proyectos',
+                '  Stats en vivo en /proyectos',
             ];
         } else if (c === 'contact') {
             out = [
                 '  ── Contacto ──────────────────────────────',
                 '  GitHub:    github.com/DaniaRamxs',
                 '  Guestbook: /guestbook  (deja un mensaje!)',
-                '  ──────────────────────────────────────────',
-                '  No tengo email público por ahora. 🌸',
+            ];
+        } else if (c === 'history') {
+            out = cmdHistory.length > 0
+                ? cmdHistory.map((h, i) => `  ${cmdHistory.length - i}  ${h}`)
+                : ['  no hay historial todavía.'];
+        } else if (c.startsWith('echo ')) {
+            out = ['  ' + cmd.slice(5)];
+        } else if (c === 'echo') {
+            out = ['  uso: echo [mensaje]'];
+        } else if (c.startsWith('ping ')) {
+            const host = cmd.slice(5) || 'host';
+            out = [
+                `  PING ${host}`,
+                `  64 bytes de ${host}: tiempo=${Math.floor(Math.random() * 30 + 5)}ms`,
+                `  64 bytes de ${host}: tiempo=${Math.floor(Math.random() * 30 + 5)}ms`,
+                `  64 bytes de ${host}: tiempo=${Math.floor(Math.random() * 30 + 5)}ms`,
+                `  — paquetes: enviados=3, recibidos=3, perdidos=0 (0%)`,
+            ];
+        } else if (c === 'ping') {
+            out = ['  uso: ping [host]'];
+        } else if (c === 'fortune') {
+            const quotes = [
+                '"La computadora fue inventada para resolver problemas que antes no teníamos." — M. Jokinen',
+                '"Cualquier tecnología suficientemente avanzada es indistinguible de la magia." — A. Clarke',
+                '"Primero resuelve el problema, luego escribe el código." — J. Johnson',
+                '"El código es poesía." — WordPress',
+                '"Talk is cheap. Show me the code." — L. Torvalds',
+                '"El mejor error es aquel que aparece solo en producción." — ley de Murphy',
+            ];
+            out = ['  ' + quotes[Math.floor(Math.random() * quotes.length)]];
+        } else if (c === 'neofetch' || c === 'fetch') {
+            const uptime = Math.floor((new Date() - new Date('2026-01-01')) / 86400000);
+            out = [
+                '           ✦  space-dan ✦',
+                '',
+                '  ██████   OS:      DAN-OS v0.4.2',
+                '  █    █   Shell:   React 19 + Vite 7',
+                '  ██████   CPU:     1× cerebro overclocked',
+                '  █    █   Memory:  ∞ creatividad',
+                '  ██████   Storage: 24 juegos instalados',
+                '           Uptime:  ' + uptime + ' días',
+                '           User:    dan@space-dan',
+                '           Build:   ✓ stable',
+            ];
+        } else if (c === 'motd' || c === 'welcome') {
+            out = [
+                '  ╔════════════════════════════════╗',
+                '  ║   Bienvenid@ a DAN-OS v0.4    ║',
+                '  ║   Escribe "help" para ayuda   ║',
+                '  ╚════════════════════════════════╝',
+            ];
+        } else if (c === 'matrix') {
+            out = [
+                '  Wake up, dan...',
+                '  The Matrix has you...',
+                '  Follow the white rabbit.',
+                '  — just kidding. o quizás no. 🐇',
             ];
         } else if (c === 'clear') {
             setLines(['> DAN-OS Terminal v1.0', '> Escribe "help" para ver comandos disponibles.', '']);
@@ -111,7 +199,7 @@ function TerminalWindow() {
             ];
         } else if (c === 'sudo' || c.startsWith('sudo ')) {
             out = ['  Este sistema no requiere sudo. Eres dan.'];
-        } else if (c === '' ) {
+        } else if (c === '') {
             // silent
         } else {
             out = [`  bash: ${cmd}: command not found. Prueba "help".`];
@@ -162,12 +250,194 @@ function TerminalWindow() {
     );
 }
 
+// ─── CALCULADORA ─────────────────────────────────────────────
+function CalcWindow() {
+    const [display, setDisplay] = useState('0');
+    const [prev, setPrev]       = useState(null);
+    const [op, setOp]           = useState(null);
+    const [waitNext, setWait]   = useState(false);
+
+    const input = (val) => {
+        if (waitNext) { setDisplay(String(val)); setWait(false); }
+        else setDisplay(d => d === '0' ? String(val) : d.length > 10 ? d : d + val);
+    };
+    const decimal = () => {
+        if (waitNext) { setDisplay('0.'); setWait(false); return; }
+        if (!display.includes('.')) setDisplay(d => d + '.');
+    };
+    const clear  = () => { setDisplay('0'); setPrev(null); setOp(null); setWait(false); };
+    const sign   = () => setDisplay(d => String(-parseFloat(d)));
+    const pct    = () => setDisplay(d => String(parseFloat(d) / 100));
+
+    const handleOp = (operation) => {
+        setOp(operation);
+        setPrev(parseFloat(display));
+        setWait(true);
+    };
+
+    const equals = () => {
+        if (op === null || prev === null) return;
+        const curr = parseFloat(display);
+        const ops = { '+': prev + curr, '−': prev - curr, '×': prev * curr, '÷': curr !== 0 ? prev / curr : 'Error' };
+        const result = ops[op];
+        setDisplay(typeof result === 'number' ? (Math.abs(result) > 1e9 ? result.toExponential(3) : String(+result.toFixed(8))) : 'Error');
+        setPrev(null); setOp(null); setWait(true);
+    };
+
+    const BTNS = [
+        { label: 'C',   action: clear,              type: 'fn'  },
+        { label: '+/−', action: sign,               type: 'fn'  },
+        { label: '%',   action: pct,                type: 'fn'  },
+        { label: '÷',   action: () => handleOp('÷'),type: 'op'  },
+        { label: '7',   action: () => input('7')               },
+        { label: '8',   action: () => input('8')               },
+        { label: '9',   action: () => input('9')               },
+        { label: '×',   action: () => handleOp('×'),type: 'op'  },
+        { label: '4',   action: () => input('4')               },
+        { label: '5',   action: () => input('5')               },
+        { label: '6',   action: () => input('6')               },
+        { label: '−',   action: () => handleOp('−'),type: 'op'  },
+        { label: '1',   action: () => input('1')               },
+        { label: '2',   action: () => input('2')               },
+        { label: '3',   action: () => input('3')               },
+        { label: '+',   action: () => handleOp('+'),type: 'op'  },
+        { label: '0',   action: () => input('0'),  wide: true   },
+        { label: '.',   action: decimal                         },
+        { label: '=',   action: equals,            type: 'eq'  },
+    ];
+
+    return (
+        <div className="osCalc">
+            <div className="osCalcDisplay">
+                <div className="osCalcOp">{op ? `${prev} ${op}` : '\u00a0'}</div>
+                <div className="osCalcNum">{display}</div>
+            </div>
+            <div className="osCalcBtns">
+                {BTNS.map((b, i) => (
+                    <button
+                        key={i}
+                        className={`osCalcBtn${b.type === 'fn' ? ' fn' : b.type === 'op' ? ' op' : b.type === 'eq' ? ' eq' : ''}${b.wide ? ' wide' : ''}`}
+                        onClick={b.action}
+                    >
+                        {b.label}
+                    </button>
+                ))}
+            </div>
+        </div>
+    );
+}
+
+// ─── BLOC DE NOTAS ───────────────────────────────────────────
+function NotepadWindow() {
+    const [text, setText] = useState('');
+    const words = text.trim() ? text.trim().split(/\s+/).length : 0;
+    return (
+        <div className="osNotepad">
+            <textarea
+                className="osNotepadArea"
+                value={text}
+                onChange={e => setText(e.target.value)}
+                placeholder="escribe aquí..."
+                spellCheck={false}
+            />
+            <div className="osNotepadStatus">{text.length} chars · {words} palabras</div>
+        </div>
+    );
+}
+
+// ─── WINAMP ──────────────────────────────────────────────────
+function WinAmpWindow() {
+    const [trackIdx, setTrackIdx] = useState(0);
+    const [playing, setPlaying]   = useState(false);
+    const [time, setTime]         = useState(0);
+    const [dur, setDur]           = useState(0);
+    const audioRef = useRef(null);
+    const song = WINAMP_PLAYLIST[trackIdx];
+
+    useEffect(() => {
+        const audio = audioRef.current;
+        if (!audio) return;
+        audio.load();
+        setTime(0); setDur(0);
+        if (playing) audio.play().catch(() => setPlaying(false));
+    }, [trackIdx]);
+
+    useEffect(() => {
+        const audio = audioRef.current;
+        if (!audio) return;
+        if (playing) audio.play().catch(() => setPlaying(false));
+        else audio.pause();
+    }, [playing]);
+
+    useEffect(() => {
+        const audio = audioRef.current;
+        if (!audio) return;
+        const onTime = () => setTime(audio.currentTime);
+        const onMeta = () => setDur(audio.duration);
+        const onEnd  = () => setTrackIdx(t => (t + 1) % WINAMP_PLAYLIST.length);
+        audio.addEventListener('timeupdate', onTime);
+        audio.addEventListener('loadedmetadata', onMeta);
+        audio.addEventListener('ended', onEnd);
+        return () => {
+            audio.removeEventListener('timeupdate', onTime);
+            audio.removeEventListener('loadedmetadata', onMeta);
+            audio.removeEventListener('ended', onEnd);
+        };
+    }, [trackIdx]);
+
+    const pct  = dur > 0 ? (time / dur) * 100 : 0;
+    const prev = () => setTrackIdx(t => (t - 1 + WINAMP_PLAYLIST.length) % WINAMP_PLAYLIST.length);
+    const next = () => setTrackIdx(t => (t + 1) % WINAMP_PLAYLIST.length);
+
+    return (
+        <div className="osWinAmp">
+            <audio ref={audioRef} preload="metadata">
+                <source src={song.src} type="audio/mpeg" />
+            </audio>
+
+            {/* Player */}
+            <div className="osWinAmpTop">
+                <img src={song.cover} alt={song.title} className="osWinAmpCover" />
+                <div className="osWinAmpInfo">
+                    <div className="osWinAmpTitle">{song.title}</div>
+                    <div className="osWinAmpArtist">{song.artist}</div>
+                    <div className="osWinAmpBar">
+                        <div className="osWinAmpFill" style={{ width: `${pct}%` }} />
+                    </div>
+                    <div className="osWinAmpTime">{fmtTime(time)} / {fmtTime(dur || song.duration)}</div>
+                    <div className="osWinAmpControls">
+                        <button className="osWinAmpBtn" onClick={prev} title="Anterior">⏮</button>
+                        <button className="osWinAmpBtnMain" onClick={() => setPlaying(p => !p)}>
+                            {playing ? '⏸' : '▶'}
+                        </button>
+                        <button className="osWinAmpBtn" onClick={next} title="Siguiente">⏭</button>
+                    </div>
+                </div>
+            </div>
+
+            {/* Playlist */}
+            <div className="osWinAmpList">
+                {WINAMP_PLAYLIST.map((s, i) => (
+                    <div
+                        key={s.id}
+                        className={`osWinAmpTrack${i === trackIdx ? ' active' : ''}`}
+                        onClick={() => { setTrackIdx(i); setPlaying(true); }}
+                    >
+                        <span className="osWinAmpTrackName">{i + 1}. {s.title} — {s.artist}</span>
+                        <span className="osWinAmpTrackDur">{fmtTime(s.duration)}</span>
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
+}
+
 // ─── ARCHIVO CLASIFICADO ────────────────────────────────────
 function SecretWindow() {
-    const [input, setInput] = useState('');
+    const [input, setInput]     = useState('');
     const [attempts, setAttempts] = useState(0);
     const [unlocked, setUnlocked] = useState(false);
-    const [msg, setMsg] = useState('');
+    const [msg, setMsg]         = useState('');
 
     const tryPassword = () => {
         const pass = input.toLowerCase().trim();
@@ -226,7 +496,7 @@ function SysInfoWindow() {
 ━━━━━━━━━━━━━━━━━━━━━━━━
 OS:      DAN-OS v0.4.2 (2026)
 Shell:   React 19 + Vite 7
-UI:      Tailwind + CSS custom
+UI:      CSS custom ~5300 líneas
 DB:      Supabase (PostgreSQL)
 Router:  React Router v7
 Deploy:  Netlify CDN
@@ -244,7 +514,6 @@ Build:   ✓ stable`}
 // ─── WINDOW CONTENT ROUTER ───────────────────────────────────
 function WindowContent({ type }) {
     const navigate = useNavigate();
-
     const NavBtn = ({ to, label }) => (
         <button className="osActionBtn" onClick={() => navigate(to)}>{label}</button>
     );
@@ -265,6 +534,7 @@ Hecho con React, CSS y mucho café.
  • Usa el menú START para navegar
  • Abre la Terminal y escribe "help"
  • Encuentra el archivo clasificado
+ • Prueba la Calculadora y el Notepad
 
 [Modo: Portfolio | Build: stable]`}
                 </pre>
@@ -294,22 +564,19 @@ Hecho con React, CSS y mucho café.
             );
 
         case 'music':
-            return (
-                <div className="osWindowBody">
-                    <div className="osWinBodyTitle">🎵 WinAmp.m3u</div>
-                    <p className="osWinBodyDesc">
-                        Playlist curada con lo que suena mientras codifico.
-                        <br /><em style={{ fontSize: 11, opacity: 0.6 }}>— próximamente</em>
-                    </p>
-                    <NavBtn to="/music" label="Abrir Música →" />
-                </div>
-            );
+            return <WinAmpWindow />;
 
         case 'terminal':
             return <TerminalWindow />;
 
         case 'secret':
             return <SecretWindow />;
+
+        case 'calc':
+            return <CalcWindow />;
+
+        case 'notepad':
+            return <NotepadWindow />;
 
         case 'chat':
             return (
@@ -343,13 +610,13 @@ Hecho con React, CSS y mucho café.
 
 // ─── DRAGGABLE WINDOW ────────────────────────────────────────
 function DraggableWindow({ type, title, icon, initialPos, isActive, isMinimized, onFocus, onClose, onMinimize }) {
-    const [pos, setPos] = useState(initialPos);
-    const [isDragging, setIsDragging] = useState(false);
+    const [pos, setPos]           = useState(initialPos);
+    const [isDragging, setDragging] = useState(false);
     const dragRef = useRef({ x: 0, y: 0 });
 
     const handleMouseDown = (e) => {
         if (e.target.closest('button')) return;
-        setIsDragging(true);
+        setDragging(true);
         onFocus();
         const clientX = e.touches ? e.touches[0].clientX : e.clientX;
         const clientY = e.touches ? e.touches[0].clientY : e.clientY;
@@ -367,8 +634,7 @@ function DraggableWindow({ type, title, icon, initialPos, isActive, isMinimized,
             ny = Math.max(0, Math.min(ny, window.innerHeight - 80));
             setPos({ x: nx, y: ny });
         };
-        const onUp = () => setIsDragging(false);
-
+        const onUp = () => setDragging(false);
         if (isDragging) {
             window.addEventListener('mousemove', onMove);
             window.addEventListener('touchmove', onMove, { passive: false });
@@ -386,12 +652,15 @@ function DraggableWindow({ type, title, icon, initialPos, isActive, isMinimized,
     if (isMinimized) return null;
 
     const WIN_SIZES = {
-        readme: { width: 340, height: 280 },
-        terminal: { width: 420, height: 300 },
-        chat: { width: 360, height: 400 },
-        sysinfo: { width: 320, height: 280 },
-        secret: { width: 300, height: 220 },
-        default: { width: 300, height: 200 },
+        readme:    { width: 340, height: 280 },
+        terminal:  { width: 420, height: 300 },
+        chat:      { width: 360, height: 400 },
+        sysinfo:   { width: 320, height: 280 },
+        secret:    { width: 300, height: 220 },
+        calc:      { width: 260, height: 340 },
+        notepad:   { width: 380, height: 280 },
+        music:     { width: 320, height: 280 },
+        default:   { width: 300, height: 200 },
     };
     const size = WIN_SIZES[type] || WIN_SIZES.default;
 
@@ -400,8 +669,7 @@ function DraggableWindow({ type, title, icon, initialPos, isActive, isMinimized,
             className="osWindow"
             onClick={onFocus}
             style={{
-                left: pos.x,
-                top: pos.y,
+                left: pos.x, top: pos.y,
                 position: 'absolute',
                 zIndex: isActive ? 200 : 10,
                 width: size.width,
@@ -425,16 +693,8 @@ function DraggableWindow({ type, title, icon, initialPos, isActive, isMinimized,
             >
                 <span className="osWindowTitle">{icon} {title}</span>
                 <div className="osWindowBtns">
-                    <button
-                        className="osWindowBtn"
-                        onClick={(e) => { e.stopPropagation(); onMinimize(); }}
-                        title="Minimizar"
-                    >─</button>
-                    <button
-                        className="osWindowBtn osWindowClose"
-                        onClick={(e) => { e.stopPropagation(); onClose(); }}
-                        title="Cerrar"
-                    >✕</button>
+                    <button className="osWindowBtn" onClick={(e) => { e.stopPropagation(); onMinimize(); }} title="Minimizar">─</button>
+                    <button className="osWindowBtn osWindowClose" onClick={(e) => { e.stopPropagation(); onClose(); }} title="Cerrar">✕</button>
                 </div>
             </div>
             <div className="osWindowContent">
@@ -446,19 +706,19 @@ function DraggableWindow({ type, title, icon, initialPos, isActive, isMinimized,
 
 // ─── START MENU ──────────────────────────────────────────────
 const START_LINKS = [
-    { icon: '🏠', label: 'Sobre mí', to: '/home' },
-    { icon: '📰', label: 'Noticias', to: '/bulletin' },
-    { icon: '✍️', label: 'Posts', to: '/posts' },
-    { icon: '🎧', label: 'Música', to: '/music' },
-    { icon: '🎮', label: 'Juegos', to: '/games' },
-    { icon: '🖼️', label: 'Galería', to: '/galeria' },
-    { icon: '📺', label: 'Watchlist', to: '/watchlist' },
-    { icon: '⏳', label: 'Time Capsule', to: '/timecapsule' },
-    { icon: '📖', label: 'Guestbook', to: '/guestbook' },
-    { icon: '💻', label: 'Proyectos', to: '/proyectos' },
-    { icon: '🏗️', label: 'Arquitectura', to: '/arquitectura' },
-    { icon: '🏆', label: 'Logros', to: '/logros' },
-    { icon: '🛍️', label: 'Tienda', to: '/tienda' },
+    { icon: '🏠', label: 'Sobre mí',     to: '/home'         },
+    { icon: '📰', label: 'Noticias',     to: '/bulletin'     },
+    { icon: '✍️', label: 'Posts',        to: '/posts'        },
+    { icon: '🎧', label: 'Música',       to: '/music'        },
+    { icon: '🎮', label: 'Juegos',       to: '/games'        },
+    { icon: '🖼️', label: 'Galería',      to: '/galeria'      },
+    { icon: '📺', label: 'Watchlist',    to: '/watchlist'    },
+    { icon: '⏳', label: 'Time Capsule', to: '/timecapsule'  },
+    { icon: '📖', label: 'Guestbook',   to: '/guestbook'    },
+    { icon: '💻', label: 'Proyectos',   to: '/proyectos'    },
+    { icon: '🏗️', label: 'Arquitectura',to: '/arquitectura' },
+    { icon: '🏆', label: 'Logros',      to: '/logros'       },
+    { icon: '🛍️', label: 'Tienda',      to: '/tienda'       },
 ];
 
 function StartMenu({ onClose }) {
@@ -491,9 +751,11 @@ function ContextMenu({ x, y, onClose, onOpen }) {
         <>
             <div className="osCtxOverlay" onClick={onClose} />
             <div className="osCtxMenu" style={{ left: x, top: y }}>
-                <div className="osCtxItem" onClick={() => { onOpen('readme'); onClose(); }}>📄 Abrir README</div>
+                <div className="osCtxItem" onClick={() => { onOpen('readme');   onClose(); }}>📄 Abrir README</div>
                 <div className="osCtxItem" onClick={() => { onOpen('terminal'); onClose(); }}>⌨️ Abrir Terminal</div>
-                <div className="osCtxItem" onClick={() => { onOpen('sysinfo'); onClose(); }}>💻 Info del sistema</div>
+                <div className="osCtxItem" onClick={() => { onOpen('notepad');  onClose(); }}>📝 Abrir Notepad</div>
+                <div className="osCtxItem" onClick={() => { onOpen('calc');     onClose(); }}>🧮 Abrir Calc</div>
+                <div className="osCtxItem" onClick={() => { onOpen('sysinfo');  onClose(); }}>💻 Info del sistema</div>
                 <div className="osCtxDivider" />
                 <div className="osCtxItem" onClick={onClose}>✕ Cerrar menú</div>
             </div>
@@ -503,27 +765,31 @@ function ContextMenu({ x, y, onClose, onOpen }) {
 
 // ─── DESKTOP ICONS ───────────────────────────────────────────
 const ICONS = [
-    { id: 'readme',    icon: '📄', label: 'README.txt'      },
-    { id: 'posts',     icon: '📁', label: 'Mis escritos'    },
-    { id: 'games',     icon: '🕹️', label: 'Arcade.exe'      },
-    { id: 'music',     icon: '🎵', label: 'WinAmp'          },
-    { id: 'terminal',  icon: '⌨️', label: 'Terminal'        },
-    { id: 'secret',    icon: '🔒', label: 'CLASSIFIED'      },
-    { id: 'chat',      icon: '💬', label: 'Chat.exe'        },
-    { id: 'guestbook', icon: '📖', label: 'Guestbook.db'    },
-    { id: 'sysinfo',   icon: '💻', label: 'SysInfo.exe'     },
+    { id: 'readme',    icon: '📄', label: 'README.txt'   },
+    { id: 'posts',     icon: '📁', label: 'Mis escritos' },
+    { id: 'games',     icon: '🕹️', label: 'Arcade.exe'   },
+    { id: 'music',     icon: '🎵', label: 'WinAmp'       },
+    { id: 'terminal',  icon: '⌨️', label: 'Terminal'     },
+    { id: 'secret',    icon: '🔒', label: 'CLASSIFIED'   },
+    { id: 'chat',      icon: '💬', label: 'Chat.exe'     },
+    { id: 'guestbook', icon: '📖', label: 'Guestbook.db' },
+    { id: 'sysinfo',   icon: '💻', label: 'SysInfo.exe'  },
+    { id: 'calc',      icon: '🧮', label: 'Calc.exe'     },
+    { id: 'notepad',   icon: '📝', label: 'Notepad.exe'  },
 ];
 
 const WIN_META = {
     readme:    { title: 'README.txt',       icon: '📄' },
     posts:     { title: 'Posts.dir',        icon: '📁' },
     games:     { title: 'Arcade.exe',       icon: '🕹️' },
-    music:     { title: 'WinAmp.m3u',      icon: '🎵' },
+    music:     { title: 'WinAmp.m3u',       icon: '🎵' },
     terminal:  { title: 'Terminal.exe',     icon: '⌨️' },
     secret:    { title: 'CLASSIFIED.log',   icon: '🔒' },
     chat:      { title: 'Chat.exe',         icon: '💬' },
     guestbook: { title: 'Guestbook.db',     icon: '📖' },
     sysinfo:   { title: 'SysInfo.exe',      icon: '💻' },
+    calc:      { title: 'Calc.exe',         icon: '🧮' },
+    notepad:   { title: 'Notepad.exe',      icon: '📝' },
 };
 
 const INITIAL_POSITIONS = {
@@ -536,19 +802,18 @@ const INITIAL_POSITIONS = {
     chat:      { x: 110, y: 90  },
     guestbook: { x: 90,  y: 110 },
     sysinfo:   { x: 140, y: 50  },
+    calc:      { x: 220, y: 80  },
+    notepad:   { x: 170, y: 60  },
 };
 
 // ─── MAIN DESKTOP ────────────────────────────────────────────
 export default function DesktopPage() {
-    const [windows, setWindows] = useState([
-        { id: 'readme', minimized: false },
-    ]);
-    const [activeWindow, setActiveWindow] = useState('readme');
-    const [startOpen, setStartOpen] = useState(false);
-    const [ctxMenu, setCtxMenu] = useState(null);
-    const [clock, setClock] = useState('');
+    const [windows, setWindows]       = useState([{ id: 'readme', minimized: false }]);
+    const [activeWindow, setActive]   = useState('readme');
+    const [startOpen, setStartOpen]   = useState(false);
+    const [ctxMenu, setCtxMenu]       = useState(null);
+    const [clock, setClock]           = useState('');
 
-    // Reloj en tiempo real
     useEffect(() => {
         const update = () =>
             setClock(new Date().toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' }));
@@ -560,24 +825,21 @@ export default function DesktopPage() {
     const openWindow = (id) => {
         setWindows(prev => {
             const exists = prev.find(w => w.id === id);
-            if (exists) {
-                // Restore if minimized
-                return prev.map(w => w.id === id ? { ...w, minimized: false } : w);
-            }
+            if (exists) return prev.map(w => w.id === id ? { ...w, minimized: false } : w);
             return [...prev, { id, minimized: false }];
         });
-        setActiveWindow(id);
+        setActive(id);
         setStartOpen(false);
     };
 
     const closeWindow = (id) => {
         setWindows(prev => prev.filter(w => w.id !== id));
-        setActiveWindow(prev => prev === id ? null : prev);
+        setActive(prev => prev === id ? null : prev);
     };
 
     const minimizeWindow = (id) => {
         setWindows(prev => prev.map(w => w.id === id ? { ...w, minimized: true } : w));
-        setActiveWindow(null);
+        setActive(null);
     };
 
     const clickTaskbar = (id) => {
@@ -585,11 +847,11 @@ export default function DesktopPage() {
         if (!win) return;
         if (win.minimized) {
             setWindows(prev => prev.map(w => w.id === id ? { ...w, minimized: false } : w));
-            setActiveWindow(id);
+            setActive(id);
         } else if (activeWindow === id) {
             minimizeWindow(id);
         } else {
-            setActiveWindow(id);
+            setActive(id);
         }
     };
 
@@ -604,14 +866,13 @@ export default function DesktopPage() {
         <div className="osDesktop" onContextMenu={handleContextMenu}>
             <div className="osBackground" />
 
-            {/* Íconos del escritorio */}
             <div className="osIcons">
                 {ICONS.map(({ id, icon, label }) => (
                     <div
                         key={id}
                         className="osIcon"
                         onDoubleClick={() => openWindow(id)}
-                        onClick={() => {}} // single click selects (visual only)
+                        onClick={() => {}}
                         title={`Doble clic para abrir ${label}`}
                     >
                         <div className="osIconImg">{icon}</div>
@@ -620,30 +881,26 @@ export default function DesktopPage() {
                 ))}
             </div>
 
-            {/* Ventanas */}
             {windows.map(win => {
                 const meta = WIN_META[win.id];
                 return (
                     <DraggableWindow
                         key={win.id}
-                        id={win.id}
                         type={win.id}
                         title={meta.title}
                         icon={meta.icon}
                         initialPos={INITIAL_POSITIONS[win.id] || { x: 80, y: 80 }}
                         isActive={activeWindow === win.id}
                         isMinimized={win.minimized}
-                        onFocus={() => setActiveWindow(win.id)}
+                        onFocus={() => setActive(win.id)}
                         onClose={() => closeWindow(win.id)}
                         onMinimize={() => minimizeWindow(win.id)}
                     />
                 );
             })}
 
-            {/* Start Menu */}
             {startOpen && <StartMenu onClose={() => setStartOpen(false)} />}
 
-            {/* Context Menu */}
             {ctxMenu && (
                 <ContextMenu
                     x={ctxMenu.x}
@@ -653,7 +910,6 @@ export default function DesktopPage() {
                 />
             )}
 
-            {/* Barra de tareas */}
             <div className="osTaskbar">
                 <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
                     <button
