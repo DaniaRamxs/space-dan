@@ -34,6 +34,27 @@ const EXTRA_STATIONS = {
     stream: 'https://ice4.somafm.com/groovesalad-128-mp3',
     icon:   '🥗',
   },
+  radio_beatblender: {
+    id:     'beatblender',
+    name:   'Beat Blender',
+    genre:  'Deep House · Electro',
+    stream: 'https://ice4.somafm.com/beatblender-128-mp3',
+    icon:   '🎛️',
+  },
+  radio_dronezone: {
+    id:     'dronezone',
+    name:   'Drone Zone',
+    genre:  'Ambient · Space',
+    stream: 'https://ice4.somafm.com/dronezone-128-mp3',
+    icon:   '🌌',
+  },
+  radio_secretagent: {
+    id:     'secretagent',
+    name:   'Secret Agent',
+    genre:  'Spy Jazz · Lounge',
+    stream: 'https://ice4.somafm.com/secretagent-128-mp3',
+    icon:   '🕵️',
+  },
 };
 
 function getStations() {
