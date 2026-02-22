@@ -66,7 +66,7 @@ const DECISIONS = [
   {
     title: "SPA sin SSR",
     icon: "📄",
-    desc: "Sin contenido crítico para SEO, una SPA estática es suficiente. Netlify sirve el index.html y React Router maneja el resto en el cliente.",
+    desc: "Sin contenido crítico para SEO, una SPA estática es suficiente. Vercel sirve el index.html (con rewrite catch-all en vercel.json) y React Router maneja el resto en el cliente.",
   },
   {
     title: "Supabase para el guestbook",
@@ -106,12 +106,12 @@ const TIMELINE = [
 ];
 
 const STATS = [
-  { value: "18+",   label: "páginas"           },
+  { value: "20+",   label: "páginas"           },
   { value: "24",    label: "juegos"             },
   { value: "1",     label: "DB realtime"        },
   { value: "~5300", label: "líneas CSS"         },
   { value: "6",     label: "hooks custom"       },
-  { value: "16",    label: "logros"             },
+  { value: "20",    label: "logros"             },
 ];
 
 const TREE = {

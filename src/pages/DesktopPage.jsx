@@ -1,13 +1,7 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-
-// ─── WINAMP PLAYLIST ─────────────────────────────────────────
-const WINAMP_PLAYLIST = [
-  { id: 1, title: 'lemon boy',  artist: 'cavetown',       src: '/music/lemonboy.mp3',  cover: 'https://i.pinimg.com/originals/61/1e/0a/611e0aad733633587aa5f97a332a0c35.jpg', duration: 272 },
-  { id: 2, title: 'mardy bum',  artist: 'arctic monkeys', src: '/music/mardybum.mp3',  cover: 'https://images.genius.com/779b9b4221140a2ffc0b7bc68bb291fd.600x600x1.jpg', duration: 175 },
-  { id: 3, title: 'creep',      artist: 'radiohead',      src: '/music/creep.mp3',     cover: 'https://upload.wikimedia.org/wikipedia/en/a/a4/Pablo_Honey.png', duration: 238 },
-  { id: 4, title: 'arms tonite',artist: 'mother mother',  src: '/music/armstonite.mp3',cover: 'https://i.scdn.co/image/ab67616d0000b273cf2a0403141b1f4b8488fc3f', duration: 216 },
-];
+import { MUSIC_PLAYLIST } from '../data/musicPlaylist';
+import { unlockAchievement } from '../hooks/useAchievements';
 
 const fmtTime = (s) => isNaN(s) || !s ? '0:00' : `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
 
@@ -23,6 +17,7 @@ function TerminalWindow() {
     const [histIdx, setHistIdx] = useState(-1);
     const bottomRef = useRef(null);
     const inputRef = useRef(null);
+    const firstCmdRef = useRef(false);
 
     useEffect(() => {
         bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -33,11 +28,18 @@ function TerminalWindow() {
         const c = cmd.toLowerCase();
         let out = [];
 
+        // Logro: primer comando de terminal
+        if (!firstCmdRef.current && cmd !== '') {
+            firstCmdRef.current = true;
+            unlockAchievement('os_hacker');
+        }
+
         if (c === 'help') {
             out = [
                 '  help         — muestra este mensaje',
                 '  ls           — lista archivos del escritorio',
                 '  ls -la       — listado detallado',
+                '  open [app]   — abre una ventana (calc, notepad, music...)',
                 '  about        — sobre mí',
                 '  date         — fecha y hora actual',
                 '  time         — hora actual',
@@ -101,7 +103,7 @@ function TerminalWindow() {
                 '  REST APIs · Fetch · LocalStorage',
                 '  GitHub API · Last.fm API',
                 '  ── Tools ─────────────────────────────────',
-                '  Git · GitHub · Netlify · Vite · ESLint',
+                '  Git · GitHub · Vercel · Vite · ESLint',
                 '  React Lazy · Code Splitting · Suspense',
             ];
         } else if (c === 'projects') {
@@ -178,6 +180,30 @@ function TerminalWindow() {
                 '  ║   Escribe "help" para ayuda   ║',
                 '  ╚════════════════════════════════╝',
             ];
+        } else if (c.startsWith('open ') || c === 'open') {
+            if (c === 'open') {
+                out = ['  uso: open [app]  — apps: readme, calc, notepad, music, terminal, secret, chat, guestbook, sysinfo'];
+            } else {
+                const APP_MAP = {
+                    readme: 'readme', 'readme.txt': 'readme',
+                    calc: 'calc', 'calc.exe': 'calc',
+                    notepad: 'notepad', 'notepad.exe': 'notepad',
+                    music: 'music', winamp: 'music', 'winamp.m3u': 'music',
+                    terminal: 'terminal', 'terminal.exe': 'terminal',
+                    secret: 'secret', classified: 'secret', 'classified.log': 'secret',
+                    chat: 'chat', 'chat.exe': 'chat',
+                    guestbook: 'guestbook', 'guestbook.db': 'guestbook',
+                    sysinfo: 'sysinfo', 'sysinfo.exe': 'sysinfo',
+                };
+                const appName = cmd.slice(5).toLowerCase().trim();
+                const appId   = APP_MAP[appName];
+                if (appId) {
+                    window.dispatchEvent(new CustomEvent('dan:os-open', { detail: { id: appId } }));
+                    out = [`  → abriendo ${appName}...`];
+                } else {
+                    out = [`  open: '${appName}' no encontrado.`, '  apps: readme, calc, notepad, music, terminal, secret, chat, guestbook, sysinfo'];
+                }
+            }
         } else if (c === 'matrix') {
             out = [
                 '  Wake up, dan...',
@@ -258,8 +284,10 @@ function CalcWindow() {
     const [prev, setPrev]       = useState(null);
     const [op, setOp]           = useState(null);
     const [waitNext, setWait]   = useState(false);
+    const usedRef = useRef(false);
 
     const input = (val) => {
+        if (!usedRef.current) { usedRef.current = true; unlockAchievement('os_dev'); }
         if (waitNext) { setDisplay(String(val)); setWait(false); }
         else setDisplay(d => d === '0' ? String(val) : d.length > 10 ? d : d + val);
     };
@@ -356,7 +384,7 @@ function WinAmpWindow() {
     const [time, setTime]         = useState(0);
     const [dur, setDur]           = useState(0);
     const audioRef = useRef(null);
-    const song = WINAMP_PLAYLIST[trackIdx];
+    const song = MUSIC_PLAYLIST[trackIdx];
 
     useEffect(() => {
         const audio = audioRef.current;
@@ -378,7 +406,7 @@ function WinAmpWindow() {
         if (!audio) return;
         const onTime = () => setTime(audio.currentTime);
         const onMeta = () => setDur(audio.duration);
-        const onEnd  = () => setTrackIdx(t => (t + 1) % WINAMP_PLAYLIST.length);
+        const onEnd  = () => setTrackIdx(t => (t + 1) % MUSIC_PLAYLIST.length);
         audio.addEventListener('timeupdate', onTime);
         audio.addEventListener('loadedmetadata', onMeta);
         audio.addEventListener('ended', onEnd);
@@ -390,8 +418,8 @@ function WinAmpWindow() {
     }, [trackIdx]);
 
     const pct  = dur > 0 ? (time / dur) * 100 : 0;
-    const prev = () => setTrackIdx(t => (t - 1 + WINAMP_PLAYLIST.length) % WINAMP_PLAYLIST.length);
-    const next = () => setTrackIdx(t => (t + 1) % WINAMP_PLAYLIST.length);
+    const prev = () => setTrackIdx(t => (t - 1 + MUSIC_PLAYLIST.length) % MUSIC_PLAYLIST.length);
+    const next = () => setTrackIdx(t => (t + 1) % MUSIC_PLAYLIST.length);
 
     return (
         <div className="osWinAmp">
@@ -421,7 +449,7 @@ function WinAmpWindow() {
 
             {/* Playlist */}
             <div className="osWinAmpList">
-                {WINAMP_PLAYLIST.map((s, i) => (
+                {MUSIC_PLAYLIST.map((s, i) => (
                     <div
                         key={s.id}
                         className={`osWinAmpTrack${i === trackIdx ? ' active' : ''}`}
@@ -503,7 +531,7 @@ Shell:   React 19 + Vite 7
 UI:      CSS custom ~5300 líneas
 DB:      Supabase (PostgreSQL)
 Router:  React Router v7
-Deploy:  Netlify CDN
+Deploy:  Vercel
 
 Uptime:  ${uptime} días
 Clock:   ${now.toLocaleTimeString('es-PE')}
@@ -584,13 +612,18 @@ Hecho con React, CSS y mucho café.
 
         case 'chat':
             return (
-                <iframe
-                    src="https://www3.cbox.ws/box/?boxid=3551223&boxtag=TAHvLn"
-                    title="Shoutbox"
-                    sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
-                    referrerPolicy="no-referrer"
-                    style={{ width: '100%', height: '340px', border: 0, display: 'block' }}
-                />
+                <div style={{ display: 'flex', flexDirection: 'column' }}>
+                    <iframe
+                        src="https://www3.cbox.ws/box/?boxid=3551223&boxtag=TAHvLn"
+                        title="Shoutbox"
+                        sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
+                        referrerPolicy="no-referrer"
+                        style={{ width: '100%', height: '320px', border: 0, display: 'block' }}
+                    />
+                    <div style={{ fontSize: 10, color: '#808080', textAlign: 'center', padding: '3px 8px', borderTop: '1px solid #ccc' }}>
+                        Si el chat no carga, desactiva el bloqueador de anuncios.
+                    </div>
+                </div>
             );
 
         case 'guestbook':
@@ -667,8 +700,10 @@ function DraggableWindow({ type, title, icon, initialPos, isActive, isMinimized,
         default:   { width: 300, height: 200 },
     };
     const size = WIN_SIZES[type] || WIN_SIZES.default;
-    const isMobile = window.innerWidth < 600;
-    const effectiveWidth = isMobile ? Math.min(size.width, window.innerWidth - 16) : size.width;
+    // Captura una sola vez al montar — evita re-leer window.innerWidth en cada render
+    const screenW = useMemo(() => window.innerWidth, []);
+    const isMobile = screenW < 600;
+    const effectiveWidth = isMobile ? Math.min(size.width, screenW - 16) : size.width;
 
     return (
         <div
@@ -819,7 +854,20 @@ export default function DesktopPage() {
     const [startOpen, setStartOpen]   = useState(false);
     const [ctxMenu, setCtxMenu]       = useState(null);
     const [clock, setClock]           = useState('');
-    const lastTap = useRef({});
+    const lastTap       = useRef({});
+    const firstOpenRef  = useRef(false);
+
+    const openWindow = useCallback((id) => {
+        if (!firstOpenRef.current) { firstOpenRef.current = true; unlockAchievement('os_user'); }
+        if (id === 'calc') unlockAchievement('os_dev');
+        setWindows(prev => {
+            const exists = prev.find(w => w.id === id);
+            if (exists) return prev.map(w => w.id === id ? { ...w, minimized: false } : w);
+            return [...prev, { id, minimized: false }];
+        });
+        setActive(id);
+        setStartOpen(false);
+    }, []);
 
     // Funciona con doble clic (escritorio) y doble tap (móvil)
     const handleIconActivate = (id) => {
@@ -832,6 +880,18 @@ export default function DesktopPage() {
         }
     };
 
+    // Logro: 5 ventanas abiertas a la vez
+    useEffect(() => {
+        if (windows.filter(w => !w.minimized).length >= 5) unlockAchievement('os_multitask');
+    }, [windows]);
+
+    // Comando "open [app]" desde la terminal
+    useEffect(() => {
+        const handler = (e) => openWindow(e.detail?.id);
+        window.addEventListener('dan:os-open', handler);
+        return () => window.removeEventListener('dan:os-open', handler);
+    }, [openWindow]);
+
     useEffect(() => {
         const update = () =>
             setClock(new Date().toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' }));
@@ -839,16 +899,6 @@ export default function DesktopPage() {
         const t = setInterval(update, 1000);
         return () => clearInterval(t);
     }, []);
-
-    const openWindow = (id) => {
-        setWindows(prev => {
-            const exists = prev.find(w => w.id === id);
-            if (exists) return prev.map(w => w.id === id ? { ...w, minimized: false } : w);
-            return [...prev, { id, minimized: false }];
-        });
-        setActive(id);
-        setStartOpen(false);
-    };
 
     const closeWindow = (id) => {
         setWindows(prev => prev.filter(w => w.id !== id));
@@ -898,7 +948,7 @@ export default function DesktopPage() {
                 ))}
             </div>
 
-            {windows.map(win => {
+            {windows.map((win, idx) => {
                 const meta = WIN_META[win.id];
                 return (
                     <DraggableWindow
@@ -907,10 +957,10 @@ export default function DesktopPage() {
                         title={meta.title}
                         icon={meta.icon}
                         initialPos={
-                        window.innerWidth < 600
-                            ? { x: 8, y: 8 }
-                            : (INITIAL_POSITIONS[win.id] || { x: 80, y: 80 })
-                    }
+                            window.innerWidth < 600
+                                ? { x: 8, y: 8 + (idx % 5) * 20 }
+                                : (INITIAL_POSITIONS[win.id] || { x: 80, y: 80 })
+                        }
                         isActive={activeWindow === win.id}
                         isMinimized={win.minimized}
                         onFocus={() => setActive(win.id)}
@@ -938,6 +988,13 @@ export default function DesktopPage() {
                         onClick={() => { setStartOpen(o => !o); setCtxMenu(null); }}
                     >
                         ⊞ START
+                    </button>
+                    <button
+                        className="osAppsBtn"
+                        onClick={() => { setCtxMenu({ x: 10, y: window.innerHeight - 250 }); setStartOpen(false); }}
+                        title="Abrir aplicaciones"
+                    >
+                        📂 APPS
                     </button>
                     <div className="osTaskbarSep" />
                     <div className="osTaskbarOpenApps">
