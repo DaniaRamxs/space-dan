@@ -133,10 +133,12 @@ export default function GamesPage() {
                 <span style={{ fontSize: 10, opacity: 0.5 }}>{isOpen ? '▲' : '▼'}</span>
               </div>
               {isOpen && (
-                <div className="shBody" style={{ display: 'flex', justifyContent: 'center', padding: '16px 12px' }}>
-                  <Suspense fallback={<div style={{ color: 'var(--accent)', fontSize: 12 }}>cargando_juego...</div>}>
-                    <GameComponent />
-                  </Suspense>
+                <div className="shBody" style={{ display: 'flex', justifyContent: 'center', padding: '16px 12px', overflowX: 'auto' }}>
+                  <div className="gameScale">
+                    <Suspense fallback={<div style={{ color: 'var(--accent)', fontSize: 12 }}>cargando_juego...</div>}>
+                      <GameComponent />
+                    </Suspense>
+                  </div>
                 </div>
               )}
             </section>

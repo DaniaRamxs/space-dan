@@ -36,7 +36,16 @@ export default function useHighScore(gameId) {
           // localStorage unavailable — silently ignore
         }
         setBest(n);
+        window.dispatchEvent(new CustomEvent('dan:game-score', {
+          detail: { gameId, score: n, isHighScore: true },
+        }));
         return true;
+      }
+      // Fire for non-high-score completions too (for coin rewards)
+      if (n > 0) {
+        window.dispatchEvent(new CustomEvent('dan:game-score', {
+          detail: { gameId, score: n, isHighScore: false },
+        }));
       }
       return false;
     },
