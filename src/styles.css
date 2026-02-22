@@ -4891,3 +4891,323 @@ textarea,
     grid-template-columns: 1fr;
   }
 }
+/* =============================================
+   GAME SYSTEM — Dancoins, Logros, Tienda, Radio, Screensaver, LastFM
+   ============================================= */
+
+/* ── Dancoins widget (sidebar) ─────────────────────────────────── */
+.dancoinsWidget {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  margin: 4px 8px;
+  background: var(--accent-dim);
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  transition: all 0.3s ease;
+}
+.dancoinsWidget.flash {
+  animation: dancoinsFlash 0.5s ease 3;
+}
+@keyframes dancoinsFlash {
+  0%, 100% { background: var(--accent-dim); }
+  50%       { background: rgba(255,110,180,0.4); box-shadow: 0 0 12px var(--accent); }
+}
+.dancoinsIcon   { font-size: 14px; color: var(--accent); }
+.dancoinsAmount { font-weight: 700; color: var(--accent); font-size: 13px; }
+.dancoinsLabel  { color: var(--text-muted); font-size: 11px; }
+
+/* Topbar coins (mobile) */
+.topbarCoins     { display: none; }
+.topbarCoinsLink { color: var(--accent); text-decoration: none; font-size: 12px; font-weight: 700; padding: 4px 8px; border: 1px solid var(--accent); border-radius: var(--radius-sm); }
+
+/* Game system nav links */
+.sideGameLink { border-left: 2px solid var(--accent) !important; }
+
+/* Daily bonus toast */
+.dailyBonusToast {
+  position: fixed;
+  bottom: 80px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(255,110,180,0.15);
+  border: 1px solid var(--accent);
+  color: var(--accent);
+  padding: 10px 20px;
+  border-radius: var(--radius-md);
+  font-size: 13px;
+  z-index: 9999;
+  backdrop-filter: blur(8px);
+  animation: toastSlide 3s ease forwards;
+  pointer-events: none;
+}
+@keyframes toastSlide {
+  0%   { opacity: 0; transform: translateX(-50%) translateY(20px); }
+  15%  { opacity: 1; transform: translateX(-50%) translateY(0); }
+  80%  { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+/* ── Achievement Toast ─────────────────────────────────────────── */
+.achievementToast {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: rgba(10,10,20,0.95);
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-md);
+  padding: 12px 16px;
+  box-shadow: 0 0 20px var(--accent-glow), 0 4px 20px rgba(0,0,0,0.6);
+  z-index: 9998;
+  max-width: 320px;
+  animation: toastIn 0.4s cubic-bezier(0.34,1.56,0.64,1) forwards;
+  backdrop-filter: blur(12px);
+}
+@keyframes toastIn {
+  from { opacity: 0; transform: translateY(30px) scale(0.9); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+.achToastIcon  { font-size: 32px; flex-shrink: 0; }
+.achToastBody  { display: flex; flex-direction: column; gap: 2px; }
+.achToastLabel { font-size: 10px; color: var(--accent); text-transform: uppercase; letter-spacing: 0.1em; }
+.achToastTitle { font-size: 14px; font-weight: 700; color: var(--text); }
+.achToastDesc  { font-size: 11px; color: var(--text-muted); }
+.achToastCoins { font-size: 12px; color: #ffd700; font-weight: 700; margin-top: 2px; }
+
+/* ── Achievements Page ─────────────────────────────────────────── */
+.achPage    { max-width: var(--content-max); margin: 0 auto; padding: 0 4px; }
+.achHeader  { display: flex; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-bottom: 16px; }
+.achTitle   { font-size: 22px; font-weight: 700; color: var(--accent); margin: 0; text-shadow: 0 0 12px var(--accent-glow); }
+.achStats   { display: flex; gap: 8px; flex-wrap: wrap; }
+.achStatBadge { padding: 4px 10px; border: 1px solid var(--border); border-radius: var(--radius-sm); font-size: 12px; color: var(--text-muted); background: var(--card); }
+.achStatBadge.coins { border-color: var(--accent); color: var(--accent); }
+
+.achProgressWrap { display: flex; align-items: center; gap: 8px; margin-bottom: 24px; }
+.achProgress     { flex: 1; height: 8px; background: var(--card); border: 1px solid var(--border); border-radius: 4px; overflow: hidden; }
+.achProgressBar  { height: 100%; background: linear-gradient(90deg, var(--accent), var(--cyan)); border-radius: 4px; transition: width 0.6s ease; }
+.achProgressLabel { font-size: 11px; color: var(--text-muted); min-width: 30px; text-align: right; }
+
+.achGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 12px;
+  margin-bottom: 24px;
+}
+.achCard {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  position: relative;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.achCard.unlocked { border-color: rgba(255,110,180,0.4); box-shadow: 0 0 12px var(--accent-dim); }
+.achCard.locked   { opacity: 0.55; filter: grayscale(60%); }
+.achCardIcon  { font-size: 28px; flex-shrink: 0; }
+.achCardBody  { flex: 1; min-width: 0; }
+.achCardTitle { font-size: 13px; font-weight: 700; color: var(--text); margin-bottom: 3px; }
+.achCardDesc  { font-size: 11px; color: var(--text-muted); line-height: 1.4; }
+.achCardCoins { font-size: 11px; color: #ffd700; margin-top: 4px; }
+.achCardCoins.dimmed { color: var(--text-muted); }
+.achCardCheck { position: absolute; top: 8px; right: 10px; color: var(--accent); font-size: 14px; font-weight: 700; }
+
+.achFooter { font-size: 12px; color: var(--text-muted); text-align: center; padding: 12px 0; border-top: 1px solid var(--border); }
+.achFooter strong { color: #ffd700; }
+
+/* ── Shop Page ─────────────────────────────────────────────────── */
+.shopPage    { max-width: var(--content-max); margin: 0 auto; padding: 0 4px; }
+.shopHeader  { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-bottom: 12px; }
+.shopTitle   { font-size: 22px; font-weight: 700; color: var(--accent); margin: 0; text-shadow: 0 0 12px var(--accent-glow); }
+.shopWallet  { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.shopCoins   { font-size: 15px; font-weight: 700; color: var(--accent); padding: 4px 10px; border: 1px solid var(--accent); border-radius: var(--radius-sm); background: var(--accent-dim); }
+.shopDailyBtn { padding: 6px 12px; background: rgba(255,215,0,0.1); border: 1px solid #ffd700; border-radius: var(--radius-sm); color: #ffd700; font-size: 12px; cursor: pointer; transition: all 0.2s; font-family: inherit; }
+.shopDailyBtn:hover { background: rgba(255,215,0,0.2); }
+
+.shopHint { font-size: 11px; color: var(--text-muted); margin-bottom: 16px; padding: 8px 12px; background: var(--card); border: 1px solid var(--border); border-radius: var(--radius-sm); line-height: 1.5; }
+
+.shopFlash { padding: 8px 14px; border-radius: var(--radius-sm); font-size: 12px; margin-bottom: 12px; animation: toastIn 0.3s ease; }
+.shopFlash.ok  { background: rgba(57,255,20,0.1);  border: 1px solid var(--status-green); color: var(--status-green); }
+.shopFlash.err { background: rgba(255,50,50,0.1);  border: 1px solid #ff5050; color: #ff5050; }
+
+.shopCategories { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 20px; }
+.shopCatBtn { padding: 6px 14px; background: var(--card); border: 1px solid var(--border); border-radius: var(--radius-sm); color: var(--text-muted); font-size: 12px; cursor: pointer; transition: all 0.2s; font-family: inherit; }
+.shopCatBtn:hover  { border-color: var(--accent); color: var(--text); }
+.shopCatBtn.active { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
+
+.shopGrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; }
+.shopCard {
+  display: flex; flex-direction: column; gap: 8px;
+  padding: 14px; background: var(--card); border: 1px solid var(--border);
+  border-radius: var(--radius-md); transition: all 0.2s;
+}
+.shopCard:hover  { border-color: rgba(255,110,180,0.4); }
+.shopCard.owned  { border-color: rgba(0,229,255,0.3); }
+.shopCard.equipped { border-color: var(--accent); box-shadow: 0 0 12px var(--accent-dim); }
+
+.shopCardIcon     { font-size: 30px; text-align: center; }
+.shopCardBody     { flex: 1; }
+.shopCardTitle    { font-size: 13px; font-weight: 700; color: var(--text); margin-bottom: 3px; }
+.shopCardDesc     { font-size: 11px; color: var(--text-muted); line-height: 1.4; }
+.shopCardCategory { font-size: 10px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-top: 4px; opacity: 0.6; }
+.shopCardFooter   { margin-top: auto; }
+
+.shopBuyBtn { width: 100%; padding: 7px 0; border-radius: var(--radius-sm); border: 1px solid var(--accent); background: var(--accent-dim); color: var(--accent); font-size: 13px; font-weight: 700; cursor: pointer; font-family: inherit; transition: all 0.2s; }
+.shopBuyBtn:hover:not(.disabled) { background: rgba(255,110,180,0.25); }
+.shopBuyBtn.secondary { border-color: var(--cyan); color: var(--cyan); background: rgba(0,229,255,0.08); }
+.shopBuyBtn.disabled  { opacity: 0.4; cursor: not-allowed; }
+.shopEquippedBadge    { display: block; text-align: center; font-size: 12px; color: var(--accent); padding: 6px 0; }
+
+/* ── Last.fm Widget ────────────────────────────────────────────── */
+.lastfmWidget {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 10px; margin: 4px 8px;
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); text-decoration: none;
+  transition: all 0.2s; overflow: hidden;
+}
+.lastfmWidget:hover  { border-color: var(--accent); }
+.lastfmWidget.playing { border-color: rgba(255,110,180,0.5); animation: lastfmPulse 2s ease infinite; }
+.lastfmWidget.loading { opacity: 0.6; }
+@keyframes lastfmPulse {
+  0%, 100% { box-shadow: none; }
+  50%       { box-shadow: 0 0 8px var(--accent-glow); }
+}
+.lastfmCover  { width: 36px; height: 36px; border-radius: 4px; object-fit: cover; flex-shrink: 0; }
+.lastfmInfo   { flex: 1; min-width: 0; }
+.lastfmStatus { display: flex; align-items: center; gap: 4px; font-size: 9px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 2px; }
+.lastfmTrack  { font-size: 11px; font-weight: 700; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lastfmArtist { font-size: 10px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lastfmDot    { width: 6px; height: 6px; border-radius: 50%; display: inline-block; flex-shrink: 0; }
+.lastfmDot.pulse  { background: var(--accent); animation: dotPulse 1s ease infinite; }
+.lastfmDot.static { background: var(--text-muted); }
+@keyframes dotPulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.5;transform:scale(1.3)} }
+.lastfmText { font-size: 11px; color: var(--text-muted); }
+
+/* ── Radio Player ──────────────────────────────────────────────── */
+.radioToggleBtn {
+  position: fixed;
+  bottom: 24px;
+  right: 80px;
+  width: 46px; height: 46px;
+  border-radius: 50%;
+  background: rgba(10,10,20,0.9);
+  border: 1px solid var(--border);
+  font-size: 20px;
+  cursor: pointer;
+  z-index: 9990;
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.2s;
+  backdrop-filter: blur(8px);
+}
+.radioToggleBtn:hover  { border-color: var(--accent); transform: scale(1.1); }
+.radioToggleBtn.active { border-color: var(--accent); box-shadow: 0 0 12px var(--accent-glow); animation: radioGlow 2s ease infinite; }
+@keyframes radioGlow { 0%,100%{box-shadow:0 0 8px var(--accent-glow)} 50%{box-shadow:0 0 18px var(--accent-glow)} }
+.radioLiveDot {
+  position: absolute; top: 4px; right: 4px;
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--accent); animation: dotPulse 1s ease infinite;
+}
+
+.radioPanel {
+  position: fixed;
+  bottom: 80px; right: 24px;
+  width: 300px;
+  background: rgba(8,8,18,0.97);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  z-index: 9989;
+  backdrop-filter: blur(16px);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.6);
+  transform: translateY(20px) scale(0.95);
+  opacity: 0;
+  pointer-events: none;
+  transition: all 0.25s cubic-bezier(0.34,1.56,0.64,1);
+}
+.radioPanel.open { opacity: 1; transform: translateY(0) scale(1); pointer-events: auto; }
+
+.radioPanelHeader { display: flex; justify-content: space-between; align-items: center; padding: 12px 14px 10px; border-bottom: 1px solid var(--border); }
+.radioPanelTitle  { font-size: 12px; font-weight: 700; color: var(--accent); letter-spacing: 0.1em; }
+.radioPanelClose  { background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 14px; padding: 2px 6px; font-family: inherit; }
+.radioPanelClose:hover { color: var(--text); }
+
+.radioNowPlaying { display: flex; align-items: center; gap: 10px; padding: 12px 14px; }
+.radioStationIcon { font-size: 24px; flex-shrink: 0; }
+.radioStationInfo { flex: 1; min-width: 0; }
+.radioStationName { font-size: 12px; font-weight: 700; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.radioStationGenre { font-size: 10px; color: var(--text-muted); }
+.radioLoadingDot  { color: var(--accent); animation: blink 1s step-start infinite; }
+
+.radioPlayBtn { width: 36px; height: 36px; border-radius: 50%; background: var(--accent-dim); border: 1px solid var(--accent); color: var(--accent); font-size: 14px; cursor: pointer; flex-shrink: 0; display: flex; align-items: center; justify-content: center; transition: all 0.2s; font-family: inherit; }
+.radioPlayBtn:hover  { background: rgba(255,110,180,0.25); }
+.radioPlayBtn.playing { background: rgba(255,110,180,0.25); }
+
+.radioVolume { display: flex; align-items: center; gap: 8px; padding: 0 14px 10px; }
+.radioVolIcon { font-size: 14px; }
+.radioVolSlider { flex: 1; -webkit-appearance: none; height: 4px; border-radius: 2px; background: var(--border); outline: none; }
+.radioVolSlider::-webkit-slider-thumb { -webkit-appearance: none; width: 14px; height: 14px; border-radius: 50%; background: var(--accent); cursor: pointer; }
+.radioVolSlider::-moz-range-thumb { width: 14px; height: 14px; border-radius: 50%; background: var(--accent); cursor: pointer; border: none; }
+
+.radioStationList { padding: 0 8px 12px; display: flex; flex-direction: column; gap: 4px; }
+.radioStationBtn { display: flex; justify-content: space-between; align-items: center; width: 100%; padding: 8px 10px; background: none; border: 1px solid transparent; border-radius: var(--radius-sm); color: var(--text-muted); font-size: 11px; cursor: pointer; text-align: left; font-family: inherit; transition: all 0.15s; }
+.radioStationBtn:hover  { border-color: var(--border); color: var(--text); }
+.radioStationBtn.active { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
+.radioStationGenreSmall { font-size: 10px; opacity: 0.6; }
+.radioUnlockHint { font-size: 10px; color: var(--text-muted); text-align: center; margin-top: 4px; opacity: 0.6; }
+
+/* ── Screensaver ───────────────────────────────────────────────── */
+.screensaverOverlay {
+  position: fixed; inset: 0;
+  z-index: 99999;
+  cursor: none;
+  background: #050510;
+}
+.screensaverCanvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.screensaverHint {
+  position: absolute; bottom: 20px; left: 50%;
+  transform: translateX(-50%);
+  font-size: 11px; color: rgba(255,255,255,0.3);
+  pointer-events: none; letter-spacing: 0.05em;
+}
+
+/* ── Responsive ────────────────────────────────────────────────── */
+@media (max-width: 800px) {
+  /* Show topbar coins on mobile */
+  .topbarCoins { display: flex; align-items: center; margin-left: auto; }
+
+  /* Hide sidebar dancoins on mobile (shown in topbar instead) */
+  .dancoinsWidget { display: none; }
+
+  /* Achievement toast */
+  .achievementToast {
+    bottom: 12px; right: 12px; left: 12px;
+    max-width: none;
+  }
+
+  /* Radio panel full width on small screens */
+  .radioPanel { right: 12px; left: 12px; width: auto; bottom: 70px; }
+  .radioToggleBtn { right: 24px; bottom: 80px; }
+
+  /* Achievements grid */
+  .achGrid { grid-template-columns: 1fr; }
+
+  /* Shop grid */
+  .shopGrid { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); }
+
+  /* Shop header stack */
+  .shopHeader { flex-direction: column; align-items: flex-start; }
+}
+
+@media (max-width: 480px) {
+  .shopGrid      { grid-template-columns: 1fr 1fr; }
+  .shopCategories { gap: 6px; }
+  .shopCatBtn    { padding: 5px 10px; font-size: 11px; }
+  .achHeader     { flex-direction: column; }
+}
