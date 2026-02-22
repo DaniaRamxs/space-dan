@@ -5160,6 +5160,7 @@ textarea,
 .shopCatBtn:hover  { border-color: var(--accent); color: var(--text); }
 .shopCatBtn.active { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
 
+.shopHintCategories { display: flex; flex-wrap: wrap; gap: 4px 14px; margin-top: 6px; font-size: 10px; color: var(--text-muted); }
 .shopGrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; }
 .shopCard {
   display: flex; flex-direction: column; gap: 8px;
@@ -5213,7 +5214,7 @@ textarea,
 .radioToggleBtn {
   position: fixed;
   bottom: 24px;
-  right: 80px;
+  right: 20px;
   width: 46px; height: 46px;
   border-radius: 50%;
   background: rgba(10,10,20,0.9);
@@ -5236,7 +5237,7 @@ textarea,
 
 .radioPanel {
   position: fixed;
-  bottom: 80px; right: 24px;
+  bottom: 80px; right: 20px;
   width: 300px;
   background: rgba(8,8,18,0.97);
   border: 1px solid var(--border);
@@ -5324,8 +5325,14 @@ textarea,
 }
 
 @media (max-width: 480px) {
-  .shopGrid      { grid-template-columns: 1fr 1fr; }
+  .shopGrid       { grid-template-columns: 1fr; }
   .shopCategories { gap: 6px; }
-  .shopCatBtn    { padding: 5px 10px; font-size: 11px; }
-  .achHeader     { flex-direction: column; }
+  .shopCatBtn     { padding: 8px 12px; font-size: 12px; min-height: 36px; }
+  .shopCard       { flex-direction: row; align-items: flex-start; gap: 12px; padding: 12px; }
+  .shopCardIcon   { font-size: 28px; flex-shrink: 0; padding-top: 2px; }
+  .shopCardBody   { flex: 1; }
+  .shopCardFooter { margin-top: 6px; }
+  .shopBuyBtn     { padding: 9px 0; font-size: 14px; }
+  .achHeader      { flex-direction: column; }
+  .shopHintCategories { flex-direction: column; gap: 4px; }
 }

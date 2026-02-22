@@ -15,9 +15,9 @@ export const SHOP_ITEMS = [
   { id: 'saver_dvd',      category: 'screensaver', title: 'DVD Bounce',       desc: 'Logo clásico rebotando',           price: 80,  icon: '📀' },
   { id: 'saver_pipes',    category: 'screensaver', title: 'Tuberías 3D',      desc: 'Clásico Windows 95/98',            price: 120, icon: '🔧' },
   // ── Estrellas ──────────────────────────────────────────────────
-  { id: 'stars_blue',     category: 'stars',       title: 'Nebulosa Azul',    desc: 'Estrellas azul profundo',          price: 80,  icon: '🔵' },
-  { id: 'stars_green',    category: 'stars',       title: 'Estrellas Matrix', desc: 'Fondo verde hacker',               price: 80,  icon: '🟢' },
-  { id: 'stars_red',      category: 'stars',       title: 'Inferno Stars',    desc: 'Estrellas rojo carmesí',           price: 80,  icon: '🔴' },
+  { id: 'stars_blue',     category: 'stars',       title: 'Nebulosa Azul',    desc: 'Cambia el fondo estelar a azul profundo',   price: 80,  icon: '🔵' },
+  { id: 'stars_green',    category: 'stars',       title: 'Estrellas Matrix', desc: 'Cambia el fondo estelar a verde hacker',    price: 80,  icon: '🟢' },
+  { id: 'stars_red',      category: 'stars',       title: 'Inferno Stars',    desc: 'Cambia el fondo estelar a rojo carmesí',    price: 80,  icon: '🔴' },
   // ── Radio stations ─────────────────────────────────────────────
   { id: 'radio_jcore',    category: 'radio',       title: 'J-Core Station',   desc: 'Anime beats y J-pop',              price: 50,  icon: '🎌' },
   { id: 'radio_groove',   category: 'radio',       title: 'Groove Salad',     desc: 'Ambient electronica relajante',    price: 50,  icon: '🥗' },

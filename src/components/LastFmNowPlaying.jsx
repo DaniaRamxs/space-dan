@@ -1,8 +1,8 @@
 // src/components/LastFmNowPlaying.jsx
 import { useState, useEffect } from 'react';
 
-const USER = import.meta.env.VITE_LASTFM_USER || 'HikkiVT';
-const KEY  = import.meta.env.VITE_LASTFM_KEY;
+const USER = import.meta.env.VITE_LASTFM_USER || import.meta.env.VITE_LASTFM_USERNAME || 'HikkiVT';
+const KEY  = import.meta.env.VITE_LASTFM_KEY  || import.meta.env.VITE_LASTFM_API_KEY  || '37bea35ad8f57a95805a5c51747915d3';
 
 export default function LastFmNowPlaying() {
     const [track, setTrack] = useState(null);

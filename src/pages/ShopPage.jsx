@@ -78,8 +78,13 @@ export default function ShopPage() {
       )}
 
       <div className="shopHint">
-        Gana ◈ visitando páginas, jugando, desbloqueando logros y reclamando el bonus diario.
-        Los items comprados se equipan automáticamente.
+        <div>Gana ◈ visitando páginas, jugando, desbloqueando logros y reclamando el bonus diario.</div>
+        <div className="shopHintCategories">
+          <span>🖱️ Cursores — trail de partículas al mover el mouse</span>
+          <span>💤 Screensavers — animación tras 30s sin actividad</span>
+          <span>⭐ Estrellas — color del fondo estelar animado</span>
+          <span>📻 Radio — estaciones extra en el reproductor 📻</span>
+        </div>
       </div>
 
       <div className="shopCategories">
