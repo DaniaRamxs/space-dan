@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 
-const API_KEY  = import.meta.env.VITE_LASTFM_API_KEY;
-const USERNAME = import.meta.env.VITE_LASTFM_USERNAME;
+const API_KEY  = import.meta.env.VITE_LASTFM_API_KEY  || '37bea35ad8f57a95805a5c51747915d3';
+const USERNAME = import.meta.env.VITE_LASTFM_USERNAME || 'HikkiVT';
 
 export default function LastFmWidget() {
   const [track, setTrack]   = useState(null);
