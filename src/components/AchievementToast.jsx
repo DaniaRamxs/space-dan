@@ -1,8 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
+
+const DURATION = 4000;
 
 export default function AchievementToast() {
-  const [queue, setQueue]   = useState([]);
+  const [queue, setQueue]     = useState([]);
   const [visible, setVisible] = useState(null);
+  const timerRef              = useRef(null);
 
   // Listen for achievement unlocks
   useEffect(() => {
@@ -15,20 +18,25 @@ export default function AchievementToast() {
     return () => window.removeEventListener('dan:achievement-unlocked', handler);
   }, []);
 
+  const dismiss = () => {
+    clearTimeout(timerRef.current);
+    setVisible(null);
+  };
+
   // Dequeue one at a time
   useEffect(() => {
     if (visible || queue.length === 0) return;
     const [next, ...rest] = queue;
     setQueue(rest);
     setVisible(next);
-    const t = setTimeout(() => setVisible(null), 4000);
-    return () => clearTimeout(t);
+    timerRef.current = setTimeout(dismiss, DURATION);
+    return () => clearTimeout(timerRef.current);
   }, [queue, visible]);
 
   if (!visible) return null;
 
   return (
-    <div className="achievementToast" key={visible.key}>
+    <div className="achievementToast" key={visible.key} onClick={dismiss}>
       <div className="achToastIcon">{visible.icon}</div>
       <div className="achToastBody">
         <div className="achToastLabel">¡Logro desbloqueado!</div>
@@ -38,6 +46,12 @@ export default function AchievementToast() {
           <div className="achToastCoins">+{visible.coins} ◈</div>
         )}
       </div>
+      <button
+        className="achToastClose"
+        onClick={(e) => { e.stopPropagation(); dismiss(); }}
+        aria-label="Cerrar"
+      >✕</button>
+      <div className="achToastProgress" style={{ animationDuration: `${DURATION}ms` }} />
     </div>
   );
 }
