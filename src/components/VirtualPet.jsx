@@ -119,8 +119,8 @@ export default function VirtualPet() {
                 }}
             >
                 <img
-                    src="/omo.gif"
-                    alt="Virtual Pet"
+                    src="https://autism.crd.co/assets/images/gallery03/45050ba7_original.gif?v=69d6a439"
+                    alt="Virtual Pet Autism Cat"
                     style={{
                         width: '80px',
                         height: 'auto',
