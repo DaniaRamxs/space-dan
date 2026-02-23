@@ -7164,3 +7164,83 @@ textarea,
   color: var(--text-muted);
   vertical-align: middle;
 }
+
+/* ══════════════════════════════════════════════════════════
+   PUBLIC PROFILE — responsive mobile-first
+   ══════════════════════════════════════════════════════════ */
+
+/* Content grid: single col on mobile, 2 cols on desktop */
+.profileContentGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 24px;
+  padding: 20px 16px;
+}
+@media (min-width: 768px) {
+  .profileContentGrid {
+    grid-template-columns: 1fr 300px;
+    gap: 40px;
+    padding: 24px 28px;
+  }
+}
+
+/* Action buttons: full-width row on mobile, column on desktop */
+.profileActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  width: 100%;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+}
+.profileActions a,
+.profileActions button {
+  flex: 1;
+  min-width: 130px;
+  text-align: center;
+  justify-content: center;
+}
+@media (min-width: 768px) {
+  .profileActions {
+    width: auto;
+    flex-direction: column;
+    align-items: stretch;
+    margin-top: 0;
+    padding-top: 0;
+    border-top: none;
+    flex-shrink: 0;
+    min-width: 148px;
+  }
+  .profileActions a,
+  .profileActions button {
+    flex: none;
+    min-width: unset;
+  }
+}
+
+/* Activity status badge */
+.activityBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.68rem;
+  padding: 3px 9px;
+  border-radius: 20px;
+  background: rgba(0, 229, 255, 0.12);
+  color: var(--cyan, #00e5ff);
+  border: 1px solid rgba(0, 229, 255, 0.22);
+  font-weight: 600;
+  white-space: nowrap;
+  letter-spacing: 0.03em;
+}
+.activityBadge::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--cyan, #00e5ff);
+  box-shadow: 0 0 5px var(--cyan, #00e5ff);
+  flex-shrink: 0;
+}
