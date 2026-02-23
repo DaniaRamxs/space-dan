@@ -202,18 +202,14 @@ export default function PublicProfilePage() {
           </p>
 
           {/* Stats row */}
-          <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', alignItems: 'center' }}>
+          <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', alignItems: 'center', marginBottom: 4 }}>
             <span style={{ color: 'var(--accent)', fontSize: '0.9rem', fontWeight: 'bold' }}>
               ◈ {(profile.balance ?? 0).toLocaleString()}
             </span>
-            <button
-              onClick={() => {}}
-              style={{ background: 'none', border: 'none', padding: 0, cursor: 'default', color: 'inherit' }}
-              title="Seguidores"
-            >
-              <span style={{ color: '#fff', fontWeight: 'bold' }}>{followCounts.followers}</span>
-              <span style={{ color: 'var(--cyan)', fontSize: '0.82rem' }}> seguidores</span>
-            </button>
+            <span style={{ fontSize: '0.82rem' }}>
+              <strong style={{ color: '#fff' }}>{followCounts.followers}</strong>
+              <span style={{ color: 'var(--cyan)' }}> seguidores</span>
+            </span>
             <span style={{ color: 'var(--text)', fontSize: '0.82rem', opacity: 0.7 }}>
               <strong style={{ color: '#fff' }}>{followCounts.following}</strong> siguiendo
             </span>
@@ -223,50 +219,48 @@ export default function PublicProfilePage() {
               </span>
             )}
           </div>
+
+          {/* ── ACTION BUTTONS — inside info block, always visible ── */}
+          <div className="profileActions">
+            {!isOwnProfile && (
+              <button
+                onClick={handleToggleFollow}
+                className={isFollowing ? 'btn-glass' : 'btn-accent'}
+                style={{ fontSize: '0.82rem', padding: '9px 16px' }}
+              >
+                {isFollowing ? '✓ Siguiendo' : '+ Seguir'}
+              </button>
+            )}
+            {!isOwnProfile && (
+              <Link
+                to={`/cartas?to=${userId}`}
+                className="btn-glass"
+                style={{ fontSize: '0.82rem', padding: '9px 16px', textDecoration: 'none', display: 'block' }}
+              >
+                ✉️ Mensaje
+              </Link>
+            )}
+            {isOwnProfile && (
+              <Link
+                to="/profile"
+                className="btn-accent"
+                style={{ fontSize: '0.82rem', padding: '9px 16px', textDecoration: 'none', display: 'block' }}
+              >
+                ⚙️ Configuración
+              </Link>
+            )}
+            <Link
+              to="/leaderboard"
+              style={{ color: 'var(--text)', opacity: 0.45, fontSize: '0.78rem', textDecoration: 'none', textAlign: 'center', display: 'block' }}
+            >
+              ← Leaderboard
+            </Link>
+          </div>
         </div>
 
-        {/* Pet (hidden on very small screens via CSS) */}
+        {/* Pet */}
         <div style={{ flexShrink: 0 }}>
           <PetDisplay userId={userId} size={70} showName />
-        </div>
-
-        {/* ── ACTION BUTTONS ─────────────────────────────────
-            Mobile: full-width horizontal row at bottom of header
-            Desktop: vertical column on the right              */}
-        <div className="profileActions">
-          {!isOwnProfile && (
-            <button
-              onClick={handleToggleFollow}
-              className={isFollowing ? 'btn-glass' : 'btn-accent'}
-              style={{ fontSize: '0.82rem', padding: '9px 16px' }}
-            >
-              {isFollowing ? '✓ Siguiendo' : '+ Seguir'}
-            </button>
-          )}
-          {!isOwnProfile && (
-            <Link
-              to={`/cartas?to=${userId}`}
-              className="btn-glass"
-              style={{ fontSize: '0.82rem', padding: '9px 16px', textDecoration: 'none', display: 'block' }}
-            >
-              ✉️ Mensaje
-            </Link>
-          )}
-          {isOwnProfile && (
-            <Link
-              to="/profile"
-              className="btn-accent"
-              style={{ fontSize: '0.82rem', padding: '9px 16px', textDecoration: 'none', display: 'block' }}
-            >
-              ⚙️ Configuración
-            </Link>
-          )}
-          <Link
-            to="/leaderboard"
-            style={{ color: 'var(--text)', opacity: 0.45, fontSize: '0.78rem', textDecoration: 'none', textAlign: 'center', display: 'block' }}
-          >
-            ← Leaderboard
-          </Link>
         </div>
       </div>
 
