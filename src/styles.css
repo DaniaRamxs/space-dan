@@ -28,6 +28,9 @@
   --cyan: #00e5ff;
   --cyan-glow: rgba(0, 229, 255, 0.30);
 
+  --garden-sidebar-width: 240px;
+  --garden-max-width: 1200px;
+  --radius-sm: 8px;
   --radius-xl: 24px;
   --radius-lg: 18px;
   --radius-md: 12px;
