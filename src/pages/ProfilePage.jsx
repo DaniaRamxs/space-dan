@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import useAuth from '../hooks/useAuth';
+import { useAuthContext } from '../contexts/AuthContext';
 import { supabase } from '../supabaseClient';
 import { ACHIEVEMENTS } from '../hooks/useAchievements';
 import { getUserGameRanks } from '../services/supabaseScores';
@@ -31,7 +31,7 @@ const GAME_NAMES = {
 };
 
 export default function ProfilePage() {
-    const { user, loginWithGoogle, loginWithDiscord, logout, loading } = useAuth();
+    const { user, loginWithGoogle, loginWithDiscord, logout, loading } = useAuthContext();
 
     const [profile, setProfile] = useState(null);
     const [userAchs, setUserAchs] = useState([]);
@@ -70,7 +70,7 @@ export default function ProfilePage() {
         };
 
         loadProfileData();
-    }, [user]);
+    }, [user?.id]); // Using user?.id to prevent loop from user object reference changes
 
     if (loading) {
         return <div className="card"><h2 className="cardTitle">Cargando perfil...</h2></div>;
