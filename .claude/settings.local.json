@@ -16,7 +16,11 @@
       "Bash(git status:*)",
       "Bash(git fetch:*)",
       "Bash(git checkout:*)",
-      "Bash(git merge:*)"
+      "Bash(git merge:*)",
+      "Bash(ls -la \"c:\\\\Users\\\\USUARIO\\\\space-dan\\\\src\"\" | grep -E \"^d \")",
+      "Skill(commit-commands:commit-push-pr)",
+      "Skill(commit-commands:commit-push-pr:*)",
+      "Bash(winget list:*)"
     ]
   }
 }

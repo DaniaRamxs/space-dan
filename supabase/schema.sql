@@ -188,3 +188,44 @@ CREATE POLICY "guestbook_insert"      ON public.guestbook FOR INSERT
   WITH CHECK (
     (user_id IS NULL) OR (auth.uid() = user_id)
   );
+
+-- ============================================================
+-- Supabase Schema Updates for Profile, Ranks & Global Leaderboard
+-- PLEASE EXECUTE THIS IN SUPABASE SQL EDITOR
+-- ============================================================
+
+-- 1. Function to get a specific user's best score and rank across all games
+CREATE OR REPLACE FUNCTION public.get_user_game_ranks(p_user_id uuid)
+RETURNS TABLE (game_id text, best_score int, user_position bigint)
+LANGUAGE sql STABLE SECURITY DEFINER AS $$
+  WITH user_best AS (
+    SELECT s.game_id, s.user_id, MAX(s.score)::int as max_score
+    FROM public.scores s
+    GROUP BY s.game_id, s.user_id
+  ),
+  ranked AS (
+    SELECT game_id, user_id, max_score,
+           RANK() OVER (PARTITION BY game_id ORDER BY max_score DESC) as user_position
+    FROM user_best
+  )
+  SELECT game_id, max_score, user_position
+  FROM ranked
+  WHERE user_id = p_user_id;
+$$;
+
+-- 2. Function for Global Leaderboard (Total of best scores per user)
+CREATE OR REPLACE FUNCTION public.get_global_leaderboard(p_limit int DEFAULT 50)
+RETURNS TABLE (user_id uuid, username text, avatar_url text, total_score bigint)
+LANGUAGE sql STABLE SECURITY DEFINER AS $$
+  WITH user_best AS (
+    SELECT s.game_id, s.user_id, MAX(s.score)::int as max_score
+    FROM public.scores s
+    GROUP BY s.game_id, s.user_id
+  )
+  SELECT ub.user_id, p.username, p.avatar_url, SUM(ub.max_score)::bigint as total_score
+  FROM user_best ub
+  JOIN public.profiles p ON p.id = ub.user_id
+  GROUP BY ub.user_id, p.username, p.avatar_url
+  ORDER BY total_score DESC
+  LIMIT p_limit;
+$$;
