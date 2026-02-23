@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import useHighScore from '../hooks/useHighScore';
 
 // --- Tile color map ---
 const TILE_COLORS = {
@@ -139,6 +140,8 @@ export default function Game2048() {
   const [gameOver, setGameOver] = useState(false);
   const [won, setWon] = useState(false);
   const [continueAfterWin, setContinueAfterWin] = useState(false);
+  const [, reportScore] = useHighScore('2048');
+  const scoredRef = useRef(false);
 
   // Touch tracking
   const touchStart = useRef(null);
@@ -163,12 +166,20 @@ export default function Game2048() {
     });
   }, [continueAfterWin]);
 
+  useEffect(() => {
+    if ((gameOver || won) && !scoredRef.current) {
+      scoredRef.current = true;
+      reportScore(score);
+    }
+  }, [gameOver, won]);
+
   const newGame = useCallback(() => {
     setGrid(initGame());
     setScore(0);
     setGameOver(false);
     setWon(false);
     setContinueAfterWin(false);
+    scoredRef.current = false;
   }, []);
 
   // Keyboard handler

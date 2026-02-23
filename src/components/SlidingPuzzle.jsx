@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import useHighScore from '../hooks/useHighScore';
 
 // --- Puzzle logic ---
 const GRID = 3;
@@ -85,6 +86,7 @@ export default function SlidingPuzzle() {
   const [tiles, setTiles] = useState(() => generateSolvable());
   const [moves, setMoves] = useState(0);
   const [gameState, setGameState] = useState('idle'); // idle | playing | solved
+  const [, reportScore] = useHighScore('puzzle');
   const [flash, setFlash] = useState(false);
   const [bestMoves, setBestMoves] = useState(() => {
     try {
@@ -127,6 +129,10 @@ export default function SlidingPuzzle() {
       }
     }
   };
+
+  useEffect(() => {
+    if (gameState === 'solved') reportScore(Math.max(0, 1000 - moves * 5));
+  }, [gameState]);
 
   const shuffle = () => {
     setTiles(generateSolvable());

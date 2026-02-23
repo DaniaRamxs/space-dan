@@ -37,6 +37,7 @@ export default function Pong() {
   const mouseYRef = useRef(H / 2);
   const keysRef = useRef({});
   const touchRef = useRef(null);
+  const firedRef = useRef(false);
 
   const draw = useCallback(() => {
     const canvas = canvasRef.current;
@@ -186,13 +187,17 @@ export default function Pong() {
     // Score
     if (s.ball.x < 0) {
       s.aScore++;
-      if (s.aScore >= WIN_SCORE) { s.phase = 'over'; s.winner = 'ai'; }
-      else { s.speed = 4; launchBall(s); }
+      if (s.aScore >= WIN_SCORE) {
+        s.phase = 'over'; s.winner = 'ai';
+        if (!firedRef.current) { firedRef.current = true; window.dispatchEvent(new CustomEvent('dan:game-score', { detail: { gameId: 'pong', score: s.pScore, isHighScore: false } })); }
+      } else { s.speed = 4; launchBall(s); }
     }
     if (s.ball.x > W) {
       s.pScore++;
-      if (s.pScore >= WIN_SCORE) { s.phase = 'over'; s.winner = 'player'; }
-      else { s.speed = 4; launchBall(s); }
+      if (s.pScore >= WIN_SCORE) {
+        s.phase = 'over'; s.winner = 'player';
+        if (!firedRef.current) { firedRef.current = true; window.dispatchEvent(new CustomEvent('dan:game-score', { detail: { gameId: 'pong', score: s.pScore, isHighScore: false } })); }
+      } else { s.speed = 4; launchBall(s); }
     }
 
     draw();
@@ -205,6 +210,7 @@ export default function Pong() {
       const fresh = makeState();
       fresh.phase = 'playing';
       stateRef.current = fresh;
+      firedRef.current = false;
       launchBall(stateRef.current);
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
       rafRef.current = requestAnimationFrame(tick);

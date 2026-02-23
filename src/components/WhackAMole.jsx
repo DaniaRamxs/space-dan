@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import useHighScore from '../hooks/useHighScore';
 
 const TOTAL_HOLES = 9;
 const GAME_DURATION = 30;
@@ -17,6 +18,7 @@ export default function WhackAMole() {
   const moleHideRef = useRef(null);
   const countdownRef = useRef(null);
   const scoreRef = useRef(0);
+  const [, reportScore] = useHighScore('whack');
 
   const clearAllTimers = useCallback(() => {
     clearInterval(moleTimerRef.current);
@@ -76,6 +78,10 @@ export default function WhackAMole() {
   useEffect(() => {
     return () => clearAllTimers();
   }, [clearAllTimers]);
+
+  useEffect(() => {
+    if (gameState === 'ended') reportScore(scoreRef.current);
+  }, [gameState]);
 
   const timerPercent = (timeLeft / GAME_DURATION) * 100;
 

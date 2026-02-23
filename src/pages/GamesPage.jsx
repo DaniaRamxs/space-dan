@@ -94,7 +94,7 @@ export default function GamesPage() {
       }
 
       // Guardar en Supabase si el usuario está autenticado
-      const gameId = openIdRef.current;
+      const gameId = e.detail?.gameId || openIdRef.current;
       if (user && gameId && score != null) {
         saveScore(user.id, gameId, score).then(() => setLbKey(k => k + 1));
       }

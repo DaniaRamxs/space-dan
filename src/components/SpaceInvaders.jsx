@@ -75,6 +75,7 @@ export default function SpaceInvaders() {
   const canvasRef = useRef(null);
   const stateRef = useRef(makeState());
   const rafRef = useRef(null);
+  const firedRef = useRef(false);
   const keysRef = useRef({});
   const frameRef = useRef(0);
 
@@ -274,6 +275,7 @@ export default function SpaceInvaders() {
       if (inv.y + INVADER_H >= H - 18) {
         s.phase = 'over';
         s.win = false;
+        if (!firedRef.current) { firedRef.current = true; window.dispatchEvent(new CustomEvent('dan:game-score', { detail: { gameId: 'invaders', score: s.score, isHighScore: false } })); }
         draw();
         return;
       }
@@ -322,6 +324,7 @@ export default function SpaceInvaders() {
         if (s.lives <= 0) {
           s.phase = 'over';
           s.win = false;
+          if (!firedRef.current) { firedRef.current = true; window.dispatchEvent(new CustomEvent('dan:game-score', { detail: { gameId: 'invaders', score: s.score, isHighScore: false } })); }
         }
         return false;
       }
@@ -339,6 +342,7 @@ export default function SpaceInvaders() {
     fresh.phase = 'playing';
     stateRef.current = fresh;
     frameRef.current = 0;
+    firedRef.current = false;
     if (rafRef.current) cancelAnimationFrame(rafRef.current);
     rafRef.current = requestAnimationFrame(tick);
   }, [tick]);

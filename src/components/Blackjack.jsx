@@ -1,4 +1,5 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
+import useHighScore from '../hooks/useHighScore';
 
 // --- Constants ---
 const SUITS = ['♠', '♣', '♥', '♦'];
@@ -158,6 +159,11 @@ export default function Blackjack() {
   const [phase, setPhase] = useState('betting'); // betting | playing | dealer | result
   const [result, setResult] = useState(null); // { message, delta }
   const [gameOver, setGameOver] = useState(false);
+  const [, reportScore] = useHighScore('blackjack');
+
+  useEffect(() => {
+    if (phase === 'result') reportScore(chips);
+  }, [phase]);
 
   const drawFrom = useCallback((currentDeck, count = 1) => {
     const drawn = currentDeck.slice(0, count);
