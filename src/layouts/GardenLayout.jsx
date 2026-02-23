@@ -9,6 +9,7 @@ import AuthWidget from "../components/AuthWidget.jsx";
 import { useEconomy } from '../contexts/EconomyContext';
 import NotificationBell from "../components/NotificationBell.jsx";
 import VirtualPet from "../components/VirtualPet.jsx";
+import AmbientOrbs from "../components/AmbientOrbs.jsx";
 
 const PERSONAL_PATHS = ['/kinnies', '/tests', '/universo', '/dreamscape'];
 
@@ -74,6 +75,7 @@ export default function GardenLayout({ children }) {
   return (
     <div className="gardenPage">
       <StarfieldBg />
+      <AmbientOrbs />
       <CursorTrail />
       <KonamiEasterEgg />
       <RadioPlayer />
