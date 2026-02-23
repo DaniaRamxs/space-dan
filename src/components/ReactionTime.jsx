@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import useHighScore from '../hooks/useHighScore';
 
 const MIN_DELAY_MS = 1500;
 const MAX_DELAY_MS = 4000;
@@ -17,6 +18,7 @@ export default function ReactionTime() {
 
   const delayTimerRef = useRef(null);
   const startTimeRef = useRef(null);
+  const [, reportScore] = useHighScore('reaction');
 
   const clearDelay = useCallback(() => {
     clearTimeout(delayTimerRef.current);
@@ -71,6 +73,10 @@ export default function ReactionTime() {
   useEffect(() => {
     return () => clearDelay();
   }, [clearDelay]);
+
+  useEffect(() => {
+    if (phase === 'result' && reactionMs != null) reportScore(Math.max(0, 1000 - reactionMs));
+  }, [phase]);
 
   const average =
     history.length > 0

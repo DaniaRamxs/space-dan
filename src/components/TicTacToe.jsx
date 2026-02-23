@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
+import useHighScore from '../hooks/useHighScore';
 
 const TicTacToe = () => {
   const [board, setBoard] = useState(Array(9).fill(null));
   const [isPlayerTurn, setIsPlayerTurn] = useState(true);
   const [winner, setWinner] = useState(null);
   const [winningLine, setWinningLine] = useState([]);
+  const [, reportScore] = useHighScore('ttt');
 
   const winPatterns = [
     [0, 1, 2], [3, 4, 5], [6, 7, 8], // Filas
@@ -84,6 +86,11 @@ const TicTacToe = () => {
       return () => clearTimeout(timer);
     }
   }, [isPlayerTurn, winner, board]);
+
+  // Fire score when player wins
+  useEffect(() => {
+    if (winner === 'X') reportScore(10);
+  }, [winner]);
 
   // Auto-reiniciar después de ganar/perder
   useEffect(() => {

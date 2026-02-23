@@ -73,6 +73,7 @@ export default function Breakout() {
   const canvasRef = useRef(null);
   const stateRef = useRef(makeState());
   const rafRef = useRef(null);
+  const firedRef = useRef(false);
   const keysRef = useRef({});
   const mouseXRef = useRef(W / 2);
   const frameRef = useRef(0);
@@ -267,6 +268,7 @@ export default function Breakout() {
       s.lives--;
       if (s.lives <= 0) {
         s.phase = 'over';
+        if (!firedRef.current) { firedRef.current = true; window.dispatchEvent(new CustomEvent('dan:game-score', { detail: { gameId: 'breakout', score: s.score, isHighScore: false } })); }
         draw();
         return;
       }
@@ -337,6 +339,7 @@ export default function Breakout() {
       const fresh = makeState();
       fresh.phase = 'playing';
       stateRef.current = fresh;
+      firedRef.current = false;
     }
     frameRef.current = 0;
     if (rafRef.current) cancelAnimationFrame(rafRef.current);

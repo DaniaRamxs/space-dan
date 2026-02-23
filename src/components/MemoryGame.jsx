@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import useHighScore from '../hooks/useHighScore';
 
 const EMOJIS = ['🌸', '🦋', '🌙', '⭐', '🎀', '🌈', '💎', '🦄'];
 
@@ -18,6 +19,7 @@ export default function MemoryGame() {
   const [moves, setMoves]     = useState(0);
   const [won, setWon]         = useState(false);
   const [locked, setLocked]   = useState(false);
+  const [, reportScore] = useHighScore('memory');
 
   const reset = () => {
     setCards(makeCards());
@@ -53,7 +55,10 @@ export default function MemoryGame() {
       setCards(next);
       setSelected([]);
       setLocked(false);
-      if (next.every(c => c.matched)) setWon(true);
+      if (next.every(c => c.matched)) {
+        setWon(true);
+        reportScore(Math.max(0, 500 - (moves + 1) * 10));
+      }
     } else {
       setTimeout(() => {
         setCards(prev => prev.map(c =>

@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import useHighScore from '../hooks/useHighScore';
 
 const COLORS = [
   { name: 'rojo',     hex: '#e53935' },
@@ -44,6 +45,7 @@ export default function ColorMatch() {
   const [feedback, setFeedback] = useState(null); // { chosenIndex, correct: bool }
   const [locked, setLocked] = useState(false);
   const advanceTimerRef = useRef(null);
+  const [, reportScore] = useHighScore('color');
 
   const nextRound = useCallback((roundNumber) => {
     setCurrentRound(buildRound());
@@ -84,6 +86,10 @@ export default function ColorMatch() {
   useEffect(() => {
     return () => clearTimeout(advanceTimerRef.current);
   }, []);
+
+  useEffect(() => {
+    if (gameState === 'ended') reportScore(score * 10);
+  }, [gameState]);
 
   const containerStyle = {
     display: 'flex',

@@ -71,6 +71,7 @@ export default function Asteroids() {
   const canvasRef = useRef(null);
   const stateRef = useRef(makeState());
   const rafRef = useRef(null);
+  const firedRef = useRef(false);
   const keysRef = useRef({});
   const frameRef = useRef(0);
 
@@ -363,6 +364,7 @@ export default function Asteroids() {
           if (s.lives <= 0) {
             ship.alive = false;
             s.phase = 'over';
+            if (!firedRef.current) { firedRef.current = true; window.dispatchEvent(new CustomEvent('dan:game-score', { detail: { gameId: 'asteroids', score: s.score, isHighScore: false } })); }
             draw();
             return;
           }
@@ -415,6 +417,7 @@ export default function Asteroids() {
     fresh.phase = 'playing';
     stateRef.current = fresh;
     frameRef.current = 0;
+    firedRef.current = false;
     if (rafRef.current) cancelAnimationFrame(rafRef.current);
     rafRef.current = requestAnimationFrame(tick);
   }, [tick]);
