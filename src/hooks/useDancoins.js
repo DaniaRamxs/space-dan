@@ -23,14 +23,13 @@ export function awardCoins(amount) {
   window.dispatchEvent(new CustomEvent('dan:coins-changed'));
 }
 
-/** Track page visits and award coins on first visit */
+/** Track page visits. Coins are awarded via useEconomy().awardCoins in PageTracker. */
 export function trackPageVisit(page) {
   try {
     const visited = JSON.parse(localStorage.getItem(PAGES_KEY) || '[]');
     if (!visited.includes(page)) {
       visited.push(page);
       localStorage.setItem(PAGES_KEY, JSON.stringify(visited));
-      awardCoins(5);
       return { isNew: true, total: visited.length };
     }
     return { isNew: false, total: visited.length };

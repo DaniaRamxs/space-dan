@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback } from 'react';
-import { awardCoins } from './useDancoins';
 import { syncAchievementToDb } from '../services/supabaseScores';
 
 const ACH_KEY = 'space-dan-achievements';
@@ -45,10 +44,8 @@ export function unlockAchievement(id) {
   const next = [...current, id];
   try { localStorage.setItem(ACH_KEY, JSON.stringify(next)); } catch { }
 
-  if (ach.coins > 0) awardCoins(ach.coins);
-
-  // Sync to Supabase (fire-and-forget)
-  syncAchievementToDb(id, ach.title);
+  // Sync to Supabase and award coins via SECURITY DEFINER (fire-and-forget)
+  syncAchievementToDb(id, ach.title, ach.coins);
 
   window.dispatchEvent(new CustomEvent('dan:achievement-unlocked', {
     detail: { achievement: ach, total: next.length }

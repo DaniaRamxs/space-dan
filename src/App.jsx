@@ -8,7 +8,9 @@ import PageTransition from "./components/PageTransition";
 import { unlockAchievement } from "./hooks/useAchievements";
 import { trackPageVisit } from "./hooks/useDancoins";
 import { applyTheme } from "./hooks/useTheme";
+import { useEconomy } from "./contexts/EconomyContext";
 import { AuthProvider } from "./contexts/AuthContext";
+import { EconomyProvider } from "./contexts/EconomyContext";
 
 const PostsPage = lazy(() => import("./pages/PostsPage"));
 const PostPage = lazy(() => import("./pages/PostPage"));
@@ -34,6 +36,7 @@ const ArquitecturaPage = lazy(() => import("./pages/ArquitecturaPage"));
 const ProjectsPage = lazy(() => import("./pages/ProjectsPage"));
 const AchievementsPage = lazy(() => import("./pages/AchievementsPage"));
 const ShopPage = lazy(() => import("./pages/ShopPage"));
+const PublicProfilePage = lazy(() => import("./pages/PublicProfilePage"));
 
 const ALL_PAGES = ['/home', '/bulletin', '/posts', '/music', '/games', '/galeria',
   '/watchlist', '/desktop', '/timecapsule', '/guestbook', '/proyectos', '/arquitectura',
@@ -41,10 +44,13 @@ const ALL_PAGES = ['/home', '/bulletin', '/posts', '/music', '/games', '/galeria
 
 function PageTracker() {
   const location = useLocation();
+  const { awardCoins } = useEconomy();
   useEffect(() => {
     const path = location.pathname;
-    // Track visit & achievements
-    const { total } = trackPageVisit(path);
+    // Track visit & award coins via Supabase on first visit (no-op for guests)
+    const { isNew, total } = trackPageVisit(path);
+    if (isNew) awardCoins(5, 'page_visit', path);
+
     if (total >= 1) unlockAchievement('first_visit');
     if (total >= 10) unlockAchievement('explorer');
     const visited = JSON.parse(localStorage.getItem('space-dan-visited-pages') || '[]');
@@ -58,7 +64,7 @@ function PageTracker() {
     // Night owl
     const h = new Date().getHours();
     if (h >= 0 && h < 5) unlockAchievement('night_owl');
-  }, [location.pathname]);
+  }, [location.pathname, awardCoins]);
   return null;
 }
 
@@ -89,6 +95,7 @@ function AnimatedRoutes() {
         <Route path="/" element={<PageTransition><Wpage /></PageTransition>} />
         <Route path="/home" element={<Layout><DanProfilePage /></Layout>} />
         <Route path="/profile" element={<Layout><ProfilePage /></Layout>} />
+        <Route path="/profile/:userId" element={<Layout><PublicProfilePage /></Layout>} />
         <Route path="/bulletin" element={<Layout><BulletinPage /></Layout>} />
         <Route path="/posts" element={<Layout><PostsPage /></Layout>} />
         <Route path="/posts/:id" element={<Layout><PostPage /></Layout>} />
@@ -125,6 +132,7 @@ export default function App() {
 
   return (
     <AuthProvider>
+      <EconomyProvider>
       <BrowserRouter>
         <AchievementToast />
         <Screensaver />
@@ -133,6 +141,7 @@ export default function App() {
           <AnimatedRoutes />
         </Suspense>
       </BrowserRouter>
+      </EconomyProvider>
     </AuthProvider>
   );
 }

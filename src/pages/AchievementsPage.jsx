@@ -1,10 +1,11 @@
 import { useEffect } from 'react';
 import useAchievements, { ACHIEVEMENTS, unlockAchievement } from '../hooks/useAchievements';
-import useDancoins, { trackPageVisit } from '../hooks/useDancoins';
+import { trackPageVisit } from '../hooks/useDancoins';
+import { useEconomy } from '../contexts/EconomyContext';
 
 export default function AchievementsPage() {
   const { unlocked } = useAchievements();
-  const { coins }    = useDancoins();
+  const { balance }  = useEconomy();
 
   useEffect(() => {
     trackPageVisit('/logros');
@@ -25,7 +26,7 @@ export default function AchievementsPage() {
             {unlocked.length} / {ACHIEVEMENTS.length} desbloqueados
           </span>
           <span className="achStatBadge coins">
-            ◈ {coins} Dancoins
+            ◈ {balance} Dancoins
           </span>
         </div>
       </div>

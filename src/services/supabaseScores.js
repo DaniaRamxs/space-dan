@@ -40,9 +40,10 @@ export async function getLeaderboard(gameId, limit = 10) {
 }
 
 /**
- * Sincroniza un logro desbloqueado al DB y envía notificación.
+ * Sincroniza un logro desbloqueado al DB, premia coins y envía notificación.
+ * coins: cantidad de Dancoins a otorgar (0 si el logro no tiene recompensa)
  */
-export async function syncAchievementToDb(achievementId, achievementTitle = '') {
+export async function syncAchievementToDb(achievementId, achievementTitle = '', coins = 0) {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session?.user) return;
 
@@ -51,10 +52,22 @@ export async function syncAchievementToDb(achievementId, achievementTitle = '') 
         { onConflict: 'user_id,achievement_id', ignoreDuplicates: true }
     );
 
-    // Send a notification if we have a title (assuming it's a new unlock since the hook guards it)
-    if (!error && achievementTitle) {
-        const { createNotification } = await import('./supabaseNotifications');
-        await createNotification(session.user.id, 'achievement', `¡Desbloqueaste el logro "${achievementTitle}"!`);
+    if (!error) {
+        // Award coins via SECURITY DEFINER (server validates, prevents client manipulation)
+        if (coins > 0) {
+            await supabase.rpc('award_coins', {
+                p_user_id:    session.user.id,
+                p_amount:     coins,
+                p_type:       'achievement',
+                p_reference:  achievementId,
+                p_description: achievementTitle,
+            });
+        }
+
+        if (achievementTitle) {
+            const { createNotification } = await import('./supabaseNotifications');
+            await createNotification(session.user.id, 'achievement', `¡Desbloqueaste el logro "${achievementTitle}"!`);
+        }
     }
 }
 
