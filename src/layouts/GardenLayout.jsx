@@ -80,7 +80,7 @@ export default function GardenLayout({ children }) {
           {/* Dancoins */}
           <div className={`dancoinsWidget${dailyFlash ? ' flash' : ''}`}>
             <span className="dancoinsIcon">◈</span>
-            <span className="dancoinsAmount">{coins}</span>
+            <span className="dancoinsAmount">{balance}</span>
             <span className="dancoinsLabel">Dancoins</span>
           </div>
 
