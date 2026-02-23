@@ -52,7 +52,7 @@ export default function VirtualPet() {
         <div style={{
             position: 'fixed',
             bottom: '20px',
-            right: '20px',
+            left: '20px',
             zIndex: 9000, // Very high but under Modals
             display: 'flex',
             flexDirection: 'column',
@@ -86,8 +86,8 @@ export default function VirtualPet() {
                             content: '""',
                             position: 'absolute',
                             bottom: '-8px',
-                            right: '30px',
-                            borderWidth: '8px 8px 0 0',
+                            left: '30px',
+                            borderWidth: '8px 0 0 8px',
                             borderStyle: 'solid',
                             borderColor: 'white transparent transparent transparent',
                         }} />
@@ -95,8 +95,8 @@ export default function VirtualPet() {
                             content: '""',
                             position: 'absolute',
                             bottom: '-11px',
-                            right: '29px',
-                            borderWidth: '10px 10px 0 0',
+                            left: '29px',
+                            borderWidth: '10px 0 0 10px',
                             borderStyle: 'solid',
                             borderColor: 'black transparent transparent transparent',
                             zIndex: -1
@@ -122,8 +122,8 @@ export default function VirtualPet() {
                     src="https://autism.crd.co/assets/images/gallery03/45050ba7_original.gif?v=69d6a439"
                     alt="Virtual Pet Autism Cat"
                     style={{
-                        width: '80px',
-                        height: 'auto',
+                        width: '100px',
+                        height: '100px',
                         imageRendering: 'pixelated'
                     }}
                 />
