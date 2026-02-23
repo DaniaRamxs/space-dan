@@ -59,20 +59,28 @@ export default function CabinIdeas({ userId }) {
 
     return (
         <div className="space-y-6">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <h3 className="text-xs uppercase tracking-widest opacity-50 font-bold flex items-center gap-2">
                     <span className="w-2 h-2 rounded-full bg-accent" />
                     Ideario
                 </h3>
-                <div className="flex gap-2">
-                    {Object.keys(NOTE_COLORS).map(color => (
-                        <button
-                            key={color}
-                            onClick={() => handleAdd(color)}
-                            className={`w-6 h-6 rounded-full border border-white/10 hover:scale-110 transition-transform ${NOTE_COLORS[color].split(' ')[0]}`}
-                            title={`Nueva nota ${color}`}
-                        />
-                    ))}
+                <div className="flex items-center gap-3 bg-white/5 p-1.5 rounded-full border border-white/10">
+                    <div className="flex gap-1.5 px-2 border-r border-white/10">
+                        {Object.keys(NOTE_COLORS).map(color => (
+                            <button
+                                key={color}
+                                onClick={() => handleAdd(color)}
+                                className={`w-5 h-5 rounded-full border border-white/20 hover:scale-125 transition-transform ${NOTE_COLORS[color].split(' ')[0]}`}
+                                title={`Añadir nota ${color}`}
+                            />
+                        ))}
+                    </div>
+                    <button
+                        onClick={() => handleAdd('purple')}
+                        className="pr-3 pl-1 text-[10px] uppercase tracking-widest text-accent hover:text-white transition-colors font-bold flex items-center gap-1"
+                    >
+                        <span className="text-sm">+</span> Nueva Idea
+                    </button>
                 </div>
             </div>
 
