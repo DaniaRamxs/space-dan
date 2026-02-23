@@ -4,7 +4,7 @@ import { useAuthContext } from '../contexts/AuthContext';
 import { getProductivityStats, finishFocusSession } from '../services/productivity';
 import CabinPomodoro from '../components/CabinPomodoro';
 import CabinTodo from '../components/CabinTodo';
-import CabinNotes from '../components/CabinNotes';
+import CabinIdeas from '../components/CabinIdeas';
 
 export default function SpaceCabinPage() {
     const { user } = useAuthContext();
@@ -110,9 +110,9 @@ export default function SpaceCabinPage() {
                     </footer>
                 </div>
 
-                {/* Panel Lateral: Notas */}
+                {/* Panel Lateral: Ideario */}
                 <div className="lg:col-span-4 h-full min-h-[400px]">
-                    <CabinNotes userId={user.id} />
+                    <CabinIdeas userId={user.id} />
                 </div>
 
             </div>
