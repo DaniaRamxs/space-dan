@@ -160,14 +160,7 @@ export default function GardenLayout({ children }) {
               </div>
             ))}
           </div>
-        </main>
-
-        {/* Floating kitty */}
-        <a href="https://alturl.com/p749b" target="_blank" rel="noopener noreferrer" className="floatingKitty">
-          <img src="https://autism.crd.co/assets/images/gallery03/45050ba7_original.gif?v=69d6a439" alt="gato flotante" width={100} height={100} loading="lazy" />
-        </a>
-
-        {/* Portal secreto */}
+        </main>        {/* Portal secreto */}
         <div className="floatingImages" style={{ zIndex: 100, pointerEvents: 'none' }}>
           <Link to="/secret" className="floatImg img1" style={{ pointerEvents: 'auto', cursor: 'pointer', display: 'inline-block', width: '50px', height: '50px', lineHeight: 0 }}>
             <img src="/gifs/swirly.gif" alt="" style={{ width: '50px', height: '50px', display: 'block' }} />
