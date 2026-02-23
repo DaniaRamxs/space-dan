@@ -15,13 +15,34 @@ const PERSONAL_PATHS = ['/kinnies', '/tests', '/universo', '/dreamscape'];
 export default function GardenLayout({ children }) {
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [personalOpen, setPersonalOpen] = useState(
-    PERSONAL_PATHS.some(p => location.pathname.startsWith(p))
-  );
+  const [menuStates, setMenuStates] = useState({
+    entertainment: false,
+    content: false,
+    community: false,
+    productivity: true,
+    personal: PERSONAL_PATHS.some(p => location.pathname.startsWith(p))
+  });
+
+  const toggleMenu = (key) => setMenuStates(prev => ({ ...prev, [key]: !prev[key] }));
+  const closeMenu = () => setSidebarOpen(false);
+
+  // Auto-open active categories
+  useEffect(() => {
+    const path = location.pathname;
+    const updates = {};
+    if (['/games', '/desktop', '/music', '/watchlist'].some(p => path.startsWith(p))) updates.entertainment = true;
+    if (['/posts', '/bulletin', '/galeria', '/proyectos', '/arquitectura', '/timecapsule'].some(p => path.startsWith(p))) updates.content = true;
+    if (['/leaderboard', '/logros', '/tienda', '/guestbook'].some(p => path.startsWith(p))) updates.community = true;
+    if (['/cabina'].some(p => path.startsWith(p))) updates.productivity = true;
+    if (PERSONAL_PATHS.some(p => path.startsWith(p))) updates.personal = true;
+
+    if (Object.keys(updates).length > 0) {
+      setMenuStates(prev => ({ ...prev, ...updates }));
+    }
+  }, [location.pathname]);
+
   const { balance, claimDaily, canClaimDaily } = useEconomy();
   const [dailyFlash, setDailyFlash] = useState(false);
-
-  const closeMenu = () => setSidebarOpen(false);
 
   // Contador de visitas real
   const [visits, setVisits] = useState('------');
@@ -63,7 +84,6 @@ export default function GardenLayout({ children }) {
       )}
 
       <div className="gardenShell">
-
         <aside className={`gardenSidebar${sidebarOpen ? ' open' : ''}`}>
           <div className="sideHeader">
             <div className="sideTitle">space-dan</div>
@@ -92,44 +112,82 @@ export default function GardenLayout({ children }) {
           <LastFmWidget />
 
           <nav className="sideNav">
-            <NavLink to="/profile" onClick={closeMenu} className={({ isActive }) => "sideLink" + (isActive ? " active" : "")}>👤 Mi Perfil</NavLink>
-            <NavLink to="/home" onClick={closeMenu} className={({ isActive }) => "sideLink" + (isActive ? " active" : "")}>🏠 sobre dan</NavLink>
-            <NavLink to="/bulletin" onClick={closeMenu} className={({ isActive }) => "sideLink" + (isActive ? " active" : "")}>📰 Noticias</NavLink>
-            <NavLink to="/posts" onClick={closeMenu} className={({ isActive }) => "sideLink" + (isActive ? " active" : "")}>✍️ Posts</NavLink>
-            <NavLink to="/music" onClick={closeMenu} className={({ isActive }) => "sideLink" + (isActive ? " active" : "")}>🎧 Música</NavLink>
-            <NavLink to="/games" onClick={closeMenu} className={({ isActive }) => "sideLink" + (isActive ? " active" : "")}>🎮 Juegos</NavLink>
-            <NavLink to="/leaderboard" onClick={closeMenu} className={({ isActive }) => "sideLink" + (isActive ? " active" : "")}>🌎 Leaderboard</NavLink>
-            <NavLink to="/galeria" onClick={closeMenu} className={({ isActive }) => "sideLink" + (isActive ? " active" : "")}>🖼️ Galería</NavLink>
-            <NavLink to="/watchlist" onClick={closeMenu} className={({ isActive }) => "sideLink" + (isActive ? " active" : "")}>📺 Watchlist</NavLink>
-            <NavLink to="/desktop" onClick={closeMenu} className={({ isActive }) => "sideLink" + (isActive ? " active" : "")}>💻 OS Desktop</NavLink>
-            <NavLink to="/timecapsule" onClick={closeMenu} className={({ isActive }) => "sideLink" + (isActive ? " active" : "")}>⏳ Time Capsule</NavLink>
-            <NavLink to="/guestbook" onClick={closeMenu} className={({ isActive }) => "sideLink" + (isActive ? " active" : "")}>📖 Libro de Visitas</NavLink>
-            <NavLink to="/proyectos" onClick={closeMenu} className={({ isActive }) => "sideLink" + (isActive ? " active" : "")}>🛠️ Proyectos</NavLink>
-            <NavLink to="/arquitectura" onClick={closeMenu} className={({ isActive }) => "sideLink" + (isActive ? " active" : "")}>🏗️ Arquitectura</NavLink>
+            <div className="sideNavGroup">
+              <NavLink to="/profile" onClick={closeMenu} className={({ isActive }) => "sideLink topLevel" + (isActive ? " active" : "")}>👤 Mi Perfil</NavLink>
+              <NavLink to="/home" onClick={closeMenu} className={({ isActive }) => "sideLink topLevel" + (isActive ? " active" : "")}>🏠 Sobre Dan</NavLink>
+            </div>
 
-            <div className="sideHeaderDivider" aria-hidden="true" />
+            <div className="sideNavDivider" />
 
-            {/* Game system links */}
-            <NavLink to="/logros" onClick={closeMenu} className={({ isActive }) => "sideLink sideGameLink" + (isActive ? " active" : "")}>🏆 Logros</NavLink>
-            <NavLink to="/tienda" onClick={closeMenu} className={({ isActive }) => "sideLink sideGameLink" + (isActive ? " active" : "")}>🛍️ Tienda</NavLink>
-            <NavLink to="/cabina" onClick={closeMenu} className={({ isActive }) => "sideLink sideGameLink" + (isActive ? " active" : "")}>🚀 Cabina Espacial</NavLink>
+            {/* 🎮 Entretenimiento */}
+            <div className="sideSubmenuWrap">
+              <button className={`sideLink submenuToggle ${menuStates.entertainment ? 'open' : ''}`} onClick={() => toggleMenu('entertainment')}>
+                <span>🎮 Entretenimiento</span>
+                <span className="submenuArrow">▾</span>
+              </button>
+              <div className={`submenuItems ${menuStates.entertainment ? 'open' : ''}`}>
+                <NavLink to="/games" onClick={closeMenu} className={({ isActive }) => "sideLink submenuLink" + (isActive ? " active" : "")}>🎮 Juegos</NavLink>
+                <NavLink to="/desktop" onClick={closeMenu} className={({ isActive }) => "sideLink submenuLink" + (isActive ? " active" : "")}>💻 OS Desktop</NavLink>
+                <NavLink to="/music" onClick={closeMenu} className={({ isActive }) => "sideLink submenuLink" + (isActive ? " active" : "")}>🎧 Música</NavLink>
+                <NavLink to="/watchlist" onClick={closeMenu} className={({ isActive }) => "sideLink submenuLink" + (isActive ? " active" : "")}>📺 Watchlist</NavLink>
+              </div>
+            </div>
 
-            <div className="sideHeaderDivider" aria-hidden="true" />
+            {/* 📝 Contenido */}
+            <div className="sideSubmenuWrap">
+              <button className={`sideLink submenuToggle ${menuStates.content ? 'open' : ''}`} onClick={() => toggleMenu('content')}>
+                <span>📝 Contenido</span>
+                <span className="submenuArrow">▾</span>
+              </button>
+              <div className={`submenuItems ${menuStates.content ? 'open' : ''}`}>
+                <NavLink to="/bulletin" onClick={closeMenu} className={({ isActive }) => "sideLink submenuLink" + (isActive ? " active" : "")}>📰 Noticias</NavLink>
+                <NavLink to="/posts" onClick={closeMenu} className={({ isActive }) => "sideLink submenuLink" + (isActive ? " active" : "")}>✍️ Posts</NavLink>
+                <NavLink to="/galeria" onClick={closeMenu} className={({ isActive }) => "sideLink submenuLink" + (isActive ? " active" : "")}>🖼️ Galería</NavLink>
+                <NavLink to="/proyectos" onClick={closeMenu} className={({ isActive }) => "sideLink submenuLink" + (isActive ? " active" : "")}>🛠️ Proyectos</NavLink>
+                <NavLink to="/arquitectura" onClick={closeMenu} className={({ isActive }) => "sideLink submenuLink" + (isActive ? " active" : "")}>🏗️ Arquitectura</NavLink>
+                <NavLink to="/timecapsule" onClick={closeMenu} className={({ isActive }) => "sideLink submenuLink" + (isActive ? " active" : "")}>⏳ Time Capsule</NavLink>
+              </div>
+            </div>
 
-            {/* Submenú Personal */}
-            <button
-              className={`sideLink sideSubmenuToggle${PERSONAL_PATHS.some(p => location.pathname.startsWith(p)) ? ' active' : ''}`}
-              onClick={() => setPersonalOpen(o => !o)}
-              aria-expanded={personalOpen}
-            >
-              <span>✦ Personal</span>
-              <span className={`submenuArrow${personalOpen ? ' open' : ''}`}>▾</span>
-            </button>
-            <div className={`submenuItems${personalOpen ? ' open' : ''}`}>
-              <NavLink to="/kinnies" onClick={closeMenu} className={({ isActive }) => "sideLink submenuLink" + (isActive ? " active" : "")}>🌟 Kinnies</NavLink>
-              <NavLink to="/tests" onClick={closeMenu} className={({ isActive }) => "sideLink submenuLink" + (isActive ? " active" : "")}>🧪 Tests</NavLink>
-              <NavLink to="/universo" onClick={closeMenu} className={({ isActive }) => "sideLink submenuLink" + (isActive ? " active" : "")}>🌌 Universo</NavLink>
-              <NavLink to="/dreamscape" onClick={closeMenu} className={({ isActive }) => "sideLink submenuLink" + (isActive ? " active" : "")}>🌙 Dreamscape</NavLink>
+            {/* 🏆 Comunidad */}
+            <div className="sideSubmenuWrap">
+              <button className={`sideLink submenuToggle ${menuStates.community ? 'open' : ''}`} onClick={() => toggleMenu('community')}>
+                <span>🏆 Comunidad</span>
+                <span className="submenuArrow">▾</span>
+              </button>
+              <div className={`submenuItems ${menuStates.community ? 'open' : ''}`}>
+                <NavLink to="/leaderboard" onClick={closeMenu} className={({ isActive }) => "sideLink submenuLink" + (isActive ? " active" : "")}>🌎 Leaderboard</NavLink>
+                <NavLink to="/guestbook" onClick={closeMenu} className={({ isActive }) => "sideLink submenuLink" + (isActive ? " active" : "")}>📖 Libro de Visitas</NavLink>
+                <NavLink to="/logros" onClick={closeMenu} className={({ isActive }) => "sideLink submenuLink" + (isActive ? " active" : "")}>🏆 Logros</NavLink>
+                <NavLink to="/tienda" onClick={closeMenu} className={({ isActive }) => "sideLink submenuLink" + (isActive ? " active" : "")}>🛍️ Tienda</NavLink>
+              </div>
+            </div>
+
+            {/* 📚 Productividad */}
+            <div className="sideSubmenuWrap">
+              <button className={`sideLink submenuToggle ${menuStates.productivity ? 'open' : ''}`} onClick={() => toggleMenu('productivity')}>
+                <span>📚 Productividad</span>
+                <span className="submenuArrow">▾</span>
+              </button>
+              <div className={`submenuItems ${menuStates.productivity ? 'open' : ''}`}>
+                <NavLink to="/cabina" onClick={closeMenu} className={({ isActive }) => "sideLink submenuLink" + (isActive ? " active" : "")}>🚀 Cabina Espacial</NavLink>
+              </div>
+            </div>
+
+            <div className="sideNavDivider" />
+
+            {/* ✦ Personal */}
+            <div className="sideSubmenuWrap">
+              <button className={`sideLink submenuToggle ${menuStates.personal ? 'open' : ''}`} onClick={() => toggleMenu('personal')}>
+                <span>✦ Personal</span>
+                <span className="submenuArrow">▾</span>
+              </button>
+              <div className={`submenuItems ${menuStates.personal ? 'open' : ''}`}>
+                <NavLink to="/kinnies" onClick={closeMenu} className={({ isActive }) => "sideLink submenuLink" + (isActive ? " active" : "")}>🌟 Kinnies</NavLink>
+                <NavLink to="/tests" onClick={closeMenu} className={({ isActive }) => "sideLink submenuLink" + (isActive ? " active" : "")}>🧪 Tests</NavLink>
+                <NavLink to="/universo" onClick={closeMenu} className={({ isActive }) => "sideLink submenuLink" + (isActive ? " active" : "")}>🌌 Universo</NavLink>
+                <NavLink to="/dreamscape" onClick={closeMenu} className={({ isActive }) => "sideLink submenuLink" + (isActive ? " active" : "")}>🌙 Dreamscape</NavLink>
+              </div>
             </div>
           </nav>
         </aside>
@@ -151,7 +209,6 @@ export default function GardenLayout({ children }) {
               <img src="/gifs/rainbowstars.gif" alt="" className="welcomeGif" aria-hidden="true" />
             </div>
 
-            {/* Dancoins & Notifications in topbar (mobile) */}
             <div className="topbarCoins" aria-label="Dancoins" style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
               <NavLink to="/tienda" className="topbarCoinsLink">◈ {balance}</NavLink>
               <NotificationBell />
@@ -162,7 +219,6 @@ export default function GardenLayout({ children }) {
 
           <VirtualPet />
 
-          {/* Snowflakes decorativos */}
           <div className="snowflakes" aria-hidden="true">
             {Array.from({ length: 8 }).map((_, i) => (
               <div className="snowflake" key={i}>
@@ -170,7 +226,8 @@ export default function GardenLayout({ children }) {
               </div>
             ))}
           </div>
-        </main>        {/* Portal secreto */}
+        </main>
+
         <div className="floatingImages" style={{ zIndex: 100, pointerEvents: 'none' }}>
           <Link to="/secret" className="floatImg img1" style={{ pointerEvents: 'auto', cursor: 'pointer', display: 'inline-block', width: '50px', height: '50px', lineHeight: 0 }}>
             <img src="/gifs/swirly.gif" alt="" style={{ width: '50px', height: '50px', display: 'block' }} />
@@ -178,7 +235,6 @@ export default function GardenLayout({ children }) {
         </div>
       </div>
 
-      {/* Daily bonus toast */}
       {dailyFlash && (
         <div className="dailyBonusToast">
           🎁 ¡+30 Dancoins! Bonus diario
