@@ -14,7 +14,8 @@
 
 ALTER TABLE public.profiles
   ADD COLUMN IF NOT EXISTS last_seen_at  timestamptz DEFAULT NULL,
-  ADD COLUMN IF NOT EXISTS show_activity boolean     NOT NULL DEFAULT true;
+  ADD COLUMN IF NOT EXISTS show_activity boolean     NOT NULL DEFAULT true,
+  ADD COLUMN IF NOT EXISTS bio           text        CHECK (char_length(bio) <= 250);
 
 -- Actualizar last_seen (llamar en acciones significativas del frontend)
 CREATE OR REPLACE FUNCTION public.ping_activity()
@@ -769,7 +770,59 @@ CREATE POLICY "user_social_ach_read" ON public.user_social_achievements
 -- Habilitar Realtime para:
 --   room_messages   → salas privadas en tiempo real
 --   conversations   → actualizar badge de no-leídas (opcional)
+--   profile_comments → muro de perfil en tiempo real
 -- NO habilitar Realtime para:
 --   letters         → son cartas asíncronas, no chat en tiempo real
 --   vault_*         → privado puro, sin necesidad de Realtime
 --   letter_rate_limits, blocklist, reports → nunca
+
+-- ────────────────────────────────────────────────────────────
+-- SECCIÓN 18: IDENTIDAD SOCIAL
+-- ────────────────────────────────────────────────────────────
+
+CREATE TABLE IF NOT EXISTS public.follows (
+  follower_id  uuid        NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  following_id uuid        NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  created_at   timestamptz NOT NULL DEFAULT now(),
+  PRIMARY KEY (follower_id, following_id),
+  CONSTRAINT no_self_follow CHECK (follower_id != following_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_follows_follower ON public.follows (follower_id);
+CREATE INDEX IF NOT EXISTS idx_follows_following ON public.follows (following_id);
+
+CREATE TABLE IF NOT EXISTS public.profile_comments (
+  id         uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
+  profile_id uuid        NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  author_id  uuid        NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  content    text        NOT NULL CHECK (char_length(content) BETWEEN 1 AND 500),
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_comments_profile ON public.profile_comments (profile_id, created_at DESC);
+
+-- RLS para Identidad Social
+ALTER TABLE public.follows          ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.profile_comments ENABLE ROW LEVEL SECURITY;
+
+-- Seguidores: lectura pública, gestión propia
+DROP POLICY IF EXISTS "follows_public_read" ON public.follows;
+CREATE POLICY "follows_public_read" ON public.follows
+  FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "follows_self_manage" ON public.follows;
+CREATE POLICY "follows_self_manage" ON public.follows
+  FOR ALL USING (auth.uid() = follower_id) WITH CHECK (auth.uid() = follower_id);
+
+-- Comentarios: lectura pública, inserción autenticada, borrado por autor/dueño
+DROP POLICY IF EXISTS "comments_public_read" ON public.profile_comments;
+CREATE POLICY "comments_public_read" ON public.profile_comments
+  FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "comments_auth_insert" ON public.profile_comments;
+CREATE POLICY "comments_auth_insert" ON public.profile_comments
+  FOR INSERT WITH CHECK (auth.uid() = author_id);
+
+DROP POLICY IF EXISTS "comments_author_delete" ON public.profile_comments;
+CREATE POLICY "comments_author_delete" ON public.profile_comments
+  FOR DELETE USING (auth.uid() = author_id OR auth.uid() = profile_id);

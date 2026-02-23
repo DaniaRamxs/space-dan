@@ -1,17 +1,28 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, useMotionValue, useTransform } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { roomsService } from '../services/rooms';
+import { profileSocialService } from '../services/profile_social';
 
 export default function HoloCard({ profile, onClose }) {
     const navigate = useNavigate();
     const x = useMotionValue(0);
     const y = useMotionValue(0);
     const [inviting, setInviting] = useState(false);
+    const [socialStats, setSocialStats] = useState({ followers: 0, following: 0 });
 
     // Transforming mouse position to rotation
     const rotateX = useTransform(y, [-100, 100], [15, -15]);
     const rotateY = useTransform(x, [-100, 100], [-15, 15]);
+
+    useEffect(() => {
+        if (profile) {
+            const profileId = profile.user_id || profile.id;
+            profileSocialService.getFollowCounts(profileId)
+                .then(setSocialStats)
+                .catch(console.error);
+        }
+    }, [profile]);
 
     function handleMouse(event) {
         const rect = event.currentTarget.getBoundingClientRect();
@@ -105,18 +116,22 @@ export default function HoloCard({ profile, onClose }) {
 
                     <div style={{ transform: 'translateZ(30px)', textAlign: 'center' }}>
                         <h2 style={{ margin: '0 0 5px 0', fontSize: '22px' }}>{profile.username}</h2>
-                        <p style={{ opacity: 0.6, fontSize: '12px', textTransform: 'uppercase', letterSpacing: '2px', marginBottom: '15px' }}>
-                            {profile.role || 'Explorador'}
+
+                        <p style={{
+                            opacity: 0.7, fontSize: '11px', marginBottom: '15px',
+                            maxHeight: '40px', overflow: 'hidden', fontStyle: profile.bio ? 'normal' : 'italic'
+                        }}>
+                            {profile.bio || 'Explorador del Dan-Space'}
                         </p>
 
-                        <div style={{ display: 'flex', gap: '20px', justifyContent: 'center', marginBottom: '20px' }}>
+                        <div style={{ display: 'flex', gap: '15px', justifyContent: 'center', marginBottom: '20px' }}>
                             <div style={{ textAlign: 'center' }}>
-                                <div style={{ fontWeight: 'bold' }}>{(profile.balance || profile.coins || 0).toLocaleString()}</div>
-                                <div style={{ fontSize: '10px', opacity: 0.5 }}>COINS</div>
+                                <div style={{ fontWeight: 'bold', fontSize: '14px' }}>{(profile.balance || profile.coins || 0).toLocaleString()}</div>
+                                <div style={{ fontSize: '9px', opacity: 0.5 }}>COINS</div>
                             </div>
                             <div style={{ textAlign: 'center' }}>
-                                <div style={{ fontWeight: 'bold' }}>{(profile.total_score || profile.stats?.total_clicks || 0).toLocaleString()}</div>
-                                <div style={{ fontSize: '10px', opacity: 0.5 }}>SCORE</div>
+                                <div style={{ fontWeight: 'bold', fontSize: '14px' }}>{socialStats.followers}</div>
+                                <div style={{ fontSize: '9px', opacity: 0.5 }}>FOLLOWS</div>
                             </div>
                         </div>
 
