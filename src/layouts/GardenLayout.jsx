@@ -6,7 +6,7 @@ import KonamiEasterEgg from "../components/KonamiEasterEgg.jsx";
 import LastFmWidget from "../components/LastFmWidget.jsx";
 import RadioPlayer from "../components/RadioPlayer.jsx";
 import AuthWidget from "../components/AuthWidget.jsx";
-import useDancoins from "../hooks/useDancoins.js";
+import { useEconomy } from '../contexts/EconomyContext';
 import NotificationBell from "../components/NotificationBell.jsx";
 import VirtualPet from "../components/VirtualPet.jsx";
 
@@ -18,7 +18,7 @@ export default function GardenLayout({ children }) {
   const [personalOpen, setPersonalOpen] = useState(
     PERSONAL_PATHS.some(p => location.pathname.startsWith(p))
   );
-  const { coins, claimDailyBonus, canClaimDaily } = useDancoins();
+  const { balance, claimDaily, canClaimDaily } = useEconomy();
   const [dailyFlash, setDailyFlash] = useState(false);
 
   const closeMenu = () => setSidebarOpen(false);
@@ -34,12 +34,21 @@ export default function GardenLayout({ children }) {
 
   // Daily bonus on first visit of the day
   useEffect(() => {
-    const claimed = claimDailyBonus();
-    if (claimed) {
-      setDailyFlash(true);
-      setTimeout(() => setDailyFlash(false), 3000);
+    async function checkDaily() {
+      if (canClaimDaily && canClaimDaily()) {
+        try {
+          const res = await claimDaily();
+          if (res?.success) {
+            setDailyFlash(true);
+            setTimeout(() => setDailyFlash(false), 3000);
+          }
+        } catch (e) {
+          // Ya reclamado o error
+        }
+      }
     }
-  }, []);
+    checkDaily();
+  }, [claimDaily, canClaimDaily]);
 
   return (
     <div className="gardenPage">
@@ -143,7 +152,7 @@ export default function GardenLayout({ children }) {
 
             {/* Dancoins & Notifications in topbar (mobile) */}
             <div className="topbarCoins" aria-label="Dancoins" style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-              <NavLink to="/tienda" className="topbarCoinsLink">◈ {coins}</NavLink>
+              <NavLink to="/tienda" className="topbarCoinsLink">◈ {balance}</NavLink>
               <NotificationBell />
             </div>
           </header>
