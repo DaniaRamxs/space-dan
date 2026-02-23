@@ -55,7 +55,19 @@ export default function NotificationBell() {
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
 
-    const handleToggle = () => setIsOpen(!isOpen);
+    const [dropdownPosition, setDropdownPosition] = useState({ top: 0, right: 0 });
+
+    const handleToggle = (e) => {
+        if (!isOpen) {
+            // Calculate position before opening
+            const rect = e.currentTarget.getBoundingClientRect();
+            setDropdownPosition({
+                top: rect.bottom + 10,
+                right: window.innerWidth - rect.right
+            });
+        }
+        setIsOpen(!isOpen);
+    };
 
     const handleNotificationClick = async (notif) => {
         if (!notif.is_read) {
@@ -74,7 +86,7 @@ export default function NotificationBell() {
     const unreadCount = notifications.filter(n => !n.is_read).length;
 
     return (
-        <div className="notificationBellContainer" ref={dropdownRef} style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+        <div className="notificationBellContainer" ref={dropdownRef} style={{ display: 'flex', alignItems: 'center' }}>
             <button
                 onClick={handleToggle}
                 style={{
@@ -113,16 +125,17 @@ export default function NotificationBell() {
 
             {isOpen && (
                 <div style={{
-                    position: 'absolute',
-                    top: '120%',
-                    right: 0,
+                    position: 'fixed',
+                    top: `${dropdownPosition.top}px`,
+                    right: `${dropdownPosition.right}px`,
                     width: '320px',
+                    maxWidth: 'calc(100vw - 20px)',
                     maxHeight: '400px',
-                    background: 'var(--bg-card)',
-                    border: '1px solid var(--border)',
+                    background: 'var(--bg)',
+                    border: '1px solid var(--accent)',
                     borderRadius: '8px',
-                    boxShadow: '0 5px 20px rgba(0,0,0,0.5)',
-                    zIndex: 1000,
+                    boxShadow: '0 10px 40px rgba(0,0,0,0.8), 0 0 20px rgba(255, 110, 180, 0.3)',
+                    zIndex: 999999,
                     display: 'flex',
                     flexDirection: 'column',
                     overflow: 'hidden'
