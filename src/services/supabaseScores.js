@@ -61,7 +61,7 @@ export async function ensureProfile(user) {
             username:
                 user.user_metadata?.full_name ||
                 user.user_metadata?.name ||
-                user.email?.split('@')[0] ||
+                (user.email || '').split('@')[0] ||
                 'usuario',
             avatar_url: user.user_metadata?.avatar_url || null,
         });

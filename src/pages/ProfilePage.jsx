@@ -115,7 +115,7 @@ export default function ProfilePage() {
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
                         <div>
                             <h1 style={{ margin: 0, color: 'var(--text)', fontSize: '2rem', textShadow: '0 0 10px var(--glow)' }}>
-                                {profile?.username || user?.user_metadata?.full_name || user?.user_metadata?.name || user?.email?.split('@')[0] || 'Jugador'}
+                                {profile?.username || user?.user_metadata?.full_name || user?.user_metadata?.name || (user?.email || '').split('@')[0] || 'Jugador'}
                             </h1>
                             <p style={{ margin: '5px 0 0 0', color: 'var(--cyan)', fontSize: '0.9rem', fontWeight: 'bold', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
                                 ⭐ Viajero del Dan-Space
