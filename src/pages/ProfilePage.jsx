@@ -9,7 +9,25 @@ const GAME_NAMES = {
     tetris: 'Tetris',
     snake: 'Snake',
     pong: 'Pong',
-    pacman: 'Pac-Man'
+    memory: 'Memory',
+    ttt: 'Tic Tac Toe',
+    whack: 'Whack-a-Mole',
+    color: 'Color Match',
+    reaction: 'Reaction Time',
+    '2048': '2048',
+    blackjack: 'Blackjack',
+    puzzle: 'Sliding Puzzle',
+    invaders: 'Space Invaders',
+    breakout: 'Breakout',
+    flappy: 'Flappy Bird',
+    mines: 'Buscaminas',
+    dino: 'Dino Runner',
+    connect4: 'Connect Four',
+    simon: 'Simon Says',
+    cookie: 'Cookie Clicker',
+    maze: 'Maze',
+    catch: 'Catch Game',
+    dodge: 'Dodge Game'
 };
 
 export default function ProfilePage() {
@@ -75,18 +93,26 @@ export default function ProfilePage() {
 
     return (
         <main className="card profileCard">
-            <div className="profileHeader" style={{ padding: '20px', display: 'flex', alignItems: 'center', gap: '20px', borderBottom: '1px solid var(--border)' }}>
-                <div className="avatarFrame" style={{ width: '80px', height: '80px', borderRadius: '50%', overflow: 'hidden', border: '2px solid var(--accent)' }}>
+            <div className="profileHeader" style={{ padding: '30px', display: 'flex', alignItems: 'center', gap: '25px', borderBottom: '1px solid var(--border)', background: 'linear-gradient(135deg, rgba(255,110,180,0.1) 0%, rgba(0,229,255,0.05) 100%)' }}>
+                <div className="avatarFrame" style={{ width: '100px', height: '100px', borderRadius: '50%', overflow: 'hidden', border: '3px solid var(--accent)', boxShadow: '0 0 15px var(--accent-glow)' }}>
                     <img
                         src={profile?.avatar_url || "/dan_profile.jpg"}
                         alt="avatar"
                         style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                     />
                 </div>
-                <div>
-                    <h1 style={{ margin: 0, color: 'var(--accent)' }}>{profile?.username || user.email.split('@')[0]}</h1>
-                    <p style={{ margin: '5px 0 0 0', opacity: 0.8, fontSize: '0.9rem' }}>Jugador Registrado</p>
-                    <button className="winButton" onClick={logout} style={{ marginTop: '10px', fontSize: '0.8rem', padding: '4px 8px' }}>Cerrar Sesión</button>
+                <div style={{ flex: 1 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
+                        <div>
+                            <h1 style={{ margin: 0, color: 'var(--text)', fontSize: '2rem', textShadow: '0 0 10px var(--glow)' }}>
+                                {profile?.username || user.email.split('@')[0]}
+                            </h1>
+                            <p style={{ margin: '5px 0 0 0', color: 'var(--cyan)', fontSize: '0.9rem', fontWeight: 'bold', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
+                                ⭐ Viajero del Dan-Space
+                            </p>
+                        </div>
+                        <button className="winButton" onClick={logout} style={{ fontSize: '0.8rem', padding: '6px 12px' }}>Cerrar Sesión</button>
+                    </div>
                 </div>
             </div>
 
@@ -108,12 +134,14 @@ export default function ProfilePage() {
                                         background: 'rgba(255,255,255,0.02)',
                                         borderRadius: '8px'
                                     }}>
-                                        <h3 style={{ margin: '0 0 10px 0', fontSize: '1rem', color: 'var(--accent)' }}>
+                                        <h3 style={{ margin: '0 0 10px 0', fontSize: '1rem', color: 'var(--cyan)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                                             {GAME_NAMES[rank.game_id] || rank.game_id}
                                         </h3>
-                                        <div style={{ fontSize: '1.5rem', fontWeight: 'bold' }}>{rank.max_score}</div>
-                                        <div style={{ fontSize: '0.9rem', opacity: 0.8, marginTop: '5px' }}>
-                                            Puesto Global: <strong>#{rank.position}</strong>
+                                        <div style={{ fontSize: '1.8rem', fontWeight: '900', color: 'var(--text)' }}>
+                                            {rank.max_score.toLocaleString()}
+                                        </div>
+                                        <div style={{ fontSize: '0.85rem', color: 'var(--accent)', marginTop: '8px', fontWeight: 'bold' }}>
+                                            Puesto Global: <span style={{ color: 'var(--text)' }}>#{rank.user_position}</span>
                                         </div>
                                     </div>
                                 ))}
