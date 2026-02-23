@@ -158,17 +158,18 @@ export default function GlobalLeaderboardPage() {
                 const rank = row.rank ?? (i + 1);
                 const isMe = user && row.user_id === user.id;
                 return (
-                  <tr
+                  <motion.tr
                     key={row.user_id ?? i}
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: i * 0.03, duration: 0.3 }}
                     onClick={() => handleRow(row)}
                     title="Ver perfil"
+                    className="group"
                     style={{
                       cursor: row.user_id ? 'pointer' : 'default',
                       background: isMe ? 'rgba(255,110,180,0.08)' : undefined,
-                      transition: 'background 0.15s',
                     }}
-                    onMouseEnter={e => { if (!isMe) e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; }}
-                    onMouseLeave={e => { if (!isMe) e.currentTarget.style.background = ''; }}
                   >
                     <td className="lbRank" style={{ fontWeight: 'bold' }}>
                       {rank <= 3 ? medal(rank) : rank}
@@ -183,7 +184,7 @@ export default function GlobalLeaderboardPage() {
                     <td className="lbScore" style={{ textAlign: 'right', fontWeight: 'bold', color: metricColor(activeTab, row) }}>
                       {formatMetric(activeTab, row)}
                     </td>
-                  </tr>
+                  </motion.tr>
                 );
               })}
             </tbody>
