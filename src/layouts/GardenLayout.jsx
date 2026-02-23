@@ -228,11 +228,7 @@ export default function GardenLayout({ children }) {
           </div>
         </main>
 
-        <div className="floatingImages" style={{ zIndex: 100, pointerEvents: 'none' }}>
-          <Link to="/secret" className="floatImg img1" style={{ pointerEvents: 'auto', cursor: 'pointer', display: 'inline-block', width: '50px', height: '50px', lineHeight: 0 }}>
-            <img src="/gifs/swirly.gif" alt="" style={{ width: '50px', height: '50px', display: 'block' }} />
-          </Link>
-        </div>
+
       </div>
 
       {dailyFlash && (
