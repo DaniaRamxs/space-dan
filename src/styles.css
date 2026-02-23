@@ -1128,10 +1128,17 @@ textarea,
   background: rgba(10, 8, 18, 0.65);
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: var(--radius-md);
-  overflow: hidden;
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
+}
+
+.gardenMain--fixed {
+  overflow: hidden;
+}
+
+.gardenMain--scrollable {
+  overflow: visible;
 }
 
 .gardenTopbar {
@@ -1150,6 +1157,10 @@ textarea,
 .gardenContent {
   padding: 16px 14px;
   animation: pageEnter 0.35s ease both;
+}
+
+.gardenMain--fixed .gardenContent {
+  height: 100%;
 }
 
 @keyframes pageEnter {
@@ -7176,6 +7187,7 @@ textarea,
   gap: 24px;
   padding: 20px 16px;
 }
+
 @media (min-width: 768px) {
   .profileContentGrid {
     grid-template-columns: 1fr 300px;
@@ -7195,6 +7207,7 @@ textarea,
   padding-top: 14px;
   border-top: 1px solid var(--border);
 }
+
 .profileActions a,
 .profileActions button {
   flex: 1;
@@ -7202,6 +7215,7 @@ textarea,
   text-align: center;
   justify-content: center;
 }
+
 @media (min-width: 768px) {
   .profileActions {
     flex-direction: row;
@@ -7210,6 +7224,7 @@ textarea,
     margin-top: 12px;
     padding-top: 12px;
   }
+
   .profileActions a,
   .profileActions button {
     flex: none;
@@ -7232,6 +7247,7 @@ textarea,
   white-space: nowrap;
   letter-spacing: 0.03em;
 }
+
 .activityBadge::before {
   content: '';
   width: 6px;
@@ -7254,6 +7270,7 @@ textarea,
   gap: 14px;
   height: calc(100vh - 120px);
 }
+
 @media (max-width: 767px) {
   .lettersLayout {
     grid-template-columns: 1fr;
@@ -7261,14 +7278,16 @@ textarea,
     padding: 0 8px;
     gap: 0;
   }
+
   .lettersPanel {
     height: calc(100svh - 90px) !important;
   }
+
   .lettersPanel--hidden {
     display: none !important;
   }
+
   .lettersBackBtn {
     display: block !important;
   }
 }
-

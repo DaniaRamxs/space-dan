@@ -89,7 +89,7 @@ export default function PublicProfilePage() {
         .catch(() => {});
 
       if (user && user.id !== userId) {
-        const following = await profileSocialService.isFollowing(userId);
+        const following = await profileSocialService.isFollowing(userId).catch(() => false);
         setIsFollowing(following);
       }
     } catch (err) {

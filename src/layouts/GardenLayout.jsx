@@ -12,6 +12,7 @@ import VirtualPet from "../components/VirtualPet.jsx";
 import AmbientOrbs from "../components/AmbientOrbs.jsx";
 
 const PERSONAL_PATHS = ['/kinnies', '/tests', '/universo', '/dreamscape'];
+const FIXED_LAYOUT_PATHS = ['/cartas', '/cabina', '/desktop'];
 
 export default function GardenLayout({ children }) {
   const location = useLocation();
@@ -196,7 +197,10 @@ export default function GardenLayout({ children }) {
           </nav>
         </aside>
 
-        <main className="gardenMain">
+        <main
+          className={`gardenMain ${FIXED_LAYOUT_PATHS.some(p => location.pathname.startsWith(p)) ? 'gardenMain--fixed' : 'gardenMain--scrollable'}`}
+          style={FIXED_LAYOUT_PATHS.some(p => location.pathname.startsWith(p)) ? { height: 'calc(100vh - 60px)', display: 'flex', flexDirection: 'column' } : {}}
+        >
           <header className="gardenTopbar">
             <button
               className={`hamburger${sidebarOpen ? ' is-open' : ''}`}
@@ -219,7 +223,7 @@ export default function GardenLayout({ children }) {
             </div>
           </header>
 
-          <div className="gardenContent">{children}</div>
+          <div className="gardenContent" style={FIXED_LAYOUT_PATHS.some(p => location.pathname.startsWith(p)) ? { flex: 1, overflow: 'hidden', padding: 0 } : {}}>{children}</div>
 
           {location.pathname !== '/cabina' && <VirtualPet />}
 
