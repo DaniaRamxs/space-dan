@@ -43,30 +43,40 @@ export default function ProfilePage() {
 
         const loadProfileData = async () => {
             setFetching(true);
+            console.log("Loading profile data for user:", user.id);
 
-            // Fetch Profile
-            const { data: profData } = await supabase
-                .from('profiles')
-                .select('*')
-                .eq('id', user.id)
-                .maybeSingle();
-            if (profData) setProfile(profData);
+            try {
+                // Fetch Profile
+                const { data: profData, error: profErr } = await supabase
+                    .from('profiles')
+                    .select('*')
+                    .eq('id', user.id)
+                    .maybeSingle();
+                if (profErr) console.error("Profile fetch error:", profErr);
+                if (profData) setProfile(profData);
+                console.log("Profile data loaded:", profData);
 
-            // Fetch Achievements for user
-            const { data: achData } = await supabase
-                .from('user_achievements')
-                .select('achievement_id')
-                .eq('user_id', user.id);
+                // Fetch Achievements for user
+                const { data: achData, error: achErr } = await supabase
+                    .from('user_achievements')
+                    .select('achievement_id')
+                    .eq('user_id', user.id);
+                if (achErr) console.error("Achievements fetch error:", achErr);
+                if (achData) {
+                    setUserAchs(achData.map(a => a.achievement_id));
+                    console.log("Achievements loaded:", achData.length);
+                }
 
-            if (achData) {
-                setUserAchs(achData.map(a => a.achievement_id));
+                // Fetch Game Ranks
+                const ranks = await getUserGameRanks(user.id);
+                console.log("Game ranks loaded:", ranks);
+                setGameRanks(ranks || []);
+
+            } catch (err) {
+                console.error("Critical error loading profile:", err);
+            } finally {
+                setFetching(false);
             }
-
-            // Fetch Game Ranks
-            const ranks = await getUserGameRanks(user.id);
-            setGameRanks(ranks);
-
-            setFetching(false);
         };
 
         loadProfileData();
@@ -105,7 +115,7 @@ export default function ProfilePage() {
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
                         <div>
                             <h1 style={{ margin: 0, color: 'var(--text)', fontSize: '2rem', textShadow: '0 0 10px var(--glow)' }}>
-                                {profile?.username || user.email.split('@')[0]}
+                                {profile?.username || user?.user_metadata?.full_name || user?.user_metadata?.name || user?.email?.split('@')[0] || 'Jugador'}
                             </h1>
                             <p style={{ margin: '5px 0 0 0', color: 'var(--cyan)', fontSize: '0.9rem', fontWeight: 'bold', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
                                 ⭐ Viajero del Dan-Space
