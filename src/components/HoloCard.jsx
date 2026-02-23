@@ -4,6 +4,7 @@ import { motion, useMotionValue, useTransform } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { roomsService } from '../services/rooms';
 import { profileSocialService } from '../services/profile_social';
+import { useUserCoins } from '../hooks/useUserCoins';
 
 export default function HoloCard({ profile, onClose }) {
     const navigate = useNavigate();
@@ -11,6 +12,9 @@ export default function HoloCard({ profile, onClose }) {
     const y = useMotionValue(0);
     const [inviting, setInviting] = useState(false);
     const [socialStats, setSocialStats] = useState({ followers: 0, following: 0 });
+
+    const profileId = profile?.user_id || profile?.id;
+    const realtimeBalance = useUserCoins(profileId, profile?.balance || profile?.coins || 0);
 
     // Transforming mouse position to rotation
     const rotateX = useTransform(y, [-100, 100], [15, -15]);
@@ -51,8 +55,6 @@ export default function HoloCard({ profile, onClose }) {
     }
 
     if (!profile) return null;
-
-    const profileId = profile.user_id || profile.id;
 
     return createPortal(
         <div
@@ -127,7 +129,7 @@ export default function HoloCard({ profile, onClose }) {
 
                         <div style={{ display: 'flex', gap: '15px', justifyContent: 'center', marginBottom: '20px' }}>
                             <div style={{ textAlign: 'center' }}>
-                                <div style={{ fontWeight: 'bold', fontSize: '14px' }}>{(profile.balance || profile.coins || 0).toLocaleString()}</div>
+                                <div style={{ fontWeight: 'bold', fontSize: '14px' }}>{(realtimeBalance ?? 0).toLocaleString()}</div>
                                 <div style={{ fontSize: '9px', opacity: 0.5 }}>COINS</div>
                             </div>
                             <div style={{ textAlign: 'center' }}>

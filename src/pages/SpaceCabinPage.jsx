@@ -57,7 +57,7 @@ export default function SpaceCabinPage() {
         <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="max-w-6xl mx-auto p-4 md:p-8 space-y-8"
+            className="h-full overflow-y-auto overflow-x-hidden pb-24 max-w-6xl mx-auto p-4 md:p-8 space-y-8"
         >
             {/* Header Estelar */}
             <header className="flex flex-col lg:flex-row lg:items-end justify-between gap-8 mb-12">

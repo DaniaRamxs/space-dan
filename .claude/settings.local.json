@@ -20,7 +20,8 @@
       "Bash(ls -la \"c:\\\\Users\\\\USUARIO\\\\space-dan\\\\src\"\" | grep -E \"^d \")",
       "Skill(commit-commands:commit-push-pr)",
       "Skill(commit-commands:commit-push-pr:*)",
-      "Bash(winget list:*)"
+      "Bash(winget list:*)",
+      "Bash(npx vite build)"
     ]
   }
 }

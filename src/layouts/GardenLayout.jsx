@@ -199,7 +199,7 @@ export default function GardenLayout({ children }) {
 
         <main
           className={`gardenMain ${FIXED_LAYOUT_PATHS.some(p => location.pathname.startsWith(p)) ? 'gardenMain--fixed' : 'gardenMain--scrollable'}`}
-          style={FIXED_LAYOUT_PATHS.some(p => location.pathname.startsWith(p)) ? { height: 'calc(100vh - 60px)', display: 'flex', flexDirection: 'column' } : {}}
+          style={FIXED_LAYOUT_PATHS.some(p => location.pathname.startsWith(p)) ? { height: 'calc(100dvh - 60px)', display: 'flex', flexDirection: 'column' } : {}}
         >
           <header className="gardenTopbar">
             <button
