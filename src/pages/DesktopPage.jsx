@@ -5,38 +5,39 @@ import { unlockAchievement } from '../hooks/useAchievements';
 import { awardCoins } from '../hooks/useDancoins';
 
 // ─── OS ARCADE — lazy game components ──────────────────────────
-const OSSnake    = lazy(() => import('../components/SnakeGame'));
-const OSTetris   = lazy(() => import('../components/TetrisGame'));
-const OS2048     = lazy(() => import('../components/Game2048'));
-const OSFlappy   = lazy(() => import('../components/FlappyBird'));
+const OSSnake = lazy(() => import('../components/SnakeGame'));
+const OSTetris = lazy(() => import('../components/TetrisGame'));
+const OS2048 = lazy(() => import('../components/Game2048'));
+const OSFlappy = lazy(() => import('../components/FlappyBird'));
 const OSInvaders = lazy(() => import('../components/SpaceInvaders'));
 const OSBreakout = lazy(() => import('../components/Breakout'));
-const OSDino     = lazy(() => import('../components/DinoRunner'));
-const OSWhack    = lazy(() => import('../components/WhackAMole'));
-const OSPong     = lazy(() => import('../components/Pong'));
-const OSMemory   = lazy(() => import('../components/MemoryGame'));
-const OSSimon    = lazy(() => import('../components/SimonSays'));
-const OSCookie   = lazy(() => import('../components/CookieClicker'));
+const OSDino = lazy(() => import('../components/DinoRunner'));
+const OSWhack = lazy(() => import('../components/WhackAMole'));
+const OSPong = lazy(() => import('../components/Pong'));
+const OSMemory = lazy(() => import('../components/MemoryGame'));
+const OSSimon = lazy(() => import('../components/SimonSays'));
+const OSCookie = lazy(() => import('../components/CookieClicker'));
 
 const OS_GAME_LIST = [
-    { id: 'snake',    icon: '🐍', label: 'Snake',         C: OSSnake    },
-    { id: 'tetris',   icon: '🟦', label: 'Tetris',         C: OSTetris   },
-    { id: '2048',     icon: '🔢', label: '2048',            C: OS2048     },
-    { id: 'flappy',   icon: '🐦', label: 'Flappy Bird',   C: OSFlappy   },
+    { id: 'snake', icon: '🐍', label: 'Snake', C: OSSnake },
+    { id: 'tetris', icon: '🟦', label: 'Tetris', C: OSTetris },
+    { id: '2048', icon: '🔢', label: '2048', C: OS2048 },
+    { id: 'flappy', icon: '🐦', label: 'Flappy Bird', C: OSFlappy },
     { id: 'invaders', icon: '👾', label: 'Space Invaders', C: OSInvaders },
-    { id: 'breakout', icon: '🧱', label: 'Breakout',        C: OSBreakout },
-    { id: 'dino',     icon: '🦕', label: 'Dino Runner',   C: OSDino     },
-    { id: 'whack',    icon: '🐭', label: 'Whack-a-Mole',   C: OSWhack    },
-    { id: 'pong',     icon: '🏓', label: 'Pong',            C: OSPong     },
-    { id: 'memory',   icon: '🃏', label: 'Memory',          C: OSMemory   },
-    { id: 'simon',    icon: '🔵', label: 'Simon Says',    C: OSSimon    },
-    { id: 'cookie',   icon: '🍪', label: 'Cookie Clicker', C: OSCookie   },
+    { id: 'breakout', icon: '🧱', label: 'Breakout', C: OSBreakout },
+    { id: 'dino', icon: '🦕', label: 'Dino Runner', C: OSDino },
+    { id: 'whack', icon: '🐭', label: 'Whack-a-Mole', C: OSWhack },
+    { id: 'pong', icon: '🏓', label: 'Pong', C: OSPong },
+    { id: 'memory', icon: '🃏', label: 'Memory', C: OSMemory },
+    { id: 'simon', icon: '🔵', label: 'Simon Says', C: OSSimon },
+    { id: 'cookie', icon: '🍪', label: 'Cookie Clicker', C: OSCookie },
 ];
 
 const fmtTime = (s) => isNaN(s) || !s ? '0:00' : `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
 
 // ─── TERMINAL ────────────────────────────────────────────────
 function TerminalWindow() {
+    const navigate = useNavigate();
     const [lines, setLines] = useState([
         '> DAN-OS Terminal v1.0',
         '> Escribe "help" para ver comandos disponibles.',
@@ -212,7 +213,7 @@ function TerminalWindow() {
             ];
         } else if (c.startsWith('open ') || c === 'open') {
             if (c === 'open') {
-                out = ['  uso: open [app]  — apps: readme, calc, notepad, music, terminal, secret, chat, guestbook, sysinfo'];
+                out = ['  uso: open [app]  — apps: readme, calc, notepad, music, terminal, chat, guestbook, sysinfo'];
             } else {
                 const APP_MAP = {
                     readme: 'readme', 'readme.txt': 'readme',
@@ -226,14 +227,17 @@ function TerminalWindow() {
                     sysinfo: 'sysinfo', 'sysinfo.exe': 'sysinfo',
                 };
                 const appName = cmd.slice(5).toLowerCase().trim();
-                const appId   = APP_MAP[appName];
+                const appId = APP_MAP[appName];
                 if (appId) {
                     window.dispatchEvent(new CustomEvent('dan:os-open', { detail: { id: appId } }));
                     out = [`  → abriendo ${appName}...`];
                 } else {
-                    out = [`  open: '${appName}' no encontrado.`, '  apps: readme, calc, notepad, music, terminal, secret, chat, guestbook, sysinfo'];
+                    out = [`  open: '${appName}' no encontrado.`, '  apps: readme, calc, notepad, music, terminal, chat, guestbook, sysinfo'];
                 }
             }
+        } else if (c === 'secret' || c === 'classified') {
+            out = ['  [!] ACCESO DETECTADO', '  Redirigiendo a la zona clasificada...'];
+            setTimeout(() => navigate('/secret'), 1000);
         } else if (c === 'matrix') {
             out = [
                 '  Wake up, dan...',
@@ -311,9 +315,9 @@ function TerminalWindow() {
 // ─── CALCULADORA ─────────────────────────────────────────────
 function CalcWindow() {
     const [display, setDisplay] = useState('0');
-    const [prev, setPrev]       = useState(null);
-    const [op, setOp]           = useState(null);
-    const [waitNext, setWait]   = useState(false);
+    const [prev, setPrev] = useState(null);
+    const [op, setOp] = useState(null);
+    const [waitNext, setWait] = useState(false);
     const usedRef = useRef(false);
 
     const input = (val) => {
@@ -325,9 +329,9 @@ function CalcWindow() {
         if (waitNext) { setDisplay('0.'); setWait(false); return; }
         if (!display.includes('.')) setDisplay(d => d + '.');
     };
-    const clear  = () => { setDisplay('0'); setPrev(null); setOp(null); setWait(false); };
-    const sign   = () => setDisplay(d => String(-parseFloat(d)));
-    const pct    = () => setDisplay(d => String(parseFloat(d) / 100));
+    const clear = () => { setDisplay('0'); setPrev(null); setOp(null); setWait(false); };
+    const sign = () => setDisplay(d => String(-parseFloat(d)));
+    const pct = () => setDisplay(d => String(parseFloat(d) / 100));
 
     const handleOp = (operation) => {
         setOp(operation);
@@ -345,25 +349,25 @@ function CalcWindow() {
     };
 
     const BTNS = [
-        { label: 'C',   action: clear,              type: 'fn'  },
-        { label: '+/−', action: sign,               type: 'fn'  },
-        { label: '%',   action: pct,                type: 'fn'  },
-        { label: '÷',   action: () => handleOp('÷'),type: 'op'  },
-        { label: '7',   action: () => input('7')               },
-        { label: '8',   action: () => input('8')               },
-        { label: '9',   action: () => input('9')               },
-        { label: '×',   action: () => handleOp('×'),type: 'op'  },
-        { label: '4',   action: () => input('4')               },
-        { label: '5',   action: () => input('5')               },
-        { label: '6',   action: () => input('6')               },
-        { label: '−',   action: () => handleOp('−'),type: 'op'  },
-        { label: '1',   action: () => input('1')               },
-        { label: '2',   action: () => input('2')               },
-        { label: '3',   action: () => input('3')               },
-        { label: '+',   action: () => handleOp('+'),type: 'op'  },
-        { label: '0',   action: () => input('0'),  wide: true   },
-        { label: '.',   action: decimal                         },
-        { label: '=',   action: equals,            type: 'eq'  },
+        { label: 'C', action: clear, type: 'fn' },
+        { label: '+/−', action: sign, type: 'fn' },
+        { label: '%', action: pct, type: 'fn' },
+        { label: '÷', action: () => handleOp('÷'), type: 'op' },
+        { label: '7', action: () => input('7') },
+        { label: '8', action: () => input('8') },
+        { label: '9', action: () => input('9') },
+        { label: '×', action: () => handleOp('×'), type: 'op' },
+        { label: '4', action: () => input('4') },
+        { label: '5', action: () => input('5') },
+        { label: '6', action: () => input('6') },
+        { label: '−', action: () => handleOp('−'), type: 'op' },
+        { label: '1', action: () => input('1') },
+        { label: '2', action: () => input('2') },
+        { label: '3', action: () => input('3') },
+        { label: '+', action: () => handleOp('+'), type: 'op' },
+        { label: '0', action: () => input('0'), wide: true },
+        { label: '.', action: decimal },
+        { label: '=', action: equals, type: 'eq' },
     ];
 
     return (
@@ -410,9 +414,9 @@ function NotepadWindow() {
 // ─── WINAMP ──────────────────────────────────────────────────
 function WinAmpWindow() {
     const [trackIdx, setTrackIdx] = useState(0);
-    const [playing, setPlaying]   = useState(false);
-    const [time, setTime]         = useState(0);
-    const [dur, setDur]           = useState(0);
+    const [playing, setPlaying] = useState(false);
+    const [time, setTime] = useState(0);
+    const [dur, setDur] = useState(0);
     const audioRef = useRef(null);
     const song = MUSIC_PLAYLIST[trackIdx];
 
@@ -436,7 +440,7 @@ function WinAmpWindow() {
         if (!audio) return;
         const onTime = () => setTime(audio.currentTime);
         const onMeta = () => setDur(audio.duration);
-        const onEnd  = () => setTrackIdx(t => (t + 1) % MUSIC_PLAYLIST.length);
+        const onEnd = () => setTrackIdx(t => (t + 1) % MUSIC_PLAYLIST.length);
         audio.addEventListener('timeupdate', onTime);
         audio.addEventListener('loadedmetadata', onMeta);
         audio.addEventListener('ended', onEnd);
@@ -447,7 +451,7 @@ function WinAmpWindow() {
         };
     }, [trackIdx]);
 
-    const pct  = dur > 0 ? (time / dur) * 100 : 0;
+    const pct = dur > 0 ? (time / dur) * 100 : 0;
     const prev = () => setTrackIdx(t => (t - 1 + MUSIC_PLAYLIST.length) % MUSIC_PLAYLIST.length);
     const next = () => setTrackIdx(t => (t + 1) % MUSIC_PLAYLIST.length);
 
@@ -496,10 +500,10 @@ function WinAmpWindow() {
 
 // ─── ARCHIVO CLASIFICADO ────────────────────────────────────
 function SecretWindow() {
-    const [input, setInput]     = useState('');
+    const [input, setInput] = useState('');
     const [attempts, setAttempts] = useState(0);
     const [unlocked, setUnlocked] = useState(false);
-    const [msg, setMsg]         = useState('');
+    const [msg, setMsg] = useState('');
 
     const tryPassword = () => {
         const pass = input.toLowerCase().trim();
@@ -600,7 +604,7 @@ function GamesWindow() {
                 awardCoins(5);
                 if (played.size >= 5) unlockAchievement('gamer');
             }
-        } catch {}
+        } catch { }
         setGameId(g.id);
     };
 
@@ -726,7 +730,7 @@ Hecho con React, CSS y mucho café.
 
 // ─── DRAGGABLE WINDOW ────────────────────────────────────────
 function DraggableWindow({ type, title, icon, initialPos, isActive, isMinimized, onFocus, onClose, onMinimize }) {
-    const [pos, setPos]           = useState(initialPos);
+    const [pos, setPos] = useState(initialPos);
     const [isDragging, setDragging] = useState(false);
     const dragRef = useRef({ x: 0, y: 0 });
 
@@ -768,16 +772,16 @@ function DraggableWindow({ type, title, icon, initialPos, isActive, isMinimized,
     if (isMinimized) return null;
 
     const WIN_SIZES = {
-        readme:    { width: 340, height: 280 },
-        terminal:  { width: 420, height: 300 },
-        chat:      { width: 360, height: 400 },
-        sysinfo:   { width: 320, height: 280 },
-        secret:    { width: 300, height: 220 },
-        calc:      { width: 260, height: 340 },
-        notepad:   { width: 380, height: 280 },
-        music:     { width: 320, height: 280 },
-        games:     { width: 420, height: 540 },
-        default:   { width: 300, height: 200 },
+        readme: { width: 340, height: 280 },
+        terminal: { width: 420, height: 300 },
+        chat: { width: 360, height: 400 },
+        sysinfo: { width: 320, height: 280 },
+        secret: { width: 300, height: 220 },
+        calc: { width: 260, height: 340 },
+        notepad: { width: 380, height: 280 },
+        music: { width: 320, height: 280 },
+        games: { width: 420, height: 540 },
+        default: { width: 300, height: 200 },
     };
     const size = WIN_SIZES[type] || WIN_SIZES.default;
     // Captura una sola vez al montar — evita re-leer window.innerWidth en cada render
@@ -827,19 +831,19 @@ function DraggableWindow({ type, title, icon, initialPos, isActive, isMinimized,
 
 // ─── START MENU ──────────────────────────────────────────────
 const START_LINKS = [
-    { icon: '🏠', label: 'Sobre mí',     to: '/home'         },
-    { icon: '📰', label: 'Noticias',     to: '/bulletin'     },
-    { icon: '✍️', label: 'Posts',        to: '/posts'        },
-    { icon: '🎧', label: 'Música',       to: '/music'        },
-    { icon: '🎮', label: 'Juegos',       to: '/games'        },
-    { icon: '🖼️', label: 'Galería',      to: '/galeria'      },
-    { icon: '📺', label: 'Watchlist',    to: '/watchlist'    },
-    { icon: '⏳', label: 'Time Capsule', to: '/timecapsule'  },
-    { icon: '📖', label: 'Guestbook',   to: '/guestbook'    },
-    { icon: '💻', label: 'Proyectos',   to: '/proyectos'    },
-    { icon: '🏗️', label: 'Arquitectura',to: '/arquitectura' },
-    { icon: '🏆', label: 'Logros',      to: '/logros'       },
-    { icon: '🛍️', label: 'Tienda',      to: '/tienda'       },
+    { icon: '🏠', label: 'Sobre mí', to: '/home' },
+    { icon: '📰', label: 'Noticias', to: '/bulletin' },
+    { icon: '✍️', label: 'Posts', to: '/posts' },
+    { icon: '🎧', label: 'Música', to: '/music' },
+    { icon: '🎮', label: 'Juegos', to: '/games' },
+    { icon: '🖼️', label: 'Galería', to: '/galeria' },
+    { icon: '📺', label: 'Watchlist', to: '/watchlist' },
+    { icon: '⏳', label: 'Time Capsule', to: '/timecapsule' },
+    { icon: '📖', label: 'Guestbook', to: '/guestbook' },
+    { icon: '💻', label: 'Proyectos', to: '/proyectos' },
+    { icon: '🏗️', label: 'Arquitectura', to: '/arquitectura' },
+    { icon: '🏆', label: 'Logros', to: '/logros' },
+    { icon: '🛍️', label: 'Tienda', to: '/tienda' },
 ];
 
 function StartMenu({ onClose }) {
@@ -872,11 +876,11 @@ function ContextMenu({ x, y, onClose, onOpen }) {
         <>
             <div className="osCtxOverlay" onClick={onClose} />
             <div className="osCtxMenu" style={{ left: x, top: y }}>
-                <div className="osCtxItem" onClick={() => { onOpen('readme');   onClose(); }}>📄 Abrir README</div>
+                <div className="osCtxItem" onClick={() => { onOpen('readme'); onClose(); }}>📄 Abrir README</div>
                 <div className="osCtxItem" onClick={() => { onOpen('terminal'); onClose(); }}>⌨️ Abrir Terminal</div>
-                <div className="osCtxItem" onClick={() => { onOpen('notepad');  onClose(); }}>📝 Abrir Notepad</div>
-                <div className="osCtxItem" onClick={() => { onOpen('calc');     onClose(); }}>🧮 Abrir Calc</div>
-                <div className="osCtxItem" onClick={() => { onOpen('sysinfo');  onClose(); }}>💻 Info del sistema</div>
+                <div className="osCtxItem" onClick={() => { onOpen('notepad'); onClose(); }}>📝 Abrir Notepad</div>
+                <div className="osCtxItem" onClick={() => { onOpen('calc'); onClose(); }}>🧮 Abrir Calc</div>
+                <div className="osCtxItem" onClick={() => { onOpen('sysinfo'); onClose(); }}>💻 Info del sistema</div>
                 <div className="osCtxDivider" />
                 <div className="osCtxItem" onClick={onClose}>✕ Cerrar menú</div>
             </div>
@@ -886,56 +890,56 @@ function ContextMenu({ x, y, onClose, onOpen }) {
 
 // ─── DESKTOP ICONS ───────────────────────────────────────────
 const ICONS = [
-    { id: 'readme',    icon: '📄', label: 'README.txt'   },
-    { id: 'posts',     icon: '📁', label: 'Mis escritos' },
-    { id: 'games',     icon: '🕹️', label: 'Arcade.exe'   },
-    { id: 'music',     icon: '🎵', label: 'WinAmp'       },
-    { id: 'terminal',  icon: '⌨️', label: 'Terminal'     },
-    { id: 'secret',    icon: '🔒', label: 'CLASSIFIED'   },
-    { id: 'chat',      icon: '💬', label: 'Chat.exe'     },
+    { id: 'readme', icon: '📄', label: 'README.txt' },
+    { id: 'posts', icon: '📁', label: 'Mis escritos' },
+    { id: 'games', icon: '🕹️', label: 'Arcade.exe' },
+    { id: 'music', icon: '🎵', label: 'WinAmp' },
+    { id: 'terminal', icon: '⌨️', label: 'Terminal' },
+    { id: 'secret', icon: '🔒', label: 'CLASSIFIED' },
+    { id: 'chat', icon: '💬', label: 'Chat.exe' },
     { id: 'guestbook', icon: '📖', label: 'Guestbook.db' },
-    { id: 'sysinfo',   icon: '💻', label: 'SysInfo.exe'  },
-    { id: 'calc',      icon: '🧮', label: 'Calc.exe'     },
-    { id: 'notepad',   icon: '📝', label: 'Notepad.exe'  },
+    { id: 'sysinfo', icon: '💻', label: 'SysInfo.exe' },
+    { id: 'calc', icon: '🧮', label: 'Calc.exe' },
+    { id: 'notepad', icon: '📝', label: 'Notepad.exe' },
 ];
 
 const WIN_META = {
-    readme:    { title: 'README.txt',       icon: '📄' },
-    posts:     { title: 'Posts.dir',        icon: '📁' },
-    games:     { title: 'Arcade.exe',       icon: '🕹️' },
-    music:     { title: 'WinAmp.m3u',       icon: '🎵' },
-    terminal:  { title: 'Terminal.exe',     icon: '⌨️' },
-    secret:    { title: 'CLASSIFIED.log',   icon: '🔒' },
-    chat:      { title: 'Chat.exe',         icon: '💬' },
-    guestbook: { title: 'Guestbook.db',     icon: '📖' },
-    sysinfo:   { title: 'SysInfo.exe',      icon: '💻' },
-    calc:      { title: 'Calc.exe',         icon: '🧮' },
-    notepad:   { title: 'Notepad.exe',      icon: '📝' },
+    readme: { title: 'README.txt', icon: '📄' },
+    posts: { title: 'Posts.dir', icon: '📁' },
+    games: { title: 'Arcade.exe', icon: '🕹️' },
+    music: { title: 'WinAmp.m3u', icon: '🎵' },
+    terminal: { title: 'Terminal.exe', icon: '⌨️' },
+    secret: { title: 'CLASSIFIED.log', icon: '🔒' },
+    chat: { title: 'Chat.exe', icon: '💬' },
+    guestbook: { title: 'Guestbook.db', icon: '📖' },
+    sysinfo: { title: 'SysInfo.exe', icon: '💻' },
+    calc: { title: 'Calc.exe', icon: '🧮' },
+    notepad: { title: 'Notepad.exe', icon: '📝' },
 };
 
 const INITIAL_POSITIONS = {
-    readme:    { x: 60,  y: 40  },
-    posts:     { x: 100, y: 70  },
-    games:     { x: 130, y: 100 },
-    music:     { x: 160, y: 80  },
-    terminal:  { x: 80,  y: 120 },
-    secret:    { x: 200, y: 60  },
-    chat:      { x: 110, y: 90  },
-    guestbook: { x: 90,  y: 110 },
-    sysinfo:   { x: 140, y: 50  },
-    calc:      { x: 220, y: 80  },
-    notepad:   { x: 170, y: 60  },
+    readme: { x: 60, y: 40 },
+    posts: { x: 100, y: 70 },
+    games: { x: 130, y: 100 },
+    music: { x: 160, y: 80 },
+    terminal: { x: 80, y: 120 },
+    secret: { x: 200, y: 60 },
+    chat: { x: 110, y: 90 },
+    guestbook: { x: 90, y: 110 },
+    sysinfo: { x: 140, y: 50 },
+    calc: { x: 220, y: 80 },
+    notepad: { x: 170, y: 60 },
 };
 
 // ─── MAIN DESKTOP ────────────────────────────────────────────
 export default function DesktopPage() {
-    const [windows, setWindows]       = useState([{ id: 'readme', minimized: false }]);
-    const [activeWindow, setActive]   = useState('readme');
-    const [startOpen, setStartOpen]   = useState(false);
-    const [ctxMenu, setCtxMenu]       = useState(null);
-    const [clock, setClock]           = useState('');
-    const lastTap       = useRef({});
-    const firstOpenRef  = useRef(false);
+    const [windows, setWindows] = useState([{ id: 'readme', minimized: false }]);
+    const [activeWindow, setActive] = useState('readme');
+    const [startOpen, setStartOpen] = useState(false);
+    const [ctxMenu, setCtxMenu] = useState(null);
+    const [clock, setClock] = useState('');
+    const lastTap = useRef({});
+    const firstOpenRef = useRef(false);
 
     const openWindow = useCallback((id) => {
         if (!firstOpenRef.current) { firstOpenRef.current = true; unlockAchievement('os_user'); }
