@@ -4,11 +4,11 @@ import { useAuthContext } from '../contexts/AuthContext';
 import * as lb from '../services/leaderboard';
 
 const TABS = [
-  { id: 'games',        label: '🎮 Juegos',      desc: 'Suma de mejores puntajes en todos los juegos' },
-  { id: 'wealth',       label: '◈ Riqueza',       desc: 'Balance actual de Dancoins' },
-  { id: 'growth',       label: '📈 Crecimiento',  desc: 'Mayor crecimiento de Dancoins esta semana' },
-  { id: 'generosity',   label: '🤝 Generosidad',  desc: 'Más coins donados al fondo comunitario' },
-  { id: 'achievements', label: '🏆 Logros',       desc: 'Logros desbloqueados' },
+  { id: 'games', label: '🎮 Juegos', desc: 'Suma de mejores puntajes en todos los juegos' },
+  { id: 'wealth', label: '◈ Riqueza', desc: 'Balance actual de Dancoins' },
+  { id: 'growth', label: '📈 Crecimiento', desc: 'Mayor crecimiento de Dancoins esta semana' },
+  { id: 'generosity', label: '🤝 Generosidad', desc: 'Más coins donados al fondo comunitario' },
+  { id: 'achievements', label: '🏆 Logros', desc: 'Logros desbloqueados' },
 ];
 
 const MEDALS = ['🥇', '🥈', '🥉'];
@@ -26,13 +26,21 @@ function Avatar({ url, name }) {
 
 function formatMetric(tab, row) {
   switch (tab) {
-    case 'games':        return (row.total_score ?? 0).toLocaleString() + ' pts';
-    case 'wealth':       return '◈ ' + (row.balance ?? 0).toLocaleString();
+    case 'games': return (row.total_score ?? 0).toLocaleString() + ' pts';
+    case 'wealth': return '◈ ' + (row.balance ?? 0).toLocaleString();
     case 'growth': {
-      const g = row.growth_amount ?? 0;
-      return (g >= 0 ? '+' : '') + '◈ ' + g.toLocaleString();
+      const g = row.growth ?? 0;
+      const p = row.growth_pct ?? 0;
+      return (
+        <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
+          <span>{(g >= 0 ? '+' : '') + '◈ ' + g.toLocaleString()}</span>
+          <span style={{ fontSize: '0.65rem', opacity: 0.6, fontWeight: 'normal' }}>
+            {p}% esta semana
+          </span>
+        </span>
+      );
     }
-    case 'generosity':   return '◈ ' + (row.total_donated ?? 0).toLocaleString();
+    case 'generosity': return '◈ ' + (row.total_donated ?? 0).toLocaleString();
     case 'achievements': return (row.achievement_count ?? 0) + ' logros';
     default: return '—';
   }
@@ -40,18 +48,18 @@ function formatMetric(tab, row) {
 
 function metricColor(tab, row) {
   if (tab === 'growth') {
-    return (row.growth_amount ?? 0) >= 0 ? 'var(--accent)' : '#ff5555';
+    return (row.growth ?? 0) >= 0 ? 'var(--accent)' : '#ff5555';
   }
   return 'var(--accent)';
 }
 
 export default function GlobalLeaderboardPage() {
-  const { user }                      = useAuthContext();
-  const navigate                      = useNavigate();
-  const [activeTab, setActiveTab]     = useState('games');
-  const [data, setData]               = useState({});   // { tabId: rows[] }
-  const [loading, setLoading]         = useState(false);
-  const [error, setError]             = useState(null);
+  const { user } = useAuthContext();
+  const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState('games');
+  const [data, setData] = useState({});   // { tabId: rows[] }
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
   const fetchTab = useCallback(async (tabId) => {
     if (data[tabId]) return;           // already loaded
@@ -60,10 +68,10 @@ export default function GlobalLeaderboardPage() {
     try {
       let rows;
       switch (tabId) {
-        case 'games':        rows = await lb.getGlobalGameLeaderboard(50); break;
-        case 'wealth':       rows = await lb.getWealthLeaderboard(50);     break;
-        case 'growth':       rows = await lb.getWeeklyGrowthLeaderboard(50); break;
-        case 'generosity':   rows = await lb.getGenerosityLeaderboard(50); break;
+        case 'games': rows = await lb.getGlobalGameLeaderboard(50); break;
+        case 'wealth': rows = await lb.getWealthLeaderboard(50); break;
+        case 'growth': rows = await lb.getWeeklyGrowthLeaderboard(50); break;
+        case 'generosity': rows = await lb.getGenerosityLeaderboard(50); break;
         case 'achievements': rows = await lb.getAchievementLeaderboard(50); break;
         default: rows = [];
       }
@@ -79,7 +87,7 @@ export default function GlobalLeaderboardPage() {
 
   useEffect(() => { fetchTab(activeTab); }, [activeTab]);
 
-  const rows      = data[activeTab] ?? [];
+  const rows = data[activeTab] ?? [];
   const activeTab_ = TABS.find(t => t.id === activeTab);
 
   const handleRow = (row) => {
@@ -135,16 +143,16 @@ export default function GlobalLeaderboardPage() {
                 <th style={{ textAlign: 'left' }}>Jugador</th>
                 <th style={{ textAlign: 'right' }}>
                   {activeTab === 'games' ? 'Puntaje' :
-                   activeTab === 'wealth' ? 'Balance' :
-                   activeTab === 'growth' ? 'Crecimiento' :
-                   activeTab === 'generosity' ? 'Donado' : 'Logros'}
+                    activeTab === 'wealth' ? 'Balance' :
+                      activeTab === 'growth' ? 'Crecimiento' :
+                        activeTab === 'generosity' ? 'Donado' : 'Logros'}
                 </th>
               </tr>
             </thead>
             <tbody>
               {rows.map((row, i) => {
-                const rank    = row.rank ?? (i + 1);
-                const isMe    = user && row.user_id === user.id;
+                const rank = row.rank ?? (i + 1);
+                const isMe = user && row.user_id === user.id;
                 return (
                   <tr
                     key={row.user_id ?? i}
