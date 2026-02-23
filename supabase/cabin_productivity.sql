@@ -18,6 +18,17 @@ CREATE TABLE IF NOT EXISTS public.cabin_tasks (
 CREATE INDEX IF NOT EXISTS idx_cabin_tasks_user ON public.cabin_tasks(user_id);
 
 -- 2. Notes (Brainstorming / Ideario)
+-- Drop old if it was single-note (PK was user_id)
+DO $$ 
+BEGIN
+    IF EXISTS (
+        SELECT 1 FROM information_schema.table_constraints 
+        WHERE table_name = 'cabin_notes' AND constraint_type = 'PRIMARY KEY'
+    ) THEN
+        DROP TABLE public.cabin_notes CASCADE;
+    END IF;
+END $$;
+
 CREATE TABLE IF NOT EXISTS public.cabin_notes (
   id         uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id    uuid NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
@@ -28,6 +39,34 @@ CREATE TABLE IF NOT EXISTS public.cabin_notes (
 
 -- Index for user lookups
 CREATE INDEX IF NOT EXISTS idx_cabin_notes_user ON public.cabin_notes(user_id);
+
+-- ... (rest of the file remains, but I need to add the RPC at the end)
+
+-- 5. Focus Leaderboard RPC
+CREATE OR REPLACE FUNCTION public.get_focus_leaderboard(p_limit integer)
+RETURNS TABLE (
+    user_id uuid,
+    username text,
+    avatar_url text,
+    total_minutes bigint,
+    total_sessions integer,
+    rank bigint
+) LANGUAGE plpgsql SECURITY DEFINER AS $$
+BEGIN
+    RETURN QUERY
+    SELECT 
+        s.user_id,
+        p.username,
+        p.avatar_url,
+        s.total_focus_minutes as total_minutes,
+        s.total_sessions,
+        RANK() OVER (ORDER BY s.total_focus_minutes DESC) as rank
+    FROM public.cabin_stats s
+    JOIN public.profiles p ON s.user_id = p.id
+    ORDER BY s.total_focus_minutes DESC
+    LIMIT p_limit;
+END;
+$$;
 
 -- 3. Pomodoro Sessions
 CREATE TABLE IF NOT EXISTS public.cabin_sessions (

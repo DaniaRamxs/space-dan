@@ -60,12 +60,12 @@ export default function SpaceCabinPage() {
             className="max-w-6xl mx-auto p-4 md:p-8 space-y-8"
         >
             {/* Header Estelar */}
-            <header className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12">
-                <div className="space-y-2">
+            <header className="flex flex-col lg:flex-row lg:items-end justify-between gap-8 mb-12">
+                <div className="space-y-2 text-center lg:text-left">
                     <motion.h1
                         initial={{ y: -20 }}
                         animate={{ y: 0 }}
-                        className="text-4xl md:text-5xl font-black tracking-tighter text-white"
+                        className="text-4xl md:text-5xl lg:text-6xl font-black tracking-tighter text-white"
                     >
                         CABINA <span className="text-accent">ESPACIAL</span>
                     </motion.h1>
@@ -73,7 +73,7 @@ export default function SpaceCabinPage() {
                 </div>
 
                 {/* Mini Stats Bar */}
-                <div className="flex gap-6 items-center">
+                <div className="flex flex-wrap gap-4 md:gap-8 justify-center lg:justify-end items-center bg-white/[0.03] p-4 rounded-2xl border border-white/5 backdrop-blur-md lg:bg-transparent lg:p-0 lg:border-none lg:backdrop-none">
                     <StatBox label="Racha" value={`${stats?.current_streak || 0}d`} icon="🔥" />
                     <StatBox label="Enfoque" value={`${Math.round((stats?.total_focus_minutes || 0) / 60)}h`} icon="⏳" />
                     <StatBox label="Sesiones" value={stats?.total_sessions || 0} icon="✨" />
@@ -88,12 +88,9 @@ export default function SpaceCabinPage() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8 bg-white/[0.02] backdrop-blur-sm border border-white/5 rounded-3xl p-6 md:p-10">
                         <div className="flex flex-col items-center justify-center border-b md:border-b-0 md:border-r border-white/5 pb-8 md:pb-0 md:pr-10">
                             <CabinPomodoro onFinish={handlePomodoroFinish} />
-                            <p className="mt-6 text-[10px] text-center opacity-30 uppercase tracking-widest max-w-[150px]">
-                                Pulsa el núcleo para iniciar el ciclo de energía
-                            </p>
                         </div>
 
-                        <div className="md:pl-6">
+                        <div className="pt-8 md:pt-0 md:pl-6">
                             <h2 className="text-xs uppercase tracking-[0.2em] font-bold opacity-30 mb-6 flex items-center gap-2">
                                 <span className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse" />
                                 Consola de Tareas
@@ -114,7 +111,6 @@ export default function SpaceCabinPage() {
                 <div className="lg:col-span-4 h-full min-h-[400px]">
                     <CabinIdeas userId={user.id} />
                 </div>
-
             </div>
 
             {/* Decorative Blur Orbs */}

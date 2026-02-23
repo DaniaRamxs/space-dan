@@ -9,6 +9,7 @@ const TABS = [
   { id: 'growth', label: '📈 Crecimiento', desc: 'Mayor crecimiento de Dancoins esta semana' },
   { id: 'generosity', label: '🤝 Generosidad', desc: 'Más coins donados al fondo comunitario' },
   { id: 'achievements', label: '🏆 Logros', desc: 'Logros desbloqueados' },
+  { id: 'focus', label: '🧘 Enfoque', desc: 'Más tiempo de concentración en la cabina espacial' },
 ];
 
 const MEDALS = ['🥇', '🥈', '🥉'];
@@ -42,6 +43,7 @@ function formatMetric(tab, row) {
     }
     case 'generosity': return '◈ ' + (row.total_donated ?? 0).toLocaleString();
     case 'achievements': return (row.achievement_count ?? 0) + ' logros';
+    case 'focus': return Math.round((row.total_minutes ?? 0) / 60) + ' h';
     default: return '—';
   }
 }
@@ -73,6 +75,7 @@ export default function GlobalLeaderboardPage() {
         case 'growth': rows = await lb.getWeeklyGrowthLeaderboard(50); break;
         case 'generosity': rows = await lb.getGenerosityLeaderboard(50); break;
         case 'achievements': rows = await lb.getAchievementLeaderboard(50); break;
+        case 'focus': rows = await lb.getFocusLeaderboard(50); break;
         default: rows = [];
       }
       setData(prev => ({ ...prev, [tabId]: rows ?? [] }));
@@ -145,7 +148,8 @@ export default function GlobalLeaderboardPage() {
                   {activeTab === 'games' ? 'Puntaje' :
                     activeTab === 'wealth' ? 'Balance' :
                       activeTab === 'growth' ? 'Crecimiento' :
-                        activeTab === 'generosity' ? 'Donado' : 'Logros'}
+                        activeTab === 'generosity' ? 'Donado' :
+                          activeTab === 'achievements' ? 'Logros' : 'Enfoque'}
                 </th>
               </tr>
             </thead>

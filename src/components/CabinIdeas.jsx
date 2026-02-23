@@ -33,18 +33,21 @@ export default function CabinIdeas({ userId }) {
     const handleAdd = async (color = 'purple') => {
         try {
             const newNote = await addNote(userId, '', color);
-            setNotes([newNote, ...notes]);
+            setNotes(prev => [newNote, ...prev]);
         } catch (err) {
             console.error(err);
+            alert('No se pudo añadir la nota. Es posible que necesites actualizar el esquema de la base de datos.');
         }
     };
 
     const handleDelete = async (id) => {
+        if (!window.confirm('¿Seguro que quieres borrar esta idea?')) return;
         try {
             await deleteNote(id);
-            setNotes(notes.filter(n => n.id !== id));
+            setNotes(prev => prev.filter(n => n.id !== id));
         } catch (err) {
             console.error(err);
+            alert('Error al borrar la nota.');
         }
     };
 

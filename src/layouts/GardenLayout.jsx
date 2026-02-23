@@ -217,7 +217,7 @@ export default function GardenLayout({ children }) {
 
           <div className="gardenContent">{children}</div>
 
-          <VirtualPet />
+          {location.pathname !== '/cabina' && <VirtualPet />}
 
           <div className="snowflakes" aria-hidden="true">
             {Array.from({ length: 8 }).map((_, i) => (
