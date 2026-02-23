@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, useMotionValue, useTransform } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { roomsService } from '../services/rooms';
@@ -53,7 +54,7 @@ export default function HoloCard({ profile, onClose }) {
 
     const profileId = profile.user_id || profile.id;
 
-    return (
+    return createPortal(
         <div
             style={{
                 position: 'fixed', inset: 0,
@@ -173,6 +174,7 @@ export default function HoloCard({ profile, onClose }) {
                     </div>
                 </motion.div>
             </motion.div>
-        </div>
+        </div>,
+        document.body
     );
 }
