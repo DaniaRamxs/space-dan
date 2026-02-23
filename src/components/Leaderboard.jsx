@@ -28,7 +28,7 @@ export default function Leaderboard({ gameId, refreshKey = 0 }) {
     loadBoard();
   }, [gameId, refreshKey, user]);
 
-  const userInTop10 = user && scores.some(s => s.username === user.email?.split('@')[0] || s.username === user.user_metadata?.full_name);
+  const userInTop10 = user && scores.some(s => s.username === (user.email || '').split('@')[0] || s.username === user.user_metadata?.full_name);
 
   return (
     <div className="leaderboard">
@@ -43,7 +43,7 @@ export default function Leaderboard({ gameId, refreshKey = 0 }) {
       ) : (
         <div className="leaderboardList">
           {scores.map((entry, i) => {
-            const isCurrentUser = user && (entry.username === user.email?.split('@')[0] || entry.username === user.user_metadata?.full_name);
+            const isCurrentUser = user && (entry.username === (user.email || '').split('@')[0] || entry.username === user.user_metadata?.full_name);
             return (
               <div key={i} className={`leaderboardRow ${isCurrentUser ? 'highlight-me' : ''}`} style={isCurrentUser ? { background: 'rgba(255,110,180,0.15)', borderLeft: '3px solid var(--accent)' } : {}}>
                 <span className="leaderboardRank">
