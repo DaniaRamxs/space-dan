@@ -9,12 +9,19 @@ import PetDisplay from '../components/PetDisplay';
 function getFrameStyle(frameItemId) {
   if (!frameItemId) return { border: '3px solid var(--accent)', boxShadow: '0 0 15px var(--accent-glow)' };
   const id = frameItemId.toLowerCase();
-  if (id.includes('gold'))                         return { border: '3px solid #ffd700', boxShadow: '0 0 15px rgba(255,215,0,0.6)' };
+  // IDs concretos de la DB
+  if (id === 'frame_stars') return { border: '3px solid #ffd700', boxShadow: '0 0 20px rgba(255,215,0,0.8)' };
+  if (id === 'frame_neon') return { border: '3px solid #00e5ff', boxShadow: '0 0 20px rgba(0,229,255,0.8)' };
+  if (id === 'frame_pixel') return { border: '4px solid #ff6b35', boxShadow: '0 0 15px rgba(255,107,53,0.7)', imageRendering: 'pixelated' };
+  if (id === 'frame_holo') return { border: '3px solid #b464ff', boxShadow: '0 0 20px rgba(180,100,255,0.8), 0 0 40px rgba(0,229,255,0.4)' };
+  if (id === 'frame_crown') return { border: '4px solid #ffd700', boxShadow: '0 0 25px rgba(255,215,0,1), 0 0 50px rgba(255,215,0,0.4)' };
+  // Fallbacks por keyword
+  if (id.includes('gold')) return { border: '3px solid #ffd700', boxShadow: '0 0 15px rgba(255,215,0,0.6)' };
   if (id.includes('cyan') || id.includes('cyber')) return { border: '3px solid #00e5ff', boxShadow: '0 0 15px rgba(0,229,255,0.6)' };
-  if (id.includes('pink') || id.includes('rose'))  return { border: '3px solid #ff69b4', boxShadow: '0 0 15px rgba(255,105,180,0.6)' };
+  if (id.includes('pink') || id.includes('rose')) return { border: '3px solid #ff69b4', boxShadow: '0 0 15px rgba(255,105,180,0.6)' };
   if (id.includes('purple') || id.includes('galaxy')) return { border: '3px solid #b464ff', boxShadow: '0 0 15px rgba(180,100,255,0.6)' };
   if (id.includes('green') || id.includes('matrix')) return { border: '3px solid #39ff14', boxShadow: '0 0 15px rgba(57,255,20,0.6)' };
-  if (id.includes('red') || id.includes('fire'))   return { border: '3px solid #ff3300', boxShadow: '0 0 15px rgba(255,51,0,0.6)' };
+  if (id.includes('red') || id.includes('fire')) return { border: '3px solid #ff3300', boxShadow: '0 0 15px rgba(255,51,0,0.6)' };
   return { border: '3px solid var(--accent)', boxShadow: '0 0 15px var(--accent-glow)' };
 }
 import { supabase } from '../supabaseClient';
@@ -33,15 +40,15 @@ const GAME_NAMES = {
 };
 
 export default function PublicProfilePage() {
-  const { userId }     = useParams();
-  const { user }       = useAuthContext();
-  const isOwnProfile   = user?.id === userId;
+  const { userId } = useParams();
+  const { user } = useAuthContext();
+  const isOwnProfile = user?.id === userId;
 
-  const [profile,    setProfile]    = useState(null);
-  const [gameRanks,  setGameRanks]  = useState([]);
-  const [achIds,     setAchIds]     = useState([]);
-  const [loading,    setLoading]    = useState(true);
-  const [notFound,   setNotFound]   = useState(false);
+  const [profile, setProfile] = useState(null);
+  const [gameRanks, setGameRanks] = useState([]);
+  const [achIds, setAchIds] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [notFound, setNotFound] = useState(false);
 
   useEffect(() => {
     if (!userId) return;
@@ -101,8 +108,8 @@ export default function PublicProfilePage() {
   }
 
   const unlockedAchs = ACHIEVEMENTS.filter(a => achIds.includes(a.id));
-  const joinedYear   = profile.created_at ? new Date(profile.created_at).getFullYear() : null;
-  const topGames     = [...gameRanks].sort((a, b) => (b.max_score ?? 0) - (a.max_score ?? 0)).slice(0, 6);
+  const joinedYear = profile.created_at ? new Date(profile.created_at).getFullYear() : null;
+  const topGames = [...gameRanks].sort((a, b) => (b.max_score ?? 0) - (a.max_score ?? 0)).slice(0, 6);
 
   return (
     <main className="card profileCard">
