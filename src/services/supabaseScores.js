@@ -85,3 +85,8 @@ export const getGlobalLeaderboard = async (limit = 50) => {
     }
     return data;
 };
+
+export const getUserRankInGame = async (userId, gameId) => {
+    const ranks = await getUserGameRanks(userId);
+    return ranks.find(r => r.game_id === gameId);
+};
