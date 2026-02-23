@@ -7,6 +7,7 @@ import LastFmWidget from "../components/LastFmWidget.jsx";
 import RadioPlayer from "../components/RadioPlayer.jsx";
 import AuthWidget from "../components/AuthWidget.jsx";
 import useDancoins from "../hooks/useDancoins.js";
+import NotificationBell from "../components/NotificationBell.jsx";
 
 const PERSONAL_PATHS = ['/kinnies', '/tests', '/universo', '/dreamscape'];
 
@@ -139,9 +140,10 @@ export default function GardenLayout({ children }) {
               <img src="/gifs/rainbowstars.gif" alt="" className="welcomeGif" aria-hidden="true" />
             </div>
 
-            {/* Dancoins in topbar (mobile) */}
-            <div className="topbarCoins" aria-label="Dancoins">
+            {/* Dancoins & Notifications in topbar (mobile) */}
+            <div className="topbarCoins" aria-label="Dancoins" style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
               <NavLink to="/tienda" className="topbarCoinsLink">◈ {coins}</NavLink>
+              <NotificationBell />
             </div>
           </header>
 
