@@ -25,7 +25,7 @@ export default function useAuth() {
     return () => subscription.unsubscribe();
   }, []);
 
-  // Sync on login
+  // Sync on login + ping activity
   useEffect(() => {
     if (!session?.user) return;
     const user = session.user;
@@ -37,6 +37,14 @@ export default function useAuth() {
       catch { return []; }
     })();
     localAchs.forEach(id => syncAchievementToDb(id));
+
+    // Update last_seen_at so activity status works in profiles
+    supabase.rpc('ping_activity').catch(() => {});
+    const pingInterval = setInterval(() => {
+      supabase.rpc('ping_activity').catch(() => {});
+    }, 5 * 60 * 1000); // every 5 minutes
+
+    return () => clearInterval(pingInterval);
   }, [session?.user?.id]);
 
   const loginWithGoogle = () =>

@@ -74,8 +74,8 @@ export default function PublicProfilePage() {
       const [ranks, achs, socialInfo, profileComments] = await Promise.all([
         getUserGameRanks(userId).catch(() => []),
         supabase.from('user_achievements').select('achievement_id').eq('user_id', userId),
-        profileSocialService.getFollowCounts(userId),
-        profileSocialService.getProfileComments(userId),
+        profileSocialService.getFollowCounts(userId).catch(() => ({ followers: 0, following: 0 })),
+        profileSocialService.getProfileComments(userId).catch(() => []),
       ]);
 
       setGameRanks(ranks || []);
