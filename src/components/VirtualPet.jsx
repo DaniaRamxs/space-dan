@@ -4,15 +4,12 @@ import { motion, AnimatePresence } from 'framer-motion';
 const RICKROLL_URL = "https://www.youtube.com/watch?v=dQw4w9WgXcQ";
 
 const PET_PHRASES = [
-    "¡Alimenta al alien!",
     "¿Ya probaste el Asteroids?",
     "Meow. Digo... beep boop.",
-    "Error 404: Facha no encontrada.",
-    "¿Alguien usa Myspace todavía?",
+    "Error 404: no hay streams.",
     "Ese récord tuyo da penita...",
     "¡Hazme clic para una sorpresa!",
-    "¿Ya viste mi Hi5?",
-    "¡Space-Dan dominará la web!",
+    "¡Space-Dan dominará la web muejeje!",
     "Descargando más RAM...",
     "Soy 100% libre de virus.exe",
     "¡Tengo hambre de DanCoins!"
@@ -53,7 +50,7 @@ export default function VirtualPet() {
             position: 'fixed',
             bottom: '20px',
             left: '20px',
-            zIndex: 9000, // Very high but under Modals
+            zIndex: 1, // Lower z-index so it doesn't overlap reading text
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
