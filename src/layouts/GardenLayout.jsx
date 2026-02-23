@@ -8,6 +8,7 @@ import RadioPlayer from "../components/RadioPlayer.jsx";
 import AuthWidget from "../components/AuthWidget.jsx";
 import useDancoins from "../hooks/useDancoins.js";
 import NotificationBell from "../components/NotificationBell.jsx";
+import VirtualPet from "../components/VirtualPet.jsx";
 
 const PERSONAL_PATHS = ['/kinnies', '/tests', '/universo', '/dreamscape'];
 
@@ -148,6 +149,8 @@ export default function GardenLayout({ children }) {
           </header>
 
           <div className="gardenContent">{children}</div>
+
+          <VirtualPet />
 
           {/* Snowflakes decorativos */}
           <div className="snowflakes" aria-hidden="true">

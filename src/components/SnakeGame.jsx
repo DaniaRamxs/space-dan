@@ -1,15 +1,16 @@
 import { useState, useEffect, useRef } from 'react';
 import useHighScore from '../hooks/useHighScore';
+import Confetti from 'react-confetti';
 
 const GRID = 20;
 const CELL = 16;
 const SPEED = 150;
 
 const DIRS = {
-  ArrowUp:    [0, -1],
-  ArrowDown:  [0,  1],
-  ArrowLeft:  [-1, 0],
-  ArrowRight: [1,  0],
+  ArrowUp: [0, -1],
+  ArrowDown: [0, 1],
+  ArrowLeft: [-1, 0],
+  ArrowRight: [1, 0],
 };
 
 function randomFood(snake) {
@@ -21,20 +22,26 @@ function randomFood(snake) {
 }
 
 const INIT_SNAKE = [[10, 10], [9, 10], [8, 10]];
-const INIT_DIR   = [1, 0];
-const INIT_FOOD  = [15, 10];
+const INIT_DIR = [1, 0];
+const INIT_FOOD = [15, 10];
 
 export default function SnakeGame() {
-  const [best, saveScore]     = useHighScore('snake');
-  const [snake, setSnake]     = useState(INIT_SNAKE);
-  const [food, setFood]       = useState(INIT_FOOD);
-  const [dead, setDead]       = useState(false);
-  const [score, setScore]     = useState(0);
+  const [best, saveScore] = useHighScore('snake');
+  const [snake, setSnake] = useState(INIT_SNAKE);
+  const [food, setFood] = useState(INIT_FOOD);
+  const [dead, setDead] = useState(false);
+  const [score, setScore] = useState(0);
   const [started, setStarted] = useState(false);
+  const [showConfetti, setShowConfetti] = useState(false);
   const nextDir = useRef(INIT_DIR);
 
   useEffect(() => {
-    if (dead && score > 0) saveScore(score);
+    if (dead && score > 0) {
+      if (score > (best || 0)) {
+        setShowConfetti(true);
+      }
+      saveScore(score);
+    }
   }, [dead]);
 
   const reset = () => {
@@ -44,6 +51,7 @@ export default function SnakeGame() {
     setDead(false);
     setScore(0);
     setStarted(false);
+    setShowConfetti(false);
   };
 
   useEffect(() => {
@@ -102,10 +110,21 @@ export default function SnakeGame() {
   };
 
   const snakeSet = new Set(snake.map(([x, y]) => `${x},${y}`));
-  const headKey  = `${snake[0][0]},${snake[0][1]}`;
+  const headKey = `${snake[0][0]},${snake[0][1]}`;
 
   return (
-    <div style={{ textAlign: 'center', userSelect: 'none' }}>
+    <div style={{ textAlign: 'center', userSelect: 'none', position: 'relative' }}>
+      {showConfetti && (
+        <Confetti
+          width={window.innerWidth}
+          height={window.innerHeight}
+          recycle={false}
+          numberOfPieces={400}
+          gravity={0.15}
+          style={{ position: 'fixed', top: 0, left: 0, zIndex: 99999, pointerEvents: 'none' }}
+        />
+      )}
+
       <div style={{ marginBottom: 8, fontSize: 12, color: 'var(--text-muted)', display: 'flex', gap: 16, justifyContent: 'center' }}>
         <span>score: <span style={{ color: 'var(--cyan)', fontWeight: 700 }}>{score}</span></span>
         <span>récord: <span style={{ color: '#ff6eb4', fontWeight: 700 }}>{best}</span></span>
@@ -125,9 +144,9 @@ export default function SnakeGame() {
         position: 'relative',
       }}>
         {Array.from({ length: GRID * GRID }).map((_, i) => {
-          const x  = i % GRID;
-          const y  = Math.floor(i / GRID);
-          const k  = `${x},${y}`;
+          const x = i % GRID;
+          const y = Math.floor(i / GRID);
+          const k = `${x},${y}`;
           const isHead = k === headKey;
           const isBody = !isHead && snakeSet.has(k);
           const isFood = food[0] === x && food[1] === y;
@@ -138,15 +157,15 @@ export default function SnakeGame() {
               background: isHead
                 ? '#ff00ff'
                 : isBody
-                ? 'rgba(255,0,255,0.50)'
-                : isFood
-                ? '#00e5ff'
-                : 'transparent',
+                  ? 'rgba(255,0,255,0.50)'
+                  : isFood
+                    ? '#00e5ff'
+                    : 'transparent',
               boxShadow: isHead
                 ? '0 0 8px rgba(255,0,255,0.9)'
                 : isFood
-                ? '0 0 6px rgba(0,229,255,0.9)'
-                : 'none',
+                  ? '0 0 6px rgba(0,229,255,0.9)'
+                  : 'none',
             }} />
           );
         })}
@@ -161,7 +180,7 @@ export default function SnakeGame() {
           }}>
             {dead && (
               <div style={{ color: 'var(--accent)', fontSize: 14, fontWeight: 700 }}>
-                game over · {score} pts
+                {showConfetti ? '¡NUEVO RÉCORD!' : 'game over'} · {score} pts
               </div>
             )}
             <button onClick={dead ? reset : () => setStarted(true)} style={{
@@ -181,9 +200,9 @@ export default function SnakeGame() {
       {/* Mobile D-pad */}
       <div style={{ marginTop: 12, display: 'grid', gridTemplateColumns: 'repeat(3, 36px)', gap: 4, justifyContent: 'center' }}>
         {[
-          [null,         'ArrowUp',    null        ],
-          ['ArrowLeft',  null,         'ArrowRight' ],
-          [null,         'ArrowDown',  null        ],
+          [null, 'ArrowUp', null],
+          ['ArrowLeft', null, 'ArrowRight'],
+          [null, 'ArrowDown', null],
         ].map((row, r) => row.map((dir, c) => (
           <button
             key={`${r}-${c}`}
