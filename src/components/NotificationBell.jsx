@@ -59,11 +59,13 @@ export default function NotificationBell() {
 
     const handleToggle = (e) => {
         if (!isOpen) {
-            // Calculate position before opening
             const rect = e.currentTarget.getBoundingClientRect();
+            // In mobile, we might want it to be right-aligned to the screen edge
+            // rather than the button edge if it's very tight.
+            const rightMargin = window.innerWidth - rect.right;
             setDropdownPosition({
                 top: rect.bottom + 10,
-                right: window.innerWidth - rect.right
+                right: rightMargin < 10 ? 10 : rightMargin // Minimum 10px from screen edge
             });
         }
         setIsOpen(!isOpen);
@@ -124,22 +126,25 @@ export default function NotificationBell() {
             </button>
 
             {isOpen && (
-                <div style={{
-                    position: 'fixed',
-                    top: `${dropdownPosition.top}px`,
-                    right: `${dropdownPosition.right}px`,
-                    width: '320px',
-                    maxWidth: 'calc(100vw - 20px)',
-                    maxHeight: '400px',
-                    background: 'var(--bg)',
-                    border: '1px solid var(--accent)',
-                    borderRadius: '8px',
-                    boxShadow: '0 10px 40px rgba(0,0,0,0.8), 0 0 20px rgba(255, 110, 180, 0.3)',
-                    zIndex: 999999,
-                    display: 'flex',
-                    flexDirection: 'column',
-                    overflow: 'hidden'
-                }}>
+                <div
+                    className="notificationDropdown"
+                    style={{
+                        position: 'fixed',
+                        top: `${dropdownPosition.top}px`,
+                        right: window.innerWidth < 400 ? '10px' : `${window.innerWidth - dropdownPosition.right}px`,
+                        width: '320px',
+                        maxWidth: 'calc(100vw - 20px)',
+                        maxHeight: '400px',
+                        background: 'var(--bg)',
+                        border: '1px solid var(--accent)',
+                        borderRadius: '8px',
+                        boxShadow: '0 10px 40px rgba(0,0,0,0.8), 0 0 20px rgba(255, 110, 180, 0.3)',
+                        zIndex: 999999,
+                        display: 'flex',
+                        flexDirection: 'column',
+                        overflow: 'hidden'
+                    }}
+                >
                     <div style={{ padding: '15px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(255,110,180,0.05)' }}>
                         <h4 style={{ margin: 0, color: 'var(--text)', fontSize: '1rem' }}>Notificaciones</h4>
                         {unreadCount > 0 && (
