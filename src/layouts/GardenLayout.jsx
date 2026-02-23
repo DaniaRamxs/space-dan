@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react';
 import { NavLink, Link, useLocation } from "react-router-dom";
-import CursorTrail   from "../components/CursorTrail.jsx";
-import StarfieldBg   from "../components/StarfieldBg.jsx";
+import CursorTrail from "../components/CursorTrail.jsx";
+import StarfieldBg from "../components/StarfieldBg.jsx";
 import KonamiEasterEgg from "../components/KonamiEasterEgg.jsx";
-import LastFmWidget  from "../components/LastFmWidget.jsx";
-import RadioPlayer   from "../components/RadioPlayer.jsx";
-import AuthWidget    from "../components/AuthWidget.jsx";
-import useDancoins   from "../hooks/useDancoins.js";
+import LastFmWidget from "../components/LastFmWidget.jsx";
+import RadioPlayer from "../components/RadioPlayer.jsx";
+import AuthWidget from "../components/AuthWidget.jsx";
+import useDancoins from "../hooks/useDancoins.js";
 
 const PERSONAL_PATHS = ['/kinnies', '/tests', '/universo', '/dreamscape'];
 
@@ -81,17 +81,19 @@ export default function GardenLayout({ children }) {
           <LastFmWidget />
 
           <nav className="sideNav">
-            <NavLink to="/home"         onClick={closeMenu} className={({ isActive }) => "sideLink" + (isActive ? " active" : "")}>🏠 sobre mi</NavLink>
-            <NavLink to="/bulletin"     onClick={closeMenu} className={({ isActive }) => "sideLink" + (isActive ? " active" : "")}>📰 Noticias</NavLink>
-            <NavLink to="/posts"        onClick={closeMenu} className={({ isActive }) => "sideLink" + (isActive ? " active" : "")}>✍️ Posts</NavLink>
-            <NavLink to="/music"        onClick={closeMenu} className={({ isActive }) => "sideLink" + (isActive ? " active" : "")}>🎧 Música</NavLink>
-            <NavLink to="/games"        onClick={closeMenu} className={({ isActive }) => "sideLink" + (isActive ? " active" : "")}>🎮 Juegos</NavLink>
-            <NavLink to="/galeria"      onClick={closeMenu} className={({ isActive }) => "sideLink" + (isActive ? " active" : "")}>🖼️ Galería</NavLink>
-            <NavLink to="/watchlist"    onClick={closeMenu} className={({ isActive }) => "sideLink" + (isActive ? " active" : "")}>📺 Watchlist</NavLink>
-            <NavLink to="/desktop"      onClick={closeMenu} className={({ isActive }) => "sideLink" + (isActive ? " active" : "")}>💻 OS Desktop</NavLink>
-            <NavLink to="/timecapsule"  onClick={closeMenu} className={({ isActive }) => "sideLink" + (isActive ? " active" : "")}>⏳ Time Capsule</NavLink>
-            <NavLink to="/guestbook"    onClick={closeMenu} className={({ isActive }) => "sideLink" + (isActive ? " active" : "")}>📖 Libro de Visitas</NavLink>
-            <NavLink to="/proyectos"    onClick={closeMenu} className={({ isActive }) => "sideLink" + (isActive ? " active" : "")}>🛠️ Proyectos</NavLink>
+            <NavLink to="/profile" onClick={closeMenu} className={({ isActive }) => "sideLink" + (isActive ? " active" : "")}>👤 Mi Perfil</NavLink>
+            <NavLink to="/home" onClick={closeMenu} className={({ isActive }) => "sideLink" + (isActive ? " active" : "")}>🏠 sobre mi</NavLink>
+            <NavLink to="/bulletin" onClick={closeMenu} className={({ isActive }) => "sideLink" + (isActive ? " active" : "")}>📰 Noticias</NavLink>
+            <NavLink to="/posts" onClick={closeMenu} className={({ isActive }) => "sideLink" + (isActive ? " active" : "")}>✍️ Posts</NavLink>
+            <NavLink to="/music" onClick={closeMenu} className={({ isActive }) => "sideLink" + (isActive ? " active" : "")}>🎧 Música</NavLink>
+            <NavLink to="/games" onClick={closeMenu} className={({ isActive }) => "sideLink" + (isActive ? " active" : "")}>🎮 Juegos</NavLink>
+            <NavLink to="/leaderboard" onClick={closeMenu} className={({ isActive }) => "sideLink" + (isActive ? " active" : "")}>🌎 Leaderboard</NavLink>
+            <NavLink to="/galeria" onClick={closeMenu} className={({ isActive }) => "sideLink" + (isActive ? " active" : "")}>🖼️ Galería</NavLink>
+            <NavLink to="/watchlist" onClick={closeMenu} className={({ isActive }) => "sideLink" + (isActive ? " active" : "")}>📺 Watchlist</NavLink>
+            <NavLink to="/desktop" onClick={closeMenu} className={({ isActive }) => "sideLink" + (isActive ? " active" : "")}>💻 OS Desktop</NavLink>
+            <NavLink to="/timecapsule" onClick={closeMenu} className={({ isActive }) => "sideLink" + (isActive ? " active" : "")}>⏳ Time Capsule</NavLink>
+            <NavLink to="/guestbook" onClick={closeMenu} className={({ isActive }) => "sideLink" + (isActive ? " active" : "")}>📖 Libro de Visitas</NavLink>
+            <NavLink to="/proyectos" onClick={closeMenu} className={({ isActive }) => "sideLink" + (isActive ? " active" : "")}>🛠️ Proyectos</NavLink>
             <NavLink to="/arquitectura" onClick={closeMenu} className={({ isActive }) => "sideLink" + (isActive ? " active" : "")}>🏗️ Arquitectura</NavLink>
 
             <div className="sideHeaderDivider" aria-hidden="true" />
@@ -112,10 +114,10 @@ export default function GardenLayout({ children }) {
               <span className={`submenuArrow${personalOpen ? ' open' : ''}`}>▾</span>
             </button>
             <div className={`submenuItems${personalOpen ? ' open' : ''}`}>
-              <NavLink to="/kinnies"   onClick={closeMenu} className={({ isActive }) => "sideLink submenuLink" + (isActive ? " active" : "")}>🌟 Kinnies</NavLink>
-              <NavLink to="/tests"     onClick={closeMenu} className={({ isActive }) => "sideLink submenuLink" + (isActive ? " active" : "")}>🧪 Tests</NavLink>
-              <NavLink to="/universo"  onClick={closeMenu} className={({ isActive }) => "sideLink submenuLink" + (isActive ? " active" : "")}>🌌 Universo</NavLink>
-              <NavLink to="/dreamscape"onClick={closeMenu} className={({ isActive }) => "sideLink submenuLink" + (isActive ? " active" : "")}>🌙 Dreamscape</NavLink>
+              <NavLink to="/kinnies" onClick={closeMenu} className={({ isActive }) => "sideLink submenuLink" + (isActive ? " active" : "")}>🌟 Kinnies</NavLink>
+              <NavLink to="/tests" onClick={closeMenu} className={({ isActive }) => "sideLink submenuLink" + (isActive ? " active" : "")}>🧪 Tests</NavLink>
+              <NavLink to="/universo" onClick={closeMenu} className={({ isActive }) => "sideLink submenuLink" + (isActive ? " active" : "")}>🌌 Universo</NavLink>
+              <NavLink to="/dreamscape" onClick={closeMenu} className={({ isActive }) => "sideLink submenuLink" + (isActive ? " active" : "")}>🌙 Dreamscape</NavLink>
             </div>
           </nav>
         </aside>
