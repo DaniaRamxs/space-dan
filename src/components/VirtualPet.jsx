@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const RICKROLL_URL = "https://www.youtube.com/watch?v=dQw4w9WgXcQ";
@@ -52,7 +53,7 @@ export default function VirtualPet() {
         setTimeout(() => setPhrase(null), 4000);
     };
 
-    return (
+    return createPortal(
         <>
             {/* Invisible boundaries for dragging */}
             <div ref={constraintsRef} style={{ position: 'fixed', inset: 0, pointerEvents: 'none', zIndex: 0 }} />
@@ -181,6 +182,7 @@ export default function VirtualPet() {
                     />
                 </motion.div>
             </motion.div>
-        </>
+        </>,
+        document.body
     );
 }
