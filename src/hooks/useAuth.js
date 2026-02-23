@@ -39,10 +39,13 @@ export default function useAuth() {
     localAchs.forEach(id => syncAchievementToDb(id));
 
     // Update last_seen_at so activity status works in profiles
-    supabase.rpc('ping_activity').catch(() => {});
-    const pingInterval = setInterval(() => {
-      supabase.rpc('ping_activity').catch(() => {});
-    }, 5 * 60 * 1000); // every 5 minutes
+    const ping = async () => {
+      try { await supabase.rpc('ping_activity'); }
+      catch (e) { console.warn('Ping activity failed:', e); }
+    };
+
+    ping();
+    const pingInterval = setInterval(ping, 5 * 60 * 1000); // every 5 minutes
 
     return () => clearInterval(pingInterval);
   }, [session?.user?.id]);
