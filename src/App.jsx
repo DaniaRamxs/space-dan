@@ -38,10 +38,13 @@ const AchievementsPage = lazy(() => import("./pages/AchievementsPage"));
 const ShopPage = lazy(() => import("./pages/ShopPage"));
 const PublicProfilePage = lazy(() => import("./pages/PublicProfilePage"));
 const SpaceCabinPage = lazy(() => import("./pages/SpaceCabinPage"));
+const OrbitLettersPage = lazy(() => import("./pages/OrbitLettersPage"));
+const VaultPage = lazy(() => import("./pages/VaultPage"));
+const FocusRoom = lazy(() => import("./pages/FocusRoom"));
 
 const ALL_PAGES = ['/home', '/bulletin', '/posts', '/music', '/games', '/galeria',
   '/watchlist', '/desktop', '/timecapsule', '/guestbook', '/proyectos', '/arquitectura',
-  '/kinnies', '/tests', '/universo', '/dreamscape', '/logros', '/tienda', '/profile', '/leaderboard', '/cabina'];
+  '/kinnies', '/tests', '/universo', '/dreamscape', '/logros', '/tienda', '/profile', '/leaderboard', '/cabina', '/cartas', '/cofre', '/foco'];
 
 function PageTracker() {
   const location = useLocation();
@@ -117,6 +120,9 @@ function AnimatedRoutes() {
         <Route path="/logros" element={<Layout><AchievementsPage /></Layout>} />
         <Route path="/tienda" element={<Layout><ShopPage /></Layout>} />
         <Route path="/cabina" element={<Layout><SpaceCabinPage /></Layout>} />
+        <Route path="/cartas" element={<Layout><OrbitLettersPage /></Layout>} />
+        <Route path="/cofre" element={<Layout><VaultPage /></Layout>} />
+        <Route path="/foco/:roomId" element={<Layout><FocusRoom /></Layout>} />
         <Route path="/secret" element={<PageTransition><Secret /></PageTransition>} />
       </Routes>
     </AnimatePresence>
