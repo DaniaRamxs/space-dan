@@ -37,10 +37,11 @@ const ProjectsPage = lazy(() => import("./pages/ProjectsPage"));
 const AchievementsPage = lazy(() => import("./pages/AchievementsPage"));
 const ShopPage = lazy(() => import("./pages/ShopPage"));
 const PublicProfilePage = lazy(() => import("./pages/PublicProfilePage"));
+const SpaceCabinPage = lazy(() => import("./pages/SpaceCabinPage"));
 
 const ALL_PAGES = ['/home', '/bulletin', '/posts', '/music', '/games', '/galeria',
   '/watchlist', '/desktop', '/timecapsule', '/guestbook', '/proyectos', '/arquitectura',
-  '/kinnies', '/tests', '/universo', '/dreamscape', '/logros', '/tienda', '/profile', '/leaderboard'];
+  '/kinnies', '/tests', '/universo', '/dreamscape', '/logros', '/tienda', '/profile', '/leaderboard', '/cabina'];
 
 function PageTracker() {
   const location = useLocation();
@@ -115,6 +116,7 @@ function AnimatedRoutes() {
         <Route path="/proyectos" element={<Layout><ProjectsPage /></Layout>} />
         <Route path="/logros" element={<Layout><AchievementsPage /></Layout>} />
         <Route path="/tienda" element={<Layout><ShopPage /></Layout>} />
+        <Route path="/cabina" element={<Layout><SpaceCabinPage /></Layout>} />
         <Route path="/secret" element={<PageTransition><Secret /></PageTransition>} />
       </Routes>
     </AnimatePresence>
@@ -133,14 +135,14 @@ export default function App() {
   return (
     <AuthProvider>
       <EconomyProvider>
-      <BrowserRouter>
-        <AchievementToast />
-        <Screensaver />
-        <PageTracker />
-        <Suspense fallback={<FallbackLoader />}>
-          <AnimatedRoutes />
-        </Suspense>
-      </BrowserRouter>
+        <BrowserRouter>
+          <AchievementToast />
+          <Screensaver />
+          <PageTracker />
+          <Suspense fallback={<FallbackLoader />}>
+            <AnimatedRoutes />
+          </Suspense>
+        </BrowserRouter>
       </EconomyProvider>
     </AuthProvider>
   );

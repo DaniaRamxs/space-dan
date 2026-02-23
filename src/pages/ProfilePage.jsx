@@ -5,6 +5,7 @@ import { supabase } from '../supabaseClient';
 import { ACHIEVEMENTS } from '../hooks/useAchievements';
 import { getUserGameRanks } from '../services/supabaseScores';
 import { getTransactionHistory, getActiveFund, getFundTopDonors, donateToFund, transferCoins } from '../services/economy';
+import { getProductivityStats } from '../services/productivity';
 import { setBannerColor as saveBannerColor } from '../services/store';
 import PetDisplay from '../components/PetDisplay';
 
@@ -23,31 +24,31 @@ function getFrameStyle(frameItemId) {
   if (!frameItemId) return { border: '3px solid var(--accent)', boxShadow: '0 0 15px var(--accent-glow)' };
   const id = frameItemId.toLowerCase();
   // IDs concretos de la DB
-  if (id === 'frame_stars')  return { border: '3px solid #ffd700', boxShadow: '0 0 20px rgba(255,215,0,0.8)' };
-  if (id === 'frame_neon')   return { border: '3px solid #00e5ff', boxShadow: '0 0 20px rgba(0,229,255,0.8)' };
-  if (id === 'frame_pixel')  return { border: '4px solid #ff6b35', boxShadow: '0 0 15px rgba(255,107,53,0.7)', imageRendering: 'pixelated' };
-  if (id === 'frame_holo')   return { border: '3px solid #b464ff', boxShadow: '0 0 20px rgba(180,100,255,0.8), 0 0 40px rgba(0,229,255,0.4)' };
-  if (id === 'frame_crown')  return { border: '4px solid #ffd700', boxShadow: '0 0 25px rgba(255,215,0,1), 0 0 50px rgba(255,215,0,0.4)' };
+  if (id === 'frame_stars') return { border: '3px solid #ffd700', boxShadow: '0 0 20px rgba(255,215,0,0.8)' };
+  if (id === 'frame_neon') return { border: '3px solid #00e5ff', boxShadow: '0 0 20px rgba(0,229,255,0.8)' };
+  if (id === 'frame_pixel') return { border: '4px solid #ff6b35', boxShadow: '0 0 15px rgba(255,107,53,0.7)', imageRendering: 'pixelated' };
+  if (id === 'frame_holo') return { border: '3px solid #b464ff', boxShadow: '0 0 20px rgba(180,100,255,0.8), 0 0 40px rgba(0,229,255,0.4)' };
+  if (id === 'frame_crown') return { border: '4px solid #ffd700', boxShadow: '0 0 25px rgba(255,215,0,1), 0 0 50px rgba(255,215,0,0.4)' };
   // Fallbacks por keyword
-  if (id.includes('gold'))                         return { border: '3px solid #ffd700', boxShadow: '0 0 15px rgba(255,215,0,0.6)' };
+  if (id.includes('gold')) return { border: '3px solid #ffd700', boxShadow: '0 0 15px rgba(255,215,0,0.6)' };
   if (id.includes('cyan') || id.includes('cyber')) return { border: '3px solid #00e5ff', boxShadow: '0 0 15px rgba(0,229,255,0.6)' };
-  if (id.includes('pink') || id.includes('rose'))  return { border: '3px solid #ff69b4', boxShadow: '0 0 15px rgba(255,105,180,0.6)' };
+  if (id.includes('pink') || id.includes('rose')) return { border: '3px solid #ff69b4', boxShadow: '0 0 15px rgba(255,105,180,0.6)' };
   if (id.includes('purple') || id.includes('galaxy')) return { border: '3px solid #b464ff', boxShadow: '0 0 15px rgba(180,100,255,0.6)' };
   if (id.includes('green') || id.includes('matrix')) return { border: '3px solid #39ff14', boxShadow: '0 0 15px rgba(57,255,20,0.6)' };
-  if (id.includes('red') || id.includes('fire'))   return { border: '3px solid #ff3300', boxShadow: '0 0 15px rgba(255,51,0,0.6)' };
+  if (id.includes('red') || id.includes('fire')) return { border: '3px solid #ff3300', boxShadow: '0 0 15px rgba(255,51,0,0.6)' };
   return { border: '3px solid var(--accent)', boxShadow: '0 0 15px var(--accent-glow)' };
 }
 
 const TX_ICONS = {
-  achievement:       '🏆',
-  game_reward:       '🎮',
-  page_visit:        '🌐',
-  daily_bonus:       '🎁',
-  purchase:          '🛒',
-  transfer_sent:     '📤',
+  achievement: '🏆',
+  game_reward: '🎮',
+  page_visit: '🌐',
+  daily_bonus: '🎁',
+  purchase: '🛒',
+  transfer_sent: '📤',
   transfer_received: '📥',
-  migration:         '📦',
-  donation:          '🤝',
+  migration: '📦',
+  donation: '🤝',
 };
 
 function txLabel(type) {
@@ -68,18 +69,18 @@ function fmtDate(iso) {
 // ── Sección: Economía ────────────────────────────────────────
 function EconomySection({ user }) {
   const { balance, claimDaily, canClaimDaily } = useEconomy();
-  const [txs,          setTxs]          = useState([]);
-  const [txLoading,    setTxLoading]    = useState(false);
-  const [txOpen,       setTxOpen]       = useState(false);
-  const [dailyMsg,     setDailyMsg]     = useState(null);
+  const [txs, setTxs] = useState([]);
+  const [txLoading, setTxLoading] = useState(false);
+  const [txOpen, setTxOpen] = useState(false);
+  const [dailyMsg, setDailyMsg] = useState(null);
 
   // Transfer state
-  const [tfQuery,   setTfQuery]   = useState('');
+  const [tfQuery, setTfQuery] = useState('');
   const [tfResults, setTfResults] = useState([]);
-  const [tfTarget,  setTfTarget]  = useState(null);
-  const [tfAmount,  setTfAmount]  = useState('');
-  const [tfMsg,     setTfMsg]     = useState('');
-  const [tfStatus,  setTfStatus]  = useState(null);
+  const [tfTarget, setTfTarget] = useState(null);
+  const [tfAmount, setTfAmount] = useState('');
+  const [tfMsg, setTfMsg] = useState('');
+  const [tfStatus, setTfStatus] = useState(null);
 
   const handleDaily = async () => {
     try {
@@ -310,11 +311,11 @@ function EconomySection({ user }) {
 // ── Sección: Fondo Comunitario ───────────────────────────────
 function FundSection({ user }) {
   const { balance } = useEconomy();
-  const [fund,     setFund]     = useState(null);
-  const [donors,   setDonors]   = useState([]);
-  const [amount,   setAmount]   = useState('');
-  const [status,   setStatus]   = useState(null);
-  const [loading,  setLoading]  = useState(true);
+  const [fund, setFund] = useState(null);
+  const [donors, setDonors] = useState([]);
+  const [amount, setAmount] = useState('');
+  const [status, setStatus] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function load() {
@@ -427,12 +428,13 @@ function FundSection({ user }) {
 export default function ProfilePage() {
   const { user, loginWithGoogle, loginWithDiscord, logout, loading } = useAuthContext();
 
-  const [profile,     setProfile]     = useState(null);
+  const [profile, setProfile] = useState(null);
   const [bannerColor, setBannerLocal] = useState(null);
   const [frameItemId, setFrameItemId] = useState(null);
-  const [userAchs,    setUserAchs]    = useState([]);
-  const [gameRanks,   setGameRanks]   = useState([]);
-  const [fetching,    setFetching]    = useState(false);
+  const [userAchs, setUserAchs] = useState([]);
+  const [gameRanks, setGameRanks] = useState([]);
+  const [cabinStats, setCabinStats] = useState(null);
+  const [fetching, setFetching] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -459,6 +461,9 @@ export default function ProfilePage() {
 
         const ranks = await getUserGameRanks(user.id);
         setGameRanks(ranks || []);
+
+        const cStats = await getProductivityStats(user.id);
+        setCabinStats(cStats);
       } catch (err) {
         console.error('[ProfilePage] load:', err);
       } finally {
@@ -542,7 +547,7 @@ export default function ProfilePage() {
                     onChange={async (e) => {
                       const hex = e.target.value;
                       setBannerLocal(hex);
-                      try { await saveBannerColor(user.id, hex); } catch {}
+                      try { await saveBannerColor(user.id, hex); } catch { }
                     }}
                     style={{ width: 28, height: 22, border: 'none', background: 'none', padding: 0, cursor: 'pointer', borderRadius: 4 }}
                   />
@@ -551,7 +556,7 @@ export default function ProfilePage() {
                   <button
                     onClick={async () => {
                       setBannerLocal(null);
-                      try { await saveBannerColor(user.id, null); } catch {}
+                      try { await saveBannerColor(user.id, null); } catch { }
                     }}
                     style={{ background: 'none', border: 'none', color: 'var(--text)', cursor: 'pointer', opacity: 0.45, fontSize: '0.75rem' }}
                   >
@@ -576,6 +581,17 @@ export default function ProfilePage() {
 
           {/* Fondo comunitario */}
           <FundSection user={user} />
+
+          {/* Actividad en Cabina */}
+          <section style={{ marginBottom: 32 }}>
+            <h2 className="cardTitle" style={{ fontSize: '1.1rem', marginBottom: 14 }}>🚀 Actividad en Cabina</h2>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 15 }}>
+              <ProfileStatCard label="Horas de Enfoque" value={`${Math.round((cabinStats?.total_focus_minutes || 0) / 60)}h`} icon="⏳" />
+              <ProfileStatCard label="Sesiones Totales" value={cabinStats?.total_sessions || 0} icon="✨" />
+              <ProfileStatCard label="Racha Actual" value={`${cabinStats?.current_streak || 0}d`} icon="🔥" />
+              <ProfileStatCard label="Coins de Órbita" value={cabinStats?.dancoins_earned || 0} icon="◈" />
+            </div>
+          </section>
 
           {/* Récords */}
           <section style={{ marginBottom: 32 }}>

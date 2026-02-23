@@ -112,6 +112,7 @@ export default function GardenLayout({ children }) {
             {/* Game system links */}
             <NavLink to="/logros" onClick={closeMenu} className={({ isActive }) => "sideLink sideGameLink" + (isActive ? " active" : "")}>🏆 Logros</NavLink>
             <NavLink to="/tienda" onClick={closeMenu} className={({ isActive }) => "sideLink sideGameLink" + (isActive ? " active" : "")}>🛍️ Tienda</NavLink>
+            <NavLink to="/cabina" onClick={closeMenu} className={({ isActive }) => "sideLink sideGameLink" + (isActive ? " active" : "")}>🚀 Cabina Espacial</NavLink>
 
             <div className="sideHeaderDivider" aria-hidden="true" />
 
