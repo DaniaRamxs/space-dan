@@ -148,7 +148,7 @@ export default function ProfilePage() {
                                             {GAME_NAMES[rank.game_id] || rank.game_id}
                                         </h3>
                                         <div style={{ fontSize: '1.8rem', fontWeight: '900', color: 'var(--text)' }}>
-                                            {rank.max_score.toLocaleString()}
+                                            {(rank.max_score || 0).toLocaleString()}
                                         </div>
                                         <div style={{ fontSize: '0.85rem', color: 'var(--accent)', marginTop: '8px', fontWeight: 'bold' }}>
                                             Puesto Global: <span style={{ color: 'var(--text)' }}>#{rank.user_position}</span>
