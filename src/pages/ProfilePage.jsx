@@ -648,3 +648,19 @@ export default function ProfilePage() {
     </main>
   );
 }
+
+function ProfileStatCard({ label, value, icon }) {
+  return (
+    <div style={{
+      padding: 15, border: '1px solid var(--border)',
+      background: 'rgba(255,255,255,0.02)', borderRadius: 8,
+    }}>
+      <div style={{ fontSize: '0.75rem', color: 'var(--cyan)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+        {icon} {label}
+      </div>
+      <div style={{ fontSize: '1.5rem', fontWeight: 900, color: 'var(--text)' }}>
+        {value}
+      </div>
+    </div>
+  );
+}
