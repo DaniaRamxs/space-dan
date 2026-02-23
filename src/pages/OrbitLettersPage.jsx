@@ -255,7 +255,7 @@ export default function OrbitLettersPage() {
                         </div>
 
                         {/* Input */}
-                        <form onSubmit={handleSend} style={{ padding: '14px 16px', borderTop: '1px solid var(--glass-border)', background: 'rgba(0,0,0,0.2)' }}>
+                        <form onSubmit={handleSend} className="shrink-0" style={{ padding: '14px 16px', paddingBottom: 'calc(14px + env(safe-area-inset-bottom, 20px))', borderTop: '1px solid var(--glass-border)', background: 'rgba(5,5,10,0.95)', backdropFilter: 'blur(12px)', position: 'relative', zIndex: 50 }}>
                             <div style={{ display: 'flex', gap: '10px' }}>
                                 <input
                                     type="text"
