@@ -82,7 +82,7 @@ export default function GardenLayout({ children }) {
 
           <nav className="sideNav">
             <NavLink to="/profile" onClick={closeMenu} className={({ isActive }) => "sideLink" + (isActive ? " active" : "")}>👤 Mi Perfil</NavLink>
-            <NavLink to="/home" onClick={closeMenu} className={({ isActive }) => "sideLink" + (isActive ? " active" : "")}>🏠 sobre mi</NavLink>
+            <NavLink to="/home" onClick={closeMenu} className={({ isActive }) => "sideLink" + (isActive ? " active" : "")}>🏠 sobre dan</NavLink>
             <NavLink to="/bulletin" onClick={closeMenu} className={({ isActive }) => "sideLink" + (isActive ? " active" : "")}>📰 Noticias</NavLink>
             <NavLink to="/posts" onClick={closeMenu} className={({ isActive }) => "sideLink" + (isActive ? " active" : "")}>✍️ Posts</NavLink>
             <NavLink to="/music" onClick={closeMenu} className={({ isActive }) => "sideLink" + (isActive ? " active" : "")}>🎧 Música</NavLink>
