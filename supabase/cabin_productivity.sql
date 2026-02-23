@@ -17,12 +17,17 @@ CREATE TABLE IF NOT EXISTS public.cabin_tasks (
 -- Index for performance
 CREATE INDEX IF NOT EXISTS idx_cabin_tasks_user ON public.cabin_tasks(user_id);
 
--- 2. Notes (One note block per user, auto-saved)
+-- 2. Notes (Brainstorming / Ideario)
 CREATE TABLE IF NOT EXISTS public.cabin_notes (
-  user_id    uuid PRIMARY KEY REFERENCES public.profiles(id) ON DELETE CASCADE,
+  id         uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id    uuid NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
   content    text DEFAULT '',
+  color      text DEFAULT 'purple',
   updated_at timestamptz DEFAULT now()
 );
+
+-- Index for user lookups
+CREATE INDEX IF NOT EXISTS idx_cabin_notes_user ON public.cabin_notes(user_id);
 
 -- 3. Pomodoro Sessions
 CREATE TABLE IF NOT EXISTS public.cabin_sessions (

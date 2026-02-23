@@ -48,20 +48,45 @@ export async function deleteTask(taskId) {
 /**
  * cabin_notes
  */
+/**
+ * cabin_notes (Ideario)
+ */
 export async function getNotes(userId) {
     const { data, error } = await supabase
         .from('cabin_notes')
-        .select('content')
+        .select('*')
         .eq('user_id', userId)
-        .maybeSingle();
+        .order('updated_at', { ascending: false });
     if (error) throw error;
-    return data?.content || '';
+    return data || [];
 }
 
-export async function saveNotes(userId, content) {
+export async function addNote(userId, content = '', color = 'purple') {
+    const { data, error } = await supabase
+        .from('cabin_notes')
+        .insert([{ user_id: userId, content, color }])
+        .select()
+        .single();
+    if (error) throw error;
+    return data;
+}
+
+export async function updateNote(noteId, content) {
+    const { data, error } = await supabase
+        .from('cabin_notes')
+        .update({ content, updated_at: new Date().toISOString() })
+        .eq('id', noteId)
+        .select()
+        .single();
+    if (error) throw error;
+    return data;
+}
+
+export async function deleteNote(noteId) {
     const { error } = await supabase
         .from('cabin_notes')
-        .upsert({ user_id: userId, content, updated_at: new Date().toISOString() });
+        .delete()
+        .eq('id', noteId);
     if (error) throw error;
 }
 
