@@ -33,7 +33,7 @@ export default function GardenLayout({ children }) {
     const updates = {};
     if (['/games', '/desktop', '/music', '/watchlist'].some(p => path.startsWith(p))) updates.entertainment = true;
     if (['/posts', '/bulletin', '/galeria', '/proyectos', '/arquitectura', '/timecapsule'].some(p => path.startsWith(p))) updates.content = true;
-    if (['/leaderboard', '/logros', '/tienda', '/guestbook'].some(p => path.startsWith(p))) updates.community = true;
+    if (['/leaderboard', '/logros', '/tienda', '/guestbook', '/cartas'].some(p => path.startsWith(p))) updates.community = true;
     if (['/cabina'].some(p => path.startsWith(p))) updates.productivity = true;
     if (PERSONAL_PATHS.some(p => path.startsWith(p))) updates.personal = true;
 
@@ -159,6 +159,7 @@ export default function GardenLayout({ children }) {
               </button>
               <div className={`submenuItems ${menuStates.community ? 'open' : ''}`}>
                 <NavLink to="/leaderboard" onClick={closeMenu} className={({ isActive }) => "sideLink submenuLink" + (isActive ? " active" : "")}>🌎 Leaderboard</NavLink>
+                <NavLink to="/cartas" onClick={closeMenu} className={({ isActive }) => "sideLink submenuLink" + (isActive ? " active" : "")}>✉️ Cartas en Órbita</NavLink>
                 <NavLink to="/guestbook" onClick={closeMenu} className={({ isActive }) => "sideLink submenuLink" + (isActive ? " active" : "")}>📖 Libro de Visitas</NavLink>
                 <NavLink to="/logros" onClick={closeMenu} className={({ isActive }) => "sideLink submenuLink" + (isActive ? " active" : "")}>🏆 Logros</NavLink>
                 <NavLink to="/tienda" onClick={closeMenu} className={({ isActive }) => "sideLink submenuLink" + (isActive ? " active" : "")}>🛍️ Tienda</NavLink>
@@ -189,6 +190,7 @@ export default function GardenLayout({ children }) {
                 <NavLink to="/tests" onClick={closeMenu} className={({ isActive }) => "sideLink submenuLink" + (isActive ? " active" : "")}>🧪 Tests</NavLink>
                 <NavLink to="/universo" onClick={closeMenu} className={({ isActive }) => "sideLink submenuLink" + (isActive ? " active" : "")}>🌌 Universo</NavLink>
                 <NavLink to="/dreamscape" onClick={closeMenu} className={({ isActive }) => "sideLink submenuLink" + (isActive ? " active" : "")}>🌙 Dreamscape</NavLink>
+                <NavLink to="/cofre" onClick={closeMenu} className={({ isActive }) => "sideLink submenuLink" + (isActive ? " active" : "")}>🔒 Cofre Privado</NavLink>
               </div>
             </div>
           </nav>

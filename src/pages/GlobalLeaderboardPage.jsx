@@ -2,6 +2,8 @@ import { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthContext } from '../contexts/AuthContext';
 import * as lb from '../services/leaderboard';
+import { motion, AnimatePresence } from 'framer-motion';
+import HoloCard from '../components/HoloCard';
 
 const TABS = [
   { id: 'games', label: '🎮 Juegos', desc: 'Suma de mejores puntajes en todos los juegos' },
@@ -62,6 +64,7 @@ export default function GlobalLeaderboardPage() {
   const [data, setData] = useState({});   // { tabId: rows[] }
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [selectedProfile, setSelectedProfile] = useState(null);
 
   const fetchTab = useCallback(async (tabId) => {
     if (data[tabId]) return;           // already loaded
@@ -94,7 +97,7 @@ export default function GlobalLeaderboardPage() {
   const activeTab_ = TABS.find(t => t.id === activeTab);
 
   const handleRow = (row) => {
-    if (row.user_id) navigate(`/profile/${row.user_id}`);
+    if (row.user_id) setSelectedProfile(row);
   };
 
   return (
@@ -191,6 +194,15 @@ export default function GlobalLeaderboardPage() {
           </table>
         )}
       </div>
+      {/* Holo Profile Modal */}
+      <AnimatePresence>
+        {selectedProfile && (
+          <HoloCard
+            profile={selectedProfile}
+            onClose={() => setSelectedProfile(null)}
+          />
+        )}
+      </AnimatePresence>
     </main>
   );
 }

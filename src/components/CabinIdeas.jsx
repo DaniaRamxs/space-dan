@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getNotes, addNote, updateNote, deleteNote } from '../services/productivity';
+import { vaultService } from '../services/vault';
 
 const NOTE_COLORS = {
     purple: 'bg-purple-900/20 border-purple-500/30 text-purple-200',
@@ -36,7 +37,7 @@ export default function CabinIdeas({ userId }) {
             setNotes(prev => [newNote, ...prev]);
         } catch (err) {
             console.error(err);
-            alert('No se pudo añadir la nota. Es posible que necesites actualizar el esquema de la base de datos.');
+            alert('No se pudo añadir la nota.');
         }
     };
 
@@ -138,6 +139,20 @@ function IdeaCard({ note, onDelete, onUpdate }) {
         }, 1000);
     };
 
+    const handleSaveToVault = async () => {
+        if (!localContent.trim()) return;
+        setIsSaving(true);
+        try {
+            await vaultService.addNote('Idea desde Cabina', localContent, 'idea');
+            alert('¡Idea guardada en tu cofre privado! 🔒');
+        } catch (err) {
+            console.error(err);
+            alert('Error al guardar en el cofre.');
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
     return (
         <motion.div
             layout
@@ -157,12 +172,20 @@ function IdeaCard({ note, onDelete, onUpdate }) {
                 <span className={`text-[9px] uppercase tracking-tighter ${isSaving ? 'animate-pulse text-white' : 'opacity-40'}`}>
                     {isSaving ? 'Guardando...' : 'Sincronizado'}
                 </span>
-                <button
-                    onClick={onDelete}
-                    className="text-[9px] uppercase tracking-tighter bg-black/20 hover:bg-red-500/20 px-2 py-1 rounded-md transition-colors"
-                >
-                    Eliminar
-                </button>
+                <div className="flex gap-2">
+                    <button
+                        onClick={handleSaveToVault}
+                        className="text-[9px] uppercase tracking-tighter bg-white/5 hover:bg-white/10 px-2 py-1 rounded-md transition-colors"
+                    >
+                        Guardar en Cofre 🔒
+                    </button>
+                    <button
+                        onClick={onDelete}
+                        className="text-[9px] uppercase tracking-tighter bg-black/20 hover:bg-red-500/20 px-2 py-1 rounded-md transition-colors"
+                    >
+                        Eliminar
+                    </button>
+                </div>
             </div>
         </motion.div>
     );

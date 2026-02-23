@@ -424,16 +424,20 @@ CREATE INDEX IF NOT EXISTS idx_vault_items_user ON public.vault_items (user_id, 
 -- ────────────────────────────────────────────────────────────
 
 CREATE TABLE IF NOT EXISTS public.private_rooms (
-  id           uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
-  creator_id   uuid        NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
-  invited_id   uuid        NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
-  status       text        NOT NULL DEFAULT 'pending'
-               CHECK (status IN ('pending','active','expired','declined')),
-  duration_min integer     NOT NULL DEFAULT 60 CHECK (duration_min BETWEEN 15 AND 480),
-  expires_at   timestamptz NOT NULL,
-  is_ephemeral boolean     NOT NULL DEFAULT true,   -- borrar mensajes al expirar
-  purpose      text        CHECK (purpose IN ('focus','chat','game','other') OR purpose IS NULL),
-  created_at   timestamptz NOT NULL DEFAULT now(),
+  id                 uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
+  creator_id         uuid        NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  invited_id         uuid        NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  status             text        NOT NULL DEFAULT 'pending'
+                     CHECK (status IN ('pending','active','expired','declined')),
+  duration_min       integer     NOT NULL DEFAULT 60 CHECK (duration_min BETWEEN 15 AND 480),
+  expires_at         timestamptz NOT NULL,
+  is_ephemeral       boolean     NOT NULL DEFAULT true,   -- borrar mensajes al expirar
+  purpose            text        CHECK (purpose IN ('focus','chat','game','other') OR purpose IS NULL),
+  -- Timer de Pomodoro sincronizado
+  timer_status       text        NOT NULL DEFAULT 'idle' CHECK (timer_status IN ('idle','active')),
+  timer_minutes_left integer     NOT NULL DEFAULT 25,
+  last_activity_at   timestamptz NOT NULL DEFAULT now(),
+  created_at         timestamptz NOT NULL DEFAULT now(),
   CONSTRAINT no_self_room CHECK (creator_id != invited_id)
 );
 
@@ -728,6 +732,11 @@ CREATE POLICY "vault_items_owner" ON public.vault_items
 DROP POLICY IF EXISTS "rooms_participants" ON public.private_rooms;
 CREATE POLICY "rooms_participants" ON public.private_rooms
   FOR SELECT USING (auth.uid() = creator_id OR auth.uid() = invited_id);
+
+DROP POLICY IF EXISTS "rooms_participants_update" ON public.private_rooms;
+CREATE POLICY "rooms_participants_update" ON public.private_rooms
+  FOR UPDATE USING (auth.uid() = creator_id OR auth.uid() = invited_id)
+  WITH CHECK (auth.uid() = creator_id OR auth.uid() = invited_id);
 
 -- ROOM_MESSAGES: participantes de sala activa y no expirada
 DROP POLICY IF EXISTS "room_msgs_participants" ON public.room_messages;
