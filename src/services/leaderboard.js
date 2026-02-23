@@ -8,7 +8,7 @@ import { supabase } from '../supabaseClient';
 export async function getGameLeaderboard(gameId, limit = 50) {
   const { data, error } = await supabase.rpc('get_leaderboard', {
     p_game_id: gameId,
-    p_limit:   limit,
+    p_limit: limit,
   });
   if (error) throw error;
   return data;
@@ -53,6 +53,15 @@ export async function getGenerosityLeaderboard(limit = 50) {
 /** Tab 5: Más logros desbloqueados */
 export async function getAchievementLeaderboard(limit = 50) {
   const { data, error } = await supabase.rpc('get_achievement_leaderboard', {
+    p_limit: limit,
+  });
+  if (error) throw error;
+  return data;
+}
+
+/** Tab 6: Más enfocados (Cabina Espacial) */
+export async function getFocusLeaderboard(limit = 50) {
+  const { data, error } = await supabase.rpc('get_focus_leaderboard', {
     p_limit: limit,
   });
   if (error) throw error;

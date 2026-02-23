@@ -117,10 +117,23 @@ export default function CabinPomodoro({ onFinish }) {
                         <button
                             onClick={resetTimer}
                             className="w-10 h-10 rounded-full flex items-center justify-center border border-white/20 hover:border-white/50 transition-colors bg-white/5 backdrop-blur-md"
+                            title="Reiniciar"
                         >
                             <span className="text-sm">🔄</span>
                         </button>
                     </div>
+
+                    {/* Botón de Finalizar Manual */}
+                    {isActive && sessionType === 'focus' && (
+                        <motion.button
+                            initial={{ opacity: 0, scale: 0.9 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            onClick={handleComplete}
+                            className="mt-6 px-4 py-1.5 rounded-full bg-accent/20 border border-accent/40 text-[10px] uppercase tracking-widest text-accent hover:bg-accent/30 transition-colors font-bold"
+                        >
+                            Terminar Sesión early ⚡
+                        </motion.button>
+                    )}
                 </div>
             </div>
 
