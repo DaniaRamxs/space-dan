@@ -6,7 +6,7 @@ import { useAuthContext } from '../contexts/AuthContext';
 import { supabase } from '../supabaseClient';
 
 export default function OrbitLettersPage() {
-    const { user } = useAuthContext();
+    useAuthContext();
     const [conversations, setConversations] = useState([]);
     const [activeConv, setActiveConv] = useState(null);
     const [letters, setLetters] = useState([]);
@@ -17,19 +17,19 @@ export default function OrbitLettersPage() {
     const toUserId = searchParams.get('to');
     const scrollRef = useRef(null);
 
+    // Mobile: 'list' shows conversations sidebar, 'chat' shows the active conversation
+    const [mobileView, setMobileView] = useState(toUserId ? 'chat' : 'list');
+
     useEffect(() => {
         loadConversations();
 
-        // Realtime for new letters in the current conversation? 
-        // The spec says letters are async, but we can still listen for changes.
         const channel = supabase
             .channel('letters_changes')
             .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'letters' }, payload => {
                 if (activeConv && payload.new.conversation_id === activeConv.conv_id) {
-                    // Update letters if it belongs to active
                     loadLetters(activeConv.conv_id);
                 }
-                loadConversations(); // Update list for snippets/unread
+                loadConversations();
             })
             .subscribe();
 
@@ -41,14 +41,13 @@ export default function OrbitLettersPage() {
             const data = await socialService.getConversations();
             setConversations(data);
 
-            // Handle deep link
             if (toUserId && !activeConv) {
                 const existing = data.find(c => c.other_user_id === toUserId);
                 if (existing) {
                     setActiveConv(existing);
                     loadLetters(existing.conv_id);
+                    setMobileView('chat');
                 } else {
-                    // No existing conversation — fetch the target profile and create a placeholder
                     const { data: profile } = await supabase
                         .from('profiles')
                         .select('id, username, avatar_url')
@@ -63,6 +62,7 @@ export default function OrbitLettersPage() {
                             unread_count: 0,
                             last_snippet: null
                         });
+                        setMobileView('chat');
                     }
                 }
             }
@@ -77,7 +77,6 @@ export default function OrbitLettersPage() {
         try {
             const data = await socialService.getLetters(convId);
             setLetters(data);
-            // Mark all as read
             const unread = data.filter(l => !l.is_mine && !l.is_read);
             for (const l of unread) {
                 await socialService.markAsRead(l.id);
@@ -96,6 +95,7 @@ export default function OrbitLettersPage() {
     const handleSelectConv = (conv) => {
         setActiveConv(conv);
         loadLetters(conv.conv_id);
+        setMobileView('chat');
     };
 
     const handleSend = async (e) => {
@@ -110,7 +110,6 @@ export default function OrbitLettersPage() {
             if (activeConv.conv_id) {
                 loadLetters(activeConv.conv_id);
             } else {
-                // New conversation — reload to get the real conv_id
                 const data = await socialService.getConversations();
                 setConversations(data);
                 const newConv = data.find(c => c.other_user_id === activeConv.other_user_id);
@@ -129,12 +128,16 @@ export default function OrbitLettersPage() {
     if (loading) return <div className="p-8 text-center opacity-50">Sintonizando frecuencias...</div>;
 
     return (
-        <div className="layoutOne" style={{ maxWidth: '1000px', gridTemplateColumns: '320px 1fr', height: 'calc(100vh - 120px)' }}>
+        <div className="lettersLayout">
 
-            {/* Sidebar: Conversations */}
-            <div className="glassCard" style={{ padding: 0, display: 'flex', flexDirection: 'column', height: '100%' }}>
-                <div style={{ padding: '20px', borderBottom: '1px solid var(--glass-border)' }}>
-                    <h2 style={{ margin: 0, fontSize: '18px' }}>Cartas en Órbita</h2>
+            {/* ── SIDEBAR: Conversations ─────────────────────────────
+                Hidden on mobile when mobileView === 'chat'          */}
+            <div
+                className={`glassCard lettersPanel${mobileView === 'chat' ? ' lettersPanel--hidden' : ''}`}
+                style={{ padding: 0, display: 'flex', flexDirection: 'column', height: '100%' }}
+            >
+                <div style={{ padding: '18px 20px', borderBottom: '1px solid var(--glass-border)', display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <h2 style={{ margin: 0, fontSize: '17px', flex: 1 }}>✉️ Cartas en Órbita</h2>
                 </div>
 
                 <div style={{ flex: 1, overflowY: 'auto' }}>
@@ -149,18 +152,17 @@ export default function OrbitLettersPage() {
                             whileHover={{ background: 'rgba(255,255,255,0.03)' }}
                             onClick={() => handleSelectConv(conv)}
                             style={{
-                                padding: '16px 20px',
+                                padding: '14px 20px',
                                 borderBottom: '1px solid var(--glass-border)',
                                 cursor: 'pointer',
                                 background: activeConv?.conv_id === conv.conv_id ? 'var(--accent-dim)' : 'transparent',
                                 borderLeft: activeConv?.conv_id === conv.conv_id ? '3px solid var(--accent)' : '3px solid transparent',
-                                position: 'relative'
                             }}
                         >
                             <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
                                 <img
                                     src={conv.other_avatar || '/default-avatar.png'}
-                                    style={{ width: '40px', height: '40px', borderRadius: '50%', border: '1px solid var(--border)' }}
+                                    style={{ width: '40px', height: '40px', borderRadius: '50%', border: '1px solid var(--border)', flexShrink: 0 }}
                                 />
                                 <div style={{ flex: 1, minWidth: 0 }}>
                                     <div style={{ fontWeight: '600', fontSize: '14px' }}>{conv.other_username}</div>
@@ -170,13 +172,9 @@ export default function OrbitLettersPage() {
                                 </div>
                                 {conv.unread_count > 0 && (
                                     <div style={{
-                                        background: 'var(--accent)',
-                                        color: '#fff',
-                                        fontSize: '10px',
-                                        padding: '2px 6px',
-                                        borderRadius: '10px',
-                                        fontWeight: 'bold',
-                                        boxShadow: '0 0 10px var(--accent-glow)'
+                                        background: 'var(--accent)', color: '#fff', fontSize: '10px',
+                                        padding: '2px 6px', borderRadius: '10px', fontWeight: 'bold',
+                                        boxShadow: '0 0 10px var(--accent-glow)', flexShrink: 0
                                     }}>
                                         {conv.unread_count}
                                     </div>
@@ -187,8 +185,12 @@ export default function OrbitLettersPage() {
                 </div>
             </div>
 
-            {/* Main Area: Letters */}
-            <div className="glassCard" style={{ padding: 0, display: 'flex', flexDirection: 'column', height: '100%' }}>
+            {/* ── CHAT AREA ──────────────────────────────────────────
+                Hidden on mobile when mobileView === 'list'          */}
+            <div
+                className={`glassCard lettersPanel${mobileView === 'list' ? ' lettersPanel--hidden' : ''}`}
+                style={{ padding: 0, display: 'flex', flexDirection: 'column', height: '100%' }}
+            >
                 {!activeConv ? (
                     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', opacity: 0.4 }}>
                         <div style={{ fontSize: '48px', marginBottom: '20px' }}>✉️</div>
@@ -196,42 +198,54 @@ export default function OrbitLettersPage() {
                     </div>
                 ) : (
                     <>
-                        {/* Header */}
-                        <div style={{ padding: '15px 25px', borderBottom: '1px solid var(--glass-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                <div style={{ fontWeight: 'bold' }}>{activeConv.other_username}</div>
-                                <span style={{ fontSize: '10px', opacity: 0.5, textTransform: 'uppercase', letterSpacing: '1px' }}>Enlace Establecido</span>
+                        {/* Chat header */}
+                        <div style={{ padding: '13px 20px', borderBottom: '1px solid var(--glass-border)', display: 'flex', alignItems: 'center', gap: 12 }}>
+                            {/* Back button — only visible on mobile */}
+                            <button
+                                onClick={() => setMobileView('list')}
+                                style={{
+                                    background: 'none', border: 'none', color: 'var(--accent)',
+                                    cursor: 'pointer', fontSize: '18px', padding: '0 4px',
+                                    display: 'none', /* shown via CSS on mobile */
+                                }}
+                                className="lettersBackBtn"
+                                aria-label="Volver a conversaciones"
+                            >
+                                ←
+                            </button>
+                            <img
+                                src={activeConv.other_avatar || '/default-avatar.png'}
+                                style={{ width: 32, height: 32, borderRadius: '50%', border: '1px solid var(--border)' }}
+                            />
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                                <div style={{ fontWeight: 'bold', fontSize: '14px' }}>{activeConv.other_username}</div>
+                                <div style={{ fontSize: '10px', opacity: 0.45, textTransform: 'uppercase', letterSpacing: '1px' }}>Enlace Establecido</div>
                             </div>
                         </div>
 
-                        {/* History */}
+                        {/* Messages */}
                         <div
                             ref={scrollRef}
-                            style={{ flex: 1, overflowY: 'auto', padding: '25px', display: 'flex', flexDirection: 'column', gap: '20px' }}
+                            style={{ flex: 1, overflowY: 'auto', padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px' }}
                         >
                             <AnimatePresence initial={false}>
-                                {letters.map((l, i) => (
+                                {letters.map((l) => (
                                     <motion.div
                                         key={l.id}
                                         initial={{ opacity: 0, y: 10, scale: 0.95 }}
                                         animate={{ opacity: 1, y: 0, scale: 1 }}
-                                        style={{
-                                            maxWidth: '80%',
-                                            alignSelf: l.is_mine ? 'flex-end' : 'flex-start',
-                                        }}
+                                        style={{ maxWidth: '80%', alignSelf: l.is_mine ? 'flex-end' : 'flex-start' }}
                                     >
                                         <div style={{
                                             background: l.is_mine ? 'var(--accent-dim)' : 'rgba(255,255,255,0.05)',
-                                            padding: '12px 18px',
+                                            padding: '11px 16px',
                                             borderRadius: l.is_mine ? '18px 18px 2px 18px' : '18px 18px 18px 2px',
                                             border: '1px solid var(--glass-border)',
-                                            fontSize: '14px',
-                                            lineHeight: '1.5',
-                                            position: 'relative',
+                                            fontSize: '14px', lineHeight: '1.5',
                                             boxShadow: l.is_mine ? '0 4px 15px rgba(255,110,180,0.05)' : 'none'
                                         }}>
                                             {l.content}
-                                            <div style={{ fontSize: '10px', opacity: 0.4, marginTop: '8px', textAlign: l.is_mine ? 'right' : 'left' }}>
+                                            <div style={{ fontSize: '10px', opacity: 0.4, marginTop: '6px', textAlign: l.is_mine ? 'right' : 'left' }}>
                                                 {new Date(l.sent_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                             </div>
                                         </div>
@@ -241,7 +255,7 @@ export default function OrbitLettersPage() {
                         </div>
 
                         {/* Input */}
-                        <form onSubmit={handleSend} style={{ padding: '20px', borderTop: '1px solid var(--glass-border)', background: 'rgba(0,0,0,0.2)' }}>
+                        <form onSubmit={handleSend} style={{ padding: '14px 16px', borderTop: '1px solid var(--glass-border)', background: 'rgba(0,0,0,0.2)' }}>
                             <div style={{ display: 'flex', gap: '10px' }}>
                                 <input
                                     type="text"
@@ -253,9 +267,10 @@ export default function OrbitLettersPage() {
                                         background: 'rgba(255,255,255,0.05)',
                                         border: '1px solid var(--glass-border)',
                                         borderRadius: '24px',
-                                        padding: '12px 20px',
+                                        padding: '11px 18px',
                                         color: '#fff',
-                                        outline: 'none'
+                                        outline: 'none',
+                                        fontSize: '14px',
                                     }}
                                 />
                                 <motion.button
@@ -263,7 +278,7 @@ export default function OrbitLettersPage() {
                                     whileTap={{ scale: 0.95 }}
                                     disabled={sending || !newContent.trim()}
                                     className="btn-accent"
-                                    style={{ borderRadius: '50%', width: '45px', height: '45px', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}
+                                    style={{ borderRadius: '50%', width: '44px', height: '44px', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0, flexShrink: 0 }}
                                 >
                                     {sending ? '...' : '🚀'}
                                 </motion.button>
@@ -272,6 +287,6 @@ export default function OrbitLettersPage() {
                     </>
                 )}
             </div>
-        </div >
+        </div>
     );
 }

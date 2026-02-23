@@ -7190,7 +7190,7 @@ textarea,
   flex-wrap: wrap;
   gap: 8px;
   align-items: center;
-  width: 100%;
+  flex-basis: 100%;
   margin-top: 14px;
   padding-top: 14px;
   border-top: 1px solid var(--border);
@@ -7204,14 +7204,11 @@ textarea,
 }
 @media (min-width: 768px) {
   .profileActions {
-    width: auto;
-    flex-direction: column;
-    align-items: stretch;
-    margin-top: 0;
-    padding-top: 0;
-    border-top: none;
-    flex-shrink: 0;
-    min-width: 148px;
+    flex-direction: row;
+    flex-wrap: wrap;
+    flex-basis: auto;
+    margin-top: 12px;
+    padding-top: 12px;
   }
   .profileActions a,
   .profileActions button {
@@ -7244,3 +7241,34 @@ textarea,
   box-shadow: 0 0 5px var(--cyan, #00e5ff);
   flex-shrink: 0;
 }
+
+/* ══════════════════════════════════════════════════════════
+   ORBIT LETTERS — mobile two-panel navigation
+   ══════════════════════════════════════════════════════════ */
+.lettersLayout {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 0 12px;
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  gap: 14px;
+  height: calc(100vh - 120px);
+}
+@media (max-width: 767px) {
+  .lettersLayout {
+    grid-template-columns: 1fr;
+    height: calc(100svh - 90px);
+    padding: 0 8px;
+    gap: 0;
+  }
+  .lettersPanel {
+    height: calc(100svh - 90px) !important;
+  }
+  .lettersPanel--hidden {
+    display: none !important;
+  }
+  .lettersBackBtn {
+    display: block !important;
+  }
+}
+
