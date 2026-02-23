@@ -48,9 +48,22 @@ export default function OrbitLettersPage() {
                     setActiveConv(existing);
                     loadLetters(existing.conv_id);
                 } else {
-                    // Start new conversation placeholder?
-                    // For now, let's just create a dummy "active" if it doesn't exist
-                    // Or let handleSend handle it.
+                    // No existing conversation — fetch the target profile and create a placeholder
+                    const { data: profile } = await supabase
+                        .from('profiles')
+                        .select('id, username, avatar_url')
+                        .eq('id', toUserId)
+                        .single();
+                    if (profile) {
+                        setActiveConv({
+                            conv_id: null,
+                            other_user_id: profile.id,
+                            other_username: profile.username,
+                            other_avatar: profile.avatar_url,
+                            unread_count: 0,
+                            last_snippet: null
+                        });
+                    }
                 }
             }
         } catch (err) {
@@ -93,7 +106,19 @@ export default function OrbitLettersPage() {
         try {
             await socialService.sendLetter(activeConv.other_user_id, newContent);
             setNewContent('');
-            loadLetters(activeConv.conv_id);
+
+            if (activeConv.conv_id) {
+                loadLetters(activeConv.conv_id);
+            } else {
+                // New conversation — reload to get the real conv_id
+                const data = await socialService.getConversations();
+                setConversations(data);
+                const newConv = data.find(c => c.other_user_id === activeConv.other_user_id);
+                if (newConv) {
+                    setActiveConv(newConv);
+                    loadLetters(newConv.conv_id);
+                }
+            }
         } catch (err) {
             alert(err.message || 'Error al enviar');
         } finally {
