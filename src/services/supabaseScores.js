@@ -4,6 +4,10 @@ import { supabase } from '../supabaseClient';
 export async function saveScore(userId, gameId, score) {
     if (!userId || !gameId || score == null) return;
 
+    // Check previous best score
+    const ranks = await getUserGameRanks(userId);
+    const prevRank = ranks?.find(r => r.game_id === gameId);
+
     const { data: season } = await supabase
         .from('seasons')
         .select('id')
@@ -16,6 +20,13 @@ export async function saveScore(userId, gameId, score) {
         score,
         season_id: season?.id ?? null,
     });
+
+    // Notify if it's a new record
+    if (!prevRank || score > prevRank.max_score) {
+        const { createNotification } = await import('./supabaseNotifications');
+        const formattedScore = score.toLocaleString();
+        await createNotification(userId, 'record', `¡Felicidades! Rompiste tu récord personal en ${gameId.toUpperCase()} con ${formattedScore} pts.`);
+    }
 }
 
 /** Top N scores por juego (mejor score por usuario) */
@@ -29,17 +40,22 @@ export async function getLeaderboard(gameId, limit = 10) {
 }
 
 /**
- * Sincroniza un logro desbloqueado al DB.
- * Obtiene la sesión internamente — safe to call fire-and-forget.
+ * Sincroniza un logro desbloqueado al DB y envía notificación.
  */
-export async function syncAchievementToDb(achievementId) {
+export async function syncAchievementToDb(achievementId, achievementTitle = '') {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session?.user) return;
 
-    await supabase.from('user_achievements').upsert(
+    const { error } = await supabase.from('user_achievements').upsert(
         { user_id: session.user.id, achievement_id: achievementId },
         { onConflict: 'user_id,achievement_id', ignoreDuplicates: true }
     );
+
+    // Send a notification if we have a title (assuming it's a new unlock since the hook guards it)
+    if (!error && achievementTitle) {
+        const { createNotification } = await import('./supabaseNotifications');
+        await createNotification(session.user.id, 'achievement', `¡Desbloqueaste el logro "${achievementTitle}"!`);
+    }
 }
 
 /**
