@@ -434,6 +434,8 @@ export default function ProfilePage() {
   const [userAchs, setUserAchs] = useState([]);
   const [gameRanks, setGameRanks] = useState([]);
   const [cabinStats, setCabinStats] = useState(null);
+  const [bio, setBio] = useState('');
+  const [isEditingBio, setIsEditingBio] = useState(false);
   const [fetching, setFetching] = useState(false);
 
   useEffect(() => {
@@ -451,6 +453,7 @@ export default function ProfilePage() {
           setProfile(profData);
           setBannerLocal(profData.banner_color ?? null);
           setFrameItemId(profData.frame_item_id ?? null);
+          setBio(profData.bio || '');
         }
 
         const { data: achData } = await supabase
@@ -530,6 +533,60 @@ export default function ProfilePage() {
               <p style={{ margin: '5px 0 0 0', color: 'var(--cyan)', fontSize: '0.9rem', fontWeight: 'bold', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
                 ⭐ Viajero del Dan-Space
               </p>
+
+              <div style={{ marginTop: 12 }}>
+                {!isEditingBio ? (
+                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+                    <p style={{ margin: 0, fontSize: '0.85rem', opacity: 0.8, maxWidth: '400px', fontStyle: bio ? 'normal' : 'italic' }}>
+                      {bio || 'Aún no has escrito tu biografía estelar...'}
+                    </p>
+                    <button
+                      onClick={() => setIsEditingBio(true)}
+                      style={{ background: 'none', border: 'none', color: 'var(--accent)', cursor: 'pointer', fontSize: '0.7rem', padding: 0 }}
+                    >
+                      [editar]
+                    </button>
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxWidth: '400px' }}>
+                    <textarea
+                      value={bio}
+                      onChange={(e) => setBio(e.target.value)}
+                      maxLength={250}
+                      style={{
+                        background: 'rgba(0,0,0,0.3)', border: '1px solid var(--accent)',
+                        borderRadius: 8, color: '#fff', fontSize: '0.85rem', padding: 8,
+                        minHeight: '60px', fontFamily: 'inherit'
+                      }}
+                      placeholder="Escribe algo sobre ti..."
+                    />
+                    <div style={{ display: 'flex', gap: 10 }}>
+                      <button
+                        className="winButton"
+                        style={{ fontSize: '0.7rem', padding: '4px 10px' }}
+                        onClick={async () => {
+                          try {
+                            await supabase.from('profiles').update({ bio }).eq('id', user.id);
+                            setIsEditingBio(false);
+                          } catch (err) { alert('Error al guardar'); }
+                        }}
+                      >
+                        Guardar
+                      </button>
+                      <button
+                        className="winButton"
+                        style={{ fontSize: '0.7rem', padding: '4px 10px', opacity: 0.5 }}
+                        onClick={() => {
+                          setBio(profile?.bio || '');
+                          setIsEditingBio(false);
+                        }}
+                      >
+                        Cancelar
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
             {/* Mascota con accesorios equipados */}
             <PetDisplay userId={user.id} size={70} showName />
