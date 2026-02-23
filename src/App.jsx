@@ -1,8 +1,10 @@
 import { Suspense, lazy, useEffect } from "react";
 import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
+import { AnimatePresence } from "framer-motion";
 import "./styles.css";
 import AchievementToast from "./components/AchievementToast";
 import Screensaver from "./components/Screensaver";
+import PageTransition from "./components/PageTransition";
 import { unlockAchievement } from "./hooks/useAchievements";
 import { trackPageVisit } from "./hooks/useDancoins";
 import { applyTheme } from "./hooks/useTheme";
@@ -71,8 +73,44 @@ function FallbackLoader() {
 function Layout({ children }) {
   return (
     <GardenLayout>
-      <Suspense fallback={null}>{children}</Suspense>
+      <Suspense fallback={null}>
+        <PageTransition>{children}</PageTransition>
+      </Suspense>
     </GardenLayout>
+  );
+}
+
+function AnimatedRoutes() {
+  const location = useLocation();
+
+  return (
+    <AnimatePresence mode="wait">
+      <Routes location={location} key={location.pathname}>
+        <Route path="/" element={<PageTransition><Wpage /></PageTransition>} />
+        <Route path="/home" element={<Layout><DanProfilePage /></Layout>} />
+        <Route path="/profile" element={<Layout><ProfilePage /></Layout>} />
+        <Route path="/bulletin" element={<Layout><BulletinPage /></Layout>} />
+        <Route path="/posts" element={<Layout><PostsPage /></Layout>} />
+        <Route path="/posts/:id" element={<Layout><PostPage /></Layout>} />
+        <Route path="/music" element={<Layout><MusicPage /></Layout>} />
+        <Route path="/games" element={<Layout><GamesPage /></Layout>} />
+        <Route path="/leaderboard" element={<Layout><GlobalLeaderboardPage /></Layout>} />
+        <Route path="/kinnies" element={<Layout><KinniesPage /></Layout>} />
+        <Route path="/tests" element={<Layout><TestsPage /></Layout>} />
+        <Route path="/galeria" element={<Layout><GalleryPage /></Layout>} />
+        <Route path="/watchlist" element={<Layout><WatchlistPage /></Layout>} />
+        <Route path="/universo" element={<Layout><UniversoPage /></Layout>} />
+        <Route path="/desktop" element={<Suspense fallback={null}><PageTransition><DesktopPage /></PageTransition></Suspense>} />
+        <Route path="/dreamscape" element={<Suspense fallback={null}><PageTransition><DreamscapePage /></PageTransition></Suspense>} />
+        <Route path="/timecapsule" element={<Suspense fallback={null}><PageTransition><TimeCapsulePage /></PageTransition></Suspense>} />
+        <Route path="/guestbook" element={<Layout><GuestbookPage /></Layout>} />
+        <Route path="/arquitectura" element={<Layout><ArquitecturaPage /></Layout>} />
+        <Route path="/proyectos" element={<Layout><ProjectsPage /></Layout>} />
+        <Route path="/logros" element={<Layout><AchievementsPage /></Layout>} />
+        <Route path="/tienda" element={<Layout><ShopPage /></Layout>} />
+        <Route path="/secret" element={<PageTransition><Secret /></PageTransition>} />
+      </Routes>
+    </AnimatePresence>
   );
 }
 
@@ -92,31 +130,7 @@ export default function App() {
         <Screensaver />
         <PageTracker />
         <Suspense fallback={<FallbackLoader />}>
-          <Routes>
-            <Route path="/" element={<Wpage />} />
-            <Route path="/home" element={<Layout><DanProfilePage /></Layout>} />
-            <Route path="/profile" element={<Layout><ProfilePage /></Layout>} />
-            <Route path="/bulletin" element={<Layout><BulletinPage /></Layout>} />
-            <Route path="/posts" element={<Layout><PostsPage /></Layout>} />
-            <Route path="/posts/:id" element={<Layout><PostPage /></Layout>} />
-            <Route path="/music" element={<Layout><MusicPage /></Layout>} />
-            <Route path="/games" element={<Layout><GamesPage /></Layout>} />
-            <Route path="/leaderboard" element={<Layout><GlobalLeaderboardPage /></Layout>} />
-            <Route path="/kinnies" element={<Layout><KinniesPage /></Layout>} />
-            <Route path="/tests" element={<Layout><TestsPage /></Layout>} />
-            <Route path="/galeria" element={<Layout><GalleryPage /></Layout>} />
-            <Route path="/watchlist" element={<Layout><WatchlistPage /></Layout>} />
-            <Route path="/universo" element={<Layout><UniversoPage /></Layout>} />
-            <Route path="/desktop" element={<Suspense fallback={null}><DesktopPage /></Suspense>} />
-            <Route path="/dreamscape" element={<Suspense fallback={null}><DreamscapePage /></Suspense>} />
-            <Route path="/timecapsule" element={<Suspense fallback={null}><TimeCapsulePage /></Suspense>} />
-            <Route path="/guestbook" element={<Layout><GuestbookPage /></Layout>} />
-            <Route path="/arquitectura" element={<Layout><ArquitecturaPage /></Layout>} />
-            <Route path="/proyectos" element={<Layout><ProjectsPage /></Layout>} />
-            <Route path="/logros" element={<Layout><AchievementsPage /></Layout>} />
-            <Route path="/tienda" element={<Layout><ShopPage /></Layout>} />
-            <Route path="/secret" element={<Secret />} />
-          </Routes>
+          <AnimatedRoutes />
         </Suspense>
       </BrowserRouter>
     </AuthProvider>
