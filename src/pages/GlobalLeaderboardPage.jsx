@@ -126,7 +126,7 @@ function CompetitiveRow({ row, i, isMe, formatMetric, onClick }) {
       </td>
       <td>
         <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-          <div style={{ position: 'relative' }}>
+          <div style={{ position: 'relative', flexShrink: 0 }}>
             <div style={{
               borderRadius: '50%', padding: '3px',
               background: rank === 1 ? 'linear-gradient(45deg, #ffd700, #fff, #ffd700)' :
@@ -242,7 +242,7 @@ export default function GlobalLeaderboardPage() {
   return (
     <main className="card">
       {activeTab === 'competitive' && (
-        <div style={{ position: 'sticky', top: '-24px', zIndex: 100, background: 'var(--bg)', borderRadius: '12px', padding: '1px' }}>
+        <div className="season-widget-sticky-container" style={{ position: 'sticky', top: '-24px', zIndex: 100, background: 'var(--bg)', borderRadius: '12px', padding: '1px' }}>
           <SeasonWidget />
         </div>
       )}
@@ -263,15 +263,12 @@ export default function GlobalLeaderboardPage() {
               background: 'none',
               border: 'none',
               borderBottom: activeTab === t.id ? '2px solid var(--accent)' : '2px solid transparent',
-              color: activeTab === t.id ? 'var(--accent)' : 'var(--text)',
-              padding: '8px 14px',
-              cursor: 'pointer',
-              fontFamily: 'inherit',
-              fontSize: '0.85rem',
-              fontWeight: activeTab === t.id ? 'bold' : 'normal',
-              letterSpacing: '0.03em',
-              transition: 'color 0.15s',
-              whiteSpace: 'nowrap',
+              color: activeTab === t.id ? '#fff' : 'rgba(255,255,255,0.4)',
+              fontWeight: activeTab === t.id ? '900' : '400',
+              padding: '10px 14px',
+              fontSize: '12px',
+              textTransform: 'uppercase',
+              letterSpacing: 1
             }}
           >
             {t.label}
@@ -282,7 +279,7 @@ export default function GlobalLeaderboardPage() {
 
 
       {/* Table */}
-      <div className="lbContainer" style={{ marginTop: 18 }}>
+      <div className="lbContainer" style={{ marginTop: 18, overflowX: 'auto' }}>
         {loading ? (
           <p className="tinyText" style={{ textAlign: 'center', padding: 30 }}>Cargando ranking...</p>
         ) : error ? (
@@ -290,7 +287,7 @@ export default function GlobalLeaderboardPage() {
         ) : rows.length === 0 ? (
           <p className="tinyText" style={{ textAlign: 'center', padding: 30 }}>Aún no hay datos en este ranking.</p>
         ) : (
-          <table className="lbTable">
+          <table className="lbTable" style={{ width: '100%', borderCollapse: 'collapse', minWidth: activeTab === 'competitive' ? '500px' : 'auto' }}>
             <thead>
               <tr>
                 <th style={{ width: 44 }}>#</th>

@@ -7384,3 +7384,76 @@ textarea,
     flex-direction: column;
   }
 }
+
+/* ---------- Season Widget & Tiers ---------- */
+.season-widget {
+  padding: 24px !important;
+}
+
+.season-widget-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.season-tier-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.season-stats-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 12px;
+}
+
+@media (max-width: 600px) {
+  .season-widget {
+    padding: 16px !important;
+    border-radius: 16px !important;
+  }
+
+  .season-widget-header {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .season-widget-header div:last-child {
+    text-align: left !important;
+  }
+
+  .season-tier-row {
+    gap: 12px;
+    padding: 10px !important;
+  }
+
+  .season-tier-icon {
+    width: 45px !important;
+    height: 45px !important;
+    font-size: 1.6rem !important;
+  }
+
+  .season-stats-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+  }
+
+  .season-stats-row>div:last-child {
+    text-align: left !important;
+    align-self: stretch;
+    width: 100%;
+  }
+
+  .season-widget-sticky-container {
+    top: 0 !important;
+    margin: -22px -22px 20px -22px !important;
+    border-radius: 0 !important;
+    border: none !important;
+    border-bottom: 1px solid var(--border) !important;
+  }
+}

@@ -50,13 +50,12 @@ export default function SeasonWidget() {
         : 100;
 
     return (
-        <div style={{
+        <div className="season-widget" style={{
             background: 'linear-gradient(135deg, rgba(20,10,40,0.95) 0%, rgba(40,20,60,0.9) 50%, rgba(20,10,40,0.95) 100%)',
             backgroundSize: '200% 200%',
             animation: 'gradientMove 6s ease infinite',
             border: '1px solid rgba(255,110,180,0.5)',
             borderRadius: '24px',
-            padding: '28px',
             margin: '0 0 24px 0',
             position: 'relative',
             overflow: 'hidden',
@@ -67,8 +66,26 @@ export default function SeasonWidget() {
             <div style={{
                 position: 'absolute', top: 0, left: 0, right: 0, height: '50%',
                 background: 'linear-gradient(180deg, rgba(255,255,255,0.05) 0%, transparent 100%)',
-                pointerEvents: 'none'
+                pointerEvents: 'none',
+                zIndex: 2
             }} />
+
+            <style>{`
+                @keyframes gradientMove {
+                    0% { background-position: 0% 50%; }
+                    50% { background-position: 100% 50%; }
+                    100% { background-position: 0% 50%; }
+                }
+                @keyframes floatParticle {
+                    0%, 100% { transform: translateY(0) scale(1); opacity: 0.3; }
+                    50% { transform: translateY(-20px) scale(1.5); opacity: 0.7; }
+                }
+                @keyframes pulseBadge {
+                    0% { transform: scale(1); filter: brightness(1); }
+                    50% { transform: scale(1.05); filter: brightness(1.3); }
+                    100% { transform: scale(1); filter: brightness(1); }
+                }
+            `}</style>
 
             {/* Floating Particles Overlay */}
             <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 1 }}>
@@ -88,30 +105,13 @@ export default function SeasonWidget() {
                 ))}
             </div>
 
-            <style>{`
-                @keyframes gradientMove {
-                    0% { background-position: 0% 50%; }
-                    50% { background-position: 100% 50%; }
-                    100% { background-position: 0% 50%; }
-                }
-                @keyframes floatParticle {
-                    0%, 100% { transform: translateY(0) scale(1); opacity: 0.3; }
-                    50% { transform: translateY(-20px) scale(1.5); opacity: 0.7; }
-                }
-                @keyframes pulse {
-                    0% { transform: scale(1); opacity: 0.8; }
-                    50% { transform: scale(1.05); opacity: 1; }
-                    100% { transform: scale(1); opacity: 0.8; }
-                }
-            `}</style>
-
             {/* Background Rush Indicator */}
             {season.is_final_phase && (
                 <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, background: '#ff0044', boxShadow: '0 0 15px #ff0044', zIndex: 10 }} />
             )}
 
             {/* Header: Title & Timer */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 }}>
+            <div className="season-widget-header" style={{ position: 'relative', zIndex: 3, marginBottom: 20 }}>
                 <div>
                     <h3 style={{ margin: 0, fontSize: '0.9rem', color: 'var(--accent)', textTransform: 'uppercase', letterSpacing: 2, fontWeight: '900' }}>
                         TEMPORADA {season.number}
@@ -130,13 +130,14 @@ export default function SeasonWidget() {
             </div>
 
             {/* Tier Status Row */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 20, background: 'rgba(255,255,255,0.03)', padding: '12px 18px', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.05)' }}>
-                <div style={{
+            <div className="season-tier-row" style={{ position: 'relative', zIndex: 3, background: 'rgba(255,255,255,0.03)', padding: '12px 18px', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                <div className="season-tier-icon" style={{
                     fontSize: '2.2rem', background: 'rgba(0,0,0,0.2)',
                     width: '60px', height: '60px', borderRadius: '12px',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                     border: `1px solid ${currentTier.color}`,
-                    boxShadow: `inset 0 0 15px ${currentTier.color}33`
+                    boxShadow: `inset 0 0 15px ${currentTier.color}33`,
+                    flexShrink: 0
                 }}>
                     {currentTier.icon}
                 </div>
@@ -150,7 +151,7 @@ export default function SeasonWidget() {
 
             {/* Progress to Next Tier */}
             {nextTier && (
-                <div style={{ marginBottom: 20 }}>
+                <div style={{ marginBottom: 20, position: 'relative', zIndex: 3 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.65rem', marginBottom: 8, textTransform: 'uppercase', fontWeight: 'bold' }}>
                         <span style={{ opacity: 0.6 }}>Progreso a {nextTier.label}</span>
                         <span style={{ color: currentTier.color }}>{Math.floor(progress)}%</span>
@@ -171,7 +172,7 @@ export default function SeasonWidget() {
             )}
 
             {/* Bottom Stats & Boosts */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
+            <div className="season-stats-row" style={{ position: 'relative', zIndex: 3 }}>
                 <div style={{ display: 'flex', flexDirection: 'column' }}>
                     <span style={{ fontSize: '0.6rem', opacity: 0.5, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4 }}>Balance de Temporada</span>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -180,14 +181,14 @@ export default function SeasonWidget() {
                         </span>
                         {(season.active_boosts?.night || season.active_boosts?.weekend || season.is_final_phase) && (
                             <div style={{ display: 'flex', gap: 4 }}>
-                                {season.active_boosts?.night && <span title="Night Boost active" style={{ animation: 'pulse 2s infinite', fontSize: '14px' }}>🌙</span>}
-                                {season.active_boosts?.weekend && <span title="Weekend Boost active" style={{ animation: 'pulse 2s infinite', fontSize: '14px' }}>🎉</span>}
-                                {season.is_final_phase && <span title="Final Phase boost active" style={{ animation: 'pulse 1s infinite', fontSize: '14px' }}>🔥</span>}
+                                {season.active_boosts?.night && <span title="Night Boost active" style={{ animation: 'pulseBadge 2s infinite', fontSize: '14px' }}>🌙</span>}
+                                {season.active_boosts?.weekend && <span title="Weekend Boost active" style={{ animation: 'pulseBadge 2s infinite', fontSize: '14px' }}>🎉</span>}
+                                {season.is_final_phase && <span title="Final Phase boost active" style={{ animation: 'pulseBadge 1s infinite', fontSize: '14px' }}>🔥</span>}
                             </div>
                         )}
                     </div>
                     <div style={{ fontSize: '0.6rem', color: '#ffd700', marginTop: 4, fontWeight: 'bold' }}>
-                        🎁 RECOMIENZA ESTIMADA: {Math.floor(season.my_balance * 0.1).toLocaleString()} DANCOINS
+                        🎁 RECOMPENSA ESTIMADA: {Math.floor(season.my_balance * 0.1).toLocaleString()} DANCOINS
                     </div>
                 </div>
 
