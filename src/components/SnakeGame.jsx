@@ -70,35 +70,34 @@ export default function SnakeGame() {
 
   useEffect(() => {
     if (!started || dead) return;
+
     const id = setInterval(() => {
-      setSnake(prev => {
-        const [dx, dy] = nextDir.current;
-        const head = [prev[0][0] + dx, prev[0][1] + dy];
-        if (head[0] < 0 || head[0] >= GRID || head[1] < 0 || head[1] >= GRID) {
-          setDead(true); return prev;
-        }
-        if (prev.some(([x, y]) => x === head[0] && y === head[1])) {
-          setDead(true); return prev;
-        }
-        setFood(f => {
-          const ate = head[0] === f[0] && head[1] === f[1];
-          if (ate) {
-            setScore(s => s + 1);
-            const next = [head, ...prev];
-            setFood(randomFood(next));
-            return randomFood(next);
-          }
-          return f;
-        });
-        const next = [head, ...prev];
-        // check food again synchronously for tail pop
-        const ate = head[0] === food[0] && head[1] === food[1];
-        if (!ate) next.pop();
-        return next;
-      });
+      const [dx, dy] = nextDir.current;
+      const head = [snake[0][0] + dx, snake[0][1] + dy];
+
+      if (head[0] < 0 || head[0] >= GRID || head[1] < 0 || head[1] >= GRID) {
+        setDead(true);
+        return;
+      }
+      if (snake.some(([x, y]) => x === head[0] && y === head[1])) {
+        setDead(true);
+        return;
+      }
+
+      const next = [head, ...snake];
+      const ate = head[0] === food[0] && head[1] === food[1];
+
+      if (ate) {
+        setScore(s => s + 1);
+        setFood(randomFood(next));
+      } else {
+        next.pop();
+      }
+      setSnake(next);
     }, SPEED);
+
     return () => clearInterval(id);
-  }, [started, dead, food]);
+  }, [started, dead, food, snake]);
 
   // Mobile controls
   const swipe = (dir) => {
