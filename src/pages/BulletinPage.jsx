@@ -61,9 +61,13 @@ const bulletinPosts = [
   { id: 57, date: "2026-02-24", title: "Global Feed de Posts", text: "Nueva sección /posts: un feed global estilo blog donde puedes leer y crear transmisiones con título y contenido Markdown completo.", tags: ["update", "comunidad", "blog"] },
   { id: 58, date: "2026-02-24", title: "Editor Markdown con Preview", text: "El composer de posts ahora tiene tabs de Escritura y Preview en tiempo real. Soporta negritas, headers, listas, código, blockquotes y tablas.", tags: ["update", "blog"] },
   { id: 59, date: "2026-02-24", title: "Página de Transmisión", text: "Cada post tiene su propia página /transmission/:id con el artículo completo en Markdown, reacciones, repost y cita directa.", tags: ["update", "blog"] },
-  { id: 60, date: "2026-02-24", title: "Edición de Posts en Vivo", text: "Los autores pueden editar sus transmisiones directamente desde la página del post sin salir de la página. Los cambios se guardan vía RPC seguro.", tags: ["update", "blog"] },
+  { id: 60, date: "2026-02-24", title: "Edición de Posts en Vivo", text: "Los autores pueden editar sus transmisiones directamente desde la página del post. Los cambios se guardan vía RPC seguro.", tags: ["update", "blog"] },
   { id: 61, date: "2026-02-24", title: "Libro de Visitas Renovado", text: "El guestbook fue completamente rediseñado con el nuevo sistema visual: formulario glassmorphism, toggle animado para modo anónimo y fechas relativas.", tags: ["diseño", "comunidad"] },
+  { id: 62, date: "2026-02-24", title: "Type Blitz", text: "Nuevo juego de habilidad: palabras caen desde arriba, tipéalas antes de que toquen la línea de peligro. Sistema de combo, 3 dificultades y récord local.", tags: ["update", "juegos"] },
+  { id: 63, date: "2026-02-24", title: "Tron Cycles", text: "Nuevo juego arcade: ciclos de luz al estilo TRON vs IA. Traza tu camino sin chocarte con paredes ni el trail del rival. Flechas, WASD y D-pad táctil.", tags: ["update", "juegos"] },
+  { id: 64, date: "2026-02-24", title: "Lights Out", text: "Nuevo puzzle clásico: apaga todas las luces del tablero 5×5. Cada celda que presionas alterna ella y sus 4 vecinas. 3 dificultades y récord por nivel.", tags: ["update", "juegos"] },
 ];
+
 
 const PAGE_SIZE = 10;
 const ALL_TAGS = [...new Set(bulletinPosts.flatMap(p => p.tags || []))].sort();
@@ -159,8 +163,8 @@ export default function BulletinPage() {
             key={tag}
             onClick={() => reset({ tag: activeTag === tag ? null : tag })}
             className={`px-3 py-1 rounded-full border text-[9px] font-black uppercase tracking-widest transition-all ${activeTag === tag
-                ? tagColor(tag) + ' scale-105'
-                : 'text-white/25 bg-white/[0.03] border-white/[0.06] hover:text-white/50'
+              ? tagColor(tag) + ' scale-105'
+              : 'text-white/25 bg-white/[0.03] border-white/[0.06] hover:text-white/50'
               }`}
           >
             #{tag}
@@ -195,8 +199,8 @@ export default function BulletinPage() {
                     {/* Dot */}
                     <div className="flex flex-col items-center shrink-0 pt-1">
                       <div className={`w-[10px] h-[10px] rounded-full border-2 mt-0.5 transition-all group-hover:scale-125 ${isNew
-                          ? 'bg-cyan-500 border-cyan-400 shadow-[0_0_8px_rgba(6,182,212,0.6)]'
-                          : 'bg-[#070710] border-white/20 group-hover:border-cyan-500/50'
+                        ? 'bg-cyan-500 border-cyan-400 shadow-[0_0_8px_rgba(6,182,212,0.6)]'
+                        : 'bg-[#070710] border-white/20 group-hover:border-cyan-500/50'
                         }`} />
                     </div>
 
