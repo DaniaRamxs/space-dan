@@ -224,68 +224,81 @@ export default function GamesPage() {
   return (
     <main className="card" style={{ paddingTop: 60, paddingBottom: 40 }}>
       {/* HUD HEADER */}
-      <div className="pageHeader" style={{ borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: 15, marginBottom: 20 }}>
-        <div>
-          <h1 style={{ letterSpacing: '4px', margin: 0, fontSize: '1.8rem' }}>GAMES<span style={{ color: 'var(--accent)' }}>.hub</span></h1>
+      <div className="pageHeader" style={{
+        borderBottom: '1px solid rgba(255,255,255,0.05)',
+        paddingBottom: 15,
+        marginBottom: 20,
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        flexWrap: 'wrap',
+        gap: 15
+      }}>
+        <div style={{ flex: '1 1 auto' }}>
+          <h1 style={{ letterSpacing: '4px', margin: 0, fontSize: 'clamp(1.4rem, 5vw, 1.8rem)' }}>
+            GAMES<span style={{ color: 'var(--accent)' }}>.hub</span>
+          </h1>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 5 }}>
-            <span style={{ fontSize: '0.7rem', textTransform: 'uppercase', opacity: 0.5 }}>Arcade Status:</span>
+            <span style={{ fontSize: '0.65rem', textTransform: 'uppercase', opacity: 0.5 }}>Arcade Status:</span>
             <span style={{ height: 6, width: 6, borderRadius: '50%', background: '#00ff00', boxShadow: '0 0 8px #00ff00' }} />
-            <span style={{ fontSize: '0.7rem', color: '#00ff00', fontWeight: 'bold' }}>SYSTEM_NOMINAL</span>
+            <span style={{ fontSize: '0.65rem', color: '#00ff00', fontWeight: 'bold' }}>SYSTEM_NOMINAL</span>
           </div>
         </div>
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 5 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 5, flex: '0 0 auto' }}>
           <SeasonMiniBadge />
-          {coinToast && <motion.span initial={{ y: 10, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="gamesCoinToast">{coinToast}</motion.span>}
+          {coinToast && <motion.span initial={{ y: 10, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="gamesCoinToast" style={{ fontSize: '0.7rem' }}>{coinToast}</motion.span>}
         </div>
       </div>
 
       {/* BENTO DASHBOARD */}
       <div className="bentoGrid">
-        <div className="bentoItem bentoLarge" style={{ background: 'linear-gradient(135deg, rgba(255,110,180,0.1), transparent)' }}>
-          <div style={{ position: 'absolute', top: 15, right: 15 }}>
+        <div className="bentoItem bentoLarge" style={{ background: 'linear-gradient(135deg, rgba(255,110,180,0.1), transparent)', minHeight: '140px' }}>
+          <div style={{ position: 'absolute', top: 12, right: 12 }}>
             <button
               onClick={() => setSoundOn(!soundOn)}
-              style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.2rem', opacity: 0.6 }}
+              style={{ background: 'rgba(255,255,255,0.05)', border: 'none', cursor: 'pointer', fontSize: '1rem', padding: '6px', borderRadius: '50%', display: 'flex' }}
             >
               {soundOn ? '🔊' : '🔈'}
             </button>
           </div>
-          <span style={{ fontSize: '0.6rem', fontWeight: 900, opacity: 0.5 }}>STATUS_PILOTO</span>
-          <h3 style={{ margin: '5px 0 15px 0', fontSize: '1.2rem' }}>{user?.user_metadata?.username || 'PILOTO_INVITADO'}</h3>
-          <div style={{ display: 'flex', gap: 20 }}>
+          <span style={{ fontSize: '0.6rem', fontWeight: 900, opacity: 0.5, letterSpacing: 1 }}>STATUS_PILOTO</span>
+          <h3 style={{ margin: '4px 0 10px 0', fontSize: 'clamp(1rem, 4vw, 1.2rem)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            {user?.user_metadata?.username || 'PILOTO_INVITADO'}
+          </h3>
+          <div style={{ display: 'flex', gap: '15%' }}>
             <div>
-              <div style={{ opacity: 0.5, fontSize: '0.5rem' }}>MAESTRÍA</div>
-              <div style={{ fontSize: '1.2rem', fontWeight: 900 }}>{Math.floor(masteryProgress)}%</div>
+              <div style={{ opacity: 0.5, fontSize: '0.45rem', fontWeight: 900 }}>MAESTRÍA</div>
+              <div style={{ fontSize: '1.1rem', fontWeight: 900 }}>{Math.floor(masteryProgress)}%</div>
             </div>
             <div>
-              <div style={{ opacity: 0.5, fontSize: '0.5rem' }}>RANK_TEMP</div>
-              <div style={{ fontSize: '1.2rem', fontWeight: 900, color: 'var(--accent)' }}>#{season?.rank || '—'}</div>
+              <div style={{ opacity: 0.5, fontSize: '0.45rem', fontWeight: 900 }}>RANK_TEMP</div>
+              <div style={{ fontSize: '1.1rem', fontWeight: 900, color: 'var(--accent)' }}>#{season?.rank || '—'}</div>
             </div>
           </div>
-          <div style={{ marginTop: 15, height: 4, background: 'rgba(255,255,255,0.05)', borderRadius: 2 }}>
+          <div style={{ marginTop: 'auto', paddingTop: 10, height: 4, background: 'rgba(255,255,255,0.05)', borderRadius: 2 }}>
             <motion.div initial={{ width: 0 }} animate={{ width: `${masteryProgress}%` }} style={{ height: '100%', background: 'var(--accent)', borderRadius: 2 }} />
           </div>
         </div>
 
-        <div className="bentoItem" onClick={handleSurpriseMe} style={{ cursor: 'pointer', border: '1px solid rgba(255,215,0,0.2)' }}>
-          <span style={{ fontSize: '1.5rem', marginBottom: 5 }}>🎲</span>
-          <span style={{ fontSize: '0.7rem', fontWeight: 'bold' }}>QUICK_PLAY</span>
-          <span style={{ fontSize: '0.5rem', opacity: 0.5 }}>Lanzar juego aleatorio</span>
+        <div className="bentoItem" onClick={handleSurpriseMe} style={{ cursor: 'pointer', border: '1px solid rgba(255,215,0,0.2)', padding: '15px 10px' }}>
+          <span style={{ fontSize: '1.2rem', marginBottom: 2 }}>🎲</span>
+          <span style={{ fontSize: '0.65rem', fontWeight: 'bold' }}>QUICK_PLAY</span>
+          <span style={{ fontSize: '0.5rem', opacity: 0.5 }}>Aleatorio</span>
         </div>
 
-        <div className="bentoItem" style={{ border: '1px solid rgba(0,229,255,0.2)' }}>
-          <span style={{ fontSize: '1.5rem', marginBottom: 5 }}>⏳</span>
-          <span style={{ fontSize: '0.7rem', fontWeight: 'bold' }}>DAILY_CAP</span>
-          <span style={{ fontSize: '0.7rem', color: '#00e5ff' }}>◈ {season?.daily_reward_earned || 0}/{season?.daily_reward_cap || 0}</span>
+        <div className="bentoItem" style={{ border: '1px solid rgba(0,229,255,0.2)', padding: '15px 10px' }}>
+          <span style={{ fontSize: '1.2rem', marginBottom: 2 }}>⏳</span>
+          <span style={{ fontSize: '0.65rem', fontWeight: 'bold' }}>DAILY_CAP</span>
+          <span style={{ fontSize: '0.65rem', color: '#00e5ff', fontWeight: 900 }}>◈ {season?.daily_reward_earned}/{season?.daily_reward_cap}</span>
         </div>
 
-        <div className="bentoItem bentoWide" style={{ background: 'rgba(255,110,180,0.05)' }}>
+        <div className="bentoItem bentoWide" style={{ background: 'rgba(255,110,180,0.05)', padding: '12px 15px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div>
-              <span style={{ fontSize: '0.6rem', opacity: 0.5 }}>EVENTO_ACTIVO</span>
-              <div style={{ fontWeight: 900, color: '#ffea00' }}>MULTIPLIER x{season?.boost_multiplier || 1.0}</div>
+              <span style={{ fontSize: '0.55rem', opacity: 0.5 }}>EVENTO_ACTIVO</span>
+              <div style={{ fontWeight: 900, fontSize: '0.85rem', color: '#ffea00' }}>MULTIPLIER x{season?.boost_multiplier || 1.0}</div>
             </div>
-            <div style={{ fontSize: '1.5rem' }}>🔥</div>
+            <div style={{ fontSize: '1.2rem' }}>🔥</div>
           </div>
         </div>
       </div>
