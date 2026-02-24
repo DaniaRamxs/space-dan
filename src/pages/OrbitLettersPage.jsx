@@ -10,7 +10,8 @@ import { Grid } from '@giphy/react-components';
 const gf = new GiphyFetch('3k4Fdn6D040IQvIq1KquLZzJgutP3dGp');
 
 export default function OrbitLettersPage() {
-    useAuthContext();
+    const { user } = useAuthContext();
+
     const [conversations, setConversations] = useState([]);
     const [activeConv, setActiveConv] = useState(null);
     const [letters, setLetters] = useState([]);
