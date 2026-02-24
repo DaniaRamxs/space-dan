@@ -155,7 +155,6 @@ export default function GlobalLeaderboardPage() {
   const [selectedProfile, setSelectedProfile] = useState(null);
 
   const fetchTab = useCallback(async (tabId) => {
-    if (data[tabId]) return;           // already loaded
     setLoading(true);
     setError(null);
     try {
