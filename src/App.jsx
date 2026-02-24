@@ -46,6 +46,8 @@ const VaultPage = lazy(() => import("./pages/VaultPage"));
 const FocusRoom = lazy(() => import("./pages/FocusRoom"));
 const OnboardingPage = lazy(() => import("./pages/OnboardingPage"));
 const VinculosPage = lazy(() => import("./pages/VinculosPage"));
+const PostDetailPage = lazy(() => import("./pages/PostDetailPage"));
+
 
 
 const ALL_PAGES = ['/home', '/bulletin', '/posts', '/music', '/games', '/galeria',
@@ -122,6 +124,7 @@ function AnimatedRoutes() {
         <Route path="/profile/:userId" element={<Layout><ProfilePage /></Layout>} />
         <Route path="/bulletin" element={<Layout><BulletinPage /></Layout>} />
         <Route path="/posts" element={<Layout><PostsPage /></Layout>} />
+        <Route path="/transmission/:postId" element={<Layout><PostDetailPage /></Layout>} />
         <Route path="/log/:slug" element={<Layout><PostPage /></Layout>} />
         <Route path="/create-post" element={<Layout><CreatePostPage /></Layout>} />
         <Route path="/edit-post/:id" element={<Layout><CreatePostPage /></Layout>} />

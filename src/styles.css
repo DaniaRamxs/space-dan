@@ -61,9 +61,9 @@ body {
   margin: 0;
   padding: 0;
   position: relative;
-  -webkit-overflow-scrolling: touch;
   overflow-x: clip;
 }
+
 
 img,
 video,
@@ -7869,12 +7869,8 @@ textarea,
   --topbar-h: 52px;
 }
 
-/* Touch scroll */
-html,
-body {
-  -webkit-overflow-scrolling: touch;
-  overscroll-behavior-y: contain;
-}
+/* Touch scroll — overscroll-behavior consolidado en html (arriba) */
+
 
 /* Overflow safe */
 .gardenShell,

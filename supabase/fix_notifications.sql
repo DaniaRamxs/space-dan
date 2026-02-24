@@ -5,7 +5,7 @@
 -- 1. Update notifications table to allow 'letter' and 'room_invite'
 ALTER TABLE public.notifications DROP CONSTRAINT IF EXISTS notifications_type_check;
 ALTER TABLE public.notifications ADD CONSTRAINT notifications_type_check 
-  CHECK (type IN ('achievement', 'record', 'system', 'letter', 'room_invite'));
+  CHECK (type IN ('achievement', 'record', 'system', 'letter', 'room_invite', 'partnership_request', 'social'));
 
 -- 2. Create the create_notification function in PL/pgSQL
 -- This is used by send_letter and create_private_room

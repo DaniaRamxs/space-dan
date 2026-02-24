@@ -7,7 +7,7 @@
 CREATE TABLE IF NOT EXISTS public.notifications (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id uuid NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
-  type text NOT NULL CHECK (type IN ('achievement', 'record', 'system', 'letter', 'room_invite', 'partnership_request')),
+  type text NOT NULL CHECK (type IN ('achievement', 'record', 'system', 'letter', 'room_invite', 'partnership_request', 'social')),
   message text NOT NULL,
   reference_id uuid, -- Optional link to another table (e.g., request_id)
   is_read boolean DEFAULT false,

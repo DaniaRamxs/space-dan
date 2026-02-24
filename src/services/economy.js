@@ -35,12 +35,12 @@ export async function getBalance(userId) {
  */
 export async function awardCoins(userId, amount, type, reference = null, description = null) {
   const { data, error } = await supabase.rpc('award_coins', {
-    p_user_id:    userId,
-    p_amount:     amount,
-    p_type:       type,
-    p_reference:  reference,
+    p_user_id: userId,
+    p_amount: amount,
+    p_type: type,
+    p_reference: reference,
     p_description: description,
-    p_metadata:   {},
+    p_metadata: {},
   });
   if (error) throw error;
   return data;
@@ -52,13 +52,27 @@ export async function awardCoins(userId, amount, type, reference = null, descrip
 
 /**
  * Reclama el bonus diario. El servidor valida el cooldown de 20h.
- * @returns {Promise<{success: boolean, bonus: number, balance: number}>}
+ * Si ya fue reclamado hoy, retorna { success: false, reason: 'cooldown', message }
+ * en lugar de tirar excepción.
+ * @returns {Promise<{success: boolean, bonus?: number, balance?: number, reason?: string, message?: string}>}
  */
 export async function claimDailyBonus(userId) {
   const { data, error } = await supabase.rpc('claim_daily_bonus', {
     p_user_id: userId,
   });
-  if (error) throw error;
+
+  if (error) {
+    const msg = error.message || '';
+    // El servidor hace RAISE EXCEPTION con "Ya reclamaste el bonus"
+    // Esto llega como un 400 — lo convertimos en resultado, no en excepción
+    if (msg.toLowerCase().includes('reclamaste') || msg.toLowerCase().includes('cooldown') || msg.toLowerCase().includes('próximo')) {
+      return { success: false, reason: 'cooldown', message: msg };
+    }
+    // Cualquier otro error sí es un problema real
+    console.error('[claimDailyBonus] Server error:', error);
+    throw error;
+  }
+
   return data;
 }
 
@@ -78,9 +92,9 @@ export async function claimDailyBonus(userId) {
 export async function transferCoins(fromUserId, toUserId, amount, message = null) {
   const { data, error } = await supabase.rpc('transfer_coins', {
     p_from_user_id: fromUserId,
-    p_to_user_id:   toUserId,
-    p_amount:       amount,
-    p_message:      message,
+    p_to_user_id: toUserId,
+    p_amount: amount,
+    p_message: message,
   });
   if (error) throw error;
   return data;
@@ -114,8 +128,8 @@ export async function getTransferHistory(userId, limit = 20) {
 export async function getTransactionHistory(userId, limit = 30, offset = 0) {
   const { data, error } = await supabase.rpc('get_transaction_history', {
     p_user_id: userId,
-    p_limit:   limit,
-    p_offset:  offset,
+    p_limit: limit,
+    p_offset: offset,
   });
   if (error) throw error;
   return data;
@@ -161,7 +175,7 @@ export async function donateToFund(userId, fundId, amount) {
   const { data, error } = await supabase.rpc('donate_to_fund', {
     p_user_id: userId,
     p_fund_id: fundId,
-    p_amount:  amount,
+    p_amount: amount,
   });
   if (error) throw error;
   return data;
@@ -189,7 +203,7 @@ export async function migrateLegacyCoins(userId) {
 
   const { data, error } = await supabase.rpc('migrate_localstorage_coins', {
     p_user_id: userId,
-    p_amount:  localCoins,
+    p_amount: localCoins,
   });
 
   if (!error && data?.success) {

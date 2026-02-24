@@ -1,6 +1,6 @@
 -- Habilitar "social" en notifications preservando lo anterior
 ALTER TABLE public.notifications DROP CONSTRAINT IF EXISTS notifications_type_check;
-ALTER TABLE public.notifications ADD CONSTRAINT notifications_type_check CHECK (type IN ('achievement', 'record', 'system', 'letter', 'room_invite', 'social'));
+ALTER TABLE public.notifications ADD CONSTRAINT notifications_type_check CHECK (type IN ('achievement', 'record', 'system', 'letter', 'room_invite', 'partnership_request', 'social'));
 
 -- Crear tabla post_likes
 CREATE TABLE IF NOT EXISTS public.post_likes (
@@ -16,6 +16,9 @@ CREATE INDEX IF NOT EXISTS idx_post_likes_user ON public.post_likes(user_id);
 
 ALTER TABLE public.post_likes ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "post_likes_read" ON public.post_likes;
+DROP POLICY IF EXISTS "post_likes_insert" ON public.post_likes;
+DROP POLICY IF EXISTS "post_likes_delete" ON public.post_likes;
 CREATE POLICY "post_likes_read" ON public.post_likes FOR SELECT USING (true);
 CREATE POLICY "post_likes_insert" ON public.post_likes FOR INSERT WITH CHECK (auth.uid() = user_id);
 CREATE POLICY "post_likes_delete" ON public.post_likes FOR DELETE USING (auth.uid() = user_id);
