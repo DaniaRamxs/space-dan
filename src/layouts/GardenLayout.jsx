@@ -57,20 +57,23 @@ export default function GardenLayout({ children }) {
 
   // Daily bonus on first visit of the day
   useEffect(() => {
+    let mounted = true;
     async function checkDaily() {
+      // Check synchronously first to avoid network request if already claimed
       if (canClaimDaily && canClaimDaily()) {
         try {
           const res = await claimDaily();
-          if (res?.success) {
+          if (mounted && res?.success) {
             setDailyFlash(true);
             setTimeout(() => setDailyFlash(false), 3000);
           }
         } catch (e) {
-          // Ya reclamado o error
+          // Ya reclamado o error (e.g., 400 Bad Request because already claimed server-side)
         }
       }
     }
     checkDaily();
+    return () => { mounted = false; };
   }, [claimDaily, canClaimDaily]);
 
   const isFixedLayout = FIXED_LAYOUT_PATHS.some(p => location.pathname.startsWith(p));
