@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, Suspense, lazy } from 'react';
+import { useState, useEffect, useRef, Suspense, lazy, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { awardCoins } from '../hooks/useDancoins';
 import { unlockAchievement } from '../hooks/useAchievements';
@@ -7,7 +7,6 @@ import { saveScore } from '../services/supabaseScores';
 import Leaderboard from '../components/Leaderboard';
 import { ErrorBoundary } from '../components/ErrorBoundary';
 import { useSeason } from '../hooks/useSeason';
-
 import SeasonMiniBadge from '../components/SeasonMiniBadge';
 
 const TicTacToe = lazy(() => import('../components/TicTacToe'));
@@ -77,7 +76,7 @@ function markGamePlayed(gameId) {
 
 export default function GamesPage() {
   const { user } = useAuthContext();
-  const { claimSeasonReward } = useSeason();
+  const { claimSeasonReward, season } = useSeason();
   const [openId, setOpenId] = useState(null);
   const [coinToast, setCoinToast] = useState(null);
   const [lbKey, setLbKey] = useState(0);
@@ -87,133 +86,193 @@ export default function GamesPage() {
   const toastTimer = useRef(null);
   const openIdRef = useRef(null);
 
-  // Categorías únicas
-  const categories = ['All', ...new Set(GAMES.map(g => g.category))];
+  // Featured Game (Random but stable for session)
+  const featuredGame = useMemo(() => {
+    return GAMES[Math.floor(Math.random() * GAMES.length)];
+  }, []);
 
-  // Filtrado de juegos memoizado
-  const filteredGames = GAMES.filter(game => {
-    const matchesSearch = game.title.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCat = filterCat === 'All' || game.category === filterCat;
-    return matchesSearch && matchesCat;
-  });
+  const categories = useMemo(() => ['All', ...new Set(GAMES.map(g => g.category))], []);
 
-  // Mantener ref actualizada con el juego abierto
+  const filteredGames = useMemo(() => {
+    return GAMES.filter(game => {
+      const matchesSearch = game.title.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesCat = filterCat === 'All' || game.category === filterCat;
+      return matchesSearch && matchesCat;
+    });
+  }, [searchTerm, filterCat]);
+
+  const playedSet = loadPlayedGames();
+  const masteryProgress = (playedSet.size / GAMES.length) * 100;
+
   useEffect(() => { openIdRef.current = openId; }, [openId]);
+
+  const showCoinToast = useCallback((msg) => {
+    setCoinToast(msg);
+    clearTimeout(toastTimer.current);
+    toastTimer.current = setTimeout(() => setCoinToast(null), 2200);
+  }, []);
 
   // Escuchar scores de los juegos
   useEffect(() => {
     const onScore = async (e) => {
       const { isHighScore, score } = e.detail || {};
       if (isHighScore) unlockAchievement('highscore');
-
       const bonus = Math.min(20, Math.floor((score || 0) / 20));
       if (bonus > 0) {
         if (user) {
           const rewardMeta = await claimSeasonReward(bonus);
           if (rewardMeta && rewardMeta.awarded !== undefined) {
             showCoinToast(`+${rewardMeta.awarded} ◈`);
-            if (rewardMeta.cap_hit) {
-              console.log('[Season] Cap de monedas diario alcanzado.');
-            }
-            if (rewardMeta.boosts?.rush) {
-              console.log('[Season] Fase final activa, ganancia aumentada.');
-            }
           } else {
-            awardCoins(bonus); // Fallback si falla backend
+            awardCoins(bonus);
             showCoinToast(`+${bonus} ◈`);
           }
         } else {
-          awardCoins(bonus); // Guest local fallback
+          awardCoins(bonus);
           showCoinToast(`+${bonus} ◈`);
         }
       }
-
-      // Guardar en Supabase si el usuario está autenticado
       const gameId = e.detail?.gameId || openIdRef.current;
       if (user && gameId && score != null) {
         saveScore(user.id, gameId, score).then(() => setLbKey(k => k + 1));
       }
     };
-
     window.addEventListener('dan:game-score', onScore);
     return () => window.removeEventListener('dan:game-score', onScore);
-  }, [user, claimSeasonReward]);
+  }, [user, claimSeasonReward, showCoinToast]);
 
-  const showCoinToast = (msg) => {
-    setCoinToast(msg);
-    clearTimeout(toastTimer.current);
-    toastTimer.current = setTimeout(() => setCoinToast(null), 2200);
-  };
-
-  const handleToggle = (gameId, isOpen) => {
-    setOpenId(isOpen ? null : gameId);
-
-    if (!isOpen) {
+  const handleToggle = (gameId) => {
+    setOpenId(gameId);
+    if (gameId) {
       const isNew = markGamePlayed(gameId);
       if (isNew) {
         awardCoins(5);
         showCoinToast('+5 ◈ juego nuevo!');
-        const count = loadPlayedGames().size;
-        if (count >= 5) unlockAchievement('gamer');
+        if (loadPlayedGames().size >= 5) unlockAchievement('gamer');
       }
     }
+  };
+
+  const handleSurpriseMe = () => {
+    const randomGame = GAMES[Math.floor(Math.random() * GAMES.length)];
+    handleToggle(randomGame.id);
   };
 
   const activeGame = GAMES.find(g => g.id === openId);
   const GameComponent = activeGame?.component;
 
   return (
-    <main className="card">
-      <div className="pageHeader">
-        <h1 style={{ letterSpacing: '2px' }}>GAMES.hub</h1>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-          <p className="tinyText" style={{ margin: 0, opacity: 0.8 }}>{GAMES.length} minijuegos disponibles</p>
+    <main className="card" style={{ paddingBottom: 60 }}>
+      {/* HUD HEADER */}
+      <div className="pageHeader" style={{ borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: 15, marginBottom: 20 }}>
+        <div>
+          <h1 style={{ letterSpacing: '4px', margin: 0, fontSize: '1.8rem' }}>GAMES<span style={{ color: 'var(--accent)' }}>.hub</span></h1>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 5 }}>
+            <span style={{ fontSize: '0.7rem', textTransform: 'uppercase', opacity: 0.5 }}>Sync Status:</span>
+            <span style={{ height: 6, width: 6, borderRadius: '50%', background: '#00ff00', boxShadow: '0 0 5px #00ff00' }} />
+            <span style={{ fontSize: '0.7rem', color: 'var(--accent)', fontWeight: 'bold' }}>ONLINE</span>
+          </div>
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 5 }}>
           <SeasonMiniBadge />
-          {coinToast && <span className="gamesCoinToast">{coinToast}</span>}
+          {coinToast && <motion.span initial={{ y: 10, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="gamesCoinToast">{coinToast}</motion.span>}
         </div>
       </div>
 
-      <div style={{ marginBottom: 20 }}>
-        <input
-          type="text"
-          placeholder="Buscar un juego..."
-          className="searchBar"
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
+      {/* MASTERY BAR */}
+      <div style={{ marginBottom: 25 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.65rem', fontWeight: '900', marginBottom: 5, textTransform: 'uppercase', opacity: 0.7 }}>
+          <span>Progreso de Maestría</span>
+          <span>{playedSet.size} / {GAMES.length} juegos</span>
+        </div>
+        <div style={{ height: 4, background: 'rgba(255,255,255,0.05)', borderRadius: 2, overflow: 'hidden' }}>
+          <motion.div
+            initial={{ width: 0 }}
+            animate={{ width: `${masteryProgress}%` }}
+            transition={{ duration: 1 }}
+            style={{ height: '100%', background: 'linear-gradient(90deg, var(--accent-dim), var(--accent))' }}
+          />
+        </div>
+      </div>
+
+      {/* HERO SECTION */}
+      {searchTerm === '' && filterCat === 'All' && (
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="gameHero"
           style={{
-            width: '100%',
-            background: 'rgba(255,255,255,0.05)',
-            border: '1px solid rgba(255,255,255,0.1)',
-            borderRadius: '12px',
-            padding: '12px 16px',
-            color: '#fff',
-            fontSize: '1rem',
-            outline: 'none',
-            marginBottom: '12px'
+            background: 'linear-gradient(135deg, rgba(255,110,180,0.1) 0%, rgba(0,0,0,0.4) 100%)',
+            border: '1px solid rgba(255,110,180,0.2)',
+            borderRadius: '24px',
+            padding: '24px',
+            marginBottom: 30,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 15,
+            position: 'relative',
+            overflow: 'hidden'
           }}
-        />
-        <div className="categoryTabs" style={{
-          display: 'flex',
-          gap: 8,
-          overflowX: 'auto',
-          paddingBottom: 8,
-          scrollbarWidth: 'none'
-        }}>
+        >
+          <div style={{ position: 'absolute', top: -20, right: -20, fontSize: '8rem', opacity: 0.1, pointerEvents: 'none' }}>
+            {featuredGame.icon}
+          </div>
+          <div style={{ position: 'relative', zIndex: 1 }}>
+            <span style={{ background: 'var(--accent)', color: '#fff', fontSize: '0.6rem', padding: '3px 10px', borderRadius: '20px', fontWeight: '900' }}>RECOMENDADO</span>
+            <h2 style={{ fontSize: '2rem', margin: '10px 0 5px 0', textTransform: 'uppercase' }}>{featuredGame.title}</h2>
+            <p style={{ fontSize: '0.85rem', opacity: 0.7, maxWidth: '70%', marginBottom: 20 }}>Domina las mecánicas y sube al top del leaderboard global.</p>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button
+                onClick={() => handleToggle(featuredGame.id)}
+                className="btn-glow"
+                style={{
+                  background: 'var(--accent)', color: '#fff', border: 'none', padding: '12px 25px', borderRadius: '12px',
+                  fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8
+                }}
+              >
+                JUGAR AHORA 🎮
+              </button>
+              <button
+                onClick={handleSurpriseMe}
+                style={{
+                  background: 'rgba(255,255,255,0.05)', color: '#fff', border: '1px solid rgba(255,255,255,0.1)',
+                  padding: '12px 20px', borderRadius: '12px', fontWeight: 'bold', cursor: 'pointer'
+                }}
+              >
+                🎲 SORPRÉNDEME
+              </button>
+            </div>
+          </div>
+        </motion.div>
+      )}
+
+      {/* FILTERS */}
+      <div style={{ marginBottom: 25 }}>
+        <div style={{ position: 'relative', marginBottom: 15 }}>
+          <span style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', opacity: 0.5 }}>🔍</span>
+          <input
+            type="text"
+            placeholder="Buscar por nombre..."
+            className="searchBar"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            style={{
+              width: '100%', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.1)',
+              borderRadius: '16px', padding: '14px 14px 14px 44px', color: '#fff', fontSize: '1rem', outline: 'none'
+            }}
+          />
+        </div>
+        <div className="categoryTabs" style={{ display: 'flex', gap: 10, overflowX: 'auto', paddingBottom: 10, scrollbarWidth: 'none' }}>
           {categories.map(cat => (
             <button
               key={cat}
               onClick={() => setFilterCat(cat)}
               style={{
-                background: filterCat === cat ? 'var(--accent)' : 'rgba(255,255,255,0.05)',
-                color: filterCat === cat ? '#fff' : 'rgba(255,255,255,0.6)',
-                border: 'none',
-                padding: '6px 14px',
-                borderRadius: '8px',
-                fontSize: '0.8rem',
-                fontWeight: '900',
-                whiteSpace: 'nowrap',
-                cursor: 'pointer',
-                transition: 'all 0.2s'
+                background: filterCat === cat ? 'linear-gradient(45deg, var(--accent-dim), var(--accent))' : 'rgba(255,255,255,0.05)',
+                color: filterCat === cat ? '#fff' : 'rgba(255,255,255,0.5)',
+                border: 'none', padding: '8px 18px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: '900',
+                whiteSpace: 'nowrap', cursor: 'pointer', transition: 'all 0.3s',
+                boxShadow: filterCat === cat ? '0 4px 15px var(--accent-dim)' : 'none'
               }}
             >
               {cat.toUpperCase()}
@@ -223,37 +282,42 @@ export default function GamesPage() {
       </div>
 
       {!user && (
-        <p className="tinyText" style={{ textAlign: 'center', marginBottom: 15, opacity: 0.5, border: '1px solid rgba(255,255,255,0.05)', padding: '8px', borderRadius: '8px' }}>
-          ⚠️ Inicia sesión para guardar tus récords y competir globalmente.
+        <p className="tinyText" style={{ textAlign: 'center', marginBottom: 20, opacity: 0.5, background: 'rgba(255,215,0,0.05)', border: '1px solid rgba(255,215,0,0.1)', padding: '12px', borderRadius: '12px', color: '#ffd700' }}>
+          ⚠️ Inicia sesión para guardar récords y competir en la temporada actual.
         </p>
       )}
 
+      {/* GRID */}
       {filteredGames.length === 0 ? (
-        <div style={{ textAlign: 'center', padding: '40px 20px', opacity: 0.5 }}>
-          <div style={{ fontSize: '3rem', marginBottom: 10 }}>📡</div>
-          <p>No se encontraron juegos que coincidan con tu búsqueda.</p>
+        <div style={{ textAlign: 'center', padding: '60px 20px', opacity: 0.3 }}>
+          <div style={{ fontSize: '4rem', marginBottom: 15 }}>🛸</div>
+          <p style={{ fontWeight: 'bold' }}>No se detectaron señales de ese juego.</p>
         </div>
       ) : (
         <div className="gamesGrid" style={{ marginTop: 0 }}>
-          {filteredGames.map((game, i) => {
-            const isPlayed = loadPlayedGames().has(game.id);
-            return (
-              <motion.div
-                key={game.id}
-                layout
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: i * 0.02 }}
-                className="gameCard"
-                onClick={() => handleToggle(game.id, false)}
-              >
-                {!isPlayed && <span className="gameCardBadge">NUEVO</span>}
-                <span className="gameCardIcon">{game.icon}</span>
-                <span className="gameCardTitle">{game.title}</span>
-                <span style={{ fontSize: '0.6rem', opacity: 0.4, textTransform: 'uppercase', letterSpacing: 0.5 }}>{game.category}</span>
-              </motion.div>
-            );
-          })}
+          <AnimatePresence mode='popLayout'>
+            {filteredGames.map((game, i) => {
+              const isPlayed = playedSet.has(game.id);
+              return (
+                <motion.div
+                  key={game.id}
+                  layout
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.8 }}
+                  transition={{ delay: i * 0.01 }}
+                  className="gameCard"
+                  onClick={() => handleToggle(game.id)}
+                  style={{ border: isPlayed ? '1px solid rgba(255,255,255,0.08)' : '1px dotted var(--accent)' }}
+                >
+                  {!isPlayed && <span className="gameCardBadge">NUEVO</span>}
+                  <span className="gameCardIcon">{game.icon}</span>
+                  <span className="gameCardTitle">{game.title}</span>
+                  <span style={{ fontSize: '0.6rem', opacity: 0.4, textTransform: 'uppercase', letterSpacing: 0.5 }}>{game.category}</span>
+                </motion.div>
+              );
+            })}
+          </AnimatePresence>
         </div>
       )}
 
@@ -262,23 +326,33 @@ export default function GamesPage() {
         {openId && activeGame && (
           <motion.div
             className="gameOverlay"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
+            initial={{ opacity: 0, scale: 1.1 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 1.1 }}
+            transition={{ type: 'spring', damping: 25, stiffness: 200 }}
           >
             <div className="crtEffect" />
-            <div className="gameOverlayHeader">
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                <span style={{ fontSize: '1.5rem' }}>{activeGame.icon}</span>
-                <span style={{ fontWeight: '900', textTransform: 'uppercase', letterSpacing: 1 }}>{activeGame.title}</span>
+            <div className="gameOverlayHeader" style={{ background: 'rgba(5,5,20,0.8)', backdropFilter: 'blur(10px)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 15 }}>
+                <div style={{ fontSize: '2rem', animation: 'pulse 2s infinite' }}>{activeGame.icon}</div>
+                <div>
+                  <div style={{ fontWeight: '900', textTransform: 'uppercase', letterSpacing: 2, fontSize: '1.2rem' }}>{activeGame.title}</div>
+                  <div style={{ fontSize: '0.6rem', opacity: 0.6, letterSpacing: 1 }}>SISTEMA_ARCADE_V2.0</div>
+                </div>
               </div>
-              <button className="gameCloseBtn" onClick={() => setOpenId(null)} style={{ position: 'relative', zIndex: 100 }}>✕</button>
+              <button
+                className="gameCloseBtn"
+                onClick={() => setOpenId(null)}
+                style={{ position: 'relative', zIndex: 5001, background: '#ff4444' }}
+              >
+                ESC
+              </button>
             </div>
 
             <div className="gameOverlayContent">
               <div className="gameScale">
                 <ErrorBoundary>
-                  <Suspense fallback={<div style={{ color: 'var(--accent)', fontSize: 14, fontFamily: 'monospace' }}>inicializando_sistema...</div>}>
+                  <Suspense fallback={<div style={{ color: 'var(--accent)', fontSize: 14, fontFamily: 'monospace' }}>CARGANDO_ASSETS...</div>}>
                     {GameComponent && <GameComponent />}
                   </Suspense>
                 </ErrorBoundary>
@@ -286,38 +360,29 @@ export default function GamesPage() {
 
               {/* Game Stats Bar */}
               <div style={{
-                display: 'flex',
-                gap: 20,
-                background: 'rgba(255,255,255,0.05)',
-                padding: '12px 20px',
-                borderRadius: '12px',
-                border: '1px solid rgba(255,255,255,0.1)',
-                marginBottom: 20,
-                width: '100%',
-                maxWidth: '600px',
-                justifyContent: 'space-around',
-                fontSize: '0.8rem',
-                fontWeight: 'bold'
+                display: 'flex', gap: 15, background: 'rgba(255,110,180,0.05)', padding: '15px 25px', borderRadius: '20px',
+                border: '1px solid rgba(255,110,180,0.2)', marginBottom: 25, width: '100%', maxWidth: '600px',
+                justifyContent: 'space-around', fontSize: '0.75rem', fontWeight: 'bold', position: 'relative', zIndex: 1
               }}>
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                  <span style={{ opacity: 0.5, fontSize: '0.6rem', textTransform: 'uppercase' }}>Daily Capacity</span>
+                  <span style={{ opacity: 0.5, fontSize: '0.55rem', textTransform: 'uppercase', marginBottom: 3 }}>Daily Capacity</span>
                   <span style={{ color: (season?.daily_reward_earned || 0) >= (season?.daily_reward_cap || 1) ? '#ff5555' : 'var(--accent)' }}>
                     ◈ {season?.daily_reward_earned || 0} / {season?.daily_reward_cap || 0}
                   </span>
                 </div>
                 {season?.boost_multiplier > 1 && (
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                    <span style={{ opacity: 0.5, fontSize: '0.6rem', textTransform: 'uppercase' }}>Active Boost</span>
-                    <span style={{ color: '#ffea00' }}>x{season.boost_multiplier} Multiplier</span>
+                    <span style={{ opacity: 0.5, fontSize: '0.55rem', textTransform: 'uppercase', marginBottom: 3 }}>Multiplier</span>
+                    <span style={{ color: '#ffea00' }}>x{season.boost_multiplier} active</span>
                   </div>
                 )}
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                  <span style={{ opacity: 0.5, fontSize: '0.6rem', textTransform: 'uppercase' }}>Total Games Played</span>
-                  <span>{loadPlayedGames().size}</span>
+                  <span style={{ opacity: 0.5, fontSize: '0.55rem', textTransform: 'uppercase', marginBottom: 3 }}>User Rank</span>
+                  <span style={{ color: '#00e5ff' }}>#{season?.rank || '—'}</span>
                 </div>
               </div>
 
-              <div style={{ width: '100%', maxWidth: '600px' }}>
+              <div style={{ width: '100%', maxWidth: '600px', position: 'relative', zIndex: 1 }}>
                 <Leaderboard gameId={activeGame.id} refreshKey={lbKey} />
               </div>
             </div>
