@@ -42,7 +42,8 @@ CREATE INDEX IF NOT EXISTS idx_cabin_notes_user ON public.cabin_notes(user_id);
 
 -- ... (rest of the file remains, but I need to add the RPC at the end)
 
--- 5. Focus Leaderboard RPC
+-- 5. Focus Leaderboard RPC with tie-breaker and level
+DROP FUNCTION IF EXISTS public.get_focus_leaderboard(integer);
 CREATE OR REPLACE FUNCTION public.get_focus_leaderboard(p_limit integer)
 RETURNS TABLE (
     user_id uuid,
@@ -50,6 +51,7 @@ RETURNS TABLE (
     avatar_url text,
     total_minutes bigint,
     total_sessions integer,
+    user_level int,
     rank bigint
 ) LANGUAGE plpgsql SECURITY DEFINER AS $$
 BEGIN
@@ -60,13 +62,15 @@ BEGIN
         p.avatar_url,
         s.total_focus_minutes as total_minutes,
         s.total_sessions,
-        RANK() OVER (ORDER BY s.total_focus_minutes DESC) as rank
+        FLOOR(0.1 * SQRT(public.get_user_xp(p.id)))::int as user_level,
+        RANK() OVER (ORDER BY s.total_focus_minutes DESC, public.get_user_xp(p.id) DESC) as rank
     FROM public.cabin_stats s
     JOIN public.profiles p ON s.user_id = p.id
-    ORDER BY s.total_focus_minutes DESC
+    ORDER BY s.total_focus_minutes DESC, public.get_user_xp(p.id) DESC
     LIMIT p_limit;
 END;
 $$;
+
 
 -- 3. Pomodoro Sessions
 CREATE TABLE IF NOT EXISTS public.cabin_sessions (
@@ -92,27 +96,36 @@ CREATE TABLE IF NOT EXISTS public.cabin_stats (
 
 -- cabin_tasks
 ALTER TABLE public.cabin_tasks ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Tasks: owner full access" ON public.cabin_tasks;
 CREATE POLICY "Tasks: owner full access" ON public.cabin_tasks
   USING (auth.uid() = user_id)
   WITH CHECK (auth.uid() = user_id);
 
+
 -- cabin_notes
 ALTER TABLE public.cabin_notes ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Notes: owner full access" ON public.cabin_notes;
 CREATE POLICY "Notes: owner full access" ON public.cabin_notes
   USING (auth.uid() = user_id)
   WITH CHECK (auth.uid() = user_id);
 
+
 -- cabin_sessions
 ALTER TABLE public.cabin_sessions ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Sessions: owner read/insert" ON public.cabin_sessions;
 CREATE POLICY "Sessions: owner read/insert" ON public.cabin_sessions
   FOR ALL USING (auth.uid() = user_id);
 
+
 -- cabin_stats
 ALTER TABLE public.cabin_stats ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Stats: public read, owner update" ON public.cabin_stats;
 CREATE POLICY "Stats: public read, owner update" ON public.cabin_stats
   FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Stats: owner update" ON public.cabin_stats;
 CREATE POLICY "Stats: owner update" ON public.cabin_stats
   FOR UPDATE USING (auth.uid() = user_id);
+
 
 -- ── FUNCTIONS ────────────────────────────────────────────────
 

@@ -798,13 +798,15 @@ $$;
 -- SECCIÓN 17: LEADERBOARD — Economía, Crecimiento, Generosidad
 -- ============================================================
 
--- Leaderboard de riqueza (top balance actual)
+-- Leaderboard de riqueza (top balance actual) con tie-breaker y nivel
+DROP FUNCTION IF EXISTS public.get_wealth_leaderboard(int);
 CREATE OR REPLACE FUNCTION public.get_wealth_leaderboard(p_limit int DEFAULT 50)
 RETURNS TABLE (
   user_id    uuid,
   username   text,
   avatar_url text,
   balance    int,
+  user_level int,
   rank       bigint
 )
 LANGUAGE sql STABLE SECURITY DEFINER AS $$
@@ -813,12 +815,14 @@ LANGUAGE sql STABLE SECURITY DEFINER AS $$
     p.username,
     p.avatar_url,
     p.balance,
-    RANK() OVER (ORDER BY p.balance DESC)::bigint
+    FLOOR(0.1 * SQRT(public.get_user_xp(p.id)))::int as user_level,
+    RANK() OVER (ORDER BY p.balance DESC, public.get_user_xp(p.id) DESC)::bigint as rank
   FROM public.profiles p
   WHERE p.balance > 0
-  ORDER BY p.balance DESC
+  ORDER BY p.balance DESC, public.get_user_xp(p.id) DESC
   LIMIT p_limit;
 $$;
+
 
 -- Leaderboard de crecimiento semanal
 CREATE OR REPLACE FUNCTION public.get_weekly_growth_leaderboard(p_limit int DEFAULT 50)
@@ -865,13 +869,15 @@ LANGUAGE sql STABLE SECURITY DEFINER AS $$
   LIMIT p_limit;
 $$;
 
--- Leaderboard de generosidad (donaciones al fondo comunitario)
+-- Leaderboard de generosidad con tie-breaker y nivel
+DROP FUNCTION IF EXISTS public.get_generosity_leaderboard(int);
 CREATE OR REPLACE FUNCTION public.get_generosity_leaderboard(p_limit int DEFAULT 50)
 RETURNS TABLE (
   user_id       uuid,
   username      text,
   avatar_url    text,
   total_donated bigint,
+  user_level    int,
   rank          bigint
 )
 LANGUAGE sql STABLE SECURITY DEFINER AS $$
@@ -880,29 +886,34 @@ LANGUAGE sql STABLE SECURITY DEFINER AS $$
       p.id,
       p.username,
       p.avatar_url,
-      SUM(fc.amount)::bigint AS total_donated
+      SUM(fc.amount)::bigint AS total_donated,
+      public.get_user_xp(p.id) as xp
     FROM public.fund_contributions fc
     JOIN public.profiles p ON p.id = fc.user_id
-    GROUP BY p.id, p.username, p.avatar_url
+    GROUP BY p.id, p.username, p.avatar_url, p.balance
   )
   SELECT
     id,
     username,
     avatar_url,
     total_donated,
-    RANK() OVER (ORDER BY total_donated DESC)::bigint
+    FLOOR(0.1 * SQRT(xp))::int as user_level,
+    RANK() OVER (ORDER BY total_donated DESC, xp DESC)::bigint as rank
   FROM base
-  ORDER BY total_donated DESC
+  ORDER BY total_donated DESC, xp DESC
   LIMIT p_limit;
 $$;
 
--- Leaderboard de logros (re-expuesto con rank explícito)
+
+-- Leaderboard de logros con tie-breaker y nivel
+DROP FUNCTION IF EXISTS public.get_achievement_leaderboard(int);
 CREATE OR REPLACE FUNCTION public.get_achievement_leaderboard(p_limit int DEFAULT 50)
 RETURNS TABLE (
   user_id           uuid,
   username          text,
   avatar_url        text,
   achievement_count bigint,
+  user_level        int,
   rank              bigint
 )
 LANGUAGE sql STABLE SECURITY DEFINER AS $$
@@ -911,21 +922,24 @@ LANGUAGE sql STABLE SECURITY DEFINER AS $$
       p.id,
       p.username,
       p.avatar_url,
-      COUNT(ua.achievement_id)::bigint AS achievement_count
+      COUNT(ua.achievement_id)::bigint AS achievement_count,
+      public.get_user_xp(p.id) as xp
     FROM public.user_achievements ua
     JOIN public.profiles p ON p.id = ua.user_id
-    GROUP BY p.id, p.username, p.avatar_url
+    GROUP BY p.id, p.username, p.avatar_url, p.balance
   )
   SELECT
     id,
     username,
     avatar_url,
     achievement_count,
-    RANK() OVER (ORDER BY achievement_count DESC)::bigint
+    FLOOR(0.1 * SQRT(xp))::int as user_level,
+    RANK() OVER (ORDER BY achievement_count DESC, xp DESC)::bigint as rank
   FROM base
-  ORDER BY achievement_count DESC
+  ORDER BY achievement_count DESC, xp DESC
   LIMIT p_limit;
 $$;
+
 
 -- Historia de transacciones de un usuario (paginada)
 CREATE OR REPLACE FUNCTION public.get_transaction_history(
