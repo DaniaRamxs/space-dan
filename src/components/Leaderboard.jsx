@@ -53,8 +53,9 @@ export default function Leaderboard({ gameId, refreshKey = 0 }) {
                   <img src={entry.avatar_url} alt="" className="leaderboardAvatar" />
                 )}
                 <span className="leaderboardName">{entry.username || 'usuario'}</span>
-                <span className="leaderboardScore">{entry.best_score.toLocaleString()}</span>
+                <span className="leaderboardScore">{entry.best_score?.toLocaleString() || '0'}</span>
               </div>
+
             );
           })}
 
@@ -64,8 +65,9 @@ export default function Leaderboard({ gameId, refreshKey = 0 }) {
               <div className="leaderboardRow highlight-me" style={{ background: 'rgba(255,110,180,0.15)', borderLeft: '3px solid var(--accent)' }}>
                 <span className="leaderboardRank">#{userRank.user_position}</span>
                 <span className="leaderboardName">Tu Récord</span>
-                <span className="leaderboardScore">{userRank.best_score.toLocaleString()}</span>
+                <span className="leaderboardScore">{userRank.best_score?.toLocaleString() || '0'}</span>
               </div>
+
             </>
           )}
         </div>
