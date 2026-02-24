@@ -383,7 +383,6 @@ export default function Breakout() {
   }, [draw, tick, startGame]);
 
   const handleTouchMove = useCallback((e) => {
-    e.preventDefault();
     const canvas = canvasRef.current;
     if (!canvas) return;
     const rect = canvas.getBoundingClientRect();
