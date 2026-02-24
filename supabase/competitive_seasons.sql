@@ -29,11 +29,17 @@ CREATE TABLE IF NOT EXISTS public.competitive_season_results (
   UNIQUE(season_id, user_id)
 );
 
--- 3. Modificaciones en Profiles (Optimizado para altas lecturas/escrituras)
 ALTER TABLE public.profiles 
   ADD COLUMN IF NOT EXISTS season_balance int DEFAULT 0,
   ADD COLUMN IF NOT EXISTS daily_season_earnings int DEFAULT 0,
   ADD COLUMN IF NOT EXISTS last_earning_date date DEFAULT CURRENT_DATE;
+
+-- Inicializar usuarios existentes para evitar valores NULL
+UPDATE public.profiles 
+SET 
+  season_balance = COALESCE(season_balance, 0),
+  daily_season_earnings = COALESCE(daily_season_earnings, 0),
+  last_earning_date = COALESCE(last_earning_date, CURRENT_DATE);
 
 CREATE INDEX IF NOT EXISTS idx_season_balance ON public.profiles(season_balance DESC);
 
