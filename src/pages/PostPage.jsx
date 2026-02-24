@@ -1,86 +1,98 @@
-// src/pages/PostPage.jsx
+import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { getPostById } from '../data/postsData';
+import { blogService } from '../services/blogService';
 import LikeButton from '../components/LikeButton';
-import usePostViews from '../hooks/usePostViews';
-import Comments from '../components/Comments';
+import Comments from '../components/Comments'; // We might need to ensure this works with string IDs too
+import { useAuthContext } from '../contexts/AuthContext';
 
 export default function PostPage() {
-  const { id } = useParams();
-  const post = getPostById(id);
-  const views = usePostViews(post?.id);
+  const { slug } = useParams();
+  const { user } = useAuthContext();
+  const [post, setPost] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!slug) return;
+    blogService.getPostBySlug(slug)
+      .then(setPost)
+      .catch(console.error)
+      .finally(() => setLoading(false));
+  }, [slug]);
+
+  if (loading) {
+    return (
+      <main className="w-full max-w-3xl mx-auto min-h-[100dvh] pb-24 text-white font-sans px-4 pt-10 flex justify-center items-center">
+        <span className="text-cyan-500 animate-pulse font-mono text-sm tracking-widest uppercase">cargando_red_estelar...</span>
+      </main>
+    );
+  }
 
   if (!post) {
     return (
-      <main className="card">
-        <h1 style={{ margin: 0, fontSize: 18 }}>No existe ese post</h1>
-        <p className="tinyText">capaz el id no existe o está mal.</p>
-        <Link to="/posts" className="backLink">← volver a Posts</Link>
+      <main className="w-full max-w-3xl mx-auto min-h-[100dvh] pb-24 text-white font-sans px-4 pt-10 text-center">
+        <h1 className="text-2xl font-black mb-4">Post no encontrado</h1>
+        <p className="text-gray-400 mb-8">El archivo estelar parece no existir en esta coordenada.</p>
+        <Link to="/posts" className="text-cyan-400 hover:text-cyan-300">← Volver al Feed</Link>
       </main>
     );
   }
 
   return (
-    <main className="card">
-      <Link to="/posts" className="backLink">← volver a Posts</Link>
+    <main className="w-full max-w-3xl mx-auto min-h-[100dvh] pb-24 text-white font-sans flex flex-col pt-6 md:pt-10 px-4">
+      <div className="mb-8">
+        <Link to="/posts" className="text-gray-500 hover:text-white transition-colors text-sm font-bold tracking-widest uppercase">← Explorar Feed</Link>
+      </div>
 
-      <div className="pageHeader">
-        <h1 style={{ margin: '10px 0 0' }}>{post.title}</h1>
+      <article className="bg-[#0a0a0f] border border-white/5 p-6 md:p-10 rounded-2xl shadow-xl animate-fade-in-up">
 
-        <div className="postMetaRow">
-          <span className="postCardDate">{post.date}</span>
-          <span className="postCardMood">{post.mood}</span>
-          {views !== null && (
-            <span className="postViews">👁 {views}</span>
-          )}
+        {/* Header */}
+        <header className="mb-10 text-center">
+          <h1 className="text-4xl md:text-5xl font-black mb-4 text-transparent bg-clip-text bg-gradient-to-r from-white to-gray-400 leading-tight">
+            {post.title}
+          </h1>
+          {post.subtitle && <h2 className="text-xl text-gray-400 mb-6">{post.subtitle}</h2>}
+
+          <div className="flex items-center justify-center gap-4 text-sm mt-6">
+            <Link to={`/profile/${post.user_id}`} className="flex items-center gap-2 group">
+              <img src={post.author?.avatar_url || '/dan_profile.jpg'} alt="Avatar" className="w-8 h-8 rounded-full border border-white/10 group-hover:border-cyan-500 transition-colors" />
+              <span className="font-bold text-gray-200 group-hover:text-cyan-400 transition-colors">{post.author?.username || 'Usuario'}</span>
+            </Link>
+            <span className="text-gray-600">•</span>
+            <span className="text-gray-400 font-mono tracking-widest">{new Date(post.created_at).toLocaleDateString()}</span>
+            <span className="text-gray-600">•</span>
+            <span className="text-cyan-500 font-mono">👁 {post.views} vistas</span>
+          </div>
+        </header>
+
+        {/* Markdown Content */}
+        <div className="postBigText markdownContent mx-auto" style={{ maxWidth: '65ch', fontSize: '1.1rem', lineHeight: '1.7' }}>
+          <ReactMarkdown remarkPlugins={[remarkGfm]}>
+            {post.content_markdown}
+          </ReactMarkdown>
         </div>
 
-        {post.tags?.length > 0 && (
-          <div className="tagRow" style={{ marginTop: 8 }}>
-            {post.tags.map((tag) => (
-              <span key={tag} className="postCardTag">#{tag}</span>
-            ))}
-          </div>
-        )}
-
-        <div style={{ marginTop: 10 }}>
+        {/* Footer Actions */}
+        <footer className="mt-14 pt-8 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-6">
           <LikeButton postId={post.id} />
+
+          {user?.id === post.user_id && (
+            <Link to={`/edit-post/${post.slug}`} className="px-5 py-2 rounded-lg bg-blue-500/10 text-blue-400 border border-blue-500/20 hover:bg-blue-500/20 transition text-sm font-bold tracking-wider">
+              Editar Post
+            </Link>
+          )}
+        </footer>
+      </article>
+
+      {/* Discussion */}
+      <section className="mt-8">
+        <div className="bg-[#13131c] p-6 md:p-8 rounded-2xl border border-white/5">
+          <h2 className="text-lg font-bold mb-6 text-gray-200">Discusión</h2>
+          {/* Assuming Comments component works generically with full UUIDs */}
+          <Comments postId={post.id} />
         </div>
-      </div>
-
-      <div className="postBigText markdownContent">
-        <ReactMarkdown remarkPlugins={[remarkGfm]}>
-          {post.content}
-        </ReactMarkdown>
-      </div>
-
-      {post.playlist && (
-        <div className="playlistBlock" style={{ marginTop: 14 }}>
-          <img
-            src={post.playlist.gif}
-            alt="gif"
-            style={{ width: 120, height: 'auto', display: 'block', marginBottom: 10 }}
-          />
-          <div className="blinkText" style={{ marginBottom: 10 }}>
-            {post.playlist.label}
-          </div>
-          <iframe
-            data-testid="embed-iframe"
-            style={{ borderRadius: 12 }}
-            src={post.playlist.embed}
-            width="100%"
-            height="352"
-            frameBorder="0"
-            allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
-            loading="lazy"
-            title="Spotify playlist"
-          />
-        </div>
-      )}
-
-      <Comments postId={post.id} />
+      </section>
     </main>
   );
 }

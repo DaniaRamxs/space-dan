@@ -7,7 +7,9 @@ import { getUserGameRanks } from '../services/supabaseScores';
 import { getTransactionHistory, getActiveFund, getFundTopDonors, donateToFund, transferCoins } from '../services/economy';
 import { getProductivityStats } from '../services/productivity';
 import { setBannerColor as saveBannerColor } from '../services/store';
+import { blogService } from '../services/blogService';
 import PetDisplay from '../components/PetDisplay';
+import { Link } from 'react-router-dom';
 
 const GAME_NAMES = {
   asteroids: 'Asteroids', tetris: 'Tetris', snake: 'Snake', pong: 'Pong',
@@ -438,6 +440,7 @@ export default function ProfilePage() {
   const [isEditingBio, setIsEditingBio] = useState(false);
   const [fetching, setFetching] = useState(false);
   const [activeTab, setActiveTab] = useState('records'); // 'records', 'achievements', 'economy', 'cabina', 'settings'
+  const [posts, setPosts] = useState([]);
 
   useEffect(() => {
     if (!user) return;
@@ -468,6 +471,9 @@ export default function ProfilePage() {
 
         const cStats = await getProductivityStats(user.id);
         setCabinStats(cStats);
+
+        const myPosts = await blogService.getUserPosts(user.id, true).catch(() => []);
+        setPosts(myPosts);
       } catch (err) {
         console.error('[ProfilePage] load:', err);
       } finally {
@@ -635,6 +641,7 @@ export default function ProfilePage() {
             <div className="flex bg-[#0a0a0f] rounded-xl p-1 shadow-lg border border-white/5 overflow-x-auto no-scrollbar scroll-smooth">
               <TabButton active={activeTab === 'records'} onClick={() => setActiveTab('records')}>🏆 Récords</TabButton>
               <TabButton active={activeTab === 'achievements'} onClick={() => setActiveTab('achievements')}>🎖️ Logros</TabButton>
+              <TabButton active={activeTab === 'posts'} onClick={() => setActiveTab('posts')}>📝 Posts</TabButton>
               <TabButton active={activeTab === 'economy'} onClick={() => setActiveTab('economy')}>💎 Economía</TabButton>
               <TabButton active={activeTab === 'cabina'} onClick={() => setActiveTab('cabina')}>🚀 Cabina</TabButton>
             </div>
@@ -694,6 +701,53 @@ export default function ProfilePage() {
                       ))}
                     </div>
                   )}
+                </div>
+              )}
+
+              {/* TAB: POSTS */}
+              {activeTab === 'posts' && (
+                <div className="animate-fade-in-up">
+                  <div className="flex justify-between items-center mb-4 px-1">
+                    <span className="text-[10px] text-gray-500 uppercase tracking-[0.2em] font-bold">Mis Publicaciones</span>
+                    <Link to="/posts" className="winButton text-xs py-1 px-3">
+                      Ir al Feed Global 🌍
+                    </Link>
+                  </div>
+                  <div className="flex flex-col gap-3">
+                    {posts.length === 0 ? (
+                      <div className="text-center p-12 border border-white/5 rounded-2xl bg-[#0a0a0f] text-gray-500 text-sm">Aún no has escrito ningún post.</div>
+                    ) : (
+                      posts.map(post => (
+                        <div key={post.id} className="block bg-[#13131c]/60 backdrop-blur-md p-5 rounded-xl border border-white/5 transition-colors group">
+                          <div className="flex items-center gap-3 mb-2">
+                            <span className="text-[10px] text-cyan-500 font-mono tracking-widest bg-cyan-900/20 px-2 py-0.5 rounded border border-cyan-800/40">
+                              {new Date(post.created_at).toLocaleDateString()}
+                            </span>
+                            <span className={`text-[9px] uppercase tracking-widest px-2 py-0.5 rounded font-bold ${post.status === 'published' ? 'bg-green-500/20 text-green-400' : 'bg-gray-500/20 text-gray-400'}`}>
+                              {post.status}
+                            </span>
+                            <span className="text-[10px] text-gray-500 font-mono tracking-widest ml-auto opacity-60 flex items-center gap-1 group-hover:opacity-100 transition-opacity">
+                              👁 {post.views || 0}
+                            </span>
+                          </div>
+
+                          <Link to={post.status === 'published' ? `/log/${post.slug}` : '#'} className="block my-2">
+                            <h3 className="text-lg font-bold text-gray-100 group-hover:text-cyan-400 transition-colors mb-1">{post.title}</h3>
+                            {post.subtitle && <p className="text-sm text-gray-400">{post.subtitle}</p>}
+                          </Link>
+
+                          <div className="flex justify-end mt-4">
+                            <Link to={`/edit-post/${post.id}`} className="text-xs text-blue-400 hover:text-blue-300 px-3 py-1">Editar</Link>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                  <div className="mt-8 flex justify-center">
+                    <Link to="/create-post" className="btn-accent px-8 py-3 rounded-full shadow-[0_0_15px_rgba(6,182,212,0.4)] hover:shadow-[0_0_25px_rgba(6,182,212,0.6)] transition-all flex items-center gap-2 font-bold tracking-widest uppercase text-xs">
+                      <span className="text-lg leading-none">+</span> Crear Nuevo Post
+                    </Link>
+                  </div>
                 </div>
               )}
 
@@ -764,8 +818,8 @@ function TabButton({ active, onClick, children }) {
     <button
       onClick={onClick}
       className={`flex-1 py-2.5 px-4 text-[11px] md:text-sm font-bold rounded-lg transition-all whitespace-nowrap tracking-wide ${active
-          ? 'bg-[#1a1a26] text-white shadow-md border border-white/10'
-          : 'text-gray-500 hover:text-gray-300 hover:bg-white/5 border border-transparent'
+        ? 'bg-[#1a1a26] text-white shadow-md border border-white/10'
+        : 'text-gray-500 hover:text-gray-300 hover:bg-white/5 border border-transparent'
         }`}
     >
       {children}
