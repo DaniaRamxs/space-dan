@@ -19,36 +19,53 @@ export function EconomyProvider({ children }) {
   const [loading, setLoading] = useState(false);
   const [lastDailyAt, setLastDailyAt] = useState(null);
 
+  const refreshEconomy = useCallback(async () => {
+    if (!user) return;
+    try {
+      // Fetch balance and last_daily_at (convenience field)
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('balance, last_daily_at')
+        .eq('id', user.id)
+        .single();
+
+      if (profile) {
+        let actualLastDaily = profile.last_daily_at;
+
+        // Fallback to transactions ledger if profile field is out of sync
+        if (!actualLastDaily) {
+          const { data: tx } = await supabase
+            .from('transactions')
+            .select('created_at')
+            .eq('user_id', user.id)
+            .eq('type', 'daily_bonus')
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .maybeSingle();
+          if (tx) actualLastDaily = tx.created_at;
+        }
+
+        setBalance(profile.balance ?? 0);
+        setLastDailyAt(actualLastDaily ?? null);
+      }
+    } catch (err) {
+      console.error('[EconomyContext] refresh error:', err);
+    }
+  }, [user]);
+
   // ── Cargar balance y migrar coins viejos al iniciar sesión ──
   useEffect(() => {
     if (!user) { setBalance(0); setLastDailyAt(null); return; }
 
     async function init() {
       setLoading(true);
-      try {
-        // 1. Migrar localStorage una sola vez (silencioso)
-        await economyService.migrateLegacyCoins(user.id);
-
-        // 2. Cargar balance + última fecha de daily desde Supabase
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('balance, last_daily_at')
-          .eq('id', user.id)
-          .single();
-
-        if (profile) {
-          setBalance(profile.balance ?? 0);
-          setLastDailyAt(profile.last_daily_at ?? null);
-        }
-      } catch (err) {
-        console.error('[EconomyContext] init error:', err);
-      } finally {
-        setLoading(false);
-      }
+      await economyService.migrateLegacyCoins(user.id).catch(() => { });
+      await refreshEconomy();
+      setLoading(false);
     }
 
     init();
-  }, [user?.id]);
+  }, [user?.id, refreshEconomy]);
 
   // ── Suscripción realtime a cambios de balance en profiles ──
   useEffect(() => {
@@ -96,6 +113,7 @@ export function EconomyProvider({ children }) {
     }
   }, [user]);
 
+  /** Reclama bonus diario. Lanza error si ya fue reclamado hoy. */
   const claimDaily = useCallback(async () => {
     if (!user) throw new Error('No autenticado');
     try {
@@ -106,6 +124,10 @@ export function EconomyProvider({ children }) {
       }
       return result;
     } catch (err) {
+      // Si falla por cooldown, forzamos un refresh para sincronizar el estado
+      if (err.message?.includes('reclamaste')) {
+        refreshEconomy();
+      }
       console.error('[EconomyContext] claimDaily error details:', {
         message: err.message,
         details: err.details,
@@ -114,7 +136,7 @@ export function EconomyProvider({ children }) {
       });
       throw err;
     }
-  }, [user]);
+  }, [user, refreshEconomy]);
 
   /** true si el bonus diario está disponible (cooldown 20h) */
   const canClaimDaily = useCallback(() => {
