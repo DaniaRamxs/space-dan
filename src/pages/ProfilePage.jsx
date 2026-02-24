@@ -10,6 +10,7 @@ import { setBannerColor as saveBannerColor } from '../services/store';
 import { blogService } from '../services/blogService';
 import PetDisplay from '../components/PetDisplay';
 import { Link } from 'react-router-dom';
+import AvatarUploader from '../components/AvatarUploader';
 
 const GAME_NAMES = {
   asteroids: 'Asteroids', tetris: 'Tetris', snake: 'Snake', pong: 'Pong',
@@ -555,11 +556,13 @@ export default function ProfilePage() {
             )}
           </div>
 
-          <div className="relative group cursor-pointer mb-6 mt-4 md:mt-0">
-            <div className="absolute -inset-2 bg-gradient-to-r from-purple-600 to-cyan-500 rounded-[35%] blur-xl opacity-40 group-hover:opacity-80 transition duration-700"></div>
-            <div className="relative w-28 h-28 rounded-[30%] overflow-hidden border border-white/20 shadow-2xl bg-black" style={getFrameStyle(frameItemId)}>
-              <img src={profile?.avatar_url || '/dan_profile.jpg'} alt="Avatar" className="w-full h-full object-cover" />
-            </div>
+          <div className="relative mb-6 mt-4 md:mt-0">
+            <AvatarUploader
+              currentAvatar={profile?.avatar_url}
+              frameStyle={getFrameStyle(frameItemId)}
+              onUploadSuccess={(newUrl) => setProfile(prev => ({ ...prev, avatar_url: newUrl }))}
+            />
+
             {/* Pet Overlay */}
             <div className="absolute -left-6 -bottom-2 pointer-events-none drop-shadow-2xl z-30 scale-x-[-1]">
               <PetDisplay userId={user.id} size={45} showName={false} />
