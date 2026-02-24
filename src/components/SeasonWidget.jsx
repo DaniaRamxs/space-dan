@@ -18,6 +18,16 @@ function getRemainingTime(endAt) {
     return `${days}d ${String(hrs).padStart(2, '0')}:${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
 }
 
+const TIERS = [
+    { label: 'BRONCE I', min: 0, color: '#cd7f32', icon: '🥉' },
+    { label: 'PLATA II', min: 500, color: '#c0c0c0', icon: '🥈' },
+    { label: 'ORO III', min: 2000, color: '#ffd700', icon: '🥇' },
+    { label: 'PLATINO IV', min: 5000, color: '#e5e4e2', icon: '💎' },
+    { label: 'DIAMANTE V', min: 12000, color: '#00eeee', icon: '💠' },
+    { label: 'MAESTRO', min: 25000, color: '#ff00ff', icon: '👑' },
+    { label: 'ELITE SUPREMA', min: 50000, color: '#ff3333', icon: '🔥' },
+];
+
 export default function SeasonWidget() {
     const { season, loading } = useSeason();
     const [timeLeft, setTimeLeft] = useState('...');
@@ -31,8 +41,13 @@ export default function SeasonWidget() {
         return () => clearInterval(interval);
     }, [season?.end_at]);
 
-    if (loading) return null;
-    if (!season) return null; // Off-season
+    if (loading || !season) return null;
+
+    const currentTier = [...TIERS].reverse().find(t => (season?.my_balance || 0) >= t.min) || TIERS[0];
+    const nextTier = TIERS[TIERS.indexOf(currentTier) + 1];
+    const progress = nextTier
+        ? Math.min(100, Math.max(0, ((season.my_balance - currentTier.min) / (nextTier.min - currentTier.min)) * 100))
+        : 100;
 
     return (
         <div style={{
@@ -40,9 +55,9 @@ export default function SeasonWidget() {
             backgroundSize: '200% 200%',
             animation: 'gradientMove 6s ease infinite',
             border: '1px solid rgba(255,110,180,0.5)',
-            borderRadius: '20px',
-            padding: '24px',
-            margin: '0 0 20px 0',
+            borderRadius: '24px',
+            padding: '28px',
+            margin: '0 0 24px 0',
             position: 'relative',
             overflow: 'hidden',
             boxShadow: '0 12px 40px rgba(0,0,0,0.7), inset 0 0 30px rgba(255,110,180,0.15)',
@@ -55,75 +70,137 @@ export default function SeasonWidget() {
                 pointerEvents: 'none'
             }} />
 
+            {/* Floating Particles Overlay */}
+            <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 1 }}>
+                {[...Array(6)].map((_, i) => (
+                    <div key={i} style={{
+                        position: 'absolute',
+                        top: `${Math.random() * 100}%`,
+                        left: `${Math.random() * 100}%`,
+                        width: '2px', height: '2px',
+                        background: '#fff',
+                        borderRadius: '50%',
+                        boxShadow: '0 0 10px #fff, 0 0 20px var(--accent)',
+                        animation: `floatParticle ${3 + Math.random() * 4}s ease-in-out infinite`,
+                        animationDelay: `${Math.random() * 5}s`,
+                        opacity: 0.4
+                    }} />
+                ))}
+            </div>
+
             <style>{`
                 @keyframes gradientMove {
                     0% { background-position: 0% 50%; }
                     50% { background-position: 100% 50%; }
                     100% { background-position: 0% 50%; }
                 }
-                @keyframes shine {
-                    from { left: -100%; }
-                    to { left: 100%; }
+                @keyframes floatParticle {
+                    0%, 100% { transform: translateY(0) scale(1); opacity: 0.3; }
+                    50% { transform: translateY(-20px) scale(1.5); opacity: 0.7; }
+                }
+                @keyframes pulse {
+                    0% { transform: scale(1); opacity: 0.8; }
+                    50% { transform: scale(1.05); opacity: 1; }
+                    100% { transform: scale(1); opacity: 0.8; }
                 }
             `}</style>
 
             {/* Background Rush Indicator */}
             {season.is_final_phase && (
-                <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: 'red', boxShadow: '0 0 10px red', animation: 'pulse 1s infinite' }} />
+                <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, background: '#ff0044', boxShadow: '0 0 15px #ff0044', zIndex: 10 }} />
             )}
 
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
+            {/* Header: Title & Timer */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 }}>
                 <div>
-                    <h3 style={{ margin: 0, fontSize: '0.9rem', color: 'var(--accent)', textTransform: 'uppercase', letterSpacing: 1 }}>
+                    <h3 style={{ margin: 0, fontSize: '0.9rem', color: 'var(--accent)', textTransform: 'uppercase', letterSpacing: 2, fontWeight: '900' }}>
                         TEMPORADA {season.number}
                     </h3>
-                    <span style={{ fontSize: '0.75rem', opacity: 0.7, fontFamily: 'monospace' }}>
-                        Termina en: {timeLeft}
-                    </span>
+                    <div style={{ fontSize: '0.75rem', opacity: 0.6, fontFamily: 'monospace', marginTop: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <span style={{ color: '#00e5ff' }}>⏱</span> FINALIZA EN: {timeLeft}
+                    </div>
                 </div>
 
                 <div style={{ textAlign: 'right' }}>
-                    <div style={{ fontSize: '1.2rem', fontWeight: 'bold', color: season.in_top_zone ? 'gold' : '#fff' }}>
+                    <div style={{ fontSize: '1.4rem', fontWeight: '900', color: season.in_top_zone ? '#ffd700' : '#fff', textShadow: season.in_top_zone ? '0 0 10px rgba(255,215,0,0.5)' : 'none' }}>
                         #{season.my_position}
                     </div>
-                    {season.in_top_zone && <span style={{ fontSize: '0.65rem', color: 'gold' }}>ZONA TOP 3</span>}
+                    <div style={{ fontSize: '0.6rem', opacity: 0.5, textTransform: 'uppercase', letterSpacing: 1 }}>Global Rank</div>
                 </div>
             </div>
 
-            {/* Boost Banners */}
-            {(season.active_boosts?.night || season.active_boosts?.weekend || season.is_final_phase) && (
-                <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
-                    {season.active_boosts?.night && (
-                        <div style={{ fontSize: '10px', background: 'rgba(74, 0, 224, 0.4)', border: '1px solid #4a00e0', color: '#fff', padding: '4px 10px', borderRadius: '20px', display: 'flex', alignItems: 'center', gap: 4, backdropFilter: 'blur(4px)' }}>
-                            <span style={{ fontSize: '12px' }}>🌙</span> NIGHT BOOST x1.2
-                        </div>
-                    )}
-                    {season.active_boosts?.weekend && (
-                        <div style={{ fontSize: '10px', background: 'rgba(255, 140, 0, 0.4)', border: '1px solid #ff8c00', color: '#fff', padding: '4px 10px', borderRadius: '20px', display: 'flex', alignItems: 'center', gap: 4, backdropFilter: 'blur(4px)' }}>
-                            <span style={{ fontSize: '12px' }}>🎉</span> WEEKEND x1.3
-                        </div>
-                    )}
-                    {season.is_final_phase && (
-                        <div style={{ fontSize: '10px', background: 'rgba(255, 0, 0, 0.4)', border: '1px solid #ff0000', color: '#fff', padding: '4px 10px', borderRadius: '20px', display: 'flex', alignItems: 'center', gap: 4, backdropFilter: 'blur(4px)', animation: 'pulse 1s infinite' }}>
-                            <span style={{ fontSize: '12px' }}>🔥</span> FINAL PHASE x1.5
-                        </div>
-                    )}
+            {/* Tier Status Row */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 20, background: 'rgba(255,255,255,0.03)', padding: '12px 18px', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                <div style={{
+                    fontSize: '2.2rem', background: 'rgba(0,0,0,0.2)',
+                    width: '60px', height: '60px', borderRadius: '12px',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    border: `1px solid ${currentTier.color}`,
+                    boxShadow: `inset 0 0 15px ${currentTier.color}33`
+                }}>
+                    {currentTier.icon}
+                </div>
+                <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: '0.6rem', opacity: 0.5, textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 2 }}>Rango Actual</div>
+                    <div style={{ fontSize: '1.3rem', fontWeight: '900', color: currentTier.color, textShadow: `0 0 12px ${currentTier.color}55` }}>
+                        {currentTier.label}
+                    </div>
+                </div>
+            </div>
+
+            {/* Progress to Next Tier */}
+            {nextTier && (
+                <div style={{ marginBottom: 20 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.65rem', marginBottom: 8, textTransform: 'uppercase', fontWeight: 'bold' }}>
+                        <span style={{ opacity: 0.6 }}>Progreso a {nextTier.label}</span>
+                        <span style={{ color: currentTier.color }}>{Math.floor(progress)}%</span>
+                    </div>
+                    <div style={{ height: 8, background: 'rgba(255,255,255,0.07)', borderRadius: 10, overflow: 'hidden', padding: 1 }}>
+                        <div style={{
+                            height: '100%', width: `${progress}%`,
+                            background: `linear-gradient(90deg, ${currentTier.color}, ${nextTier.color})`,
+                            boxShadow: `0 0 15px ${currentTier.color}44`,
+                            transition: 'width 1.5s cubic-bezier(0.4, 0, 0.2, 1)',
+                            borderRadius: 10
+                        }} />
+                    </div>
+                    <div style={{ textAlign: 'center', fontSize: '0.6rem', marginTop: 6, opacity: 0.4 }}>
+                        {season.my_balance.toLocaleString()} / {nextTier.min.toLocaleString()} COINS
+                    </div>
                 </div>
             )}
 
-            <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', padding: '16px', borderRadius: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            {/* Bottom Stats & Boosts */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
                 <div style={{ display: 'flex', flexDirection: 'column' }}>
-                    <span style={{ fontSize: '0.65rem', opacity: 0.5, textTransform: 'uppercase', letterSpacing: 1 }}>My Seasonal Balance</span>
-                    <span style={{ fontSize: '1.5rem', fontWeight: '900', color: 'var(--cyan)', textShadow: '0 0 10px rgba(0,229,255,0.4)', fontFamily: '"Exo 2", sans-serif' }}>◈ {season.my_balance.toLocaleString()}</span>
+                    <span style={{ fontSize: '0.6rem', opacity: 0.5, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4 }}>Balance de Temporada</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                        <span style={{ fontSize: '1.8rem', fontWeight: '900', color: 'var(--cyan)', textShadow: '0 0 15px rgba(0,229,255,0.6)', fontFamily: '"Exo 2", sans-serif' }}>
+                            ◈ {season.my_balance.toLocaleString()}
+                        </span>
+                        {(season.active_boosts?.night || season.active_boosts?.weekend || season.is_final_phase) && (
+                            <div style={{ display: 'flex', gap: 4 }}>
+                                {season.active_boosts?.night && <span title="Night Boost active" style={{ animation: 'pulse 2s infinite', fontSize: '14px' }}>🌙</span>}
+                                {season.active_boosts?.weekend && <span title="Weekend Boost active" style={{ animation: 'pulse 2s infinite', fontSize: '14px' }}>🎉</span>}
+                                {season.is_final_phase && <span title="Final Phase boost active" style={{ animation: 'pulse 1s infinite', fontSize: '14px' }}>🔥</span>}
+                            </div>
+                        )}
+                    </div>
+                    <div style={{ fontSize: '0.6rem', color: '#ffd700', marginTop: 4, fontWeight: 'bold' }}>
+                        🎁 RECOMIENZA ESTIMADA: {Math.floor(season.my_balance * 0.1).toLocaleString()} DANCOINS
+                    </div>
                 </div>
 
                 {season.gap_to_next > 0 && (
-                    <div style={{ textAlign: 'right', fontSize: '0.7rem', color: '#ff5555' }}>
-                        A <b>◈ {season.gap_to_next.toLocaleString()}</b> pts<br /> del sgte puesto
+                    <div style={{
+                        textAlign: 'right', fontSize: '0.7rem', color: '#ff5555',
+                        background: 'rgba(255,85,85,0.1)', padding: '6px 12px', borderRadius: '8px',
+                        border: '1px solid rgba(255,85,85,0.2)'
+                    }}>
+                        A <b>◈ {season.gap_to_next.toLocaleString()}</b> del sgte puesto
                     </div>
                 )}
             </div>
-
         </div>
     );
 }
