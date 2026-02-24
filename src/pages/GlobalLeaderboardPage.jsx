@@ -179,11 +179,19 @@ export default function GlobalLeaderboardPage() {
                     </td>
                     <td className="lbUser" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                       <Avatar url={row.avatar_url} name={row.username} />
-                      <span style={{ color: isMe ? 'var(--accent)' : 'var(--text)' }}>
-                        {row.username || 'Anónimo'}
-                      </span>
+                      <div style={{ display: 'flex', flexDirection: 'column' }}>
+                        <span style={{ color: isMe ? 'var(--accent)' : 'var(--text)', fontWeight: 500 }}>
+                          {row.username || 'Anónimo'}
+                        </span>
+                        {row.user_level && (
+                          <span style={{ fontSize: '0.65rem', color: 'var(--cyan)', opacity: 0.8, fontWeight: 'bold' }}>
+                            LVL {row.user_level}
+                          </span>
+                        )}
+                      </div>
                       {isMe && <span style={{ fontSize: '0.7rem', color: 'var(--accent)', opacity: 0.8 }}>tú</span>}
                     </td>
+
                     <td className="lbScore" style={{ textAlign: 'right', fontWeight: 'bold', color: metricColor(activeTab, row) }}>
                       {formatMetric(activeTab, row)}
                     </td>
