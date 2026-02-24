@@ -7289,13 +7289,13 @@ textarea,
 @media (max-width: 767px) {
   .lettersLayout {
     grid-template-columns: 1fr;
-    height: calc(100svh - 90px);
+    height: 100%;
     padding: 0 8px;
     gap: 0;
   }
 
   .lettersPanel {
-    height: calc(100svh - 90px) !important;
+    height: 100% !important;
   }
 
   .lettersPanel--hidden {
@@ -7304,5 +7304,55 @@ textarea,
 
   .lettersBackBtn {
     display: block !important;
+  }
+}
+
+/* ═════ DYNAMIC VIEWPORT FIX FOR MOBILE CHAT (FIXED LAYOUT) ═════ */
+.gardenPage--fixed {
+  height: 100dvh;
+  min-height: 100dvh;
+  padding: 14px 10px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+}
+
+.gardenShell--fixed {
+  flex: 1;
+  min-height: 0;
+  margin-top: 24px;
+  margin-bottom: 12px;
+  align-items: stretch;
+  height: 100%;
+}
+
+.gardenMain--fixed {
+  flex: 1;
+  min-height: 0;
+  display: flex !important;
+  flex-direction: column;
+  overflow: hidden;
+  height: 100%;
+}
+
+.gardenMain--fixed .gardenContent {
+  flex: 1;
+  min-height: 0;
+  padding: 0 !important;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+@media (max-width: 820px) {
+  .gardenPage--fixed {
+    padding: 0 !important;
+  }
+  .gardenShell--fixed {
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+    display: flex;
+    flex-direction: column;
   }
 }

@@ -73,8 +73,10 @@ export default function GardenLayout({ children }) {
     checkDaily();
   }, [claimDaily, canClaimDaily]);
 
+  const isFixedLayout = FIXED_LAYOUT_PATHS.some(p => location.pathname.startsWith(p));
+
   return (
-    <div className="gardenPage">
+    <div className={`gardenPage ${isFixedLayout ? 'gardenPage--fixed' : ''}`}>
       <StarfieldBg />
       <AmbientOrbs />
       <CursorTrail />
@@ -86,7 +88,7 @@ export default function GardenLayout({ children }) {
         <div className="sidebarOverlay" onClick={closeMenu} aria-hidden="true" />
       )}
 
-      <div className="gardenShell">
+      <div className={`gardenShell ${isFixedLayout ? 'gardenShell--fixed' : ''}`}>
         <aside className={`gardenSidebar${sidebarOpen ? ' open' : ''}`}>
           <div className="sideHeader">
             <div className="sideTitle">space-dan</div>
@@ -197,10 +199,7 @@ export default function GardenLayout({ children }) {
           </nav>
         </aside>
 
-        <main
-          className={`gardenMain ${FIXED_LAYOUT_PATHS.some(p => location.pathname.startsWith(p)) ? 'gardenMain--fixed' : 'gardenMain--scrollable'}`}
-          style={FIXED_LAYOUT_PATHS.some(p => location.pathname.startsWith(p)) ? { height: 'calc(100dvh - 60px)', display: 'flex', flexDirection: 'column' } : {}}
-        >
+        <main className={`gardenMain ${isFixedLayout ? 'gardenMain--fixed' : 'gardenMain--scrollable'}`}>
           <header className="gardenTopbar">
             <button
               className={`hamburger${sidebarOpen ? ' is-open' : ''}`}
@@ -223,7 +222,7 @@ export default function GardenLayout({ children }) {
             </div>
           </header>
 
-          <div className="gardenContent" style={FIXED_LAYOUT_PATHS.some(p => location.pathname.startsWith(p)) ? { flex: 1, overflow: 'hidden', padding: 0 } : {}}>{children}</div>
+          <div className="gardenContent">{children}</div>
 
           {location.pathname !== '/cabina' && location.pathname !== '/cartas' && <VirtualPet />}
 
