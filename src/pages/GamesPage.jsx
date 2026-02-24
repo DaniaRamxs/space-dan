@@ -76,7 +76,7 @@ function markGamePlayed(gameId) {
 
 export default function GamesPage() {
   const { user } = useAuthContext();
-  const { claimSeasonReward, season } = useSeason();
+  const { claimSeasonReward, season, refreshSeason } = useSeason();
   const [openId, setOpenId] = useState(null);
   const [coinToast, setCoinToast] = useState(null);
   const [lbKey, setLbKey] = useState(0);
@@ -144,12 +144,15 @@ export default function GamesPage() {
       }
       const gameId = e.detail?.gameId || openIdRef.current;
       if (user && gameId && score != null) {
-        saveScore(user.id, gameId, score).then(() => setLbKey(k => k + 1));
+        saveScore(user.id, gameId, score).then(() => {
+          setLbKey(k => k + 1);
+          refreshSeason(); // Actualizar rank en el bar de stats
+        });
       }
     };
     window.addEventListener('dan:game-score', onScore);
     return () => window.removeEventListener('dan:game-score', onScore);
-  }, [user, claimSeasonReward, showCoinToast]);
+  }, [user, claimSeasonReward, showCoinToast, refreshSeason]);
 
   const handleToggle = (gameId) => {
     setOpenId(gameId);

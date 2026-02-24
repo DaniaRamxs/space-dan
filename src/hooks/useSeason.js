@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../supabaseClient';
 import { useAuthContext } from '../contexts/AuthContext';
 
@@ -7,39 +7,30 @@ export function useSeason() {
     const [season, setSeason] = useState(null);
     const [loading, setLoading] = useState(true);
 
-    useEffect(() => {
-        let active = true;
-
-        async function fetchSeason() {
-            if (!user) return;
-            try {
-                const { data, error } = await supabase.rpc('get_season_status', { p_user_id: user.id });
-                if (error) throw error;
-                if (active) setSeason(data);
-            } catch (err) {
-                console.error('Error fetching season:', err);
-            } finally {
-                if (active) setLoading(false);
-            }
+    const fetchSeason = useCallback(async () => {
+        if (!user) return;
+        try {
+            const { data, error } = await supabase.rpc('get_season_status', { p_user_id: user.id });
+            if (error) throw error;
+            setSeason(data);
+        } catch (err) {
+            console.error('Error fetching season:', err);
+        } finally {
+            setLoading(false);
         }
+    }, [user]);
 
+    useEffect(() => {
         fetchSeason();
 
-        // Configura un intervalo sutil cada 30 segundos usando visibilidad de pestaña para sincronismo pasivo
         const interval = setInterval(() => {
             if (document.visibilityState === 'visible') fetchSeason();
         }, 30000);
 
-        return () => {
-            active = false;
-            clearInterval(interval);
-        };
-    }, [user]);
+        return () => clearInterval(interval);
+    }, [fetchSeason]);
 
-    /**
-     * Obtiene la recompensa estacional asegurizando toda la lógica del lado del backend.
-     * La app React solo solicita "x" monedas base, y el backend aplica: multiplicadores, límite diario, fase final, etc.
-     */
+    /** Reclama recompensa y refresca el estado local */
     const claimSeasonReward = async (baseCoins) => {
         if (!user) return null;
         try {
@@ -48,7 +39,9 @@ export function useSeason() {
                 p_base_coins: baseCoins
             });
             if (error) throw error;
-            // 'data' contiene la metadata del backend: multiplicadores aplicados, cap_hit, etc.
+
+            // Refrescamos inmediatamente para ver el cambio en Daily Capacity
+            await fetchSeason();
             return data;
         } catch (err) {
             console.error('Error claiming season reward:', err);
@@ -56,5 +49,5 @@ export function useSeason() {
         }
     };
 
-    return { season, loading, claimSeasonReward };
+    return { season, loading, claimSeasonReward, refreshSeason: fetchSeason };
 }
