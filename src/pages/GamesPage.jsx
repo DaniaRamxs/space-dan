@@ -145,56 +145,79 @@ export default function GamesPage() {
     }
   };
 
+  const activeGame = GAMES.find(g => g.id === openId);
+  const GameComponent = activeGame?.component;
+
   return (
     <main className="card">
       <div className="pageHeader">
-        <h1>juegos</h1>
+        <h1 style={{ letterSpacing: '2px' }}>GAMES.hub</h1>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-          <p className="tinyText" style={{ margin: 0 }}>{GAMES.length} minijuegos :3</p>
+          <p className="tinyText" style={{ margin: 0, opacity: 0.8 }}>{GAMES.length} minijuegos disponibles</p>
           <SeasonMiniBadge />
           {coinToast && <span className="gamesCoinToast">{coinToast}</span>}
         </div>
       </div>
 
       {!user && (
-        <p className="tinyText" style={{ textAlign: 'center', marginBottom: 10, opacity: 0.6 }}>
-          inicia sesión para guardar tus scores en el leaderboard
+        <p className="tinyText" style={{ textAlign: 'center', marginBottom: 15, opacity: 0.5, border: '1px solid rgba(255,255,255,0.05)', padding: '8px', borderRadius: '8px' }}>
+          ⚠️ Inicia sesión para guardar tus récords y competir globalmente.
         </p>
       )}
 
-      <div style={{ display: 'grid', gap: 14 }}>
-        {GAMES.map(game => {
-          const isOpen = openId === game.id;
-          const GameComponent = game.component;
+      <div className="gamesGrid">
+        {GAMES.map((game, i) => {
+          const isPlayed = loadPlayedGames().has(game.id);
           return (
-            <section key={game.id} className="shSection">
-              <div
-                className="shHeader"
-                onClick={() => handleToggle(game.id, isOpen)}
-                style={{ cursor: 'pointer', userSelect: 'none', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
-              >
-                <span>{game.icon} {game.title}</span>
-                <span style={{ fontSize: 10, opacity: 0.5 }}>{isOpen ? '▲' : '▼'}</span>
-              </div>
-              {isOpen && (
-                <>
-                  <div className="shBody" style={{ display: 'flex', justifyContent: 'center', padding: '16px 12px', overflowX: 'auto' }}>
-                    <div className="gameScale">
-                      <ErrorBoundary>
-                        <Suspense fallback={<div style={{ color: 'var(--accent)', fontSize: 12 }}>cargando_juego...</div>}>
-                          <GameComponent />
-                        </Suspense>
-                      </ErrorBoundary>
-                    </div>
-
-                  </div>
-                  <Leaderboard gameId={game.id} refreshKey={lbKey} />
-                </>
-              )}
-            </section>
+            <motion.div
+              key={game.id}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: i * 0.03 }}
+              className="gameCard"
+              onClick={() => handleToggle(game.id, false)}
+            >
+              {!isPlayed && <span className="gameCardBadge">NUEVO</span>}
+              <span className="gameCardIcon">{game.icon}</span>
+              <span className="gameCardTitle">{game.title}</span>
+            </motion.div>
           );
         })}
       </div>
+
+      {/* FULLSCREEN GAME OVERLAY */}
+      <AnimatePresence>
+        {openId && activeGame && (
+          <motion.div
+            className="gameOverlay"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            <div className="gameOverlayHeader">
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <span style={{ fontSize: '1.5rem' }}>{activeGame.icon}</span>
+                <span style={{ fontWeight: '900', textTransform: 'uppercase', letterSpacing: 1 }}>{activeGame.title}</span>
+              </div>
+              <button className="gameCloseBtn" onClick={() => setOpenId(null)}>✕</button>
+            </div>
+
+            <div className="gameOverlayContent">
+              <div className="gameScale">
+                <ErrorBoundary>
+                  <Suspense fallback={<div style={{ color: 'var(--accent)', fontSize: 14, fontFamily: 'monospace' }}>inicializando_sistema...</div>}>
+                    {GameComponent && <GameComponent />}
+                  </Suspense>
+                </ErrorBoundary>
+              </div>
+
+              <div style={{ width: '100%', maxWidth: '600px', marginTop: 20 }}>
+                <Leaderboard gameId={activeGame.id} refreshKey={lbKey} />
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </main>
   );
 }
