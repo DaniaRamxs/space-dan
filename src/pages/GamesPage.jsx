@@ -222,7 +222,7 @@ export default function GamesPage() {
   };
 
   return (
-    <main className="card" style={{ paddingBottom: 100 }}>
+    <main className="card" style={{ paddingTop: 60, paddingBottom: 40 }}>
       {/* HUD HEADER */}
       <div className="pageHeader" style={{ borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: 15, marginBottom: 20 }}>
         <div>
