@@ -1,6 +1,9 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useAuthContext } from '../../contexts/AuthContext';
 import { useEconomy } from '../../contexts/EconomyContext';
+import ActivityFeed from '../../components/Social/ActivityFeed';
+import PostComposer from '../../components/Social/PostComposer';
+import BlogPostCard from '../../components/Social/BlogPostCard';
 import { supabase } from '../../supabaseClient';
 import { ACHIEVEMENTS } from '../../hooks/useAchievements';
 import { getUserGameRanks } from '../../services/supabaseScores';
@@ -473,8 +476,12 @@ export default function ProfileOwn() {
   const [isEditingBio, setIsEditingBio] = useState(false);
   const [fetching, setFetching] = useState(false);
   const [activeTab, setActiveTab] = useState('records');
+  const [activityFilter, setActivityFilter] = useState('all');
   const [posts, setPosts] = useState([]);
   const [followCounts, setFollowCounts] = useState({ followers: 0, following: 0 });
+  const [comments, setComments] = useState([]);
+  const [newComment, setNewComment] = useState('');
+  const [submittingComment, setSubmittingComment] = useState(false);
   const [partnership, setPartnership] = useState(null);
   const [bannerItem, setBannerItem] = useState(null);
 
@@ -501,12 +508,13 @@ export default function ProfileOwn() {
 
     async function loadComplementaryData() {
       try {
-        const [achData, ranks, cStats, myPosts, socialInfo, pData] = await Promise.all([
+        const [achData, ranks, cStats, myPosts, socialInfo, profileComments, pData] = await Promise.all([
           supabase.from('user_achievements').select('achievement_id').eq('user_id', user.id).then(res => res.data || []),
           getUserGameRanks(user.id).catch(() => []),
           getProductivityStats(user.id).catch(() => null),
           blogService.getUserPosts(user.id, true).catch(() => []),
           profileSocialService.getFollowCounts(user.id).catch(() => ({ followers: 0, following: 0 })),
+          profileSocialService.getProfileComments(user.id).catch(() => []),
           universeService.getMyPartnership().catch(() => null)
         ]);
 
@@ -516,6 +524,7 @@ export default function ProfileOwn() {
         setCabinStats(cStats);
         setPosts(myPosts);
         setFollowCounts(socialInfo);
+        setComments(profileComments);
         setPartnership(pData);
       } catch (err) {
         console.error('[ProfileOwn] load complementary data:', err);
@@ -562,6 +571,31 @@ export default function ProfileOwn() {
 
   const topGlobalRank = gameRanks.length > 0 ? Math.min(...gameRanks.map(r => Number(r.user_position))) : 'N/A';
   const bestRecord = gameRanks.length > 0 ? Math.max(...gameRanks.map(g => g.max_score || 0)) : 0;
+
+  const handleAddComment = async (e) => {
+    e.preventDefault();
+    if (!newComment.trim()) return;
+    setSubmittingComment(true);
+    try {
+      const added = await profileSocialService.addProfileComment(user.id, newComment);
+      setComments(prev => [added, ...prev]);
+      setNewComment('');
+    } catch (err) {
+      alert('Error al publicar: ' + (err.message || 'Desconocido'));
+    } finally {
+      setSubmittingComment(false);
+    }
+  };
+
+  const handleDeleteComment = async (commentId) => {
+    if (!window.confirm('¿Eliminar transmisión del muro?')) return;
+    try {
+      await profileSocialService.deleteComment(commentId);
+      setComments(prev => prev.filter(c => c.id !== commentId));
+    } catch (err) {
+      alert('Error al eliminar comentario');
+    }
+  };
 
   return (
     <div className="w-full max-w-7xl mx-auto min-h-[100dvh] pb-24 text-white font-sans flex flex-col gap-12 pt-8" style={{ background: 'transparent' }}>
@@ -759,7 +793,8 @@ export default function ProfileOwn() {
             <div className="flex flex-nowrap bg-black/40 backdrop-blur-2xl rounded-2xl md:rounded-3xl p-2 shadow-2xl border border-white/5 overflow-x-auto no-scrollbar gap-1 mb-6">
               <TabButton active={activeTab === 'records'} onClick={() => setActiveTab('records')}>🏆 Archivos</TabButton>
               <TabButton active={activeTab === 'achievements'} onClick={() => setActiveTab('achievements')}>🎖️ Medallas</TabButton>
-              <TabButton active={activeTab === 'posts'} onClick={() => setActiveTab('posts')}>📝 Bitácora</TabButton>
+              <TabButton active={activeTab === 'activity'} onClick={() => setActiveTab('activity')}>🛰️ Actividad</TabButton>
+              <TabButton active={activeTab === 'wall'} onClick={() => setActiveTab('wall')}>💬 Muro</TabButton>
               <TabButton active={activeTab === 'economy'} onClick={() => setActiveTab('economy')}>💎 Economía & Bóveda</TabButton>
               <TabButton active={activeTab === 'cabina'} onClick={() => setActiveTab('cabina')}>🚀 Sistema</TabButton>
             </div>
@@ -830,48 +865,117 @@ export default function ProfileOwn() {
                 </div>
               )}
 
-              {/* TAB: POSTS */}
-              {activeTab === 'posts' && (
-                <div className="animate-fade-in-up">
-                  <div className="flex justify-between items-center mb-4 px-1">
-                    <span className="text-[10px] text-gray-500 uppercase tracking-[0.2em] font-bold">Mis Publicaciones</span>
-                    <Link to="/posts" className="winButton text-xs py-1 px-3">
-                      Ir al Feed Global 🌍
-                    </Link>
+              {/* TAB: ACTIVITY (SOCIAL FEED + BLOG POSTS) */}
+              {activeTab === 'activity' && (
+                <div className="animate-fade-in-up flex flex-col gap-8 items-center pt-2">
+
+                  {/* Compositor nuevos posts sociales */}
+                  <div className="w-full max-w-2xl">
+                    <PostComposer onPostCreated={() => {
+                      window.dispatchEvent(new CustomEvent('refresh-activity'));
+                    }} />
                   </div>
-                  <div className="flex flex-col gap-4">
-                    {posts.length === 0 ? (
-                      <div className="text-center p-24 border border-white/5 rounded-[3rem] bg-black/20 text-white/20 text-xs font-black uppercase tracking-widest">No se han encontrado registros en la bitácora espacial.</div>
-                    ) : (
-                      posts.map(post => (
-                        <div key={post.id} className="group relative bg-black/20 border border-white/5 rounded-3xl p-8 hover:bg-white/[0.03] transition-all overflow-hidden flex items-center justify-between gap-8">
-                          <div className="flex-1 space-y-3">
-                            <div className="flex items-center gap-3">
-                              <span className="text-[9px] font-black text-cyan-400 font-mono bg-cyan-400/10 px-3 py-1 rounded-full border border-cyan-400/20 uppercase">
-                                CAPTURA: {new Date(post.created_at).toLocaleDateString()}
-                              </span>
-                              <span className="text-[9px] font-black text-white/20 uppercase tracking-widest">ESTADO: {post.status}</span>
-                            </div>
-                            <Link to={`/log/${post.slug}`} className="block">
-                              <h3 className="text-2xl font-black text-white group-hover:text-cyan-400 transition-colors uppercase tracking-tighter">{post.title}</h3>
-                              <p className="text-xs text-white/40 line-clamp-2 mt-2 font-medium">{post.subtitle || 'Sin descripción adicional disponible.'}</p>
-                            </Link>
-                          </div>
-                          <div className="flex flex-col items-end gap-4">
-                            <div className="text-right">
-                              <span className="text-[10px] font-black text-white/10 uppercase block mb-1">Impacto</span>
-                              <span className="text-lg font-black font-mono text-white/60 italic leading-none">👁 {post.views || 0}</span>
-                            </div>
-                            <Link to={`/edit-post/${post.id}`} className="px-5 py-2 rounded-xl bg-white/5 border border-white/10 text-[10px] font-black uppercase tracking-widest hover:bg-white hover:text-black transition-all">Editar</Link>
-                          </div>
+
+                  {/* Blog posts propios con acciones */}
+                  {posts.length > 0 && (
+                    <div className="w-full max-w-2xl flex flex-col gap-4">
+                      <div className="flex items-center justify-between px-2">
+                        <h3 className="text-[10px] font-black text-white/30 uppercase tracking-[0.4em]">📖 Entradas de Bitácora</h3>
+                        <div className="flex items-center gap-3">
+                          <Link to="/create-post" className="text-[10px] font-black text-cyan-400 hover:text-cyan-300 uppercase tracking-widest transition-colors">
+                            + Nueva
+                          </Link>
+                          <Link to="/posts" className="text-[10px] font-black text-white/20 hover:text-white uppercase tracking-widest transition-colors">
+                            Feed global →
+                          </Link>
                         </div>
-                      ))
-                    )}
+                      </div>
+                      {posts.map(post => (
+                        <div key={post.id} className="relative">
+                          <BlogPostCard
+                            post={post}
+                            authorProfile={profile}
+                            onActionComplete={() => { }}
+                          />
+                          {/* Botón editar del propietario */}
+                          <Link
+                            to={`/edit-post/${post.id}`}
+                            className="absolute top-5 left-6 text-[8px] font-black uppercase tracking-widest text-white/20 hover:text-cyan-400 transition-colors"
+                          >
+                            editar
+                          </Link>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Divisor */}
+                  <div className="w-full max-w-2xl flex items-center justify-between border-b border-white/10 pb-4">
+                    <h3 className="text-[10px] font-black text-white/30 uppercase tracking-[0.4em]">🛰️ Transmisiones Sociales</h3>
+                    <select
+                      value={activityFilter}
+                      className="bg-[#0a0a0f] border border-white/10 text-white text-[9px] font-black uppercase tracking-widest rounded-xl px-3 py-2 hover:border-white/30 cursor-pointer outline-none"
+                      onChange={(e) => setActivityFilter(e.target.value)}
+                    >
+                      <option value="all">Todas</option>
+                      <option value="post">Posts</option>
+                      <option value="repost">Reposts</option>
+                      <option value="quote">Citas</option>
+                    </select>
                   </div>
-                  <div className="mt-8 flex justify-center">
-                    <Link to="/create-post" className="btn-accent px-8 py-3 rounded-full shadow-[0_0_15px_rgba(6,182,212,0.4)] hover:shadow-[0_0_25px_rgba(6,182,212,0.6)] transition-all flex items-center gap-2 font-bold tracking-widest uppercase text-xs">
-                      <span className="text-lg leading-none">+</span> Crear Nuevo Post
-                    </Link>
+
+                  <ActivityFeed userId={user.id} filter={activityFilter} />
+                </div>
+              )}
+
+              {/* TAB: WALL (MURO) */}
+              {activeTab === 'wall' && (
+                <div className="animate-fade-in-up flex flex-col gap-10">
+                  <div className="bg-black/40 border border-white/5 p-8 rounded-[3rem] shadow-2xl">
+                    <h4 className="text-[10px] font-black uppercase tracking-[0.4em] text-cyan-400 mb-6 flex items-center gap-2">
+                      <span className="w-2 h-2 rounded-full bg-cyan-500 animate-pulse"></span>
+                      Nueva Transmisión en Muro
+                    </h4>
+                    <form onSubmit={handleAddComment} className="space-y-4">
+                      <textarea
+                        value={newComment}
+                        onChange={(e) => setNewComment(e.target.value)}
+                        placeholder="Escribe algo en tu muro público..."
+                        className="w-full bg-black/40 border border-white/10 rounded-3xl p-6 text-sm text-white resize-none min-h-[120px] outline-none focus:border-cyan-500/50 transition-all font-medium"
+                      />
+                      <div className="flex justify-end">
+                        <button
+                          type="submit"
+                          disabled={submittingComment || !newComment.trim()}
+                          className="px-8 py-3 bg-cyan-600 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-cyan-500 hover:scale-105 transition-all shadow-lg disabled:opacity-50"
+                        >
+                          {submittingComment ? 'Procesando...' : 'Publicar'}
+                        </button>
+                      </div>
+                    </form>
+                  </div>
+
+                  <div className="space-y-4">
+                    {comments.map(c => (
+                      <div key={c.id} className="group relative bg-black/20 border border-white/5 p-6 rounded-[2.5rem] hover:bg-white/[0.03] transition-all flex flex-col gap-4">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-4">
+                            <img className="w-10 h-10 rounded-2xl object-cover border border-white/10" src={c.author?.avatar_url || '/default_user_blank.png'} alt="Avatar" />
+                            <div>
+                              <span className="text-xs font-black text-cyan-400 uppercase tracking-widest">{c.author?.username}</span>
+                              <span className="block text-[8px] font-black text-white/20 uppercase mt-0.5">{new Date(c.created_at).toLocaleDateString()}</span>
+                            </div>
+                          </div>
+                          <button onClick={() => handleDeleteComment(c.id)} className="w-8 h-8 rounded-xl bg-rose-500/10 text-rose-500 flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-all hover:bg-rose-500 hover:text-white">✕</button>
+                        </div>
+                        <p className="text-xs text-white/70 leading-relaxed pl-1 font-medium">{c.content}</p>
+                      </div>
+                    ))}
+                    {comments.length === 0 && (
+                      <div className="text-center p-24 bg-black/20 rounded-[3rem] border border-white/5 opacity-40">
+                        <p className="text-[10px] font-black text-white/10 uppercase tracking-[0.4em]">Sin transmisiones en el muro</p>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}

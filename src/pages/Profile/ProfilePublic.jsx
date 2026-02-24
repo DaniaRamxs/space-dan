@@ -10,6 +10,8 @@ import { supabase } from '../../supabaseClient';
 import { ACHIEVEMENTS } from '../../hooks/useAchievements';
 import { getUserGameRanks } from '../../services/supabaseScores';
 import { useAuthContext } from '../../contexts/AuthContext';
+import ActivityFeed from '../../components/Social/ActivityFeed';
+import BlogPostCard from '../../components/Social/BlogPostCard';
 import { profileSocialService } from '../../services/profile_social';
 import { socialService } from '../../services/social';
 import { getProductivityStats } from '../../services/productivity';
@@ -188,7 +190,8 @@ export default function PublicProfilePage() {
         followers: prev.followers + (following ? 1 : -1),
       }));
     } catch (err) {
-      console.error(err);
+      console.error('[handleToggleFollow]', err);
+      alert('Error en el protocolo de seguimiento: ' + (err.message || 'Desconocido'));
     }
   };
 
@@ -202,7 +205,8 @@ export default function PublicProfilePage() {
       setComments(prev => [added, ...prev]);
       setNewComment('');
     } catch (err) {
-      alert('No se pudo publicar el comentario.');
+      console.error('[handleAddComment]', err);
+      alert('Error al publicar: ' + (err.message || 'Desconocido'));
     } finally {
       setSubmittingComment(false);
     }
@@ -435,7 +439,7 @@ export default function PublicProfilePage() {
         <div className="flex flex-nowrap bg-black/40 backdrop-blur-2xl rounded-3xl p-2 shadow-2xl border border-white/5 overflow-x-auto no-scrollbar gap-1 mb-8">
           <TabButton active={activeTab === 'records'} onClick={() => setActiveTab('records')}>🏆 Archivos</TabButton>
           <TabButton active={activeTab === 'achievements'} onClick={() => setActiveTab('achievements')}>🎖️ Medallas</TabButton>
-          <TabButton active={activeTab === 'posts'} onClick={() => setActiveTab('posts')}>📝 Bitácora</TabButton>
+          <TabButton active={activeTab === 'activity'} onClick={() => setActiveTab('activity')}>🛰️ Actividad</TabButton>
           <TabButton active={activeTab === 'wall'} onClick={() => setActiveTab('wall')}>💬 Muro</TabButton>
         </div>
 
@@ -505,33 +509,31 @@ export default function PublicProfilePage() {
             </div>
           )}
 
-          {/* TAB: POSTS */}
-          {activeTab === 'posts' && (
-            <div className="animate-fade-in-up">
-              <div className="flex flex-col gap-4">
-                {posts.length === 0 ? (
-                  <div className="text-center p-24 border border-white/5 rounded-[3rem] bg-black/20 text-white/20 text-xs font-black uppercase tracking-widest">No hay registros públicos.</div>
-                ) : (
-                  posts.map(post => (
-                    <div key={post.id} className="group relative bg-black/20 border border-white/5 rounded-3xl p-8 hover:bg-white/[0.03] transition-all overflow-hidden flex items-center justify-between gap-8">
-                      <div className="flex-1 space-y-3">
-                        <div className="flex items-center gap-3">
-                          <span className="text-[9px] font-black text-cyan-400 font-mono bg-cyan-400/10 px-3 py-1 rounded-full border border-cyan-400/20 uppercase">
-                            CAPTURA: {new Date(post.created_at).toLocaleDateString()}
-                          </span>
-                        </div>
-                        <Link to={`/log/${post.slug}`} className="block">
-                          <h3 className="text-2xl font-black text-white group-hover:text-cyan-400 transition-colors uppercase tracking-tighter">{post.title}</h3>
-                          <p className="text-xs text-white/40 line-clamp-2 mt-2 font-medium">{post.subtitle || 'Sin descripción adicional.'}</p>
-                        </Link>
-                      </div>
-                      <div className="text-right">
-                        <span className="text-[10px] font-black text-white/10 uppercase block mb-1">Impacto</span>
-                        <span className="text-lg font-black font-mono text-white/60 italic leading-none">👁 {post.views || 0}</span>
-                      </div>
-                    </div>
-                  ))
-                )}
+          {/* TAB: ACTIVITY (SOCIAL FEED + BLOG POSTS) */}
+          {activeTab === 'activity' && (
+            <div className="animate-fade-in-up flex flex-col items-center gap-8">
+
+              {/* Blog posts del piloto */}
+              {posts.length > 0 && (
+                <div className="w-full max-w-2xl flex flex-col gap-4">
+                  <div className="flex items-center px-2">
+                    <h3 className="text-[10px] font-black text-white/30 uppercase tracking-[0.4em]">📖 Entradas de Bitácora</h3>
+                  </div>
+                  {posts.map(post => (
+                    <BlogPostCard
+                      key={post.id}
+                      post={post}
+                      authorProfile={profile}
+                      onActionComplete={() => { }}
+                    />
+                  ))}
+                </div>
+              )}
+
+              {/* Feed de transmisiones sociales */}
+              <div className="w-full max-w-2xl border-t border-white/10 pt-6">
+                <h3 className="text-[10px] font-black text-white/30 uppercase tracking-[0.4em] px-2 mb-6">🛰️ Transmisiones Sociales</h3>
+                <ActivityFeed userId={userId} />
               </div>
             </div>
           )}

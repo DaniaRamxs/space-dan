@@ -1,14 +1,15 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
+import { useLocation } from 'react-router-dom';
 
 const IDLE_MS = 30_000; // 30 seconds
 
 function getActiveScreensaver() {
   try {
-    const equipped  = JSON.parse(localStorage.getItem('space-dan-shop-equipped') || '{}');
+    const equipped = JSON.parse(localStorage.getItem('space-dan-shop-equipped') || '{}');
     const purchased = JSON.parse(localStorage.getItem('space-dan-shop-purchased') || '[]');
     const pick = equipped.screensaver;
     if (pick && purchased.includes(pick)) return pick;
-  } catch {}
+  } catch { }
   return 'starfield'; // default always available
 }
 
@@ -39,7 +40,7 @@ function StarfieldSaver({ canvas }) {
       for (const s of stars) {
         s.z -= 6;
         if (s.z <= 0) { s.z = c.width; s.x = Math.random() * c.width - c.width / 2; s.y = Math.random() * c.height - c.height / 2; }
-        const k  = 128 / s.z;
+        const k = 128 / s.z;
         const px = s.x * k; const py = s.y * k;
         const size = Math.max(0.5, (1 - s.z / c.width) * 4);
         ctx.beginPath();
@@ -96,7 +97,7 @@ function DvdSaver({ canvas }) {
     const c = canvas.current; if (!c) return;
     const ctx = c.getContext('2d');
     c.width = window.innerWidth; c.height = window.innerHeight;
-    const colors = ['#ff6eb4','#00e5ff','#39ff14','#ffd700','#ff5500'];
+    const colors = ['#ff6eb4', '#00e5ff', '#39ff14', '#ffd700', '#ff5500'];
     let x = 80, y = 80, vx = 2.5, vy = 2, ci = 0;
     const W = 120, H = 40;
     let raf;
@@ -128,11 +129,11 @@ function PipesSaver({ canvas }) {
     const GRID = 20;
     const cols = Math.floor(c.width / GRID);
     const rows = Math.floor(c.height / GRID);
-    const colors = ['#ff6eb4','#00e5ff','#39ff14','#ffd700','#ff5500','#aa00ff'];
+    const colors = ['#ff6eb4', '#00e5ff', '#39ff14', '#ffd700', '#ff5500', '#aa00ff'];
     ctx.fillStyle = '#050510'; ctx.fillRect(0, 0, c.width, c.height);
 
-    let pipes = [{ x: Math.floor(cols/2), y: Math.floor(rows/2), dir: 0, color: colors[0], steps: 0 }];
-    const dirs = [[0,-1],[1,0],[0,1],[-1,0]];
+    let pipes = [{ x: Math.floor(cols / 2), y: Math.floor(rows / 2), dir: 0, color: colors[0], steps: 0 }];
+    const dirs = [[0, -1], [1, 0], [0, 1], [-1, 0]];
     let raf, frame = 0;
 
     const draw = () => {
@@ -147,24 +148,24 @@ function PipesSaver({ canvas }) {
         ctx.lineWidth = GRID - 4;
         ctx.lineCap = 'square';
         ctx.beginPath();
-        ctx.moveTo(p.x * GRID + GRID/2, p.y * GRID + GRID/2);
-        ctx.lineTo(nx * GRID + GRID/2, ny * GRID + GRID/2);
+        ctx.moveTo(p.x * GRID + GRID / 2, p.y * GRID + GRID / 2);
+        ctx.lineTo(nx * GRID + GRID / 2, ny * GRID + GRID / 2);
         ctx.stroke();
         // elbow dot
         ctx.fillStyle = '#ffffff44';
         ctx.beginPath();
-        ctx.arc(p.x * GRID + GRID/2, p.y * GRID + GRID/2, GRID/3, 0, Math.PI*2);
+        ctx.arc(p.x * GRID + GRID / 2, p.y * GRID + GRID / 2, GRID / 3, 0, Math.PI * 2);
         ctx.fill();
 
         p.x = nx; p.y = ny; p.steps++;
         if (Math.random() < 0.15) p.dir = Math.floor(Math.random() * 4);
       }
       if (frame % 80 === 0 && pipes.length < 8) {
-        pipes.push({ x: Math.floor(Math.random()*cols), y: Math.floor(Math.random()*rows), dir: Math.floor(Math.random()*4), color: colors[Math.floor(Math.random()*colors.length)], steps: 0 });
+        pipes.push({ x: Math.floor(Math.random() * cols), y: Math.floor(Math.random() * rows), dir: Math.floor(Math.random() * 4), color: colors[Math.floor(Math.random() * colors.length)], steps: 0 });
       }
       if (frame % 600 === 0) {
-        ctx.fillStyle = 'rgba(5,5,16,0.3)'; ctx.fillRect(0,0,c.width,c.height);
-        pipes = [{ x: Math.floor(cols/2), y: Math.floor(rows/2), dir: 0, color: colors[Math.floor(Math.random()*colors.length)], steps: 0 }];
+        ctx.fillStyle = 'rgba(5,5,16,0.3)'; ctx.fillRect(0, 0, c.width, c.height);
+        pipes = [{ x: Math.floor(cols / 2), y: Math.floor(rows / 2), dir: 0, color: colors[Math.floor(Math.random() * colors.length)], steps: 0 }];
       }
       raf = requestAnimationFrame(draw);
     };
@@ -174,18 +175,19 @@ function PipesSaver({ canvas }) {
 }
 
 const SAVERS = {
-  starfield:    StarfieldSaver,
+  starfield: StarfieldSaver,
   saver_matrix: MatrixSaver,
-  saver_dvd:    DvdSaver,
-  saver_pipes:  PipesSaver,
+  saver_dvd: DvdSaver,
+  saver_pipes: PipesSaver,
 };
 
 export default function Screensaver() {
-  const [active, setActive]       = useState(false);
-  const [saverKey, setSaverKey]   = useState('starfield');
-  const canvasRef                 = useRef(null);
-  const timerRef                  = useRef(null);
-  const activeRef                 = useRef(false);
+  const [active, setActive] = useState(false);
+  const [saverKey, setSaverKey] = useState('starfield');
+  const canvasRef = useRef(null);
+  const timerRef = useRef(null);
+  const activeRef = useRef(false);
+  const location = useLocation();
 
   // Keep ref in sync so the event handler never has stale closure
   useEffect(() => { activeRef.current = active; }, [active]);
@@ -193,11 +195,15 @@ export default function Screensaver() {
   const reset = useCallback(() => {
     if (activeRef.current) { setActive(false); return; }
     clearTimeout(timerRef.current);
+
+    // No activar screensaver en la sección de juegos
+    if (location.pathname.startsWith('/games')) return;
+
     timerRef.current = setTimeout(() => {
       setSaverKey(getActiveScreensaver());
       setActive(true);
     }, IDLE_MS);
-  }, []); // stable reference — no deps
+  }, [location.pathname]);
 
   useEffect(() => {
     const events = ['mousemove', 'keydown', 'touchstart', 'click'];
@@ -207,7 +213,7 @@ export default function Screensaver() {
       events.forEach(e => window.removeEventListener(e, reset));
       clearTimeout(timerRef.current);
     };
-  }, [reset]); // runs once since reset is stable
+  }, [reset]); // runs when reset changes
 
   if (!active) return null;
 

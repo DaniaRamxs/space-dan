@@ -44,7 +44,7 @@ SET type = 'system'
 WHERE type NOT IN ('achievement', 'record', 'system', 'letter', 'room_invite', 'partnership_request');
 
 ALTER TABLE public.notifications ADD CONSTRAINT notifications_type_check 
-    CHECK (type IN ('achievement', 'record', 'system', 'letter', 'room_invite', 'partnership_request'));
+    CHECK (type IN ('achievement', 'record', 'system', 'letter', 'room_invite', 'partnership_request', 'social'));
 
 -- 3. Trigger to notify receiver on new request
 CREATE OR REPLACE FUNCTION public.on_partnership_request_insert()

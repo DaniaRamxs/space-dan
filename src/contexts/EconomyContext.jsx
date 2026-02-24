@@ -113,27 +113,25 @@ export function EconomyProvider({ children }) {
     }
   }, [user]);
 
-  /** Reclama bonus diario. Lanza error si ya fue reclamado hoy. */
+  /** Reclama bonus diario. Retorna el resultado del servidor. */
   const claimDaily = useCallback(async () => {
     if (!user) throw new Error('No autenticado');
     try {
       const result = await economyService.claimDailyBonus(user.id);
+
       if (result?.success) {
+        // Claim exitoso — actualizar balance y timestamp localmente
         setBalance(result.balance);
         setLastDailyAt(new Date().toISOString());
-      }
-      return result;
-    } catch (err) {
-      // Si falla por cooldown, forzamos un refresh para sincronizar el estado
-      if (err.message?.includes('reclamaste')) {
+      } else if (result?.reason === 'cooldown') {
+        // Cooldown activo — sincronizar estado sin tirar error
         refreshEconomy();
       }
-      console.error('[EconomyContext] claimDaily error details:', {
-        message: err.message,
-        details: err.details,
-        hint: err.hint,
-        code: err.code
-      });
+
+      return result; // El componente decide cómo mostrar el mensaje
+    } catch (err) {
+      // Error real del servidor (no cooldown)
+      console.error('[EconomyContext] claimDaily error:', err.message, err.code);
       throw err;
     }
   }, [user, refreshEconomy]);
