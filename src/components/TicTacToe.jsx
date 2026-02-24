@@ -37,7 +37,7 @@ const TicTacToe = () => {
   const makeAIMove = (currentBoard) => {
     // IA inteligente con minimax
     const emptyCells = currentBoard.map((cell, idx) => cell === null ? idx : null).filter(val => val !== null);
-    
+
     // Intentar ganar
     for (let cell of emptyCells) {
       const testBoard = [...currentBoard];
@@ -74,7 +74,7 @@ const TicTacToe = () => {
         const newBoard = [...board];
         newBoard[aiMove] = 'O';
         setBoard(newBoard);
-        
+
         const result = checkWinner(newBoard);
         if (result) {
           setWinner(result.winner);
@@ -119,7 +119,7 @@ const TicTacToe = () => {
   };
 
   return (
-    <div className="w-full max-w-xs mx-auto p-2">
+    <div className="w-full flex justify-center p-2">
       <div className="w-full">
         {/* Título */}
         <div className="text-center mb-4">
@@ -137,8 +137,8 @@ const TicTacToe = () => {
                 disabled={!isPlayerTurn || winner}
                 className={`
                   aspect-square rounded-lg text-2xl font-bold transition-all duration-200
-                  ${winningLine.includes(index) 
-                    ? 'bg-gradient-to-br from-blue-500 to-cyan-500 shadow-lg shadow-blue-500/50 scale-105' 
+                  ${winningLine.includes(index)
+                    ? 'bg-gradient-to-br from-blue-500 to-cyan-500 shadow-lg shadow-blue-500/50 scale-105'
                     : 'bg-gradient-to-br from-blue-900 to-blue-800'
                   }
                   ${cell === 'X' ? 'text-cyan-300' : cell === 'O' ? 'text-blue-300' : 'text-transparent'}
