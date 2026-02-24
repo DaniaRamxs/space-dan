@@ -10,6 +10,12 @@ export default function VaultPage() {
     const [loading, setLoading] = useState(false);
     const [activeTab, setActiveTab] = useState('notes'); // 'notes' | 'items'
 
+    // Nuevos estados para crear notas
+    const [isAdding, setIsAdding] = useState(false);
+    const [newTitle, setNewTitle] = useState('');
+    const [newContent, setNewContent] = useState('');
+    const [newLabel, setNewLabel] = useState('personal');
+
     useEffect(() => {
         // Simulation of "Identity Scan"
         const timer = setTimeout(() => setScanning(false), 2500);
@@ -28,6 +34,33 @@ export default function VaultPage() {
             setLoading(false);
         }
     }
+
+    const handleAddNote = async (e) => {
+        e.preventDefault();
+        if (!newTitle.trim() || !newContent.trim()) return;
+        try {
+            const added = await vaultService.addNote(newTitle, newContent, newLabel);
+            setNotes(prev => [added, ...prev]);
+            setIsAdding(false);
+            setNewTitle('');
+            setNewContent('');
+            setNewLabel('personal');
+        } catch (err) {
+            console.error(err);
+            alert('Error al guardar la nota cifrada');
+        }
+    };
+
+    const handleDeleteNote = async (id) => {
+        if (!window.confirm('¿Destruir esta nota permanentemente?')) return;
+        try {
+            await vaultService.deleteNote(id);
+            setNotes(prev => prev.filter(n => n.id !== id));
+        } catch (err) {
+            console.error(err);
+            alert('Error al destruir la nota');
+        }
+    };
 
     if (scanning) {
         return (
@@ -94,11 +127,22 @@ export default function VaultPage() {
                                     width: '4px', height: '100%',
                                     background: note.label === 'idea' ? 'var(--cyan)' : 'var(--accent)'
                                 }} />
-                                <div style={{ fontSize: '11px', opacity: 0.4, textTransform: 'uppercase', marginBottom: '8px' }}>
-                                    {note.label || 'Personal'}
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                                    <div style={{ fontSize: '11px', opacity: 0.4, textTransform: 'uppercase' }}>
+                                        {note.label || 'Personal'}
+                                    </div>
+                                    <button
+                                        onClick={() => handleDeleteNote(note.id)}
+                                        style={{ background: 'transparent', border: 'none', color: 'var(--accent)', cursor: 'pointer', padding: '2px 6px', fontSize: '0.8rem', opacity: 0.5 }}
+                                        title="Destruir nota"
+                                        onMouseOver={e => e.target.style.opacity = 1}
+                                        onMouseOut={e => e.target.style.opacity = 0.5}
+                                    >
+                                        ✕
+                                    </button>
                                 </div>
-                                <h3 style={{ fontSize: '16px', margin: '0 0 10px 0' }}>{note.title}</h3>
-                                <p style={{ fontSize: '14px', opacity: 0.8, whiteSpace: 'pre-wrap' }}>{note.content}</p>
+                                <h3 style={{ fontSize: '16px', margin: '0 0 10px 0', color: 'var(--text)' }}>{note.title}</h3>
+                                <p style={{ fontSize: '14px', opacity: 0.8, whiteSpace: 'pre-wrap', color: 'var(--text)' }}>{note.content}</p>
                                 <div style={{ fontSize: '10px', opacity: 0.3, marginTop: '20px' }}>
                                     Actualizado: {new Date(note.updated_at).toLocaleDateString()}
                                 </div>
@@ -106,6 +150,7 @@ export default function VaultPage() {
                         ))}
                         <motion.div
                             whileHover={{ scale: 1.02 }}
+                            onClick={() => setIsAdding(true)}
                             className="glassCard"
                             style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', borderStyle: 'dashed', cursor: 'pointer', minHeight: '150px' }}
                         >
@@ -121,6 +166,72 @@ export default function VaultPage() {
             <div style={{ marginTop: '40px', padding: '20px', borderTop: '1px solid var(--glass-border)', textAlign: 'center', opacity: 0.3, fontSize: '12px', fontFamily: 'var(--font-mono)' }}>
                 SISTEMA_DE_ENCRIPTADO_ACTIVO // PROTOCOLO_D-VAULT_V1.0
             </div>
+
+            {/* Modal para agregar nota */}
+            <AnimatePresence>
+                {isAdding && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        style={{
+                            position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', zIndex: 1000,
+                            display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '20px'
+                        }}
+                    >
+                        <motion.div
+                            initial={{ scale: 0.9, y: 20 }}
+                            animate={{ scale: 1, y: 0 }}
+                            exit={{ scale: 0.9, y: 20 }}
+                            className="glassCard"
+                            style={{ width: '100%', maxWidth: '400px', padding: '30px', background: 'var(--bg)', border: '1px solid var(--border)' }}
+                        >
+                            <h2 style={{ marginTop: 0, marginBottom: '20px', fontSize: '1.2rem', color: 'var(--text)' }}>Crear Nota Cifrada</h2>
+                            <form onSubmit={handleAddNote} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+                                <div>
+                                    <label style={{ fontSize: '12px', opacity: 0.6, display: 'block', marginBottom: '5px' }}>Etiqueta</label>
+                                    <select
+                                        value={newLabel}
+                                        onChange={(e) => setNewLabel(e.target.value)}
+                                        style={{ width: '100%', padding: '10px', background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border)', borderRadius: '8px', color: '#fff' }}
+                                    >
+                                        <option value="personal">Personal</option>
+                                        <option value="idea">Idea</option>
+                                        <option value="recordatorio">Recordatorio</option>
+                                        <option value="secreto">Secreto</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label style={{ fontSize: '12px', opacity: 0.6, display: 'block', marginBottom: '5px' }}>Título</label>
+                                    <input
+                                        type="text"
+                                        required
+                                        value={newTitle}
+                                        onChange={(e) => setNewTitle(e.target.value)}
+                                        placeholder="Título de la nota..."
+                                        style={{ width: '100%', padding: '10px', background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border)', borderRadius: '8px', color: '#fff' }}
+                                    />
+                                </div>
+                                <div>
+                                    <label style={{ fontSize: '12px', opacity: 0.6, display: 'block', marginBottom: '5px' }}>Contenido</label>
+                                    <textarea
+                                        required
+                                        value={newContent}
+                                        onChange={(e) => setNewContent(e.target.value)}
+                                        placeholder="Código o texto cifrado..."
+                                        rows={4}
+                                        style={{ width: '100%', padding: '10px', background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border)', borderRadius: '8px', color: '#fff', resize: 'vertical' }}
+                                    />
+                                </div>
+                                <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
+                                    <button type="button" onClick={() => setIsAdding(false)} className="btn-glass" style={{ flex: 1 }}>Cancelar</button>
+                                    <button type="submit" className="btn-accent" style={{ flex: 1 }}>Guardar</button>
+                                </div>
+                            </form>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
         </div>
     );
 }

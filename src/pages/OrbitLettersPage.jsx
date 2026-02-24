@@ -4,6 +4,10 @@ import { useSearchParams } from 'react-router-dom';
 import { socialService } from '../services/social';
 import { useAuthContext } from '../contexts/AuthContext';
 import { supabase } from '../supabaseClient';
+import { GiphyFetch } from '@giphy/js-fetch-api';
+import { Grid } from '@giphy/react-components';
+
+const gf = new GiphyFetch('3k4Fdn6D040IQvIq1KquLZzJgutP3dGp');
 
 export default function OrbitLettersPage() {
     useAuthContext();
@@ -13,6 +17,8 @@ export default function OrbitLettersPage() {
     const [loading, setLoading] = useState(true);
     const [sending, setSending] = useState(false);
     const [newContent, setNewContent] = useState('');
+    const [showGiphy, setShowGiphy] = useState(false);
+    const [gifSearchTerm, setGifSearchTerm] = useState('');
     const [searchParams] = useSearchParams();
     const toUserId = searchParams.get('to');
     const scrollRef = useRef(null);
@@ -98,14 +104,16 @@ export default function OrbitLettersPage() {
         setMobileView('chat');
     };
 
-    const handleSend = async (e) => {
-        e.preventDefault();
-        if (!newContent.trim() || !activeConv || sending) return;
+    const handleSend = async (e, forceContent = null) => {
+        if (e) e.preventDefault();
+        const contentToSend = forceContent !== null ? forceContent : newContent;
+        if (!contentToSend.trim() || !activeConv || sending) return;
 
         setSending(true);
         try {
-            await socialService.sendLetter(activeConv.other_user_id, newContent);
-            setNewContent('');
+            await socialService.sendLetter(activeConv.other_user_id, contentToSend);
+            if (forceContent === null) setNewContent('');
+            setShowGiphy(false);
 
             if (activeConv.conv_id) {
                 loadLetters(activeConv.conv_id);
@@ -134,7 +142,7 @@ export default function OrbitLettersPage() {
                 Hidden on mobile when mobileView === 'chat'          */}
             <div
                 className={`glassCard lettersPanel${mobileView === 'chat' ? ' lettersPanel--hidden' : ''}`}
-                style={{ padding: 0, display: 'flex', flexDirection: 'column', height: '100%' }}
+                style={{ padding: 0, display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0 }}
             >
                 <div style={{ padding: '18px 20px', borderBottom: '1px solid var(--glass-border)', display: 'flex', alignItems: 'center', gap: 12 }}>
                     <h2 style={{ margin: 0, fontSize: '17px', flex: 1 }}>✉️ Cartas en Órbita</h2>
@@ -189,7 +197,7 @@ export default function OrbitLettersPage() {
                 Hidden on mobile when mobileView === 'list'          */}
             <div
                 className={`glassCard lettersPanel${mobileView === 'list' ? ' lettersPanel--hidden' : ''}`}
-                style={{ padding: 0, display: 'flex', flexDirection: 'column', height: '100%' }}
+                style={{ padding: 0, display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0 }}
             >
                 {!activeConv ? (
                     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', opacity: 0.4 }}>
@@ -199,9 +207,10 @@ export default function OrbitLettersPage() {
                 ) : (
                     <>
                         {/* Chat header */}
-                        <div style={{ padding: '13px 20px', borderBottom: '1px solid var(--glass-border)', display: 'flex', alignItems: 'center', gap: 12 }}>
+                        <div style={{ flexShrink: 0, padding: '13px 20px', borderBottom: '1px solid var(--glass-border)', display: 'flex', alignItems: 'center', gap: 12 }}>
                             {/* Back button — only visible on mobile */}
                             <button
+                                type="button"
                                 onClick={() => setMobileView('list')}
                                 style={{
                                     background: 'none', border: 'none', color: 'var(--accent)',
@@ -216,6 +225,7 @@ export default function OrbitLettersPage() {
                             <img
                                 src={activeConv.other_avatar || '/default-avatar.png'}
                                 style={{ width: 32, height: 32, borderRadius: '50%', border: '1px solid var(--border)' }}
+                                alt="avatar"
                             />
                             <div style={{ flex: 1, minWidth: 0 }}>
                                 <div style={{ fontWeight: 'bold', fontSize: '14px' }}>{activeConv.other_username}</div>
@@ -226,7 +236,7 @@ export default function OrbitLettersPage() {
                         {/* Messages */}
                         <div
                             ref={scrollRef}
-                            style={{ flex: 1, overflowY: 'auto', padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px' }}
+                            style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px' }}
                         >
                             <AnimatePresence initial={false}>
                                 {letters.map((l) => (
@@ -238,13 +248,18 @@ export default function OrbitLettersPage() {
                                     >
                                         <div style={{
                                             background: l.is_mine ? 'var(--accent-dim)' : 'rgba(255,255,255,0.05)',
-                                            padding: '11px 16px',
+                                            padding: l.content.includes('giphy.com/media') ? '6px' : '11px 16px',
                                             borderRadius: l.is_mine ? '18px 18px 2px 18px' : '18px 18px 18px 2px',
                                             border: '1px solid var(--glass-border)',
                                             fontSize: '14px', lineHeight: '1.5',
-                                            boxShadow: l.is_mine ? '0 4px 15px rgba(255,110,180,0.05)' : 'none'
+                                            boxShadow: l.is_mine ? '0 4px 15px rgba(255,110,180,0.05)' : 'none',
+                                            overflow: 'hidden'
                                         }}>
-                                            {l.content}
+                                            {l.content.includes('giphy.com/media') ? (
+                                                <img src={l.content} alt="GIF" style={{ maxWidth: '100%', borderRadius: '12px', display: 'block' }} />
+                                            ) : (
+                                                l.content
+                                            )}
                                             <div style={{ fontSize: '10px', opacity: 0.4, marginTop: '6px', textAlign: l.is_mine ? 'right' : 'left' }}>
                                                 {new Date(l.sent_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                             </div>
@@ -255,8 +270,44 @@ export default function OrbitLettersPage() {
                         </div>
 
                         {/* Input */}
-                        <form onSubmit={handleSend} className="shrink-0" style={{ padding: '14px 16px', paddingBottom: 'calc(14px + env(safe-area-inset-bottom, 20px))', borderTop: '1px solid var(--glass-border)', background: 'rgba(5,5,10,0.95)', backdropFilter: 'blur(12px)', position: 'relative', zIndex: 50 }}>
-                            <div style={{ display: 'flex', gap: '10px' }}>
+                        <form onSubmit={(e) => handleSend(e)} style={{ flexShrink: 0, padding: '14px 16px', paddingBottom: 'calc(14px + env(safe-area-inset-bottom, 20px))', borderTop: '1px solid var(--glass-border)', background: 'rgba(5,5,10,0.95)', backdropFilter: 'blur(12px)', position: 'relative', zIndex: 50 }}>
+                            {showGiphy && (
+                                <div style={{ position: 'absolute', bottom: '100%', left: '0', width: '100%', height: '340px', background: '#111', zIndex: 60, padding: '10px', overflowY: 'auto', borderTop: '1px solid var(--glass-border)' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
+                                        <div style={{ fontWeight: 'bold' }}>Elige un GIF ✨</div>
+                                        <button type="button" onClick={() => setShowGiphy(false)} style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer' }}>✕</button>
+                                    </div>
+                                    <input
+                                        type="text"
+                                        placeholder="Buscar GIFs..."
+                                        value={gifSearchTerm}
+                                        onChange={(e) => setGifSearchTerm(e.target.value)}
+                                        style={{ width: '100%', padding: '8px 12px', marginBottom: '10px', borderRadius: '12px', border: '1px solid var(--glass-border)', background: 'rgba(255,255,255,0.1)', color: '#fff', outline: 'none' }}
+                                    />
+                                    <Grid
+                                        key={gifSearchTerm}
+                                        width={300}
+                                        columns={3}
+                                        fetchGifs={(offset) => gifSearchTerm.trim() ? gf.search(gifSearchTerm, { offset, limit: 10 }) : gf.trending({ offset, limit: 10 })}
+                                        onGifClick={(gif, e) => {
+                                            e.preventDefault();
+                                            handleSend(null, gif.images.fixed_height.url);
+                                        }}
+                                    />
+                                </div>
+                            )}
+
+                            <div style={{ display: 'flex', gap: '8px' }}>
+                                <motion.button
+                                    type="button"
+                                    onClick={() => setShowGiphy(!showGiphy)}
+                                    whileHover={{ scale: 1.05 }}
+                                    whileTap={{ scale: 0.95 }}
+                                    style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid var(--glass-border)', borderRadius: '24px', padding: '0 12px', fontSize: '18px', cursor: 'pointer' }}
+                                    title="Enviar GIF"
+                                >
+                                    👾
+                                </motion.button>
                                 <input
                                     type="text"
                                     value={newContent}
@@ -264,6 +315,7 @@ export default function OrbitLettersPage() {
                                     placeholder="Escribe una carta..."
                                     style={{
                                         flex: 1,
+                                        minWidth: 0,
                                         background: 'rgba(255,255,255,0.05)',
                                         border: '1px solid var(--glass-border)',
                                         borderRadius: '24px',
@@ -274,6 +326,8 @@ export default function OrbitLettersPage() {
                                     }}
                                 />
                                 <motion.button
+                                    type="submit"
+                                    onClick={handleSend}
                                     whileHover={{ scale: 1.05 }}
                                     whileTap={{ scale: 0.95 }}
                                     disabled={sending || !newContent.trim()}

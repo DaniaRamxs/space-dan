@@ -17,9 +17,9 @@ function getFrameStyle(frameItemId) {
   if (!frameItemId) return { border: '3px solid var(--accent)', boxShadow: '0 0 15px var(--accent-glow)' };
   const id = frameItemId.toLowerCase();
   if (id === 'frame_stars') return { border: '3px solid #ffd700', boxShadow: '0 0 20px rgba(255,215,0,0.8)' };
-  if (id === 'frame_neon')  return { border: '3px solid #00e5ff', boxShadow: '0 0 20px rgba(0,229,255,0.8)' };
+  if (id === 'frame_neon') return { border: '3px solid #00e5ff', boxShadow: '0 0 20px rgba(0,229,255,0.8)' };
   if (id === 'frame_pixel') return { border: '4px solid #ff6b35', boxShadow: '0 0 15px rgba(255,107,53,0.7)', imageRendering: 'pixelated' };
-  if (id === 'frame_holo')  return { border: '3px solid #b464ff', boxShadow: '0 0 20px rgba(180,100,255,0.8), 0 0 40px rgba(0,229,255,0.4)' };
+  if (id === 'frame_holo') return { border: '3px solid #b464ff', boxShadow: '0 0 20px rgba(180,100,255,0.8), 0 0 40px rgba(0,229,255,0.4)' };
   if (id === 'frame_crown') return { border: '4px solid #ffd700', boxShadow: '0 0 25px rgba(255,215,0,1), 0 0 50px rgba(255,215,0,0.4)' };
   return { border: '3px solid var(--accent)', boxShadow: '0 0 15px var(--accent-glow)' };
 }
@@ -86,7 +86,7 @@ export default function PublicProfilePage() {
       // Activity status (non-blocking)
       socialService.getUserActivity(userId)
         .then(setActivityLabel)
-        .catch(() => {});
+        .catch(() => { });
 
       if (user && user.id !== userId) {
         const following = await profileSocialService.isFollowing(userId).catch(() => false);
@@ -126,6 +126,16 @@ export default function PublicProfilePage() {
       alert('No se pudo publicar el comentario.');
     } finally {
       setSubmittingComment(false);
+    }
+  };
+
+  const handleDeleteComment = async (commentId) => {
+    if (!window.confirm('¿Eliminar este mensaje del muro?')) return;
+    try {
+      await profileSocialService.deleteComment(commentId);
+      setComments(prev => prev.filter(c => c.id !== commentId));
+    } catch (err) {
+      alert('Error al eliminar el comentario.');
     }
   };
 
@@ -372,9 +382,22 @@ export default function PublicProfilePage() {
                     >
                       {c.author?.username}
                     </Link>
-                    <span style={{ fontSize: '0.72rem', opacity: 0.4, marginLeft: 'auto' }}>
-                      {new Date(c.created_at).toLocaleDateString()}
-                    </span>
+                    <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <span style={{ fontSize: '0.72rem', opacity: 0.4 }}>
+                        {new Date(c.created_at).toLocaleDateString()}
+                      </span>
+                      {(user?.id === c.author_id || user?.id === userId) && (
+                        <button
+                          onClick={() => handleDeleteComment(c.id)}
+                          style={{ background: 'transparent', border: 'none', color: 'var(--accent)', cursor: 'pointer', padding: '2px 6px', fontSize: '0.8rem', opacity: 0.6 }}
+                          title="Eliminar mensaje"
+                          onMouseOver={e => e.target.style.opacity = 1}
+                          onMouseOut={e => e.target.style.opacity = 0.6}
+                        >
+                          ✕
+                        </button>
+                      )}
+                    </div>
                   </div>
                   <p style={{ fontSize: '0.88rem', opacity: 0.9, lineHeight: 1.5, margin: 0 }}>{c.content}</p>
                 </motion.div>
