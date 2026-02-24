@@ -13,6 +13,7 @@ import { AuthProvider } from "./contexts/AuthContext";
 import { EconomyProvider } from "./contexts/EconomyContext";
 
 const PostsPage = lazy(() => import("./pages/PostsPage"));
+const CreatePostPage = lazy(() => import("./pages/CreatePostPage"));
 const PostPage = lazy(() => import("./pages/PostPage"));
 const MusicPage = lazy(() => import("./pages/MusicPage"));
 const GamesPage = lazy(() => import("./pages/GamesPage"));
@@ -102,7 +103,9 @@ function AnimatedRoutes() {
         <Route path="/profile/:userId" element={<Layout><PublicProfilePage /></Layout>} />
         <Route path="/bulletin" element={<Layout><BulletinPage /></Layout>} />
         <Route path="/posts" element={<Layout><PostsPage /></Layout>} />
-        <Route path="/posts/:id" element={<Layout><PostPage /></Layout>} />
+        <Route path="/log/:slug" element={<Layout><PostPage /></Layout>} />
+        <Route path="/create-post" element={<Layout><CreatePostPage /></Layout>} />
+        <Route path="/edit-post/:id" element={<Layout><CreatePostPage /></Layout>} />
         <Route path="/music" element={<Layout><MusicPage /></Layout>} />
         <Route path="/games" element={<Layout><GamesPage /></Layout>} />
         <Route path="/leaderboard" element={<Layout><GlobalLeaderboardPage /></Layout>} />

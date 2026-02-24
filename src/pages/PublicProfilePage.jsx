@@ -13,6 +13,7 @@ import { useAuthContext } from '../contexts/AuthContext';
 import { profileSocialService } from '../services/profile_social';
 import { socialService } from '../services/social';
 import { getProductivityStats } from '../services/productivity';
+import { blogService } from '../services/blogService';
 
 function getFrameStyle(frameItemId) {
   if (!frameItemId) return { border: '3px solid var(--accent)', boxShadow: '0 0 15px var(--accent-glow)' };
@@ -55,6 +56,7 @@ export default function PublicProfilePage() {
   const [submittingComment, setSubmittingComment] = useState(false);
   const [activityLabel, setActivityLabel] = useState(null);
   const [activeTab, setActiveTab] = useState('records');
+  const [posts, setPosts] = useState([]);
 
   useEffect(() => {
     if (!userId) return;
@@ -74,12 +76,13 @@ export default function PublicProfilePage() {
       if (!prof) { setNotFound(true); return; }
       setProfile(prof);
 
-      const [ranks, achs, socialInfo, profileComments, cStats] = await Promise.all([
+      const [ranks, achs, socialInfo, profileComments, cStats, userPosts] = await Promise.all([
         getUserGameRanks(userId).catch(() => []),
         supabase.from('user_achievements').select('achievement_id').eq('user_id', userId),
         profileSocialService.getFollowCounts(userId).catch(() => ({ followers: 0, following: 0 })),
         profileSocialService.getProfileComments(userId).catch(() => []),
         getProductivityStats(userId).catch(() => null),
+        blogService.getUserPosts(userId).catch(() => []),
       ]);
 
       setGameRanks(ranks || []);
@@ -87,6 +90,7 @@ export default function PublicProfilePage() {
       setAchIds((achs.data || []).map(a => a.achievement_id));
       setFollowCounts(socialInfo);
       setComments(profileComments);
+      setPosts(userPosts);
 
       // Activity status (non-blocking)
       socialService.getUserActivity(userId)
@@ -282,6 +286,7 @@ export default function PublicProfilePage() {
         <div className="flex bg-[#0a0a0f] rounded-xl p-1 shadow-lg border border-white/5 overflow-x-auto no-scrollbar scroll-smooth">
           <TabButton active={activeTab === 'records'} onClick={() => setActiveTab('records')}>🏆 Récords</TabButton>
           <TabButton active={activeTab === 'achievements'} onClick={() => setActiveTab('achievements')}>🎖️ Logros</TabButton>
+          <TabButton active={activeTab === 'posts'} onClick={() => setActiveTab('posts')}>📝 Posts</TabButton>
           <TabButton active={activeTab === 'wall'} onClick={() => setActiveTab('wall')}>💬 Muro</TabButton>
         </div>
 
@@ -340,6 +345,32 @@ export default function PublicProfilePage() {
                   ))}
                 </div>
               )}
+            </div>
+          )}
+
+          {/* TAB: POSTS */}
+          {activeTab === 'posts' && (
+            <div className="animate-fade-in-up">
+              <div className="flex flex-col gap-3">
+                {posts.length === 0 ? (
+                  <div className="text-center p-12 border border-white/5 rounded-2xl bg-[#0a0a0f] text-gray-500 text-sm">Este usuario no ha publicado nada aún.</div>
+                ) : (
+                  posts.map(post => (
+                    <Link key={post.id} to={`/log/${post.slug}`} className="block bg-[#13131c]/60 backdrop-blur-md p-5 rounded-xl border border-white/5 transition-colors hover:bg-[#13131c] group">
+                      <div className="flex items-center gap-3 mb-2">
+                        <span className="text-[10px] text-cyan-500 font-mono tracking-widest bg-cyan-900/20 px-2 py-0.5 rounded border border-cyan-800/40">
+                          {new Date(post.created_at).toLocaleDateString()}
+                        </span>
+                        <span className="text-[10px] text-gray-500 font-mono tracking-widest ml-auto opacity-60 flex items-center gap-1 group-hover:opacity-100 transition-opacity">
+                          👁 {post.views || 0}
+                        </span>
+                      </div>
+                      <h3 className="text-lg font-bold text-gray-100 group-hover:text-cyan-400 transition-colors mb-1">{post.title}</h3>
+                      {post.subtitle && <p className="text-sm text-gray-400 mb-3">{post.subtitle}</p>}
+                    </Link>
+                  ))
+                )}
+              </div>
             </div>
           )}
 
