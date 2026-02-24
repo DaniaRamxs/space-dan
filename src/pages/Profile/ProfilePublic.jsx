@@ -168,14 +168,26 @@ export default function PublicProfilePage() {
     try {
       await universeService.sendRequest(userId);
       setHasPendingRequest(true);
-      alert('¡Solicitud de vínculo enviada!');
+      alert('¡Solicitud de vínculo enviada! 🌌');
     } catch (err) {
-      console.error(err);
-      alert('No se pudo enviar la solicitud.');
+      console.error('[handleSendRequest] Error:', err);
+      const msg = err?.message || err?.error_description || JSON.stringify(err);
+      // Detectar tabla inexistente
+      if (msg.includes('relation') && msg.includes('does not exist')) {
+        alert('❌ La tabla partnership_requests no existe en la base de datos.\n\nEjecuta el archivo supabase/partnership_requests.sql en el SQL Editor de Supabase.');
+      } else if (msg.includes('row-level security') || msg.includes('violates row-level')) {
+        alert('❌ Política RLS bloquea la inserción.\n\nAsegúrate de haber ejecutado las políticas en partnership_requests.sql.');
+      } else if (msg.includes('duplicate') || msg.includes('unique')) {
+        alert('Ya enviaste una solicitud a este usuario.');
+        setHasPendingRequest(true);
+      } else {
+        alert(`❌ No se pudo enviar la solicitud:\n${msg}`);
+      }
     } finally {
       setRequestLoading(false);
     }
   };
+
 
   const handleDeleteComment = async (commentId) => {
     if (!window.confirm('¿Eliminar este mensaje del muro?')) return;

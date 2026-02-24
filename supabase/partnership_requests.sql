@@ -15,6 +15,11 @@ CREATE TABLE IF NOT EXISTS public.partnership_requests (
 
 ALTER TABLE public.partnership_requests ENABLE ROW LEVEL SECURITY;
 
+-- Idempotent: drop policies first
+DROP POLICY IF EXISTS "Requests visible by sender or receiver" ON public.partnership_requests;
+DROP POLICY IF EXISTS "Users can send requests" ON public.partnership_requests;
+DROP POLICY IF EXISTS "Receivers can update requests" ON public.partnership_requests;
+
 CREATE POLICY "Requests visible by sender or receiver"
     ON public.partnership_requests FOR SELECT
     USING (auth.uid() = sender_id OR auth.uid() = receiver_id);
@@ -52,9 +57,12 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
+-- Drop trigger first if exists, then recreate
+DROP TRIGGER IF EXISTS tr_on_partnership_request_insert ON public.partnership_requests;
 CREATE TRIGGER tr_on_partnership_request_insert
     AFTER INSERT ON public.partnership_requests
     FOR EACH ROW EXECUTE FUNCTION public.on_partnership_request_insert();
+
 
 -- 4. Function to accept request and create partnership
 CREATE OR REPLACE FUNCTION public.accept_partnership_request(p_request_id uuid)
