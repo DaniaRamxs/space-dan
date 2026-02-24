@@ -5,7 +5,7 @@ export const blogService = {
     async getGlobalFeed(limit = 20, offset = 0) {
         const { data, error } = await supabase
             .from('posts')
-            .select('*, author:user_id(username, avatar_url, frame_item_id)')
+            .select('*, author:profiles(username, avatar_url, frame_item_id)')
             .eq('status', 'published')
             .order('created_at', { ascending: false })
             .range(offset, offset + limit - 1);
@@ -18,7 +18,7 @@ export const blogService = {
     async getUserPosts(userId, includeDrafts = false) {
         let query = supabase
             .from('posts')
-            .select('*, author:user_id(username)')
+            .select('*, author:profiles(username)')
             .eq('user_id', userId);
 
         if (!includeDrafts) {
@@ -34,7 +34,7 @@ export const blogService = {
     async getPostBySlug(slug) {
         const { data, error } = await supabase
             .from('posts')
-            .select('*, author:user_id(username, avatar_url)')
+            .select('*, author:profiles(username, avatar_url)')
             .eq('slug', slug)
             .single();
 
