@@ -197,6 +197,11 @@ export default function FlappyBird() {
       s.phase = 'dead';
       const isNew = saveScore(s.score);
       if (isNew) setDisplayBest(s.score);
+      window.dispatchEvent(new CustomEvent('dan:game-score', {
+        detail: { gameId: 'flappy', score: s.score, isHighScore: isNew }
+      }));
+      draw();
+      return;
     }
 
     draw();

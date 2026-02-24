@@ -37,12 +37,14 @@ export default function SnakeGame() {
 
   useEffect(() => {
     if (dead && score > 0) {
-      if (score > (best || 0)) {
-        setShowConfetti(true);
-      }
+      if (score > (best || 0)) setShowConfetti(true);
       saveScore(score);
+      window.dispatchEvent(new CustomEvent('dan:game-score', {
+        detail: { gameId: 'snake', score, isHighScore: score > (best || 0) }
+      }));
     }
-  }, [dead]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dead, score]);
 
   const reset = () => {
     setSnake(INIT_SNAKE);

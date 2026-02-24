@@ -6,8 +6,9 @@ import ShareModal from './ShareModal';
 import { formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useAuthContext } from '../../contexts/AuthContext';
+import { CATEGORIES } from './PostComposer';
 
-// Extrae texto plano desde markdown para el preview
+// Extrae texto plano desde markdown
 function stripMarkdown(md = '') {
     return md
         .replace(/```[\s\S]*?```/g, '')
@@ -19,6 +20,15 @@ function stripMarkdown(md = '') {
         .replace(/[-*+]\s/g, '')
         .replace(/\n+/g, ' ')
         .trim();
+}
+
+function getCategoryMeta(id) {
+    return CATEGORIES.find(c => c.id === id) || { icon: '🌐', label: 'General' };
+}
+
+function formatViews(n = 0) {
+    if (n >= 1000) return `${(n / 1000).toFixed(1)}k`;
+    return String(n);
 }
 
 const ActivityCard = memo(({ post, onUpdate, onNewPost }) => {
@@ -40,6 +50,7 @@ const ActivityCard = memo(({ post, onUpdate, onNewPost }) => {
         : plainText;
 
     const postUrl = `/transmission/${post.id}`;
+    const catMeta = getCategoryMeta(post.category);
 
     return (
         <>
@@ -59,7 +70,7 @@ const ActivityCard = memo(({ post, onUpdate, onNewPost }) => {
 
                 <div className="p-5 md:p-6">
                     {/* Fila: Avatar + Meta */}
-                    <div className="flex items-start gap-3 mb-4">
+                    <div className="flex items-start gap-3 mb-3">
                         <Link
                             to={`/profile/${post.author_id}`}
                             onClick={e => e.stopPropagation()}
@@ -85,19 +96,34 @@ const ActivityCard = memo(({ post, onUpdate, onNewPost }) => {
                                 >
                                     {post.author?.username}
                                 </Link>
-                                <span className="text-[9px] font-mono text-white/20 shrink-0">
-                                    {formatDistanceToNow(new Date(post.created_at), { addSuffix: true, locale: es })}
-                                </span>
+                                <div className="flex items-center gap-2 shrink-0">
+                                    {/* Vistas */}
+                                    {post.views_count > 0 && (
+                                        <span className="text-[9px] font-mono text-white/20 flex items-center gap-1">
+                                            👁 {formatViews(post.views_count)}
+                                        </span>
+                                    )}
+                                    <span className="text-[9px] font-mono text-white/20">
+                                        {formatDistanceToNow(new Date(post.created_at), { addSuffix: true, locale: es })}
+                                    </span>
+                                </div>
                             </div>
-                            <div className="text-[8px] font-black text-cyan-500/40 uppercase tracking-[0.3em]">
-                                Transmisión · {post.updated_at > post.created_at ? 'editado' : 'original'}
+
+                            {/* Categoría */}
+                            <div className="flex items-center gap-1.5 text-[8px] font-black uppercase tracking-[0.25em]">
+                                <span className="text-cyan-500/40 group-hover:text-cyan-400/60 transition-colors">
+                                    {catMeta.icon} {catMeta.label}
+                                </span>
+                                {post.updated_at > post.created_at && (
+                                    <span className="text-white/15">· editado</span>
+                                )}
                             </div>
                         </div>
                     </div>
 
                     {/* Título */}
                     {post.title && (
-                        <h2 className="text-lg md:text-xl font-black text-white leading-snug tracking-tight mb-3
+                        <h2 className="text-base md:text-lg font-black text-white leading-snug tracking-tight mb-2.5
                                        group-hover:text-cyan-50 transition-colors uppercase">
                             {post.title}
                         </h2>
@@ -111,23 +137,19 @@ const ActivityCard = memo(({ post, onUpdate, onNewPost }) => {
                     )}
 
                     {/* Separador */}
-                    <div className="w-full h-px bg-white/[0.04] mb-4" />
+                    <div className="w-full h-px bg-white/[0.04] mb-3" />
 
                     {/* Footer */}
                     <div
                         className="flex items-center justify-between"
                         onClick={e => e.stopPropagation()}
                     >
-                        <div className="flex items-center gap-2">
-                            <ReactionsBar post={post} onUpdate={onUpdate} />
-                        </div>
+                        <ReactionsBar post={post} onUpdate={onUpdate} />
 
                         <div className="flex items-center gap-1.5">
-                            {/* Leer más */}
-                            <span className="text-[9px] font-black text-cyan-500/30 group-hover:text-cyan-400/60 uppercase tracking-widest transition-colors mr-2">
+                            <span className="text-[9px] font-black text-cyan-500/25 group-hover:text-cyan-400/50 uppercase tracking-widest transition-colors mr-1">
                                 Leer →
                             </span>
-
                             <motion.button
                                 whileHover={{ scale: 1.1 }}
                                 whileTap={{ scale: 0.88 }}
@@ -136,9 +158,7 @@ const ActivityCard = memo(({ post, onUpdate, onNewPost }) => {
                                 className="w-7 h-7 rounded-xl bg-white/[0.03] border border-white/5
                                            flex items-center justify-center text-white/25
                                            hover:text-purple-400 hover:bg-purple-400/10 hover:border-purple-400/20 transition-all text-xs"
-                            >
-                                🔁
-                            </motion.button>
+                            >🔁</motion.button>
                             <motion.button
                                 whileHover={{ scale: 1.1 }}
                                 whileTap={{ scale: 0.88 }}
@@ -147,9 +167,7 @@ const ActivityCard = memo(({ post, onUpdate, onNewPost }) => {
                                 className="w-7 h-7 rounded-xl bg-white/[0.03] border border-white/5
                                            flex items-center justify-center text-white/25
                                            hover:text-cyan-400 hover:bg-cyan-400/10 hover:border-cyan-400/20 transition-all text-xs"
-                            >
-                                💬
-                            </motion.button>
+                            >💬</motion.button>
                         </div>
                     </div>
                 </div>

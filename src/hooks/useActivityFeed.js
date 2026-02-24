@@ -2,14 +2,13 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { activityService } from '../services/activityService';
 import { useAuthContext } from '../contexts/AuthContext';
 
-export function useActivityFeed(filter = 'all', initialLimit = 15) {
+export function useActivityFeed(filter = 'all', initialLimit = 15, category = null) {
     const { user } = useAuthContext();
     const [feed, setFeed] = useState([]);
     const [loading, setLoading] = useState(true);
     const [loadingMore, setLoadingMore] = useState(false);
     const [hasMore, setHasMore] = useState(true);
 
-    // Usamos ref para offset — evita que loadFeed se recree en cada cambio de offset
     const offsetRef = useRef(0);
 
     const loadFeed = useCallback(async (isInitial = false) => {
@@ -17,14 +16,13 @@ export function useActivityFeed(filter = 'all', initialLimit = 15) {
 
         const currentOffset = isInitial ? 0 : offsetRef.current;
 
-        if (isInitial) {
-            setLoading(true);
-        } else {
-            setLoadingMore(true);
-        }
+        if (isInitial) setLoading(true);
+        else setLoadingMore(true);
 
         try {
-            const data = await activityService.getFeed(user.id, filter, initialLimit, currentOffset);
+            const data = await activityService.getFeed(
+                user.id, filter, initialLimit, currentOffset, category
+            );
 
             if (isInitial) {
                 setFeed(data);
@@ -32,8 +30,7 @@ export function useActivityFeed(filter = 'all', initialLimit = 15) {
             } else {
                 setFeed(prev => {
                     const combined = [...prev, ...data];
-                    const unique = Array.from(new Map(combined.map(item => [item.id, item])).values());
-                    return unique;
+                    return Array.from(new Map(combined.map(item => [item.id, item])).values());
                 });
                 offsetRef.current += data.length;
             }
@@ -42,28 +39,22 @@ export function useActivityFeed(filter = 'all', initialLimit = 15) {
         } catch (err) {
             console.error('[useActivityFeed] Error:', err);
         } finally {
-            if (isInitial) {
-                setLoading(false);
-            } else {
-                setLoadingMore(false);
-            }
+            if (isInitial) setLoading(false);
+            else setLoadingMore(false);
         }
-        // offset ya no está aquí — usamos ref para evitar re-creación del callback
-    }, [user, filter, initialLimit]);
+    }, [user, filter, initialLimit, category]);
 
-    // Cuando cambia el filter, resetea y recarga
+    // Resetea y recarga cuando cambia filter, user o category
     useEffect(() => {
         offsetRef.current = 0;
         setFeed([]);
         setHasMore(true);
         loadFeed(true);
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [filter, user?.id]);
+    }, [filter, category, user?.id]);
 
     const loadMore = useCallback(() => {
-        if (!loadingMore && hasMore && !loading) {
-            loadFeed(false);
-        }
+        if (!loadingMore && hasMore && !loading) loadFeed(false);
     }, [loadingMore, hasMore, loading, loadFeed]);
 
     return { feed, setFeed, loading, loadingMore, hasMore, loadMore };

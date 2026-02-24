@@ -415,40 +415,36 @@ export default function GamesPage() {
         </div>
       ) : (
         <div className="gamesGrid" style={{ marginTop: 0 }}>
-          <AnimatePresence mode='popLayout'>
-            {filteredGames.map((game, i) => {
-              const isPlayed = playedSet.has(game.id);
-              const stats = userStats.find(s => s.game_id === game.id);
-              return (
-                <motion.div
-                  key={game.id}
-                  layout
-                  initial={{ opacity: 0, scale: 0.8 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.8 }}
-                  transition={{ delay: i * 0.01 }}
-                  className={`gameCard ${getTierClass(stats?.game_level || 0)}`}
-                  onClick={() => handleToggle(game.id)}
-                  style={{ border: isPlayed ? undefined : '1px dotted var(--accent)' }}
-                >
-                  {!isPlayed && <span className="gameCardBadge">NUEVO</span>}
-                  {stats?.game_level > 0 && (
-                    <span className={`gameCardLevel ${stats.game_level >= 5 ? 'high-level' : ''}`} title="Nivel en este juego">
-                      Lv.{stats.game_level}
-                    </span>
-                  )}
-                  {stats?.user_position && (
-                    <span className="gameCardRank" title="Tu posición en el ranking">
-                      #{stats.user_position}
-                    </span>
-                  )}
-                  <span className="gameCardIcon">{game.icon}</span>
-                  <span className="gameCardTitle">{game.title}</span>
-                  <span style={{ fontSize: '0.6rem', opacity: 0.4, textTransform: 'uppercase', letterSpacing: 0.5 }}>{game.category}</span>
-                </motion.div>
-              );
-            })}
-          </AnimatePresence>
+          {filteredGames.map((game, i) => {
+            const isPlayed = playedSet.has(game.id);
+            const stats = userStats.find(s => s.game_id === game.id);
+            return (
+              <motion.div
+                key={game.id}
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: Math.min(i * 0.02, 0.3) }}
+                className={`gameCard ${getTierClass(stats?.game_level || 0)}`}
+                onClick={() => handleToggle(game.id)}
+                style={{ border: isPlayed ? undefined : '1px dotted var(--accent)' }}
+              >
+                {!isPlayed && <span className="gameCardBadge">NUEVO</span>}
+                {stats?.game_level > 0 && (
+                  <span className={`gameCardLevel ${stats.game_level >= 5 ? 'high-level' : ''}`} title="Nivel en este juego">
+                    Lv.{stats.game_level}
+                  </span>
+                )}
+                {stats?.user_position && (
+                  <span className="gameCardRank" title="Tu posición en el ranking">
+                    #{stats.user_position}
+                  </span>
+                )}
+                <span className="gameCardIcon">{game.icon}</span>
+                <span className="gameCardTitle">{game.title}</span>
+                <span style={{ fontSize: '0.6rem', opacity: 0.4, textTransform: 'uppercase', letterSpacing: 0.5 }}>{game.category}</span>
+              </motion.div>
+            );
+          })}
         </div>
       )}
 

@@ -275,6 +275,9 @@ export default function DinoRunner() {
         s.phase = 'dead';
         const isNew = saveScore(s.score);
         if (isNew) setDisplayBest(s.score);
+        window.dispatchEvent(new CustomEvent('dan:game-score', {
+          detail: { gameId: 'dino', score: s.score, isHighScore: isNew }
+        }));
         draw();
         return;
       }
