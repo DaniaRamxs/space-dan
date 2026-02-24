@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, Suspense, lazy } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { awardCoins } from '../hooks/useDancoins';
 import { unlockAchievement } from '../hooks/useAchievements';
 import { useAuthContext } from '../contexts/AuthContext';
