@@ -176,6 +176,7 @@ export default function GardenLayout({ children }) {
                 <NavLink to="/guestbook" onClick={closeMenu} className={({ isActive }) => "sideLink submenuLink" + (isActive ? " active" : "")}>📖 Libro de Visitas</NavLink>
                 <NavLink to="/logros" onClick={closeMenu} className={({ isActive }) => "sideLink submenuLink" + (isActive ? " active" : "")}>🏆 Logros</NavLink>
                 <NavLink to="/tienda" onClick={closeMenu} className={({ isActive }) => "sideLink submenuLink" + (isActive ? " active" : "")}>🛍️ Tienda</NavLink>
+                <NavLink to="/vinculos" onClick={closeMenu} className={({ isActive }) => "sideLink submenuLink" + (isActive ? " active" : "")}>✨ Vínculos</NavLink>
               </div>
             </div>
 
