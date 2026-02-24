@@ -7,8 +7,9 @@
 CREATE TABLE IF NOT EXISTS public.notifications (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id uuid NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
-  type text NOT NULL CHECK (type IN ('achievement', 'record', 'system')),
+  type text NOT NULL CHECK (type IN ('achievement', 'record', 'system', 'letter', 'room_invite', 'partnership_request')),
   message text NOT NULL,
+  reference_id uuid, -- Optional link to another table (e.g., request_id)
   is_read boolean DEFAULT false,
   created_at timestamptz DEFAULT now()
 );
@@ -21,18 +22,22 @@ CREATE INDEX IF NOT EXISTS idx_notifications_unread ON public.notifications (use
 ALTER TABLE public.notifications ENABLE ROW LEVEL SECURITY;
 
 -- users can read their own notifications
+DROP POLICY IF EXISTS "notifications_public_read" ON public.notifications;
 CREATE POLICY "notifications_public_read" ON public.notifications 
   FOR SELECT USING (auth.uid() = user_id);
 
 -- users can insert their own notifications (e.g. they triggered an achievement)
+DROP POLICY IF EXISTS "notifications_auth_insert" ON public.notifications;
 CREATE POLICY "notifications_auth_insert" ON public.notifications 
   FOR INSERT WITH CHECK (auth.uid() = user_id);
 
 -- users can update their own notifications (e.g. marking as read)
+DROP POLICY IF EXISTS "notifications_owner_update" ON public.notifications;
 CREATE POLICY "notifications_owner_update" ON public.notifications 
   FOR UPDATE USING (auth.uid() = user_id);
 
 -- users can delete their own notifications (e.g. clearing the inbox)
+DROP POLICY IF EXISTS "notifications_owner_delete" ON public.notifications;
 CREATE POLICY "notifications_owner_delete" ON public.notifications 
   FOR DELETE USING (auth.uid() = user_id);
 

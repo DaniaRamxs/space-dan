@@ -1,7 +1,23 @@
 import LastFmNowPlaying from '../components/LastFmNowPlaying.jsx';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { PrivateUniverse } from '../components/PrivateUniverse';
+import { useAuthContext } from '../contexts/AuthContext';
+import { universeService } from '../services/universe';
+import { useEffect, useState } from 'react';
 
 export default function ProfilePage() {
+  const { user } = useAuthContext();
+  const navigate = useNavigate();
+  const [partnership, setPartnership] = useState(null);
+
+  useEffect(() => {
+    const loadDanLink = async () => {
+      const data = await universeService.getMyPartnership();
+      setPartnership(data);
+    };
+    loadDanLink();
+  }, []);
+
   return (
     <main className="card">
       {/* ...todo tu JSX tal cual... */}
@@ -33,6 +49,16 @@ export default function ProfilePage() {
             <span className="onlineDot" aria-hidden="true" />
             <span className="onlineText">ONLINE!</span>
           </div>
+
+          {partnership && (
+            <PrivateUniverse
+              partnership={partnership}
+              onUpdate={async () => {
+                const updated = await universeService.getMyPartnership();
+                setPartnership(updated);
+              }}
+            />
+          )}
 
           <p className="mood">Mood: creando cosas</p>
           <LastFmNowPlaying />

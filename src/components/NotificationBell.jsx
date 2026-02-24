@@ -3,6 +3,8 @@ import { createPortal } from 'react-dom';
 import { supabase } from '../supabaseClient';
 import { useAuthContext } from '../contexts/AuthContext';
 import { getRecentNotifications, markNotificationAsRead, markAllNotificationsAsRead } from '../services/supabaseNotifications';
+import { universeService } from '../services/universe';
+import { motion, AnimatePresence } from 'framer-motion';
 
 export default function NotificationBell() {
     const { user } = useAuthContext();
@@ -163,13 +165,48 @@ export default function NotificationBell() {
                             }}
                         >
                             <div style={{ fontSize: '1.2rem', marginTop: '2px' }}>
-                                {n.type === 'achievement' ? '🏆' : n.type === 'record' ? '🔥' : n.type === 'letter' ? '✉️' : n.type === 'room_invite' ? '🚪' : '⚙️'}
+                                {n.type === 'achievement' ? '🏆' : n.type === 'record' ? '🔥' : n.type === 'letter' ? '✉️' : n.type === 'room_invite' ? '🚪' : n.type === 'partnership_request' ? '✨' : '⚙️'}
                             </div>
 
                             <div style={{ flex: 1 }}>
                                 <div style={{ color: n.is_read ? 'var(--text)' : '#fff', fontSize: '0.9rem', lineHeight: '1.4' }}>
                                     {n.message}
                                 </div>
+                                {n.type === 'partnership_request' && !n.is_read && (
+                                    <div style={{ display: 'flex', gap: '8px', marginTop: '10px' }}>
+                                        <button
+                                            onClick={async (e) => {
+                                                e.stopPropagation();
+                                                try {
+                                                    await universeService.acceptRequest(n.reference_id);
+                                                    await markNotificationAsRead(n.id);
+                                                    setNotifications(prev => prev.filter(item => item.id !== n.id));
+                                                    alert('¡Vínculo aceptado!');
+                                                } catch (err) {
+                                                    alert('Error al aceptar vínculo');
+                                                }
+                                            }}
+                                            style={{ background: 'var(--cyan)', color: '#000', border: 'none', borderRadius: '4px', padding: '4px 10px', fontSize: '0.75rem', fontWeight: 'bold', cursor: 'pointer' }}
+                                        >
+                                            Aceptar
+                                        </button>
+                                        <button
+                                            onClick={async (e) => {
+                                                e.stopPropagation();
+                                                try {
+                                                    await universeService.rejectRequest(n.reference_id);
+                                                    await markNotificationAsRead(n.id);
+                                                    setNotifications(prev => prev.filter(item => item.id !== n.id));
+                                                } catch (err) {
+                                                    alert('Error al rechazar');
+                                                }
+                                            }}
+                                            style={{ background: 'rgba(255,255,255,0.1)', color: '#fff', border: 'none', borderRadius: '4px', padding: '4px 10px', fontSize: '0.75rem', cursor: 'pointer' }}
+                                        >
+                                            Rechazar
+                                        </button>
+                                    </div>
+                                )}
                                 <div style={{ color: 'var(--accent)', fontSize: '0.75rem', marginTop: '5px', opacity: 0.8 }}>
                                     {new Date(n.created_at).toLocaleString()}
                                 </div>
