@@ -11,13 +11,13 @@ import { unlockAchievement } from '../hooks/useAchievements';
 const DB_ONLY_CATEGORIES = new Set(['banner', 'frame', 'pet_accessory']);
 
 const CAT_LABELS = {
-  theme:         '🎨 Temas',
-  cursor:        '🖱️ Cursores',
-  screensaver:   '💤 Screensavers',
-  stars:         '⭐ Estrellas',
-  radio:         '📻 Radio',
-  banner:        '🖼️ Banners',
-  frame:         '🔲 Marcos',
+  theme: '🎨 Temas',
+  cursor: '🖱️ Cursores',
+  screensaver: '💤 Screensavers',
+  stars: '⭐ Estrellas',
+  radio: '📻 Radio',
+  banner: '🖼️ Banners',
+  frame: '🔲 Marcos',
   pet_accessory: '🐱 Mascota',
 };
 
@@ -25,15 +25,15 @@ const CAT_LABELS = {
 const CAT_ORDER = ['theme', 'cursor', 'screensaver', 'stars', 'radio', 'banner', 'frame', 'pet_accessory'];
 
 export default function ShopPage() {
-  const { user }                               = useAuthContext();
+  const { user } = useAuthContext();
   const { balance, claimDaily, canClaimDaily } = useEconomy();
-  const dancoins                               = useDancoins();   // guest fallback
-  const localShop                              = useShopItems();  // equip + guest purchases
+  const dancoins = useDancoins();   // guest fallback
+  const localShop = useShopItems();  // equip + guest purchases
 
   const [activeCategory, setActiveCategory] = useState('all');
-  const [flash, setFlash]                   = useState(null);
-  const [dbItems, setDbItems]               = useState([]);      // user_items: {item_id, is_equipped, item}[]
-  const [dbCatalog, setDbCatalog]           = useState([]);      // store_items from DB
+  const [flash, setFlash] = useState(null);
+  const [dbItems, setDbItems] = useState([]);      // user_items: {item_id, is_equipped, item}[]
+  const [dbCatalog, setDbCatalog] = useState([]);      // store_items from DB
   const [catalogLoading, setCatalogLoading] = useState(false);
 
   // Load full store catalog from DB (banners, frames, pet accs)
@@ -74,7 +74,7 @@ export default function ShopPage() {
       ...item,
       desc: item.description || '',
     })),
-  [dbCatalog]);
+    [dbCatalog]);
 
   // Full catalog: SHOP_ITEMS + DB items (no duplicates by id)
   const fullCatalog = useMemo(() => {
@@ -136,14 +136,14 @@ export default function ShopPage() {
         await storeService.purchaseItem(user.id, item.id);
         await reloadDbItems();
         if (!isDbOnly) localShop.equip(item.category, item.id);
-        await storeService.equipItem(user.id, item.id).catch(() => {});
+        await storeService.equipItem(user.id, item.id).catch(() => { });
         await reloadDbItems();
         showFlash(`¡${item.title} comprado y equipado!`, true);
         unlockAchievement('shopper');
       } catch (err) {
-        const msg = /insufficient/i.test(err.message)  ? 'Dancoins insuficientes'
-                  : /already/i.test(err.message)        ? 'Ya tienes este item'
-                  : err.message || 'Error al comprar';
+        const msg = /insufficient/i.test(err.message) ? 'Dancoins insuficientes'
+          : /already/i.test(err.message) ? 'Ya tienes este item'
+            : err.message || 'Error al comprar';
         showFlash(msg, false);
       }
     } else {
@@ -177,8 +177,8 @@ export default function ShopPage() {
             : (result?.message || 'Ya reclamaste el bonus de hoy'),
           !!result?.success
         );
-      } catch {
-        showFlash('Ya reclamaste el bonus de hoy', false);
+      } catch (err) {
+        showFlash(err.message || 'Ya reclamaste el bonus de hoy', false);
       }
     } else {
       const claimed = dancoins.claimDailyBonus();
@@ -260,9 +260,9 @@ export default function ShopPage() {
 
       <div className="shopGrid">
         {filtered.map(item => {
-          const owned      = hasPurchased(item.id);
-          const equipped   = isItemEquipped(item);
-          const canAfford  = currentCoins >= item.price;
+          const owned = hasPurchased(item.id);
+          const equipped = isItemEquipped(item);
+          const canAfford = currentCoins >= item.price;
 
           return (
             <div key={item.id} className={`shopCard${owned ? ' owned' : ''}${equipped ? ' equipped' : ''}`}>
@@ -290,9 +290,9 @@ export default function ShopPage() {
                 {item.rarity && item.rarity !== 'common' && (
                   <div className="shopCardCategory" style={{
                     color: item.rarity === 'legendary' ? '#ffd700'
-                         : item.rarity === 'epic'      ? '#b464ff'
-                         : item.rarity === 'rare'      ? '#00e5ff'
-                         : 'var(--text)',
+                      : item.rarity === 'epic' ? '#b464ff'
+                        : item.rarity === 'rare' ? '#00e5ff'
+                          : 'var(--text)',
                   }}>
                     {item.rarity}
                   </div>
