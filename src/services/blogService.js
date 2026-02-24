@@ -42,7 +42,9 @@ export const blogService = {
 
         // Increment view asynchronously
         if (data && data.status === 'published') {
-            supabase.rpc('increment_post_views', { p_post_id: data.id }).catch(() => { });
+            supabase.rpc('increment_post_views', { p_post_id: data.id }).then(({ error }) => {
+                if (error) console.error('Failed to increment views', error);
+            });
         }
 
         return data;
