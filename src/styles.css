@@ -1515,8 +1515,7 @@ textarea,
   .gardenMain {
     width: 100%;
     max-width: 100vw;
-    overflow-x: hidden;
-    overflow-y: visible;
+    overflow-x: clip;
   }
 
   /* Hamburger visible en mobile */
@@ -8490,12 +8489,10 @@ button,
   .gardenMain {
     width: 100%;
     max-width: 100vw;
-    overflow-x: hidden;
-    overflow-y: visible;
+    overflow-x: clip;
   }
 
   .gardenContent {
-    overflow-y: visible;
     -webkit-overflow-scrolling: touch;
   }
 
