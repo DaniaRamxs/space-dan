@@ -1486,7 +1486,9 @@ textarea,
   }
 
   .gardenMain {
-    width: auto;
+    width: 100%;
+    max-width: 100vw;
+    overflow-x: hidden;
   }
 
   /* Hamburger visible en mobile */

@@ -578,8 +578,8 @@ export default function ProfilePage() {
           </p>
 
           {!isEditingBio ? (
-            <div className="flex items-center gap-2 mb-6 group/bio bg-black/20 px-4 py-2 rounded-xl backdrop-blur-sm border border-white/5 cursor-pointer max-w-md mx-auto" onClick={() => setIsEditingBio(true)}>
-              <p className={`text-sm tracking-wide max-w-sm flex-1 ${bio ? 'text-gray-300' : 'text-gray-500 italic'}`}>"{bio || 'Sin biografía...'}"</p>
+            <div className="flex items-center gap-2 mb-6 group/bio bg-black/20 px-4 py-2 rounded-xl backdrop-blur-sm border border-white/5 cursor-pointer max-w-md mx-auto w-full overflow-hidden" onClick={() => setIsEditingBio(true)}>
+              <p className={`text-sm tracking-wide flex-1 break-words overflow-hidden ${bio ? 'text-gray-300' : 'text-gray-500 italic'}`}>"{bio || 'Sin biografía...'}"</p>
               <button className="text-[10px] text-cyan-400 opacity-0 group-hover/bio:opacity-100 transition-opacity">✏️ EDIT</button>
             </div>
           ) : (
