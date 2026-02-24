@@ -264,10 +264,10 @@ export default function VinculosPage() {
                     </section>
 
                     {/* Tabs for partnership content */}
-                    <div style={{
-                        display: 'flex', background: 'rgba(10,10,15,0.8)', borderRadius: 12,
-                        padding: 4, marginBottom: 20, border: '1px solid rgba(255,255,255,0.05)',
-                        overflowX: 'auto',
+                    <div className="vinculos-mobile-glass" style={{
+                        display: 'flex', borderRadius: 12,
+                        padding: 4, marginBottom: 20,
+                        overflowX: 'auto', WebkitOverflowScrolling: 'touch',
                     }}>
                         {['stats', 'notes', 'gallery', 'milestones'].map(tab => (
                             <button key={tab} onClick={() => setActiveTab(tab)} style={{
@@ -302,9 +302,9 @@ export default function VinculosPage() {
                     {activeTab === 'notes' && (
                         <section style={{ marginBottom: 28 }}>
                             {/* Add note form */}
-                            <form onSubmit={handleAddNote} style={{
-                                background: 'rgba(10,10,15,0.6)', borderRadius: 14,
-                                padding: 16, marginBottom: 16, border: '1px solid rgba(255,255,255,0.05)',
+                            <form onSubmit={handleAddNote} className="vinculos-mobile-glass" style={{
+                                borderRadius: 14,
+                                padding: 16, marginBottom: 16,
                             }}>
                                 <textarea
                                     value={newNote} onChange={e => setNewNote(e.target.value)}
@@ -318,7 +318,7 @@ export default function VinculosPage() {
                                 />
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 8 }}>
                                     <span style={{ color: '#555', fontSize: '0.65rem' }}>{newNote.length}/200</span>
-                                    <button type="submit" disabled={noteLoading || !newNote.trim()} style={{
+                                    <button type="submit" className="vinculos-action-btn" disabled={noteLoading || !newNote.trim()} style={{
                                         background: newNote.trim() ? 'linear-gradient(135deg, #06b6d4, #8b5cf6)' : 'rgba(255,255,255,0.05)',
                                         border: 'none', borderRadius: 8, padding: '6px 18px',
                                         color: newNote.trim() ? '#fff' : '#555', fontSize: '0.75rem',
@@ -373,9 +373,9 @@ export default function VinculosPage() {
                     {activeTab === 'gallery' && (
                         <section style={{ marginBottom: 28 }}>
                             {/* Upload */}
-                            <div style={{
-                                background: 'rgba(10,10,15,0.6)', borderRadius: 14,
-                                padding: 16, marginBottom: 16, border: '1px solid rgba(255,255,255,0.05)',
+                            <div className="vinculos-mobile-glass" style={{
+                                borderRadius: 14,
+                                padding: 16, marginBottom: 16,
                                 display: 'flex', flexDirection: 'column', gap: 10,
                             }}>
                                 <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
@@ -383,11 +383,11 @@ export default function VinculosPage() {
                                         type="file" accept="image/*" ref={fileRef} onChange={handleUploadImage}
                                         style={{ display: 'none' }}
                                     />
-                                    <button onClick={() => fileRef.current?.click()} disabled={galleryLoading} style={{
+                                    <button className="vinculos-action-btn" onClick={() => fileRef.current?.click()} disabled={galleryLoading} style={{
                                         background: 'linear-gradient(135deg, #06b6d4, #8b5cf6)',
                                         border: 'none', borderRadius: 8, padding: '8px 18px',
                                         color: '#fff', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer',
-                                        opacity: galleryLoading ? 0.5 : 1,
+                                        opacity: galleryLoading ? 0.5 : 1, transition: 'transform 0.2s'
                                     }}>
                                         {galleryLoading ? 'Subiendo...' : '📸 Subir Imagen'}
                                     </button>
@@ -558,9 +558,9 @@ export default function VinculosPage() {
 
 function StatBox({ icon, label, value, color }) {
     return (
-        <div style={{
-            background: 'rgba(10,10,15,0.8)', borderRadius: 14,
-            padding: '16px 14px', border: '1px solid rgba(255,255,255,0.05)',
+        <div className="vinculos-mobile-glass" style={{
+            borderRadius: 14,
+            padding: '16px 14px',
             textAlign: 'center', position: 'relative', overflow: 'hidden',
         }}>
             <div style={{
@@ -646,10 +646,9 @@ function SectionTitle({ icon, text, count }) {
 
 function EmptyState({ text }) {
     return (
-        <div style={{
+        <div className="vinculos-mobile-glass" style={{
             textAlign: 'center', padding: '24px 16px',
-            background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)',
-            borderRadius: 14, color: '#555', fontSize: '0.8rem', fontStyle: 'italic',
+            borderRadius: 14, color: '#bbb', fontSize: '0.8rem', fontStyle: 'italic',
         }}>{text}</div>
     );
 }

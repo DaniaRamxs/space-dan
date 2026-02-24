@@ -77,8 +77,9 @@ function markGamePlayed(gameId) {
 }
 
 export default function GamesPage() {
-  const { user } = useAuthContext();
+  const { user, profile } = useAuthContext();
   const { claimSeasonReward, season, refreshSeason } = useSeason();
+
   const [openId, setOpenId] = useState(null);
   const [coinToast, setCoinToast] = useState(null);
   const [lbKey, setLbKey] = useState(0);
@@ -89,6 +90,15 @@ export default function GamesPage() {
   const [tickerItems, setTickerItems] = useState([
     "Bienvenido al Games HUB", "Nuevos retos disponibles", "Cargando feeds de la comunidad..."
   ]);
+  const [scale, setScale] = useState(1);
+
+  // Pilot rank name derivation
+  const pilotRank = useMemo(() => {
+    const xp = (profile?.balance || 0) + (userStats.length * 50); // Rough estimation for dashboard flair
+    const level = Math.max(1, Math.floor(0.1 * Math.sqrt(xp)));
+    const rankNames = ['RECLUTA_BASE', 'EXPLORADOR_C', 'CAZADOR_META', 'PILOTO_ESTAR', 'VANGUARDIA_V', 'COMANDANTE_X', 'ARQUITECTO_S', 'LEYENDA_Z', 'ENTIDAD_ASTRA'];
+    return rankNames[Math.min(Math.floor(level / 3), rankNames.length - 1)];
+  }, [profile, userStats]);
 
   const toastTimer = useRef(null);
   const openIdRef = useRef(null);
@@ -114,6 +124,17 @@ export default function GamesPage() {
       });
     }
   }, [user, lbKey]);
+
+  useEffect(() => {
+    const handleResize = () => {
+      const width = window.innerWidth;
+      if (width < 450) setScale(Math.min(1, (width - 40) / 400));
+      else setScale(1);
+    };
+    window.addEventListener('resize', handleResize);
+    handleResize();
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   // Fetch ticker items (simulated from DB)
   useEffect(() => {
@@ -252,8 +273,20 @@ export default function GamesPage() {
 
       {/* BENTO DASHBOARD */}
       <div className="bentoGrid">
-        <div className="bentoItem bentoLarge" style={{ background: 'linear-gradient(135deg, rgba(255,110,180,0.1), transparent)', minHeight: '140px' }}>
-          <div style={{ position: 'absolute', top: 12, right: 12 }}>
+        <div className="bentoItem bentoLarge" style={{
+          background: 'linear-gradient(135deg, rgba(6,182,212,0.1), rgba(236,72,153,0.05))',
+          minHeight: '160px',
+          border: '1px solid rgba(255,255,255,0.08)',
+          position: 'relative',
+          overflow: 'hidden'
+        }}>
+          {/* Background scanline effect */}
+          <div className="absolute inset-0 opacity-10 pointer-events-none" style={{
+            backgroundImage: 'linear-gradient(0deg, transparent 50%, rgba(255,255,255,0.1) 50%)',
+            backgroundSize: '100% 4px'
+          }}></div>
+
+          <div style={{ position: 'absolute', top: 12, right: 12, zIndex: 2 }}>
             <button
               onClick={() => setSoundOn(!soundOn)}
               style={{ background: 'rgba(255,255,255,0.05)', border: 'none', cursor: 'pointer', fontSize: '1rem', padding: '6px', borderRadius: '50%', display: 'flex' }}
@@ -261,44 +294,74 @@ export default function GamesPage() {
               {soundOn ? '🔊' : '🔈'}
             </button>
           </div>
-          <span style={{ fontSize: '0.6rem', fontWeight: 900, opacity: 0.5, letterSpacing: 1 }}>STATUS_PILOTO</span>
-          <h3 style={{ margin: '4px 0 10px 0', fontSize: 'clamp(1rem, 4vw, 1.2rem)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-            {user?.user_metadata?.username || 'PILOTO_INVITADO'}
-          </h3>
-          <div style={{ display: 'flex', gap: '15%' }}>
-            <div>
-              <div style={{ opacity: 0.5, fontSize: '0.45rem', fontWeight: 900 }}>MAESTRÍA</div>
-              <div style={{ fontSize: '1.1rem', fontWeight: 900 }}>{Math.floor(masteryProgress)}%</div>
-            </div>
-            <div>
-              <div style={{ opacity: 0.5, fontSize: '0.45rem', fontWeight: 900 }}>RANK_TEMP</div>
-              <div style={{ fontSize: '1.1rem', fontWeight: 900, color: 'var(--accent)' }}>#{season?.rank || '—'}</div>
+
+          <div className="relative z-[1]">
+            <span style={{ fontSize: '0.55rem', fontWeight: 900, color: 'var(--accent)', letterSpacing: 2, textTransform: 'uppercase' }}>
+              ID: {pilotRank}
+            </span>
+            <h3 style={{ margin: '2px 0 15px 0', fontSize: '1.4rem', fontWeight: 900, letterSpacing: -0.5, color: '#fff' }}>
+              {user?.user_metadata?.username || 'GUEST_PILOT'}
+            </h3>
+
+            <div style={{ display: 'flex', gap: '20px' }}>
+              <div style={{ flex: 1 }}>
+                <div style={{ opacity: 0.4, fontSize: '0.5rem', fontWeight: 900, marginBottom: 4 }}>COMPLETADO</div>
+                <div style={{ fontSize: '1.2rem', fontWeight: 900, fontFamily: 'monospace', color: '#fff' }}>
+                  {Math.floor(masteryProgress)}<span style={{ fontSize: '0.7rem', opacity: 0.5 }}>%</span>
+                </div>
+                <div style={{ marginTop: 6, height: 3, background: 'rgba(255,255,255,0.05)', borderRadius: 2, overflow: 'hidden' }}>
+                  <motion.div initial={{ width: 0 }} animate={{ width: `${masteryProgress}%` }} style={{ height: '100%', background: 'linear-gradient(to right, #00e5ff, #ff00ff)', borderRadius: 2 }} />
+                </div>
+              </div>
+
+              <div style={{ flex: 1 }}>
+                <div style={{ opacity: 0.4, fontSize: '0.5rem', fontWeight: 900, marginBottom: 4 }}>RANK_TEMPORADA</div>
+                <div style={{ fontSize: '1.2rem', fontWeight: 900, color: (season?.rank > 0 && season?.rank <= 3) ? '#ffea00' : 'var(--accent)', fontFamily: 'monospace' }}>
+                  #{season?.rank || '—'}
+                </div>
+                {season?.gap_to_next > 0 && (
+                  <div style={{ fontSize: '0.45rem', opacity: 0.6, marginTop: 1, color: '#00e5ff' }}>
+                    GAP: +{season.gap_to_next} ◈
+                  </div>
+                )}
+                <div style={{ fontSize: '0.45rem', opacity: 0.4, marginTop: 4, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                  {(season?.rank > 0 && season?.rank <= 3) ? 'ZONA_PODIO' : 'ESTADO_ACTIVO'}
+                </div>
+              </div>
             </div>
           </div>
-          <div style={{ marginTop: 'auto', paddingTop: 10, height: 4, background: 'rgba(255,255,255,0.05)', borderRadius: 2 }}>
-            <motion.div initial={{ width: 0 }} animate={{ width: `${masteryProgress}%` }} style={{ height: '100%', background: 'var(--accent)', borderRadius: 2 }} />
+        </div>
+
+        <div className="bentoItem" onClick={handleSurpriseMe} style={{ cursor: 'pointer', border: '1px solid rgba(255,215,0,0.15)', padding: '15px 10px', background: 'rgba(255,215,0,0.02)' }}>
+          <span style={{ fontSize: '1.4rem', marginBottom: 5, display: 'block' }}>🎲</span>
+          <span style={{ fontSize: '0.6rem', fontWeight: 900, opacity: 0.9 }}>QUICK_PLAY</span>
+          <span style={{ fontSize: '0.45rem', opacity: 0.4, textTransform: 'uppercase' }}>Modo aleatorio</span>
+        </div>
+
+        <div className="bentoItem" style={{ border: '1px solid rgba(0,229,255,0.15)', padding: '15px 10px', background: 'rgba(0,229,255,0.02)' }}>
+          <span style={{ fontSize: '1.4rem', marginBottom: 5, display: 'block' }}>🔥</span>
+          <span style={{ fontSize: '0.6rem', fontWeight: 900, opacity: 0.9 }}>CAP_DIARIO</span>
+          <div style={{ fontSize: '0.7rem', color: '#00e5ff', fontWeight: 900, marginTop: 2 }}>
+            {season?.daily_reward_earned || 0} / {season?.daily_reward_cap || 3000}
+          </div>
+          <div style={{ marginTop: 6, height: 2, background: 'rgba(0,229,255,0.1)', borderRadius: 1 }}>
+            <div style={{
+              height: '100%',
+              background: '#00e5ff',
+              width: `${Math.min(100, ((season?.daily_reward_earned || 0) / (season?.daily_reward_cap || 3000)) * 100)}%`
+            }} />
           </div>
         </div>
 
-        <div className="bentoItem" onClick={handleSurpriseMe} style={{ cursor: 'pointer', border: '1px solid rgba(255,215,0,0.2)', padding: '15px 10px' }}>
-          <span style={{ fontSize: '1.2rem', marginBottom: 2 }}>🎲</span>
-          <span style={{ fontSize: '0.65rem', fontWeight: 'bold' }}>QUICK_PLAY</span>
-          <span style={{ fontSize: '0.5rem', opacity: 0.5 }}>Aleatorio</span>
-        </div>
-
-        <div className="bentoItem" style={{ border: '1px solid rgba(0,229,255,0.2)', padding: '15px 10px' }}>
-          <span style={{ fontSize: '1.2rem', marginBottom: 2 }}>⏳</span>
-          <span style={{ fontSize: '0.65rem', fontWeight: 'bold' }}>DAILY_CAP</span>
-          <span style={{ fontSize: '0.65rem', color: '#00e5ff', fontWeight: 900 }}>◈ {season?.daily_reward_earned}/{season?.daily_reward_cap}</span>
-        </div>
-
-        <div className="bentoItem bentoWide" style={{ background: 'rgba(255,110,180,0.05)', padding: '12px 15px' }}>
+        <div className="bentoItem bentoWide" style={{ background: 'rgba(255,255,255,0.02)', padding: '12px 15px', border: '1px solid rgba(255,255,255,0.05)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div>
-              <span style={{ fontSize: '0.55rem', opacity: 0.5 }}>EVENTO_ACTIVO</span>
-              <div style={{ fontWeight: 900, fontSize: '0.85rem', color: '#ffea00' }}>MULTIPLIER x{season?.boost_multiplier || 1.0}</div>
+              <span style={{ fontSize: '0.5rem', opacity: 0.4, fontWeight: 900, textTransform: 'uppercase' }}>Protocolo_Boost</span>
+              <div style={{ fontWeight: 900, fontSize: '0.8rem', color: season?.active_boosts?.night || season?.active_boosts?.weekend ? '#ffea00' : 'rgba(255,255,255,0.3)' }}>
+                {season?.active_boosts?.night || season?.active_boosts?.weekend ? 'MULTIPLIER_ACTIVE' : 'MULT_STANDBY'}
+              </div>
             </div>
-            <div style={{ fontSize: '1.2rem' }}>🔥</div>
+            <div style={{ fontSize: '1rem', opacity: season?.active_boosts?.night || season?.active_boosts?.weekend ? 1 : 0.2 }}>⚡</div>
           </div>
         </div>
       </div>
@@ -432,7 +495,7 @@ export default function GamesPage() {
             </div>
 
             <div className="gameOverlayContent">
-              <div className="gameScale">
+              <div className="gameScale" style={{ '--game-scale': scale }}>
                 <ErrorBoundary>
                   <Suspense fallback={<div style={{ color: 'var(--accent)', fontSize: 14, fontFamily: 'monospace' }}>CARGANDO_ASSETS...</div>}>
                     {GameComponent && <GameComponent />}

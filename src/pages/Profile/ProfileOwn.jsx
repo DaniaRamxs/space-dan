@@ -6,7 +6,7 @@ import { ACHIEVEMENTS } from '../../hooks/useAchievements';
 import { getUserGameRanks } from '../../services/supabaseScores';
 import { getTransactionHistory, getActiveFund, getFundTopDonors, donateToFund, transferCoins } from '../../services/economy';
 import { getProductivityStats } from '../../services/productivity';
-import { setBannerColor as saveBannerColor } from '../../services/store';
+import * as storeService from '../../services/store';
 import { blogService } from '../../services/blogService';
 import PetDisplay from '../../components/PetDisplay';
 import { Link } from 'react-router-dom';
@@ -15,6 +15,7 @@ import { profileSocialService } from '../../services/profile_social';
 import { PrivateUniverse } from '../../components/PrivateUniverse';
 import { universeService } from '../../services/universe';
 import { useNavigate } from 'react-router-dom';
+import '../../banner-effects.css';
 
 const GAME_NAMES = {
   asteroids: 'Asteroids', tetris: 'Tetris', snake: 'Snake', pong: 'Pong',
@@ -30,12 +31,21 @@ const GAME_NAMES = {
 function getFrameStyle(frameItemId) {
   if (!frameItemId) return { border: '3px solid var(--accent)', boxShadow: '0 0 15px var(--accent-glow)' };
   const id = frameItemId.toLowerCase();
+
+  // Marcos de Vínculo Especiales (Usando Clases CSS de styles.css)
+  if (id === 'frame_link_lv1') return { className: 'marco-evolutivo-base marco-evolutivo-lv1' };
+  if (id === 'frame_link_lv2') return { className: 'marco-evolutivo-base marco-evolutivo-lv2' };
+  if (id === 'frame_link_lv3') return { className: 'marco-evolutivo-base marco-evolutivo-lv3' };
+  if (id === 'frame_link_lv4') return { className: 'marco-evolutivo-base marco-evolutivo-lv4' };
+  if (id === 'frame_link_lv5') return { className: 'marco-evolutivo-base marco-evolutivo-lv5' };
+
   // IDs concretos de la DB
   if (id === 'frame_stars') return { border: '3px solid #ffd700', boxShadow: '0 0 20px rgba(255,215,0,0.8)' };
   if (id === 'frame_neon') return { border: '3px solid #00e5ff', boxShadow: '0 0 20px rgba(0,229,255,0.8)' };
   if (id === 'frame_pixel') return { border: '4px solid #ff6b35', boxShadow: '0 0 15px rgba(255,107,53,0.7)', imageRendering: 'pixelated' };
   if (id === 'frame_holo') return { border: '3px solid #b464ff', boxShadow: '0 0 20px rgba(180,100,255,0.8), 0 0 40px rgba(0,229,255,0.4)' };
   if (id === 'frame_crown') return { border: '4px solid #ffd700', boxShadow: '0 0 25px rgba(255,215,0,1), 0 0 50px rgba(255,215,0,0.4)' };
+
   // Fallbacks por keyword
   if (id.includes('gold')) return { border: '3px solid #ffd700', boxShadow: '0 0 15px rgba(255,215,0,0.6)' };
   if (id.includes('cyan') || id.includes('cyber')) return { border: '3px solid #00e5ff', boxShadow: '0 0 15px rgba(0,229,255,0.6)' };
@@ -145,168 +155,174 @@ function EconomySection({ user }) {
   };
 
   return (
-    <section style={{ marginBottom: 32 }}>
-      <h2 className="cardTitle" style={{ fontSize: '1.1rem', marginBottom: 14 }}>◈ Dancoins</h2>
+    <section className="profile-v2-section space-y-8">
+      <div className="flex items-center justify-between border-b border-white/5 pb-6">
+        <div>
+          <h2 className="text-sm font-black uppercase tracking-[0.4em] text-white/40">Sistema Económico</h2>
+          <p className="text-xs text-white/20">Gestiona tus Dancoins y transferencias intergalácticas.</p>
+        </div>
+        <div className="text-3xl">💎</div>
+      </div>
 
-      {/* Balance */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap', marginBottom: 16 }}>
-        <div style={{
-          padding: '14px 22px', border: '1px solid var(--accent)',
-          background: 'rgba(255,110,180,0.06)', borderRadius: 8, minWidth: 160,
-        }}>
-          <div style={{ fontSize: '0.75rem', color: 'var(--cyan)', letterSpacing: '0.08em', marginBottom: 4 }}>BALANCE</div>
-          <div style={{ fontSize: '2rem', fontWeight: 900, color: 'var(--accent)' }}>◈ {balance.toLocaleString()}</div>
+      {/* Balance Glass Card */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="relative p-8 rounded-[2rem] bg-gradient-to-br from-pink-500/10 to-purple-500/5 border border-white/10 overflow-hidden group/bal">
+          <div className="absolute -top-12 -right-12 w-32 h-32 bg-pink-500/20 blur-[60px] rounded-full group-hover/bal:scale-150 transition-transform duration-1000"></div>
+          <div className="relative z-10">
+            <span className="text-[10px] font-black uppercase tracking-[0.3em] text-pink-400/80 mb-2 block">Saldo Disponible</span>
+            <div className="text-5xl font-black text-white flex items-baseline gap-3">
+              <span className="text-pink-500 text-3xl">◈</span>
+              {balance.toLocaleString()}
+            </div>
+          </div>
         </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          {canClaimDaily() && (
-            <button className="winButton" onClick={handleDaily}>
-              🎁 Bonus diario (+30 ◈)
+        <div className="flex flex-col justify-center gap-4">
+          {canClaimDaily() ? (
+            <button
+              className="w-full py-4 bg-white text-black font-black text-xs rounded-2xl shadow-[0_10px_30px_rgba(255,255,255,0.1)] hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-3 overflow-hidden group/daily"
+              onClick={handleDaily}
+            >
+              <span className="relative z-10 uppercase tracking-widest">Reclamar Bonus Diario</span>
+              <span className="text-xl">🎁</span>
             </button>
+          ) : (
+            <div className="w-full py-4 bg-white/5 border border-white/5 rounded-2xl text-[10px] font-black uppercase tracking-widest text-white/20 text-center">
+              Próximo bonus disponible mañana
+            </div>
           )}
           {dailyMsg && (
-            <span style={{ fontSize: '0.85rem', color: 'var(--accent)' }}>{dailyMsg}</span>
+            <div className="text-center animate-bounce">
+              <span className="text-xs font-bold text-pink-400 bg-pink-400/10 px-4 py-2 rounded-full border border-pink-400/20">{dailyMsg}</span>
+            </div>
           )}
         </div>
       </div>
 
-      {/* Historial */}
-      <button
-        onClick={loadTxs}
-        style={{
-          background: 'none', border: '1px solid var(--border)', color: 'var(--text)',
-          padding: '6px 14px', cursor: 'pointer', fontFamily: 'inherit',
-          fontSize: '0.82rem', borderRadius: 4, marginBottom: 10,
-        }}
-      >
-        {txLoading ? 'Cargando...' : txOpen ? '▲ Ocultar historial' : '▼ Ver historial de transacciones'}
-      </button>
+      {/* Historial Premium */}
+      <div className="space-y-4">
+        <button
+          onClick={loadTxs}
+          className="text-[10px] font-black uppercase tracking-widest text-white/40 hover:text-white transition-colors flex items-center gap-2"
+        >
+          {txLoading ? 'Cargando registros...' : txOpen ? '▼ Ocultar transacciones' : '▶ Ver historial de transacciones'}
+        </button>
 
-      {txOpen && (
-        <div style={{ overflowX: 'auto' }}>
-          <table className="lbTable" style={{ fontSize: '0.82rem' }}>
-            <thead>
-              <tr>
-                <th style={{ width: 28 }}></th>
-                <th style={{ textAlign: 'left' }}>Tipo</th>
-                <th style={{ textAlign: 'left', maxWidth: 200 }}>Descripción</th>
-                <th style={{ textAlign: 'right' }}>Cantidad</th>
-                <th style={{ textAlign: 'right' }}>Balance</th>
-                <th style={{ textAlign: 'right' }}>Fecha</th>
-              </tr>
-            </thead>
-            <tbody>
-              {txs.length === 0 ? (
-                <tr><td colSpan={6} style={{ textAlign: 'center', opacity: 0.5, padding: 16 }}>Sin transacciones aún</td></tr>
-              ) : txs.map(tx => {
-                const positive = tx.amount > 0;
-                return (
-                  <tr key={tx.id}>
-                    <td style={{ textAlign: 'center' }}>{TX_ICONS[tx.type] ?? '◈'}</td>
-                    <td>{txLabel(tx.type)}</td>
-                    <td style={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', opacity: 0.7 }}>
-                      {tx.description || tx.reference || '—'}
-                    </td>
-                    <td style={{ textAlign: 'right', fontWeight: 'bold', color: positive ? 'var(--accent)' : '#ff5555' }}>
-                      {positive ? '+' : ''}{tx.amount}
-                    </td>
-                    <td style={{ textAlign: 'right', opacity: 0.6 }}>{tx.balance_after}</td>
-                    <td style={{ textAlign: 'right', opacity: 0.5, whiteSpace: 'nowrap' }}>{fmtDate(tx.created_at)}</td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      )}
+        {txOpen && (
+          <div className="overflow-hidden rounded-2xl border border-white/5 bg-black/20">
+            <table className="profile-v2-table">
+              <thead>
+                <tr>
+                  <th></th>
+                  <th>Tipo</th>
+                  <th>Concepto</th>
+                  <th className="text-right">Monto</th>
+                  <th className="text-right">Fecha</th>
+                </tr>
+              </thead>
+              <tbody>
+                {txs.length === 0 ? (
+                  <tr><td colSpan={5} className="text-center text-white/20 py-12">No hay movimientos registrados.</td></tr>
+                ) : txs.map(tx => {
+                  const positive = tx.amount > 0;
+                  return (
+                    <tr key={tx.id} className="group/row">
+                      <td className="w-12 text-center opacity-40 group-hover/row:opacity-100 transition-opacity">{TX_ICONS[tx.type] ?? '◈'}</td>
+                      <td className="text-xs font-bold text-white/80">{txLabel(tx.type)}</td>
+                      <td className="text-xs text-white/40 max-w-[200px] truncate">{tx.description || tx.reference || '—'}</td>
+                      <td className={`text-right font-black font-mono ${positive ? 'text-green-400' : 'text-rose-500'}`}>
+                        {positive ? '+' : ''}{tx.amount} ◈
+                      </td>
+                      <td className="text-right text-[10px] text-white/20 font-mono">{fmtDate(tx.created_at)}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
 
-      {/* Transferencia */}
-      <div style={{ marginTop: 20, padding: 16, border: '1px solid var(--border)', borderRadius: 8, background: 'rgba(255,255,255,0.02)' }}>
-        <h3 style={{ margin: '0 0 12px 0', fontSize: '0.95rem', color: 'var(--cyan)' }}>📤 Transferir Dancoins</h3>
-        <p style={{ margin: '0 0 10px 0', fontSize: '0.78rem', opacity: 0.6 }}>Mínimo 10 ◈ · Comisión 5% · Máximo 500 ◈</p>
+      {/* Transferencia Premium */}
+      <div className="relative p-8 rounded-[2rem] bg-indigo-500/5 border border-white/5 overflow-hidden group/transfer">
+        <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/10 blur-[60px] rounded-full"></div>
 
-        {/* Search */}
-        {!tfTarget ? (
-          <div style={{ position: 'relative', marginBottom: 10 }}>
-            <input
-              placeholder="Buscar usuario por nombre..."
-              value={tfQuery}
-              onChange={e => setTfQuery(e.target.value)}
-              style={{
-                width: '100%', background: 'var(--bg)', border: '1px solid var(--border)',
-                color: 'var(--text)', padding: '7px 10px', fontFamily: 'inherit',
-                fontSize: '0.85rem', borderRadius: 4, boxSizing: 'border-box',
-              }}
-            />
-            {tfResults.length > 0 && (
-              <div style={{
-                position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 10,
-                background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 4,
-              }}>
-                {tfResults.map(u => (
-                  <div
-                    key={u.id}
-                    onClick={() => { setTfTarget(u); setTfQuery(''); setTfResults([]); }}
-                    style={{
-                      display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px',
-                      cursor: 'pointer', borderBottom: '1px solid var(--border)',
-                    }}
-                    onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
-                    onMouseLeave={e => e.currentTarget.style.background = ''}
-                  >
-                    {u.avatar_url
-                      ? <img src={u.avatar_url} alt="" style={{ width: 20, height: 20, borderRadius: '50%' }} />
-                      : <span>👤</span>}
-                    {u.username}
+        <h3 className="text-xs font-black uppercase tracking-[0.3em] text-indigo-400 mb-6 flex items-center gap-2">
+          <span className="w-1.5 h-1.5 rounded-full bg-indigo-500"></span> Transferir Dancoins
+        </h3>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="space-y-4">
+            <label className="text-[10px] font-black uppercase tracking-widest text-white/20 ml-1">Destinatario</label>
+            {!tfTarget ? (
+              <div className="relative">
+                <input
+                  placeholder="Escribe nombre de usuario..."
+                  value={tfQuery}
+                  onChange={e => setTfQuery(e.target.value)}
+                  className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-4 py-3.5 text-sm outline-none focus:border-indigo-500/50 focus:ring-4 focus:ring-indigo-500/5 transition-all"
+                />
+                {tfResults.length > 0 && (
+                  <div className="absolute top-full left-0 right-0 z-50 mt-2 bg-indigo-950 border border-white/10 rounded-xl shadow-2xl overflow-hidden animate-fade-in">
+                    {tfResults.map(u => (
+                      <div
+                        key={u.id}
+                        onClick={() => { setTfTarget(u); setTfQuery(''); setTfResults([]); }}
+                        className="flex items-center gap-3 p-4 cursor-pointer hover:bg-white/10 border-b border-white/5 last:border-0 transition-colors"
+                      >
+                        <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center overflow-hidden border border-white/10">
+                          {u.avatar_url ? <img src={u.avatar_url} className="w-full h-full object-cover" /> : '👤'}
+                        </div>
+                        <span className="text-sm font-bold text-white/80">{u.username}</span>
+                      </div>
+                    ))}
                   </div>
-                ))}
+                )}
+              </div>
+            ) : (
+              <div className="flex items-center justify-between p-4 bg-white/5 border border-indigo-500/30 rounded-xl ring-4 ring-indigo-500/5">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-full border border-indigo-500/50 overflow-hidden">
+                    {tfTarget.avatar_url ? <img src={tfTarget.avatar_url} className="w-full h-full object-cover" /> : '👤'}
+                  </div>
+                  <span className="text-sm font-black text-white uppercase tracking-tighter">{tfTarget.username}</span>
+                </div>
+                <button onClick={() => setTfTarget(null)} className="text-white/20 hover:text-white transition-colors">✕</button>
               </div>
             )}
           </div>
-        ) : (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-            {tfTarget.avatar_url
-              ? <img src={tfTarget.avatar_url} alt="" style={{ width: 22, height: 22, borderRadius: '50%' }} />
-              : <span>👤</span>}
-            <span style={{ color: 'var(--accent)', fontWeight: 'bold' }}>{tfTarget.username}</span>
-            <button
-              onClick={() => setTfTarget(null)}
-              style={{ background: 'none', border: 'none', color: 'var(--text)', cursor: 'pointer', opacity: 0.5, fontSize: '0.85rem' }}
-            >✕</button>
-          </div>
-        )}
 
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-          <input
-            type="number" min={10} max={500} placeholder="Cantidad (mín 10)"
-            value={tfAmount} onChange={e => setTfAmount(e.target.value)}
-            style={{
-              width: 150, background: 'var(--bg)', border: '1px solid var(--border)',
-              color: 'var(--text)', padding: '7px 10px', fontFamily: 'inherit',
-              fontSize: '0.85rem', borderRadius: 4,
-            }}
-          />
-          <input
-            placeholder="Mensaje opcional"
-            value={tfMsg} onChange={e => setTfMsg(e.target.value)}
-            style={{
-              flex: 1, minWidth: 120, background: 'var(--bg)', border: '1px solid var(--border)',
-              color: 'var(--text)', padding: '7px 10px', fontFamily: 'inherit',
-              fontSize: '0.85rem', borderRadius: 4,
-            }}
-          />
+          <div className="space-y-4">
+            <label className="text-[10px] font-black uppercase tracking-widest text-white/20 ml-1">Detalles del Envío</label>
+            <div className="flex gap-3">
+              <input
+                type="number"
+                placeholder="Monto"
+                value={tfAmount} onChange={e => setTfAmount(e.target.value)}
+                className="w-24 bg-white/[0.03] border border-white/10 rounded-xl px-4 py-3.5 text-sm text-center font-black outline-none focus:border-indigo-500"
+              />
+              <input
+                placeholder="Mensaje (opcional)..."
+                value={tfMsg} onChange={e => setTfMsg(e.target.value)}
+                className="flex-1 bg-white/[0.03] border border-white/10 rounded-xl px-4 py-3.5 text-sm outline-none focus:border-indigo-500"
+              />
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-8 flex items-center justify-between">
+          <p className="text-[9px] text-white/20 uppercase font-bold tracking-widest">Fee de red: 5% · Min. 10 ◈</p>
           <button
-            className="winButton"
+            className={`px-8 py-3 rounded-xl font-black text-[10px] tracking-[0.2em] uppercase transition-all ${(!tfTarget || !tfAmount) ? 'bg-white/5 text-white/20' : 'bg-indigo-600 text-white hover:bg-indigo-500 shadow-[0_5px_20px_rgba(79,70,229,0.3)]'}`}
             onClick={handleTransfer}
             disabled={!tfTarget || !tfAmount}
-            style={{ opacity: (!tfTarget || !tfAmount) ? 0.4 : 1 }}
           >
-            Enviar
+            EJECUTAR TRANSFERENCIA
           </button>
         </div>
 
         {tfStatus && (
-          <div style={{ marginTop: 8, fontSize: '0.82rem', color: tfStatus.ok ? 'var(--accent)' : '#ff5555' }}>
+          <div className={`mt-6 p-4 rounded-xl border text-xs font-bold text-center animate-fade-in ${tfStatus.ok ? 'bg-green-500/10 border-green-500/20 text-green-400' : 'bg-rose-500/10 border-rose-500/20 text-rose-400'}`}>
             {tfStatus.msg}
           </div>
         )}
@@ -364,66 +380,79 @@ function FundSection({ user }) {
   const pct = Math.min(100, Math.round(((fund.current_amount ?? 0) / (fund.goal_amount ?? 1)) * 100));
 
   return (
-    <section style={{ marginBottom: 32, padding: 18, border: '1px solid var(--border)', borderRadius: 8, background: 'rgba(0,229,255,0.03)' }}>
-      <h2 className="cardTitle" style={{ fontSize: '1.1rem', marginBottom: 6 }}>🤝 Fondo Comunitario</h2>
-      <p style={{ margin: '0 0 14px 0', fontSize: '0.88rem', color: 'var(--text)', opacity: 0.8 }}>
-        {fund.title} — {fund.description}
-      </p>
-
-      {/* Progress bar */}
-      <div style={{ marginBottom: 14 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', marginBottom: 6 }}>
-          <span style={{ color: 'var(--accent)' }}>◈ {(fund.current_amount ?? 0).toLocaleString()} recaudados</span>
-          <span style={{ opacity: 0.6 }}>Meta: ◈ {(fund.goal_amount ?? 0).toLocaleString()}</span>
+    <section className="profile-v2-section glass-blue space-y-8">
+      <div className="flex items-center justify-between border-b border-cyan-500/10 pb-6">
+        <div>
+          <h2 className="text-sm font-black uppercase tracking-[0.4em] text-cyan-400">Fondo Comunitario</h2>
+          <p className="text-xs text-white/20">Impulsa proyectos colectivos del universo.</p>
         </div>
-        <div style={{ background: 'var(--border)', borderRadius: 4, height: 8, overflow: 'hidden' }}>
-          <div style={{ width: `${pct}%`, height: '100%', background: 'var(--accent)', transition: 'width 0.4s', borderRadius: 4 }} />
-        </div>
-        <div style={{ textAlign: 'right', fontSize: '0.78rem', marginTop: 4, opacity: 0.5 }}>{pct}%</div>
+        <div className="text-3xl">🤝</div>
       </div>
 
-      {/* Top donors */}
-      {donors.length > 0 && (
-        <div style={{ marginBottom: 14 }}>
-          <div style={{ fontSize: '0.8rem', color: 'var(--cyan)', marginBottom: 6, letterSpacing: '0.05em' }}>TOP DONADORES</div>
-          {donors.map((d, i) => (
-            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-              <span style={{ width: 16, fontSize: '0.75rem', opacity: 0.5 }}>#{i + 1}</span>
-              {d.user?.avatar_url
-                ? <img src={d.user.avatar_url} alt="" style={{ width: 18, height: 18, borderRadius: '50%' }} />
-                : <span style={{ fontSize: 12 }}>👤</span>}
-              <span style={{ fontSize: '0.85rem', flex: 1 }}>{d.user?.username || 'Anónimo'}</span>
-              <span style={{ fontSize: '0.85rem', color: 'var(--accent)', fontWeight: 'bold' }}>◈ {d.amount}</span>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
+        <div className="space-y-6">
+          <div className="p-6 rounded-3xl bg-black/40 border border-white/5 space-y-4">
+            <h3 className="text-xl font-black italic text-white leading-tight">{fund.title}</h3>
+            <p className="text-xs text-white/40 leading-relaxed">{fund.description}</p>
+          </div>
+
+          <div className="space-y-3">
+            <div className="flex justify-between text-[10px] font-black uppercase tracking-widest">
+              <span className="text-cyan-400">Recaudado: ◈ {(fund.current_amount ?? 0).toLocaleString()}</span>
+              <span className="text-white/20">Meta: ◈ {(fund.goal_amount ?? 0).toLocaleString()}</span>
             </div>
-          ))}
+            <div className="h-3 w-full bg-white/5 rounded-full overflow-hidden border border-white/5">
+              <div
+                className="h-full bg-gradient-to-r from-cyan-500 to-blue-500 transition-all duration-1000 shadow-[0_0_15px_rgba(6,182,212,0.4)]"
+                style={{ width: `${pct}%` }}
+              ></div>
+            </div>
+            <div className="text-right text-[10px] font-black text-cyan-400/60">{pct}% COMPLETADO</div>
+          </div>
         </div>
-      )}
 
-      {/* Donate form */}
-      <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-        <input
-          type="number" min={10} placeholder="Cantidad (mín 10)"
-          value={amount} onChange={e => setAmount(e.target.value)}
-          style={{
-            width: 160, background: 'var(--bg)', border: '1px solid var(--border)',
-            color: 'var(--text)', padding: '7px 10px', fontFamily: 'inherit',
-            fontSize: '0.85rem', borderRadius: 4,
-          }}
-        />
-        <button
-          className="winButton"
-          onClick={handleDonate}
-          disabled={!amount || parseInt(amount, 10) < 10 || parseInt(amount, 10) > balance}
-          style={{ opacity: (!amount || parseInt(amount, 10) < 10 || parseInt(amount, 10) > balance) ? 0.4 : 1 }}
-        >
-          Donar al fondo
-        </button>
-        {parseInt(amount, 10) > balance && (
-          <span style={{ fontSize: '0.78rem', color: '#ff5555' }}>Saldo insuficiente</span>
-        )}
+        <div className="space-y-6">
+          {donors.length > 0 && (
+            <div className="space-y-3">
+              <span className="text-[9px] font-black uppercase tracking-[0.3em] text-white/20">Contribuyentes Relevantes</span>
+              <div className="space-y-2">
+                {donors.map((d, i) => (
+                  <div key={i} className="flex items-center gap-4 p-3 rounded-2xl bg-white/[0.02] border border-white/5">
+                    <span className="text-[10px] font-black text-cyan-500/40 font-mono">#{i + 1}</span>
+                    <div className="w-6 h-6 rounded-full bg-white/10 overflow-hidden border border-white/10">
+                      {d.user?.avatar_url ? <img src={d.user.avatar_url} className="w-full h-full object-cover" /> : '👤'}
+                    </div>
+                    <span className="text-xs font-bold text-white/80 flex-1">{d.user?.username || 'Anónimo'}</span>
+                    <span className="text-xs font-black text-cyan-400">◈ {d.amount}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div className="flex flex-col gap-3">
+            <div className="flex gap-2">
+              <input
+                type="number" min={10}
+                placeholder="Cantidad..."
+                value={amount} onChange={e => setAmount(e.target.value)}
+                className="w-1/2 bg-white/[0.03] border border-white/10 rounded-2xl px-5 py-3.5 text-sm font-black outline-none focus:border-cyan-500"
+              />
+              <button
+                className={`flex-1 py-3.5 rounded-2xl font-black text-[10px] tracking-[0.2em] uppercase transition-all ${(!amount || parseInt(amount, 10) < 10) ? 'bg-white/5 text-white/20' : 'bg-cyan-600 text-white hover:bg-cyan-500 shadow-[0_10px_30px_rgba(6,182,212,0.2)]'}`}
+                onClick={handleDonate}
+                disabled={!amount || parseInt(amount, 10) < 10 || parseInt(amount, 10) > balance}
+              >
+                APORTAR AL FONDO
+              </button>
+            </div>
+            {parseInt(amount, 10) > balance && <p className="text-center text-[10px] font-black text-rose-500 uppercase tracking-widest animate-pulse">Saldo insuficiente detectado</p>}
+          </div>
+        </div>
       </div>
+
       {status && (
-        <div style={{ marginTop: 8, fontSize: '0.82rem', color: status.ok ? 'var(--accent)' : '#ff5555' }}>
+        <div className={`p-4 rounded-xl border text-xs font-bold text-center animate-fade-in ${status.ok ? 'bg-cyan-500/10 border-cyan-500/20 text-cyan-400' : 'bg-rose-500/10 border-rose-500/20 text-rose-400'}`}>
           {status.msg}
         </div>
       )}
@@ -447,12 +476,22 @@ export default function ProfileOwn() {
   const [posts, setPosts] = useState([]);
   const [followCounts, setFollowCounts] = useState({ followers: 0, following: 0 });
   const [partnership, setPartnership] = useState(null);
+  const [bannerItem, setBannerItem] = useState(null);
 
   useEffect(() => {
     if (!profile) return;
     setBannerLocal(profile.banner_color ?? null);
     setFrameItemId(profile.frame_item_id ?? null);
     setBio(profile.bio || '');
+
+    // Fetch banner item if equipped
+    if (profile.banner_item_id) {
+      storeService.getStoreItem(profile.banner_item_id)
+        .then(setBannerItem)
+        .catch(err => console.error('[ProfileOwn] Error fetching banner item:', err));
+    } else {
+      setBannerItem(null);
+    }
   }, [profile]);
 
   useEffect(() => {
@@ -525,55 +564,71 @@ export default function ProfileOwn() {
   const bestRecord = gameRanks.length > 0 ? Math.max(...gameRanks.map(g => g.max_score || 0)) : 0;
 
   return (
-    <div className="w-full max-w-4xl mx-auto min-h-[100dvh] pb-24 text-white font-sans flex flex-col gap-6" style={{ background: 'transparent' }}>
+    <div className="w-full max-w-7xl mx-auto min-h-[100dvh] pb-24 text-white font-sans flex flex-col gap-12 pt-8" style={{ background: 'transparent' }}>
 
-      {/* 1️⃣ HERO SECTION */}
-      <section className="relative w-full rounded-b-3xl md:rounded-3xl overflow-hidden shadow-[0_0_40px_rgba(139,92,246,0.15)] bg-[#0d0d14] border border-white/5 pb-6">
+      {/* 1️⃣ HERO SECTION (v2.5) */}
+      <section className="profile-v2-hero relative w-full rounded-[3rem] overflow-hidden border border-white/10 group/hero">
 
-        {/* Banner */}
+        {/* Animated Mesh Background */}
+        <div className="profile-v2-mesh opacity-30 group-hover/hero:opacity-50 transition-opacity duration-1000"></div>
+        <div className="absolute inset-0 bg-[url('/grid-pattern.png')] opacity-10 pointer-events-none"></div>
+
+        {/* Dynamic Banner Overlay / Custom Shop Banner */}
         <div
-          className="absolute inset-0 pointer-events-none transition-all duration-700"
+          className={`profile-v2-banner-overlay transition-all duration-1000 ${bannerItem ? 'animate-pulse-slow' : ''} ${bannerItem?.metadata?.animated ? 'animate-aurora' : ''}`}
           style={{
-            background: bannerColor
-              ? `linear-gradient(135deg, ${bannerColor}55 0%, ${bannerColor}22 100%)`
-              : 'linear-gradient(135deg, rgba(255,110,180,0.15) 0%, rgba(0,229,255,0.08) 100%)'
+            background: bannerItem?.metadata?.gradient
+              ? `linear-gradient(to right, ${bannerItem.metadata.gradient.join(', ')})`
+              : bannerItem?.metadata?.hex
+                ? `radial-gradient(circle at top right, ${bannerItem.metadata.hex}66 0%, transparent 70%)`
+                : bannerColor
+                  ? `radial-gradient(circle at top right, ${bannerColor}66 0%, transparent 60%)`
+                  : 'radial-gradient(circle at top right, rgba(236,72,153,0.2) 0%, transparent 60%)',
+            backgroundImage: bannerItem?.preview_url ? `url(${bannerItem.preview_url})` : undefined,
+            backgroundSize: bannerItem?.preview_url ? 'cover' : undefined,
+            backgroundPosition: bannerItem?.preview_url ? 'center' : undefined,
+            opacity: bannerItem?.preview_url ? 0.4 : 1
           }}
-        />
+        >
+          {bannerItem?.metadata?.fx === 'matrix' && <div className="absolute inset-0 banner-fx-matrix opacity-20"></div>}
+          {bannerItem?.metadata?.fx === 'scanlines' && <div className="absolute inset-0 banner-fx-scanlines opacity-30"></div>}
+          {bannerItem?.metadata?.fx === 'stars' && <div className="absolute inset-0 banner-fx-stars"></div>}
+        </div>
 
-        <div className="relative z-10 p-6 md:p-8 flex flex-col items-center text-center">
+        <div className="relative z-10 p-8 md:p-16 flex flex-col items-center text-center">
 
-          <div className="absolute top-4 right-4 flex flex-col items-end gap-2">
-            <button className="winButton text-xs px-3 py-1 bg-black/40 backdrop-blur-md" onClick={logout}>Cerrar Sesión</button>
-            <label className="flex items-center gap-2 cursor-pointer text-[10px] uppercase tracking-wider opacity-75 hover:opacity-100 transition font-bold mt-1 bg-black/40 backdrop-blur-md px-2 py-1 rounded">
-              🎨 Banner
-              <input
-                type="color" value={bannerColor || '#050510'}
-                onChange={async (e) => {
-                  const hex = e.target.value; setBannerLocal(hex);
-                  try { await saveBannerColor(user.id, hex); } catch { }
-                }}
-                className="w-5 h-5 border-none bg-transparent cursor-pointer rounded p-0"
-              />
-            </label>
-            {bannerColor && (
-              <button onClick={async () => { setBannerLocal(null); try { await saveBannerColor(user.id, null); } catch { } }} className="text-[10px] uppercase opacity-50 hover:opacity-100">✕ quitar</button>
-            )}
+          {/* Top Actions */}
+          <div className="absolute top-4 right-4 md:top-8 md:right-8 flex flex-col items-end gap-2 md:gap-3 z-40">
+            <button
+              className="px-3 py-1.5 md:px-4 md:py-2 bg-black/40 backdrop-blur-md border border-white/10 rounded-xl text-[9px] md:text-[10px] font-black uppercase tracking-widest text-white/60 hover:text-white hover:bg-white/10 transition-all"
+              onClick={logout}
+            >
+              Salir
+            </button>
+
+            {/* Link to Shop for Banners */}
+            <Link
+              to="/tienda?category=banner"
+              className="px-3 py-1.5 md:px-4 md:py-2 bg-cyan-500/20 backdrop-blur-md border border-cyan-500/30 rounded-xl text-[9px] md:text-[10px] font-black uppercase tracking-widest text-cyan-400 hover:text-white hover:bg-cyan-500/30 transition-all flex items-center gap-2"
+            >
+              🖼️ <span className="hidden md:inline">Adquirir Banners</span><span className="md:hidden">Banners</span>
+            </Link>
           </div>
 
-          <div className="relative mb-6 mt-4 md:mt-0">
+          <div className="relative mb-6 mt-20 md:mt-0">
             <AvatarUploader
               currentAvatar={profile?.avatar_url}
               frameStyle={getFrameStyle(frameItemId)}
               onUploadSuccess={(newUrl) => setProfile(prev => ({ ...prev, avatar_url: newUrl }))}
             />
 
-            {/* Pet Overlay */}
-            <div className="absolute -left-6 -bottom-2 pointer-events-none drop-shadow-2xl z-30 scale-x-[-1]">
-              <PetDisplay userId={user.id} size={45} showName={false} />
+            {/* Pet Overlay & Holographic Level Badge */}
+            <div className="absolute -left-12 -bottom-4 pointer-events-none drop-shadow-[0_0_20px_rgba(6,182,212,0.5)] z-30 scale-x-[-1] animate-float">
+              <PetDisplay userId={user.id} size={60} showName={false} />
             </div>
 
-            <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 bg-[#09090b] border border-cyan-500 text-cyan-400 text-xs font-black px-4 py-1 rounded-full shadow-[0_0_15px_rgba(6,182,212,0.4)] z-20 whitespace-nowrap">
-              LVL {level}
+            <div className={`absolute -bottom-5 left-1/2 -translate-x-1/2 px-6 py-2 rounded-2xl border font-black text-sm tracking-tighter z-20 whitespace-nowrap transition-all duration-500 shadow-2xl ${level >= 10 ? 'bg-gradient-to-r from-yellow-400 via-white to-yellow-400 text-black border-yellow-200 animate-shimmer bg-[length:200%_100%]' : 'bg-[#09090b] border-cyan-500/50 text-cyan-400 shadow-[0_0_20px_rgba(6,182,212,0.3)]'}`}>
+              NIVEL {level}
             </div>
           </div>
 
@@ -589,15 +644,41 @@ export default function ProfileOwn() {
             {rankName}
           </p>
 
-          {partnership && (
-            <PrivateUniverse
-              partnership={partnership}
-              onUpdate={async () => {
-                const updated = await universeService.getMyPartnership();
-                setPartnership(updated);
-              }}
-            />
-          )}
+          <div className="flex flex-col items-center gap-4 py-8">
+            {partnership ? (
+              <div className="flex flex-col items-center gap-4 w-full">
+                <div className="relative group/univ">
+                  <div className="absolute -inset-6 bg-purple-500/10 blur-3xl rounded-full opacity-0 md:group-hover/univ:opacity-100 transition-opacity"></div>
+                  <PrivateUniverse
+                    partnership={partnership}
+                    onUpdate={async () => {
+                      const updated = await universeService.getMyPartnership();
+                      setPartnership(updated);
+                    }}
+                  />
+                </div>
+                <div className="flex flex-col items-center gap-1 text-center">
+                  <div className="text-[9px] font-black tracking-[0.4em] text-purple-400/60 uppercase">Universo Vinculado</div>
+                  <Link
+                    to={`/profile/${partnership.partner_id}`}
+                    className="text-[10px] font-black text-white/40 hover:text-purple-400 transition-colors uppercase tracking-widest"
+                  >
+                    Ver perfil de @{partnership.partner_username} →
+                  </Link>
+                </div>
+              </div>
+            ) : (
+              <Link to="/vinculos" className="group relative px-6 py-3 rounded-2xl bg-white/5 border border-white/10 overflow-hidden transition-all hover:border-purple-500/50">
+                <div className="relative z-10 flex items-center gap-3">
+                  <span className="text-xl group-hover:rotate-12 transition-transform">✨</span>
+                  <div className="text-left">
+                    <div className="text-[10px] font-black uppercase tracking-widest text-white/80">Vínculo Estelar</div>
+                    <div className="text-[8px] text-white/30 uppercase font-bold">Solicitar conexión con otro usuario</div>
+                  </div>
+                </div>
+              </Link>
+            )}
+          </div>
 
 
           {!isEditingBio ? (
@@ -625,19 +706,23 @@ export default function ProfileOwn() {
             </div>
           )}
 
-          {/* XP Bar */}
-          <div className="w-full max-w-xs mt-2">
-            <div className="flex justify-between text-[10px] text-gray-400 font-bold mb-1.5 uppercase tracking-widest">
-              <span>{Math.floor(totalXp).toLocaleString()} XP</span>
-              <span className="text-cyan-500">{Math.floor(nextLevelXp).toLocaleString()} XP</span>
-            </div>
-            <div className="h-1.5 w-full bg-[#050508] rounded-full overflow-hidden border border-white/5 relative">
-              <div
-                className="h-full bg-gradient-to-r from-cyan-500 via-purple-500 to-pink-500 w-full rounded-full transition-all duration-1000 ease-out relative"
-                style={{ width: `${progressPercent}%` }}
-              >
-                <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-white/40 to-transparent"></div>
+          {/* XP Bar Premium */}
+          <div className="w-full max-w-sm mt-4 px-4">
+            <div className="flex justify-between items-end mb-2">
+              <div className="flex flex-col items-start">
+                <span className="text-[8px] font-black uppercase tracking-[0.3em] text-white/20">Progreso de Nivel</span>
+                <span className="text-xs font-black italic text-cyan-400 tracking-tighter">{Math.floor(totalXp).toLocaleString()} <span className="text-[9px] opacity-40 not-italic uppercase font-sans">XP Total</span></span>
               </div>
+              <span className="text-[10px] font-black text-purple-400 font-mono">META: {Math.floor(nextLevelXp).toLocaleString()}</span>
+            </div>
+            <div className="profile-v2-xp-bar">
+              <div
+                className="profile-v2-xp-fill transition-all duration-1000 ease-out"
+                style={{ width: `${progressPercent}%` }}
+              ></div>
+            </div>
+            <div className="mt-1.5 text-right">
+              <span className="text-[9px] font-black text-white/10 tracking-[0.4em] uppercase">{progressPercent}% completado</span>
             </div>
           </div>
         </div>
@@ -650,28 +735,33 @@ export default function ProfileOwn() {
       ) : (
         <>
           {/* 2️⃣ STATS CORE GRID */}
-          <section className="px-4 md:px-0 animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
-            <h2 className="text-[10px] text-gray-500 uppercase tracking-[0.3em] font-bold mb-3 pl-1 flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-cyan-500 animate-pulse"></span> Core Stats
-            </h2>
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+          <section className="px-6 md:px-0 animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
+            <div className="flex items-center justify-between mb-6 px-2">
+              <h2 className="text-[10px] text-white/30 uppercase tracking-[0.4em] font-black flex items-center gap-3">
+                <span className="w-1.5 h-1.5 rounded-full bg-cyan-500 shadow-[0_0_10px_cyan]"></span>
+                Métricas del Servidor
+              </h2>
+              <div className="h-px flex-1 bg-white/5 mx-6"></div>
+              <span className="text-[9px] font-mono text-cyan-500/40">v2.5.0-ESTELAR</span>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
               <StatCard title="Seguidores" value={followCounts.followers} icon="👥" highlight="text-purple-400" />
-              <StatCard title="Siguiendo" value={followCounts.following} icon="✨" highlight="text-gray-400" />
+              <StatCard title="Siguiendo" value={followCounts.following} icon="✨" highlight="text-purple-200" />
               <StatCard title="Rank Global" value={topGlobalRank !== 'N/A' ? `#${topGlobalRank}` : '-'} icon="🌍" highlight="text-green-400" />
               <StatCard title="Racha Focus" value={`${cabinStats?.current_streak || 0} 🔥`} icon="⏳" highlight="text-orange-400" />
-              <StatCard title="Juegos Activos" value={gameRanks.length} icon="🎮" />
-              <StatCard title="Mejor Récord" value={bestRecord.toLocaleString()} icon="🏆" highlight="text-cyan-300" />
+              <StatCard title="Juegos" value={gameRanks.length} icon="🎮" highlight="text-cyan-400" />
+              <StatCard title="Mejor Récord" value={bestRecord.toLocaleString()} icon="🏆" highlight="text-yellow-500" />
             </div>
           </section>
 
           {/* 3️⃣ TABS */}
-          <section className="px-4 md:px-0 flex-1 flex flex-col min-h-0 animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
-            <div className="flex bg-[#0a0a0f] rounded-xl p-1 shadow-lg border border-white/5 overflow-x-auto no-scrollbar scroll-smooth">
-              <TabButton active={activeTab === 'records'} onClick={() => setActiveTab('records')}>🏆 Récords</TabButton>
-              <TabButton active={activeTab === 'achievements'} onClick={() => setActiveTab('achievements')}>🎖️ Logros</TabButton>
-              <TabButton active={activeTab === 'posts'} onClick={() => setActiveTab('posts')}>📝 Posts</TabButton>
-              <TabButton active={activeTab === 'economy'} onClick={() => setActiveTab('economy')}>💎 Economía</TabButton>
-              <TabButton active={activeTab === 'cabina'} onClick={() => setActiveTab('cabina')}>🚀 Cabina</TabButton>
+          <section className="px-6 md:px-0 flex-1 flex flex-col min-h-0 animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
+            <div className="flex flex-nowrap bg-black/40 backdrop-blur-2xl rounded-2xl md:rounded-3xl p-2 shadow-2xl border border-white/5 overflow-x-auto no-scrollbar gap-1 mb-6">
+              <TabButton active={activeTab === 'records'} onClick={() => setActiveTab('records')}>🏆 Archivos</TabButton>
+              <TabButton active={activeTab === 'achievements'} onClick={() => setActiveTab('achievements')}>🎖️ Medallas</TabButton>
+              <TabButton active={activeTab === 'posts'} onClick={() => setActiveTab('posts')}>📝 Bitácora</TabButton>
+              <TabButton active={activeTab === 'economy'} onClick={() => setActiveTab('economy')}>💎 Economía & Bóveda</TabButton>
+              <TabButton active={activeTab === 'cabina'} onClick={() => setActiveTab('cabina')}>🚀 Sistema</TabButton>
             </div>
 
             <div className="mt-5 flex-1 mb-8">
@@ -682,19 +772,29 @@ export default function ProfileOwn() {
                   {gameRanks.length === 0 ? (
                     <div className="text-center p-12 border border-white/5 rounded-2xl bg-[#0a0a0f] text-gray-500 text-sm">Sin récords registrados. ¡Empieza a jugar en el arcade!</div>
                   ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                       {gameRanks.map(rank => (
-                        <div key={rank.game_id} className="flex bg-[#13131c] border border-white/5 rounded-xl p-3 items-center gap-4 hover:bg-[#1a1a26] transition hover:border-white/10 group cursor-default">
-                          <div className="w-12 h-12 rounded-lg bg-black/40 border border-white/5 flex items-center justify-center text-xl group-hover:scale-110 transition shadow-inner">
-                            🎮
+                        <div key={rank.game_id} className="group relative bg-black/40 border border-white/5 rounded-[2rem] p-6 hover:border-cyan-500/30 transition-all hover:shadow-[0_20px_40px_rgba(0,0,0,0.4)] overflow-hidden">
+                          <div className="absolute top-0 right-0 w-24 h-24 bg-cyan-500/5 blur-3xl rounded-full translate-x-1/2 -translate-y-1/2 group-hover:bg-cyan-500/10 transition-colors"></div>
+
+                          <div className="flex items-center gap-5 relative z-10">
+                            <div className="w-14 h-14 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-2xl shadow-inner group-hover:scale-110 transition-transform">
+                              🎮
+                            </div>
+                            <div className="flex-1">
+                              <h3 className="text-sm font-black text-white/90 uppercase tracking-[0.2em]">{GAME_NAMES[rank.game_id] || rank.game_id}</h3>
+                              <div className="mt-1 flex items-center gap-2">
+                                <span className="text-[10px] font-black text-cyan-500 font-mono tracking-tighter">SCORE: {(rank.max_score ?? 0).toLocaleString()}</span>
+                                <div className="h-2 w-px bg-white/10"></div>
+                                <span className="text-[10px] font-black text-purple-400 font-mono">RANK #{rank.user_position}</span>
+                              </div>
+                            </div>
                           </div>
-                          <div className="flex-1">
-                            <h3 className="font-bold text-[13px] text-gray-200 uppercase tracking-widest">{GAME_NAMES[rank.game_id] || rank.game_id}</h3>
-                            <p className="text-xs text-cyan-400 font-mono mt-0.5">Score: {(rank.max_score ?? 0).toLocaleString()}</p>
-                          </div>
-                          <div className="flex flex-col items-center justify-center px-4 py-2 bg-[#0a0a0f] rounded-lg border border-purple-500/20 shadow-md">
-                            <span className="text-[9px] text-gray-500 uppercase tracking-[0.2em] mb-0.5">Rank</span>
-                            <span className="font-black text-purple-400 text-sm">#{rank.user_position}</span>
+
+                          <div className="mt-6 flex gap-1 h-1">
+                            <div className="flex-1 bg-cyan-500/40 rounded-full"></div>
+                            <div className="flex-1 bg-white/5 rounded-full"></div>
+                            <div className="flex-1 bg-white/5 rounded-full"></div>
                           </div>
                         </div>
                       ))}
@@ -711,19 +811,17 @@ export default function ProfileOwn() {
                     <span className="text-[11px] text-cyan-500 font-mono bg-cyan-900/20 px-2.5 py-1 rounded border border-cyan-800/40">{unlockedAchData.length}/{ACHIEVEMENTS.length}</span>
                   </div>
                   {unlockedAchData.length === 0 ? (
-                    <div className="text-center p-12 border border-white/5 rounded-2xl bg-[#0a0a0f] text-gray-500 text-sm">Aún no hay logros. ¡Explora el OS!</div>
+                    <div className="text-center p-24 border border-white/5 rounded-[3rem] bg-black/20 text-white/20 text-xs font-black uppercase tracking-widest">Protocolos de medalla no detectados.</div>
                   ) : (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                       {unlockedAchData.map(ach => (
-                        <div key={ach.id} className="flex flex-col bg-gradient-to-br from-[#171724] to-[#0a0a0f] border border-purple-500/10 rounded-xl p-4 relative overflow-hidden group">
-                          <div className="absolute -top-4 -right-4 w-20 h-20 bg-purple-500/10 rounded-full blur-2xl pointer-events-none group-hover:bg-purple-500/20 transition duration-700"></div>
-                          <div className="flex items-center justify-between mb-3 z-10">
-                            <div className="text-2xl drop-shadow-[0_0_10px_rgba(255,255,255,0.2)]">{ach.icon}</div>
-                            <div className="w-5 h-5 rounded-full bg-green-500/10 border border-green-500/50 flex items-center justify-center text-green-400 text-[10px]">✓</div>
-                          </div>
-                          <div className="z-10">
-                            <div className="font-bold text-[13px] text-white tracking-wide">{ach.title}</div>
-                            <div className="text-[11px] text-gray-400 leading-snug mt-1 opacity-80 group-hover:opacity-100 transition whitespace-pre-wrap">{ach.desc}</div>
+                        <div key={ach.id} className="group relative p-6 rounded-[2rem] bg-gradient-to-br from-white/[0.03] to-transparent border border-white/5 hover:border-purple-500/30 transition-all overflow-hidden flex flex-col items-center text-center">
+                          <div className="absolute inset-0 bg-purple-500/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                          <div className="text-4xl mb-4 grayscale group-hover:grayscale-0 transition-all duration-500 transform group-hover:scale-125 group-hover:rotate-6 drop-shadow-[0_0_15px_rgba(255,255,255,0.2)]">{ach.icon}</div>
+                          <h4 className="text-xs font-black text-white uppercase tracking-widest mb-2">{ach.title}</h4>
+                          <p className="text-[10px] text-white/40 leading-relaxed font-medium">{ach.desc}</p>
+                          <div className="mt-4 pt-4 border-t border-white/5 w-full">
+                            <span className="text-[8px] font-black text-purple-400 uppercase tracking-[0.2em]">Sincronizado ✓</span>
                           </div>
                         </div>
                       ))}
@@ -741,31 +839,30 @@ export default function ProfileOwn() {
                       Ir al Feed Global 🌍
                     </Link>
                   </div>
-                  <div className="flex flex-col gap-3">
+                  <div className="flex flex-col gap-4">
                     {posts.length === 0 ? (
-                      <div className="text-center p-12 border border-white/5 rounded-2xl bg-[#0a0a0f] text-gray-500 text-sm">Aún no has escrito ningún post.</div>
+                      <div className="text-center p-24 border border-white/5 rounded-[3rem] bg-black/20 text-white/20 text-xs font-black uppercase tracking-widest">No se han encontrado registros en la bitácora espacial.</div>
                     ) : (
                       posts.map(post => (
-                        <div key={post.id} className="block bg-[#13131c]/60 backdrop-blur-md p-5 rounded-xl border border-white/5 transition-colors group">
-                          <div className="flex items-center gap-3 mb-2">
-                            <span className="text-[10px] text-cyan-500 font-mono tracking-widest bg-cyan-900/20 px-2 py-0.5 rounded border border-cyan-800/40">
-                              {new Date(post.created_at).toLocaleDateString()}
-                            </span>
-                            <span className={`text-[9px] uppercase tracking-widest px-2 py-0.5 rounded font-bold ${post.status === 'published' ? 'bg-green-500/20 text-green-400' : 'bg-gray-500/20 text-gray-400'}`}>
-                              {post.status}
-                            </span>
-                            <span className="text-[10px] text-gray-500 font-mono tracking-widest ml-auto opacity-60 flex items-center gap-1 group-hover:opacity-100 transition-opacity">
-                              👁 {post.views || 0}
-                            </span>
+                        <div key={post.id} className="group relative bg-black/20 border border-white/5 rounded-3xl p-8 hover:bg-white/[0.03] transition-all overflow-hidden flex items-center justify-between gap-8">
+                          <div className="flex-1 space-y-3">
+                            <div className="flex items-center gap-3">
+                              <span className="text-[9px] font-black text-cyan-400 font-mono bg-cyan-400/10 px-3 py-1 rounded-full border border-cyan-400/20 uppercase">
+                                CAPTURA: {new Date(post.created_at).toLocaleDateString()}
+                              </span>
+                              <span className="text-[9px] font-black text-white/20 uppercase tracking-widest">ESTADO: {post.status}</span>
+                            </div>
+                            <Link to={`/log/${post.slug}`} className="block">
+                              <h3 className="text-2xl font-black text-white group-hover:text-cyan-400 transition-colors uppercase tracking-tighter">{post.title}</h3>
+                              <p className="text-xs text-white/40 line-clamp-2 mt-2 font-medium">{post.subtitle || 'Sin descripción adicional disponible.'}</p>
+                            </Link>
                           </div>
-
-                          <Link to={post.status === 'published' ? `/log/${post.slug}` : '#'} className="block my-2">
-                            <h3 className="text-lg font-bold text-gray-100 group-hover:text-cyan-400 transition-colors mb-1">{post.title}</h3>
-                            {post.subtitle && <p className="text-sm text-gray-400">{post.subtitle}</p>}
-                          </Link>
-
-                          <div className="flex justify-end mt-4">
-                            <Link to={`/edit-post/${post.id}`} className="text-xs text-blue-400 hover:text-blue-300 px-3 py-1">Editar</Link>
+                          <div className="flex flex-col items-end gap-4">
+                            <div className="text-right">
+                              <span className="text-[10px] font-black text-white/10 uppercase block mb-1">Impacto</span>
+                              <span className="text-lg font-black font-mono text-white/60 italic leading-none">👁 {post.views || 0}</span>
+                            </div>
+                            <Link to={`/edit-post/${post.id}`} className="px-5 py-2 rounded-xl bg-white/5 border border-white/10 text-[10px] font-black uppercase tracking-widest hover:bg-white hover:text-black transition-all">Editar</Link>
                           </div>
                         </div>
                       ))
@@ -789,33 +886,33 @@ export default function ProfileOwn() {
 
               {/* TAB: CABINA */}
               {activeTab === 'cabina' && (
-                <div className="animate-fade-in-up">
-                  <div className="bg-[#13131c] rounded-2xl border border-white/5 p-6 md:p-8 relative overflow-hidden shadow-xl">
-                    {/* Estética sci-fi */}
-                    <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-cyan-500/5 rounded-full blur-3xl pointer-events-none -translate-y-1/2 translate-x-1/3"></div>
-                    <div className="absolute bottom-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-cyan-500/20 to-transparent"></div>
+                <div className="profile-v2-section glass-blue relative overflow-hidden group/cabin">
+                  <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-cyan-500/5 rounded-full blur-[120px] pointer-events-none -translate-y-1/2 translate-x-1/3 group-hover:bg-cyan-500/10 transition-colors duration-1000"></div>
 
-                    <h3 className="text-xs text-cyan-500 uppercase tracking-[0.2em] font-bold mb-6 flex items-center gap-2">
-                      <span className="w-1.5 h-1.5 bg-cyan-500 rotate-45"></span> Telemetría de Foco
-                    </h3>
+                  <div className="flex items-center justify-between mb-8 border-b border-cyan-500/10 pb-6">
+                    <div>
+                      <h3 className="text-xs font-black text-cyan-400 uppercase tracking-[0.4em] mb-1">Telemetría de Foco</h3>
+                      <p className="text-[10px] text-white/20 uppercase font-medium">Análisis de rendimiento en la cabina espacial</p>
+                    </div>
+                    <div className="text-2xl animate-pulse">🚀</div>
+                  </div>
 
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 relative z-10">
-                      <div className="flex flex-col gap-1.5 p-4 rounded-xl bg-black/20 border border-white/5">
-                        <span className="text-[9px] text-gray-500 uppercase tracking-widest font-bold">Horas de Enfoque</span>
-                        <span className="text-2xl font-black text-white font-mono">{Math.round((cabinStats?.total_focus_minutes || 0) / 60)}<span className="text-gray-500 text-sm ml-1">h</span></span>
-                      </div>
-                      <div className="flex flex-col gap-1.5 p-4 rounded-xl bg-black/20 border border-white/5">
-                        <span className="text-[9px] text-gray-500 uppercase tracking-widest font-bold">Sesiones Totales</span>
-                        <span className="text-2xl font-black text-white font-mono">{cabinStats?.total_sessions || 0}</span>
-                      </div>
-                      <div className="flex flex-col gap-1.5 p-4 rounded-xl bg-black/20 border border-white/5">
-                        <span className="text-[9px] text-gray-500 uppercase tracking-widest font-bold">Racha Actual</span>
-                        <span className="text-2xl font-black text-orange-400 font-mono">{cabinStats?.current_streak || 0}<span className="text-gray-500 text-sm ml-1">d</span></span>
-                      </div>
-                      <div className="flex flex-col gap-1.5 p-4 rounded-xl bg-black/20 border border-white/5">
-                        <span className="text-[9px] text-gray-500 uppercase tracking-widest font-bold">Dancoins Ganadas</span>
-                        <span className="text-2xl font-black text-cyan-400 font-mono">◈ {cabinStats?.dancoins_earned || 0}</span>
-                      </div>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-6 relative z-10">
+                    <div className="p-6 rounded-[2rem] bg-black/40 border border-white/5 space-y-2 hover:border-cyan-500/30 transition-all">
+                      <span className="text-[8px] text-white/20 uppercase tracking-[0.3em] font-black">Horas Totales</span>
+                      <div className="text-3xl font-black text-white italic">{Math.round((cabinStats?.total_focus_minutes || 0) / 60)}<span className="text-cyan-500 text-lg ml-1">h</span></div>
+                    </div>
+                    <div className="p-6 rounded-[2rem] bg-black/40 border border-white/5 space-y-2 hover:border-cyan-500/30 transition-all">
+                      <span className="text-[8px] text-white/20 uppercase tracking-[0.3em] font-black">Sesiones</span>
+                      <div className="text-3xl font-black text-white italic">{cabinStats?.total_sessions || 0}</div>
+                    </div>
+                    <div className="p-6 rounded-[2rem] bg-black/40 border border-white/5 space-y-2 hover:border-cyan-500/30 transition-all border-orange-500/10">
+                      <span className="text-[8px] text-white/20 uppercase tracking-[0.3em] font-black">Racha</span>
+                      <div className="text-3xl font-black text-orange-400 italic">{cabinStats?.current_streak || 0}<span className="text-orange-500/40 text-lg ml-1">d</span></div>
+                    </div>
+                    <div className="p-6 rounded-[2rem] bg-black/40 border border-white/5 space-y-2 hover:border-cyan-500/30 transition-all border-cyan-500/20 shadow-[inset_0_0_20px_rgba(6,182,212,0.05)]">
+                      <span className="text-[8px] text-white/20 uppercase tracking-[0.3em] font-black">Ganancias</span>
+                      <div className="text-3xl font-black text-cyan-400 italic">◈ {cabinStats?.dancoins_earned || 0}</div>
                     </div>
                   </div>
                 </div>
@@ -824,19 +921,19 @@ export default function ProfileOwn() {
             </div>
           </section>
         </>
-      )}
-    </div>
+      )
+      }
+    </div >
   );
 }
 
 // --- SUBCOMPONENTES REUTILIZABLES ---
 function StatCard({ title, value, icon, highlight = 'text-white' }) {
   return (
-    <div className="bg-[#13131c] p-3 md:p-4 rounded-xl border border-white/5 flex flex-col justify-center items-center text-center hover:bg-[#1a1a26] transition shadow-md relative overflow-hidden group">
-      <div className="absolute top-0 right-0 p-2 opacity-5 scale-150 rotate-12 group-hover:scale-[1.8] group-hover:rotate-45 transition duration-500">{icon}</div>
-      <div className="text-xl mb-1 relative z-10">{icon}</div>
-      <div className={`text-xl md:text-2xl font-black leading-none ${highlight} relative z-10 drop-shadow-md`}>{value}</div>
-      <div className="text-[9px] text-gray-500 uppercase tracking-[0.2em] font-bold mt-2 relative z-10">{title}</div>
+    <div className="profile-v2-stat-card flex flex-col items-center justify-center text-center group">
+      <div className="text-2xl mb-2 transition-transform duration-500 group-hover:scale-125 group-hover:rotate-12">{icon}</div>
+      <div className={`text-xl md:text-2xl font-black italic tracking-tighter ${highlight} leading-none`}>{value}</div>
+      <div className="text-[9px] text-white/20 uppercase tracking-[0.2em] font-black mt-2">{title}</div>
     </div>
   );
 }
@@ -845,10 +942,7 @@ function TabButton({ active, onClick, children }) {
   return (
     <button
       onClick={onClick}
-      className={`flex-1 py-2.5 px-4 text-[11px] md:text-sm font-bold rounded-lg transition-all whitespace-nowrap tracking-wide ${active
-        ? 'bg-[#1a1a26] text-white shadow-md border border-white/10'
-        : 'text-gray-500 hover:text-gray-300 hover:bg-white/5 border border-transparent'
-        }`}
+      className={`profile-v2-tab-btn ${active ? 'active' : ''}`}
     >
       {children}
     </button>

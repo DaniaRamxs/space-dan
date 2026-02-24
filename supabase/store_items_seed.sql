@@ -84,20 +84,29 @@ VALUES
  '{"vars": {"--accent": "#ff6b35", "--accent2": "#ff0090"}}', 54),
 
 -- ── BANNERS (nuevos) ─────────────────────────────────────────
-('banner_galaxy',  'banner', 'Galaxia',      'Fondo con gradiente cosmos profundo',   150, 'rare',      '🌌',
- '{"gradient": ["#0d0221","#190b3d","#4a1a6e"]}', 60),
+('banner_galaxy',  'banner', 'Galaxia',      'Fondo con gradiente cosmos profundo y estrellas',   150, 'rare',      '🌌',
+ '{"gradient": ["#0d0221","#190b3d","#4a1a6e"], "fx": "stars"}', 60),
+
+('banner_cyber',   'banner', 'Cyber',        'Gradiente cian y magenta eléctrico',    120, 'rare',      '🖼️',
+ '{"gradient": ["#00e5ff","#ff00ff"]}', 61),
+
+('banner_nebula',  'banner', 'Nebulosa',     'Profundo púrpura cósmico',              150, 'rare',      '🌌',
+ '{"gradient": ["#4c1d95","#1e1b4b"]}', 62),
+
+('banner_gold',    'banner', 'Áureo',        'Elegancia en dorado y ámbar',           200, 'epic',      '✨',
+ '{"gradient": ["#f59e0b","#78350f"]}', 63),
 
 ('banner_sunset',  'banner', 'Atardecer',    'Gradiente naranja-rosa cálido',         150, 'rare',      '🌅',
- '{"gradient": ["#f5a623","#f0588b"]}', 61),
+ '{"gradient": ["#f5a623","#f0588b"]}', 64),
 
 ('banner_matrix',  'banner', 'Matrix',       'Fondo oscuro con lluvia de código',     200, 'epic',      '💻',
- '{"gradient": ["#001a00","#003300"], "fx": "matrix"}', 62),
+ '{"gradient": ["#001a00","#003300"], "fx": "matrix"}', 65),
 
 ('banner_aurora',  'banner', 'Aurora',       'Efecto aurora boreal animado',          300, 'legendary', '✨',
- '{"gradient": ["#00c9ff","#92fe9d","#f7971e"], "animated": true}', 63),
+ '{"gradient": ["#00c9ff","#92fe9d","#f7971e"], "animated": true}', 66),
 
 ('banner_retro',   'banner', 'Retro Pixel',  'Pixel art 8-bit nostálgico',            180, 'epic',      '👾',
- '{"gradient": ["#000033","#1a0033"], "fx": "scanlines"}', 64),
+ '{"gradient": ["#000033","#1a0033"], "fx": "scanlines"}', 67),
 
 -- ── FRAMES / MARCOS (nuevos) ────────────────────────────────
 ('frame_stars',    'frame', 'Marco Estelar',   'Estrellas doradas animadas',      100, 'rare',   '⭐',

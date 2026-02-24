@@ -56,7 +56,8 @@ const bulletinPosts = [
   { id: 52, date: "2026-02-24", title: "Estadísticas de la Cabina", text: "La cabina espacial ahora cuenta con un gráfico detallado mostrando cuántos pomodoros has completado los últimos 7 días.", tags: ["update", "productividad"] },
   { id: 53, date: "2026-02-24", title: "Motor Competitivo Estacional", text: "¡Estrenamos temporadas de 21 días! Gana monedas en juegos y cabina para subir en el ranking. Incluye multiplicadores nocturnos, de fin de semana y rush de fase final.", tags: ["update", "gamificación"] },
   { id: 54, date: "2026-02-24", title: "Visualizador de Temporada", text: "Nuevo widget en el leaderboard que muestra tu posición actual, cuenta regresiva, boosts activos y distancia al siguiente nivel competitivo.", tags: ["diseño", "update"] },
-  { id: 55, date: "2026-02-24", title: "HoloCard 2.0", text: "El visualizador de perfiles ahora muestra tanto tus monedas globales como tu balance de la temporada actual. Rivalidad estelar garantizada.", tags: ["update", "diseño"] },
+  { id: 56, date: "2026-02-24", title: "Optimización Mobile: Juegos", text: "Refactorización completa del motor de escalado en el Games Hub. Los juegos ahora se adaptan dinámicamente al ancho de cualquier pantalla sin cortarse.", tags: ["mobile", "update"] },
+  { id: 57, date: "2026-02-24", title: "Dashboard Piloto Renovado", text: "El estatus de piloto ahora incluye rangos evolutivos, tracker de gap competitivo y barra de progreso real para el Daily Cap de Dancoins.", tags: ["update", "diseño"] },
 ];
 
 const PAGE_SIZE = 8;

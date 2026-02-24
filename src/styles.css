@@ -5867,156 +5867,21 @@ textarea,
 }
 
 /* ── Achievements Page ─────────────────────────────────────────── */
-.achPage {
-  max-width: var(--content-max);
-  margin: 0 auto;
-  padding: 0 4px;
+@keyframes achCardFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.95);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
-.achHeader {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 12px;
-  margin-bottom: 16px;
-}
-
-.achTitle {
-  font-size: 22px;
-  font-weight: 700;
-  color: var(--accent);
-  margin: 0;
-  text-shadow: 0 0 12px var(--accent-glow);
-}
-
-.achStats {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.achStatBadge {
-  padding: 4px 10px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  font-size: 12px;
-  color: var(--text-muted);
-  background: var(--card);
-}
-
-.achStatBadge.coins {
-  border-color: var(--accent);
-  color: var(--accent);
-}
-
-.achProgressWrap {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 24px;
-}
-
-.achProgress {
-  flex: 1;
-  height: 8px;
-  background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  overflow: hidden;
-}
-
-.achProgressBar {
-  height: 100%;
-  background: linear-gradient(90deg, var(--accent), var(--cyan));
-  border-radius: 4px;
-  transition: width 0.6s ease;
-}
-
-.achProgressLabel {
-  font-size: 11px;
-  color: var(--text-muted);
-  min-width: 30px;
-  text-align: right;
-}
-
-.achGrid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-  gap: 12px;
-  margin-bottom: 24px;
-}
-
-.achCard {
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  padding: 14px;
-  background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  position: relative;
-  transition: border-color 0.2s, box-shadow 0.2s;
-}
-
-.achCard.unlocked {
-  border-color: rgba(255, 110, 180, 0.4);
-  box-shadow: 0 0 12px var(--accent-dim);
-}
-
-.achCard.locked {
-  opacity: 0.55;
-  filter: grayscale(60%);
-}
-
-.achCardIcon {
-  font-size: 28px;
-  flex-shrink: 0;
-}
-
-.achCardBody {
-  flex: 1;
-  min-width: 0;
-}
-
-.achCardTitle {
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--text);
-  margin-bottom: 3px;
-}
-
-.achCardDesc {
-  font-size: 11px;
-  color: var(--text-muted);
-  line-height: 1.4;
-}
-
-.achCardCoins {
-  font-size: 11px;
-  color: #ffd700;
-  margin-top: 4px;
-}
-
-.achCardCoins.dimmed {
-  color: var(--text-muted);
-}
-
-.achCardCheck {
-  position: absolute;
-  top: 8px;
-  right: 10px;
-  color: var(--accent);
-  font-size: 14px;
-  font-weight: 700;
-}
-
-.achFooter {
-  font-size: 12px;
-  color: var(--text-muted);
-  text-align: center;
-  padding: 12px 0;
-  border-top: 1px solid var(--border);
+.ach-card-v2 {
+  animation: achCardFadeIn 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+  opacity: 0;
 }
 
 .achFooter strong {
@@ -6370,34 +6235,7 @@ textarea,
 }
 
 /* ── Game scaler (mobile responsive) ──────────────────────────── */
-.gameScale {
-  transform-origin: top center;
-  display: flex;
-  justify-content: center;
-  width: 100%;
-  max-width: 100%;
-}
-
-@media (max-width: 430px) {
-  .gameScale>div {
-    transform: scale(0.88);
-    transform-origin: top center;
-  }
-}
-
-@media (max-width: 370px) {
-  .gameScale>div {
-    transform: scale(0.78);
-    transform-origin: top center;
-  }
-}
-
-@media (max-width: 320px) {
-  .gameScale>div {
-    transform: scale(0.68);
-    transform-origin: top center;
-  }
-}
+/* Consolidated with main definition below */
 
 /* ── OS Arcade Window ──────────────────────────────────────────── */
 .osGamesWindow {
@@ -7926,22 +7764,38 @@ textarea,
   justify-content: center;
   align-items: center;
   width: 100%;
-  max-width: 500px;
-  aspect-ratio: 1 / 1;
-  margin: 0 auto 30px;
+  max-width: 100%;
+  margin: 0 auto 20px;
   position: relative;
-  background: rgba(0, 0, 0, 0.3);
-  border-radius: 24px;
-  border: 2px solid rgba(255, 255, 255, 0.05);
+  background: rgba(0, 0, 0, 0.4);
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
   overflow: hidden;
-  box-shadow: inset 0 0 30px rgba(0, 0, 0, 0.5);
+  /* Changed to hidden to clip games properly */
+  box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.6);
+  min-height: 320px;
 }
 
 .gameScale>* {
-  width: 100% !important;
-  height: 100% !important;
-  max-width: none !important;
-  max-height: none !important;
+  max-width: 100% !important;
+  max-height: 100% !important;
+  object-fit: contain;
+  transition: transform 0.3s ease;
+}
+
+/* Auto-scale for very small screens */
+@media (max-width: 480px) {
+  .gameScale {
+    min-height: auto;
+    aspect-ratio: auto;
+    border-radius: 12px;
+  }
+
+  .gameScale>div,
+  .gameScale>canvas {
+    transform: scale(calc(var(--game-scale, 1)));
+    transform-origin: center center;
+  }
 }
 
 .gameCloseBtn {
@@ -8126,11 +7980,6 @@ button,
     display: none;
   }
 
-  /* Games */
-  .gameScale {
-    max-width: 100%;
-    border-radius: 12px;
-  }
 
   .gameOverlayContent {
     padding: 12px;
@@ -8259,10 +8108,6 @@ button,
     height: 40px;
   }
 
-  /* Games */
-  .gameScale {
-    max-width: min(100%, 420px);
-  }
 
   /* Topbar sticky con blur */
   .gardenTopbar {
@@ -8525,10 +8370,6 @@ button,
     max-width: calc(100vw - 24px);
   }
 
-  /* Games */
-  .gameScale {
-    max-width: min(100%, 500px);
-  }
 
   /* HoloCard */
   .holoCard {
@@ -8676,4 +8517,534 @@ button,
   .cursorTrail {
     animation: none !important;
   }
+
+}
+
+/* ──── Marco Animado Evolutivo (Vinculos) ──── */
+.marco-evolutivo-base {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  z-index: 1;
+}
+
+@media (max-width: 600px) {
+  .marco-evolutivo-base {
+    width: 85px;
+    height: 85px;
+  }
+}
+
+.marco-evolutivo-base::before,
+.marco-evolutivo-base::after {
+  content: '';
+  position: absolute;
+  border-radius: 50%;
+  z-index: -1;
+}
+
+/* Nivel 1: Neón Cian Vibrante */
+.marco-evolutivo-lv1 {
+  border: 4px solid #06b6d4;
+  box-shadow: 0 0 20px #06b6d4, inset 0 0 15px #06b6d4;
+  animation: neonPulseCian 1.5s infinite alternate;
+}
+
+/* Nivel 2: Aura Estelar Púrpura */
+.marco-evolutivo-lv2 {
+  border: 4px solid #8b5cf6;
+  box-shadow: 0 0 25px #8b5cf6, 0 0 50px rgba(139, 92, 246, 0.5);
+}
+
+.marco-evolutivo-lv2::after {
+  inset: -6px;
+  border: 2px solid #a78bfa;
+  animation: auraExpand 2s infinite ease-out;
+}
+
+/* Nivel 3: Nexo de Cristal (Arcoíris Rotativo) */
+.marco-evolutivo-lv3::before {
+  inset: -5px;
+  background: conic-gradient(from var(--rot-deg, 0deg), #06b6d4, #ec4899, #8b5cf6, #06b6d4);
+  animation: rotateGrad 2.5s linear infinite;
+}
+
+.marco-evolutivo-lv3 {
+  background: #000;
+  box-shadow: 0 0 30px rgba(6, 182, 212, 0.6), 0 0 60px rgba(236, 72, 153, 0.4);
+}
+
+/* Nivel 4: Supernova Ígnea (Efecto de Fuego) */
+.marco-evolutivo-lv4::before {
+  inset: -7px;
+  background: conic-gradient(#f43f5e, #fbbf24, #f43f5e, #8b5cf6, #f43f5e);
+  animation: spinSupernova 1.2s linear infinite;
+  filter: blur(3px);
+}
+
+.marco-evolutivo-lv4::after {
+  inset: -10px;
+  background: radial-gradient(circle, transparent 50%, #f43f5e 100%);
+  animation: flamePulse 1s infinite alternate;
+}
+
+.marco-evolutivo-lv4 {
+  background: #000;
+  box-shadow: 0 0 40px #f43f5e, 0 0 80px rgba(244, 63, 94, 0.5);
+}
+
+/* Nivel 5: Singularidad del Vacío (Efecto Agujero Negro) */
+.marco-evolutivo-lv5 {
+  background: #000;
+}
+
+.marco-evolutivo-lv5::before {
+  inset: -12px;
+  background: conic-gradient(from 0deg, #ff007f 0%, #06b6d4 25%, #8b5cf6 50%, #ff007f 75%, #06b6d4 100%);
+  animation: spinStriking 0.8s linear infinite;
+  filter: blur(5px) brightness(2);
+}
+
+.marco-evolutivo-lv5::after {
+  inset: -15px;
+  border: 3px double rgba(255, 255, 255, 0.8);
+  animation: eventHorizon 2s infinite ease-in-out;
+  box-shadow: 0 0 40px #fff, 0 0 80px rgba(6, 182, 212, 0.8);
+}
+
+.marco-evolutivo-lv5-img-wrapper {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  overflow: hidden;
+  position: relative;
+  z-index: 2;
+  border: 3px solid #000;
+}
+
+/* Keyframes Refinados */
+@keyframes neonPulseCian {
+  from {
+    transform: scale(0.98);
+    box-shadow: 0 0 15px #06b6d4, inset 0 0 10px #06b6d4;
+  }
+
+  to {
+    transform: scale(1.02);
+    box-shadow: 0 0 35px #06b6d4, 0 0 60px rgba(6, 182, 212, 0.5), inset 0 0 20px #06b6d4;
+  }
+}
+
+@keyframes auraExpand {
+  0% {
+    transform: scale(1);
+    opacity: 0.8;
+  }
+
+  100% {
+    transform: scale(1.2);
+    opacity: 0;
+  }
+}
+
+@keyframes flamePulse {
+  from {
+    filter: blur(3px) brightness(1);
+  }
+
+  to {
+    filter: blur(6px) brightness(1.8);
+  }
+}
+
+@keyframes eventHorizon {
+
+  0%,
+  100% {
+    transform: scale(1) rotate(0deg);
+    opacity: 0.3;
+  }
+
+  50% {
+    transform: scale(1.1) rotate(180deg);
+    opacity: 0.8;
+  }
+}
+
+@keyframes spinSupernova {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes spinStriking {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes rotateGrad {
+  from {
+    --rot-deg: 0deg;
+  }
+
+  to {
+    --rot-deg: 360deg;
+  }
+}
+
+@property --rot-deg {
+  syntax: '<angle>';
+  initial-value: 0deg;
+  inherits: false;
+}
+
+/* Shop Lock State */
+.frame-partnership-lock {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(6px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: #ff4d4d;
+  font-size: 0.85rem;
+  font-weight: bold;
+  z-index: 20;
+  border-radius: 16px;
+  border: 2px solid rgba(255, 77, 77, 0.4);
+  text-align: center;
+  padding: 10px;
+}
+
+
+/* Mejoras Mobile-First para VinculosPage */
+.vinculos-mobile-glass {
+  background: rgba(10, 10, 15, 0.75);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.vinculos-action-btn:active {
+  transform: scale(0.95);
+}
+
+/* ── Shop v2.0 Premium Styles ─────────────────────────────────── */
+.shopCard-v2 {
+  isolation: isolate;
+  background-image: radial-gradient(circle at top right, rgba(236, 72, 153, 0.05), transparent 40%),
+    radial-gradient(circle at bottom left, rgba(6, 182, 212, 0.05), transparent 40%);
+}
+
+.shopCard-v2.equipped {
+  animation: cardEquippedPulse 3s ease-in-out infinite;
+}
+
+@keyframes cardEquippedPulse {
+
+  0%,
+  100% {
+    box-shadow: 0 0 15px rgba(236, 72, 153, 0.1);
+  }
+
+  50% {
+    box-shadow: 0 0 25px rgba(236, 72, 153, 0.25);
+  }
+}
+
+/* Rarity Glows */
+.rarity-common {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.rarity-rare {
+  background: linear-gradient(135deg, rgba(6, 182, 212, 0.2), transparent);
+}
+
+.rarity-epic {
+  background: linear-gradient(135deg, rgba(168, 85, 247, 0.2), transparent);
+}
+
+.rarity-legendary {
+  background: linear-gradient(135deg, rgba(234, 179, 8, 0.2), transparent);
+}
+
+.group:hover .rarity-rare {
+  box-shadow: 0 0 30px rgba(6, 182, 212, 0.4);
+  opacity: 0.15 !important;
+}
+
+.group:hover .rarity-epic {
+  box-shadow: 0 0 30px rgba(168, 85, 247, 0.4);
+  opacity: 0.15 !important;
+}
+
+.group:hover .rarity-legendary {
+  box-shadow: 0 0 40px rgba(234, 179, 8, 0.4);
+  opacity: 0.2 !important;
+}
+
+/* Custom Scrollbar for Categories */
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.pixelated {
+  image-rendering: pixelated;
+}
+
+/* ── Shop v2.5 Cinematic Effects ──────────────────────────────── */
+.shop-hero-mesh {
+  background-image:
+    radial-gradient(at 0% 0%, hsla(253, 16%, 7%, 1) 0, transparent 50%),
+    radial-gradient(at 50% 0%, hsla(225, 39%, 30%, 1) 0, transparent 50%),
+    radial-gradient(at 100% 0%, hsla(339, 49%, 30%, 1) 0, transparent 50%);
+  filter: contrast(120%) brightness(120%);
+  animation: meshMove 10s ease infinite alternate;
+}
+
+@keyframes meshMove {
+  0% {
+    transform: scale(1) translate(0, 0);
+  }
+
+  100% {
+    transform: scale(1.1) translate(2%, 2%);
+  }
+}
+
+.stars-float {
+  background-image:
+    radial-gradient(1px 1px at 20px 30px, #eee, rgba(0, 0, 0, 0)),
+    radial-gradient(1px 1px at 40px 70px, #fff, rgba(0, 0, 0, 0)),
+    radial-gradient(2px 2px at 50px 160px, #ddd, rgba(0, 0, 0, 0)),
+    radial-gradient(2px 2px at 90px 40px, #fff, rgba(0, 0, 0, 0)),
+    radial-gradient(1px 1px at 130px 80px, #eee, rgba(0, 0, 0, 0)),
+    radial-gradient(2px 2px at 160px 120px, #ddd, rgba(0, 0, 0, 0));
+  background-repeat: repeat;
+  background-size: 200px 200px;
+  animation: starsScroll 60s linear infinite;
+}
+
+@keyframes starsScroll {
+  from {
+    background-position: 0 0;
+  }
+
+  to {
+    background-position: 1000px 1000px;
+  }
+}
+
+/* 3D Simulation for Cards */
+.shopCard-v2 {
+  transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275),
+    box-shadow 0.4s ease,
+    background-color 0.4s ease;
+  transform-style: preserve-3d;
+  perspective: 1000px;
+}
+
+.shopCard-v2:hover {
+  transform: translateY(-8px) rotateX(4deg) rotateY(-2deg);
+}
+
+/* Legendary Holographic Shader */
+.rarity-legendary {
+  background: linear-gradient(135deg,
+      rgba(234, 179, 8, 0.4) 0%,
+      rgba(255, 255, 255, 0.2) 20%,
+      rgba(236, 72, 153, 0.4) 40%,
+      rgba(6, 182, 212, 0.4) 60%,
+      rgba(234, 179, 8, 0.4) 80%,
+      rgba(234, 179, 8, 0.4) 100%);
+  background-size: 400% 400%;
+  animation: holoFlow 8s linear infinite;
+  opacity: 0.1;
+}
+
+@keyframes holoFlow {
+  0% {
+    background-position: 0% 50%;
+  }
+
+  50% {
+    background-position: 100% 50%;
+  }
+
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.shopCard-v2.equipped {
+  border-color: rgba(236, 72, 153, 0.8);
+  box-shadow: 0 0 30px rgba(236, 72, 153, 0.2), inset 0 0 20px rgba(236, 72, 153, 0.05);
+}
+
+.shopCard-v2.owned:not(.equipped) {
+  border-color: rgba(6, 182, 212, 0.3);
+}
+
+/* ── Profile v2.0 Premium Styles ──────────────────────────────── */
+.profile-v2-mesh {
+  background-image:
+    radial-gradient(at 0% 100%, hsla(253, 16%, 7%, 1) 0, transparent 50%),
+    radial-gradient(at 100% 0%, hsla(225, 39%, 30%, 1) 0, transparent 50%),
+    radial-gradient(at 100% 100%, hsla(339, 49%, 30%, 1) 0, transparent 50%);
+  filter: contrast(120%) brightness(150%);
+  position: absolute;
+  inset: 0;
+  opacity: 0.4;
+}
+
+.profile-v2-hero {
+  isolation: isolate;
+  background: #080810;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  box-shadow: 0 40px 100px rgba(0, 0, 0, 0.8);
+}
+
+.profile-v2-banner-overlay {
+  position: absolute;
+  inset: 0;
+  opacity: 0.15;
+  filter: blur(80px);
+  pointer-events: none;
+}
+
+.profile-v2-xp-bar {
+  height: 10px;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 99px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  overflow: hidden;
+  position: relative;
+}
+
+.profile-v2-xp-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #ec4899, #8b5cf6, #06b6d4);
+  background-size: 200% 100%;
+  animation: bgPan 4s linear infinite;
+  box-shadow: 0 0 15px rgba(139, 92, 246, 0.5);
+}
+
+@keyframes bgPan {
+  0% {
+    background-position: 0% 50%;
+  }
+
+  100% {
+    background-position: 200% 50%;
+  }
+}
+
+.profile-v2-stat-card {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 1.5rem;
+  padding: 1rem;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  backdrop-filter: blur(10px);
+}
+
+.profile-v2-stat-card:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.1);
+  transform: translateY(-4px);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+}
+
+.profile-v2-tab-btn {
+  position: relative;
+  padding: 0.75rem 1.5rem;
+  font-size: 0.75rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: rgba(255, 255, 255, 0.4);
+  transition: all 0.3s;
+}
+
+.profile-v2-tab-btn.active {
+  color: #fff;
+}
+
+.profile-v2-tab-btn.active::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 20%;
+  right: 20%;
+  height: 2px;
+  background: #ec4899;
+  box-shadow: 0 0 10px #ec4899;
+  border-radius: 99px;
+}
+
+.profile-v2-section {
+  background: rgba(255, 255, 255, 0.015);
+  border: 1px solid rgba(255, 255, 255, 0.03);
+  border-radius: 2rem;
+  padding: 2rem;
+}
+
+.glass-blue {
+  background: rgba(6, 182, 212, 0.03);
+  border-color: rgba(6, 182, 212, 0.15);
+}
+
+.profile-v2-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0 8px;
+}
+
+.profile-v2-table th {
+  padding: 1rem;
+  text-align: left;
+  font-size: 9px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  color: rgba(255, 255, 255, 0.2);
+}
+
+.profile-v2-table td {
+  padding: 1.25rem 1rem;
+  background: rgba(255, 255, 255, 0.02);
+  border-top: 1px solid rgba(255, 255, 255, 0.03);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+}
+
+.profile-v2-table tr td:first-child {
+  border-left: 1px solid rgba(255, 255, 255, 0.03);
+  border-radius: 1rem 0 0 1rem;
+}
+
+.profile-v2-table tr td:last-child {
+  border-right: 1px solid rgba(255, 255, 255, 0.03);
+  border-radius: 0 1rem 1rem 0;
 }

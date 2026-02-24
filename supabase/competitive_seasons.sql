@@ -229,6 +229,8 @@ DECLARE
   v_season record;
   v_rank int;
   v_balance int;
+  v_daily_earnings int;
+  v_last_date date;
   v_next_balance int;
   v_gap int := 0;
   
@@ -236,24 +238,35 @@ DECLARE
   v_is_night boolean := false;
   v_is_weekend boolean := false;
   v_local_time time := (v_now AT TIME ZONE 'America/Lima')::time;
+  v_local_date date := (v_now AT TIME ZONE 'America/Lima')::date;
   v_local_dow int := EXTRACT(ISODOW FROM (v_now AT TIME ZONE 'America/Lima'));
 BEGIN
   SELECT * INTO v_season FROM public.competitive_seasons WHERE is_active = true LIMIT 1;
   IF NOT FOUND THEN RETURN null; END IF;
 
-  SELECT season_balance INTO v_balance FROM public.profiles WHERE id = p_user_id;
+  SELECT season_balance, daily_season_earnings, last_earning_date 
+  INTO v_balance, v_daily_earnings, v_last_date 
+  FROM public.profiles WHERE id = p_user_id;
   
+  v_balance := COALESCE(v_balance, 0);
+  v_daily_earnings := COALESCE(v_daily_earnings, 0);
+  v_last_date := COALESCE(v_last_date, v_local_date);
+
+  -- Reset daily earnings if date changed
+  IF v_last_date < v_local_date THEN
+    v_daily_earnings := 0;
+  END IF;
+
   -- Compute Rank
   SELECT count(*) + 1 INTO v_rank 
   FROM public.profiles WHERE season_balance > v_balance;
 
   -- Gap para pasar al siguiente (competitividad visual)
   IF v_rank > 1 THEN
-    SELECT season_balance INTO v_next_balance 
+    SELECT (season_balance - v_balance) INTO v_gap 
     FROM public.profiles 
     WHERE season_balance > v_balance 
     ORDER BY season_balance ASC LIMIT 1;
-    v_gap := v_next_balance - v_balance;
   END IF;
 
   -- Detect boosts for UI banners
@@ -267,9 +280,11 @@ BEGIN
   RETURN jsonb_build_object(
     'number', v_season.number,
     'end_at', v_season.end_at,
-    'my_position', v_rank,
+    'rank', v_rank,
     'my_balance', v_balance,
-    'gap_to_next', v_gap,
+    'daily_reward_earned', v_daily_earnings,
+    'daily_reward_cap', 3000,
+    'gap_to_next', COALESCE(v_gap, 0),
     'in_top_zone', (v_rank <= 3),
     'is_final_phase', (v_season.end_at - now() <= interval '3 days'),
     'active_boosts', jsonb_build_object(

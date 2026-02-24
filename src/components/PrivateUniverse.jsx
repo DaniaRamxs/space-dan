@@ -296,22 +296,22 @@ export const PrivateUniverse = ({ partnership: initialPartnership, onUpdate }) =
     return (
         <>
             <motion.div
-                className="mt-3 flex items-center w-max cursor-pointer text-sm font-light text-neutral-400 hover:text-neutral-200 transition-colors duration-200 ease-out p-1 py-0.5 rounded-sm select-none"
+                className="mt-3 flex items-center w-max cursor-pointer text-sm font-light text-neutral-400 hover:text-neutral-200 transition-colors duration-200 ease-out p-2 px-3 rounded-xl select-none relative z-50 bg-white/0 active:bg-white/5"
                 onClick={handleOpen}
-                whileHover={{ scale: 1.01 }}
-                whileTap={{ scale: 0.99 }}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.95 }}
             >
                 <LinkIcon />
-                <div className="flex flex-col">
-                    <span>
+                <div className="flex flex-col text-left">
+                    <span className="leading-tight">
                         {partnership.status === 'eclipse' ? (
-                            <span className="text-neutral-500 italic">Vínculo en eclipse con </span>
+                            <span className="text-rose-500 italic font-medium">Vínculo en eclipse con </span>
                         ) : (
-                            <span>Vinculado con </span>
+                            <span className="font-medium">Vinculado con </span>
                         )}
-                        <span className="font-normal hover:underline" onClick={(e) => { e.stopPropagation(); navigate(`/profile/${partnership.partner_id}`); }}>@{partnership.partner_username}</span>
+                        <span className="font-black text-white hover:underline decoration-purple-500" onClick={(e) => { e.stopPropagation(); navigate(`/profile/${partnership.partner_id}`); }}>@{partnership.partner_username}</span>
                     </span>
-                    <span className="text-[10px] opacity-60">Desde {formattedDate}</span>
+                    <span className="text-[10px] opacity-40 font-bold tracking-widest uppercase mt-0.5">Desde {formattedDate}</span>
                 </div>
             </motion.div>
 
@@ -344,6 +344,12 @@ export const PrivateUniverse = ({ partnership: initialPartnership, onUpdate }) =
                                     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 2 }} className="flex flex-col items-center">
                                         <div className="w-1 h-1 bg-white rounded-full opacity-20 mb-6 animate-pulse" />
                                         <p className="text-neutral-200 text-base tracking-[0.3em] font-extralight uppercase">Nuestro Universo</p>
+                                        <button
+                                            onClick={() => navigate(`/profile/${partnership.partner_id}`)}
+                                            className="mt-2 text-[9px] font-black uppercase tracking-[0.4em] text-white/20 hover:text-purple-400 transition-colors"
+                                        >
+                                            Visitar Perfil de @{partnership.partner_username} →
+                                        </button>
 
                                         {/* Match Avatars */}
                                         <motion.div
@@ -353,16 +359,14 @@ export const PrivateUniverse = ({ partnership: initialPartnership, onUpdate }) =
                                             className="flex items-center gap-0 mt-8 relative"
                                         >
                                             {/* My Avatar */}
-                                            <div className="relative z-10" style={{
-                                                width: 72, height: 72, borderRadius: '50%',
-                                                border: '2px solid rgba(6,182,212,0.5)',
-                                                boxShadow: '0 0 20px rgba(6,182,212,0.3)',
-                                                overflow: 'hidden', background: '#0a0a0f',
-                                            }}>
-                                                <img
-                                                    src={myProfile?.avatar_url || '/default_user_blank.png'}
-                                                    alt="Tú" className="w-full h-full object-cover"
-                                                />
+                                            <div className={`relative z-10 marco-evolutivo-base marco-evolutivo-lv${Math.min(5, Math.max(1, partnership.evolution_level || 1))}`}>
+                                                {partnership.evolution_level >= 5 ? (
+                                                    <div className="marco-evolutivo-lv5-img-wrapper">
+                                                        <img src={myProfile?.avatar_url || '/default_user_blank.png'} alt="Tú" className="w-full h-full object-cover" />
+                                                    </div>
+                                                ) : (
+                                                    <img src={myProfile?.avatar_url || '/default_user_blank.png'} alt="Tú" className="w-full h-full object-cover" />
+                                                )}
                                             </div>
 
                                             {/* Heart */}
@@ -393,17 +397,14 @@ export const PrivateUniverse = ({ partnership: initialPartnership, onUpdate }) =
                                             </motion.div>
 
                                             {/* Partner Avatar */}
-                                            <div className="relative z-10" style={{
-                                                width: 72, height: 72, borderRadius: '50%',
-                                                border: '2px solid rgba(139,92,246,0.5)',
-                                                boxShadow: '0 0 20px rgba(139,92,246,0.3)',
-                                                overflow: 'hidden', background: '#0a0a0f',
-                                            }}>
-                                                <img
-                                                    src={partnership.partner_avatar || '/default_user_blank.png'}
-                                                    alt={partnership.partner_username}
-                                                    className="w-full h-full object-cover"
-                                                />
+                                            <div className={`relative z-10 marco-evolutivo-base marco-evolutivo-lv${Math.min(5, Math.max(1, partnership.evolution_level || 1))}`}>
+                                                {partnership.evolution_level >= 5 ? (
+                                                    <div className="marco-evolutivo-lv5-img-wrapper">
+                                                        <img src={partnership.partner_avatar || '/default_user_blank.png'} alt={partnership.partner_username} className="w-full h-full object-cover" />
+                                                    </div>
+                                                ) : (
+                                                    <img src={partnership.partner_avatar || '/default_user_blank.png'} alt={partnership.partner_username} className="w-full h-full object-cover" />
+                                                )}
                                             </div>
                                         </motion.div>
 
