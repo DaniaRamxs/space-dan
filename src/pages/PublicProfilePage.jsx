@@ -246,7 +246,7 @@ export default function PublicProfilePage() {
           </p>
 
           <div className="flex flex-col items-center gap-2 mb-6 max-w-md mx-auto">
-            <p className={`text-sm tracking-wide flex-1 text-center ${profile.bio ? 'text-gray-300' : 'text-gray-500 italic'}`}>"{profile.bio || 'Sin biografía estelar.'}"</p>
+            <p className={`text-sm tracking-wide flex-1 break-words overflow-hidden w-full text-center ${profile.bio ? 'text-gray-300' : 'text-gray-500 italic'}`}>"{profile.bio || 'Sin biografía estelar.'}"</p>
             {joinedYear && <span className="text-[10px] text-gray-600 uppercase tracking-widest mt-1 font-bold">Desde {joinedYear}</span>}
           </div>
 
