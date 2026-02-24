@@ -90,7 +90,7 @@ export default function GamesPage() {
       const { isHighScore, score } = e.detail || {};
       if (isHighScore) unlockAchievement('highscore');
 
-      const bonus = Math.min(20, Math.floor((score || 0) / 50));
+      const bonus = Math.min(20, Math.floor((score || 0) / 20));
       if (bonus > 0) {
         if (user) {
           const rewardMeta = await claimSeasonReward(bonus);
