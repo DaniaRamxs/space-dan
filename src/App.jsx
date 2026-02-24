@@ -13,6 +13,7 @@ import { AuthProvider, useAuthContext } from "./contexts/AuthContext";
 import { EconomyProvider, useEconomy } from "./contexts/EconomyContext";
 
 
+
 const PostsPage = lazy(() => import("./pages/PostsPage"));
 const CreatePostPage = lazy(() => import("./pages/CreatePostPage"));
 const PostPage = lazy(() => import("./pages/PostPage"));

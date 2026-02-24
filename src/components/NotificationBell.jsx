@@ -163,8 +163,9 @@ export default function NotificationBell() {
                             }}
                         >
                             <div style={{ fontSize: '1.2rem', marginTop: '2px' }}>
-                                {n.type === 'achievement' ? '🏆' : n.type === 'record' ? '🔥' : '⚙️'}
+                                {n.type === 'achievement' ? '🏆' : n.type === 'record' ? '🔥' : n.type === 'letter' ? '✉️' : n.type === 'room_invite' ? '🚪' : '⚙️'}
                             </div>
+
                             <div style={{ flex: 1 }}>
                                 <div style={{ color: n.is_read ? 'var(--text)' : '#fff', fontSize: '0.9rem', lineHeight: '1.4' }}>
                                     {n.message}
