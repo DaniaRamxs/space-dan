@@ -8,6 +8,8 @@ import Leaderboard from '../components/Leaderboard';
 import { ErrorBoundary } from '../components/ErrorBoundary';
 import { useSeason } from '../hooks/useSeason';
 import SeasonMiniBadge from '../components/SeasonMiniBadge';
+import { arcadeAudio } from '../utils/arcadeAudio';
+import { supabase } from '../supabaseClient';
 
 const TicTacToe = lazy(() => import('../components/TicTacToe'));
 const SnakeGame = lazy(() => import('../components/SnakeGame'));
@@ -83,18 +85,55 @@ export default function GamesPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterCat, setFilterCat] = useState('All');
   const [userStats, setUserStats] = useState([]);
+  const [soundOn, setSoundOn] = useState(true);
+  const [tickerItems, setTickerItems] = useState([
+    "Bienvenido al Games HUB", "Nuevos retos disponibles", "Cargando feeds de la comunidad..."
+  ]);
 
   const toastTimer = useRef(null);
   const openIdRef = useRef(null);
+
+  useEffect(() => { arcadeAudio.toggle(soundOn); }, [soundOn]);
 
   // Fetch individual game stats (levels)
   useEffect(() => {
     if (user) {
       import('../services/supabaseScores').then(m => {
-        m.getUserGameRanks(user.id).then(setUserStats);
+        m.getUserGameRanks(user.id).then(newStats => {
+          if (userStats.length > 0) {
+            newStats.forEach(ns => {
+              const old = userStats.find(o => o.game_id === ns.game_id);
+              if (old && ns.game_level > old.game_level) {
+                arcadeAudio.play('level-up');
+                showCoinToast(`🆙 NIVEL ${ns.game_level}!`);
+              }
+            });
+          }
+          setUserStats(newStats);
+        });
       });
     }
   }, [user, lbKey]);
+
+  // Fetch ticker items (simulated from DB)
+  useEffect(() => {
+    const fetchEvents = async () => {
+      // Latest high scores globally
+      const { data } = await supabase
+        .from('scores')
+        .select('game_id, score, profiles(username)')
+        .order('created_at', { ascending: false })
+        .limit(5);
+
+      if (data) {
+        const events = data.map(s => `🎰 ${s.profiles?.username || 'Piloto'} marcó ${s.score} en ${s.game_id.toUpperCase()}`);
+        setTickerItems(prev => [...events, ...prev].slice(0, 10));
+      }
+    };
+    fetchEvents();
+    const interval = setInterval(fetchEvents, 60000);
+    return () => clearInterval(interval);
+  }, []);
 
   // Featured Game (Random but stable for session)
   const featuredGame = useMemo(() => {
@@ -118,6 +157,7 @@ export default function GamesPage() {
 
   const showCoinToast = useCallback((msg) => {
     setCoinToast(msg);
+    arcadeAudio.play('coin');
     clearTimeout(toastTimer.current);
     toastTimer.current = setTimeout(() => setCoinToast(null), 2200);
   }, []);
@@ -146,7 +186,7 @@ export default function GamesPage() {
       if (user && gameId && score != null) {
         saveScore(user.id, gameId, score).then(() => {
           setLbKey(k => k + 1);
-          refreshSeason(); // Actualizar rank en el bar de stats
+          refreshSeason();
         });
       }
     };
@@ -155,6 +195,7 @@ export default function GamesPage() {
   }, [user, claimSeasonReward, showCoinToast, refreshSeason]);
 
   const handleToggle = (gameId) => {
+    arcadeAudio.play('select');
     setOpenId(gameId);
     if (gameId) {
       const isNew = markGamePlayed(gameId);
@@ -174,16 +215,22 @@ export default function GamesPage() {
   const activeGame = GAMES.find(g => g.id === openId);
   const GameComponent = activeGame?.component;
 
+  const getTierClass = (level) => {
+    if (level >= 50) return 'tier-mythic';
+    if (level >= 20) return 'tier-legendary';
+    return '';
+  };
+
   return (
-    <main className="card" style={{ paddingBottom: 60 }}>
+    <main className="card" style={{ paddingBottom: 100 }}>
       {/* HUD HEADER */}
       <div className="pageHeader" style={{ borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: 15, marginBottom: 20 }}>
         <div>
           <h1 style={{ letterSpacing: '4px', margin: 0, fontSize: '1.8rem' }}>GAMES<span style={{ color: 'var(--accent)' }}>.hub</span></h1>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 5 }}>
-            <span style={{ fontSize: '0.7rem', textTransform: 'uppercase', opacity: 0.5 }}>Sync Status:</span>
-            <span style={{ height: 6, width: 6, borderRadius: '50%', background: '#00ff00', boxShadow: '0 0 5px #00ff00' }} />
-            <span style={{ fontSize: '0.7rem', color: 'var(--accent)', fontWeight: 'bold' }}>ONLINE</span>
+            <span style={{ fontSize: '0.7rem', textTransform: 'uppercase', opacity: 0.5 }}>Arcade Status:</span>
+            <span style={{ height: 6, width: 6, borderRadius: '50%', background: '#00ff00', boxShadow: '0 0 8px #00ff00' }} />
+            <span style={{ fontSize: '0.7rem', color: '#00ff00', fontWeight: 'bold' }}>SYSTEM_NOMINAL</span>
           </div>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 5 }}>
@@ -192,72 +239,56 @@ export default function GamesPage() {
         </div>
       </div>
 
-      {/* MASTERY BAR */}
-      <div style={{ marginBottom: 25 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.65rem', fontWeight: '900', marginBottom: 5, textTransform: 'uppercase', opacity: 0.7 }}>
-          <span>Progreso de Maestría</span>
-          <span>{playedSet.size} / {GAMES.length} juegos</span>
-        </div>
-        <div style={{ height: 4, background: 'rgba(255,255,255,0.05)', borderRadius: 2, overflow: 'hidden' }}>
-          <motion.div
-            initial={{ width: 0 }}
-            animate={{ width: `${masteryProgress}%` }}
-            transition={{ duration: 1 }}
-            style={{ height: '100%', background: 'linear-gradient(90deg, var(--accent-dim), var(--accent))' }}
-          />
-        </div>
-      </div>
-
-      {/* HERO SECTION */}
-      {searchTerm === '' && filterCat === 'All' && (
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="gameHero"
-          style={{
-            background: 'linear-gradient(135deg, rgba(255,110,180,0.1) 0%, rgba(0,0,0,0.4) 100%)',
-            border: '1px solid rgba(255,110,180,0.2)',
-            borderRadius: '24px',
-            padding: '24px',
-            marginBottom: 30,
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 15,
-            position: 'relative',
-            overflow: 'hidden'
-          }}
-        >
-          <div style={{ position: 'absolute', top: -20, right: -20, fontSize: '8rem', opacity: 0.1, pointerEvents: 'none' }}>
-            {featuredGame.icon}
+      {/* BENTO DASHBOARD */}
+      <div className="bentoGrid">
+        <div className="bentoItem bentoLarge" style={{ background: 'linear-gradient(135deg, rgba(255,110,180,0.1), transparent)' }}>
+          <div style={{ position: 'absolute', top: 15, right: 15 }}>
+            <button
+              onClick={() => setSoundOn(!soundOn)}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.2rem', opacity: 0.6 }}
+            >
+              {soundOn ? '🔊' : '🔈'}
+            </button>
           </div>
-          <div style={{ position: 'relative', zIndex: 1 }}>
-            <span style={{ background: 'var(--accent)', color: '#fff', fontSize: '0.6rem', padding: '3px 10px', borderRadius: '20px', fontWeight: '900' }}>RECOMENDADO</span>
-            <h2 style={{ fontSize: '2rem', margin: '10px 0 5px 0', textTransform: 'uppercase' }}>{featuredGame.title}</h2>
-            <p style={{ fontSize: '0.85rem', opacity: 0.7, maxWidth: '70%', marginBottom: 20 }}>Domina las mecánicas y sube al top del leaderboard global.</p>
-            <div style={{ display: 'flex', gap: 10 }}>
-              <button
-                onClick={() => handleToggle(featuredGame.id)}
-                className="btn-glow"
-                style={{
-                  background: 'var(--accent)', color: '#fff', border: 'none', padding: '12px 25px', borderRadius: '12px',
-                  fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8
-                }}
-              >
-                JUGAR AHORA 🎮
-              </button>
-              <button
-                onClick={handleSurpriseMe}
-                style={{
-                  background: 'rgba(255,255,255,0.05)', color: '#fff', border: '1px solid rgba(255,255,255,0.1)',
-                  padding: '12px 20px', borderRadius: '12px', fontWeight: 'bold', cursor: 'pointer'
-                }}
-              >
-                🎲 SORPRÉNDEME
-              </button>
+          <span style={{ fontSize: '0.6rem', fontWeight: 900, opacity: 0.5 }}>STATUS_PILOTO</span>
+          <h3 style={{ margin: '5px 0 15px 0', fontSize: '1.2rem' }}>{user?.user_metadata?.username || 'PILOTO_INVITADO'}</h3>
+          <div style={{ display: 'flex', gap: 20 }}>
+            <div>
+              <div style={{ opacity: 0.5, fontSize: '0.5rem' }}>MAESTRÍA</div>
+              <div style={{ fontSize: '1.2rem', fontWeight: 900 }}>{Math.floor(masteryProgress)}%</div>
+            </div>
+            <div>
+              <div style={{ opacity: 0.5, fontSize: '0.5rem' }}>RANK_TEMP</div>
+              <div style={{ fontSize: '1.2rem', fontWeight: 900, color: 'var(--accent)' }}>#{season?.rank || '—'}</div>
             </div>
           </div>
-        </motion.div>
-      )}
+          <div style={{ marginTop: 15, height: 4, background: 'rgba(255,255,255,0.05)', borderRadius: 2 }}>
+            <motion.div initial={{ width: 0 }} animate={{ width: `${masteryProgress}%` }} style={{ height: '100%', background: 'var(--accent)', borderRadius: 2 }} />
+          </div>
+        </div>
+
+        <div className="bentoItem" onClick={handleSurpriseMe} style={{ cursor: 'pointer', border: '1px solid rgba(255,215,0,0.2)' }}>
+          <span style={{ fontSize: '1.5rem', marginBottom: 5 }}>🎲</span>
+          <span style={{ fontSize: '0.7rem', fontWeight: 'bold' }}>QUICK_PLAY</span>
+          <span style={{ fontSize: '0.5rem', opacity: 0.5 }}>Lanzar juego aleatorio</span>
+        </div>
+
+        <div className="bentoItem" style={{ border: '1px solid rgba(0,229,255,0.2)' }}>
+          <span style={{ fontSize: '1.5rem', marginBottom: 5 }}>⏳</span>
+          <span style={{ fontSize: '0.7rem', fontWeight: 'bold' }}>DAILY_CAP</span>
+          <span style={{ fontSize: '0.7rem', color: '#00e5ff' }}>◈ {season?.daily_reward_earned || 0}/{season?.daily_reward_cap || 0}</span>
+        </div>
+
+        <div className="bentoItem bentoWide" style={{ background: 'rgba(255,110,180,0.05)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div>
+              <span style={{ fontSize: '0.6rem', opacity: 0.5 }}>EVENTO_ACTIVO</span>
+              <div style={{ fontWeight: 900, color: '#ffea00' }}>MULTIPLIER x{season?.boost_multiplier || 1.0}</div>
+            </div>
+            <div style={{ fontSize: '1.5rem' }}>🔥</div>
+          </div>
+        </div>
+      </div>
 
       {/* FILTERS */}
       <div style={{ marginBottom: 25 }}>
@@ -268,7 +299,10 @@ export default function GamesPage() {
             placeholder="Buscar por nombre..."
             className="searchBar"
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            onChange={(e) => {
+              setSearchTerm(e.target.value);
+              arcadeAudio.play('blip');
+            }}
             style={{
               width: '100%', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.1)',
               borderRadius: '16px', padding: '14px 14px 14px 44px', color: '#fff', fontSize: '1rem', outline: 'none'
@@ -279,7 +313,10 @@ export default function GamesPage() {
           {categories.map(cat => (
             <button
               key={cat}
-              onClick={() => setFilterCat(cat)}
+              onClick={() => {
+                setFilterCat(cat);
+                arcadeAudio.play('blip');
+              }}
               style={{
                 background: filterCat === cat ? 'linear-gradient(45deg, var(--accent-dim), var(--accent))' : 'rgba(255,255,255,0.05)',
                 color: filterCat === cat ? '#fff' : 'rgba(255,255,255,0.5)',
@@ -293,12 +330,6 @@ export default function GamesPage() {
           ))}
         </div>
       </div>
-
-      {!user && (
-        <p className="tinyText" style={{ textAlign: 'center', marginBottom: 20, opacity: 0.5, background: 'rgba(255,215,0,0.05)', border: '1px solid rgba(255,215,0,0.1)', padding: '12px', borderRadius: '12px', color: '#ffd700' }}>
-          ⚠️ Inicia sesión para guardar récords y competir en la temporada actual.
-        </p>
-      )}
 
       {/* GRID */}
       {filteredGames.length === 0 ? (
@@ -320,9 +351,9 @@ export default function GamesPage() {
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.8 }}
                   transition={{ delay: i * 0.01 }}
-                  className="gameCard"
+                  className={`gameCard ${getTierClass(stats?.game_level || 0)}`}
                   onClick={() => handleToggle(game.id)}
-                  style={{ border: isPlayed ? '1px solid rgba(255,255,255,0.08)' : '1px dotted var(--accent)' }}
+                  style={{ border: isPlayed ? undefined : '1px dotted var(--accent)' }}
                 >
                   {!isPlayed && <span className="gameCardBadge">NUEVO</span>}
                   {stats?.game_level > 0 && (
@@ -345,6 +376,15 @@ export default function GamesPage() {
         </div>
       )}
 
+      {/* LIVE TICKER */}
+      <div className="liveTickerContainer">
+        <div className="liveTicker">
+          {[...tickerItems, ...tickerItems].map((text, i) => (
+            <span key={i} className="tickerItem">{text}</span>
+          ))}
+        </div>
+      </div>
+
       {/* FULLSCREEN GAME OVERLAY */}
       <AnimatePresence>
         {openId && activeGame && (
@@ -366,7 +406,10 @@ export default function GamesPage() {
               </div>
               <button
                 className="gameCloseBtn"
-                onClick={() => setOpenId(null)}
+                onClick={() => {
+                  arcadeAudio.play('close');
+                  setOpenId(null);
+                }}
                 style={{ position: 'relative', zIndex: 5001, background: '#ff4444' }}
               >
                 ESC
