@@ -14,9 +14,9 @@ import * as economyService from '../services/economy';
 const EconomyContext = createContext(null);
 
 export function EconomyProvider({ children }) {
-  const { user }                      = useAuthContext();
-  const [balance, setBalance]         = useState(0);
-  const [loading, setLoading]         = useState(false);
+  const { user } = useAuthContext();
+  const [balance, setBalance] = useState(0);
+  const [loading, setLoading] = useState(false);
   const [lastDailyAt, setLastDailyAt] = useState(null);
 
   // ── Cargar balance y migrar coins viejos al iniciar sesión ──
@@ -59,9 +59,9 @@ export function EconomyProvider({ children }) {
       .on(
         'postgres_changes',
         {
-          event:  'UPDATE',
+          event: 'UPDATE',
           schema: 'public',
-          table:  'profiles',
+          table: 'profiles',
           filter: `id=eq.${user.id}`,
         },
         (payload) => {
@@ -96,15 +96,24 @@ export function EconomyProvider({ children }) {
     }
   }, [user]);
 
-  /** Reclama bonus diario. Lanza error si ya fue reclamado hoy. */
   const claimDaily = useCallback(async () => {
     if (!user) throw new Error('No autenticado');
-    const result = await economyService.claimDailyBonus(user.id);
-    if (result?.success) {
-      setBalance(result.balance);
-      setLastDailyAt(new Date().toISOString());
+    try {
+      const result = await economyService.claimDailyBonus(user.id);
+      if (result?.success) {
+        setBalance(result.balance);
+        setLastDailyAt(new Date().toISOString());
+      }
+      return result;
+    } catch (err) {
+      console.error('[EconomyContext] claimDaily error details:', {
+        message: err.message,
+        details: err.details,
+        hint: err.hint,
+        code: err.code
+      });
+      throw err;
     }
-    return result;
   }, [user]);
 
   /** true si el bonus diario está disponible (cooldown 20h) */

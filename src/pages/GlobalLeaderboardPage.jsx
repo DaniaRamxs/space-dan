@@ -99,18 +99,24 @@ function CompetitiveRow({ row, i, isMe, formatMetric, onClick }) {
         overflow: 'hidden'
       }}
     >
-      {/* Shine effect for Top Rank */}
-      {rank === 1 && (
+      <td style={{ width: 80, textAlign: 'center', position: 'relative' }}>
+        {/* Shine effect for Top Rank - Moved inside TD but covers TR via absolute positioning */}
+        {rank === 1 && (
+          <div style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            width: '1000%', // Spans across the table row
+            height: '100%',
+            background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.14), transparent)',
+            animation: 'shine 3s infinite',
+            pointerEvents: 'none',
+            zIndex: 0
+          }} />
+        )}
         <div style={{
-          position: 'absolute', inset: 0,
-          background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.14), transparent)',
-          animation: 'shine 3s infinite',
-          pointerEvents: 'none'
-        }} />
-      )}
-
-      <td style={{ width: 80, textAlign: 'center' }}>
-        <div style={{
+          position: 'relative',
+          zIndex: 1,
           fontSize: isTop3 ? '2rem' : '1.2rem',
           fontWeight: '900',
           fontFamily: 'monospace',
