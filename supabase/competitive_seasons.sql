@@ -280,6 +280,47 @@ BEGIN
 END;
 $$;
 
+-- RPC para el Leaderboard Competitivo (Más seguro y evita problemas de RLS/Cache)
+CREATE OR REPLACE FUNCTION public.get_competitive_leaderboard(p_limit int DEFAULT 50)
+RETURNS TABLE (
+  id uuid,
+  username text,
+  avatar_url text,
+  season_balance int,
+  user_level int,
+  rank bigint
+) 
+LANGUAGE plpgsql SECURITY DEFINER AS $$
+BEGIN
+  RETURN QUERY
+  WITH user_xp_calc AS (
+    SELECT 
+      p.id as uid,
+      (
+        COALESCE(p.balance, 0) + 
+        COALESCE((SELECT count(*) * 150 FROM public.user_achievements WHERE user_id = p.id), 0) +
+        COALESCE((SELECT count(DISTINCT game_id) * 200 FROM public.scores WHERE user_id = p.id), 0) +
+        COALESCE((SELECT total_focus_minutes * 2 FROM public.cabin_stats WHERE user_id = p.id), 0)
+      )::float as xp
+    FROM public.profiles p
+    WHERE p.season_balance > 0
+  )
+  SELECT 
+    p.id, 
+    p.username, 
+    p.avatar_url, 
+    p.season_balance, 
+    FLOOR(0.1 * SQRT(ux.xp))::int as user_level,
+    RANK() OVER (ORDER BY p.season_balance DESC) as rank
+  FROM public.profiles p
+  JOIN user_xp_calc ux ON p.id = ux.uid
+  ORDER BY p.season_balance DESC
+  LIMIT p_limit;
+END;
+$$;
+
+
+
 
 -- Inicialización Semilla: Crear Temporada 1 Automáticamente
 INSERT INTO public.competitive_seasons (number, start_at, end_at, is_active)
