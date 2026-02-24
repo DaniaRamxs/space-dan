@@ -12,6 +12,7 @@ import { getUserGameRanks } from '../services/supabaseScores';
 import { useAuthContext } from '../contexts/AuthContext';
 import { profileSocialService } from '../services/profile_social';
 import { socialService } from '../services/social';
+import { getProductivityStats } from '../services/productivity';
 
 function getFrameStyle(frameItemId) {
   if (!frameItemId) return { border: '3px solid var(--accent)', boxShadow: '0 0 15px var(--accent-glow)' };
@@ -41,6 +42,7 @@ export default function PublicProfilePage() {
 
   const [profile, setProfile] = useState(null);
   const [gameRanks, setGameRanks] = useState([]);
+  const [cabinStats, setCabinStats] = useState(null);
   const [achIds, setAchIds] = useState([]);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
@@ -52,6 +54,7 @@ export default function PublicProfilePage() {
   const [newComment, setNewComment] = useState('');
   const [submittingComment, setSubmittingComment] = useState(false);
   const [activityLabel, setActivityLabel] = useState(null);
+  const [activeTab, setActiveTab] = useState('records');
 
   useEffect(() => {
     if (!userId) return;
@@ -71,14 +74,16 @@ export default function PublicProfilePage() {
       if (!prof) { setNotFound(true); return; }
       setProfile(prof);
 
-      const [ranks, achs, socialInfo, profileComments] = await Promise.all([
+      const [ranks, achs, socialInfo, profileComments, cStats] = await Promise.all([
         getUserGameRanks(userId).catch(() => []),
         supabase.from('user_achievements').select('achievement_id').eq('user_id', userId),
         profileSocialService.getFollowCounts(userId).catch(() => ({ followers: 0, following: 0 })),
         profileSocialService.getProfileComments(userId).catch(() => []),
+        getProductivityStats(userId).catch(() => null),
       ]);
 
       setGameRanks(ranks || []);
+      setCabinStats(cStats);
       setAchIds((achs.data || []).map(a => a.achievement_id));
       setFollowCounts(socialInfo);
       setComments(profileComments);
@@ -158,286 +163,274 @@ export default function PublicProfilePage() {
   const joinedYear = profile.created_at ? new Date(profile.created_at).getFullYear() : null;
   const topGames = [...gameRanks].sort((a, b) => (b.max_score ?? 0) - (a.max_score ?? 0)).slice(0, 6);
 
+  // GAMER STATS CALCULATION
+  const totalXp = Math.floor(Math.max(0, (profile?.balance || 0) + (unlockedAchs.length * 150) + (gameRanks.length * 200) + ((cabinStats?.total_focus_minutes || 0) * 2)));
+  const baseLevel = Math.max(1, Math.floor(0.1 * Math.sqrt(totalXp)));
+  const level = baseLevel;
+  const nextLevelXp = Math.floor(Math.pow((level + 1) / 0.1, 2));
+  const prevLevelXp = Math.floor(Math.pow(level / 0.1, 2));
+  const currentXpProgress = totalXp - prevLevelXp;
+  const levelXpRequirement = nextLevelXp - prevLevelXp;
+  const progressPercent = Math.min(100, Math.max(0, (currentXpProgress / levelXpRequirement) * 100));
+
+  const rankNames = ['Recluta Espacial', 'Explorador Novato', 'Cazador Cósmico', 'Piloto Estelar', 'Vanguardia', 'Comandante', 'Arquitecto Estelar', 'Leyenda Cósmica', 'Deidad Astral'];
+  const rankName = rankNames[Math.min(Math.floor(level / 3), rankNames.length - 1)];
+
+  const topGlobalRank = gameRanks.length > 0 ? Math.min(...gameRanks.map(r => Number(r.user_position))) : 'N/A';
+  const bestRecord = gameRanks.length > 0 ? Math.max(...gameRanks.map(g => g.max_score || 0)) : 0;
+
   return (
-    <main className="card profileCard">
+    <div className="w-full max-w-4xl mx-auto min-h-[100dvh] pb-24 text-white font-sans flex flex-col gap-6" style={{ background: 'transparent' }}>
 
-      {/* ── HEADER ─────────────────────────────────────────── */}
-      <div
-        style={{
-          padding: '28px 20px',
-          display: 'flex',
-          alignItems: 'flex-start',
-          flexWrap: 'wrap',
-          gap: 20,
-          background: profile.banner_color
-            ? `linear-gradient(135deg, ${profile.banner_color}55 0%, ${profile.banner_color}22 100%)`
-            : 'linear-gradient(135deg, rgba(255,110,180,0.08) 0%, rgba(0,229,255,0.04) 100%)',
-          borderBottom: '1px solid var(--border)',
-        }}
-      >
-        {/* Avatar */}
-        <div style={{
-          width: 90, height: 90, borderRadius: '50%', overflow: 'hidden',
-          flexShrink: 0, ...getFrameStyle(profile.frame_item_id),
-        }}>
-          <img
-            src={profile.avatar_url || '/dan_profile.jpg'}
-            alt="avatar"
-            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-          />
-        </div>
+      {/* 1️⃣ HERO SECTION */}
+      <section className="relative w-full rounded-b-3xl md:rounded-3xl overflow-hidden shadow-[0_0_40px_rgba(139,92,246,0.15)] bg-[#0d0d14] border border-white/5 pb-6">
 
-        {/* Info block */}
-        <div style={{ flex: 1, minWidth: 0 }}>
+        {/* Banner */}
+        <div
+          className="absolute inset-0 pointer-events-none transition-all duration-700"
+          style={{
+            background: profile.banner_color
+              ? `linear-gradient(135deg, ${profile.banner_color}55 0%, ${profile.banner_color}22 100%)`
+              : 'linear-gradient(135deg, rgba(255,110,180,0.15) 0%, rgba(0,229,255,0.08) 100%)'
+          }}
+        />
 
-          {/* Username + activity status */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 6 }}>
-            <h1 style={{ margin: 0, color: 'var(--text)', fontSize: '1.8rem', textShadow: '0 0 10px var(--glow)', lineHeight: 1.1 }}>
-              {profile.username || 'Jugador'}
-            </h1>
-            {activityLabel && (
-              <span className="activityBadge">{activityLabel}</span>
-            )}
-          </div>
+        <div className="relative z-10 p-6 md:p-8 flex flex-col items-center text-center">
 
-          {/* Bio */}
-          <p style={{
-            color: 'var(--text)', opacity: 0.8, fontSize: '0.88rem',
-            margin: '0 0 12px 0', maxWidth: '480px',
-            fontStyle: profile.bio ? 'normal' : 'italic', lineHeight: 1.5,
-          }}>
-            {profile.bio || (isOwnProfile
-              ? 'Sin biografía. Edítala en configuración.'
-              : 'Sin biografía estelar.')}
-          </p>
-
-          {/* Stats row */}
-          <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', alignItems: 'center', marginBottom: 4 }}>
-            <span style={{ color: 'var(--accent)', fontSize: '0.9rem', fontWeight: 'bold' }}>
-              ◈ {(profile.balance ?? 0).toLocaleString()}
-            </span>
-            <span style={{ fontSize: '0.82rem' }}>
-              <strong style={{ color: '#fff' }}>{followCounts.followers}</strong>
-              <span style={{ color: 'var(--cyan)' }}> seguidores</span>
-            </span>
-            <span style={{ color: 'var(--text)', fontSize: '0.82rem', opacity: 0.7 }}>
-              <strong style={{ color: '#fff' }}>{followCounts.following}</strong> siguiendo
-            </span>
-            {joinedYear && (
-              <span style={{ color: 'var(--text)', fontSize: '0.78rem', opacity: 0.45 }}>
-                Desde {joinedYear}
-              </span>
-            )}
-          </div>
-
-          {/* ── ACTION BUTTONS — inside info block, always visible ── */}
-          <div className="profileActions">
+          <div className="absolute top-4 right-4 flex flex-col items-end gap-2">
             {!isOwnProfile && (
               <button
                 onClick={handleToggleFollow}
-                className={isFollowing ? 'btn-glass' : 'btn-accent'}
-                style={{ fontSize: '0.82rem', padding: '9px 16px' }}
+                className={isFollowing ? 'btn-glass text-[10px] uppercase tracking-wider px-3 py-1' : 'btn-accent text-[10px] uppercase tracking-wider px-3 py-1 bg-cyan-600 hover:bg-cyan-500'}
               >
                 {isFollowing ? '✓ Siguiendo' : '+ Seguir'}
               </button>
             )}
             {!isOwnProfile && (
-              <Link
-                to={`/cartas?to=${userId}`}
-                className="btn-glass"
-                style={{ fontSize: '0.82rem', padding: '9px 16px', textDecoration: 'none', display: 'block' }}
-              >
+              <Link to={`/cartas?to=${userId}`} className="btn-glass text-[10px] uppercase tracking-wider px-3 py-1 text-white decoration-transparent">
                 ✉️ Mensaje
               </Link>
             )}
-            {isOwnProfile && (
-              <Link
-                to="/profile"
-                className="btn-accent"
-                style={{ fontSize: '0.82rem', padding: '9px 16px', textDecoration: 'none', display: 'block' }}
-              >
-                ⚙️ Configuración
-              </Link>
-            )}
-            <Link
-              to="/leaderboard"
-              style={{ color: 'var(--text)', opacity: 0.45, fontSize: '0.78rem', textDecoration: 'none', textAlign: 'center', display: 'block' }}
-            >
+            {activityLabel && <span className="activityBadge inline-block mt-2">{activityLabel}</span>}
+          </div>
+          <div className="absolute top-4 left-4">
+            <Link to="/leaderboard" className="text-[10px] text-gray-500 hover:text-white uppercase tracking-wider transition-colors">
               ← Leaderboard
             </Link>
           </div>
-        </div>
 
-        {/* Pet */}
-        <div style={{ flexShrink: 0 }}>
-          <PetDisplay userId={userId} size={70} showName />
-        </div>
-      </div>
-
-      {/* ── CONTENT GRID (responsive: 1 col mobile / 2 col desktop) ── */}
-      <div className="profileContentGrid">
-
-        {/* Main Column */}
-        <div>
-          {/* Récords */}
-          <section style={{ marginBottom: 40 }}>
-            <h2 className="cardTitle" style={{ fontSize: '1.1rem', marginBottom: 16 }}>
-              🎮 Récords Estelares
-            </h2>
-            {topGames.length === 0 ? (
-              <p style={{ opacity: 0.6, fontSize: '0.9rem' }}>El espacio de récords está vacío...</p>
-            ) : (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 12 }}>
-                {topGames.map(rank => (
-                  <div key={rank.game_id} style={{
-                    padding: 14, border: '1px solid var(--border)',
-                    background: 'rgba(255,255,255,0.02)', borderRadius: 12,
-                  }}>
-                    <div style={{ fontSize: '0.78rem', color: 'var(--cyan)', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>
-                      {GAME_NAMES[rank.game_id] || rank.game_id}
-                    </div>
-                    <div style={{ fontSize: '1.5rem', fontWeight: 900, color: 'var(--text)' }}>
-                      {(rank.max_score ?? 0).toLocaleString()}
-                    </div>
-                    <div style={{ fontSize: '0.72rem', color: 'var(--accent)', marginTop: 4 }}>
-                      Rank #{rank.user_position}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </section>
-
-          {/* Logros */}
-          <section style={{ marginBottom: 40 }}>
-            <h2 className="cardTitle" style={{ fontSize: '1.1rem', marginBottom: 16 }}>
-              🏆 Logros ({unlockedAchs.length}/{ACHIEVEMENTS.length})
-            </h2>
-            <div className="achGrid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))' }}>
-              {unlockedAchs.map(ach => (
-                <div key={ach.id} className="achCard unlocked">
-                  <div className="achCardIcon">{ach.icon}</div>
-                  <div className="achCardBody">
-                    <div className="achCardTitle">{ach.title}</div>
-                    <div className="achCardDesc">{ach.desc}</div>
-                  </div>
-                </div>
-              ))}
-              {unlockedAchs.length === 0 && (
-                <p style={{ opacity: 0.6, fontSize: '0.9rem' }}>Sin logros detectados en esta órbita.</p>
-              )}
+          <div className="relative group cursor-pointer mb-6 mt-6 md:mt-0">
+            <div className="absolute -inset-2 bg-gradient-to-r from-purple-600 to-cyan-500 rounded-[35%] blur-xl opacity-40 group-hover:opacity-80 transition duration-700"></div>
+            <div className="relative w-28 h-28 rounded-[30%] overflow-hidden border border-white/20 shadow-2xl bg-black" style={getFrameStyle(profile.frame_item_id)}>
+              <img src={profile?.avatar_url || '/dan_profile.jpg'} alt="Avatar" className="w-full h-full object-cover" />
             </div>
-          </section>
-
-          {/* Muro de Comentarios */}
-          <section>
-            <h2 className="cardTitle" style={{ fontSize: '1.1rem', marginBottom: 16 }}>
-              💬 Muro Espacial
-            </h2>
-
-            <form onSubmit={handleAddComment} style={{ marginBottom: 24 }}>
-              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-                <textarea
-                  value={newComment}
-                  onChange={(e) => setNewComment(e.target.value)}
-                  placeholder="Escribe un mensaje en el muro..."
-                  maxLength={500}
-                  style={{
-                    flex: 1, minWidth: 200,
-                    background: 'rgba(0,0,0,0.3)', border: '1px solid var(--border)',
-                    borderRadius: 12, padding: 14, color: '#fff', fontSize: '0.88rem',
-                    resize: 'none', minHeight: '76px', fontFamily: 'inherit',
-                  }}
-                />
-                <button
-                  type="submit"
-                  disabled={submittingComment || !newComment.trim()}
-                  className="btn-accent"
-                  style={{ borderRadius: 12, minWidth: '90px', alignSelf: 'flex-end' }}
-                >
-                  {submittingComment ? '...' : 'Publicar'}
-                </button>
-              </div>
-            </form>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              {comments.map(c => (
-                <motion.div
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  key={c.id}
-                  style={{
-                    padding: 14, background: 'rgba(255,255,255,0.03)',
-                    borderRadius: 12, border: '1px solid var(--border)',
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6, flexWrap: 'wrap' }}>
-                    <img
-                      src={c.author?.avatar_url || '/dan_profile.jpg'}
-                      style={{ width: 22, height: 22, borderRadius: '50%', flexShrink: 0 }}
-                    />
-                    <Link
-                      to={`/profile/${c.author_id}`}
-                      style={{ color: 'var(--accent)', fontSize: '0.83rem', fontWeight: 'bold', textDecoration: 'none' }}
-                    >
-                      {c.author?.username}
-                    </Link>
-                    <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                      <span style={{ fontSize: '0.72rem', opacity: 0.4 }}>
-                        {new Date(c.created_at).toLocaleDateString()}
-                      </span>
-                      {(user?.id === c.author_id || user?.id === userId) && (
-                        <button
-                          onClick={() => handleDeleteComment(c.id)}
-                          style={{ background: 'transparent', border: 'none', color: 'var(--accent)', cursor: 'pointer', padding: '2px 6px', fontSize: '0.8rem', opacity: 0.6 }}
-                          title="Eliminar mensaje"
-                          onMouseOver={e => e.target.style.opacity = 1}
-                          onMouseOut={e => e.target.style.opacity = 0.6}
-                        >
-                          ✕
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                  <p style={{ fontSize: '0.88rem', opacity: 0.9, lineHeight: 1.5, margin: 0 }}>{c.content}</p>
-                </motion.div>
-              ))}
-              {comments.length === 0 && (
-                <p style={{ textAlign: 'center', opacity: 0.3, padding: '20px', fontStyle: 'italic' }}>
-                  El muro está en silencio... Sé el primero en saludar.
-                </p>
-              )}
+            {/* Pet Overlay */}
+            <div className="absolute -left-6 -bottom-2 pointer-events-none drop-shadow-2xl z-30 scale-x-[-1]">
+              <PetDisplay userId={userId} size={45} showName={false} />
             </div>
-          </section>
-        </div>
 
-        {/* Sidebar */}
-        <aside>
-          <div className="glassCard" style={{ padding: 18, marginBottom: 16 }}>
-            <h3 style={{ fontSize: '0.82rem', opacity: 0.55, margin: '0 0 14px 0', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
-              Estadísticas
-            </h3>
-            <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 10 }}>
-                <span style={{ opacity: 0.5, fontSize: '0.83rem' }}>Dancoins</span>
-                <span style={{ fontWeight: 'bold', color: 'var(--accent)' }}>◈ {(profile.balance ?? 0).toLocaleString()}</span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 10 }}>
-                <span style={{ opacity: 0.5, fontSize: '0.83rem' }}>Logros</span>
-                <span style={{ fontWeight: 'bold' }}>{unlockedAchs.length}</span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 10 }}>
-                <span style={{ opacity: 0.5, fontSize: '0.83rem' }}>Seguidores</span>
-                <span style={{ fontWeight: 'bold' }}>{followCounts.followers}</span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ opacity: 0.5, fontSize: '0.83rem' }}>Siguiendo</span>
-                <span style={{ fontWeight: 'bold' }}>{followCounts.following}</span>
+            <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 bg-[#09090b] border border-cyan-500 text-cyan-400 text-xs font-black px-4 py-1 rounded-full shadow-[0_0_15px_rgba(6,182,212,0.4)] z-20 whitespace-nowrap">
+              LVL {level}
+            </div>
+          </div>
+
+          <h1 className="text-3xl font-black uppercase tracking-[0.1em] bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-400 drop-shadow-md">
+            {profile?.username || 'Jugador'}
+          </h1>
+          <p className="text-[11px] font-bold text-purple-400 uppercase tracking-[0.3em] mb-4 mt-1 opacity-90">
+            {rankName}
+          </p>
+
+          <div className="flex flex-col items-center gap-2 mb-6 max-w-md mx-auto">
+            <p className={`text-sm tracking-wide flex-1 text-center ${profile.bio ? 'text-gray-300' : 'text-gray-500 italic'}`}>"{profile.bio || 'Sin biografía estelar.'}"</p>
+            {joinedYear && <span className="text-[10px] text-gray-600 uppercase tracking-widest mt-1 font-bold">Desde {joinedYear}</span>}
+          </div>
+
+          {/* XP Bar */}
+          <div className="w-full max-w-xs mt-2">
+            <div className="flex justify-between text-[10px] text-gray-400 font-bold mb-1.5 uppercase tracking-widest">
+              <span>{Math.floor(totalXp).toLocaleString()} XP</span>
+              <span className="text-cyan-500">{Math.floor(nextLevelXp).toLocaleString()} XP</span>
+            </div>
+            <div className="h-1.5 w-full bg-[#050508] rounded-full overflow-hidden border border-white/5 relative">
+              <div
+                className="h-full bg-gradient-to-r from-cyan-500 via-purple-500 to-pink-500 w-full rounded-full transition-all duration-1000 ease-out relative"
+                style={{ width: `${progressPercent}%` }}
+              >
+                <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-white/40 to-transparent"></div>
               </div>
             </div>
           </div>
-        </aside>
-      </div>
-    </main>
+        </div>
+      </section>
+
+      {/* 2️⃣ STATS CORE GRID */}
+      <section className="px-4 md:px-0 animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
+        <h2 className="text-[10px] text-gray-500 uppercase tracking-[0.3em] font-bold mb-3 pl-1 flex items-center gap-2">
+          <span className="w-2 h-2 rounded-full bg-purple-500 animate-pulse"></span> Profile Stats
+        </h2>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <StatCard title="Seguidores" value={followCounts.followers} icon="👥" highlight="text-purple-400" />
+          <StatCard title="Siguiendo" value={followCounts.following} icon="✨" highlight="text-gray-400" />
+          <StatCard title="Rank Global" value={topGlobalRank !== 'N/A' ? `#${topGlobalRank}` : '-'} icon="🌍" highlight="text-green-400" />
+          <StatCard title="Economía" value={`◈ ${profile.balance || 0}`} icon="💎" highlight="text-cyan-400" />
+        </div>
+      </section>
+
+      {/* 3️⃣ TABS */}
+      <section className="px-4 md:px-0 flex-1 flex flex-col min-h-0 animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
+        <div className="flex bg-[#0a0a0f] rounded-xl p-1 shadow-lg border border-white/5 overflow-x-auto no-scrollbar scroll-smooth">
+          <TabButton active={activeTab === 'records'} onClick={() => setActiveTab('records')}>🏆 Récords</TabButton>
+          <TabButton active={activeTab === 'achievements'} onClick={() => setActiveTab('achievements')}>🎖️ Logros</TabButton>
+          <TabButton active={activeTab === 'wall'} onClick={() => setActiveTab('wall')}>💬 Muro</TabButton>
+        </div>
+
+        <div className="mt-5 flex-1 mb-8">
+
+          {/* TAB: RECORDS */}
+          {activeTab === 'records' && (
+            <div className="animate-fade-in-up">
+              {gameRanks.length === 0 ? (
+                <div className="text-center p-12 border border-white/5 rounded-2xl bg-[#0a0a0f] text-gray-500 text-sm">Sin récords registrados.</div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {gameRanks.map(rank => (
+                    <div key={rank.game_id} className="flex bg-[#13131c] border border-white/5 rounded-xl p-3 items-center gap-4 hover:bg-[#1a1a26] transition hover:border-white/10 group cursor-default">
+                      <div className="w-12 h-12 rounded-lg bg-black/40 border border-white/5 flex items-center justify-center text-xl group-hover:scale-110 transition shadow-inner">
+                        🎮
+                      </div>
+                      <div className="flex-1">
+                        <h3 className="font-bold text-[13px] text-gray-200 uppercase tracking-widest">{GAME_NAMES[rank.game_id] || rank.game_id}</h3>
+                        <p className="text-xs text-cyan-400 font-mono mt-0.5">Score: {(rank.max_score ?? 0).toLocaleString()}</p>
+                      </div>
+                      <div className="flex flex-col items-center justify-center px-4 py-2 bg-[#0a0a0f] rounded-lg border border-purple-500/20 shadow-md">
+                        <span className="text-[9px] text-gray-500 uppercase tracking-[0.2em] mb-0.5">Rank</span>
+                        <span className="font-black text-purple-400 text-sm">#{rank.user_position}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* TAB: ACHIEVEMENTS */}
+          {activeTab === 'achievements' && (
+            <div className="animate-fade-in-up">
+              <div className="mb-4 flex justify-between items-end px-1">
+                <span className="text-[10px] text-gray-500 uppercase tracking-[0.2em] font-bold">Insignias Desbloqueadas</span>
+                <span className="text-[11px] text-cyan-500 font-mono bg-cyan-900/20 px-2.5 py-1 rounded border border-cyan-800/40">{unlockedAchs.length}/{ACHIEVEMENTS.length}</span>
+              </div>
+              {unlockedAchs.length === 0 ? (
+                <div className="text-center p-12 border border-white/5 rounded-2xl bg-[#0a0a0f] text-gray-500 text-sm">El usuario no tiene logros visibles.</div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                  {unlockedAchs.map(ach => (
+                    <div key={ach.id} className="flex flex-col bg-gradient-to-br from-[#171724] to-[#0a0a0f] border border-purple-500/10 rounded-xl p-4 relative overflow-hidden group">
+                      <div className="absolute -top-4 -right-4 w-20 h-20 bg-purple-500/10 rounded-full blur-2xl pointer-events-none group-hover:bg-purple-500/20 transition duration-700"></div>
+                      <div className="flex items-center justify-between mb-3 z-10">
+                        <div className="text-2xl drop-shadow-[0_0_10px_rgba(255,255,255,0.2)]">{ach.icon}</div>
+                        <div className="w-5 h-5 rounded-full bg-green-500/10 border border-green-500/50 flex items-center justify-center text-green-400 text-[10px]">✓</div>
+                      </div>
+                      <div className="z-10">
+                        <div className="font-bold text-[13px] text-white tracking-wide">{ach.title}</div>
+                        <div className="text-[11px] text-gray-400 leading-snug mt-1 opacity-80 group-hover:opacity-100 transition whitespace-pre-wrap">{ach.desc}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* TAB: WALL */}
+          {activeTab === 'wall' && (
+            <div className="animate-fade-in-up">
+              <div className="bg-[#13131c] rounded-2xl border border-white/5 p-4 md:p-6 mb-6">
+                <form onSubmit={handleAddComment}>
+                  <div className="flex flex-col gap-3">
+                    <textarea
+                      autoFocus
+                      value={newComment}
+                      onChange={(e) => setNewComment(e.target.value)}
+                      placeholder="Escribe un mensaje de apoyo..."
+                      maxLength={500}
+                      className="w-full bg-[#0a0a0f] border border-white/10 rounded-xl p-4 text-sm text-white resize-none min-h-[100px] outline-none focus:border-cyan-500/50 transition-colors"
+                    />
+                    <button
+                      type="submit"
+                      disabled={submittingComment || !newComment.trim()}
+                      className="btn-accent self-end px-6 py-2 rounded-lg font-bold text-xs tracking-wider"
+                    >
+                      {submittingComment ? 'Enviando...' : 'Publicar'}
+                    </button>
+                  </div>
+                </form>
+              </div>
+
+              <div className="flex flex-col gap-4">
+                {comments.map(c => (
+                  <div
+                    key={c.id}
+                    className="bg-[#13131c]/60 backdrop-blur-md p-4 rounded-xl border border-white/5 transition-colors hover:bg-[#13131c]"
+                  >
+                    <div className="flex items-center gap-3 mb-2 flex-wrap">
+                      <img className="w-6 h-6 rounded-full border border-white/10" src={c.author?.avatar_url || '/dan_profile.jpg'} alt="Avatar" />
+                      <Link to={`/profile/${c.author_id}`} className="text-cyan-400 hover:text-cyan-300 font-bold text-xs tracking-wide">
+                        {c.author?.username}
+                      </Link>
+                      <span className="text-[10px] text-gray-500 font-mono tracking-widest">{new Date(c.created_at).toLocaleDateString()}</span>
+                      <div className="ml-auto">
+                        {(user?.id === c.author_id || user?.id === userId) && (
+                          <button
+                            onClick={() => handleDeleteComment(c.id)}
+                            className="text-red-400/50 hover:text-red-400 text-sm px-2 cursor-pointer transition-colors"
+                            title="Eliminar mensaje"
+                          >
+                            ✕
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                    <p className="text-sm text-gray-200 leading-relaxed overflow-wrap break-words">{c.content}</p>
+                  </div>
+                ))}
+                {comments.length === 0 && (
+                  <div className="text-center p-8 bg-[#0a0a0f] rounded-2xl border border-white/5">
+                    <p className="text-gray-500 italic text-sm">El muro está vacío... Sé el primero en saludar.</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      </section>
+    </div>
+  );
+}
+
+// --- SUBCOMPONENTES REUTILIZABLES ---
+function StatCard({ title, value, icon, highlight = 'text-white' }) {
+  return (
+    <div className="bg-[#13131c] p-3 md:p-4 rounded-xl border border-white/5 flex flex-col justify-center items-center text-center hover:bg-[#1a1a26] transition shadow-md relative overflow-hidden group">
+      <div className="absolute top-0 right-0 p-2 opacity-5 scale-150 rotate-12 group-hover:scale-[1.8] group-hover:rotate-45 transition duration-500">{icon}</div>
+      <div className="text-xl mb-1 relative z-10">{icon}</div>
+      <div className={`text-xl md:text-2xl font-black leading-none ${highlight} relative z-10 drop-shadow-md`}>{value}</div>
+      <div className="text-[9px] text-gray-500 uppercase tracking-[0.2em] font-bold mt-2 relative z-10">{title}</div>
+    </div>
+  );
+}
+
+function TabButton({ active, onClick, children }) {
+  return (
+    <button
+      onClick={onClick}
+      className={`flex-1 py-2.5 px-4 text-[11px] md:text-sm font-bold rounded-lg transition-all whitespace-nowrap tracking-wide ${active
+        ? 'bg-[#1a1a26] text-white shadow-md border border-white/10'
+        : 'text-gray-500 hover:text-gray-300 hover:bg-white/5 border border-transparent'
+        }`}
+    >
+      {children}
+    </button>
   );
 }
