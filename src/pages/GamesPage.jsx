@@ -82,9 +82,19 @@ export default function GamesPage() {
   const [lbKey, setLbKey] = useState(0);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterCat, setFilterCat] = useState('All');
+  const [userStats, setUserStats] = useState([]);
 
   const toastTimer = useRef(null);
   const openIdRef = useRef(null);
+
+  // Fetch individual game stats (levels)
+  useEffect(() => {
+    if (user) {
+      import('../services/supabaseScores').then(m => {
+        m.getUserGameRanks(user.id).then(setUserStats);
+      });
+    }
+  }, [user, lbKey]);
 
   // Featured Game (Random but stable for session)
   const featuredGame = useMemo(() => {
@@ -298,6 +308,7 @@ export default function GamesPage() {
           <AnimatePresence mode='popLayout'>
             {filteredGames.map((game, i) => {
               const isPlayed = playedSet.has(game.id);
+              const stats = userStats.find(s => s.game_id === game.id);
               return (
                 <motion.div
                   key={game.id}
@@ -311,6 +322,16 @@ export default function GamesPage() {
                   style={{ border: isPlayed ? '1px solid rgba(255,255,255,0.08)' : '1px dotted var(--accent)' }}
                 >
                   {!isPlayed && <span className="gameCardBadge">NUEVO</span>}
+                  {stats?.game_level > 0 && (
+                    <span className="gameCardLevel" title="Nivel en este juego">
+                      Lv.{stats.game_level}
+                    </span>
+                  )}
+                  {stats?.user_position && (
+                    <span className="gameCardRank" title="Tu posición en el ranking">
+                      #{stats.user_position}
+                    </span>
+                  )}
                   <span className="gameCardIcon">{game.icon}</span>
                   <span className="gameCardTitle">{game.title}</span>
                   <span style={{ fontSize: '0.6rem', opacity: 0.4, textTransform: 'uppercase', letterSpacing: 0.5 }}>{game.category}</span>

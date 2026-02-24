@@ -7582,6 +7582,48 @@ textarea,
   width: 100%;
 }
 
+.gameCardLevel {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 0.65rem;
+  font-weight: 900;
+  padding: 3px 8px;
+  border-radius: 6px;
+  box-shadow: 0 4px 10px var(--accent-dim);
+  text-shadow: 0 0 5px rgba(255, 110, 180, 0.5);
+  z-index: 10;
+}
+
+.gameCardRank {
+  position: absolute;
+  bottom: 45px;
+  right: 12px;
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.6rem;
+  font-weight: bold;
+  padding: 2px 6px;
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.gameLevelBadge {
+  background: var(--accent-dim);
+  color: #fff;
+  font-size: 0.55rem;
+  font-weight: 900;
+  padding: 1px 5px;
+  border-radius: 4px;
+  margin-left: 6px;
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--accent);
+  vertical-align: middle;
+}
+
 .gameCardBadge {
   position: absolute;
   top: 8px;

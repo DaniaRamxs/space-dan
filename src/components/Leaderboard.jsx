@@ -68,7 +68,14 @@ export default function Leaderboard({ gameId, refreshKey = 0 }) {
                 {entry.avatar_url && (
                   <img src={entry.avatar_url} alt="" className="leaderboardAvatar" />
                 )}
-                <span className="leaderboardName">{entry.username || 'usuario'}</span>
+                <span className="leaderboardName">
+                  {entry.username || 'usuario'}
+                  {entry.game_level && (
+                    <span className="gameLevelBadge" title="Nivel en este juego">
+                      Lv.{entry.game_level}
+                    </span>
+                  )}
+                </span>
                 <span className="leaderboardScore">{entry.best_score?.toLocaleString() || '0'}</span>
               </div>
             );
@@ -79,7 +86,12 @@ export default function Leaderboard({ gameId, refreshKey = 0 }) {
               <div style={{ textAlign: 'center', opacity: 0.5, margin: '5px 0' }}>⋮</div>
               <div className="leaderboardRow highlight-me" style={{ background: 'rgba(255,110,180,0.15)', borderLeft: '3px solid var(--accent)' }}>
                 <span className="leaderboardRank">#{userRank.user_position}</span>
-                <span className="leaderboardName">Tu Récord</span>
+                <span className="leaderboardName">
+                  Tu Récord
+                  {userRank.game_level && (
+                    <span className="gameLevelBadge">Lv.{userRank.game_level}</span>
+                  )}
+                </span>
                 <span className="leaderboardScore">{userRank.max_score?.toLocaleString() || '0'}</span>
               </div>
 
