@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../supabaseClient';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { useAuthContext } from '../contexts/AuthContext';
+
 
 export default function OnboardingPage() {
     const [username, setUsername] = useState('');
@@ -9,7 +11,10 @@ export default function OnboardingPage() {
     const [error, setError] = useState(null);
     const [isAvailable, setIsAvailable] = useState(null);
     const [checking, setChecking] = useState(false);
+    const { profile } = useAuthContext();
     const navigate = useNavigate();
+    const isNewUser = !profile?.username;
+
 
     useEffect(() => {
         const val = username.trim().toLowerCase();
@@ -67,10 +72,15 @@ export default function OnboardingPage() {
                 style={{ maxWidth: 450, margin: '0 auto', textAlign: 'center' }}
             >
                 <div className="pageHeader" style={{ border: 'none' }}>
-                    <h1 style={{ fontSize: 28 }}>🚀 identidad espacial</h1>
+                    <h1 style={{ fontSize: 28 }}>
+                        {isNewUser ? '🚀 identidad espacial' : '🛠️ actualizar identidad'}
+                    </h1>
                     <p className="tinyText" style={{ fontSize: 13, marginTop: 10 }}>
-                        bienvenido al dan-space. elige tu nombre único de explorador para continuar tu viaje.
+                        {isNewUser
+                            ? 'bienvenido al dan-space. elige tu nombre único de explorador para continuar tu viaje.'
+                            : 'puedes cambiar tu nombre de explorador aquí. recuerda el cooldown de 30 días.'}
                     </p>
+
                 </div>
 
                 <form onSubmit={handleSubmit} style={{ marginTop: 20 }}>
@@ -106,10 +116,17 @@ export default function OnboardingPage() {
                     <button
                         type="submit"
                         className="onboardingBtn"
-                        disabled={loading || !isAvailable || username.length < 3}
+                        disabled={loading || !isAvailable || username.length < 3 || username.trim() === profile?.username}
                     >
-                        {loading ? 'reclamando...' : 'reclamar identidad'}
+                        {loading ? 'procesando...' : isNewUser ? 'reclamar identidad' : 'actualizar nombre'}
                     </button>
+
+                    {!isNewUser && (
+                        <Link to="/profile" className="cancelLink">
+                            mantener nombre actual
+                        </Link>
+                    )}
+
                 </form>
 
                 <p className="tinyText" style={{ marginTop: 20, fontSize: 11, fontStyle: 'italic' }}>
@@ -185,6 +202,19 @@ export default function OnboardingPage() {
           border-radius: 8px;
           font-size: 12px;
         }
+        .cancelLink {
+          display: block;
+          margin-top: 15px;
+          font-size: 11px;
+          color: var(--text-muted);
+          text-decoration: none;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+        }
+        .cancelLink:hover {
+          color: white;
+        }
+
       `}</style>
         </div>
     );

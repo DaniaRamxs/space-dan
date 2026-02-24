@@ -12,17 +12,26 @@ export default function useAuth() {
   const [session, setSession] = useState(null);
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [profileLoading, setProfileLoading] = useState(true);
+
 
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
+      if (!session) setProfileLoading(false);
       setLoading(false);
     });
 
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
+      if (!session) {
+        setProfile(null);
+        setProfileLoading(false);
+      }
     });
+
 
     return () => subscription.unsubscribe();
   }, []);
@@ -35,13 +44,25 @@ export default function useAuth() {
     }
 
     const fetchProfile = async () => {
-      const { data } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', session.user.id)
-        .maybeSingle();
-      setProfile(data);
+      setProfileLoading(true);
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', session.user.id)
+          .maybeSingle();
+
+        if (error) console.error('[useAuth] Fetch profile error:', error);
+        setProfile(data);
+      } catch (err) {
+        console.error('[useAuth] Fetch profile critical error:', err);
+      } finally {
+        setProfileLoading(false);
+      }
     };
+
+
+
 
     fetchProfile();
 
@@ -101,10 +122,11 @@ export default function useAuth() {
     session,
     user: session?.user ?? null,
     profile,
-    loading,
+    loading: loading || (session?.user ? profileLoading : false),
     loginWithGoogle,
     loginWithDiscord,
     logout,
   };
 }
+
 

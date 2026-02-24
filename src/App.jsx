@@ -1,5 +1,6 @@
 import { Suspense, lazy, useEffect } from "react";
-import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useLocation, Navigate } from "react-router-dom";
+
 import { AnimatePresence } from "framer-motion";
 import "./styles.css";
 import AchievementToast from "./components/AchievementToast";
@@ -8,9 +9,9 @@ import PageTransition from "./components/PageTransition";
 import { unlockAchievement } from "./hooks/useAchievements";
 import { trackPageVisit } from "./hooks/useDancoins";
 import { applyTheme } from "./hooks/useTheme";
-import { useEconomy } from "./contexts/EconomyContext";
-import { AuthProvider } from "./contexts/AuthContext";
-import { EconomyProvider } from "./contexts/EconomyContext";
+import { AuthProvider, useAuthContext } from "./contexts/AuthContext";
+import { EconomyProvider, useEconomy } from "./contexts/EconomyContext";
+
 
 const PostsPage = lazy(() => import("./pages/PostsPage"));
 const CreatePostPage = lazy(() => import("./pages/CreatePostPage"));
@@ -97,21 +98,21 @@ function AnimatedRoutes() {
   const location = useLocation();
   const { user, profile, loading } = useAuthContext();
 
-  // Redirección obligatoria a onboarding si no tiene username (excepto si ya está ahí o no está logueado)
-  if (!loading && user && !profile?.username && location.pathname !== '/onboarding') {
-    return (
-      <AnimatePresence mode="wait">
-        <Routes>
-          <Route path="*" element={<OnboardingPage />} />
-        </Routes>
-      </AnimatePresence>
-    );
+  // Redirección obligatoria a onboarding si no tiene username 
+  // Solo si estamos autenticados y NO estamos ya en la página de onboarding o landing
+  const isOnboardingPath = location.pathname === '/onboarding';
+  const isLandingPath = location.pathname === '/';
+
+  if (!loading && user && !profile?.username && !isOnboardingPath && !isLandingPath) {
+    return <Navigate to="/onboarding" replace />;
   }
 
   return (
     <AnimatePresence mode="wait">
       <Routes location={location} key={location.pathname}>
+        {/* Onboarding Route */}
         <Route path="/onboarding" element={<Layout><OnboardingPage /></Layout>} />
+
 
         <Route path="/" element={<PageTransition><Wpage /></PageTransition>} />
         <Route path="/home" element={<Layout><DanProfilePage /></Layout>} />
