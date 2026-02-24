@@ -324,7 +324,7 @@ export const PrivateUniverse = ({ partnership: initialPartnership, onUpdate }) =
                         className="fixed inset-0 z-[100] bg-black overflow-y-auto"
                         style={{ WebkitOverflowScrolling: 'touch' }}
                     >
-                        <div className="relative min-h-full flex flex-col items-center justify-center py-16 px-4">
+                        <div className="relative min-h-[100dvh] flex flex-col items-center justify-start pt-24 pb-20 px-4">
                             <PrivateUniverseCanvas partnership={partnership} bothOnline={otherOnline} />
 
                             <button onClick={() => setIsOpen(false)} className="absolute top-8 right-8 z-50 text-neutral-500 hover:text-white transition-colors">
