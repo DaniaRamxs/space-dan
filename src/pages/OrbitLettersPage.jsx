@@ -142,13 +142,13 @@ export default function OrbitLettersPage() {
                 Hidden on mobile when mobileView === 'chat'          */}
             <div
                 className={`glassCard lettersPanel${mobileView === 'chat' ? ' lettersPanel--hidden' : ''}`}
-                style={{ padding: 0, display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0 }}
+                style={{ padding: 0, display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}
             >
-                <div style={{ padding: '18px 20px', borderBottom: '1px solid var(--glass-border)', display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div style={{ flexShrink: 0, padding: '18px 20px', borderBottom: '1px solid var(--glass-border)', display: 'flex', alignItems: 'center', gap: 12 }}>
                     <h2 style={{ margin: 0, fontSize: '17px', flex: 1 }}>✉️ Cartas en Órbita</h2>
                 </div>
 
-                <div style={{ flex: 1, overflowY: 'auto' }}>
+                <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', overflowX: 'hidden', overscrollBehavior: 'contain' }}>
                     {conversations.length === 0 && (
                         <div style={{ padding: '40px 20px', textAlign: 'center', opacity: 0.5, fontSize: '13px' }}>
                             No hay cartas orbitando todavía.
@@ -175,7 +175,7 @@ export default function OrbitLettersPage() {
                                 <div style={{ flex: 1, minWidth: 0 }}>
                                     <div style={{ fontWeight: '600', fontSize: '14px' }}>{conv.other_username}</div>
                                     <div style={{ fontSize: '12px', opacity: 0.6, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                        {conv.last_snippet || 'Empieza la conversación...'}
+                                        {conv.last_snippet?.includes('giphy.com/media') ? '👾 GIF' : (conv.last_snippet || 'Empieza la conversación...')}
                                     </div>
                                 </div>
                                 {conv.unread_count > 0 && (
@@ -197,7 +197,7 @@ export default function OrbitLettersPage() {
                 Hidden on mobile when mobileView === 'list'          */}
             <div
                 className={`glassCard lettersPanel${mobileView === 'list' ? ' lettersPanel--hidden' : ''}`}
-                style={{ padding: 0, display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0 }}
+                style={{ padding: 0, display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}
             >
                 {!activeConv ? (
                     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', opacity: 0.4 }}>
@@ -236,7 +236,7 @@ export default function OrbitLettersPage() {
                         {/* Messages */}
                         <div
                             ref={scrollRef}
-                            style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px' }}
+                            style={{ flex: 1, minHeight: 0, overflowY: 'auto', overflowX: 'hidden', padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px' }}
                         >
                             <AnimatePresence initial={false}>
                                 {letters.map((l) => (
