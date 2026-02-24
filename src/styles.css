@@ -7544,6 +7544,29 @@ textarea,
 
 .gameCard:hover .gameCardIcon {
   transform: scale(1.2) rotate(5deg);
+  animation: crtIconFlicker 0.3s infinite;
+}
+
+@keyframes crtIconFlicker {
+  0% {
+    text-shadow: 2px 0 red, -2px 0 blue;
+  }
+
+  25% {
+    text-shadow: -2px 0 red, 2px 0 blue;
+  }
+
+  50% {
+    text-shadow: 1px 1px red, -1px -1px blue;
+  }
+
+  75% {
+    text-shadow: -1px -1px red, 1px 1px blue;
+  }
+
+  100% {
+    text-shadow: 2px 0 red, -2px 0 blue;
+  }
 }
 
 .gameCardTitle {
@@ -7642,5 +7665,30 @@ textarea,
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+.crtEffect {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.1) 50%),
+    linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03));
+  background-size: 100% 3px, 3px 100%;
+  pointer-events: none;
+  z-index: 5;
+  opacity: 0.4;
+}
+
+@keyframes crtFlicker {
+  0% {
+    opacity: 0.1;
+  }
+
+  50% {
+    opacity: 0.05;
+  }
+
+  100% {
+    opacity: 0.1;
   }
 }
