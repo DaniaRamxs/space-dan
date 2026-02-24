@@ -7284,8 +7284,18 @@ textarea,
   gap: 14px;
   flex: 1;
   min-height: 0;
+  height: 100%;
+  max-height: 100%;
+  overflow: hidden;
   position: relative;
   z-index: 9995;
+}
+
+.lettersPanel {
+  min-height: 0;
+  height: 100%;
+  max-height: 100%;
+  overflow: hidden;
 }
 
 @media (max-width: 767px) {
@@ -7334,7 +7344,7 @@ textarea,
   margin-top: 24px;
   margin-bottom: 12px;
   align-items: stretch;
-  height: 100%;
+  grid-template-rows: minmax(0, 1fr);
 }
 
 .gardenMain--fixed {
@@ -7343,7 +7353,6 @@ textarea,
   display: flex !important;
   flex-direction: column;
   overflow: hidden;
-  height: 100%;
 }
 
 .gardenMain--fixed .gardenContent {
