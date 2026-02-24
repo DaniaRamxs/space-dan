@@ -199,7 +199,7 @@ export default function VinculosPage() {
     }
 
     return (
-        <div style={{ maxWidth: 700, margin: '0 auto', padding: '0 16px' }}>
+        <div style={{ maxWidth: 700, margin: '0 auto', padding: '0 16px', paddingBottom: 80, minHeight: '100vh' }}>
 
             {/* Header */}
             <div style={{
