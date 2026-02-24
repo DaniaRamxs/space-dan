@@ -1,4 +1,6 @@
 import { useState, useCallback } from 'react';
+import { getSafeStorage, setSafeStorage } from '../utils/safeStorage';
+
 
 const KEY = 'space-dan-scores';
 
@@ -7,11 +9,7 @@ const KEY = 'space-dan-scores';
  * @returns {Record<string, number>}
  */
 function load() {
-  try {
-    return JSON.parse(localStorage.getItem(KEY)) || {};
-  } catch {
-    return {};
-  }
+  return getSafeStorage(KEY, {});
 }
 
 /**
@@ -30,11 +28,7 @@ export default function useHighScore(gameId) {
       const all = load();
       if (n > (all[gameId] ?? 0)) {
         all[gameId] = n;
-        try {
-          localStorage.setItem(KEY, JSON.stringify(all));
-        } catch {
-          // localStorage unavailable — silently ignore
-        }
+        setSafeStorage(KEY, all);
         setBest(n);
         window.dispatchEvent(new CustomEvent('dan:game-score', {
           detail: { gameId, score: n, isHighScore: true },
