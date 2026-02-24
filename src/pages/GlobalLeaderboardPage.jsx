@@ -242,7 +242,7 @@ export default function GlobalLeaderboardPage() {
   return (
     <main className="card">
       {activeTab === 'competitive' && (
-        <div className="season-widget-sticky-container" style={{ position: 'sticky', top: '-24px', zIndex: 100, background: 'var(--bg)', borderRadius: '12px', padding: '1px' }}>
+        <div className="season-widget-sticky-container" style={{ position: 'sticky', zIndex: 1000, background: 'var(--bg)' }}>
           <SeasonWidget />
         </div>
       )}

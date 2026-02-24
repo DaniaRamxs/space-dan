@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useSeason } from '../hooks/useSeason';
 
 /**
@@ -31,6 +31,14 @@ const TIERS = [
 export default function SeasonWidget() {
     const { season, loading } = useSeason();
     const [timeLeft, setTimeLeft] = useState('...');
+
+    // Memoize particles to prevent re-randomization on every render (causes mobile flicker)
+    const particles = useMemo(() => [...Array(6)].map(() => ({
+        top: `${Math.random() * 100}%`,
+        left: `${Math.random() * 100}%`,
+        duration: 3 + Math.random() * 4,
+        delay: Math.random() * 5
+    })), []);
 
     // Actualizador manual de cuenta atrás de UI 
     useEffect(() => {
@@ -89,17 +97,17 @@ export default function SeasonWidget() {
 
             {/* Floating Particles Overlay */}
             <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 1 }}>
-                {[...Array(6)].map((_, i) => (
+                {particles.map((p, i) => (
                     <div key={i} style={{
                         position: 'absolute',
-                        top: `${Math.random() * 100}%`,
-                        left: `${Math.random() * 100}%`,
+                        top: p.top,
+                        left: p.left,
                         width: '2px', height: '2px',
                         background: '#fff',
                         borderRadius: '50%',
                         boxShadow: '0 0 10px #fff, 0 0 20px var(--accent)',
-                        animation: `floatParticle ${3 + Math.random() * 4}s ease-in-out infinite`,
-                        animationDelay: `${Math.random() * 5}s`,
+                        animation: `floatParticle ${p.duration}s ease-in-out infinite`,
+                        animationDelay: `${p.delay}s`,
                         opacity: 0.4
                     }} />
                 ))}
