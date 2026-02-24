@@ -570,12 +570,18 @@ export default function ProfilePage() {
             </div>
           </div>
 
-          <h1 className="text-3xl font-black uppercase tracking-[0.1em] bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-400 drop-shadow-md">
-            {profile?.username || user?.user_metadata?.full_name || (user?.email || '').split('@')[0] || 'Jugador'}
-          </h1>
+          <div className="flex items-center gap-3">
+            <h1 className="text-3xl font-black uppercase tracking-[0.1em] bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-400 drop-shadow-md">
+              {profile?.username || user?.user_metadata?.full_name || (user?.email || '').split('@')[0] || 'Jugador'}
+            </h1>
+            <Link to="/onboarding" className="text-[10px] text-cyan-400 opacity-50 hover:opacity-100 transition-opacity flex items-center gap-1 bg-white/5 px-2 py-1 rounded border border-white/10" title="Cambiar identidad">
+              ✏️ ID
+            </Link>
+          </div>
           <p className="text-[11px] font-bold text-purple-400 uppercase tracking-[0.3em] mb-4 mt-1 opacity-90">
             {rankName}
           </p>
+
 
           {!isEditingBio ? (
             <div className="flex items-center gap-2 mb-6 group/bio bg-black/20 px-4 py-2 rounded-xl backdrop-blur-sm border border-white/5 cursor-pointer max-w-md mx-auto w-full overflow-hidden" onClick={() => setIsEditingBio(true)}>
