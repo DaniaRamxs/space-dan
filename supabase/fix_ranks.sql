@@ -1,6 +1,6 @@
 CREATE OR REPLACE FUNCTION public.get_user_game_ranks(p_user_id uuid)
 RETURNS TABLE (game_id text, max_score int, user_position bigint)
-LANGUAGE sql STABLE SECURITY DEFINER AS $$$
+LANGUAGE sql STABLE SECURITY DEFINER AS $$
   WITH user_best AS (
     SELECT s.game_id, s.user_id, MAX(s.score)::int as max_score
     FROM public.scores s
@@ -14,4 +14,4 @@ LANGUAGE sql STABLE SECURITY DEFINER AS $$$
   SELECT r.game_id, r.max_score, r.user_position
   FROM ranked r
   WHERE r.user_id = p_user_id;
-$$$;
+$$;

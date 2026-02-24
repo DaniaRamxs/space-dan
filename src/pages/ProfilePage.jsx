@@ -437,6 +437,7 @@ export default function ProfilePage() {
   const [bio, setBio] = useState('');
   const [isEditingBio, setIsEditingBio] = useState(false);
   const [fetching, setFetching] = useState(false);
+  const [activeTab, setActiveTab] = useState('records'); // 'records', 'achievements', 'economy', 'cabina', 'settings'
 
   useEffect(() => {
     if (!user) return;
@@ -496,228 +497,278 @@ export default function ProfilePage() {
 
   const unlockedAchData = ACHIEVEMENTS.filter(a => userAchs.includes(a.id));
 
+  // --- GAMER STATS CALCULATION ---
+  const totalXp = Math.floor(Math.max(0, (profile?.balance || 0) + (unlockedAchData.length * 150) + (gameRanks.length * 200) + ((cabinStats?.total_focus_minutes || 0) * 2)));
+  const baseLevel = Math.max(1, Math.floor(0.1 * Math.sqrt(totalXp)));
+  const level = baseLevel;
+  const nextLevelXp = Math.floor(Math.pow((level + 1) / 0.1, 2));
+  const prevLevelXp = Math.floor(Math.pow(level / 0.1, 2));
+  const currentXpProgress = totalXp - prevLevelXp;
+  const levelXpRequirement = nextLevelXp - prevLevelXp;
+  const progressPercent = Math.min(100, Math.max(0, (currentXpProgress / levelXpRequirement) * 100));
+
+  const rankNames = ['Recluta Espacial', 'Explorador Novato', 'Cazador Cósmico', 'Piloto Estelar', 'Vanguardia', 'Comandante', 'Arquitecto Estelar', 'Leyenda Cósmica', 'Deidad Astral'];
+  const rankName = rankNames[Math.min(Math.floor(level / 3), rankNames.length - 1)];
+
+  const topGlobalRank = gameRanks.length > 0 ? Math.min(...gameRanks.map(r => Number(r.user_position))) : 'N/A';
+  const bestRecord = gameRanks.length > 0 ? Math.max(...gameRanks.map(g => g.max_score || 0)) : 0;
+
   return (
-    <main className="card profileCard">
-      {/* Header */}
-      <div
-        className="profileHeader"
-        style={{
-          padding: '30px', display: 'flex', alignItems: 'center', gap: 25,
-          borderBottom: '1px solid var(--border)', flexWrap: 'wrap',
-          background: bannerColor
-            ? `linear-gradient(135deg, ${bannerColor}55 0%, ${bannerColor}22 100%)`
-            : 'linear-gradient(135deg, rgba(255,110,180,0.1) 0%, rgba(0,229,255,0.05) 100%)',
-          transition: 'background 0.4s',
-        }}
-      >
+    <div className="w-full max-w-4xl mx-auto min-h-[100dvh] pb-24 text-white font-sans flex flex-col gap-6" style={{ background: 'transparent' }}>
+
+      {/* 1️⃣ HERO SECTION */}
+      <section className="relative w-full rounded-b-3xl md:rounded-3xl overflow-hidden shadow-[0_0_40px_rgba(139,92,246,0.15)] bg-[#0d0d14] border border-white/5 pb-6">
+
+        {/* Banner */}
         <div
-          className="avatarFrame"
+          className="absolute inset-0 pointer-events-none transition-all duration-700"
           style={{
-            width: 100, height: 100, borderRadius: '50%', overflow: 'hidden',
-            flexShrink: 0, ...getFrameStyle(frameItemId),
+            background: bannerColor
+              ? `linear-gradient(135deg, ${bannerColor}55 0%, ${bannerColor}22 100%)`
+              : 'linear-gradient(135deg, rgba(255,110,180,0.15) 0%, rgba(0,229,255,0.08) 100%)'
           }}
-        >
-          <img
-            src={profile?.avatar_url || '/dan_profile.jpg'}
-            alt="avatar"
-            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-          />
-        </div>
+        />
 
-        <div style={{ flex: 1 }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
-            <div>
-              <h1 style={{ margin: 0, color: 'var(--text)', fontSize: '2rem', textShadow: '0 0 10px var(--glow)' }}>
-                {profile?.username || user?.user_metadata?.full_name || (user?.email || '').split('@')[0] || 'Jugador'}
-              </h1>
-              <p style={{ margin: '5px 0 0 0', color: 'var(--cyan)', fontSize: '0.9rem', fontWeight: 'bold', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
-                ⭐ Viajero del Dan-Space
-              </p>
+        <div className="relative z-10 p-6 md:p-8 flex flex-col items-center text-center">
 
-              <div style={{ marginTop: 12 }}>
-                {!isEditingBio ? (
-                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
-                    <p style={{ margin: 0, fontSize: '0.85rem', opacity: 0.8, maxWidth: '400px', fontStyle: bio ? 'normal' : 'italic' }}>
-                      {bio || 'Aún no has escrito tu biografía estelar...'}
-                    </p>
-                    <button
-                      onClick={() => setIsEditingBio(true)}
-                      style={{ background: 'none', border: 'none', color: 'var(--accent)', cursor: 'pointer', fontSize: '0.7rem', padding: 0 }}
-                    >
-                      [editar]
-                    </button>
-                  </div>
-                ) : (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxWidth: '400px' }}>
-                    <textarea
-                      value={bio}
-                      onChange={(e) => setBio(e.target.value)}
-                      maxLength={250}
-                      style={{
-                        background: 'rgba(0,0,0,0.3)', border: '1px solid var(--accent)',
-                        borderRadius: 8, color: '#fff', fontSize: '0.85rem', padding: 8,
-                        minHeight: '60px', fontFamily: 'inherit'
-                      }}
-                      placeholder="Escribe algo sobre ti..."
-                    />
-                    <div style={{ display: 'flex', gap: 10 }}>
-                      <button
-                        className="winButton"
-                        style={{ fontSize: '0.7rem', padding: '4px 10px' }}
-                        onClick={async () => {
-                          try {
-                            await supabase.from('profiles').update({ bio }).eq('id', user.id);
-                            setIsEditingBio(false);
-                          } catch (err) { alert('Error al guardar'); }
-                        }}
-                      >
-                        Guardar
-                      </button>
-                      <button
-                        className="winButton"
-                        style={{ fontSize: '0.7rem', padding: '4px 10px', opacity: 0.5 }}
-                        onClick={() => {
-                          setBio(profile?.bio || '');
-                          setIsEditingBio(false);
-                        }}
-                      >
-                        Cancelar
-                      </button>
-                    </div>
-                  </div>
-                )}
+          <div className="absolute top-4 right-4 flex flex-col items-end gap-2">
+            <button className="winButton text-xs px-3 py-1 bg-black/40 backdrop-blur-md" onClick={logout}>Cerrar Sesión</button>
+            <label className="flex items-center gap-2 cursor-pointer text-[10px] uppercase tracking-wider opacity-75 hover:opacity-100 transition font-bold mt-1 bg-black/40 backdrop-blur-md px-2 py-1 rounded">
+              🎨 Banner
+              <input
+                type="color" value={bannerColor || '#050510'}
+                onChange={async (e) => {
+                  const hex = e.target.value; setBannerLocal(hex);
+                  try { await saveBannerColor(user.id, hex); } catch { }
+                }}
+                className="w-5 h-5 border-none bg-transparent cursor-pointer rounded p-0"
+              />
+            </label>
+            {bannerColor && (
+              <button onClick={async () => { setBannerLocal(null); try { await saveBannerColor(user.id, null); } catch { } }} className="text-[10px] uppercase opacity-50 hover:opacity-100">✕ quitar</button>
+            )}
+          </div>
+
+          <div className="relative group cursor-pointer mb-6 mt-4 md:mt-0">
+            <div className="absolute -inset-2 bg-gradient-to-r from-purple-600 to-cyan-500 rounded-[35%] blur-xl opacity-40 group-hover:opacity-80 transition duration-700"></div>
+            <div className="relative w-28 h-28 rounded-[30%] overflow-hidden border border-white/20 shadow-2xl bg-black" style={getFrameStyle(frameItemId)}>
+              <img src={profile?.avatar_url || '/dan_profile.jpg'} alt="Avatar" className="w-full h-full object-cover" />
+            </div>
+            {/* Pet Overlay */}
+            <div className="absolute -left-6 -bottom-2 pointer-events-none drop-shadow-2xl z-30 scale-x-[-1]">
+              <PetDisplay userId={user.id} size={45} showName={false} />
+            </div>
+
+            <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 bg-[#09090b] border border-cyan-500 text-cyan-400 text-xs font-black px-4 py-1 rounded-full shadow-[0_0_15px_rgba(6,182,212,0.4)] z-20 whitespace-nowrap">
+              LVL {level}
+            </div>
+          </div>
+
+          <h1 className="text-3xl font-black uppercase tracking-[0.1em] bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-400 drop-shadow-md">
+            {profile?.username || user?.user_metadata?.full_name || (user?.email || '').split('@')[0] || 'Jugador'}
+          </h1>
+          <p className="text-[11px] font-bold text-purple-400 uppercase tracking-[0.3em] mb-4 mt-1 opacity-90">
+            {rankName}
+          </p>
+
+          {!isEditingBio ? (
+            <div className="flex items-center gap-2 mb-6 group/bio bg-black/20 px-4 py-2 rounded-xl backdrop-blur-sm border border-white/5 cursor-pointer max-w-md mx-auto" onClick={() => setIsEditingBio(true)}>
+              <p className={`text-sm tracking-wide max-w-sm flex-1 ${bio ? 'text-gray-300' : 'text-gray-500 italic'}`}>"{bio || 'Sin biografía...'}"</p>
+              <button className="text-[10px] text-cyan-400 opacity-0 group-hover/bio:opacity-100 transition-opacity">✏️ EDIT</button>
+            </div>
+          ) : (
+            <div className="flex flex-col gap-2 w-full max-w-md mb-6 z-20 animate-fade-in-up">
+              <textarea
+                autoFocus
+                value={bio} onChange={e => setBio(e.target.value)} maxLength={250}
+                className="w-full bg-[#050508] border border-cyan-500/50 rounded-xl p-3 text-sm text-white resize-none h-24 outline-none focus:border-cyan-400 shadow-[0_0_20px_rgba(6,182,212,0.1)] transition-all"
+                placeholder="Escribe tu bio..."
+              />
+              <div className="flex justify-end gap-2">
+                <button className="winButton text-xs py-1 px-4" onClick={async () => {
+                  try { await supabase.from('profiles').update({ bio }).eq('id', user.id); setIsEditingBio(false); } catch { }
+                }}>Guardar</button>
+                <button className="text-xs px-3 opacity-60 hover:opacity-100 transition-opacity" onClick={() => { setBio(profile?.bio || ''); setIsEditingBio(false); }}>Cancelar</button>
               </div>
             </div>
-            {/* Mascota con accesorios equipados */}
-            <PetDisplay userId={user.id} size={70} showName />
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'flex-end' }}>
-              <button className="winButton" onClick={logout} style={{ fontSize: '0.8rem', padding: '6px 12px' }}>
-                Cerrar Sesión
-              </button>
-              {/* Banner color picker */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', fontSize: '0.78rem', opacity: 0.75 }}>
-                  🎨 Banner
-                  <input
-                    type="color"
-                    value={bannerColor || '#050510'}
-                    onChange={async (e) => {
-                      const hex = e.target.value;
-                      setBannerLocal(hex);
-                      try { await saveBannerColor(user.id, hex); } catch { }
-                    }}
-                    style={{ width: 28, height: 22, border: 'none', background: 'none', padding: 0, cursor: 'pointer', borderRadius: 4 }}
-                  />
-                </label>
-                {bannerColor && (
-                  <button
-                    onClick={async () => {
-                      setBannerLocal(null);
-                      try { await saveBannerColor(user.id, null); } catch { }
-                    }}
-                    style={{ background: 'none', border: 'none', color: 'var(--text)', cursor: 'pointer', opacity: 0.45, fontSize: '0.75rem' }}
-                  >
-                    ✕ quitar
-                  </button>
-                )}
+          )}
+
+          {/* XP Bar */}
+          <div className="w-full max-w-xs mt-2">
+            <div className="flex justify-between text-[10px] text-gray-400 font-bold mb-1.5 uppercase tracking-widest">
+              <span>{Math.floor(totalXp).toLocaleString()} XP</span>
+              <span className="text-cyan-500">{Math.floor(nextLevelXp).toLocaleString()} XP</span>
+            </div>
+            <div className="h-1.5 w-full bg-[#050508] rounded-full overflow-hidden border border-white/5 relative">
+              <div
+                className="h-full bg-gradient-to-r from-cyan-500 via-purple-500 to-pink-500 w-full rounded-full transition-all duration-1000 ease-out relative"
+                style={{ width: `${progressPercent}%` }}
+              >
+                <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-white/40 to-transparent"></div>
               </div>
             </div>
           </div>
         </div>
-      </div>
+      </section>
 
       {fetching ? (
-        <div style={{ padding: 30, textAlign: 'center' }}>
-          <span className="blinkText" style={{ color: 'var(--accent)' }}>cargando_datos...</span>
+        <div className="p-12 flex justify-center items-center">
+          <span className="text-cyan-500 animate-pulse font-mono text-sm tracking-widest uppercase">cargando_red_estelar...</span>
         </div>
       ) : (
-        <div style={{ padding: '24px 28px' }}>
-
-          {/* Economía */}
-          <EconomySection user={user} />
-
-          {/* Fondo comunitario */}
-          <FundSection user={user} />
-
-          {/* Actividad en Cabina */}
-          <section style={{ marginBottom: 32 }}>
-            <h2 className="cardTitle" style={{ fontSize: '1.1rem', marginBottom: 14 }}>🚀 Actividad en Cabina</h2>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 15 }}>
-              <ProfileStatCard label="Horas de Enfoque" value={`${Math.round((cabinStats?.total_focus_minutes || 0) / 60)}h`} icon="⏳" />
-              <ProfileStatCard label="Sesiones Totales" value={cabinStats?.total_sessions || 0} icon="✨" />
-              <ProfileStatCard label="Racha Actual" value={`${cabinStats?.current_streak || 0}d`} icon="🔥" />
-              <ProfileStatCard label="Coins de Órbita" value={cabinStats?.dancoins_earned || 0} icon="◈" />
+        <>
+          {/* 2️⃣ STATS CORE GRID */}
+          <section className="px-4 md:px-0 animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
+            <h2 className="text-[10px] text-gray-500 uppercase tracking-[0.3em] font-bold mb-3 pl-1 flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-cyan-500 animate-pulse"></span> Core Stats
+            </h2>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <StatCard title="Rank Global" value={topGlobalRank !== 'N/A' ? `#${topGlobalRank}` : '-'} icon="🌍" highlight="text-green-400" />
+              <StatCard title="Racha Focus" value={`${cabinStats?.current_streak || 0} 🔥`} icon="⏳" highlight="text-orange-400" />
+              <StatCard title="Juegos Activos" value={gameRanks.length} icon="🎮" />
+              <StatCard title="Mejor Récord" value={bestRecord.toLocaleString()} icon="✨" highlight="text-cyan-300" />
             </div>
           </section>
 
-          {/* Récords */}
-          <section style={{ marginBottom: 32 }}>
-            <h2 className="cardTitle" style={{ fontSize: '1.1rem', marginBottom: 14 }}>🎮 Récords Personales</h2>
-            {gameRanks.length === 0 ? (
-              <p style={{ opacity: 0.7 }}>Aún no has jugado ningún juego o no tienes un récord registrado.</p>
-            ) : (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 15 }}>
-                {gameRanks.map(rank => (
-                  <div key={rank.game_id} style={{
-                    padding: 15, border: '1px solid var(--border)',
-                    background: 'rgba(255,255,255,0.02)', borderRadius: 8,
-                  }}>
-                    <h3 style={{ margin: '0 0 10px 0', fontSize: '1rem', color: 'var(--cyan)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                      {GAME_NAMES[rank.game_id] || rank.game_id}
+          {/* 3️⃣ TABS */}
+          <section className="px-4 md:px-0 flex-1 flex flex-col min-h-0 animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
+            <div className="flex bg-[#0a0a0f] rounded-xl p-1 shadow-lg border border-white/5 overflow-x-auto no-scrollbar scroll-smooth">
+              <TabButton active={activeTab === 'records'} onClick={() => setActiveTab('records')}>🏆 Récords</TabButton>
+              <TabButton active={activeTab === 'achievements'} onClick={() => setActiveTab('achievements')}>🎖️ Logros</TabButton>
+              <TabButton active={activeTab === 'economy'} onClick={() => setActiveTab('economy')}>💎 Economía</TabButton>
+              <TabButton active={activeTab === 'cabina'} onClick={() => setActiveTab('cabina')}>🚀 Cabina</TabButton>
+            </div>
+
+            <div className="mt-5 flex-1 mb-8">
+
+              {/* TAB: RECORDS */}
+              {activeTab === 'records' && (
+                <div className="animate-fade-in-up">
+                  {gameRanks.length === 0 ? (
+                    <div className="text-center p-12 border border-white/5 rounded-2xl bg-[#0a0a0f] text-gray-500 text-sm">Sin récords registrados. ¡Empieza a jugar en el arcade!</div>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      {gameRanks.map(rank => (
+                        <div key={rank.game_id} className="flex bg-[#13131c] border border-white/5 rounded-xl p-3 items-center gap-4 hover:bg-[#1a1a26] transition hover:border-white/10 group cursor-default">
+                          <div className="w-12 h-12 rounded-lg bg-black/40 border border-white/5 flex items-center justify-center text-xl group-hover:scale-110 transition shadow-inner">
+                            🎮
+                          </div>
+                          <div className="flex-1">
+                            <h3 className="font-bold text-[13px] text-gray-200 uppercase tracking-widest">{GAME_NAMES[rank.game_id] || rank.game_id}</h3>
+                            <p className="text-xs text-cyan-400 font-mono mt-0.5">Score: {(rank.max_score ?? 0).toLocaleString()}</p>
+                          </div>
+                          <div className="flex flex-col items-center justify-center px-4 py-2 bg-[#0a0a0f] rounded-lg border border-purple-500/20 shadow-md">
+                            <span className="text-[9px] text-gray-500 uppercase tracking-[0.2em] mb-0.5">Rank</span>
+                            <span className="font-black text-purple-400 text-sm">#{rank.user_position}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* TAB: ACHIEVEMENTS */}
+              {activeTab === 'achievements' && (
+                <div className="animate-fade-in-up">
+                  <div className="mb-4 flex justify-between items-end px-1">
+                    <span className="text-[10px] text-gray-500 uppercase tracking-[0.2em] font-bold">Insignias Desbloqueadas</span>
+                    <span className="text-[11px] text-cyan-500 font-mono bg-cyan-900/20 px-2.5 py-1 rounded border border-cyan-800/40">{unlockedAchData.length}/{ACHIEVEMENTS.length}</span>
+                  </div>
+                  {unlockedAchData.length === 0 ? (
+                    <div className="text-center p-12 border border-white/5 rounded-2xl bg-[#0a0a0f] text-gray-500 text-sm">Aún no hay logros. ¡Explora el OS!</div>
+                  ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                      {unlockedAchData.map(ach => (
+                        <div key={ach.id} className="flex flex-col bg-gradient-to-br from-[#171724] to-[#0a0a0f] border border-purple-500/10 rounded-xl p-4 relative overflow-hidden group">
+                          <div className="absolute -top-4 -right-4 w-20 h-20 bg-purple-500/10 rounded-full blur-2xl pointer-events-none group-hover:bg-purple-500/20 transition duration-700"></div>
+                          <div className="flex items-center justify-between mb-3 z-10">
+                            <div className="text-2xl drop-shadow-[0_0_10px_rgba(255,255,255,0.2)]">{ach.icon}</div>
+                            <div className="w-5 h-5 rounded-full bg-green-500/10 border border-green-500/50 flex items-center justify-center text-green-400 text-[10px]">✓</div>
+                          </div>
+                          <div className="z-10">
+                            <div className="font-bold text-[13px] text-white tracking-wide">{ach.title}</div>
+                            <div className="text-[11px] text-gray-400 leading-snug mt-1 opacity-80 group-hover:opacity-100 transition whitespace-pre-wrap">{ach.desc}</div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* TAB: ECONOMY */}
+              {activeTab === 'economy' && (
+                <div className="animate-fade-in-up flex flex-col gap-6">
+                  <EconomySection user={user} />
+                  <FundSection user={user} />
+                </div>
+              )}
+
+              {/* TAB: CABINA */}
+              {activeTab === 'cabina' && (
+                <div className="animate-fade-in-up">
+                  <div className="bg-[#13131c] rounded-2xl border border-white/5 p-6 md:p-8 relative overflow-hidden shadow-xl">
+                    {/* Estética sci-fi */}
+                    <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-cyan-500/5 rounded-full blur-3xl pointer-events-none -translate-y-1/2 translate-x-1/3"></div>
+                    <div className="absolute bottom-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-cyan-500/20 to-transparent"></div>
+
+                    <h3 className="text-xs text-cyan-500 uppercase tracking-[0.2em] font-bold mb-6 flex items-center gap-2">
+                      <span className="w-1.5 h-1.5 bg-cyan-500 rotate-45"></span> Telemetría de Foco
                     </h3>
-                    <div style={{ fontSize: '1.8rem', fontWeight: 900, color: 'var(--text)' }}>
-                      {(rank.max_score ?? 0).toLocaleString()}
-                    </div>
-                    <div style={{ fontSize: '0.85rem', color: 'var(--accent)', marginTop: 8, fontWeight: 'bold' }}>
-                      Puesto Global: <span style={{ color: 'var(--text)' }}>#{rank.user_position}</span>
+
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 relative z-10">
+                      <div className="flex flex-col gap-1.5 p-4 rounded-xl bg-black/20 border border-white/5">
+                        <span className="text-[9px] text-gray-500 uppercase tracking-widest font-bold">Horas de Enfoque</span>
+                        <span className="text-2xl font-black text-white font-mono">{Math.round((cabinStats?.total_focus_minutes || 0) / 60)}<span className="text-gray-500 text-sm ml-1">h</span></span>
+                      </div>
+                      <div className="flex flex-col gap-1.5 p-4 rounded-xl bg-black/20 border border-white/5">
+                        <span className="text-[9px] text-gray-500 uppercase tracking-widest font-bold">Sesiones Totales</span>
+                        <span className="text-2xl font-black text-white font-mono">{cabinStats?.total_sessions || 0}</span>
+                      </div>
+                      <div className="flex flex-col gap-1.5 p-4 rounded-xl bg-black/20 border border-white/5">
+                        <span className="text-[9px] text-gray-500 uppercase tracking-widest font-bold">Racha Actual</span>
+                        <span className="text-2xl font-black text-orange-400 font-mono">{cabinStats?.current_streak || 0}<span className="text-gray-500 text-sm ml-1">d</span></span>
+                      </div>
+                      <div className="flex flex-col gap-1.5 p-4 rounded-xl bg-black/20 border border-white/5">
+                        <span className="text-[9px] text-gray-500 uppercase tracking-widest font-bold">Dancoins Ganadas</span>
+                        <span className="text-2xl font-black text-cyan-400 font-mono">◈ {cabinStats?.dancoins_earned || 0}</span>
+                      </div>
                     </div>
                   </div>
-                ))}
-              </div>
-            )}
-          </section>
+                </div>
+              )}
 
-          {/* Logros */}
-          <section>
-            <h2 className="cardTitle" style={{ fontSize: '1.1rem', marginBottom: 14 }}>
-              🏆 Logros Desbloqueados ({unlockedAchData.length}/{ACHIEVEMENTS.length})
-            </h2>
-            {unlockedAchData.length === 0 ? (
-              <p style={{ opacity: 0.7 }}>Aún no has desbloqueado logros. ¡Sigue explorando!</p>
-            ) : (
-              <div className="achGrid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))' }}>
-                {unlockedAchData.map(ach => (
-                  <div key={ach.id} className="achCard unlocked">
-                    <div className="achCardIcon">{ach.icon}</div>
-                    <div className="achCardBody">
-                      <div className="achCardTitle">{ach.title}</div>
-                      <div className="achCardDesc">{ach.desc}</div>
-                    </div>
-                    <div className="achCardCheck">✓</div>
-                  </div>
-                ))}
-              </div>
-            )}
+            </div>
           </section>
-
-        </div>
+        </>
       )}
-    </main>
+    </div>
   );
 }
 
-function ProfileStatCard({ label, value, icon }) {
+// --- SUBCOMPONENTES REUTILIZABLES ---
+function StatCard({ title, value, icon, highlight = 'text-white' }) {
   return (
-    <div style={{
-      padding: 15, border: '1px solid var(--border)',
-      background: 'rgba(255,255,255,0.02)', borderRadius: 8,
-    }}>
-      <div style={{ fontSize: '0.75rem', color: 'var(--cyan)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-        {icon} {label}
-      </div>
-      <div style={{ fontSize: '1.5rem', fontWeight: 900, color: 'var(--text)' }}>
-        {value}
-      </div>
+    <div className="bg-[#13131c] p-3 md:p-4 rounded-xl border border-white/5 flex flex-col justify-center items-center text-center hover:bg-[#1a1a26] transition shadow-md relative overflow-hidden group">
+      <div className="absolute top-0 right-0 p-2 opacity-5 scale-150 rotate-12 group-hover:scale-[1.8] group-hover:rotate-45 transition duration-500">{icon}</div>
+      <div className="text-xl mb-1 relative z-10">{icon}</div>
+      <div className={`text-xl md:text-2xl font-black leading-none ${highlight} relative z-10 drop-shadow-md`}>{value}</div>
+      <div className="text-[9px] text-gray-500 uppercase tracking-[0.2em] font-bold mt-2 relative z-10">{title}</div>
     </div>
+  );
+}
+
+function TabButton({ active, onClick, children }) {
+  return (
+    <button
+      onClick={onClick}
+      className={`flex-1 py-2.5 px-4 text-[11px] md:text-sm font-bold rounded-lg transition-all whitespace-nowrap tracking-wide ${active
+          ? 'bg-[#1a1a26] text-white shadow-md border border-white/10'
+          : 'text-gray-500 hover:text-gray-300 hover:bg-white/5 border border-transparent'
+        }`}
+    >
+      {children}
+    </button>
   );
 }
