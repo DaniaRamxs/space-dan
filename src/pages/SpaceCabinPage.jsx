@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import SeasonMiniBadge from '../components/SeasonMiniBadge';
 import { motion } from 'framer-motion';
 import { useAuthContext } from '../contexts/AuthContext';
 import { getProductivityStats, finishFocusSession, getRecentFocusSessions } from '../services/productivity';
@@ -99,6 +100,9 @@ export default function SpaceCabinPage() {
                         CABINA <span className="text-accent">ESPACIAL</span>
                     </motion.h1>
                     <p className="text-sm opacity-40 uppercase tracking-[0.3em]">Módulo de Enfoque Personal</p>
+                    <div style={{ marginTop: 8 }}>
+                        <SeasonMiniBadge />
+                    </div>
                 </div>
 
                 {/* Mini Stats Bar */}

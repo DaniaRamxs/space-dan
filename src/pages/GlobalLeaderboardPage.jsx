@@ -73,75 +73,108 @@ function CompetitiveRow({ row, i, isMe, medal, formatMetric, onClick }) {
 
   return (
     <motion.tr
-      initial={{ opacity: 0, x: -20 }}
-      animate={{ opacity: 1, x: 0 }}
+      initial={{ opacity: 0, scale: 0.95 }}
+      animate={{ opacity: 1, scale: 1 }}
+      whileHover={{ scale: 1.01, filter: 'brightness(1.2)' }}
       transition={{ delay: i * 0.05, duration: 0.4 }}
       onClick={onClick}
       className={`competitive-row rank-${rank}`}
       style={{
         cursor: 'pointer',
         background: bgGradient,
-        height: isTop3 ? '70px' : '55px',
+        height: isTop3 ? '85px' : '65px',
         borderBottom: `1px solid ${borderGlow}`,
-        position: 'relative'
+        position: 'relative',
+        overflow: 'hidden'
       }}
     >
-      <td style={{ width: 60, textAlign: 'center' }}>
+      {/* Shine effect for Top Rank */}
+      {rank === 1 && (
         <div style={{
-          fontSize: isTop3 ? '1.5rem' : '1rem',
-          fontWeight: 'black',
-          color: rank === 1 ? '#ffd700' : rank === 2 ? '#e5e5e5' : rank === 3 ? '#cd7f32' : 'inherit',
-          textShadow: isTop3 ? `0 0 10px ${borderGlow}` : 'none'
+          position: 'absolute', inset: 0,
+          background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent)',
+          animation: 'shine 3s infinite',
+          pointerEvents: 'none'
+        }} />
+      )}
+
+      <td style={{ width: 80, textAlign: 'center' }}>
+        <div style={{
+          fontSize: isTop3 ? '2rem' : '1.2rem',
+          fontWeight: '900',
+          fontFamily: 'monospace',
+          color: rank === 1 ? '#ffd700' : rank === 2 ? '#e5e5e5' : rank === 3 ? '#cd7f32' : 'rgba(255,255,255,0.5)',
+          textShadow: isTop3 ? `0 0 15px ${borderGlow}` : 'none',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center'
         }}>
           {isTop3 ? medal(rank) : rank}
+          {isTop3 && <span style={{ fontSize: '0.6rem', letterSpacing: 1, marginTop: -5 }}>RANK</span>}
         </div>
       </td>
       <td>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
           <div style={{ position: 'relative' }}>
-            <Avatar url={row.avatar_url} name={row.username} />
+            <div style={{
+              borderRadius: '50%', padding: '3px',
+              background: rank === 1 ? 'linear-gradient(45deg, #ffd700, #fff, #ffd700)' : 'transparent'
+            }}>
+              <Avatar url={row.avatar_url} name={row.username} />
+            </div>
             {isTop3 && (
               <div style={{
-                position: 'absolute', top: -5, left: -5,
-                width: '100%', height: '100%',
+                position: 'absolute', top: -4, left: -4, right: -4, bottom: -4,
                 border: `2px solid ${borderGlow}`, borderRadius: '50%',
                 animation: 'pulse 2s infinite'
               }} />
             )}
-
           </div>
           <div style={{ display: 'flex', flexDirection: 'column' }}>
             <div style={{
-              fontWeight: 'bold',
-              fontSize: isTop3 ? '1.1rem' : '0.95rem',
+              fontWeight: '900',
+              fontSize: isTop3 ? '1.2rem' : '1rem',
               color: isMe ? 'var(--accent)' : '#fff',
-              letterSpacing: '0.05em'
+              letterSpacing: '0.05em',
+              textTransform: 'uppercase'
             }}>
-              {row.username || 'Anónimo'} {isMe && <span style={{ fontSize: '0.7rem', opacity: 0.6 }}>(tú)</span>}
+              {row.username || 'Anónimo'}
+              {isMe && <span style={{ marginLeft: 6, fontSize: '0.6rem', background: 'var(--accent)', color: '#fff', padding: '1px 6px', borderRadius: '4px' }}>TÚ</span>}
             </div>
-            {row.user_level && (
-              <span style={{ fontSize: '0.65rem', color: 'var(--cyan)', fontWeight: 'bold' }}>
-                MASTER LVL {row.user_level}
-              </span>
-            )}
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+              {row.user_level && (
+                <span style={{ fontSize: '0.7rem', color: 'var(--cyan)', fontWeight: 'bold', background: 'rgba(0,229,255,0.1)', padding: '1px 8px', borderRadius: '4px' }}>
+                  LEVEL {row.user_level}
+                </span>
+              )}
+              {rank <= 10 && <span style={{ fontSize: '0.6rem', color: '#ffcc00' }}>⭐ TOP TIERS</span>}
+            </div>
           </div>
         </div>
       </td>
-      <td style={{ textAlign: 'right', paddingRight: 20 }}>
+      <td style={{ textAlign: 'right', paddingRight: 30 }}>
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
           <span style={{
-            fontSize: isTop3 ? '1.3rem' : '1.1rem',
+            fontSize: isTop3 ? '1.6rem' : '1.3rem',
             fontWeight: '900',
             color: 'var(--cyan)',
-            fontFamily: 'monospace',
-            textShadow: '0 0 8px rgba(0,255,255,0.3)'
+            fontFamily: '"Exo 2", monospace',
+            textShadow: '0 0 10px rgba(0,255,255,0.4)',
+            letterSpacing: '0.05em'
           }}>
             {formatMetric('competitive', row)}
           </span>
-          {isTop3 && <span style={{ fontSize: '0.6rem', opacity: 0.5, textTransform: 'uppercase' }}>Elite Rank</span>}
+          {isTop3 && <motion.span
+            animate={{ opacity: [0.5, 1, 0.5] }}
+            transition={{ duration: 2, repeat: Infinity }}
+            style={{ fontSize: '0.65rem', color: '#fff', opacity: 0.7, textTransform: 'uppercase', fontWeight: 'bold' }}
+          >
+            Elite Seasonal
+          </motion.span>}
         </div>
       </td>
     </motion.tr>
+
   );
 }
 

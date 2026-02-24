@@ -36,15 +36,36 @@ export default function SeasonWidget() {
 
     return (
         <div style={{
-            background: 'linear-gradient(135deg, rgba(10,10,20,0.9) 0%, rgba(30,20,40,0.85) 100%)',
-            border: '1px solid rgba(255,110,180,0.4)',
-            borderRadius: '16px',
-            padding: '20px',
+            background: 'linear-gradient(135deg, rgba(20,10,40,0.95) 0%, rgba(40,20,60,0.9) 50%, rgba(20,10,40,0.95) 100%)',
+            backgroundSize: '200% 200%',
+            animation: 'gradientMove 6s ease infinite',
+            border: '1px solid rgba(255,110,180,0.5)',
+            borderRadius: '20px',
+            padding: '24px',
             margin: '0 0 20px 0',
             position: 'relative',
             overflow: 'hidden',
-            boxShadow: '0 8px 32px rgba(0,0,0,0.6), inset 0 0 20px rgba(255,110,180,0.1)'
+            boxShadow: '0 12px 40px rgba(0,0,0,0.7), inset 0 0 30px rgba(255,110,180,0.15)',
+            color: '#fff'
         }}>
+            {/* Glossy Overlay */}
+            <div style={{
+                position: 'absolute', top: 0, left: 0, right: 0, height: '50%',
+                background: 'linear-gradient(180deg, rgba(255,255,255,0.05) 0%, transparent 100%)',
+                pointerEvents: 'none'
+            }} />
+
+            <style>{`
+                @keyframes gradientMove {
+                    0% { background-position: 0% 50%; }
+                    50% { background-position: 100% 50%; }
+                    100% { background-position: 0% 50%; }
+                }
+                @keyframes shine {
+                    from { left: -100%; }
+                    to { left: 100%; }
+                }
+            `}</style>
 
             {/* Background Rush Indicator */}
             {season.is_final_phase && (
@@ -71,18 +92,29 @@ export default function SeasonWidget() {
 
             {/* Boost Banners */}
             {(season.active_boosts?.night || season.active_boosts?.weekend || season.is_final_phase) && (
-                <div style={{ display: 'flex', gap: 6, marginBottom: 10, flexWrap: 'wrap' }}>
-                    {season.active_boosts?.night && <span style={{ fontSize: '10px', background: '#4a00e0', color: '#fff', padding: '2px 6px', borderRadius: '4px' }}>🌙 BOOST NOCTURNO x1.2</span>}
-                    {season.active_boosts?.weekend && <span style={{ fontSize: '10px', background: '#ff8c00', color: '#fff', padding: '2px 6px', borderRadius: '4px' }}>🎉 FIN DE SEMANA x1.3</span>}
-                    {season.is_final_phase && <span style={{ fontSize: '10px', background: '#ff0000', color: '#fff', padding: '2px 6px', borderRadius: '4px', animation: 'blink 1.5s infinite' }}>🔥 FASE FINAL x1.5</span>}
+                <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
+                    {season.active_boosts?.night && (
+                        <div style={{ fontSize: '10px', background: 'rgba(74, 0, 224, 0.4)', border: '1px solid #4a00e0', color: '#fff', padding: '4px 10px', borderRadius: '20px', display: 'flex', alignItems: 'center', gap: 4, backdropFilter: 'blur(4px)' }}>
+                            <span style={{ fontSize: '12px' }}>🌙</span> NIGHT BOOST x1.2
+                        </div>
+                    )}
+                    {season.active_boosts?.weekend && (
+                        <div style={{ fontSize: '10px', background: 'rgba(255, 140, 0, 0.4)', border: '1px solid #ff8c00', color: '#fff', padding: '4px 10px', borderRadius: '20px', display: 'flex', alignItems: 'center', gap: 4, backdropFilter: 'blur(4px)' }}>
+                            <span style={{ fontSize: '12px' }}>🎉</span> WEEKEND x1.3
+                        </div>
+                    )}
+                    {season.is_final_phase && (
+                        <div style={{ fontSize: '10px', background: 'rgba(255, 0, 0, 0.4)', border: '1px solid #ff0000', color: '#fff', padding: '4px 10px', borderRadius: '20px', display: 'flex', alignItems: 'center', gap: 4, backdropFilter: 'blur(4px)', animation: 'pulse 1s infinite' }}>
+                            <span style={{ fontSize: '12px' }}>🔥</span> FINAL PHASE x1.5
+                        </div>
+                    )}
                 </div>
             )}
 
-            <div style={{ background: 'rgba(255,255,255,0.05)', padding: '10px', borderRadius: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-
+            <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', padding: '16px', borderRadius: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div style={{ display: 'flex', flexDirection: 'column' }}>
-                    <span style={{ fontSize: '0.7rem', opacity: 0.5, textTransform: 'uppercase' }}>Coins Temp.</span>
-                    <span style={{ fontSize: '1.1rem', color: 'var(--cyan)' }}>◈ {season.my_balance.toLocaleString()}</span>
+                    <span style={{ fontSize: '0.65rem', opacity: 0.5, textTransform: 'uppercase', letterSpacing: 1 }}>My Seasonal Balance</span>
+                    <span style={{ fontSize: '1.5rem', fontWeight: '900', color: 'var(--cyan)', textShadow: '0 0 10px rgba(0,229,255,0.4)', fontFamily: '"Exo 2", sans-serif' }}>◈ {season.my_balance.toLocaleString()}</span>
                 </div>
 
                 {season.gap_to_next > 0 && (
