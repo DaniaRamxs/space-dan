@@ -134,14 +134,13 @@ export default function Game2048() {
 
   const [grid, setGrid] = useState(() => initGame());
   const [score, setScore] = useState(0);
-  const [bestScore, setBestScore] = useState(() => {
-    try { return parseInt(localStorage.getItem('2048-best') || '0', 10); } catch { return 0; }
-  });
+  const [best, saveScore] = useHighScore('2048');
   const [gameOver, setGameOver] = useState(false);
   const [won, setWon] = useState(false);
   const [continueAfterWin, setContinueAfterWin] = useState(false);
-  const [, reportScore] = useHighScore('2048');
   const scoredRef = useRef(false);
+
+
 
   // Touch tracking
   const touchStart = useRef(null);
@@ -153,13 +152,10 @@ export default function Game2048() {
       const next = addRandomTile(moved);
       setScore(s => {
         const newScore = s + gained;
-        setBestScore(best => {
-          const newBest = Math.max(best, newScore);
-          try { localStorage.setItem('2048-best', String(newBest)); } catch { }
-          return newBest;
-        });
+        // High score managed by saveScore call later
         return newScore;
       });
+
       if (!continueAfterWin && hasWon(next)) setWon(true);
       if (!hasMovesLeft(next)) setGameOver(true);
       return next;
@@ -169,8 +165,9 @@ export default function Game2048() {
   useEffect(() => {
     if ((gameOver || won) && !scoredRef.current) {
       scoredRef.current = true;
-      reportScore(score);
+      saveScore(score);
     }
+
   }, [gameOver, won]);
 
   const newGame = useCallback(() => {
@@ -378,9 +375,10 @@ export default function Game2048() {
             <span style={scoreValueStyle}>{score}</span>
           </div>
           <div style={scoreCardStyle}>
-            <span style={scoreLabelStyle}>best</span>
-            <span style={scoreValueStyle}>{bestScore}</span>
+            <span style={scoreLabelStyle}>récord</span>
+            <span style={scoreValueStyle}>{best}</span>
           </div>
+
         </div>
       </div>
 
