@@ -56,10 +56,10 @@ export async function syncAchievementToDb(achievementId, achievementTitle = '', 
         // Award coins via SECURITY DEFINER (server validates, prevents client manipulation)
         if (coins > 0) {
             await supabase.rpc('award_coins', {
-                p_user_id:    session.user.id,
-                p_amount:     coins,
-                p_type:       'achievement',
-                p_reference:  achievementId,
+                p_user_id: session.user.id,
+                p_amount: coins,
+                p_type: 'achievement',
+                p_reference: achievementId,
                 p_description: achievementTitle,
             });
         }
@@ -87,15 +87,12 @@ export async function ensureProfile(user) {
     if (!data) {
         await supabase.from('profiles').insert({
             id: user.id,
-            username:
-                user.user_metadata?.full_name ||
-                user.user_metadata?.name ||
-                (user.email || '').split('@')[0] ||
-                'usuario',
+            username: null, // Will trigger onboarding
             avatar_url: user.user_metadata?.avatar_url || null,
         });
     }
 }
+
 
 export const getUserGameRanks = async (userId) => {
     const { data, error } = await supabase.rpc('get_user_game_ranks', { p_user_id: userId });

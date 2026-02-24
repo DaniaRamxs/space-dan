@@ -42,6 +42,8 @@ const SpaceCabinPage = lazy(() => import("./pages/SpaceCabinPage"));
 const OrbitLettersPage = lazy(() => import("./pages/OrbitLettersPage"));
 const VaultPage = lazy(() => import("./pages/VaultPage"));
 const FocusRoom = lazy(() => import("./pages/FocusRoom"));
+const OnboardingPage = lazy(() => import("./pages/OnboardingPage"));
+
 
 const ALL_PAGES = ['/home', '/bulletin', '/posts', '/music', '/games', '/galeria',
   '/watchlist', '/desktop', '/timecapsule', '/guestbook', '/proyectos', '/arquitectura',
@@ -93,10 +95,24 @@ function Layout({ children }) {
 
 function AnimatedRoutes() {
   const location = useLocation();
+  const { user, profile, loading } = useAuthContext();
+
+  // Redirección obligatoria a onboarding si no tiene username (excepto si ya está ahí o no está logueado)
+  if (!loading && user && !profile?.username && location.pathname !== '/onboarding') {
+    return (
+      <AnimatePresence mode="wait">
+        <Routes>
+          <Route path="*" element={<OnboardingPage />} />
+        </Routes>
+      </AnimatePresence>
+    );
+  }
 
   return (
     <AnimatePresence mode="wait">
       <Routes location={location} key={location.pathname}>
+        <Route path="/onboarding" element={<Layout><OnboardingPage /></Layout>} />
+
         <Route path="/" element={<PageTransition><Wpage /></PageTransition>} />
         <Route path="/home" element={<Layout><DanProfilePage /></Layout>} />
         <Route path="/profile" element={<Layout><ProfilePage /></Layout>} />
