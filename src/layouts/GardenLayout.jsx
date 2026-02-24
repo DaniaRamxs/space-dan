@@ -225,7 +225,7 @@ export default function GardenLayout({ children }) {
 
           <div className="gardenContent" style={FIXED_LAYOUT_PATHS.some(p => location.pathname.startsWith(p)) ? { flex: 1, overflow: 'hidden', padding: 0 } : {}}>{children}</div>
 
-          {location.pathname !== '/cabina' && <VirtualPet />}
+          {location.pathname !== '/cabina' && location.pathname !== '/cartas' && <VirtualPet />}
 
           <div className="snowflakes" aria-hidden="true">
             {Array.from({ length: 8 }).map((_, i) => (
