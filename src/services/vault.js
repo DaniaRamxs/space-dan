@@ -19,9 +19,12 @@ export const vaultService = {
      * Add a new note to the vault.
      */
     async addNote(title, content, label = 'personal') {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error("User not authenticated");
+
         const { data, error } = await supabase
             .from('vault_notes')
-            .insert({ title, content, label })
+            .insert({ title, content, label, user_id: user.id })
             .select()
             .single();
 

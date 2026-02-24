@@ -1,16 +1,17 @@
 import { useEffect, useState, useCallback } from 'react';
-import { useAuthContext } from '../contexts/AuthContext';
-import { useEconomy } from '../contexts/EconomyContext';
-import { supabase } from '../supabaseClient';
-import { ACHIEVEMENTS } from '../hooks/useAchievements';
-import { getUserGameRanks } from '../services/supabaseScores';
-import { getTransactionHistory, getActiveFund, getFundTopDonors, donateToFund, transferCoins } from '../services/economy';
-import { getProductivityStats } from '../services/productivity';
-import { setBannerColor as saveBannerColor } from '../services/store';
-import { blogService } from '../services/blogService';
-import PetDisplay from '../components/PetDisplay';
+import { useAuthContext } from '../../contexts/AuthContext';
+import { useEconomy } from '../../contexts/EconomyContext';
+import { supabase } from '../../supabaseClient';
+import { ACHIEVEMENTS } from '../../hooks/useAchievements';
+import { getUserGameRanks } from '../../services/supabaseScores';
+import { getTransactionHistory, getActiveFund, getFundTopDonors, donateToFund, transferCoins } from '../../services/economy';
+import { getProductivityStats } from '../../services/productivity';
+import { setBannerColor as saveBannerColor } from '../../services/store';
+import { blogService } from '../../services/blogService';
+import PetDisplay from '../../components/PetDisplay';
 import { Link } from 'react-router-dom';
-import AvatarUploader from '../components/AvatarUploader';
+import AvatarUploader from '../../components/AvatarUploader';
+import { profileSocialService } from '../../services/profile_social';
 
 const GAME_NAMES = {
   asteroids: 'Asteroids', tetris: 'Tetris', snake: 'Snake', pong: 'Pong',
@@ -427,11 +428,9 @@ function FundSection({ user }) {
   );
 }
 
-// ── Página principal ─────────────────────────────────────────
-export default function ProfilePage() {
-  const { user, loginWithGoogle, loginWithDiscord, logout, loading } = useAuthContext();
+export default function ProfileOwn() {
+  const { user, profile, loading, loginWithGoogle, loginWithDiscord, logout } = useAuthContext();
 
-  const [profile, setProfile] = useState(null);
   const [bannerColor, setBannerLocal] = useState(null);
   const [frameItemId, setFrameItemId] = useState(null);
   const [userAchs, setUserAchs] = useState([]);
@@ -440,53 +439,51 @@ export default function ProfilePage() {
   const [bio, setBio] = useState('');
   const [isEditingBio, setIsEditingBio] = useState(false);
   const [fetching, setFetching] = useState(false);
-  const [activeTab, setActiveTab] = useState('records'); // 'records', 'achievements', 'economy', 'cabina', 'settings'
+  const [activeTab, setActiveTab] = useState('records');
   const [posts, setPosts] = useState([]);
+  const [followCounts, setFollowCounts] = useState({ followers: 0, following: 0 });
+
+  useEffect(() => {
+    if (!profile) return;
+    setBannerLocal(profile.banner_color ?? null);
+    setFrameItemId(profile.frame_item_id ?? null);
+    setBio(profile.bio || '');
+  }, [profile]);
 
   useEffect(() => {
     if (!user) return;
     setFetching(true);
+    let isMounted = true;
 
-    async function loadProfileData() {
+    async function loadComplementaryData() {
       try {
-        const { data: profData } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', user.id)
-          .maybeSingle();
-        if (profData) {
-          setProfile(profData);
-          setBannerLocal(profData.banner_color ?? null);
-          setFrameItemId(profData.frame_item_id ?? null);
-          setBio(profData.bio || '');
-        }
+        const [achData, ranks, cStats, myPosts, socialInfo] = await Promise.all([
+          supabase.from('user_achievements').select('achievement_id').eq('user_id', user.id).then(res => res.data || []),
+          getUserGameRanks(user.id).catch(() => []),
+          getProductivityStats(user.id).catch(() => null),
+          blogService.getUserPosts(user.id, true).catch(() => []),
+          profileSocialService.getFollowCounts(user.id).catch(() => ({ followers: 0, following: 0 }))
+        ]);
 
-        const { data: achData } = await supabase
-          .from('user_achievements')
-          .select('achievement_id')
-          .eq('user_id', user.id);
-        if (achData) setUserAchs(achData.map(a => a.achievement_id));
-
-        const ranks = await getUserGameRanks(user.id);
-        setGameRanks(ranks || []);
-
-        const cStats = await getProductivityStats(user.id);
+        if (!isMounted) return;
+        setUserAchs(achData.map(a => a.achievement_id));
+        setGameRanks(ranks);
         setCabinStats(cStats);
-
-        const myPosts = await blogService.getUserPosts(user.id, true).catch(() => []);
         setPosts(myPosts);
+        setFollowCounts(socialInfo);
       } catch (err) {
-        console.error('[ProfilePage] load:', err);
+        console.error('[ProfileOwn] load complementary data:', err);
       } finally {
-        setFetching(false);
+        if (isMounted) setFetching(false);
       }
     }
 
-    loadProfileData();
-  }, [user?.id]);
+    loadComplementaryData();
+    return () => { isMounted = false; };
+  }, [user]);
 
-  if (loading) {
-    return <div className="card"><h2 className="cardTitle">Cargando perfil...</h2></div>;
+  if (loading || (!profile && user)) {
+    return <div className="card"><h2 className="cardTitle blinkText">Cargando perfil...</h2></div>;
   }
 
   if (!user) {
@@ -601,7 +598,10 @@ export default function ProfilePage() {
               />
               <div className="flex justify-end gap-2">
                 <button className="winButton text-xs py-1 px-4" onClick={async () => {
-                  try { await supabase.from('profiles').update({ bio }).eq('id', user.id); setIsEditingBio(false); } catch { }
+                  try {
+                    await supabase.from('profiles').update({ bio }).eq('id', user.id);
+                    setIsEditingBio(false);
+                  } catch { }
                 }}>Guardar</button>
                 <button className="text-xs px-3 opacity-60 hover:opacity-100 transition-opacity" onClick={() => { setBio(profile?.bio || ''); setIsEditingBio(false); }}>Cancelar</button>
               </div>
@@ -637,11 +637,13 @@ export default function ProfilePage() {
             <h2 className="text-[10px] text-gray-500 uppercase tracking-[0.3em] font-bold mb-3 pl-1 flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-cyan-500 animate-pulse"></span> Core Stats
             </h2>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+              <StatCard title="Seguidores" value={followCounts.followers} icon="👥" highlight="text-purple-400" />
+              <StatCard title="Siguiendo" value={followCounts.following} icon="✨" highlight="text-gray-400" />
               <StatCard title="Rank Global" value={topGlobalRank !== 'N/A' ? `#${topGlobalRank}` : '-'} icon="🌍" highlight="text-green-400" />
               <StatCard title="Racha Focus" value={`${cabinStats?.current_streak || 0} 🔥`} icon="⏳" highlight="text-orange-400" />
               <StatCard title="Juegos Activos" value={gameRanks.length} icon="🎮" />
-              <StatCard title="Mejor Récord" value={bestRecord.toLocaleString()} icon="✨" highlight="text-cyan-300" />
+              <StatCard title="Mejor Récord" value={bestRecord.toLocaleString()} icon="🏆" highlight="text-cyan-300" />
             </div>
           </section>
 

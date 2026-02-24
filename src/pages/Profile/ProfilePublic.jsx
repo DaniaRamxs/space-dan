@@ -5,15 +5,15 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import PetDisplay from '../components/PetDisplay';
-import { supabase } from '../supabaseClient';
-import { ACHIEVEMENTS } from '../hooks/useAchievements';
-import { getUserGameRanks } from '../services/supabaseScores';
-import { useAuthContext } from '../contexts/AuthContext';
-import { profileSocialService } from '../services/profile_social';
-import { socialService } from '../services/social';
-import { getProductivityStats } from '../services/productivity';
-import { blogService } from '../services/blogService';
+import PetDisplay from '../../components/PetDisplay';
+import { supabase } from '../../supabaseClient';
+import { ACHIEVEMENTS } from '../../hooks/useAchievements';
+import { getUserGameRanks } from '../../services/supabaseScores';
+import { useAuthContext } from '../../contexts/AuthContext';
+import { profileSocialService } from '../../services/profile_social';
+import { socialService } from '../../services/social';
+import { getProductivityStats } from '../../services/productivity';
+import { blogService } from '../../services/blogService';
 
 function getFrameStyle(frameItemId) {
   if (!frameItemId) return { border: '3px solid var(--accent)', boxShadow: '0 0 15px var(--accent-glow)' };
@@ -64,6 +64,7 @@ export default function PublicProfilePage() {
   }, [userId]);
 
   async function load() {
+    let isMounted = true;
     setLoading(true);
     setNotFound(false);
     try {
@@ -73,7 +74,8 @@ export default function PublicProfilePage() {
         .eq('id', userId)
         .maybeSingle();
 
-      if (!prof) { setNotFound(true); return; }
+      if (!isMounted) return;
+      if (!prof) { setNotFound(true); setLoading(false); return; }
       setProfile(prof);
 
       const [ranks, achs, socialInfo, profileComments, cStats, userPosts] = await Promise.all([
@@ -85,6 +87,8 @@ export default function PublicProfilePage() {
         blogService.getUserPosts(userId).catch(() => []),
       ]);
 
+      if (!isMounted) return;
+
       setGameRanks(ranks || []);
       setCabinStats(cStats);
       setAchIds((achs.data || []).map(a => a.achievement_id));
@@ -94,17 +98,18 @@ export default function PublicProfilePage() {
 
       // Activity status (non-blocking)
       socialService.getUserActivity(userId)
-        .then(setActivityLabel)
+        .then(label => { if (isMounted) setActivityLabel(label); })
         .catch(() => { });
 
       if (user && user.id !== userId) {
-        const following = await profileSocialService.isFollowing(userId).catch(() => false);
-        setIsFollowing(following);
+        profileSocialService.isFollowing(userId)
+          .then(following => { if (isMounted) setIsFollowing(following); })
+          .catch(() => { if (isMounted) setIsFollowing(false); });
       }
     } catch (err) {
       console.error('[PublicProfilePage]', err);
     } finally {
-      setLoading(false);
+      if (isMounted) setLoading(false);
     }
   }
 
@@ -226,7 +231,7 @@ export default function PublicProfilePage() {
           <div className="relative group cursor-pointer mb-6 mt-6 md:mt-0">
             <div className="absolute -inset-2 bg-gradient-to-r from-purple-600 to-cyan-500 rounded-[35%] blur-xl opacity-40 group-hover:opacity-80 transition duration-700"></div>
             <div className="relative w-28 h-28 rounded-[30%] overflow-hidden border border-white/20 shadow-2xl bg-black" style={getFrameStyle(profile.frame_item_id)}>
-              <img src={profile?.avatar_url || '/dan_profile.jpg'} alt="Avatar" className="w-full h-full object-cover" />
+              <img src={profile?.avatar_url || '/default_user_blank.png'} alt="Avatar" className="w-full h-full object-cover" />
             </div>
             {/* Pet Overlay */}
             <div className="absolute -left-6 -bottom-2 pointer-events-none drop-shadow-2xl z-30 scale-x-[-1]">
@@ -406,7 +411,7 @@ export default function PublicProfilePage() {
                     className="bg-[#13131c]/60 backdrop-blur-md p-4 rounded-xl border border-white/5 transition-colors hover:bg-[#13131c]"
                   >
                     <div className="flex items-center gap-3 mb-2 flex-wrap">
-                      <img className="w-6 h-6 rounded-full border border-white/10" src={c.author?.avatar_url || '/dan_profile.jpg'} alt="Avatar" />
+                      <img className="w-6 h-6 rounded-full border border-white/10" src={c.author?.avatar_url || '/default_user_blank.png'} alt="Avatar" />
                       <Link to={`/profile/${c.author_id}`} className="text-cyan-400 hover:text-cyan-300 font-bold text-xs tracking-wide">
                         {c.author?.username}
                       </Link>

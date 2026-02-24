@@ -23,7 +23,7 @@ const GlobalLeaderboardPage = lazy(() => import("./pages/GlobalLeaderboardPage")
 const Wpage = lazy(() => import("./pages/Wpage"));
 const GardenLayout = lazy(() => import("./layouts/GardenLayout"));
 const DanProfilePage = lazy(() => import("./pages/DanProfilePage"));
-const ProfilePage = lazy(() => import("./pages/ProfilePage"));
+// const ProfilePage represents ProfileRouter already
 const BulletinPage = lazy(() => import("./pages/BulletinPage"));
 const Secret = lazy(() => import("./pages/Secret"));
 const KinniesPage = lazy(() => import("./pages/KinniesPage"));
@@ -39,7 +39,7 @@ const ArquitecturaPage = lazy(() => import("./pages/ArquitecturaPage"));
 const ProjectsPage = lazy(() => import("./pages/ProjectsPage"));
 const AchievementsPage = lazy(() => import("./pages/AchievementsPage"));
 const ShopPage = lazy(() => import("./pages/ShopPage"));
-const PublicProfilePage = lazy(() => import("./pages/PublicProfilePage"));
+const ProfilePage = lazy(() => import("./pages/Profile")); // Centralized router
 const SpaceCabinPage = lazy(() => import("./pages/SpaceCabinPage"));
 const OrbitLettersPage = lazy(() => import("./pages/OrbitLettersPage"));
 const VaultPage = lazy(() => import("./pages/VaultPage"));
@@ -118,7 +118,7 @@ function AnimatedRoutes() {
         <Route path="/" element={<PageTransition><Wpage /></PageTransition>} />
         <Route path="/home" element={<Layout><DanProfilePage /></Layout>} />
         <Route path="/profile" element={<Layout><ProfilePage /></Layout>} />
-        <Route path="/profile/:userId" element={<Layout><PublicProfilePage /></Layout>} />
+        <Route path="/profile/:userId" element={<Layout><ProfilePage /></Layout>} />
         <Route path="/bulletin" element={<Layout><BulletinPage /></Layout>} />
         <Route path="/posts" element={<Layout><PostsPage /></Layout>} />
         <Route path="/log/:slug" element={<Layout><PostPage /></Layout>} />

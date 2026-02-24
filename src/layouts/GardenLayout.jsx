@@ -21,8 +21,7 @@ export default function GardenLayout({ children }) {
     entertainment: false,
     content: false,
     community: false,
-    productivity: true,
-    personal: PERSONAL_PATHS.some(p => location.pathname.startsWith(p))
+    productivity: false
   });
 
   const toggleMenu = (key) => setMenuStates(prev => ({ ...prev, [key]: !prev[key] }));
@@ -32,11 +31,10 @@ export default function GardenLayout({ children }) {
   useEffect(() => {
     const path = location.pathname;
     const updates = {};
-    if (['/games', '/desktop', '/music', '/watchlist'].some(p => path.startsWith(p))) updates.entertainment = true;
-    if (['/posts', '/bulletin', '/galeria', '/proyectos', '/arquitectura', '/timecapsule'].some(p => path.startsWith(p))) updates.content = true;
+    if (['/games', '/desktop'].some(p => path.startsWith(p))) updates.entertainment = true;
+    if (['/posts', '/bulletin', '/arquitectura'].some(p => path.startsWith(p))) updates.content = true;
     if (['/leaderboard', '/logros', '/tienda', '/guestbook', '/cartas'].some(p => path.startsWith(p))) updates.community = true;
     if (['/cabina'].some(p => path.startsWith(p))) updates.productivity = true;
-    if (PERSONAL_PATHS.some(p => path.startsWith(p))) updates.personal = true;
 
     if (Object.keys(updates).length > 0) {
       setMenuStates(prev => ({ ...prev, ...updates }));
@@ -123,6 +121,7 @@ export default function GardenLayout({ children }) {
             <div className="sideNavGroup">
               <NavLink to="/profile" onClick={closeMenu} className={({ isActive }) => "sideLink topLevel" + (isActive ? " active" : "")}>👤 Mi Perfil</NavLink>
               <NavLink to="/home" onClick={closeMenu} className={({ isActive }) => "sideLink topLevel" + (isActive ? " active" : "")}>🏠 Sobre Dan</NavLink>
+              <NavLink to="/cofre" onClick={closeMenu} className={({ isActive }) => "sideLink topLevel" + (isActive ? " active" : "")}>🔒 Cofre Privado</NavLink>
             </div>
 
             <div className="sideNavDivider" />
@@ -136,8 +135,6 @@ export default function GardenLayout({ children }) {
               <div className={`submenuItems ${menuStates.entertainment ? 'open' : ''}`}>
                 <NavLink to="/games" onClick={closeMenu} className={({ isActive }) => "sideLink submenuLink" + (isActive ? " active" : "")}>🎮 Juegos</NavLink>
                 <NavLink to="/desktop" onClick={closeMenu} className={({ isActive }) => "sideLink submenuLink" + (isActive ? " active" : "")}>💻 OS Desktop</NavLink>
-                <NavLink to="/music" onClick={closeMenu} className={({ isActive }) => "sideLink submenuLink" + (isActive ? " active" : "")}>🎧 Música</NavLink>
-                <NavLink to="/watchlist" onClick={closeMenu} className={({ isActive }) => "sideLink submenuLink" + (isActive ? " active" : "")}>📺 Watchlist</NavLink>
               </div>
             </div>
 
@@ -150,10 +147,7 @@ export default function GardenLayout({ children }) {
               <div className={`submenuItems ${menuStates.content ? 'open' : ''}`}>
                 <NavLink to="/bulletin" onClick={closeMenu} className={({ isActive }) => "sideLink submenuLink" + (isActive ? " active" : "")}>📰 Noticias</NavLink>
                 <NavLink to="/posts" onClick={closeMenu} className={({ isActive }) => "sideLink submenuLink" + (isActive ? " active" : "")}>✍️ Posts</NavLink>
-                <NavLink to="/galeria" onClick={closeMenu} className={({ isActive }) => "sideLink submenuLink" + (isActive ? " active" : "")}>🖼️ Galería</NavLink>
-                <NavLink to="/proyectos" onClick={closeMenu} className={({ isActive }) => "sideLink submenuLink" + (isActive ? " active" : "")}>🛠️ Proyectos</NavLink>
                 <NavLink to="/arquitectura" onClick={closeMenu} className={({ isActive }) => "sideLink submenuLink" + (isActive ? " active" : "")}>🏗️ Arquitectura</NavLink>
-                <NavLink to="/timecapsule" onClick={closeMenu} className={({ isActive }) => "sideLink submenuLink" + (isActive ? " active" : "")}>⏳ Time Capsule</NavLink>
               </div>
             </div>
 
@@ -183,22 +177,7 @@ export default function GardenLayout({ children }) {
               </div>
             </div>
 
-            <div className="sideNavDivider" />
 
-            {/* ✦ Personal */}
-            <div className="sideSubmenuWrap">
-              <button className={`sideLink submenuToggle ${menuStates.personal ? 'open' : ''}`} onClick={() => toggleMenu('personal')}>
-                <span>✦ Personal</span>
-                <span className="submenuArrow">▾</span>
-              </button>
-              <div className={`submenuItems ${menuStates.personal ? 'open' : ''}`}>
-                <NavLink to="/kinnies" onClick={closeMenu} className={({ isActive }) => "sideLink submenuLink" + (isActive ? " active" : "")}>🌟 Kinnies</NavLink>
-                <NavLink to="/tests" onClick={closeMenu} className={({ isActive }) => "sideLink submenuLink" + (isActive ? " active" : "")}>🧪 Tests</NavLink>
-                <NavLink to="/universo" onClick={closeMenu} className={({ isActive }) => "sideLink submenuLink" + (isActive ? " active" : "")}>🌌 Universo</NavLink>
-                <NavLink to="/dreamscape" onClick={closeMenu} className={({ isActive }) => "sideLink submenuLink" + (isActive ? " active" : "")}>🌙 Dreamscape</NavLink>
-                <NavLink to="/cofre" onClick={closeMenu} className={({ isActive }) => "sideLink submenuLink" + (isActive ? " active" : "")}>🔒 Cofre Privado</NavLink>
-              </div>
-            </div>
           </nav>
         </aside>
 

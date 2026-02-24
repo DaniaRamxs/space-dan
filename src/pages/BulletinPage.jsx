@@ -52,6 +52,8 @@ const bulletinPosts = [
   { id: 48, date: "2026-02-24", title: "Login Multi-Provider", text: "Soporte completo para Google y Discord con vinculación de perfiles. Tu identidad en Dan-Space es independiente del proveedor de login.", tags: ["update", "seguridad"] },
   { id: 49, date: "2026-02-24", title: "Refactor: Auth Redirection", text: "Mejoré el sistema de redirecciones para prevenir loops infinitos y asegurar una carga fluida del perfil al iniciar sesión.", tags: ["fix", "performance"] },
   { id: 50, date: "2026-02-24", title: "UI Cleanup: Games", text: "Removí la mascota virtual de la sección de juegos para mejorar la visibilidad y evitar interferencias en móviles.", tags: ["fix", "mobile"] },
+  { id: 51, date: "2026-02-24", title: "Features Sociales Completas", text: "Agregado soporte en vivo para likes (Supabase native), contador de seguidores/seguidos en el perfil, muro público, y notificaciones push estelares automáticas por cada interacción social.", tags: ["update", "comunidad"] },
+  { id: 52, date: "2026-02-24", title: "Estadísticas de la Cabina", text: "La cabina espacial ahora cuenta con un gráfico detallado mostrando cuántos pomodoros has completado los últimos 7 días.", tags: ["update", "productividad"] },
 ];
 
 const PAGE_SIZE = 8;
