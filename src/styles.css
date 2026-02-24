@@ -7276,26 +7276,36 @@ textarea,
    ══════════════════════════════════════════════════════════ */
 .lettersLayout {
   max-width: 1000px;
+  width: 100%;
   margin: 0 auto;
   padding: 0 12px;
   display: grid;
   grid-template-columns: 320px 1fr;
   gap: 14px;
-  height: 100%;
+  flex: 1;
+  min-height: 0;
   position: relative;
   z-index: 9995;
 }
 
 @media (max-width: 767px) {
   .lettersLayout {
-    grid-template-columns: 1fr;
-    height: 100%;
-    padding: 0 8px;
+    display: flex;
+    flex-direction: column;
+    padding: 0;
     gap: 0;
+    height: 100%;
+    max-height: 100%;
+    overflow: hidden;
   }
 
   .lettersPanel {
-    height: 100% !important;
+    flex: 1;
+    min-height: 0;
+    height: 100%;
+    max-height: 100%;
+    overflow: hidden;
+    width: 100%;
   }
 
   .lettersPanel--hidden {
@@ -7349,6 +7359,7 @@ textarea,
   .gardenPage--fixed {
     padding: 0 !important;
   }
+
   .gardenShell--fixed {
     margin-top: 0 !important;
     margin-bottom: 0 !important;
