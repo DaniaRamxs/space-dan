@@ -10,6 +10,12 @@ import { useAuthContext } from '../contexts/AuthContext';
 import ReactionsBar from '../components/Social/ReactionsBar';
 import ShareModal from '../components/Social/ShareModal';
 import PostComposer from '../components/Social/PostComposer';
+import { CATEGORIES } from '../components/Social/PostComposer';
+
+function getCategoryMeta(id) {
+    return CATEGORIES.find(c => c.id === id) || { icon: '🌐', label: 'General' };
+}
+
 
 export default function PostDetailPage() {
     const { postId } = useParams();
@@ -166,10 +172,27 @@ export default function PostDetailPage() {
 
                         {/* Título */}
                         {post.title && (
-                            <h1 className="text-3xl md:text-4xl font-black text-transparent bg-clip-text bg-gradient-to-br from-white to-white/60 leading-tight tracking-tight uppercase mb-6">
+                            <h1 className="text-3xl md:text-4xl font-black text-transparent bg-clip-text bg-gradient-to-br from-white to-white/60 leading-tight tracking-tight uppercase mb-4">
                                 {post.title}
                             </h1>
                         )}
+
+                        {/* Categoría + vistas */}
+                        <div className="flex items-center gap-3 mb-6">
+                            {post.category && (() => {
+                                const cat = getCategoryMeta(post.category);
+                                return (
+                                    <span className="text-[9px] font-black uppercase tracking-[0.3em] text-cyan-500/60 border border-cyan-500/20 bg-cyan-500/5 px-2.5 py-1 rounded-full">
+                                        {cat.icon} {cat.label}
+                                    </span>
+                                );
+                            })()}
+                            {post.views_count > 0 && (
+                                <span className="text-[9px] font-mono text-white/20 flex items-center gap-1">
+                                    👁 {post.views_count >= 1000 ? `${(post.views_count / 1000).toFixed(1)}k` : post.views_count} vistas
+                                </span>
+                            )}
+                        </div>
 
                         {/* Separador neon */}
                         <div className="flex items-center gap-3 mb-8">

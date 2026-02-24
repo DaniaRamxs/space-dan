@@ -2,32 +2,47 @@ import { supabase } from '../supabaseClient';
 
 export const activityService = {
     /**
-     * Obtiene el feed de actividad principal usando el RPC optimizado
+     * Obtiene el feed — filtrado por tipo y/o categoría
      */
-    async getFeed(viewerId, filter = 'all', limit = 10, offset = 0) {
-        const { data, error } = await supabase.rpc('get_activity_feed', {
-            p_viewer_id: viewerId,
-            p_filter_type: filter,
-            p_limit: limit,
-            p_offset: offset
-        });
+    async getFeed(viewerId, filter = 'all', limit = 10, offset = 0, category = null) {
+        let query = supabase
+            .from('activity_posts')
+            .select(`
+                id, title, content, type, category, views_count, created_at, updated_at, author_id,
+                author:profiles!author_id(username, avatar_url, frame_item_id)
+            `)
+            .order('created_at', { ascending: false })
+            .range(offset, offset + limit - 1);
 
+        // Filtrar por tipo
+        if (filter === 'post') query = query.eq('type', 'post');
+        else if (filter !== 'all') query = query.eq('type', filter);
+
+        // Filtrar por categoría
+        if (category && category !== 'all') query = query.eq('category', category);
+
+        const { data, error } = await query;
         if (error) {
             console.error('[activityService] getFeed error:', error);
             throw error;
         }
-        return data || [];
+
+        // Enriquecer con reactions_metadata básico (vacío hasta que se cargue)
+        return (data || []).map(p => ({
+            ...p,
+            reactions_metadata: p.reactions_metadata || { total_count: 0, top_reactions: [], user_reaction: null },
+            original_post: null,
+        }));
     },
 
     /**
-     * Obtiene un post individual con su autor y reacciones
+     * Obtiene un post individual con reacciones completas e incrementa vistas
      */
     async getPost(postId, viewerId = null) {
-        // Usamos el mismo RPC pero con un filtro de ID — más simple: query directa
         const { data, error } = await supabase
             .from('activity_posts')
             .select(`
-                id, title, content, type, created_at, updated_at, author_id,
+                id, title, content, type, category, views_count, created_at, updated_at, author_id,
                 author:profiles!author_id(username, avatar_url, frame_item_id)
             `)
             .eq('id', postId)
@@ -35,7 +50,10 @@ export const activityService = {
 
         if (error) throw error;
 
-        // Traer metadata de reacciones
+        // Incrementar vistas en background (fire and forget)
+        supabase.rpc('increment_post_views', { p_post_id: postId }).then(() => { }).catch(() => { });
+
+        // Reacciones
         const { data: reactions } = await supabase
             .from('activity_reactions')
             .select('reaction_type, user_id')
@@ -54,6 +72,7 @@ export const activityService = {
 
         return {
             ...data,
+            views_count: (data.views_count || 0) + 1, // refleja la vista actual optimistamente
             reactions_metadata: {
                 total_count: reactions?.length || 0,
                 top_reactions: topReactions,
@@ -62,7 +81,6 @@ export const activityService = {
             original_post: null,
         };
     },
-
 
     /**
      * Crea un nuevo post, repost o cita
@@ -79,14 +97,9 @@ export const activityService = {
     },
 
     /**
-     * Alterna una reacción (Toggle).
-     * Si la reacción ya existe y es la misma, la elimina.
-     * Si es diferente (o no existe), la inserta/actualiza.
-     * Nota: Asumimos que la tabla permite múltiples tipos si no es única por usuario, 
-     * pero la UI trata de manejarla como 1 o toggleable.
+     * Alterna una reacción (Toggle)
      */
     async toggleReaction(postId, userId, reactionType) {
-        // Primero, revisamos si ya reaccionó con este tipo exacto
         const { data: existing } = await supabase
             .from('activity_reactions')
             .select('id, reaction_type')
@@ -96,7 +109,6 @@ export const activityService = {
             .maybeSingle();
 
         if (existing) {
-            // Eliminar
             const { error } = await supabase
                 .from('activity_reactions')
                 .delete()
@@ -104,14 +116,16 @@ export const activityService = {
             if (error) throw error;
             return { action: 'removed', type: reactionType };
         } else {
-            // Insertar nuevo
+            // Eliminar cualquier reacción previa diferente del mismo usuario (1 reacción por post)
+            await supabase
+                .from('activity_reactions')
+                .delete()
+                .eq('post_id', postId)
+                .eq('user_id', userId);
+
             const { error } = await supabase
                 .from('activity_reactions')
-                .insert({
-                    post_id: postId,
-                    user_id: userId,
-                    reaction_type: reactionType
-                });
+                .insert({ post_id: postId, user_id: userId, reaction_type: reactionType });
             if (error) throw error;
             return { action: 'added', type: reactionType };
         }
@@ -119,7 +133,6 @@ export const activityService = {
 
     /**
      * Obtiene la lista de usuarios que han reaccionado a un post
-     * Útil para el ReactionModal
      */
     async getPostReactions(postId) {
         const { data, error } = await supabase
@@ -133,13 +146,14 @@ export const activityService = {
     },
 
     /**
-     * Edita el título y/o contenido de un post propio
+     * Edita título, contenido y/o categoría de un post propio
      */
-    async updatePost(postId, { title, content }) {
+    async updatePost(postId, { title, content, category }) {
         const { data, error } = await supabase.rpc('update_activity_post', {
             p_post_id: postId,
             p_title: title ?? null,
             p_content: content ?? null,
+            p_category: category ?? null,
         });
         if (error) throw error;
         return data;

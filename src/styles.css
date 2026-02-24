@@ -7762,7 +7762,7 @@ textarea,
 .gameScale {
   display: flex;
   justify-content: center;
-  align-items: center;
+  align-items: flex-start;
   width: 100%;
   max-width: 100%;
   margin: 0 auto 20px;
@@ -7770,31 +7770,36 @@ textarea,
   background: rgba(0, 0, 0, 0.4);
   border-radius: 20px;
   border: 1px solid rgba(255, 255, 255, 0.08);
-  overflow: hidden;
-  /* Changed to hidden to clip games properly */
+  overflow: visible;
+  /* no recortar el canvas al escalar */
   box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.6);
   min-height: 320px;
+  padding: 12px;
 }
 
 .gameScale>* {
-  max-width: 100% !important;
-  max-height: 100% !important;
+  max-width: 100%;
   object-fit: contain;
-  transition: transform 0.3s ease;
 }
 
-/* Auto-scale for very small screens */
+.gameScale canvas {
+  max-width: 100%;
+  height: auto !important;
+  display: block;
+}
+
+/* Auto-scale para pantallas muy pequeñas */
 @media (max-width: 480px) {
   .gameScale {
     min-height: auto;
-    aspect-ratio: auto;
     border-radius: 12px;
+    padding: 8px;
   }
 
   .gameScale>div,
   .gameScale>canvas {
-    transform: scale(calc(var(--game-scale, 1)));
-    transform-origin: center center;
+    transform: scale(var(--game-scale, 1));
+    transform-origin: top center;
   }
 }
 
