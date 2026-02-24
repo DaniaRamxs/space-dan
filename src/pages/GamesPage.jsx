@@ -34,6 +34,10 @@ const CookieClicker = lazy(() => import('../components/CookieClicker'));
 const MazeGame = lazy(() => import('../components/MazeGame'));
 const CatchGame = lazy(() => import('../components/CatchGame'));
 const DodgeGame = lazy(() => import('../components/DodgeGame'));
+const TypeBlitz = lazy(() => import('../components/TypeBlitz'));
+const TronGame = lazy(() => import('../components/TronGame'));
+const LightsOut = lazy(() => import('../components/LightsOut'));
+
 
 const GAMES = [
   { id: 'snake', icon: '🐍', title: 'snake', component: SnakeGame, category: 'Arcade' },
@@ -57,8 +61,11 @@ const GAMES = [
   { id: 'simon', icon: '🔵', title: 'simon says', component: SimonSays, category: 'Skill' },
   { id: 'cookie', icon: '🍪', title: 'cookie clicker', component: CookieClicker, category: 'Arcade' },
   { id: 'maze', icon: '🌀', title: 'maze', component: MazeGame, category: 'Puzzle' },
-  { id: 'catch', icon: '🧺', title: 'catch game', component: CatchGame, category: 'Skill' },
+  { id: 'catch', icon: '🧳', title: 'catch game', component: CatchGame, category: 'Skill' },
   { id: 'dodge', icon: '💨', title: 'dodge game', component: DodgeGame, category: 'Skill' },
+  { id: 'typeblitz', icon: '⌨️', title: 'type blitz', component: TypeBlitz, category: 'Skill' },
+  { id: 'tron', icon: '📹', title: 'tron cycles', component: TronGame, category: 'Arcade' },
+  { id: 'lightsout', icon: '💡', title: 'lights out', component: LightsOut, category: 'Puzzle' },
 ];
 
 const PLAYED_KEY = 'space-dan-played-games';
