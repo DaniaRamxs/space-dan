@@ -7485,3 +7485,162 @@ textarea,
   scrollbar-color: var(--accent-dim) var(--bg);
   scrollbar-width: thin;
 }
+
+/* ---------- Games Hub (Modern Grid) ---------- */
+.gamesGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  margin-top: 20px;
+}
+
+@media (max-width: 380px) {
+  .gamesGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (min-width: 768px) {
+  .gamesGrid {
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 20px;
+  }
+}
+
+.gameCard {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 18px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+  aspect-ratio: 1/1;
+  text-align: center;
+}
+
+.gameCard:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: var(--accent);
+  transform: translateY(-4px);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3), 0 0 15px var(--accent-dim);
+}
+
+.gameCard:active {
+  transform: scale(0.95);
+}
+
+.gameCardIcon {
+  font-size: 2.2rem;
+  filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.2));
+  transition: transform 0.3s ease;
+}
+
+.gameCard:hover .gameCardIcon {
+  transform: scale(1.2) rotate(5deg);
+}
+
+.gameCardTitle {
+  font-size: 0.85rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: rgba(255, 255, 255, 0.9);
+  margin-top: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  width: 100%;
+}
+
+.gameCardBadge {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  font-size: 0.6rem;
+  background: var(--accent);
+  color: #fff;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-weight: 900;
+  text-transform: uppercase;
+  box-shadow: 0 0 10px var(--accent-glow);
+}
+
+/* Fullscreen Game Overlay */
+.gameOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(5, 5, 20, 0.98);
+  backdrop-filter: blur(20px);
+  z-index: 5000;
+  display: flex;
+  flex-direction: column;
+  padding: env(safe-area-inset-top) 0 env(safe-area-inset-bottom);
+  animation: gameOverlayFade 0.3s ease;
+}
+
+.gameOverlayHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.gameOverlayContent {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  overflow-y: auto;
+  padding: 24px;
+}
+
+.gameOverlayContent::-webkit-scrollbar {
+  width: 4px;
+}
+
+.gameScale {
+  transform-origin: center top;
+  margin-bottom: 30px;
+}
+
+.gameCloseBtn {
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  color: #fff;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 1.2rem;
+  transition: all 0.2s;
+}
+
+.gameCloseBtn:hover {
+  background: #ff4444;
+  transform: rotate(90deg);
+}
+
+@keyframes gameOverlayFade {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
