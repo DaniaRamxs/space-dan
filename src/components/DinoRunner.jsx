@@ -71,7 +71,7 @@ function drawDino(ctx, x, y, frame, onGround) {
   // Tail (left side, tapers to a point)
   ctx.beginPath();
   ctx.moveTo(x + 4, y + 15);
-  ctx.lineTo(x,     y + 22);
+  ctx.lineTo(x, y + 22);
   ctx.lineTo(x + 2, y + 27);
   ctx.lineTo(x + 7, y + 24);
   ctx.lineTo(x + 5, y + 15);
@@ -84,10 +84,10 @@ function drawDino(ctx, x, y, frame, onGround) {
   const step = onGround ? (Math.floor(frame / 7) % 2) : 0;
   if (step === 0) {
     ctx.fillRect(x + 15, y + 27, 5, 13); // front leg extended down
-    ctx.fillRect(x + 8,  y + 27, 4,  9); // back leg pulled up
+    ctx.fillRect(x + 8, y + 27, 4, 9); // back leg pulled up
   } else {
-    ctx.fillRect(x + 13, y + 27, 4,  9); // front leg pulled up
-    ctx.fillRect(x + 9,  y + 27, 5, 13); // back leg extended down
+    ctx.fillRect(x + 13, y + 27, 4, 9); // front leg pulled up
+    ctx.fillRect(x + 9, y + 27, 5, 13); // back leg extended down
   }
 
   // Eye
@@ -366,6 +366,8 @@ export default function DinoRunner() {
         onClick={handleInteract}
         style={{
           display: 'block',
+          maxWidth: '100%',
+          height: 'auto',
           background: C_BG,
           cursor: 'pointer',
           border: '1px solid #ff6eb4',

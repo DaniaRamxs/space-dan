@@ -3,17 +3,17 @@ import useHighScore from '../hooks/useHighScore';
 
 // --- Tile color map ---
 const TILE_COLORS = {
-  2:    { bg: '#1a1a2e', color: '#c0c0ff', border: '1px solid #333' },
-  4:    { bg: '#16213e', color: '#c0c0ff', border: '1px solid #3a3a6e' },
-  8:    { bg: '#ff6b35', color: '#fff',    border: '1px solid #ff8c5a' },
-  16:   { bg: '#ff4500', color: '#fff',    border: '1px solid #ff6030' },
-  32:   { bg: '#ff0080', color: '#fff',    border: '1px solid #ff40a0' },
-  64:   { bg: '#ff00ff', color: '#fff',    border: '1px solid #ff60ff' },
-  128:  { bg: '#00e5ff', color: '#000',    border: '1px solid #40efff' },
-  256:  { bg: '#00ff88', color: '#000',    border: '1px solid #40ffaa' },
-  512:  { bg: '#ffff00', color: '#000',    border: '1px solid #ffff60' },
-  1024: { bg: '#ff9500', color: '#000',    border: '1px solid #ffb030' },
-  2048: { bg: 'gold',    color: '#000',    border: '2px solid #ffd700', isGold: true },
+  2: { bg: '#1a1a2e', color: '#c0c0ff', border: '1px solid #333' },
+  4: { bg: '#16213e', color: '#c0c0ff', border: '1px solid #3a3a6e' },
+  8: { bg: '#ff6b35', color: '#fff', border: '1px solid #ff8c5a' },
+  16: { bg: '#ff4500', color: '#fff', border: '1px solid #ff6030' },
+  32: { bg: '#ff0080', color: '#fff', border: '1px solid #ff40a0' },
+  64: { bg: '#ff00ff', color: '#fff', border: '1px solid #ff60ff' },
+  128: { bg: '#00e5ff', color: '#000', border: '1px solid #40efff' },
+  256: { bg: '#00ff88', color: '#000', border: '1px solid #40ffaa' },
+  512: { bg: '#ffff00', color: '#000', border: '1px solid #ffff60' },
+  1024: { bg: '#ff9500', color: '#000', border: '1px solid #ffb030' },
+  2048: { bg: 'gold', color: '#000', border: '2px solid #ffd700', isGold: true },
 };
 
 const DEFAULT_COLOR = { bg: '#0d0d1a', color: '#888', border: '1px solid #222' };
@@ -155,7 +155,7 @@ export default function Game2048() {
         const newScore = s + gained;
         setBestScore(best => {
           const newBest = Math.max(best, newScore);
-          try { localStorage.setItem('2048-best', String(newBest)); } catch {}
+          try { localStorage.setItem('2048-best', String(newBest)); } catch { }
           return newBest;
         });
         return newScore;
@@ -188,10 +188,10 @@ export default function Game2048() {
       if (gameOver) return;
       if (won && !continueAfterWin) return;
       switch (e.key) {
-        case 'ArrowLeft':  e.preventDefault(); applyMove(moveLeft);  break;
+        case 'ArrowLeft': e.preventDefault(); applyMove(moveLeft); break;
         case 'ArrowRight': e.preventDefault(); applyMove(moveRight); break;
-        case 'ArrowUp':    e.preventDefault(); applyMove(moveUp);    break;
-        case 'ArrowDown':  e.preventDefault(); applyMove(moveDown);  break;
+        case 'ArrowUp': e.preventDefault(); applyMove(moveUp); break;
+        case 'ArrowDown': e.preventDefault(); applyMove(moveDown); break;
         default: break;
       }
     };
@@ -229,7 +229,7 @@ export default function Game2048() {
     alignItems: 'center',
     fontFamily: "'Courier New', Courier, monospace",
     padding: '24px 16px',
-    minHeight: '100vh',
+    minHeight: 'auto',
     background: 'transparent',
     userSelect: 'none',
   };

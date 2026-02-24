@@ -75,6 +75,9 @@ export default function AvatarUploader({ currentAvatar, frameStyle, onUploadSucc
         }
     };
 
+    const frameClass = frameStyle?.className || '';
+    const isEvolutivo = frameClass.includes('marco-evolutivo');
+
     return (
         <div className="relative group cursor-pointer w-28 h-28 mx-auto">
             {/* Background glow passthrough */}
@@ -82,18 +85,21 @@ export default function AvatarUploader({ currentAvatar, frameStyle, onUploadSucc
 
             {/* Main Avatar Container */}
             <div
-                className="relative w-full h-full rounded-[30%] overflow-hidden shadow-2xl bg-black border border-white/20 transition-transform duration-300 group-hover:scale-105"
-                style={frameStyle}
+                className={`relative w-full h-full transition-transform duration-300 group-hover:scale-105 flex items-center justify-center ${frameClass || 'rounded-[30%] overflow-hidden bg-black border border-white/20 shadow-2xl'}`}
+                style={isEvolutivo ? {} : frameStyle}
                 onClick={() => !uploading && fileInputRef.current?.click()}
             >
-                <img
-                    src={previewUrl}
-                    alt="Avatar"
-                    className={`w-full h-full object-cover transition-opacity duration-300 ${uploading ? 'opacity-30 blur-sm' : 'opacity-100 group-hover:opacity-60'}`}
-                />
+                {/* Special wrapper for level 5 or complex animations */}
+                <div className={frameClass.includes('lv5') ? 'marco-evolutivo-lv5-img-wrapper' : 'w-full h-full rounded-[inherit] overflow-hidden'}>
+                    <img
+                        src={previewUrl}
+                        alt="Avatar"
+                        className={`w-full h-full object-cover transition-opacity duration-300 ${uploading ? 'opacity-30 blur-sm' : 'opacity-100 group-hover:opacity-60'}`}
+                    />
+                </div>
 
                 {/* Hover / Uploading Overlay */}
-                <div className="absolute inset-0 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/40">
+                <div className="absolute inset-0 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/40 z-50">
                     {uploading ? (
                         <span className="text-cyan-400 text-xs font-bold animate-pulse">Subiendo...</span>
                     ) : (
