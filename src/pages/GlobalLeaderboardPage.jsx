@@ -60,16 +60,27 @@ function metricColor(tab, row) {
   return 'var(--accent)';
 }
 
-function CompetitiveRow({ row, i, isMe, medal, formatMetric, onClick }) {
+const TIERS = [
+  { label: 'BRONCE', min: 0, color: '#cd7f32', icon: '🥉' },
+  { label: 'PLATA', min: 500, color: '#c0c0c0', icon: '🥈' },
+  { label: 'ORO', min: 2000, color: '#ffd700', icon: '🥇' },
+  { label: 'PLATINO', min: 5000, color: '#e5e4e2', icon: '💎' },
+  { label: 'DIAMANTE', min: 12000, color: '#00eeee', icon: '💠' },
+  { label: 'MAESTRO', min: 25000, color: '#ff00ff', icon: '👑' },
+  { label: 'ELITE', min: 50000, color: '#ff3333', icon: '🔥' },
+];
+
+function CompetitiveRow({ row, i, isMe, formatMetric, onClick }) {
   const rank = row.rank ?? (i + 1);
   const isTop3 = rank <= 3;
-
-  const borderGlow = rank === 1 ? 'rgba(255, 215, 0, 0.4)' :
-    rank === 2 ? 'rgba(192, 192, 192, 0.3)' :
-      rank === 3 ? 'rgba(205, 127, 50, 0.3)' : 'rgba(255, 255, 255, 0.05)';
+  const borderGlow = rank === 1 ? 'rgba(255,215,0,0.4)' :
+    rank === 2 ? 'rgba(229,229,229,0.3)' :
+      rank === 3 ? 'rgba(205,127,50,0.3)' : 'rgba(255,255,255,0.05)';
 
   const bgGradient = rank === 1 ? 'linear-gradient(90deg, rgba(255,215,0,0.1) 0%, transparent 100%)' :
     isMe ? 'rgba(255,110,180,0.1)' : 'transparent';
+
+  const userTier = [...TIERS].reverse().find(t => (row.season_balance || 0) >= t.min) || TIERS[0];
 
   return (
     <motion.tr
@@ -92,7 +103,7 @@ function CompetitiveRow({ row, i, isMe, medal, formatMetric, onClick }) {
       {rank === 1 && (
         <div style={{
           position: 'absolute', inset: 0,
-          background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent)',
+          background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.14), transparent)',
           animation: 'shine 3s infinite',
           pointerEvents: 'none'
         }} />
@@ -118,7 +129,8 @@ function CompetitiveRow({ row, i, isMe, medal, formatMetric, onClick }) {
           <div style={{ position: 'relative' }}>
             <div style={{
               borderRadius: '50%', padding: '3px',
-              background: rank === 1 ? 'linear-gradient(45deg, #ffd700, #fff, #ffd700)' : 'transparent'
+              background: rank === 1 ? 'linear-gradient(45deg, #ffd700, #fff, #ffd700)' :
+                userTier.min >= 5000 ? `linear-gradient(45deg, ${userTier.color}, #fff, ${userTier.color})` : 'transparent'
             }}>
               <Avatar url={row.avatar_url} name={row.username} />
             </div>
@@ -136,9 +148,13 @@ function CompetitiveRow({ row, i, isMe, medal, formatMetric, onClick }) {
               fontSize: isTop3 ? '1.2rem' : '1rem',
               color: isMe ? 'var(--accent)' : '#fff',
               letterSpacing: '0.05em',
-              textTransform: 'uppercase'
+              textTransform: 'uppercase',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8
             }}>
               {row.username || 'Anónimo'}
+              <span style={{ fontSize: '1rem' }} title={userTier.label}>{userTier.icon}</span>
               {isMe && <span style={{ marginLeft: 6, fontSize: '0.6rem', background: 'var(--accent)', color: '#fff', padding: '1px 6px', borderRadius: '4px' }}>TÚ</span>}
             </div>
             <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
@@ -147,7 +163,9 @@ function CompetitiveRow({ row, i, isMe, medal, formatMetric, onClick }) {
                   LEVEL {row.user_level}
                 </span>
               )}
-              {rank <= 10 && <span style={{ fontSize: '0.6rem', color: '#ffcc00' }}>⭐ TOP TIERS</span>}
+              <span style={{ fontSize: '0.6rem', color: userTier.color, fontWeight: '900', letterSpacing: 1 }}>
+                {userTier.label}
+              </span>
             </div>
           </div>
         </div>
