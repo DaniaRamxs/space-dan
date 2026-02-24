@@ -1,168 +1,277 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import useHighScore from '../hooks/useHighScore';
+import Confetti from 'react-confetti';
 
-const TicTacToe = () => {
+const C_X = '#00e5ff';
+const C_O = '#ff00ff';
+const C_BG = 'rgba(10, 10, 18, 0.4)';
+
+const WIN_LINES = [
+  [0, 1, 2], [3, 4, 5], [6, 7, 8],
+  [0, 3, 6], [1, 4, 7], [2, 5, 8],
+  [0, 4, 8], [2, 4, 6]
+];
+
+// Audio helper
+const playTone = (freq, type = 'sine', duration = 0.1) => {
+  try {
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = type;
+    osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+    gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration);
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.start();
+    osc.stop(audioCtx.currentTime + duration);
+  } catch (e) { /* silent fail */ }
+};
+
+export default function TicTacToe() {
   const [board, setBoard] = useState(Array(9).fill(null));
-  const [isPlayerTurn, setIsPlayerTurn] = useState(true);
+  const [isXNext, setIsXNext] = useState(true);
   const [winner, setWinner] = useState(null);
-  const [winningLine, setWinningLine] = useState([]);
-  const [, reportScore] = useHighScore('ttt');
+  const [winLine, setWinLine] = useState([]);
+  const [streak, setStreak] = useState(0);
+  const [difficulty, setDifficulty] = useState('hard'); // easy | hard
+  const [showConfetti, setShowConfetti] = useState(false);
+  const [best, saveScore] = useHighScore('ttt');
 
-  const winPatterns = [
-    [0, 1, 2], [3, 4, 5], [6, 7, 8], // Filas
-    [0, 3, 6], [1, 4, 7], [2, 5, 8], // Columnas
-    [0, 4, 8], [2, 4, 6] // Diagonales
-  ];
-
-  const resetGame = () => {
-    setBoard(Array(9).fill(null));
-    setIsPlayerTurn(true);
-    setWinner(null);
-    setWinningLine([]);
-  };
-
-  const checkWinner = (currentBoard) => {
-    for (let pattern of winPatterns) {
-      const [a, b, c] = pattern;
-      if (currentBoard[a] && currentBoard[a] === currentBoard[b] && currentBoard[a] === currentBoard[c]) {
-        return { winner: currentBoard[a], line: pattern };
+  const checkWinner = (squares) => {
+    for (const [a, b, c] of WIN_LINES) {
+      if (squares[a] && squares[a] === squares[b] && squares[a] === squares[c]) {
+        return { winner: squares[a], line: [a, b, c] };
       }
     }
-    if (currentBoard.every(cell => cell !== null)) {
-      return { winner: 'draw', line: [] };
-    }
+    if (squares.every(s => s !== null)) return { winner: 'Draw', line: [] };
     return null;
   };
 
-  const makeAIMove = (currentBoard) => {
-    // IA inteligente con minimax
-    const emptyCells = currentBoard.map((cell, idx) => cell === null ? idx : null).filter(val => val !== null);
+  // Minimax Algorithm for Hard Mode
+  const minimax = useCallback((squares, depth, isMax) => {
+    const res = checkWinner(squares);
+    if (res?.winner === 'O') return 10 - depth;
+    if (res?.winner === 'X') return depth - 10;
+    if (res?.winner === 'Draw') return 0;
 
-    // Intentar ganar
-    for (let cell of emptyCells) {
-      const testBoard = [...currentBoard];
-      testBoard[cell] = 'O';
-      if (checkWinner(testBoard)?.winner === 'O') {
-        return cell;
+    if (isMax) {
+      let bestScore = -Infinity;
+      for (let i = 0; i < 9; i++) {
+        if (!squares[i]) {
+          squares[i] = 'O';
+          bestScore = Math.max(bestScore, minimax(squares, depth + 1, false));
+          squares[i] = null;
+        }
       }
+      return bestScore;
+    } else {
+      let bestScore = Infinity;
+      for (let i = 0; i < 9; i++) {
+        if (!squares[i]) {
+          squares[i] = 'X';
+          bestScore = Math.min(bestScore, minimax(squares, depth + 1, true));
+          squares[i] = null;
+        }
+      }
+      return bestScore;
+    }
+  }, []);
+
+  const aiMove = useCallback((currentBoard) => {
+    const empty = currentBoard.map((s, i) => (s === null ? i : null)).filter(v => v !== null);
+
+    if (difficulty === 'easy') {
+      return empty[Math.floor(Math.random() * empty.length)];
     }
 
-    // Bloquear al jugador
-    for (let cell of emptyCells) {
-      const testBoard = [...currentBoard];
-      testBoard[cell] = 'X';
-      if (checkWinner(testBoard)?.winner === 'X') {
-        return cell;
+    // Hard Mode - Minimax
+    let bestScore = -Infinity;
+    let move;
+    for (let i = 0; i < 9; i++) {
+      if (!currentBoard[i]) {
+        currentBoard[i] = 'O';
+        const score = minimax(currentBoard, 0, false);
+        currentBoard[i] = null;
+        if (score > bestScore) {
+          bestScore = score;
+          move = i;
+        }
       }
     }
-
-    // Tomar el centro si está disponible
-    if (currentBoard[4] === null) return 4;
-
-    // Tomar una esquina
-    const corners = [0, 2, 6, 8].filter(i => currentBoard[i] === null);
-    if (corners.length > 0) return corners[Math.floor(Math.random() * corners.length)];
-
-    // Cualquier celda disponible
-    return emptyCells[Math.floor(Math.random() * emptyCells.length)];
-  };
+    return move;
+  }, [difficulty, minimax]);
 
   useEffect(() => {
-    if (!isPlayerTurn && !winner) {
+    if (!isXNext && !winner) {
       const timer = setTimeout(() => {
-        const aiMove = makeAIMove(board);
-        const newBoard = [...board];
-        newBoard[aiMove] = 'O';
-        setBoard(newBoard);
+        const move = aiMove([...board]);
+        if (move === undefined) return;
 
-        const result = checkWinner(newBoard);
+        playTone(300, 'triangle');
+        const nextBoard = [...board];
+        nextBoard[move] = 'O';
+        setBoard(nextBoard);
+
+        const result = checkWinner(nextBoard);
         if (result) {
           setWinner(result.winner);
-          setWinningLine(result.line);
+          setWinLine(result.line);
+          if (result.winner === 'X') {
+            const currentStreak = streak + 1;
+            setStreak(currentStreak);
+            const scoreVal = (difficulty === 'hard' ? 100 : 20) + (currentStreak * 10);
+            saveScore(scoreVal);
+            setShowConfetti(true);
+            playTone(600, 'sine', 0.3);
+          } else if (result.winner === 'O') {
+            setStreak(0);
+            playTone(150, 'sawtooth', 0.4);
+          }
         } else {
-          setIsPlayerTurn(true);
+          setIsXNext(true);
         }
       }, 500);
       return () => clearTimeout(timer);
     }
-  }, [isPlayerTurn, winner, board]);
+  }, [isXNext, winner, board, aiMove, saveScore, difficulty, streak]);
 
-  // Fire score when player wins
-  useEffect(() => {
-    if (winner === 'X') reportScore(10);
-  }, [winner]);
+  const handleClick = (i) => {
+    if (board[i] || winner || !isXNext) return;
 
-  // Auto-reiniciar después de ganar/perder
-  useEffect(() => {
-    if (winner) {
-      const timer = setTimeout(() => {
-        resetGame();
-      }, 3000);
-      return () => clearTimeout(timer);
-    }
-  }, [winner]);
+    playTone(440, 'sine');
+    const nextBoard = [...board];
+    nextBoard[i] = 'X';
+    setBoard(nextBoard);
 
-  const handleClick = (index) => {
-    if (board[index] || winner || !isPlayerTurn) return;
-
-    const newBoard = [...board];
-    newBoard[index] = 'X';
-    setBoard(newBoard);
-
-    const result = checkWinner(newBoard);
+    const result = checkWinner(nextBoard);
     if (result) {
       setWinner(result.winner);
-      setWinningLine(result.line);
+      setWinLine(result.line);
+      if (result.winner === 'X') {
+        const currentStreak = streak + 1;
+        setStreak(currentStreak);
+        const scoreVal = (difficulty === 'hard' ? 100 : 20) + (currentStreak * 10);
+        saveScore(scoreVal);
+        setShowConfetti(true);
+        playTone(600, 'sine', 0.3);
+      } else if (result.winner === 'O') {
+        setStreak(0);
+        playTone(150, 'sawtooth', 0.4);
+      }
     } else {
-      setIsPlayerTurn(false);
+      setIsXNext(false);
     }
   };
 
+  const reset = () => {
+    setBoard(Array(9).fill(null));
+    setIsXNext(true);
+    setWinner(null);
+    setWinLine([]);
+    setShowConfetti(false);
+  };
+
+  const cellSize = 'min(85px, 24vw)';
+
   return (
-    <div className="w-full flex justify-center p-2">
-      <div className="w-full">
-        {/* Título */}
-        <div className="text-center mb-4">
-          <h1 className="text-2xl font-bold text-blue-400 mb-1">Tic Tac Toe</h1>
-          <p className="text-xs text-gray-400">Tú (X) vs IA (O)</p>
-        </div>
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16, padding: 10, position: 'relative' }}>
+      {showConfetti && <Confetti numberOfPieces={150} recycle={false} style={{ pointerEvents: 'none' }} />}
 
-        {/* Tablero */}
-        <div className="bg-gray-800/50 backdrop-blur-sm rounded-xl p-3 border border-blue-900/50 shadow-2xl mb-3">
-          <div className="grid grid-cols-3 gap-2">
-            {board.map((cell, index) => (
-              <button
-                key={index}
-                onClick={() => handleClick(index)}
-                disabled={!isPlayerTurn || winner}
-                className={`
-                  aspect-square rounded-lg text-2xl font-bold transition-all duration-200
-                  ${winningLine.includes(index)
-                    ? 'bg-gradient-to-br from-blue-500 to-cyan-500 shadow-lg shadow-blue-500/50 scale-105'
-                    : 'bg-gradient-to-br from-blue-900 to-blue-800'
-                  }
-                  ${cell === 'X' ? 'text-cyan-300' : cell === 'O' ? 'text-blue-300' : 'text-transparent'}
-                  ${!cell && isPlayerTurn && !winner ? 'cursor-pointer hover:scale-105 hover:shadow-lg hover:shadow-blue-500/30 active:scale-95' : 'cursor-not-allowed'}
-                  border-2 border-blue-700/50 shadow-md
-                `}
+      {/* Difficulty Switcher */}
+      <div style={{ display: 'flex', gap: 8, background: 'rgba(255,255,255,0.05)', padding: 4, borderRadius: 12 }}>
+        {['easy', 'hard'].map(d => (
+          <button
+            key={d}
+            onClick={() => { setDifficulty(d); reset(); setStreak(0); }}
+            style={{
+              padding: '4px 12px', borderRadius: 8, border: 'none', fontSize: 10, fontWeight: 900,
+              textTransform: 'uppercase', cursor: 'pointer', letterSpacing: 1,
+              background: difficulty === d ? (d === 'hard' ? C_O : C_X) : 'transparent',
+              color: difficulty === d ? '#fff' : 'rgba(255,255,255,0.3)',
+              transition: 'all 0.2s'
+            }}
+          >
+            {d === 'easy' ? 'Noob' : 'Pro'}
+          </button>
+        ))}
+      </div>
+
+      {/* Stats HUD */}
+      <div style={{ display: 'flex', gap: 20, fontSize: 10, fontWeight: 900, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase' }}>
+        <div>Streak: <span style={{ color: C_X }}>{streak}</span></div>
+        <div style={{ color: C_O }}>Record: {best}</div>
+      </div>
+
+      {/* Board */}
+      <div style={{ position: 'relative' }}>
+        <div style={{
+          display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8,
+          background: C_BG, padding: 10, borderRadius: 16, border: '1px solid rgba(255,255,255,0.05)'
+        }}>
+          {board.map((val, i) => {
+            const isWin = winLine.includes(i);
+            return (
+              <motion.div
+                key={i}
+                whileHover={{ scale: val || winner ? 1 : 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => handleClick(i)}
+                style={{
+                  width: cellSize, height: cellSize,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  background: isWin ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.02)',
+                  border: `2px solid ${isWin ? (val === 'X' ? C_X : C_O) : 'rgba(255,255,255,0.03)'}`,
+                  borderRadius: 14, cursor: val || winner ? 'default' : 'pointer',
+                  fontSize: 40, fontWeight: 900, transition: 'all 0.2s'
+                }}
               >
-                {cell}
-              </button>
-            ))}
-          </div>
+                <AnimatePresence>
+                  {val && (
+                    <motion.span
+                      initial={{ scale: 0, opacity: 0, rotate: -90 }}
+                      animate={{ scale: 1, opacity: 1, rotate: 0 }}
+                      style={{ color: val === 'X' ? C_X : C_O, textShadow: `0 0 15px ${val === 'X' ? C_X : C_O}aa` }}
+                    >
+                      {val}
+                    </motion.span>
+                  )}
+                </AnimatePresence>
+              </motion.div>
+            );
+          })}
         </div>
+      </div>
 
-        {/* Estado del juego */}
-        <div className="text-center">
-          {!winner && (
-            <p className="text-sm text-gray-300">
-              {isPlayerTurn ? '🎮 Tu turno' : '🤖 IA pensando...'}
-            </p>
-          )}
-        </div>
+      {/* Status Footer */}
+      <div style={{ height: 60, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        {winner ? (
+          <motion.div initial={{ y: 10, opacity: 0 }} animate={{ y: 0, opacity: 1 }} style={{ textAlign: 'center' }}>
+            <div style={{
+              fontSize: 20, fontWeight: 900, letterSpacing: 1,
+              color: winner === 'X' ? C_X : winner === 'O' ? C_O : '#fff',
+              textShadow: winner === 'Draw' ? 'none' : `0 0 10px ${winner === 'X' ? C_X : C_O}aa`
+            }}>
+              {winner === 'Draw' ? '¡CASI!' : winner === 'X' ? '¡VICTORIA!' : '¡DERROTA!'}
+            </div>
+            <button onClick={reset} style={{
+              marginTop: 8, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)',
+              color: '#fff', padding: '6px 24px', borderRadius: 999, cursor: 'pointer', fontSize: 10,
+              fontWeight: 900, textTransform: 'uppercase', letterSpacing: 1
+            }}>REVANCHA</button>
+          </motion.div>
+        ) : (
+          <div style={{ fontSize: 11, color: isXNext ? C_X : C_O, fontWeight: 900, letterSpacing: 2 }}>
+            {isXNext ? 'TU TURNO (X)' : 'IA PENSANDO...'}
+          </div>
+        )}
+      </div>
+
+      <div style={{ fontSize: 9, opacity: 0.15, color: '#fff', textTransform: 'uppercase', letterSpacing: 1 }}>
+        Minimax AI {difficulty === 'hard' ? '(Invincible)' : ''}
       </div>
     </div>
   );
-};
-
-export default TicTacToe;
+}

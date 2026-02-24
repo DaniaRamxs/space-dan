@@ -265,7 +265,7 @@ export default function ConnectFour() {
         const newWins = currentWins + 1;
         setWins(newWins);
         setStatus('won');
-        const isNew = saveScore(newWins);
+        const isNew = saveScore(newWins * 100);
         setNewRecord(isNew);
         return true;
       }
@@ -379,8 +379,8 @@ export default function ConnectFour() {
                 status !== 'playing'
                   ? '#555'
                   : turn === PLAYER
-                  ? PLAYER_COLOR
-                  : CPU_COLOR,
+                    ? PLAYER_COLOR
+                    : CPU_COLOR,
             }}
           >
             {status !== 'playing' ? '—' : turn === PLAYER ? 'tú' : cpuThinking ? 'cpu...' : 'cpu'}

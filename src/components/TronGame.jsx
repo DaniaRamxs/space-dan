@@ -170,7 +170,7 @@ export default function TronGame() {
                 if (p1d || p2d) {
                     s.phase = 'over';
                     s.winner = p1d && p2d ? 'draw' : p1d ? 'ai' : 'player';
-                    const sc = s.winner === 'player' ? 10 : s.winner === 'draw' ? 4 : 0;
+                    const sc = s.winner === 'player' ? 150 : s.winner === 'draw' ? 50 : 0;
                     saveScore(sc);
                     setUiPhase('over');
                 } else {

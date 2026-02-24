@@ -1,33 +1,36 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import useHighScore from '../hooks/useHighScore';
 
-const EMOJIS = ['🌸', '🦋', '🌙', '⭐', '🎀', '🌈', '💎', '🦄'];
+const EMOJIS = ['🚀', '🪐', '👽', '☄️', '🌌', '🔭', '🛰️', '🛸'];
+const C_ACC = '#ff00ff';
+const C_CYN = '#00e5ff';
 
 function shuffle(arr) {
   return [...arr].sort(() => Math.random() - 0.5);
 }
 
-function makeCards() {
-  return shuffle([...EMOJIS, ...EMOJIS]).map((emoji, i) => ({
-    id: i, emoji, flipped: false, matched: false,
-  }));
-}
-
 export default function MemoryGame() {
-  const [cards, setCards]     = useState(makeCards);
+  const [cards, setCards] = useState([]);
   const [selected, setSelected] = useState([]);
-  const [moves, setMoves]     = useState(0);
-  const [won, setWon]         = useState(false);
-  const [locked, setLocked]   = useState(false);
-  const [, reportScore] = useHighScore('memory');
+  const [moves, setMoves] = useState(0);
+  const [won, setWon] = useState(false);
+  const [locked, setLocked] = useState(false);
+  const [best, saveScore] = useHighScore('memory');
 
-  const reset = () => {
-    setCards(makeCards());
+  const init = useCallback(() => {
+    const doubled = [...EMOJIS, ...EMOJIS];
+    const shuffled = shuffle(doubled).map((emoji, i) => ({
+      id: i, emoji, flipped: false, matched: false
+    }));
+    setCards(shuffled);
     setSelected([]);
     setMoves(0);
     setWon(false);
     setLocked(false);
-  };
+  }, []);
+
+  useEffect(() => { init(); }, [init]);
 
   const handleFlip = (id) => {
     if (locked) return;
@@ -35,8 +38,7 @@ export default function MemoryGame() {
     if (!card || card.flipped || card.matched) return;
     if (selected.length === 1 && selected[0] === id) return;
 
-    const newCards = cards.map(c => c.id === id ? { ...c, flipped: true } : c);
-    setCards(newCards);
+    setCards(prev => prev.map(c => c.id === id ? { ...c, flipped: true } : c));
     setSelected(prev => [...prev, id]);
   };
 
@@ -44,102 +46,111 @@ export default function MemoryGame() {
     if (selected.length !== 2) return;
     setLocked(true);
     setMoves(m => m + 1);
+
     const [a, b] = selected;
     const ca = cards.find(c => c.id === a);
     const cb = cards.find(c => c.id === b);
 
     if (ca.emoji === cb.emoji) {
-      const next = cards.map(c =>
-        c.id === a || c.id === b ? { ...c, matched: true } : c
-      );
-      setCards(next);
-      setSelected([]);
-      setLocked(false);
-      if (next.every(c => c.matched)) {
-        setWon(true);
-        reportScore(Math.max(0, 500 - (moves + 1) * 10));
-      }
-    } else {
       setTimeout(() => {
         setCards(prev => prev.map(c =>
-          c.id === a || c.id === b ? { ...c, flipped: false } : c
+          (c.id === a || c.id === b) ? { ...c, matched: true } : c
         ));
         setSelected([]);
         setLocked(false);
-      }, 850);
+      }, 500);
+    } else {
+      setTimeout(() => {
+        setCards(prev => prev.map(c =>
+          (c.id === a || c.id === b) ? { ...c, flipped: false } : c
+        ));
+        setSelected([]);
+        setLocked(false);
+      }, 1000);
     }
-  }, [selected]);
+  }, [selected, cards]);
+
+  useEffect(() => {
+    if (cards.length > 0 && cards.every(c => c.matched)) {
+      setWon(true);
+      const score = Math.max(10, 500 - moves * 8);
+      saveScore(score);
+    }
+  }, [cards, moves, saveScore]);
+
+  const size = 'min(64px, 20vw)';
 
   return (
-    <div style={{ textAlign: 'center' }}>
-      <div style={{ marginBottom: 10, fontSize: 12, color: 'var(--text-muted)' }}>
-        movimientos: <span style={{ color: 'var(--accent)', fontWeight: 700 }}>{moves}</span>
-        {' · '}
-        encontradas: <span style={{ color: 'var(--cyan)', fontWeight: 700 }}>
-          {cards.filter(c => c.matched).length / 2}/{EMOJIS.length}
-        </span>
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
+      {/* Stats */}
+      <div style={{
+        display: 'flex', gap: 20, fontSize: 11, fontWeight: 900,
+        textTransform: 'uppercase', color: 'rgba(255,255,255,0.4)', letterSpacing: 1
+      }}>
+        <div>Moves: <span style={{ color: C_ACC }}>{moves}</span></div>
+        <div style={{ color: C_CYN }}>Record: {best}</div>
       </div>
 
-      {won && (
-        <div style={{ marginBottom: 12, color: 'var(--cyan)', fontSize: 13, fontWeight: 700,
-          textShadow: '0 0 10px rgba(0,229,255,0.7)' }}>
-          ✨ ganaste en {moves} movimientos!
-        </div>
-      )}
-
+      {/* Grid */}
       <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(4, 1fr)',
-        gap: 8,
-        maxWidth: 280,
-        margin: '0 auto',
+        display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10,
+        background: 'rgba(10,10,18,0.3)', padding: 12, borderRadius: 16
       }}>
         {cards.map(card => (
-          <button
-            key={card.id}
-            onClick={() => handleFlip(card.id)}
-            style={{
-              width: 60, height: 60,
-              borderRadius: 10,
-              fontSize: card.flipped || card.matched ? 26 : 18,
-              background: card.matched
-                ? 'rgba(0,229,255,0.10)'
-                : card.flipped
-                ? 'rgba(255,0,255,0.10)'
-                : 'rgba(255,255,255,0.04)',
-              border: card.matched
-                ? '1px solid rgba(0,229,255,0.40)'
-                : card.flipped
-                ? '1px solid rgba(255,0,255,0.40)'
-                : '1px solid rgba(255,255,255,0.08)',
-              cursor: card.matched || card.flipped ? 'default' : 'pointer',
-              transition: 'all 0.2s ease',
-              boxShadow: card.matched
-                ? '0 0 10px rgba(0,229,255,0.25)'
-                : card.flipped
-                ? '0 0 10px rgba(255,0,255,0.25)'
-                : 'none',
-              color: '#fff',
-            }}
-          >
-            {card.flipped || card.matched ? card.emoji : '?'}
-          </button>
+          <div key={card.id} style={{ width: size, height: size, perspective: 500 }}>
+            <motion.div
+              style={{
+                width: '100%', height: '100%', position: 'relative',
+                transformStyle: 'preserve-3d', cursor: card.flipped || card.matched ? 'default' : 'pointer'
+              }}
+              animate={{ rotateY: (card.flipped || card.matched) ? 180 : 0 }}
+              transition={{ duration: 0.4 }}
+              onClick={() => handleFlip(card.id)}
+            >
+              {/* Front (Hidden) */}
+              <div style={{
+                position: 'absolute', inset: 0, backfaceVisibility: 'hidden',
+                background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)',
+                borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: 20, color: 'rgba(255,255,255,0.2)'
+              }}>?</div>
+
+              {/* Back (Emoji) */}
+              <div style={{
+                position: 'absolute', inset: 0, backfaceVisibility: 'hidden',
+                transform: 'rotateY(180deg)',
+                background: card.matched ? 'rgba(0,229,255,0.1)' : 'rgba(255,0,255,0.1)',
+                border: `1px solid ${card.matched ? C_CYN : C_ACC}`,
+                boxShadow: `0 0 15px ${card.matched ? C_CYN : C_ACC}44`,
+                borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: 28
+              }}>
+                {card.emoji}
+              </div>
+            </motion.div>
+          </div>
         ))}
       </div>
 
-      <button onClick={reset} style={{
-        marginTop: 14,
-        padding: '5px 18px',
-        background: 'rgba(255,0,255,0.08)',
-        border: '1px solid rgba(255,0,255,0.30)',
-        borderRadius: 999,
-        color: 'var(--text-muted)',
-        cursor: 'pointer',
-        fontSize: 12,
-        transition: 'all 0.2s ease',
-      }}>
-        reiniciar
-      </button>
+      <AnimatePresence>
+        {won && (
+          <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }} style={{ textAlign: 'center' }}>
+            <div style={{ fontSize: 20, fontWeight: 900, color: C_CYN, textShadow: `0 0 10px ${C_CYN}` }}>¡ENCONTRADOS!</div>
+            <button onClick={init} style={{
+              marginTop: 10, background: 'transparent', border: '1px solid rgba(0,229,255,0.4)',
+              color: C_CYN, padding: '6px 20px', borderRadius: 999, cursor: 'pointer',
+              fontWeight: 900, fontSize: 11, textTransform: 'uppercase'
+            }}>Jugar de nuevo</button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {!won && (
+        <button onClick={init} style={{
+          marginTop: 4, background: 'transparent', border: '1px solid rgba(255,255,255,0.1)',
+          color: 'rgba(255,255,255,0.2)', padding: '4px 16px', borderRadius: 999, cursor: 'pointer', fontSize: 10
+        }}>Reiniciar</button>
+      )}
     </div>
   );
 }

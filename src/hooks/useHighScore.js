@@ -1,40 +1,46 @@
-import { useState, useCallback } from 'react';
-import { getSafeStorage, setSafeStorage } from '../utils/safeStorage';
-
-
-const KEY = 'space-dan-scores';
+import { useState, useCallback, useEffect } from 'react';
+import { useAuthContext } from '../contexts/AuthContext';
+import { getUserGameRanks } from '../services/supabaseScores';
 
 /**
- * Loads all scores from localStorage.
- * @returns {Record<string, number>}
- */
-function load() {
-  return getSafeStorage(KEY, {});
-}
-
-/**
- * Persists and retrieves a per-game high score from localStorage.
+ * Persists and retrieves a per-game high score.
+ * Following the "NADA de guardado local" rule, this now relies exclusively on 
+ * in-memory state and optionally syncs with Supabase if the user is authenticated.
  *
- * @param {string} gameId - Unique key for this game ('flappy' | 'dino' | 'simon')
+ * @param {string} gameId - Unique key for this game
  * @returns {[number, (score: number) => boolean]} Tuple of [bestScore, saveScore]
- *   saveScore(n) saves if n > current best and returns true when a new record is set.
  */
 export default function useHighScore(gameId) {
-  const [best, setBest] = useState(() => load()[gameId] ?? 0);
+  const { user } = useAuthContext();
+  const [best, setBest] = useState(0);
+
+  // Fetch best score from server if user is logged in
+  useEffect(() => {
+    if (!user) return;
+
+    let active = true;
+    getUserGameRanks(user.id).then(ranks => {
+      if (!active) return;
+      const myRank = ranks.find(r => r.game_id === gameId);
+      if (myRank) setBest(myRank.max_score);
+    });
+
+    return () => { active = false; };
+  }, [user, gameId]);
 
   const saveScore = useCallback(
     (score) => {
       const n = Math.floor(Number(score));
-      const all = load();
-      if (n > (all[gameId] ?? 0)) {
-        all[gameId] = n;
-        setSafeStorage(KEY, all);
+
+      // Update local 'best' in-memory
+      if (n > best) {
         setBest(n);
         window.dispatchEvent(new CustomEvent('dan:game-score', {
           detail: { gameId, score: n, isHighScore: true },
         }));
         return true;
       }
+
       // Fire for non-high-score completions too (for coin rewards)
       if (n > 0) {
         window.dispatchEvent(new CustomEvent('dan:game-score', {
@@ -43,16 +49,15 @@ export default function useHighScore(gameId) {
       }
       return false;
     },
-    [gameId]
+    [gameId, best]
   );
 
   return [best, saveScore];
 }
 
 /**
- * Returns all stored high scores keyed by gameId.
- * @returns {Record<string, number>}
+ * Returns empty object as local storage is now disabled for scores.
  */
 export function getAllScores() {
-  return load();
+  return {};
 }

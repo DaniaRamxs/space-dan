@@ -86,17 +86,10 @@ export default function SlidingPuzzle() {
   const [tiles, setTiles] = useState(() => generateSolvable());
   const [moves, setMoves] = useState(0);
   const [gameState, setGameState] = useState('idle'); // idle | playing | solved
-  const [, reportScore] = useHighScore('puzzle');
+  const [best, saveScore] = useHighScore('puzzle');
   const [flash, setFlash] = useState(false);
-  const [bestMoves, setBestMoves] = useState(() => {
-    try {
-      const v = localStorage.getItem(STORAGE_KEY);
-      return v ? parseInt(v, 10) : null;
-    } catch {
-      return null;
-    }
-  });
   const [hoveredIdx, setHoveredIdx] = useState(null);
+
 
   const timerRunning = gameState === 'playing';
   const { elapsed, reset: resetTimer } = useTimer(timerRunning);
@@ -122,17 +115,14 @@ export default function SlidingPuzzle() {
       setFlash(true);
       setTimeout(() => setFlash(false), 1200);
 
-      // Update best
-      if (bestMoves === null || newMoves < bestMoves) {
-        setBestMoves(newMoves);
-        try { localStorage.setItem(STORAGE_KEY, String(newMoves)); } catch {}
-      }
+      // Score based on moves (lower is better, but here we report a value to useHighScore)
+      // Note: useHighScore handles the 'best' persistence
+      saveScore(Math.max(1, 1000 - newMoves * 5));
     }
+
   };
 
-  useEffect(() => {
-    if (gameState === 'solved') reportScore(Math.max(0, 1000 - moves * 5));
-  }, [gameState]);
+
 
   const shuffle = () => {
     setTiles(generateSolvable());
@@ -307,11 +297,12 @@ export default function SlidingPuzzle() {
         </div>
         <div style={{ width: 1, backgroundColor: '#1a1a2e' }} />
         <div style={statItemStyle}>
-          <div style={statLabelStyle}>Mejor</div>
+          <div style={statLabelStyle}>Récord</div>
           <div style={{ ...statValueStyle, color: '#ff00ff' }}>
-            {bestMoves !== null ? bestMoves : '—'}
+            {best > 0 ? best : '—'}
           </div>
         </div>
+
       </div>
 
       {/* Solved banner */}

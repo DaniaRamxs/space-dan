@@ -66,6 +66,9 @@ const bulletinPosts = [
   { id: 62, date: "2026-02-24", title: "Type Blitz", text: "Nuevo juego de habilidad: palabras caen desde arriba, tipéalas antes de que toquen la línea de peligro. Sistema de combo, 3 dificultades y récord local.", tags: ["update", "juegos"] },
   { id: 63, date: "2026-02-24", title: "Tron Cycles", text: "Nuevo juego arcade: ciclos de luz al estilo TRON vs IA. Traza tu camino sin chocarte con paredes ni el trail del rival. Flechas, WASD y D-pad táctil.", tags: ["update", "juegos"] },
   { id: 64, date: "2026-02-24", title: "Lights Out", text: "Nuevo puzzle clásico: apaga todas las luces del tablero 5×5. Cada celda que presionas alterna ella y sus 4 vecinas. 3 dificultades y récord por nivel.", tags: ["update", "juegos"] },
+  { id: 65, date: "2026-02-24", title: "Visuales Neón en Juegos", text: "Actualizamos los juegos clásicos (Snake, TTT, Memory) con estética premium neón, efectos de resplandor y animaciones fluidas de 60fps.", tags: ["diseño", "juegos"] },
+  { id: 66, date: "2026-02-24", title: "IA Invencible: Minimax", text: "Tic-Tac-Toe ahora cuenta con el algoritmo Minimax. En modo 'Pro' la IA es matemáticamente perfecta. ¿Podrás lograr un empate?", tags: ["update", "juegos"] },
+  { id: 67, date: "2026-02-24", title: "Sistema de Puntuación Real", text: "Eliminamos los puntajes estáticos. Ahora los puntos escalan con la dificultad, multiplicadores por combo y rachas de victoria.", tags: ["update", "gamificación"] },
 ];
 
 
