@@ -6348,24 +6348,30 @@ textarea,
 /* ── Game scaler (mobile responsive) ──────────────────────────── */
 .gameScale {
   transform-origin: top center;
-  display: inline-block;
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  max-width: 100%;
 }
 
 @media (max-width: 430px) {
-  .gameScale {
-    zoom: 0.88;
+  .gameScale>div {
+    transform: scale(0.88);
+    transform-origin: top center;
   }
 }
 
 @media (max-width: 370px) {
-  .gameScale {
-    zoom: 0.78;
+  .gameScale>div {
+    transform: scale(0.78);
+    transform-origin: top center;
   }
 }
 
 @media (max-width: 320px) {
-  .gameScale {
-    zoom: 0.68;
+  .gameScale>div {
+    transform: scale(0.68);
+    transform-origin: top center;
   }
 }
 
