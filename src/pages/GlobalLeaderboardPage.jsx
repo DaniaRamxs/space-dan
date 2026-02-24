@@ -60,6 +60,91 @@ function metricColor(tab, row) {
   return 'var(--accent)';
 }
 
+function CompetitiveRow({ row, i, isMe, medal, formatMetric, onClick }) {
+  const rank = row.rank ?? (i + 1);
+  const isTop3 = rank <= 3;
+
+  const borderGlow = rank === 1 ? 'rgba(255, 215, 0, 0.4)' :
+    rank === 2 ? 'rgba(192, 192, 192, 0.3)' :
+      rank === 3 ? 'rgba(205, 127, 50, 0.3)' : 'rgba(255, 255, 255, 0.05)';
+
+  const bgGradient = rank === 1 ? 'linear-gradient(90deg, rgba(255,215,0,0.1) 0%, transparent 100%)' :
+    isMe ? 'rgba(255,110,180,0.1)' : 'transparent';
+
+  return (
+    <motion.tr
+      initial={{ opacity: 0, x: -20 }}
+      animate={{ opacity: 1, x: 0 }}
+      transition={{ delay: i * 0.05, duration: 0.4 }}
+      onClick={onClick}
+      className={`competitive-row rank-${rank}`}
+      style={{
+        cursor: 'pointer',
+        background: bgGradient,
+        height: isTop3 ? '70px' : '55px',
+        borderBottom: `1px solid ${borderGlow}`,
+        position: 'relative'
+      }}
+    >
+      <td style={{ width: 60, textAlign: 'center' }}>
+        <div style={{
+          fontSize: isTop3 ? '1.5rem' : '1rem',
+          fontWeight: 'black',
+          color: rank === 1 ? '#ffd700' : rank === 2 ? '#e5e5e5' : rank === 3 ? '#cd7f32' : 'inherit',
+          textShadow: isTop3 ? `0 0 10px ${borderGlow}` : 'none'
+        }}>
+          {isTop3 ? medal(rank) : rank}
+        </div>
+      </td>
+      <td>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{ position: 'relative' }}>
+            <Avatar url={row.avatar_url} name={row.username} />
+            {isTop3 && (
+              <div style={{
+                position: 'absolute', top: -5, left: -5,
+                width: '100%', height: '100%',
+                border: `2px solid ${borderGlow}`, borderRadius: '50%',
+                animation: 'pulse 2s infinite'
+              }} />
+            )}
+
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
+            <div style={{
+              fontWeight: 'bold',
+              fontSize: isTop3 ? '1.1rem' : '0.95rem',
+              color: isMe ? 'var(--accent)' : '#fff',
+              letterSpacing: '0.05em'
+            }}>
+              {row.username || 'Anónimo'} {isMe && <span style={{ fontSize: '0.7rem', opacity: 0.6 }}>(tú)</span>}
+            </div>
+            {row.user_level && (
+              <span style={{ fontSize: '0.65rem', color: 'var(--cyan)', fontWeight: 'bold' }}>
+                MASTER LVL {row.user_level}
+              </span>
+            )}
+          </div>
+        </div>
+      </td>
+      <td style={{ textAlign: 'right', paddingRight: 20 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
+          <span style={{
+            fontSize: isTop3 ? '1.3rem' : '1.1rem',
+            fontWeight: '900',
+            color: 'var(--cyan)',
+            fontFamily: 'monospace',
+            textShadow: '0 0 8px rgba(0,255,255,0.3)'
+          }}>
+            {formatMetric('competitive', row)}
+          </span>
+          {isTop3 && <span style={{ fontSize: '0.6rem', opacity: 0.5, textTransform: 'uppercase' }}>Elite Rank</span>}
+        </div>
+      </td>
+    </motion.tr>
+  );
+}
+
 export default function GlobalLeaderboardPage() {
   const { user } = useAuthContext();
   const navigate = useNavigate();
@@ -167,6 +252,21 @@ export default function GlobalLeaderboardPage() {
               {rows.map((row, i) => {
                 const rank = row.rank ?? (i + 1);
                 const isMe = user && row.user_id === user.id;
+
+                if (activeTab === 'competitive') {
+                  return (
+                    <CompetitiveRow
+                      key={row.user_id ?? i}
+                      row={row}
+                      i={i}
+                      isMe={isMe}
+                      medal={medal}
+                      formatMetric={formatMetric}
+                      onClick={() => handleRow(row)}
+                    />
+                  );
+                }
+
                 return (
                   <motion.tr
                     key={row.user_id ?? i}
