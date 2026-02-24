@@ -12,7 +12,9 @@ export default defineConfig({
       workbox: {
         cleanupOutdatedCaches: true,
         globPatterns: ['**/*.{js,css,html,ico,png,svg,webp,mp3}'],
+        maximumFileSizeToCacheInBytes: 10 * 1024 * 1024, // Aumentar límite a 10MB para las canciones
       },
+
       manifest: {
         name: 'Space Dan',
         short_name: 'SpaceDan',
