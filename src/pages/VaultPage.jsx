@@ -7,6 +7,7 @@ export default function VaultPage() {
     const { user } = useAuthContext();
     const [scanning, setScanning] = useState(true);
     const [notes, setNotes] = useState([]);
+    const [items, setItems] = useState([]);
     const [loading, setLoading] = useState(false);
     const [activeTab, setActiveTab] = useState('notes'); // 'notes' | 'items'
 
@@ -26,8 +27,12 @@ export default function VaultPage() {
     async function loadData() {
         setLoading(true);
         try {
-            const data = await vaultService.getNotes();
-            setNotes(data);
+            const [notesData, itemsData] = await Promise.all([
+                vaultService.getNotes(),
+                vaultService.getSavedItems()
+            ]);
+            setNotes(notesData);
+            setItems(itemsData);
         } catch (err) {
             console.error(err);
         } finally {
@@ -112,53 +117,94 @@ export default function VaultPage() {
             ) : (
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '20px' }}>
                     <AnimatePresence>
-                        {notes.map((note, i) => (
-                            <motion.div
-                                key={note.id}
-                                initial={{ opacity: 0, scale: 0.9 }}
-                                animate={{ opacity: 1, scale: 1 }}
-                                transition={{ delay: i * 0.05 }}
-                                className="glassCard"
-                                style={{ position: 'relative', overflow: 'hidden' }}
-                            >
-                                <div style={{
-                                    position: 'absolute',
-                                    top: 0, left: 0,
-                                    width: '4px', height: '100%',
-                                    background: note.label === 'idea' ? 'var(--cyan)' : 'var(--accent)'
-                                }} />
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                                    <div style={{ fontSize: '11px', opacity: 0.4, textTransform: 'uppercase' }}>
-                                        {note.label || 'Personal'}
-                                    </div>
-                                    <button
-                                        onClick={() => handleDeleteNote(note.id)}
-                                        style={{ background: 'transparent', border: 'none', color: 'var(--accent)', cursor: 'pointer', padding: '2px 6px', fontSize: '0.8rem', opacity: 0.5 }}
-                                        title="Destruir nota"
-                                        onMouseOver={e => e.target.style.opacity = 1}
-                                        onMouseOut={e => e.target.style.opacity = 0.5}
+                        {activeTab === 'notes' ? (
+                            <>
+                                {notes.map((note, i) => (
+                                    <motion.div
+                                        key={note.id}
+                                        initial={{ opacity: 0, scale: 0.9 }}
+                                        animate={{ opacity: 1, scale: 1 }}
+                                        transition={{ delay: i * 0.05 }}
+                                        className="glassCard"
+                                        style={{ position: 'relative', overflow: 'hidden' }}
                                     >
-                                        ✕
-                                    </button>
+                                        <div style={{
+                                            position: 'absolute',
+                                            top: 0, left: 0,
+                                            width: '4px', height: '100%',
+                                            background: note.label === 'idea' ? 'var(--cyan)' : 'var(--accent)'
+                                        }} />
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                                            <div style={{ fontSize: '11px', opacity: 0.4, textTransform: 'uppercase' }}>
+                                                {note.label || 'Personal'}
+                                            </div>
+                                            <button
+                                                onClick={() => handleDeleteNote(note.id)}
+                                                style={{ background: 'transparent', border: 'none', color: 'var(--accent)', cursor: 'pointer', padding: '2px 6px', fontSize: '0.8rem', opacity: 0.5 }}
+                                                title="Destruir nota"
+                                                onMouseOver={e => e.target.style.opacity = 1}
+                                                onMouseOut={e => e.target.style.opacity = 0.5}
+                                            >
+                                                ✕
+                                            </button>
+                                        </div>
+                                        <h3 style={{ fontSize: '16px', margin: '0 0 10px 0', color: 'var(--text)' }}>{note.title}</h3>
+                                        <p style={{ fontSize: '14px', opacity: 0.8, whiteSpace: 'pre-wrap', color: 'var(--text)' }}>{note.content}</p>
+                                        <div style={{ fontSize: '10px', opacity: 0.3, marginTop: '20px' }}>
+                                            Actualizado: {new Date(note.updated_at).toLocaleDateString()}
+                                        </div>
+                                    </motion.div>
+                                ))}
+                                <motion.div
+                                    whileHover={{ scale: 1.02 }}
+                                    onClick={() => setIsAdding(true)}
+                                    className="glassCard"
+                                    style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', borderStyle: 'dashed', cursor: 'pointer', minHeight: '150px' }}
+                                >
+                                    <div style={{ textAlign: 'center', opacity: 0.5 }}>
+                                        <div style={{ fontSize: '32px' }}>+</div>
+                                        <div style={{ fontSize: '12px' }}>Nueva Nota Cifrada</div>
+                                    </div>
+                                </motion.div>
+                            </>
+                        ) : (
+                            items.length === 0 ? (
+                                <div style={{ gridColumn: '1 / -1', textAlign: 'center', opacity: 0.5, padding: '40px' }}>
+                                    Aún no has guardado ninguna carta ni recuerdo.
                                 </div>
-                                <h3 style={{ fontSize: '16px', margin: '0 0 10px 0', color: 'var(--text)' }}>{note.title}</h3>
-                                <p style={{ fontSize: '14px', opacity: 0.8, whiteSpace: 'pre-wrap', color: 'var(--text)' }}>{note.content}</p>
-                                <div style={{ fontSize: '10px', opacity: 0.3, marginTop: '20px' }}>
-                                    Actualizado: {new Date(note.updated_at).toLocaleDateString()}
-                                </div>
-                            </motion.div>
-                        ))}
-                        <motion.div
-                            whileHover={{ scale: 1.02 }}
-                            onClick={() => setIsAdding(true)}
-                            className="glassCard"
-                            style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', borderStyle: 'dashed', cursor: 'pointer', minHeight: '150px' }}
-                        >
-                            <div style={{ textAlign: 'center', opacity: 0.5 }}>
-                                <div style={{ fontSize: '32px' }}>+</div>
-                                <div style={{ fontSize: '12px' }}>Nueva Nota Cifrada</div>
-                            </div>
-                        </motion.div>
+                            ) : (
+                                items.map((item, i) => (
+                                    <motion.div
+                                        key={item.id}
+                                        initial={{ opacity: 0, scale: 0.9 }}
+                                        animate={{ opacity: 1, scale: 1 }}
+                                        transition={{ delay: i * 0.05 }}
+                                        className="glassCard"
+                                        style={{ position: 'relative', overflow: 'hidden' }}
+                                    >
+                                        <div style={{
+                                            position: 'absolute',
+                                            top: 0, left: 0,
+                                            width: '4px', height: '100%',
+                                            background: 'var(--green)'
+                                        }} />
+                                        <div style={{ fontSize: '11px', opacity: 0.4, textTransform: 'uppercase', marginBottom: '8px' }}>
+                                            {item.item_type === 'letter' ? 'Carta Guardada' : 'Recuerdo Guardado'}
+                                        </div>
+                                        {item.item_type === 'letter' && item.letter ? (
+                                            <>
+                                                <p style={{ fontSize: '14px', fontStyle: 'italic', color: 'var(--text)' }}>"{item.letter.content}"</p>
+                                                <div style={{ fontSize: '10px', opacity: 0.3, marginTop: '20px' }}>
+                                                    Carta enviada originalmente en: {new Date(item.letter.created_at).toLocaleDateString()}
+                                                </div>
+                                            </>
+                                        ) : (
+                                            <p style={{ fontSize: '14px', color: 'var(--text)' }}>Contenido no disponible.</p>
+                                        )}
+                                    </motion.div>
+                                ))
+                            )
+                        )}
                     </AnimatePresence>
                 </div>
             )}
@@ -197,8 +243,8 @@ export default function VaultPage() {
                                     >
                                         <option value="personal">Personal</option>
                                         <option value="idea">Idea</option>
-                                        <option value="recordatorio">Recordatorio</option>
-                                        <option value="secreto">Secreto</option>
+                                        <option value="recuerdo">Recuerdo</option>
+                                        <option value="inspiración">Inspiración</option>
                                     </select>
                                 </div>
                                 <div>

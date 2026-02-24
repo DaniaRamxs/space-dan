@@ -5,30 +5,46 @@ import { useAuthContext } from '../contexts/AuthContext';
 const MEDALS = ['🥇', '🥈', '🥉'];
 
 export default function Leaderboard({ gameId, refreshKey = 0 }) {
-  const { user } = useAuthContext();
+  const { user, profile } = useAuthContext();
   const [scores, setScores] = useState([]);
   const [userRank, setUserRank] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!gameId) return;
-    setLoading(true);
+    let isMounted = true;
 
     const loadBoard = async () => {
-      const data = await getLeaderboard(gameId, 10);
-      setScores(data);
+      setLoading(true);
+      try {
+        const data = await getLeaderboard(gameId, 10);
+        if (!isMounted) return;
+        setScores(data || []);
 
-      if (user) {
-        const rankData = await getUserRankInGame(user.id, gameId);
-        setUserRank(rankData);
+        if (user) {
+          const rankData = await getUserRankInGame(user.id, gameId);
+          if (isMounted) setUserRank(rankData);
+        }
+      } catch (err) {
+        console.error('Error fetching leaderboard:', err);
+      } finally {
+        if (isMounted) setLoading(false);
       }
-      setLoading(false);
     };
 
     loadBoard();
-  }, [gameId, refreshKey, user]);
+    return () => { isMounted = false; };
+  }, [gameId, refreshKey, user?.id]);
 
-  const userInTop10 = user && scores.some(s => s.username === (user.email || '').split('@')[0] || s.username === user.user_metadata?.full_name);
+  const isMe = (entry) => {
+    if (!user) return false;
+    if (entry.user_id && entry.user_id === user.id) return true;
+    if (profile?.username && entry.username === profile.username) return true;
+    const fallbackName = (user.email || '').split('@')[0] || user.user_metadata?.full_name;
+    return entry.username && entry.username === fallbackName;
+  };
+
+  const userInTop10 = scores.some(isMe);
 
   return (
     <div className="leaderboard">
@@ -43,7 +59,7 @@ export default function Leaderboard({ gameId, refreshKey = 0 }) {
       ) : (
         <div className="leaderboardList">
           {scores.map((entry, i) => {
-            const isCurrentUser = user && (entry.username === (user.email || '').split('@')[0] || entry.username === user.user_metadata?.full_name);
+            const isCurrentUser = isMe(entry);
             return (
               <div key={i} className={`leaderboardRow ${isCurrentUser ? 'highlight-me' : ''}`} style={isCurrentUser ? { background: 'rgba(255,110,180,0.15)', borderLeft: '3px solid var(--accent)' } : {}}>
                 <span className="leaderboardRank">
@@ -55,7 +71,6 @@ export default function Leaderboard({ gameId, refreshKey = 0 }) {
                 <span className="leaderboardName">{entry.username || 'usuario'}</span>
                 <span className="leaderboardScore">{entry.best_score?.toLocaleString() || '0'}</span>
               </div>
-
             );
           })}
 
@@ -65,7 +80,7 @@ export default function Leaderboard({ gameId, refreshKey = 0 }) {
               <div className="leaderboardRow highlight-me" style={{ background: 'rgba(255,110,180,0.15)', borderLeft: '3px solid var(--accent)' }}>
                 <span className="leaderboardRank">#{userRank.user_position}</span>
                 <span className="leaderboardName">Tu Récord</span>
-                <span className="leaderboardScore">{userRank.best_score?.toLocaleString() || '0'}</span>
+                <span className="leaderboardScore">{userRank.max_score?.toLocaleString() || '0'}</span>
               </div>
 
             </>

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useAuthContext } from '../contexts/AuthContext';
-import { getProductivityStats, finishFocusSession } from '../services/productivity';
+import { getProductivityStats, finishFocusSession, getRecentFocusSessions } from '../services/productivity';
 import CabinPomodoro from '../components/CabinPomodoro';
 import CabinTodo from '../components/CabinTodo';
 import CabinIdeas from '../components/CabinIdeas';
@@ -9,6 +9,7 @@ import CabinIdeas from '../components/CabinIdeas';
 export default function SpaceCabinPage() {
     const { user } = useAuthContext();
     const [stats, setStats] = useState(null);
+    const [chartData, setChartData] = useState([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -19,8 +20,25 @@ export default function SpaceCabinPage() {
 
     const loadStats = async () => {
         try {
-            const s = await getProductivityStats(user.id);
+            const [s, sessions] = await Promise.all([
+                getProductivityStats(user.id),
+                getRecentFocusSessions(user.id, 7)
+            ]);
             setStats(s);
+
+            const last7Days = Array.from({ length: 7 }, (_, i) => {
+                const d = new Date();
+                d.setDate(d.getDate() - (6 - i));
+                return { date: d.toISOString().split('T')[0], label: d.toLocaleDateString('es', { weekday: 'short' }), total: 0 };
+            });
+
+            sessions.forEach(sess => {
+                const day = sess.created_at.split('T')[0];
+                const dayObj = last7Days.find(d => d.date === day);
+                if (dayObj) dayObj.total += sess.minutes;
+            });
+            setChartData(last7Days);
+
         } catch (err) {
             console.error(err);
         } finally {
@@ -39,6 +57,7 @@ export default function SpaceCabinPage() {
                 current_streak: newStats.streak,
                 dancoins_earned: (prev?.dancoins_earned || 0) + newStats.coins_awarded
             }));
+            loadStats(); // Reload chart
         } catch (err) {
             console.error(err);
         }
@@ -73,10 +92,21 @@ export default function SpaceCabinPage() {
                 </div>
 
                 {/* Mini Stats Bar */}
-                <div className="flex flex-wrap gap-4 md:gap-8 justify-center lg:justify-end items-center bg-white/[0.03] p-4 rounded-2xl border border-white/5 backdrop-blur-md lg:bg-transparent lg:p-0 lg:border-none lg:backdrop-none">
-                    <StatBox label="Racha" value={`${stats?.current_streak || 0}d`} icon="🔥" />
-                    <StatBox label="Enfoque" value={`${Math.round((stats?.total_focus_minutes || 0) / 60)}h`} icon="⏳" />
-                    <StatBox label="Sesiones" value={stats?.total_sessions || 0} icon="✨" />
+                <div className="flex flex-col items-end gap-3 w-full lg:w-auto mt-4 lg:mt-0">
+                    <div className="flex flex-wrap gap-4 md:gap-8 justify-center lg:justify-end items-center bg-white/[0.03] p-4 rounded-2xl border border-white/5 backdrop-blur-md lg:bg-transparent lg:p-0 lg:border-none lg:backdrop-none">
+                        <StatBox label="Racha" value={`${stats?.current_streak || 0}d`} icon="🔥" />
+                        <StatBox label="Enfoque" value={`${Math.round((stats?.total_focus_minutes || 0) / 60)}h`} icon="⏳" />
+                        <StatBox label="Sesiones" value={stats?.total_sessions || 0} icon="✨" />
+                    </div>
+                    {/* Activity Chart */}
+                    <div className="flex space-x-2 h-10 items-end px-2 mt-2 opacity-80" title="Minutos enfocados en los últimos 7 días">
+                        {chartData.map((d, i) => (
+                            <div key={i} className="flex flex-col items-center justify-end h-16 w-6">
+                                <div className="w-full bg-accent hover:bg-cyan-400 transition-all rounded-t-sm" style={{ height: Math.max(2, Math.min(100, (d.total / 120) * 100)) + '%' }} title={`${d.total} min`} />
+                                <span className="text-[7px] text-gray-400 font-mono mt-1 uppercase">{d.label.slice(0, 2)}</span>
+                            </div>
+                        ))}
+                    </div>
                 </div>
             </header>
 
