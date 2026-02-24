@@ -36,14 +36,16 @@ export default function SeasonWidget() {
 
     return (
         <div style={{
-            background: 'rgba(0,0,0,0.5)',
-            border: '1px solid rgba(255,110,180,0.3)',
-            borderRadius: '12px',
-            padding: '16px',
-            margin: '12px 0',
+            background: 'linear-gradient(135deg, rgba(10,10,20,0.9) 0%, rgba(30,20,40,0.85) 100%)',
+            border: '1px solid rgba(255,110,180,0.4)',
+            borderRadius: '16px',
+            padding: '20px',
+            margin: '0 0 20px 0',
             position: 'relative',
-            overflow: 'hidden'
+            overflow: 'hidden',
+            boxShadow: '0 8px 32px rgba(0,0,0,0.6), inset 0 0 20px rgba(255,110,180,0.1)'
         }}>
+
             {/* Background Rush Indicator */}
             {season.is_final_phase && (
                 <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: 'red', boxShadow: '0 0 10px red', animation: 'pulse 1s infinite' }} />

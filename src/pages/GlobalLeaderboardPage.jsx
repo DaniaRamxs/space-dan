@@ -190,10 +190,17 @@ export default function GlobalLeaderboardPage() {
 
   return (
     <main className="card">
+      {activeTab === 'competitive' && (
+        <div style={{ position: 'sticky', top: '-24px', zIndex: 100, background: 'var(--bg)', borderRadius: '12px', padding: '1px' }}>
+          <SeasonWidget />
+        </div>
+      )}
+
       <div className="pageHeader">
         <h1>🌎 leaderboard global</h1>
         <p className="tinyText">{activeTab_?.desc}</p>
       </div>
+
 
       {/* Tabs */}
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', margin: '18px 0 0 0', borderBottom: '1px solid var(--border)', paddingBottom: 0 }}>
@@ -221,7 +228,7 @@ export default function GlobalLeaderboardPage() {
         ))}
       </div>
 
-      {activeTab === 'competitive' && <SeasonWidget />}
+
 
       {/* Table */}
       <div className="lbContainer" style={{ marginTop: 18 }}>
