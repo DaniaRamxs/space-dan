@@ -12,12 +12,16 @@ export default function PostPage() {
   const { user } = useAuthContext();
   const [post, setPost] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [errorMsg, setErrorMsg] = useState('');
 
   useEffect(() => {
     if (!slug) return;
     blogService.getPostBySlug(slug)
       .then(setPost)
-      .catch(console.error)
+      .catch(err => {
+        console.error(err);
+        setErrorMsg(err.message || JSON.stringify(err));
+      })
       .finally(() => setLoading(false));
   }, [slug]);
 
@@ -34,6 +38,11 @@ export default function PostPage() {
       <main className="w-full max-w-3xl mx-auto min-h-[100dvh] pb-24 text-white font-sans px-4 pt-10 text-center">
         <h1 className="text-2xl font-black mb-4">Post no encontrado</h1>
         <p className="text-gray-400 mb-8">El archivo estelar parece no existir en esta coordenada.</p>
+        {errorMsg && (
+          <div className="bg-red-500/10 border border-red-500/50 text-red-400 p-4 rounded-lg mb-8 text-left font-mono text-xs w-full max-w-md mx-auto">
+            ERROR DB: {errorMsg}
+          </div>
+        )}
         <Link to="/posts" className="text-cyan-400 hover:text-cyan-300">← Volver al Feed</Link>
       </main>
     );
