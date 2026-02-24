@@ -293,7 +293,7 @@ export default function GlobalLeaderboardPage() {
         ) : rows.length === 0 ? (
           <p className="tinyText" style={{ textAlign: 'center', padding: 30 }}>Aún no hay datos en este ranking.</p>
         ) : (
-          <table className="lbTable" style={{ width: '100%', borderCollapse: 'collapse', minWidth: activeTab === 'competitive' ? '500px' : 'auto' }}>
+          <table className="lbTable" style={{ width: '100%', borderCollapse: 'collapse', minWidth: activeTab === 'competitive' ? '380px' : 'auto' }}>
             <thead>
               <tr>
                 <th style={{ width: 44 }}>#</th>
