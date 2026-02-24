@@ -377,13 +377,15 @@ export default function GamesPage() {
       )}
 
       {/* LIVE TICKER */}
-      <div className="liveTickerContainer">
-        <div className="liveTicker">
-          {[...tickerItems, ...tickerItems].map((text, i) => (
-            <span key={i} className="tickerItem">{text}</span>
-          ))}
+      {!openId && (
+        <div className="liveTickerContainer">
+          <div className="liveTicker">
+            {[...tickerItems, ...tickerItems].map((text, i) => (
+              <span key={i} className="tickerItem">{text}</span>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* FULLSCREEN GAME OVERLAY */}
       <AnimatePresence>

@@ -7769,9 +7769,10 @@ textarea,
   top: 0;
   left: 0;
   background: rgba(5, 5, 20, 0.95);
-  padding: 10px 0;
+  padding: 8px 0;
   border-bottom: 2px solid var(--accent);
-  z-index: 9999;
+  z-index: 500;
+  /* LOWERED Z-INDEX */
   overflow: hidden;
   backdrop-filter: blur(15px);
   box-shadow: 0 5px 20px rgba(0, 0, 0, 0.5);
@@ -7875,7 +7876,8 @@ textarea,
   inset: 0;
   background: rgba(5, 5, 20, 0.98);
   backdrop-filter: blur(20px);
-  z-index: 5000;
+  z-index: 10000;
+  /* INCREASED Z-INDEX */
   display: flex;
   flex-direction: column;
   padding: env(safe-area-inset-top) 0 env(safe-area-inset-bottom);
