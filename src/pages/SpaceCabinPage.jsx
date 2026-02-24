@@ -5,9 +5,11 @@ import { getProductivityStats, finishFocusSession, getRecentFocusSessions } from
 import CabinPomodoro from '../components/CabinPomodoro';
 import CabinTodo from '../components/CabinTodo';
 import CabinIdeas from '../components/CabinIdeas';
+import { useSeason } from '../hooks/useSeason';
 
 export default function SpaceCabinPage() {
     const { user } = useAuthContext();
+    const { claimSeasonReward } = useSeason();
     const [stats, setStats] = useState(null);
     const [chartData, setChartData] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -57,6 +59,14 @@ export default function SpaceCabinPage() {
                 current_streak: newStats.streak,
                 dancoins_earned: (prev?.dancoins_earned || 0) + newStats.coins_awarded
             }));
+
+            // Recompensa Estacional Competitiva basada en las monedas ganadas (o base 15)
+            const baseCoins = newStats.coins_awarded > 0 ? newStats.coins_awarded : 10;
+            const rewardMeta = await claimSeasonReward(baseCoins);
+            if (rewardMeta && rewardMeta.boosts?.rush) {
+                console.log('[Season] Pomodoro Phase Final boost!');
+            }
+
             loadStats(); // Reload chart
         } catch (err) {
             console.error(err);

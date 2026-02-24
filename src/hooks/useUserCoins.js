@@ -12,7 +12,7 @@ import { supabase } from '../supabaseClient';
  * @returns {number | null} Balance actualizado
  */
 export function useUserCoins(userId, initialBalance = null) {
-    const [balance, setBalance] = useState(initialBalance);
+    const [stats, setStats] = useState({ balance: initialBalance, season_balance: 0 });
 
     useEffect(() => {
         if (!userId) return;
@@ -23,12 +23,15 @@ export function useUserCoins(userId, initialBalance = null) {
             try {
                 const { data, error } = await supabase
                     .from('profiles')
-                    .select('balance')
+                    .select('balance, season_balance')
                     .eq('id', userId)
                     .single();
 
-                if (!error && data && data.balance !== undefined) {
-                    setBalance(data.balance);
+                if (!error && data) {
+                    setStats({
+                        balance: data.balance ?? 0,
+                        season_balance: data.season_balance ?? 0
+                    });
                 }
             } catch (err) {
                 console.error('[useUserCoins] Error fetching initial balance:', err);
@@ -49,8 +52,11 @@ export function useUserCoins(userId, initialBalance = null) {
                     filter: `id=eq.${userId}`
                 },
                 (payload) => {
-                    if (payload.new && payload.new.balance !== undefined) {
-                        setBalance(payload.new.balance);
+                    if (payload.new) {
+                        setStats({
+                            balance: payload.new.balance ?? stats.balance,
+                            season_balance: payload.new.season_balance ?? stats.season_balance
+                        });
                     }
                 }
             )
@@ -64,5 +70,6 @@ export function useUserCoins(userId, initialBalance = null) {
         };
     }, [userId]);
 
-    return balance;
+    return stats;
 }
+

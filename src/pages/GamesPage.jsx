@@ -5,6 +5,7 @@ import { useAuthContext } from '../contexts/AuthContext';
 import { saveScore } from '../services/supabaseScores';
 import Leaderboard from '../components/Leaderboard';
 import { ErrorBoundary } from '../components/ErrorBoundary';
+import { useSeason } from '../hooks/useSeason';
 
 const TicTacToe = lazy(() => import('../components/TicTacToe'));
 const SnakeGame = lazy(() => import('../components/SnakeGame'));
@@ -73,6 +74,7 @@ function markGamePlayed(gameId) {
 
 export default function GamesPage() {
   const { user } = useAuthContext();
+  const { claimSeasonReward } = useSeason();
   const [openId, setOpenId] = useState(null);
   const [coinToast, setCoinToast] = useState(null);
   const [lbKey, setLbKey] = useState(0); // incrementar fuerza refresh del leaderboard
@@ -84,14 +86,30 @@ export default function GamesPage() {
 
   // Escuchar scores de los juegos
   useEffect(() => {
-    const onScore = (e) => {
+    const onScore = async (e) => {
       const { isHighScore, score } = e.detail || {};
       if (isHighScore) unlockAchievement('highscore');
 
       const bonus = Math.min(20, Math.floor((score || 0) / 50));
       if (bonus > 0) {
-        awardCoins(bonus);
-        showCoinToast(`+${bonus} ◈`);
+        if (user) {
+          const rewardMeta = await claimSeasonReward(bonus);
+          if (rewardMeta && rewardMeta.awarded !== undefined) {
+            showCoinToast(`+${rewardMeta.awarded} ◈`);
+            if (rewardMeta.cap_hit) {
+              console.log('[Season] Cap de monedas diario alcanzado.');
+            }
+            if (rewardMeta.boosts?.rush) {
+              console.log('[Season] Fase final activa, ganancia aumentada.');
+            }
+          } else {
+            awardCoins(bonus); // Fallback si falla backend
+            showCoinToast(`+${bonus} ◈`);
+          }
+        } else {
+          awardCoins(bonus); // Guest local fallback
+          showCoinToast(`+${bonus} ◈`);
+        }
       }
 
       // Guardar en Supabase si el usuario está autenticado
@@ -103,7 +121,7 @@ export default function GamesPage() {
 
     window.addEventListener('dan:game-score', onScore);
     return () => window.removeEventListener('dan:game-score', onScore);
-  }, [user]);
+  }, [user, claimSeasonReward]);
 
   const showCoinToast = (msg) => {
     setCoinToast(msg);

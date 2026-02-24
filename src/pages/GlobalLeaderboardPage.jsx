@@ -4,6 +4,7 @@ import { useAuthContext } from '../contexts/AuthContext';
 import * as lb from '../services/leaderboard';
 import { motion, AnimatePresence } from 'framer-motion';
 import HoloCard from '../components/HoloCard';
+import SeasonWidget from '../components/SeasonWidget';
 
 const TABS = [
   { id: 'games', label: '🎮 Juegos', desc: 'Suma de mejores puntajes en todos los juegos' },
@@ -12,6 +13,7 @@ const TABS = [
   { id: 'generosity', label: '🤝 Generosidad', desc: 'Más coins donados al fondo comunitario' },
   { id: 'achievements', label: '🏆 Logros', desc: 'Logros desbloqueados' },
   { id: 'focus', label: '🧘 Enfoque', desc: 'Más tiempo de concentración en la cabina espacial' },
+  { id: 'competitive', label: '🏆 Temporada', desc: 'Clasificación de riqueza en la temporada actual' },
 ];
 
 const MEDALS = ['🥇', '🥈', '🥉'];
@@ -46,6 +48,7 @@ function formatMetric(tab, row) {
     case 'generosity': return '◈ ' + (row.total_donated ?? 0).toLocaleString();
     case 'achievements': return (row.achievement_count ?? 0) + ' logros';
     case 'focus': return Math.round((row.total_minutes ?? 0) / 60) + ' h';
+    case 'competitive': return '◈ ' + (row.season_balance ?? row.metric ?? 0).toLocaleString();
     default: return '—';
   }
 }
@@ -60,7 +63,7 @@ function metricColor(tab, row) {
 export default function GlobalLeaderboardPage() {
   const { user } = useAuthContext();
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState('games');
+  const [activeTab, setActiveTab] = useState('competitive');
   const [data, setData] = useState({});   // { tabId: rows[] }
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -79,6 +82,7 @@ export default function GlobalLeaderboardPage() {
         case 'generosity': rows = await lb.getGenerosityLeaderboard(50); break;
         case 'achievements': rows = await lb.getAchievementLeaderboard(50); break;
         case 'focus': rows = await lb.getFocusLeaderboard(50); break;
+        case 'competitive': rows = await lb.getCompetitiveLeaderboard(50); break;
         default: rows = [];
       }
       setData(prev => ({ ...prev, [tabId]: rows ?? [] }));
@@ -133,6 +137,8 @@ export default function GlobalLeaderboardPage() {
         ))}
       </div>
 
+      {activeTab === 'competitive' && <SeasonWidget />}
+
       {/* Table */}
       <div className="lbContainer" style={{ marginTop: 18 }}>
         {loading ? (
@@ -152,7 +158,8 @@ export default function GlobalLeaderboardPage() {
                     activeTab === 'wealth' ? 'Balance' :
                       activeTab === 'growth' ? 'Crecimiento' :
                         activeTab === 'generosity' ? 'Donado' :
-                          activeTab === 'achievements' ? 'Logros' : 'Enfoque'}
+                          activeTab === 'achievements' ? 'Logros' :
+                            activeTab === 'competitive' ? 'Balance Temp.' : 'Enfoque'}
                 </th>
               </tr>
             </thead>

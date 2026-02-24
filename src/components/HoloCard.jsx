@@ -14,7 +14,7 @@ export default function HoloCard({ profile, onClose }) {
     const [socialStats, setSocialStats] = useState({ followers: 0, following: 0 });
 
     const profileId = profile?.user_id || profile?.id;
-    const realtimeBalance = useUserCoins(profileId, profile?.balance || profile?.coins || 0);
+    const { balance, season_balance } = useUserCoins(profileId, profile?.balance || profile?.coins || 0);
 
     // Transforming mouse position to rotation
     const rotateX = useTransform(y, [-100, 100], [15, -15]);
@@ -127,14 +127,18 @@ export default function HoloCard({ profile, onClose }) {
                             {profile.bio || 'Explorador del Dan-Space'}
                         </p>
 
-                        <div style={{ display: 'flex', gap: '15px', justifyContent: 'center', marginBottom: '20px' }}>
+                        <div style={{ display: 'flex', gap: '20px', justifyContent: 'center', marginBottom: '20px' }}>
                             <div style={{ textAlign: 'center' }}>
-                                <div style={{ fontWeight: 'bold', fontSize: '14px' }}>{(realtimeBalance ?? 0).toLocaleString()}</div>
-                                <div style={{ fontSize: '9px', opacity: 0.5 }}>COINS</div>
+                                <div style={{ fontWeight: 'bold', fontSize: '14px', color: 'var(--accent)' }}>◈ {(balance ?? 0).toLocaleString()}</div>
+                                <div style={{ fontSize: '8px', opacity: 0.5, textTransform: 'uppercase' }}>Coins Totales</div>
+                            </div>
+                            <div style={{ textAlign: 'center' }}>
+                                <div style={{ fontWeight: 'bold', fontSize: '14px', color: 'var(--cyan)' }}>◈ {(season_balance ?? 0).toLocaleString()}</div>
+                                <div style={{ fontSize: '8px', opacity: 0.5, textTransform: 'uppercase' }}>Balance Temp.</div>
                             </div>
                             <div style={{ textAlign: 'center' }}>
                                 <div style={{ fontWeight: 'bold', fontSize: '14px' }}>{socialStats.followers}</div>
-                                <div style={{ fontSize: '9px', opacity: 0.5 }}>FOLLOWS</div>
+                                <div style={{ fontSize: '8px', opacity: 0.5, textTransform: 'uppercase' }}>Seguidores</div>
                             </div>
                         </div>
 

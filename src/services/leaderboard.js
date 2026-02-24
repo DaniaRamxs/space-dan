@@ -67,3 +67,22 @@ export async function getFocusLeaderboard(limit = 50) {
   if (error) throw error;
   return data;
 }
+
+/** Tab 7: Competitive Season Leaderboard (New) */
+export async function getCompetitiveLeaderboard(limit = 50) {
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('id, username, avatar_url, season_balance, user_level')
+    .gt('season_balance', 0)
+    .order('season_balance', { ascending: false })
+    .limit(limit);
+
+  if (error) throw error;
+  return data.map((d, i) => ({
+    ...d,
+    user_id: d.id,
+    rank: i + 1,
+    metric: d.season_balance
+  }));
+}
+
