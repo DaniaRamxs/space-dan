@@ -54,6 +54,9 @@ const bulletinPosts = [
   { id: 50, date: "2026-02-24", title: "UI Cleanup: Games", text: "Removí la mascota virtual de la sección de juegos para mejorar la visibilidad y evitar interferencias en móviles.", tags: ["fix", "mobile"] },
   { id: 51, date: "2026-02-24", title: "Features Sociales Completas", text: "Agregado soporte en vivo para likes (Supabase native), contador de seguidores/seguidos en el perfil, muro público, y notificaciones push estelares automáticas por cada interacción social.", tags: ["update", "comunidad"] },
   { id: 52, date: "2026-02-24", title: "Estadísticas de la Cabina", text: "La cabina espacial ahora cuenta con un gráfico detallado mostrando cuántos pomodoros has completado los últimos 7 días.", tags: ["update", "productividad"] },
+  { id: 53, date: "2026-02-24", title: "Motor Competitivo Estacional", text: "¡Estrenamos temporadas de 21 días! Gana monedas en juegos y cabina para subir en el ranking. Incluye multiplicadores nocturnos, de fin de semana y rush de fase final.", tags: ["update", "gamificación"] },
+  { id: 54, date: "2026-02-24", title: "Visualizador de Temporada", text: "Nuevo widget en el leaderboard que muestra tu posición actual, cuenta regresiva, boosts activos y distancia al siguiente nivel competitivo.", tags: ["diseño", "update"] },
+  { id: 55, date: "2026-02-24", title: "HoloCard 2.0", text: "El visualizador de perfiles ahora muestra tanto tus monedas globales como tu balance de la temporada actual. Rivalidad estelar garantizada.", tags: ["update", "diseño"] },
 ];
 
 const PAGE_SIZE = 8;
