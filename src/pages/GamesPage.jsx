@@ -323,7 +323,7 @@ export default function GamesPage() {
                 >
                   {!isPlayed && <span className="gameCardBadge">NUEVO</span>}
                   {stats?.game_level > 0 && (
-                    <span className="gameCardLevel" title="Nivel en este juego">
+                    <span className={`gameCardLevel ${stats.game_level >= 5 ? 'high-level' : ''}`} title="Nivel en este juego">
                       Lv.{stats.game_level}
                     </span>
                   )}
