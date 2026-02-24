@@ -7990,3 +7990,676 @@ textarea,
     opacity: 0.1;
   }
 }
+
+/* ============================================================
+   MOBILE-FIRST RESPONSIVE SYSTEM — space-dan
+   Breakpoints:
+     xs:  < 480px  (teléfonos pequeños)
+     sm:  < 640px  (teléfonos estándar)
+     md:  < 820px  (tablets — sidebar ya se convierte en drawer)
+     lg: >= 820px  (desktop)
+   ============================================================ */
+
+:root {
+  --mobile-pad: 12px;
+  --topbar-h: 52px;
+}
+
+/* Touch scroll */
+html,
+body {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
+}
+
+/* Overflow safe */
+.gardenShell,
+.gardenMain,
+.gardenContent,
+.card,
+.layoutOne {
+  min-width: 0;
+  max-width: 100%;
+}
+
+/* Touch targets — mínimo 44px */
+button,
+.winButton,
+.navLink {
+  min-height: 44px;
+}
+
+/* ──── XS < 480px ──── */
+@media (max-width: 479px) {
+  body {
+    font-size: 14px;
+  }
+
+  .page,
+  .gardenContent {
+    padding: 10px;
+  }
+
+  .card {
+    padding: 10px;
+    border-radius: var(--radius-md);
+  }
+
+  .gardenTopbar {
+    padding: 8px 10px;
+    gap: 8px;
+  }
+
+  .gardenTitle {
+    font-size: 16px;
+  }
+
+  /* Perfil */
+  .profileHeader {
+    grid-template-columns: 60px 1fr;
+    gap: 8px;
+  }
+
+  .avatarFrame {
+    width: 60px;
+    height: 60px;
+    padding: 4px;
+  }
+
+  .taglinePill {
+    font-size: 10px;
+    padding: 2px 7px;
+  }
+
+  .taglinePills {
+    gap: 4px;
+  }
+
+  .banner img {
+    height: 120px;
+  }
+
+  /* Stamps */
+  .stampRow img {
+    width: 80px;
+    height: 45px;
+  }
+
+  .stamps {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  /* Sections */
+  .likesHates {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .scrollBox {
+    width: 100%;
+  }
+
+  .ascii {
+    font-size: 10px;
+  }
+
+  /* Floaters */
+  .floatingKitty {
+    display: none;
+  }
+
+  .snowflake:nth-child(n+5) {
+    display: none;
+  }
+
+  .cursorTrail {
+    display: none;
+  }
+
+  /* Games */
+  .gameScale {
+    max-width: 100%;
+    border-radius: 12px;
+  }
+
+  .gameOverlayContent {
+    padding: 12px;
+  }
+
+  .gamesGrid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 8px !important;
+  }
+
+  /* Shop */
+  .shopGrid {
+    grid-template-columns: 1fr 1fr !important;
+    gap: 8px;
+  }
+
+  /* Leaderboard */
+  .lbRow {
+    padding: 8px 10px;
+    gap: 8px;
+  }
+
+  .lbRank {
+    font-size: 13px;
+    width: 28px;
+  }
+
+  /* Notif dropdown */
+  .notifDropdown {
+    position: fixed;
+    top: var(--topbar-h);
+    right: 0;
+    left: 0;
+    min-width: unset;
+    max-width: 100vw;
+    border-radius: 0 0 var(--radius-md) var(--radius-md);
+  }
+
+  /* Achievements */
+  .achievementsGrid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 8px;
+  }
+
+  .achCard {
+    padding: 10px;
+  }
+
+  .achIcon {
+    font-size: 24px;
+  }
+
+  /* Watchlist */
+  .watchlistGrid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 8px;
+  }
+
+  /* Sections buttons */
+  .card .winButton {
+    font-size: 12px;
+    padding: 6px 10px;
+  }
+}
+
+/* ──── SM < 640px ──── */
+@media (max-width: 639px) {
+
+  /* Profile */
+  .profileHeader {
+    grid-template-columns: 72px 1fr;
+    gap: 10px;
+  }
+
+  .avatarFrame {
+    width: 72px;
+    height: 72px;
+  }
+
+  .banner img {
+    height: 140px;
+  }
+
+  /* Avatar sin rotación para perf */
+  .avatar {
+    animation: none;
+  }
+
+  /* Sections */
+  .likesHates {
+    grid-template-columns: 1fr;
+  }
+
+  .scrollBox {
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  /* Wpages */
+  .wpageGrid {
+    grid-template-columns: 1fr;
+    text-align: center;
+  }
+
+  .wpageMascot {
+    width: 140px;
+    margin: 0 auto;
+  }
+
+  .wpageEnterBtn {
+    margin-left: auto;
+    margin-right: auto;
+    width: 100%;
+  }
+
+  /* ShoutDock */
+  .shoutDock {
+    width: calc(100vw - 20px);
+    right: 10px;
+    bottom: 10px;
+    height: 300px;
+  }
+
+  .shoutDock.minimized {
+    width: 180px;
+    height: 40px;
+  }
+
+  /* Games */
+  .gameScale {
+    max-width: min(100%, 420px);
+  }
+
+  /* Topbar sticky con blur */
+  .gardenTopbar {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    background: rgba(5, 5, 15, 0.88);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-bottom: 1px solid rgba(255, 0, 255, 0.12);
+  }
+
+  /* NavBar */
+  .navBar {
+    flex-wrap: wrap;
+    height: auto;
+    padding: 8px;
+    gap: 6px;
+  }
+
+  .navLink {
+    font-size: 11px;
+    padding: 6px 8px;
+  }
+
+  /* Floatingkitty pequeño */
+  .floatingKitty {
+    max-width: 160px;
+    left: 8px;
+    bottom: 8px;
+  }
+
+  /* Notif dropdown full width */
+  .notifDropdown {
+    position: fixed;
+    top: var(--topbar-h);
+    right: 0;
+    left: 0;
+    min-width: unset;
+    max-width: 100vw;
+    border-radius: 0 0 var(--radius-md) var(--radius-md);
+  }
+
+  /* Music */
+  .musicLibrary {
+    grid-template-columns: 1fr !important;
+  }
+
+  .musicAlbumArt {
+    width: 80px !important;
+    height: 80px !important;
+  }
+
+  /* Orbit Letters */
+  .orbitLettersSplit,
+  .orbitLettersLayout {
+    grid-template-columns: 1fr !important;
+  }
+
+  .orbitConvList {
+    max-height: 220px;
+  }
+
+  /* Shop */
+  .shopGrid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 10px;
+  }
+
+  /* Vault */
+  .vaultTabs {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .vaultTab {
+    flex: 1 1 auto;
+    text-align: center;
+    font-size: 12px;
+  }
+
+  /* Desktop */
+  .desktopIconGrid {
+    grid-template-columns: repeat(3, 1fr) !important;
+    gap: 12px !important;
+  }
+
+  /* Watchlist */
+  .watchlistGrid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 8px;
+  }
+
+  /* Post */
+  .postBigText {
+    font-size: 14px;
+    line-height: 1.7;
+  }
+
+  .postMetaRow {
+    flex-direction: column;
+    gap: 4px;
+    align-items: flex-start;
+  }
+
+  /* Profile public actions */
+  .profileActions {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .profileActionBtn {
+    width: 100%;
+  }
+
+  /* Reduce backdrop blur for perf */
+  .card {
+    backdrop-filter: blur(8px) !important;
+    -webkit-backdrop-filter: blur(8px) !important;
+  }
+}
+
+/* ──── MD < 820px — tablet / sidebar drawer ──── */
+@media (max-width: 819px) {
+
+  /* Topbar sticky */
+  .gardenTopbar {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    background: rgba(5, 5, 15, 0.88);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-bottom: 1px solid rgba(255, 0, 255, 0.1);
+  }
+
+  /* Shell full width */
+  .gardenShell {
+    grid-template-columns: 1fr;
+    margin-top: 0;
+    padding: 0 var(--mobile-pad) var(--mobile-pad);
+  }
+
+  /* Sidebar drawer */
+  .gardenSidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100dvh;
+    width: min(280px, 80vw);
+    z-index: 200;
+    transform: translateX(-110%);
+    transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+    border-radius: 0 var(--radius-md) var(--radius-md) 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding-bottom: 40px;
+  }
+
+  .gardenSidebar.open {
+    transform: translateX(0);
+  }
+
+  /* Overlay */
+  .sidebarOverlay {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 199;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(3px);
+    -webkit-backdrop-filter: blur(3px);
+  }
+
+  /* Hamburger */
+  .hamburger {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 5px;
+    width: 40px;
+    height: 40px;
+    min-height: 40px;
+    flex-shrink: 0;
+    padding: 7px;
+    background: rgba(255, 0, 255, 0.08);
+    border: 1px solid rgba(255, 0, 255, 0.35);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.2s, box-shadow 0.2s;
+  }
+
+  .hamburger:hover {
+    background: rgba(255, 0, 255, 0.18);
+    box-shadow: 0 0 12px rgba(255, 0, 255, 0.5);
+  }
+
+  .hamburger span {
+    display: block;
+    height: 2px;
+    border-radius: 2px;
+    background: #ff00ff;
+    box-shadow: 0 0 6px rgba(255, 0, 255, 0.8);
+    transition: transform 0.25s, opacity 0.25s;
+  }
+
+  .hamburger.is-open span:nth-child(1) {
+    transform: translateY(7px) rotate(45deg);
+  }
+
+  .hamburger.is-open span:nth-child(2) {
+    opacity: 0;
+    transform: scaleX(0);
+  }
+
+  .hamburger.is-open span:nth-child(3) {
+    transform: translateY(-7px) rotate(-45deg);
+  }
+
+  /* Main */
+  .gardenMain {
+    width: 100%;
+    max-width: 100vw;
+    overflow-x: hidden;
+  }
+
+  .gardenContent {
+    padding: 14px var(--mobile-pad);
+  }
+
+  /* Profile */
+  .profileHeader {
+    grid-template-columns: 80px 1fr;
+    gap: 10px;
+  }
+
+  .avatarFrame {
+    width: 80px;
+    height: 80px;
+  }
+
+  .likesHates {
+    grid-template-columns: 1fr;
+  }
+
+  /* Shoutbox */
+  .shoutboxPopout {
+    right: var(--mobile-pad);
+    bottom: var(--mobile-pad);
+    max-width: calc(100vw - 24px);
+  }
+
+  /* Notif */
+  .notifDropdown {
+    min-width: 300px;
+    max-width: calc(100vw - 24px);
+  }
+
+  /* Games */
+  .gameScale {
+    max-width: min(100%, 500px);
+  }
+
+  /* HoloCard */
+  .holoCard {
+    margin: 0 auto;
+  }
+
+  /* Leaderboard top 3 */
+  .leaderboardTop3 {
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .lbPodiumCard {
+    width: 100% !important;
+    max-width: 280px;
+  }
+
+  /* Space Cabin */
+  .cabinLayout {
+    grid-template-columns: 1fr !important;
+  }
+
+  .cabinSidebar {
+    position: static !important;
+  }
+
+  /* Desktop exclusive widgets off */
+  .desktopOnly {
+    display: none !important;
+  }
+}
+
+/* ──── LG >= 820px — desktop ──── */
+@media (min-width: 820px) {
+  .gardenSidebar {
+    position: sticky;
+    top: 10px;
+    height: fit-content;
+    transform: none !important;
+    width: var(--garden-sidebar-width);
+    overflow-y: visible;
+  }
+
+  .hamburger {
+    display: none !important;
+  }
+
+  .sidebarOverlay {
+    display: none !important;
+  }
+
+  .gardenShell {
+    grid-template-columns: var(--garden-sidebar-width) 1fr;
+    margin-top: 48px;
+    padding: 0;
+  }
+
+  .gardenTopbar {
+    position: static;
+    background: rgba(255, 0, 255, 0.04);
+    backdrop-filter: none;
+    border-bottom: 1px solid rgba(255, 0, 255, 0.12);
+  }
+
+  .mobileOnly {
+    display: none !important;
+  }
+}
+
+/* ──── Touch device QOL ──── */
+@media (hover: none) and (pointer: coarse) {
+  .sideLink:hover {
+    transform: none;
+  }
+
+  .postLink:hover {
+    transform: none;
+  }
+
+  .winButton:hover {
+    transform: none;
+  }
+
+  .sideLink {
+    padding: 14px 16px;
+  }
+
+  .navLink {
+    padding: 10px 12px;
+  }
+
+  .hamburger {
+    width: 44px;
+    height: 44px;
+  }
+
+  * {
+    cursor: auto !important;
+  }
+
+  button,
+  a,
+  [role="button"] {
+    cursor: pointer !important;
+  }
+}
+
+/* ──── Safe area — iPhone notch / Dynamic Island ──── */
+@supports (padding-top: env(safe-area-inset-top)) {
+  .gardenTopbar {
+    padding-top: max(8px, env(safe-area-inset-top));
+    padding-left: max(var(--mobile-pad), env(safe-area-inset-left));
+    padding-right: max(var(--mobile-pad), env(safe-area-inset-right));
+  }
+
+  .gardenSidebar {
+    padding-bottom: max(40px, env(safe-area-inset-bottom));
+  }
+
+  .shoutDock {
+    bottom: max(10px, env(safe-area-inset-bottom));
+  }
+
+  .floatingKitty {
+    bottom: max(20px, env(safe-area-inset-bottom));
+    left: max(20px, env(safe-area-inset-left));
+  }
+}
+
+/* ──── Reduced motion ──── */
+@media (prefers-reduced-motion: reduce) {
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  .avatar,
+  .snowflake,
+  .welcomeGif,
+  .cursorTrail {
+    animation: none !important;
+  }
+}

@@ -12,6 +12,9 @@ import PetDisplay from '../../components/PetDisplay';
 import { Link } from 'react-router-dom';
 import AvatarUploader from '../../components/AvatarUploader';
 import { profileSocialService } from '../../services/profile_social';
+import { PrivateUniverse } from '../../components/PrivateUniverse';
+import { universeService } from '../../services/universe';
+import { useNavigate } from 'react-router-dom';
 
 const GAME_NAMES = {
   asteroids: 'Asteroids', tetris: 'Tetris', snake: 'Snake', pong: 'Pong',
@@ -430,6 +433,7 @@ function FundSection({ user }) {
 
 export default function ProfileOwn() {
   const { user, profile, loading, loginWithGoogle, loginWithDiscord, logout } = useAuthContext();
+  const navigate = useNavigate();
 
   const [bannerColor, setBannerLocal] = useState(null);
   const [frameItemId, setFrameItemId] = useState(null);
@@ -442,6 +446,7 @@ export default function ProfileOwn() {
   const [activeTab, setActiveTab] = useState('records');
   const [posts, setPosts] = useState([]);
   const [followCounts, setFollowCounts] = useState({ followers: 0, following: 0 });
+  const [partnership, setPartnership] = useState(null);
 
   useEffect(() => {
     if (!profile) return;
@@ -457,12 +462,13 @@ export default function ProfileOwn() {
 
     async function loadComplementaryData() {
       try {
-        const [achData, ranks, cStats, myPosts, socialInfo] = await Promise.all([
+        const [achData, ranks, cStats, myPosts, socialInfo, pData] = await Promise.all([
           supabase.from('user_achievements').select('achievement_id').eq('user_id', user.id).then(res => res.data || []),
           getUserGameRanks(user.id).catch(() => []),
           getProductivityStats(user.id).catch(() => null),
           blogService.getUserPosts(user.id, true).catch(() => []),
-          profileSocialService.getFollowCounts(user.id).catch(() => ({ followers: 0, following: 0 }))
+          profileSocialService.getFollowCounts(user.id).catch(() => ({ followers: 0, following: 0 })),
+          universeService.getMyPartnership().catch(() => null)
         ]);
 
         if (!isMounted) return;
@@ -471,6 +477,7 @@ export default function ProfileOwn() {
         setCabinStats(cStats);
         setPosts(myPosts);
         setFollowCounts(socialInfo);
+        setPartnership(pData);
       } catch (err) {
         console.error('[ProfileOwn] load complementary data:', err);
       } finally {
@@ -581,6 +588,16 @@ export default function ProfileOwn() {
           <p className="text-[11px] font-bold text-purple-400 uppercase tracking-[0.3em] mb-4 mt-1 opacity-90">
             {rankName}
           </p>
+
+          {partnership && (
+            <PrivateUniverse
+              partnership={partnership}
+              onUpdate={async () => {
+                const updated = await universeService.getMyPartnership();
+                setPartnership(updated);
+              }}
+            />
+          )}
 
 
           {!isEditingBio ? (

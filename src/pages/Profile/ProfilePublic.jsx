@@ -14,6 +14,9 @@ import { profileSocialService } from '../../services/profile_social';
 import { socialService } from '../../services/social';
 import { getProductivityStats } from '../../services/productivity';
 import { blogService } from '../../services/blogService';
+import { PrivateUniverse } from '../../components/PrivateUniverse';
+import { universeService } from '../../services/universe';
+import { useNavigate } from 'react-router-dom';
 
 function getFrameStyle(frameItemId) {
   if (!frameItemId) return { border: '3px solid var(--accent)', boxShadow: '0 0 15px var(--accent-glow)' };
@@ -39,6 +42,7 @@ const GAME_NAMES = {
 export default function PublicProfilePage() {
   const { userId } = useParams();
   const { user } = useAuthContext();
+  const navigate = useNavigate();
   const isOwnProfile = user?.id === userId;
 
   const [profile, setProfile] = useState(null);
@@ -57,6 +61,9 @@ export default function PublicProfilePage() {
   const [activityLabel, setActivityLabel] = useState(null);
   const [activeTab, setActiveTab] = useState('records');
   const [posts, setPosts] = useState([]);
+  const [partnership, setPartnership] = useState(null);
+  const [hasPendingRequest, setHasPendingRequest] = useState(false);
+  const [requestLoading, setRequestLoading] = useState(false);
 
   useEffect(() => {
     if (!userId) return;
@@ -78,13 +85,14 @@ export default function PublicProfilePage() {
       if (!prof) { setNotFound(true); setLoading(false); return; }
       setProfile(prof);
 
-      const [ranks, achs, socialInfo, profileComments, cStats, userPosts] = await Promise.all([
+      const [ranks, achs, socialInfo, profileComments, cStats, userPosts, pData] = await Promise.all([
         getUserGameRanks(userId).catch(() => []),
         supabase.from('user_achievements').select('achievement_id').eq('user_id', userId),
         profileSocialService.getFollowCounts(userId).catch(() => ({ followers: 0, following: 0 })),
         profileSocialService.getProfileComments(userId).catch(() => []),
         getProductivityStats(userId).catch(() => null),
         blogService.getUserPosts(userId).catch(() => []),
+        universeService.getProfilePartnership(userId).catch(() => null)
       ]);
 
       if (!isMounted) return;
@@ -95,6 +103,7 @@ export default function PublicProfilePage() {
       setFollowCounts(socialInfo);
       setComments(profileComments);
       setPosts(userPosts);
+      setPartnership(pData);
 
       // Activity status (non-blocking)
       socialService.getUserActivity(userId)
@@ -105,6 +114,16 @@ export default function PublicProfilePage() {
         profileSocialService.isFollowing(userId)
           .then(following => { if (isMounted) setIsFollowing(following); })
           .catch(() => { if (isMounted) setIsFollowing(false); });
+      }
+      if (user && user.id !== userId && !pData) {
+        supabase
+          .from('partnership_requests')
+          .select('id')
+          .eq('sender_id', user.id)
+          .eq('receiver_id', userId)
+          .eq('status', 'pending')
+          .maybeSingle()
+          .then(({ data }) => { if (isMounted) setHasPendingRequest(!!data); });
       }
     } catch (err) {
       console.error('[PublicProfilePage]', err);
@@ -140,6 +159,21 @@ export default function PublicProfilePage() {
       alert('No se pudo publicar el comentario.');
     } finally {
       setSubmittingComment(false);
+    }
+  };
+
+  const handleSendRequest = async () => {
+    if (!user) return alert('Debes iniciar sesión.');
+    setRequestLoading(true);
+    try {
+      await universeService.sendRequest(userId);
+      setHasPendingRequest(true);
+      alert('¡Solicitud de vínculo enviada!');
+    } catch (err) {
+      console.error(err);
+      alert('No se pudo enviar la solicitud.');
+    } finally {
+      setRequestLoading(false);
     }
   };
 
@@ -249,6 +283,32 @@ export default function PublicProfilePage() {
           <p className="text-[11px] font-bold text-purple-400 uppercase tracking-[0.3em] mb-4 mt-1 opacity-90">
             {rankName}
           </p>
+
+          {partnership ? (
+            <PrivateUniverse
+              partnership={partnership}
+              onUpdate={async () => {
+                const updated = await universeService.getProfilePartnership(userId);
+                setPartnership(updated);
+              }}
+            />
+          ) : (
+            !isOwnProfile && user && (
+              <div className="mt-4">
+                {hasPendingRequest ? (
+                  <span className="text-[10px] text-neutral-500 uppercase tracking-widest italic">Solicitud enviada</span>
+                ) : (
+                  <button
+                    disabled={requestLoading}
+                    onClick={handleSendRequest}
+                    className="flex items-center gap-2 group/btn px-4 py-1.5 rounded-full border border-cyan-500/30 hover:border-cyan-500/60 transition-all bg-cyan-500/5"
+                  >
+                    <span className="text-[10px] text-cyan-400 font-bold uppercase tracking-widest">✨ Solicitar Vínculo</span>
+                  </button>
+                )}
+              </div>
+            )
+          )}
 
           <div className="flex flex-col items-center gap-2 mb-6 max-w-md mx-auto">
             <p className={`text-sm tracking-wide flex-1 break-words overflow-hidden w-full text-center ${profile.bio ? 'text-gray-300' : 'text-gray-500 italic'}`}>"{profile.bio || 'Sin biografía estelar.'}"</p>

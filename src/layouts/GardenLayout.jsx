@@ -27,7 +27,7 @@ export default function GardenLayout({ children }) {
   const toggleMenu = (key) => setMenuStates(prev => ({ ...prev, [key]: !prev[key] }));
   const closeMenu = () => setSidebarOpen(false);
 
-  // Auto-open active categories
+  // Auto-open active categories & close sidebar on route change
   useEffect(() => {
     const path = location.pathname;
     const updates = {};
@@ -39,7 +39,20 @@ export default function GardenLayout({ children }) {
     if (Object.keys(updates).length > 0) {
       setMenuStates(prev => ({ ...prev, ...updates }));
     }
+    // Close sidebar & scroll to top on every navigation
+    setSidebarOpen(false);
+    window.scrollTo({ top: 0, behavior: 'instant' });
   }, [location.pathname]);
+
+  // Prevent body scroll when sidebar drawer is open (mobile)
+  useEffect(() => {
+    if (sidebarOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => { document.body.style.overflow = ''; };
+  }, [sidebarOpen]);
 
   const { balance, claimDaily, canClaimDaily } = useEconomy();
   const [dailyFlash, setDailyFlash] = useState(false);
