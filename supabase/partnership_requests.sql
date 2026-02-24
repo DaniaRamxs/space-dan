@@ -15,6 +15,10 @@ CREATE TABLE IF NOT EXISTS public.partnership_requests (
 
 ALTER TABLE public.partnership_requests ENABLE ROW LEVEL SECURITY;
 
+-- Grant permissions to Supabase roles
+GRANT ALL ON public.partnership_requests TO authenticated;
+GRANT SELECT ON public.partnership_requests TO anon;
+
 -- Idempotent: drop policies first
 DROP POLICY IF EXISTS "Requests visible by sender or receiver" ON public.partnership_requests;
 DROP POLICY IF EXISTS "Users can send requests" ON public.partnership_requests;

@@ -45,6 +45,7 @@ const OrbitLettersPage = lazy(() => import("./pages/OrbitLettersPage"));
 const VaultPage = lazy(() => import("./pages/VaultPage"));
 const FocusRoom = lazy(() => import("./pages/FocusRoom"));
 const OnboardingPage = lazy(() => import("./pages/OnboardingPage"));
+const VinculosPage = lazy(() => import("./pages/VinculosPage"));
 
 
 const ALL_PAGES = ['/home', '/bulletin', '/posts', '/music', '/games', '/galeria',
@@ -144,6 +145,7 @@ function AnimatedRoutes() {
         <Route path="/cartas" element={<Layout><OrbitLettersPage /></Layout>} />
         <Route path="/cofre" element={<Layout><VaultPage /></Layout>} />
         <Route path="/foco/:roomId" element={<Layout><FocusRoom /></Layout>} />
+        <Route path="/vinculos" element={<Layout><VinculosPage /></Layout>} />
         <Route path="/secret" element={<PageTransition><Secret /></PageTransition>} />
       </Routes>
     </AnimatePresence>

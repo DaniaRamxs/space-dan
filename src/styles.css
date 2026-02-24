@@ -557,6 +557,19 @@ textarea,
   background: rgba(255, 255, 255, 0.04);
 }
 
+/* ---------- Linked Frame (Partnership) ---------- */
+@keyframes linkedFramePulse {
+
+  0%,
+  100% {
+    filter: brightness(1) drop-shadow(0 0 8px rgba(139, 92, 246, 0.3));
+  }
+
+  50% {
+    filter: brightness(1.15) drop-shadow(0 0 18px rgba(139, 92, 246, 0.6));
+  }
+}
+
 /* ---------- Animations ---------- */
 @keyframes snowflakes-fall {
   0% {

@@ -212,7 +212,7 @@ const PrivateUniverseCanvas = ({ partnership, bothOnline }) => {
 
 // --- Main Component ---
 export const PrivateUniverse = ({ partnership: initialPartnership, onUpdate }) => {
-    const { user } = useAuthContext();
+    const { user, profile: myProfile } = useAuthContext();
     const navigate = useNavigate();
     const [isOpen, setIsOpen] = useState(false);
     const [partnership, setPartnership] = useState(initialPartnership);
@@ -341,21 +341,107 @@ export const PrivateUniverse = ({ partnership: initialPartnership, onUpdate }) =
                             ) : (
                                 <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 2 }} className="flex flex-col items-center">
                                     <div className="w-1 h-1 bg-white rounded-full opacity-20 mb-6 animate-pulse" />
-                                    <p className="text-neutral-200 text-base tracking-[0.3em] font-extralight uppercase">Universo Privado</p>
-                                    <p className="text-cyan-500/50 text-[10px] mt-4 tracking-[0.5em] uppercase">{partnership.partner_username}</p>
+                                    <p className="text-neutral-200 text-base tracking-[0.3em] font-extralight uppercase">Nuestro Universo</p>
+
+                                    {/* Match Avatars */}
+                                    <motion.div
+                                        initial={{ scale: 0.8, opacity: 0 }}
+                                        animate={{ scale: 1, opacity: 1 }}
+                                        transition={{ duration: 1.5, delay: 0.5 }}
+                                        className="flex items-center gap-0 mt-8 relative"
+                                    >
+                                        {/* My Avatar */}
+                                        <div className="relative z-10" style={{
+                                            width: 72, height: 72, borderRadius: '50%',
+                                            border: '2px solid rgba(6,182,212,0.5)',
+                                            boxShadow: '0 0 20px rgba(6,182,212,0.3)',
+                                            overflow: 'hidden', background: '#0a0a0f',
+                                        }}>
+                                            <img
+                                                src={myProfile?.avatar_url || '/default_user_blank.png'}
+                                                alt="Tú" className="w-full h-full object-cover"
+                                            />
+                                        </div>
+
+                                        {/* Heart */}
+                                        <motion.div
+                                            animate={{
+                                                scale: [1, 1.2, 1],
+                                                filter: [
+                                                    'drop-shadow(0 0 8px rgba(255,110,180,0.4))',
+                                                    'drop-shadow(0 0 20px rgba(255,110,180,0.8))',
+                                                    'drop-shadow(0 0 8px rgba(255,110,180,0.4))',
+                                                ]
+                                            }}
+                                            transition={{
+                                                duration: otherOnline ? 1 : 2.5,
+                                                repeat: Infinity,
+                                                ease: 'easeInOut'
+                                            }}
+                                            className="relative z-20"
+                                            style={{
+                                                width: 36, height: 36,
+                                                margin: '0 -10px',
+                                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                background: 'radial-gradient(circle, rgba(255,110,180,0.15) 0%, transparent 70%)',
+                                                borderRadius: '50%',
+                                            }}
+                                        >
+                                            <span style={{ fontSize: '1.4rem' }}>💖</span>
+                                        </motion.div>
+
+                                        {/* Partner Avatar */}
+                                        <div className="relative z-10" style={{
+                                            width: 72, height: 72, borderRadius: '50%',
+                                            border: '2px solid rgba(139,92,246,0.5)',
+                                            boxShadow: '0 0 20px rgba(139,92,246,0.3)',
+                                            overflow: 'hidden', background: '#0a0a0f',
+                                        }}>
+                                            <img
+                                                src={partnership.partner_avatar || '/default_user_blank.png'}
+                                                alt={partnership.partner_username}
+                                                className="w-full h-full object-cover"
+                                            />
+                                        </div>
+                                    </motion.div>
+
+                                    {/* Names */}
+                                    <motion.div
+                                        initial={{ opacity: 0, y: 8 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        transition={{ delay: 1.2, duration: 1 }}
+                                        className="flex items-center gap-4 mt-5"
+                                    >
+                                        <span className="text-cyan-500/60 text-[10px] tracking-[0.2em] uppercase font-medium">
+                                            {myProfile?.username || 'Tú'}
+                                        </span>
+                                        <span className="text-white/15 text-[8px]">✦</span>
+                                        <span className="text-purple-400/60 text-[10px] tracking-[0.2em] uppercase font-medium">
+                                            {partnership.partner_username}
+                                        </span>
+                                    </motion.div>
+
+                                    {/* Days counter */}
+                                    <motion.div
+                                        initial={{ opacity: 0 }}
+                                        animate={{ opacity: 1 }}
+                                        transition={{ delay: 1.8, duration: 1 }}
+                                        className="mt-6 text-center"
+                                    >
+                                        <span className="text-[9px] text-white/20 tracking-[0.3em] uppercase">
+                                            {Math.max(0, Math.floor((Date.now() - new Date(partnership.linked_at).getTime()) / 86400000))} días juntos
+                                        </span>
+                                    </motion.div>
 
                                     {otherOnline && (
                                         <motion.div
                                             initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-                                            className="mt-16 bg-white/5 backdrop-blur-md px-4 py-1.5 rounded-full border border-white/10"
+                                            className="mt-8 bg-white/5 backdrop-blur-md px-4 py-1.5 rounded-full border border-white/10"
                                         >
                                             <span className="text-[9px] text-white/50 tracking-[0.2em] uppercase font-bold">Sincronía activa</span>
                                         </motion.div>
                                     )}
 
-                                    <div className="mt-24">
-                                        <button onClick={() => handleAction('eclipse')} className="text-[9px] text-neutral-600 hover:text-neutral-400 tracking-widest uppercase opacity-40 hover:opacity-100 transition-all">Generar Eclipse</button>
-                                    </div>
                                 </motion.div>
                             )}
                         </div>

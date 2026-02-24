@@ -29,6 +29,47 @@ function getFrameStyle(frameItemId) {
   return { border: '3px solid var(--accent)', boxShadow: '0 0 15px var(--accent-glow)' };
 }
 
+// Evolving frame for linked users — evolves based on evolution_level
+function getLinkedFrameStyle(evolutionLevel) {
+  const lvl = evolutionLevel || 1;
+  if (lvl >= 5) return {
+    border: '3px solid transparent',
+    backgroundImage: 'linear-gradient(#000, #000), linear-gradient(135deg, #ff6eb4, #8b5cf6, #06b6d4, #ff6eb4)',
+    backgroundOrigin: 'border-box',
+    backgroundClip: 'padding-box, border-box',
+    boxShadow: '0 0 25px rgba(139,92,246,0.6), 0 0 50px rgba(6,182,212,0.3), 0 0 80px rgba(255,110,180,0.2)',
+    animation: 'linkedFramePulse 3s ease-in-out infinite',
+  };
+  if (lvl >= 4) return {
+    border: '3px solid transparent',
+    backgroundImage: 'linear-gradient(#000, #000), linear-gradient(135deg, #8b5cf6, #06b6d4, #8b5cf6)',
+    backgroundOrigin: 'border-box',
+    backgroundClip: 'padding-box, border-box',
+    boxShadow: '0 0 20px rgba(139,92,246,0.5), 0 0 40px rgba(6,182,212,0.25)',
+    animation: 'linkedFramePulse 4s ease-in-out infinite',
+  };
+  if (lvl >= 3) return {
+    border: '3px solid #8b5cf6',
+    boxShadow: '0 0 20px rgba(139,92,246,0.5), 0 0 35px rgba(6,182,212,0.2)',
+    animation: 'linkedFramePulse 5s ease-in-out infinite',
+  };
+  if (lvl >= 2) return {
+    border: '3px solid #7c3aed',
+    boxShadow: '0 0 15px rgba(124,58,237,0.4), 0 0 25px rgba(139,92,246,0.2)',
+  };
+  return {
+    border: '3px solid #6d28d9',
+    boxShadow: '0 0 12px rgba(109,40,217,0.35)',
+  };
+}
+
+function getLinkedGlowClass(evolutionLevel) {
+  if (evolutionLevel >= 5) return 'from-pink-500 via-purple-500 to-cyan-500';
+  if (evolutionLevel >= 4) return 'from-purple-500 to-cyan-500';
+  if (evolutionLevel >= 3) return 'from-purple-600 to-violet-500';
+  return 'from-purple-600 to-cyan-500';
+}
+
 const GAME_NAMES = {
   asteroids: 'Asteroids', tetris: 'Tetris', snake: 'Snake', pong: 'Pong',
   memory: 'Memory', ttt: 'Tic Tac Toe', whack: 'Whack-a-Mole', color: 'Color Match',
@@ -275,8 +316,8 @@ export default function PublicProfilePage() {
           </div>
 
           <div className="relative group cursor-pointer mb-6 mt-6 md:mt-0">
-            <div className="absolute -inset-2 bg-gradient-to-r from-purple-600 to-cyan-500 rounded-[35%] blur-xl opacity-40 group-hover:opacity-80 transition duration-700"></div>
-            <div className="relative w-28 h-28 rounded-[30%] overflow-hidden border border-white/20 shadow-2xl bg-black" style={getFrameStyle(profile.frame_item_id)}>
+            <div className={`absolute -inset-2 bg-gradient-to-r ${partnership ? getLinkedGlowClass(partnership.evolution_level) : 'from-purple-600 to-cyan-500'} rounded-[35%] blur-xl opacity-40 group-hover:opacity-80 transition duration-700`}></div>
+            <div className="relative w-28 h-28 rounded-[30%] overflow-hidden border border-white/20 shadow-2xl bg-black" style={partnership ? getLinkedFrameStyle(partnership.evolution_level) : getFrameStyle(profile.frame_item_id)}>
               <img src={profile?.avatar_url || '/default_user_blank.png'} alt="Avatar" className="w-full h-full object-cover" />
             </div>
             {/* Pet Overlay */}
@@ -289,12 +330,42 @@ export default function PublicProfilePage() {
             </div>
           </div>
 
-          <h1 className="text-3xl font-black uppercase tracking-[0.1em] bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-400 drop-shadow-md">
-            {profile?.username || 'Jugador'}
-          </h1>
-          <p className="text-[11px] font-bold text-purple-400 uppercase tracking-[0.3em] mb-4 mt-1 opacity-90">
+          <div className="flex items-center gap-2">
+            <h1 className="text-3xl font-black uppercase tracking-[0.1em] bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-400 drop-shadow-md">
+              {profile?.username || 'Jugador'}
+            </h1>
+            {partnership && (
+              <span title="Vinculado" style={{
+                display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                width: 26, height: 26, borderRadius: '50%',
+                background: 'linear-gradient(135deg, rgba(139,92,246,0.2), rgba(6,182,212,0.2))',
+                border: '1px solid rgba(139,92,246,0.4)',
+                boxShadow: '0 0 12px rgba(139,92,246,0.3)',
+                fontSize: '0.75rem', flexShrink: 0, cursor: 'default',
+              }}>💫</span>
+            )}
+          </div>
+          <p className="text-[11px] font-bold text-purple-400 uppercase tracking-[0.3em] mb-1 mt-1 opacity-90">
             {rankName}
           </p>
+
+          {/* Vinculado con @usuario */}
+          {partnership && (
+            <div className="flex items-center gap-1.5 mb-3">
+              <span className="text-[10px] text-neutral-500 tracking-wider">vinculado con</span>
+              <Link to={`/profile/${partnership.partner_id}`} className="text-[10px] text-purple-400 hover:text-purple-300 font-bold tracking-wider transition-colors">
+                @{partnership.partner_username}
+              </Link>
+              <span className="text-[10px] text-neutral-600 tracking-wider">
+                · {(() => {
+                  const days = Math.floor((Date.now() - new Date(partnership.linked_at).getTime()) / 86400000);
+                  if (days === 0) return 'hoy';
+                  if (days === 1) return '1 día';
+                  return `${days} días`;
+                })()}
+              </span>
+            </div>
+          )}
 
           {partnership ? (
             <PrivateUniverse
@@ -306,7 +377,7 @@ export default function PublicProfilePage() {
             />
           ) : (
             !isOwnProfile && user && (
-              <div className="mt-4">
+              <div className="mt-2">
                 {hasPendingRequest ? (
                   <span className="text-[10px] text-neutral-500 uppercase tracking-widest italic">Solicitud enviada</span>
                 ) : (

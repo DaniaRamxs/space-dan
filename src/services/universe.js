@@ -111,5 +111,109 @@ export const universeService = {
 
         if (error) throw error;
         return true;
+    },
+
+    // ── Stellar Notes ──
+
+    async getNotes(partnershipId) {
+        const { data, error } = await supabase
+            .from('universe_notes')
+            .select('*, author:profiles!author_id(id, username, avatar_url)')
+            .eq('partnership_id', partnershipId)
+            .order('created_at', { ascending: false })
+            .limit(50);
+        if (error) throw error;
+        return data || [];
+    },
+
+    async addNote(partnershipId, content) {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error("No autenticado");
+        const { data, error } = await supabase
+            .from('universe_notes')
+            .insert({ partnership_id: partnershipId, author_id: user.id, content })
+            .select('*, author:profiles!author_id(id, username, avatar_url)')
+            .single();
+        if (error) throw error;
+        return data;
+    },
+
+    async deleteNote(noteId) {
+        const { error } = await supabase
+            .from('universe_notes')
+            .delete()
+            .eq('id', noteId);
+        if (error) throw error;
+    },
+
+    // ── Gallery ──
+
+    async getGallery(partnershipId) {
+        const { data, error } = await supabase
+            .from('universe_gallery')
+            .select('*, uploader:profiles!uploaded_by(id, username)')
+            .eq('partnership_id', partnershipId)
+            .order('created_at', { ascending: false })
+            .limit(30);
+        if (error) throw error;
+        return data || [];
+    },
+
+    async uploadGalleryImage(partnershipId, file, caption = '') {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error("No autenticado");
+
+        const ext = file.name.split('.').pop();
+        const path = `${partnershipId}/${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
+
+        const { error: uploadError } = await supabase.storage
+            .from('universe-gallery')
+            .upload(path, file, { cacheControl: '3600', upsert: false });
+        if (uploadError) throw uploadError;
+
+        const { data: urlData } = supabase.storage
+            .from('universe-gallery')
+            .getPublicUrl(path);
+
+        const { data, error } = await supabase
+            .from('universe_gallery')
+            .insert({
+                partnership_id: partnershipId,
+                uploaded_by: user.id,
+                image_url: urlData.publicUrl,
+                caption
+            })
+            .select('*, uploader:profiles!uploaded_by(id, username)')
+            .single();
+        if (error) throw error;
+        return data;
+    },
+
+    async deleteGalleryImage(imageId, imageUrl) {
+        // Delete from storage
+        try {
+            const urlParts = imageUrl.split('/universe-gallery/');
+            if (urlParts[1]) {
+                await supabase.storage.from('universe-gallery').remove([urlParts[1]]);
+            }
+        } catch (e) { /* non-critical */ }
+
+        const { error } = await supabase
+            .from('universe_gallery')
+            .delete()
+            .eq('id', imageId);
+        if (error) throw error;
+    },
+
+    // ── Stats ──
+
+    async getStats(partnershipId) {
+        const { data, error } = await supabase
+            .from('universe_stats')
+            .select('*')
+            .eq('partnership_id', partnershipId)
+            .maybeSingle();
+        if (error) throw error;
+        return data;
     }
 };
