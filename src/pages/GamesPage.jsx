@@ -7,6 +7,8 @@ import Leaderboard from '../components/Leaderboard';
 import { ErrorBoundary } from '../components/ErrorBoundary';
 import { useSeason } from '../hooks/useSeason';
 
+import SeasonMiniBadge from '../components/SeasonMiniBadge';
+
 const TicTacToe = lazy(() => import('../components/TicTacToe'));
 const SnakeGame = lazy(() => import('../components/SnakeGame'));
 const MemoryGame = lazy(() => import('../components/MemoryGame'));
@@ -147,8 +149,9 @@ export default function GamesPage() {
     <main className="card">
       <div className="pageHeader">
         <h1>juegos</h1>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <p className="tinyText">{GAMES.length} minijuegos :3</p>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+          <p className="tinyText" style={{ margin: 0 }}>{GAMES.length} minijuegos :3</p>
+          <SeasonMiniBadge />
           {coinToast && <span className="gamesCoinToast">{coinToast}</span>}
         </div>
       </div>
