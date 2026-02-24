@@ -24,8 +24,9 @@ export async function saveScore(userId, gameId, score) {
     // Notify if it's a new record
     if (!prevRank || score > prevRank.max_score) {
         const { createNotification } = await import('./supabaseNotifications');
-        const formattedScore = score.toLocaleString();
+        const formattedScore = score?.toLocaleString() || '0';
         await createNotification(userId, 'record', `¡Felicidades! Rompiste tu récord personal en ${gameId.toUpperCase()} con ${formattedScore} pts.`);
+
     }
 }
 
