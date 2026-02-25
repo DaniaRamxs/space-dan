@@ -78,7 +78,7 @@ export const profileSocialService = {
         content,
         created_at,
         author_id,
-        author:profiles!author_id (username, avatar_url)
+        author:profiles!author_id (username, avatar_url, nick_style_item:equipped_nickname_style(id))
       `)
             .eq('profile_id', profileId)
             .order('created_at', { ascending: false });
@@ -103,7 +103,7 @@ export const profileSocialService = {
         content,
         created_at,
         author_id,
-        author:profiles!author_id (username, avatar_url)
+        author:profiles!author_id (username, avatar_url, nick_style_item:equipped_nickname_style(id))
       `)
             .single();
 

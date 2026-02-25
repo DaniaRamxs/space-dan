@@ -17,6 +17,7 @@ import AvatarUploader from '../../components/AvatarUploader';
 import { profileSocialService } from '../../services/profile_social';
 import { PrivateUniverse } from '../../components/PrivateUniverse';
 import { useNavigate } from 'react-router-dom';
+import { getUserDisplayName, getNicknameClass } from '../../utils/user';
 import { useUniverse } from '../../contexts/UniverseContext.jsx';
 import { universeService } from '../../services/universe';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -46,20 +47,47 @@ function getFrameStyle(frameItemId) {
   if (id === 'frame_link_lv5') return { className: 'marco-evolutivo-base marco-evolutivo-lv5' };
 
   // IDs concretos de la DB
-  if (id === 'frame_stars') return { border: '3px solid #ffd700', boxShadow: '0 0 20px rgba(255,215,0,0.8)' };
-  if (id === 'frame_neon') return { border: '3px solid #00e5ff', boxShadow: '0 0 20px rgba(0,229,255,0.8)' };
-  if (id === 'frame_pixel') return { border: '4px solid #ff6b35', boxShadow: '0 0 15px rgba(255,107,53,0.7)', imageRendering: 'pixelated' };
-  if (id === 'frame_holo') return { border: '3px solid #b464ff', boxShadow: '0 0 20px rgba(180,100,255,0.8), 0 0 40px rgba(0,229,255,0.4)' };
-  if (id === 'frame_crown') return { border: '4px solid #ffd700', boxShadow: '0 0 25px rgba(255,215,0,1), 0 0 50px rgba(255,215,0,0.4)' };
+  if (id === 'frame_stars') return { border: '3px solid #ffd700', borderRadius: '50%', boxShadow: '0 0 20px rgba(255,215,0,0.8)' };
+  if (id === 'frame_neon') return { border: '3px solid #00e5ff', borderRadius: '50%', boxShadow: '0 0 20px rgba(0,229,255,0.8)' };
+  if (id === 'frame_pixel') return { border: '4px solid #ff6b35', borderRadius: '50%', boxShadow: '0 0 15px rgba(255,107,53,0.7)', imageRendering: 'pixelated' };
+  if (id === 'frame_holo') return { border: '3px solid #b464ff', borderRadius: '50%', boxShadow: '0 0 20px rgba(180,100,255,0.8), 0 0 40px rgba(0,229,255,0.4)', animated: true };
+  if (id === 'frame_crown') return { border: '4px solid #ffd700', borderRadius: '50%', boxShadow: '0 0 25px rgba(255,215,0,1), 0 0 50px rgba(255,215,0,0.4)', animated: true };
 
   // Fallbacks por keyword
-  if (id.includes('gold')) return { border: '3px solid #ffd700', boxShadow: '0 0 15px rgba(255,215,0,0.6)' };
-  if (id.includes('cyan') || id.includes('cyber')) return { border: '3px solid #00e5ff', boxShadow: '0 0 15px rgba(0,229,255,0.6)' };
-  if (id.includes('pink') || id.includes('rose')) return { border: '3px solid #ff69b4', boxShadow: '0 0 15px rgba(255,105,180,0.6)' };
-  if (id.includes('purple') || id.includes('galaxy')) return { border: '3px solid #b464ff', boxShadow: '0 0 15px rgba(180,100,255,0.6)' };
-  if (id.includes('green') || id.includes('matrix')) return { border: '3px solid #39ff14', boxShadow: '0 0 15px rgba(57,255,20,0.6)' };
-  if (id.includes('red') || id.includes('fire')) return { border: '3px solid #ff3300', boxShadow: '0 0 15px rgba(255,51,0,0.6)' };
-  return { border: '3px solid var(--accent)', boxShadow: '0 0 15px var(--accent-glow)' };
+  if (id.includes('gold')) return { border: '3px solid #ffd700', borderRadius: '50%', boxShadow: '0 0 15px rgba(255,215,0,0.6)' };
+  if (id.includes('cyan') || id.includes('cyber')) return { border: '3px solid #00e5ff', borderRadius: '50%', boxShadow: '0 0 15px rgba(0,229,255,0.6)' };
+  if (id.includes('pink') || id.includes('rose')) return { border: '3px solid #ff69b4', borderRadius: '50%', boxShadow: '0 0 15px rgba(255,105,180,0.6)' };
+  if (id.includes('purple') || id.includes('galaxy')) return { border: '3px solid #b464ff', borderRadius: '50%', boxShadow: '0 0 15px rgba(180,100,255,0.6)' };
+  if (id.includes('green') || id.includes('matrix')) return { border: '3px solid #39ff14', borderRadius: '50%', boxShadow: '0 0 15px rgba(57,255,20,0.6)' };
+  if (id.includes('red') || id.includes('fire')) return { border: '3px solid #ff3300', borderRadius: '50%', boxShadow: '0 0 15px rgba(255,51,0,0.6)' };
+  return { border: '3px solid var(--accent)', borderRadius: '50%', boxShadow: '0 0 15px var(--accent-glow)' };
+}
+
+// Evolving frame for linked users — evolves based on evolution_level
+function getLinkedFrameStyle(evolutionLevel) {
+  const lvl = evolutionLevel || 1;
+  if (lvl >= 5) return {
+    border: 'none', padding: '4px', background: 'conic-gradient(from 0deg, #ff007f, #06b6d4, #8b5cf6, #ff007f)', borderRadius: '50%', boxShadow: '0 0 40px rgba(6,182,212,0.5)', animation: 'spinStriking 2s linear infinite'
+  };
+  if (lvl >= 4) return {
+    border: '3px solid transparent', borderRadius: '50%', backgroundImage: 'linear-gradient(#000,#000), linear-gradient(45deg, #06b6d4, #f43f5e, #8b5cf6, #10b981)', backgroundOrigin: 'border-box', backgroundClip: 'padding-box, border-box', boxShadow: '0 0 30px rgba(244,63,94,0.6)', animation: 'gradientFlowStriking 3s infinite'
+  };
+  if (lvl >= 3) return {
+    border: '3px solid transparent', borderRadius: '50%', backgroundImage: 'linear-gradient(#000,#000), linear-gradient(135deg, #06b6d4, #8b5cf6, #ec4899)', backgroundOrigin: 'border-box', backgroundClip: 'padding-box, border-box', boxShadow: '0 0 25px rgba(139,92,246,0.7)', animation: 'rotationGradientStriking 4s linear infinite'
+  };
+  if (lvl >= 2) return {
+    border: '2px solid #8b5cf6', borderRadius: '50%', boxShadow: '0 0 20px rgba(139,92,246,0.8)', animation: 'pulseAuraStriking 2s infinite alternate ease-in-out'
+  };
+  return {
+    border: '2px solid #06b6d4', borderRadius: '50%', boxShadow: '0 0 15px rgba(6,182,212,0.6)'
+  };
+}
+
+function getLinkedGlowClass(evolutionLevel) {
+  if (evolutionLevel >= 5) return 'from-[#ff00ee] via-[#00ffff] to-[#ffff00]';
+  if (evolutionLevel >= 4) return 'from-[#7000ff] via-[#00ffff] to-[#ff0077]';
+  if (evolutionLevel >= 3) return 'from-[#00d4ff] to-[#ff00ee]';
+  return 'from-[#00ffff] to-[#7000ff]';
 }
 
 const TX_ICONS = {
@@ -696,9 +724,10 @@ function MoodManager({ profile, user }) {
 
 export default function ProfileOwn() {
   const { user, profile, loading, loginWithGoogle, loginWithDiscord, logout } = useAuthContext();
-  const { nicknameStyle, primaryRole, secondaryRole, mood, ambientSound, isAmbientMuted, toggleAmbientMute } = useUniverse();
+  const { nicknameStyle, primaryRole, secondaryRole, mood, ambientSound, isAmbientMuted, toggleAmbientMute, partnership: contextPartnership } = useUniverse();
   const [isSharing, setIsSharing] = useState(false);
   const isOwnProfile = true;
+  const partnership = contextPartnership;
 
   const handleShare = () => {
     if (!profile?.username) return;
@@ -737,7 +766,6 @@ export default function ProfileOwn() {
   const [comments, setComments] = useState([]);
   const [newComment, setNewComment] = useState('');
   const [submittingComment, setSubmittingComment] = useState(false);
-  const [partnership, setPartnership] = useState(null);
   const [bannerItem, setBannerItem] = useState(null);
 
   useEffect(() => {
@@ -772,8 +800,7 @@ export default function ProfileOwn() {
           getProductivityStats(user.id).catch(() => null),
           blogService.getUserPosts(user.id, true).catch(() => []),
           profileSocialService.getFollowCounts(user.id).catch(() => ({ followers: 0, following: 0 })),
-          profileSocialService.getProfileComments(user.id).catch(() => []),
-          universeService.getMyPartnership().catch(() => null)
+          profileSocialService.getProfileComments(user.id).catch(() => [])
         ]);
 
         if (!isMounted) return;
@@ -783,7 +810,6 @@ export default function ProfileOwn() {
         setPosts(myPosts);
         setFollowCounts(socialInfo);
         setComments(profileComments);
-        setPartnership(pData);
       } catch (err) {
         console.error('[ProfileOwn] load complementary data:', err);
       } finally {
@@ -869,16 +895,20 @@ export default function ProfileOwn() {
         <div
           className={`profile-v2-banner-overlay transition-all duration-1000 ${bannerItem ? 'animate-pulse-slow' : ''} ${bannerItem?.metadata?.animated ? 'animate-aurora' : ''}`}
           style={{
-            background: bannerItem?.metadata?.gradient
-              ? `linear-gradient(to right, ${bannerItem.metadata.gradient.join(', ')})`
-              : bannerItem?.metadata?.hex
-                ? `radial-gradient(circle at top right, ${bannerItem.metadata.hex}66 0%, transparent 70%)`
-                : bannerColor
-                  ? `radial-gradient(circle at top right, ${bannerColor}66 0%, transparent 60%)`
-                  : 'radial-gradient(circle at top right, rgba(236,72,153,0.2) 0%, transparent 60%)',
-            backgroundImage: bannerItem?.preview_url ? `url(${bannerItem.preview_url})` : undefined,
-            backgroundSize: bannerItem?.preview_url ? 'cover' : undefined,
-            backgroundPosition: bannerItem?.preview_url ? 'center' : undefined,
+            backgroundImage: [
+              bannerItem?.preview_url ? `url(${bannerItem.preview_url})` : null,
+              bannerItem?.metadata?.gradient
+                ? `linear-gradient(to right, ${bannerItem.metadata.gradient.join(', ')})`
+                : (bannerItem?.metadata?.hex
+                  ? `radial-gradient(circle at top right, ${bannerItem.metadata.hex}66 0%, transparent 70%)`
+                  : (bannerColor
+                    ? `radial-gradient(circle at top right, ${bannerColor}66 0%, transparent 60%)`
+                    : 'radial-gradient(circle at top right, rgba(236,72,153,0.2) 0%, transparent 60%)'
+                  )
+                )
+            ].filter(Boolean).join(', '),
+            backgroundSize: bannerItem?.preview_url ? 'cover, auto' : 'auto',
+            backgroundPosition: bannerItem?.preview_url ? 'center, center' : 'center',
             opacity: bannerItem?.preview_url ? 0.4 : 1
           }}
         >
@@ -937,10 +967,37 @@ export default function ProfileOwn() {
               )}
             </div>
 
-            <div className="relative mb-6 mt-20 md:mt-0">
+            <div className="relative mb-6 mt-20 md:mt-0 group/avatar">
+              {/* Dynamic Glow for Partnership (Aura) - ULTRA-PREMIUM COSMIC EFFECT */}
+              {partnership && (
+                <div className="absolute -inset-20 pointer-events-none z-0">
+                  {/* Layer 1: Core Supernova Glow (High Intensity & White Core) */}
+                  <div
+                    className={`absolute inset-0 bg-gradient-to-r ${getLinkedGlowClass(partnership.evolution_level)} rounded-full blur-[60px] opacity-90 animate-pulse-slow mix-blend-screen brightness-200`}
+                  ></div>
+
+                  {/* Layer 2: Vivid Interactive Aura (Defined Edge) */}
+                  <div
+                    className={`absolute -inset-4 bg-gradient-to-tr ${getLinkedGlowClass(partnership.evolution_level)} rounded-full blur-xl opacity-70 group-hover/avatar:opacity-100 transition duration-1000 mix-blend-screen shadow-[0_0_40px_rgba(255,255,255,0.5)]`}
+                    style={{ animation: 'pulseAuraStriking 2s infinite alternate ease-in-out' }}
+                  ></div>
+
+                  {/* Layer 3: Dynamic Particles / Rotating Quasars (Hyper-Visible) */}
+                  <div className="absolute inset-0 animate-spin-slow">
+                    <div className={`absolute top-0 left-1/4 w-32 h-32 bg-white rounded-full blur-3xl opacity-50 shadow-[0_0_80px_#fff] animate-pulse`}></div>
+                    <div className={`absolute bottom-0 right-1/4 w-40 h-40 bg-cyan-300 rounded-full blur-3xl opacity-50 shadow-[0_0_100px_#67e8f9] animate-pulse`}></div>
+                  </div>
+
+                  {/* Layer 4: Inner Ring Sparkle & Energy Waves */}
+                  <div className={`absolute inset-4 border-2 border-white/40 rounded-full blur-[2px] opacity-40 animate-ping`}></div>
+                  <div className={`absolute inset-12 border border-cyan-400/30 rounded-full blur-sm opacity-30 animate-ping`} style={{ animationDelay: '1s' }}></div>
+                </div>
+              )}
+
               <AvatarUploader
                 currentAvatar={profile?.avatar_url}
-                frameStyle={getFrameStyle(frameItemId)}
+                frameStyle={partnership ? getLinkedFrameStyle(partnership.evolution_level) : getFrameStyle(frameItemId || profile?.frame_item_id)}
+                isLv5={partnership?.evolution_level >= 5}
                 onUploadSuccess={(newUrl) => {
                   // El perfil se actualizará mediante la suscripción en real-time de useAuth
                   console.log('Avatar actualizado:', newUrl);
@@ -958,8 +1015,8 @@ export default function ProfileOwn() {
             </div>
 
             <div className="flex flex-col items-center gap-2 mt-4 relative z-10">
-              <h1 className={`text-3xl md:text-5xl font-black uppercase tracking-[0.1em] drop-shadow-[0_5px_15px_rgba(0,0,0,0.5)] dan-nickname ${nicknameStyle ? `nick-style-${nicknameStyle.replace('nick_', '')}` : 'from-white via-white to-gray-300 bg-clip-text text-transparent bg-gradient-to-b'}`}>
-                {profile?.username || user?.user_metadata?.full_name || (user?.email || '').split('@')[0] || 'Jugador'}
+              <h1 className={`text-3xl md:text-5xl font-black uppercase tracking-[0.1em] drop-shadow-[0_5px_15px_rgba(0,0,0,0.5)] ${getNicknameClass(profile) || 'from-white via-white to-gray-300 bg-clip-text text-transparent bg-gradient-to-b'}`}>
+                {getUserDisplayName(profile || { username: user?.user_metadata?.full_name || (user?.email || '').split('@')[0] })}
               </h1>
               {profile?.pronouns ? (
                 <span className="px-4 py-1.5 rounded-full bg-black/60 border border-white/20 text-[10px] font-black text-white uppercase tracking-[0.2em] backdrop-blur-md shadow-lg animate-fade-in ring-1 ring-white/10">
@@ -1048,27 +1105,60 @@ export default function ProfileOwn() {
 
             <div className="mt-8 flex flex-col items-center gap-6 w-full max-w-md pb-12">
               {!isEditingBio ? (
-                <div className="flex items-center gap-2 group/bio bg-black/40 px-6 py-4 rounded-[2.5rem] backdrop-blur-sm border border-white/5 cursor-pointer w-full overflow-hidden shadow-inner relative" onClick={() => setIsEditingBio(true)}>
-                  <div className="absolute inset-0 bg-cyan-500/5 opacity-0 group-hover/bio:opacity-100 transition-opacity"></div>
-                  <p className={`text-sm tracking-wide flex-1 break-words relative z-10 ${bio ? 'text-gray-300' : 'text-gray-500 italic'}`}>"{bio || 'Sin biografía...'}"</p>
-                  <button className="text-[10px] text-cyan-400 opacity-0 group-hover/bio:opacity-100 transition-opacity relative z-10">✏️ EDIT</button>
+                <div
+                  className="group/bio relative w-full cursor-pointer"
+                  onClick={() => setIsEditingBio(true)}
+                >
+                  {/* Glow on hover */}
+                  <div className="absolute -inset-2 bg-gradient-to-r from-cyan-500/10 via-purple-500/10 to-cyan-500/10 rounded-[3rem] blur-xl opacity-0 group-hover/bio:opacity-100 transition-all duration-700"></div>
+
+                  <div className="relative bg-gradient-to-br from-white/[0.04] to-white/[0.01] backdrop-blur-xl border border-white/[0.06] rounded-[2rem] px-8 py-6 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] overflow-hidden">
+                    {/* Decorative corner accents */}
+                    <div className="absolute top-3 left-4 text-cyan-500/20 text-3xl font-serif leading-none select-none">"</div>
+                    <div className="absolute bottom-1 right-4 text-cyan-500/20 text-3xl font-serif leading-none select-none">"</div>
+
+                    {/* Subtle scan line effect */}
+                    <div className="absolute inset-0 opacity-[0.02] pointer-events-none" style={{ backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(255,255,255,0.03) 2px, rgba(255,255,255,0.03) 4px)' }}></div>
+
+                    <p className={`text-sm md:text-base leading-relaxed tracking-wide text-center relative z-10 ${bio ? 'text-gray-300/90 group-hover/bio:text-white/90 transition-colors duration-500' : 'text-white/20 italic'}`}>
+                      {bio || 'Toca para escribir tu biografía estelar...'}
+                    </p>
+
+                    {/* Edit hint */}
+                    <div className="absolute bottom-2 right-8 flex items-center gap-1 opacity-0 group-hover/bio:opacity-60 transition-all duration-300 translate-y-1 group-hover/bio:translate-y-0">
+                      <span className="text-[9px] text-cyan-400 font-bold tracking-widest uppercase">editar</span>
+                      <span className="text-cyan-400 text-[10px]">✏️</span>
+                    </div>
+                  </div>
                 </div>
               ) : (
-                <div className="flex flex-col gap-2 w-full z-20 animate-fade-in-up">
-                  <textarea
-                    autoFocus
-                    value={bio} onChange={e => setBio(e.target.value)} maxLength={250}
-                    className="w-full bg-[#050508] border border-cyan-500/50 rounded-3xl p-4 text-sm text-white resize-none h-32 outline-none focus:border-cyan-400 shadow-[0_0_20px_rgba(6,182,212,0.1)] transition-all"
-                    placeholder="Escribe tu bio..."
-                  />
+                <div className="flex flex-col gap-3 w-full z-20">
+                  {/* Glow behind editor */}
+                  <div className="absolute -inset-4 bg-cyan-500/5 rounded-[3rem] blur-2xl pointer-events-none"></div>
+
+                  <div className="relative">
+                    <textarea
+                      autoFocus
+                      value={bio}
+                      onChange={e => setBio(e.target.value)}
+                      maxLength={250}
+                      className="w-full bg-[#06060c] border border-cyan-500/30 rounded-2xl p-5 text-sm text-white/90 resize-none h-36 outline-none focus:border-cyan-400/60 shadow-[0_0_30px_rgba(6,182,212,0.08),inset_0_1px_0_rgba(255,255,255,0.03)] transition-all leading-relaxed tracking-wide placeholder:text-white/15 placeholder:italic"
+                      placeholder="Escribe tu biografía estelar..."
+                    />
+                    {/* Character counter */}
+                    <div className="absolute bottom-3 right-4 text-[10px] font-mono" style={{ color: bio.length > 220 ? '#f87171' : bio.length > 180 ? '#fbbf24' : 'rgba(255,255,255,0.15)' }}>
+                      {bio.length}/250
+                    </div>
+                  </div>
+
                   <div className="flex justify-end gap-2">
-                    <button className="winButton text-xs py-1.5 px-6" onClick={async () => {
+                    <button className="text-xs px-5 py-2 text-white/40 hover:text-white/80 transition-colors rounded-xl" onClick={() => { setBio(profile?.bio || ''); setIsEditingBio(false); }}>Cancelar</button>
+                    <button className="winButton text-xs py-2 px-7 shadow-[0_0_15px_rgba(6,182,212,0.15)]" onClick={async () => {
                       try {
                         await supabase.from('profiles').update({ bio }).eq('id', user.id);
                         setIsEditingBio(false);
                       } catch { }
                     }}>Guardar</button>
-                    <button className="text-xs px-4 opacity-60 hover:opacity-100 transition-opacity" onClick={() => { setBio(profile?.bio || ''); setIsEditingBio(false); }}>Cancelar</button>
                   </div>
                 </div>
               )}

@@ -5,6 +5,20 @@ import { useNavigate } from 'react-router-dom';
 import { roomsService } from '../services/rooms';
 import { profileSocialService } from '../services/profile_social';
 import { useUserCoins } from '../hooks/useUserCoins';
+import { supabase } from '../supabaseClient';
+import { getUserDisplayName, getNicknameClass } from '../utils/user';
+import '../styles/NicknameStyles.css';
+
+function getFrameStyle(frameItemId) {
+    if (!frameItemId) return { border: '3px solid var(--accent)', boxShadow: '0 0 15px var(--accent-glow)' };
+    const id = frameItemId.toLowerCase();
+    if (id === 'frame_stars') return { border: '3px solid #ffd700', boxShadow: '0 0 20px rgba(255,215,0,0.8)' };
+    if (id === 'frame_neon') return { border: '3px solid #00e5ff', boxShadow: '0 0 20px rgba(0,229,255,0.8)' };
+    if (id === 'frame_pixel') return { border: '4px solid #ff6b35', boxShadow: '0 0 15px rgba(255,107,53,0.7)', imageRendering: 'pixelated' };
+    if (id === 'frame_holo') return { border: '3px solid #b464ff', boxShadow: '0 0 20px rgba(180,100,255,0.8), 0 0 40px rgba(0,229,255,0.4)' };
+    if (id === 'frame_crown') return { border: '4px solid #ffd700', boxShadow: '0 0 25px rgba(255,215,0,1), 0 0 50px rgba(255,215,0,0.4)' };
+    return { border: '3px solid var(--accent)', boxShadow: '0 0 15px var(--accent-glow)' };
+}
 
 export default function HoloCard({ profile, onClose }) {
     const navigate = useNavigate();
@@ -12,6 +26,7 @@ export default function HoloCard({ profile, onClose }) {
     const y = useMotionValue(0);
     const [inviting, setInviting] = useState(false);
     const [socialStats, setSocialStats] = useState({ followers: 0, following: 0 });
+    const [fullProfile, setFullProfile] = useState(null);
 
     const profileId = profile?.user_id || profile?.id;
     const { balance, season_balance } = useUserCoins(profileId, profile?.balance || profile?.coins || 0);
@@ -23,8 +38,23 @@ export default function HoloCard({ profile, onClose }) {
     useEffect(() => {
         if (profile) {
             const profileId = profile.user_id || profile.id;
+
+            // Fetch social stats
             profileSocialService.getFollowCounts(profileId)
                 .then(setSocialStats)
+                .catch(console.error);
+
+            // Fetch full profile for identity styles
+            supabase
+                .from('profiles')
+                .select(`
+                    *,
+                    nick_style_item:equipped_nickname_style(id, metadata),
+                    theme_item:equipped_theme(id, metadata)
+                `)
+                .eq('id', profileId)
+                .maybeSingle()
+                .then(({ data }) => setFullProfile(data))
                 .catch(console.error);
         }
     }, [profile]);
@@ -111,14 +141,19 @@ export default function HoloCard({ profile, onClose }) {
                             style={{
                                 width: '100px', height: '100px',
                                 borderRadius: '50%',
-                                border: '3px solid var(--accent)',
-                                boxShadow: '0 0 20px var(--accent-glow)'
+                                objectCover: 'cover',
+                                ...getFrameStyle(fullProfile?.frame_item_id || profile?.frame_item_id)
                             }}
                         />
                     </div>
 
                     <div style={{ transform: 'translateZ(30px)', textAlign: 'center' }}>
-                        <h2 style={{ margin: '0 0 5px 0', fontSize: '22px' }}>{profile.username}</h2>
+                        <h2
+                            className={getNicknameClass(fullProfile || profile)}
+                            style={{ margin: '0 0 5px 0', fontSize: '22px' }}
+                        >
+                            {getUserDisplayName(profile)}
+                        </h2>
 
                         <p style={{
                             opacity: 0.7, fontSize: '11px', marginBottom: '15px',

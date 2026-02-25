@@ -4,6 +4,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { supabase } from '../supabaseClient';
 import { useAuthContext } from '../contexts/AuthContext';
+import { getUserDisplayName, getNicknameClass } from '../utils/user';
 
 export default function GuestbookPage() {
   const { user, profile } = useAuthContext();
@@ -21,11 +22,28 @@ export default function GuestbookPage() {
 
   const fetchMessages = async () => {
     setLoading(true);
-    const { data, error } = await supabase
-      .from('guestbook')
-      .select('*')
-      .order('created_at', { ascending: false });
-    if (!error) setMessages(data || []);
+    try {
+      // Intentamos con el join para estilos de nickname
+      const { data, error } = await supabase
+        .from('guestbook')
+        .select('*, profiles:user_id(username, equipped_nickname_style)')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.warn("Error con join en guestbook, reintentando sin join:", error);
+        // Fallback: Si el join falla (posible por falta de FK en DB), traemos solo la data base
+        const { data: simpleData, error: simpleError } = await supabase
+          .from('guestbook')
+          .select('*')
+          .order('created_at', { ascending: false });
+
+        if (!simpleError) setMessages(simpleData || []);
+      } else {
+        setMessages(data || []);
+      }
+    } catch (err) {
+      console.error("Error crítico cargando firmas:", err);
+    }
     setLoading(false);
   };
 
@@ -189,8 +207,8 @@ export default function GuestbookPage() {
                         <span className="text-xs opacity-50">{m.is_anonymous ? '👤' : '✦'}</span>
                       </div>
                     )}
-                    <span className="text-sm font-black text-white/80 truncate">
-                      {m.name}
+                    <span className={`text-sm font-black truncate ${!m.is_anonymous ? getNicknameClass(m.profiles || { username: m.name, equipped_nickname_style: null }) : 'text-white/80'}`}>
+                      {(!m.is_anonymous && m.profiles) ? getUserDisplayName(m.profiles) : m.name}
                     </span>
                     {m.is_anonymous && (
                       <span className="text-[8px] font-black text-white/20 border border-white/10 px-1.5 py-0.5 rounded-full uppercase tracking-widest shrink-0">

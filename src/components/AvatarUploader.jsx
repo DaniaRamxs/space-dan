@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { supabase } from '../supabaseClient';
 import { useAuthContext } from '../contexts/AuthContext';
 
@@ -6,12 +6,16 @@ const MAX_SIZE_MB = 2;
 const MAX_SIZE_BYTES = MAX_SIZE_MB * 1024 * 1024;
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 
-export default function AvatarUploader({ currentAvatar, frameStyle, onUploadSuccess }) {
+export default function AvatarUploader({ currentAvatar, frameStyle, onUploadSuccess, isLv5 = false }) {
     const { user } = useAuthContext();
     const fileInputRef = useRef(null);
     const [uploading, setUploading] = useState(false);
     const [previewUrl, setPreviewUrl] = useState(currentAvatar || '/dan_profile.jpg');
     const [errorMsg, setErrorMsg] = useState(null);
+
+    useEffect(() => {
+        if (currentAvatar) setPreviewUrl(currentAvatar);
+    }, [currentAvatar]);
 
     const handleFileChange = async (e) => {
         const file = e.target.files[0];
@@ -77,20 +81,21 @@ export default function AvatarUploader({ currentAvatar, frameStyle, onUploadSucc
 
     const frameClass = frameStyle?.className || '';
     const isEvolutivo = frameClass.includes('marco-evolutivo');
+    const finalIsLv5 = isLv5 || frameClass.includes('lv5');
+
+    // Check if frameStyle has actual style properties or if there's a frameClass
+    const hasCustomFrame = !!(frameClass || (frameStyle && (frameStyle.border || frameStyle.backgroundImage || frameStyle.className || frameStyle.boxShadow)));
 
     return (
-        <div className="relative group cursor-pointer w-28 h-28 mx-auto">
-            {/* Background glow passthrough */}
-            <div className="absolute -inset-2 bg-gradient-to-r from-purple-600 to-cyan-500 rounded-[35%] blur-xl opacity-40 group-hover:opacity-80 transition duration-700"></div>
-
+        <div className="relative group cursor-pointer w-40 h-40 mx-auto">
             {/* Main Avatar Container */}
             <div
-                className={`relative w-full h-full transition-transform duration-300 group-hover:scale-105 flex items-center justify-center ${frameClass || 'rounded-[30%] overflow-hidden bg-black border border-white/20 shadow-2xl'}`}
+                className={`relative w-full h-full transition-transform duration-300 group-hover:scale-105 flex items-center justify-center ${frameClass} ${!hasCustomFrame ? 'rounded-[30%] overflow-hidden bg-black border border-white/20 shadow-2xl' : ''}`}
                 style={isEvolutivo ? {} : frameStyle}
                 onClick={() => !uploading && fileInputRef.current?.click()}
             >
                 {/* Special wrapper for level 5 or complex animations */}
-                <div className={frameClass.includes('lv5') ? 'marco-evolutivo-lv5-img-wrapper' : 'w-full h-full rounded-[inherit] overflow-hidden'}>
+                <div className={finalIsLv5 ? 'marco-evolutivo-lv5-img-wrapper' : `w-full h-full ${isEvolutivo ? 'rounded-full' : 'rounded-[inherit]'} overflow-hidden`}>
                     <img
                         src={previewUrl}
                         alt="Avatar"

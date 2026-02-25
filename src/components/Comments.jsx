@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../supabaseClient';
 import { useAuthContext } from '../contexts/AuthContext';
+import { getUserDisplayName, getNicknameClass } from '../utils/user';
 
 export default function Comments({ postId }) {
   const { user } = useAuthContext();
@@ -12,7 +13,7 @@ export default function Comments({ postId }) {
   const fetchComments = async () => {
     const { data } = await supabase
       .from('comments')
-      .select('*, profiles(username, avatar_url)')
+      .select('*, profiles(username, avatar_url, nick_style_item:equipped_nickname_style(id))')
       .eq('post_id', postId)
       .order('created_at', { ascending: true });
     setComments(data || []);
@@ -72,7 +73,9 @@ export default function Comments({ postId }) {
                   {c.profiles?.avatar_url && (
                     <img src={c.profiles.avatar_url} alt="" className="commentAvatar" />
                   )}
-                  {c.profiles?.username || 'usuario'}
+                  <span className={getNicknameClass(c.profiles)}>
+                    {getUserDisplayName(c.profiles)}
+                  </span>
                 </span>
                 <span className="commentDate">
                   {new Date(c.created_at).toLocaleDateString()}

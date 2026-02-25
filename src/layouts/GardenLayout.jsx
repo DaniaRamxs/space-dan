@@ -18,6 +18,7 @@ const FIXED_LAYOUT_PATHS = ['/cartas', '/cabina', '/desktop'];
 
 export default function GardenLayout({ children }) {
   const { user, profile: ownProfile } = useAuth();
+
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [menuStates, setMenuStates] = useState({

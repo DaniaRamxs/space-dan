@@ -631,13 +631,19 @@ BEGIN
     SET equipped_items = equipped_items || jsonb_build_object(v_category, p_item_id)
     WHERE id = p_user_id;
 
-    -- Si es banner, limpiar banner_color (son mutuamente excluyentes)
-    IF v_category = 'banner' THEN
-      UPDATE public.profiles SET banner_item_id = p_item_id, banner_color = NULL
-      WHERE id = p_user_id;
-    END IF;
-
-    IF v_category = 'frame' THEN
+    -- Sincronizar con columnas específicas para JOINS rápidos en el frontend
+    IF v_category = 'nickname_style' THEN
+      UPDATE public.profiles SET equipped_nickname_style = p_item_id WHERE id = p_user_id;
+    ELSIF v_category = 'profile_theme' OR v_category = 'theme' THEN
+      UPDATE public.profiles SET equipped_theme = p_item_id WHERE id = p_user_id;
+    ELSIF v_category = 'ambient_sound' THEN
+      UPDATE public.profiles SET equipped_ambient_sound = p_item_id WHERE id = p_user_id;
+    ELSIF v_category = 'role' THEN
+      -- Por ahora equipa como primario si es role.
+      UPDATE public.profiles SET equipped_primary_role = p_item_id WHERE id = p_user_id;
+    ELSIF v_category = 'banner' THEN
+      UPDATE public.profiles SET banner_item_id = p_item_id, banner_color = NULL WHERE id = p_user_id;
+    ELSIF v_category = 'frame' THEN
       UPDATE public.profiles SET frame_item_id = p_item_id WHERE id = p_user_id;
     END IF;
 
@@ -667,10 +673,18 @@ BEGIN
     SET equipped_items = equipped_items - v_category
     WHERE id = p_user_id;
 
-    IF v_category = 'banner' THEN
+    -- Limpiar columnas específicas
+    IF v_category = 'nickname_style' THEN
+      UPDATE public.profiles SET equipped_nickname_style = NULL WHERE id = p_user_id;
+    ELSIF v_category = 'profile_theme' OR v_category = 'theme' THEN
+      UPDATE public.profiles SET equipped_theme = NULL WHERE id = p_user_id;
+    ELSIF v_category = 'ambient_sound' THEN
+      UPDATE public.profiles SET equipped_ambient_sound = NULL WHERE id = p_user_id;
+    ELSIF v_category = 'role' THEN
+      UPDATE public.profiles SET equipped_primary_role = NULL WHERE id = p_user_id;
+    ELSIF v_category = 'banner' THEN
       UPDATE public.profiles SET banner_item_id = NULL WHERE id = p_user_id;
-    END IF;
-    IF v_category = 'frame' THEN
+    ELSIF v_category = 'frame' THEN
       UPDATE public.profiles SET frame_item_id = NULL WHERE id = p_user_id;
     END IF;
   END IF;
@@ -809,6 +823,7 @@ RETURNS TABLE (
   username   text,
   avatar_url text,
   balance    int,
+  equipped_nickname_style text,
   user_level int,
   rank       bigint
 )
@@ -818,6 +833,7 @@ LANGUAGE sql STABLE SECURITY DEFINER AS $$
     p.username,
     p.avatar_url,
     p.balance,
+    p.equipped_nickname_style,
     FLOOR(0.1 * SQRT(public.get_user_xp(p.id)))::int as user_level,
     RANK() OVER (ORDER BY p.balance DESC, public.get_user_xp(p.id) DESC)::bigint as rank
   FROM public.profiles p
@@ -828,6 +844,7 @@ $$;
 
 
 -- Leaderboard de crecimiento semanal
+DROP FUNCTION IF EXISTS public.get_weekly_growth_leaderboard(int);
 CREATE OR REPLACE FUNCTION public.get_weekly_growth_leaderboard(p_limit int DEFAULT 50)
 RETURNS TABLE (
   user_id         uuid,
@@ -836,7 +853,8 @@ RETURNS TABLE (
   current_balance int,
   prev_balance    int,
   growth          int,
-  growth_pct      numeric
+  growth_pct      numeric,
+  equipped_nickname_style text
 )
 LANGUAGE sql STABLE SECURITY DEFINER AS $$
   WITH cw AS (
@@ -863,7 +881,8 @@ LANGUAGE sql STABLE SECURITY DEFINER AS $$
         ((COALESCE(cw.balance, p.balance) - pw.balance)::numeric / pw.balance * 100),
         1
       )
-    END AS growth_pct
+    END AS growth_pct,
+    p.equipped_nickname_style
   FROM public.profiles p
   LEFT JOIN cw ON cw.user_id = p.id
   LEFT JOIN pw ON pw.user_id = p.id
@@ -880,6 +899,7 @@ RETURNS TABLE (
   username      text,
   avatar_url    text,
   total_donated bigint,
+  equipped_nickname_style text,
   user_level    int,
   rank          bigint
 )
@@ -890,16 +910,18 @@ LANGUAGE sql STABLE SECURITY DEFINER AS $$
       p.username,
       p.avatar_url,
       SUM(fc.amount)::bigint AS total_donated,
+      p.equipped_nickname_style,
       public.get_user_xp(p.id) as xp
     FROM public.fund_contributions fc
     JOIN public.profiles p ON p.id = fc.user_id
-    GROUP BY p.id, p.username, p.avatar_url, p.balance
+    GROUP BY p.id, p.username, p.avatar_url, p.balance, p.equipped_nickname_style
   )
   SELECT
     id,
     username,
     avatar_url,
     total_donated,
+    equipped_nickname_style,
     FLOOR(0.1 * SQRT(xp))::int as user_level,
     RANK() OVER (ORDER BY total_donated DESC, xp DESC)::bigint as rank
   FROM base
@@ -916,6 +938,7 @@ RETURNS TABLE (
   username          text,
   avatar_url        text,
   achievement_count bigint,
+  equipped_nickname_style text,
   user_level        int,
   rank              bigint
 )
@@ -926,16 +949,18 @@ LANGUAGE sql STABLE SECURITY DEFINER AS $$
       p.username,
       p.avatar_url,
       COUNT(ua.achievement_id)::bigint AS achievement_count,
+      p.equipped_nickname_style,
       public.get_user_xp(p.id) as xp
     FROM public.user_achievements ua
     JOIN public.profiles p ON p.id = ua.user_id
-    GROUP BY p.id, p.username, p.avatar_url, p.balance
+    GROUP BY p.id, p.username, p.avatar_url, p.balance, p.equipped_nickname_style
   )
   SELECT
     id,
     username,
     avatar_url,
     achievement_count,
+    equipped_nickname_style,
     FLOOR(0.1 * SQRT(xp))::int as user_level,
     RANK() OVER (ORDER BY achievement_count DESC, xp DESC)::bigint as rank
   FROM base

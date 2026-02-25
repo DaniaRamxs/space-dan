@@ -20,6 +20,7 @@ import { PrivateUniverse } from '../../components/PrivateUniverse';
 import { universeService } from '../../services/universe';
 import * as storeService from '../../services/store';
 import { useNavigate } from 'react-router-dom';
+import { getUserDisplayName, getNicknameClass } from '../../utils/user';
 import { UniverseProvider, useUniverse } from '../../contexts/UniverseContext.jsx';
 import '../../banner-effects.css';
 import '../../styles/NicknameStyles.css';
@@ -35,12 +36,21 @@ function getFrameStyle(frameItemId) {
   if (id === 'frame_link_lv4') return { className: 'marco-evolutivo-base marco-evolutivo-lv4' };
   if (id === 'frame_link_lv5') return { className: 'marco-evolutivo-base marco-evolutivo-lv5' };
 
-  if (id === 'frame_stars') return { border: '3px solid #ffd700', boxShadow: '0 0 20px rgba(255,215,0,0.8)' };
-  if (id === 'frame_neon') return { border: '3px solid #00e5ff', boxShadow: '0 0 20px rgba(0,229,255,0.8)' };
-  if (id === 'frame_pixel') return { border: '4px solid #ff6b35', boxShadow: '0 0 15px rgba(255,107,53,0.7)', imageRendering: 'pixelated' };
-  if (id === 'frame_holo') return { border: '3px solid #b464ff', boxShadow: '0 0 20px rgba(180,100,255,0.8), 0 0 40px rgba(0,229,255,0.4)' };
-  if (id === 'frame_crown') return { border: '4px solid #ffd700', boxShadow: '0 0 25px rgba(255,215,0,1), 0 0 50px rgba(255,215,0,0.4)' };
-  return { border: '3px solid var(--accent)', boxShadow: '0 0 15px var(--accent-glow)' };
+  if (id === 'frame_stars') return { border: '3px solid #ffd700', borderRadius: '50%', boxShadow: '0 0 20px rgba(255,215,0,0.8)' };
+  if (id === 'frame_neon') return { border: '3px solid #00e5ff', borderRadius: '50%', boxShadow: '0 0 20px rgba(0,229,255,0.8)' };
+  if (id === 'frame_pixel') return { border: '4px solid #ff6b35', borderRadius: '50%', boxShadow: '0 0 15px rgba(255,107,53,0.7)', imageRendering: 'pixelated' };
+  if (id === 'frame_holo') return { border: '3px solid #b464ff', borderRadius: '50%', boxShadow: '0 0 20px rgba(180,100,255,0.8), 0 0 40px rgba(0,229,255,0.4)', animated: true };
+  if (id === 'frame_crown') return { border: '4px solid #ffd700', borderRadius: '50%', boxShadow: '0 0 25px rgba(255,215,0,1), 0 0 50px rgba(255,215,0,0.4)', animated: true };
+
+  // Fallbacks por keyword (Sincronizado con ProfileOwn)
+  if (id.includes('gold')) return { border: '3px solid #ffd700', borderRadius: '50%', boxShadow: '0 0 15px rgba(255,215,0,0.6)' };
+  if (id.includes('cyan') || id.includes('cyber')) return { border: '3px solid #00e5ff', borderRadius: '50%', boxShadow: '0 0 15px rgba(0,229,255,0.6)' };
+  if (id.includes('pink') || id.includes('rose')) return { border: '3px solid #ff69b4', borderRadius: '50%', boxShadow: '0 0 15px rgba(255,105,180,0.6)' };
+  if (id.includes('purple') || id.includes('galaxy')) return { border: '3px solid #b464ff', borderRadius: '50%', boxShadow: '0 0 15px rgba(180,100,255,0.6)' };
+  if (id.includes('green') || id.includes('matrix')) return { border: '3px solid #39ff14', borderRadius: '50%', boxShadow: '0 0 15px rgba(57,255,20,0.6)' };
+  if (id.includes('red') || id.includes('fire')) return { border: '3px solid #ff3300', borderRadius: '50%', boxShadow: '0 0 15px rgba(255,51,0,0.6)' };
+
+  return { border: '3px solid var(--accent)', borderRadius: '50%', boxShadow: '0 0 15px var(--accent-glow)' };
 }
 
 // Evolving frame for linked users — evolves based on evolution_level
@@ -50,24 +60,24 @@ function getLinkedFrameStyle(evolutionLevel) {
     border: 'none', padding: '4px', background: 'conic-gradient(from 0deg, #ff007f, #06b6d4, #8b5cf6, #ff007f)', borderRadius: '50%', boxShadow: '0 0 40px rgba(6,182,212,0.5)', animation: 'spinStriking 2s linear infinite'
   };
   if (lvl >= 4) return {
-    border: '3px solid transparent', backgroundImage: 'linear-gradient(#000,#000), linear-gradient(45deg, #06b6d4, #f43f5e, #8b5cf6, #10b981)', backgroundOrigin: 'border-box', backgroundClip: 'padding-box, border-box', boxShadow: '0 0 30px rgba(244,63,94,0.6)', animation: 'gradientFlowStriking 3s infinite'
+    border: '3px solid transparent', borderRadius: '50%', backgroundImage: 'linear-gradient(#000,#000), linear-gradient(45deg, #06b6d4, #f43f5e, #8b5cf6, #10b981)', backgroundOrigin: 'border-box', backgroundClip: 'padding-box, border-box', boxShadow: '0 0 30px rgba(244,63,94,0.6)', animation: 'gradientFlowStriking 3s infinite'
   };
   if (lvl >= 3) return {
-    border: '3px solid transparent', backgroundImage: 'linear-gradient(#000,#000), linear-gradient(135deg, #06b6d4, #8b5cf6, #ec4899)', backgroundOrigin: 'border-box', backgroundClip: 'padding-box, border-box', boxShadow: '0 0 25px rgba(139,92,246,0.7)', animation: 'rotationGradientStriking 4s linear infinite'
+    border: '3px solid transparent', borderRadius: '50%', backgroundImage: 'linear-gradient(#000,#000), linear-gradient(135deg, #06b6d4, #8b5cf6, #ec4899)', backgroundOrigin: 'border-box', backgroundClip: 'padding-box, border-box', boxShadow: '0 0 25px rgba(139,92,246,0.7)', animation: 'rotationGradientStriking 4s linear infinite'
   };
   if (lvl >= 2) return {
-    border: '2px solid #8b5cf6', boxShadow: '0 0 20px rgba(139,92,246,0.8)', animation: 'pulseAuraStriking 2s infinite alternate ease-in-out'
+    border: '2px solid #8b5cf6', borderRadius: '50%', boxShadow: '0 0 20px rgba(139,92,246,0.8)', animation: 'pulseAuraStriking 2s infinite alternate ease-in-out'
   };
   return {
-    border: '2px solid #06b6d4', boxShadow: '0 0 15px rgba(6,182,212,0.6)'
+    border: '2px solid #06b6d4', borderRadius: '50%', boxShadow: '0 0 15px rgba(6,182,212,0.6)'
   };
 }
 
 function getLinkedGlowClass(evolutionLevel) {
-  if (evolutionLevel >= 5) return 'from-pink-500 via-purple-500 to-cyan-500';
-  if (evolutionLevel >= 4) return 'from-purple-500 to-cyan-500';
-  if (evolutionLevel >= 3) return 'from-purple-600 to-violet-500';
-  return 'from-purple-600 to-cyan-500';
+  if (evolutionLevel >= 5) return 'from-[#ff00ee] via-[#00ffff] to-[#ffff00]';
+  if (evolutionLevel >= 4) return 'from-[#7000ff] via-[#00ffff] to-[#ff0077]';
+  if (evolutionLevel >= 3) return 'from-[#00d4ff] to-[#ff00ee]';
+  return 'from-[#00ffff] to-[#7000ff]';
 }
 
 const GAME_NAMES = {
@@ -146,7 +156,8 @@ export default function PublicProfilePage() {
           theme_item:equipped_theme(id, metadata),
           nick_style_item:equipped_nickname_style(id, metadata),
           primary_role_item:equipped_primary_role(id, title, metadata),
-          secondary_role_item:equipped_secondary_role(id, title, metadata)
+          secondary_role_item:equipped_secondary_role(id, title, metadata),
+          ambient_sound_item:equipped_ambient_sound(id, title, metadata)
         `)
         .ilike('username', cleanUsername)
         .maybeSingle();
@@ -350,7 +361,11 @@ export default function PublicProfilePage() {
     equipped_nickname_style_id: profile.nick_style_item?.id,
     equipped_nickname_style_metadata: profile.nick_style_item?.metadata,
     equipped_primary_role: profile.primary_role_item,
-    equipped_secondary_role: profile.secondary_role_item
+    equipped_secondary_role: profile.secondary_role_item,
+    nick_style_item: profile.nick_style_item,
+    ambient_sound_item: profile.ambient_sound_item,
+    primary_role_item: profile.primary_role_item,
+    secondary_role_item: profile.secondary_role_item
   } : null;
 
   try {
@@ -445,16 +460,20 @@ function ProfileContent({
         <div
           className={`profile-v2-banner-overlay transition-all duration-1000 ${bannerItem ? 'animate-pulse-slow' : ''} ${bannerItem?.metadata?.animated ? 'animate-aurora' : ''}`}
           style={{
-            background: bannerItem?.metadata?.gradient
-              ? `linear-gradient(to right, ${bannerItem.metadata.gradient.join(', ')})`
-              : bannerItem?.metadata?.hex
-                ? `radial-gradient(circle at top right, ${bannerItem.metadata.hex}66 0%, transparent 70%)`
-                : profile.banner_color
-                  ? `radial-gradient(circle at top right, ${profile.banner_color}66 0%, transparent 60%)`
-                  : 'radial-gradient(circle at top right, rgba(139,92,246,0.2) 0%, transparent 60%)',
-            backgroundImage: bannerItem?.preview_url ? `url(${bannerItem.preview_url})` : undefined,
-            backgroundSize: bannerItem?.preview_url ? 'cover' : undefined,
-            backgroundPosition: bannerItem?.preview_url ? 'center' : undefined,
+            backgroundImage: [
+              bannerItem?.preview_url ? `url(${bannerItem.preview_url})` : null,
+              bannerItem?.metadata?.gradient
+                ? `linear-gradient(to right, ${bannerItem.metadata.gradient.join(', ')})`
+                : (bannerItem?.metadata?.hex
+                  ? `radial-gradient(circle at top right, ${bannerItem.metadata.hex}66 0%, transparent 70%)`
+                  : (profile.banner_color
+                    ? `radial-gradient(circle at top right, ${profile.banner_color}66 0%, transparent 60%)`
+                    : 'radial-gradient(circle at top right, rgba(139,92,246,0.2) 0%, transparent 60%)'
+                  )
+                )
+            ].filter(Boolean).join(', '),
+            backgroundSize: bannerItem?.preview_url ? 'cover, auto' : 'auto',
+            backgroundPosition: bannerItem?.preview_url ? 'center, center' : 'center',
             opacity: bannerItem?.preview_url ? 0.4 : 1
           }}
         >
@@ -533,26 +552,67 @@ function ProfileContent({
               </Link>
             </div>
 
-            <div className="relative mb-8 mt-24 md:mt-0">
-              <div className="relative w-40 h-40 group/avatar">
-                <div className={`absolute -inset-4 bg-gradient-to-r ${partnership ? getLinkedGlowClass(partnership.evolution_level) : 'from-purple-600 to-cyan-500'} rounded-full blur-2xl opacity-20 group-hover/avatar:opacity-50 transition duration-1000`}></div>
-                <div className="relative w-full h-full rounded-[2.5rem] overflow-hidden border-2 border-white/10 shadow-2xl bg-black" style={partnership ? getLinkedFrameStyle(partnership.evolution_level) : getFrameStyle(profile.frame_item_id)}>
-                  <img src={profile?.avatar_url || '/default_user_blank.png'} alt="Avatar" className="w-full h-full object-cover" />
+            <div className="relative mb-8 mt-24 md:mt-0 group/avatar">
+              {/* Dynamic Glow for Partnership (Aura) - ULTRA-PREMIUM COSMIC EFFECT */}
+              {partnership && (
+                <div className="absolute -inset-20 pointer-events-none z-0">
+                  {/* Layer 1: Core Supernova Glow (High Intensity & White Core) */}
+                  <div
+                    className={`absolute inset-0 bg-gradient-to-r ${getLinkedGlowClass(partnership.evolution_level)} rounded-full blur-[60px] opacity-90 animate-pulse-slow mix-blend-screen brightness-200`}
+                  ></div>
+
+                  {/* Layer 2: Vivid Interactive Aura (Defined Edge) */}
+                  <div
+                    className={`absolute -inset-4 bg-gradient-to-tr ${getLinkedGlowClass(partnership.evolution_level)} rounded-full blur-xl opacity-70 group-hover/avatar:opacity-100 transition duration-1000 mix-blend-screen shadow-[0_0_40px_rgba(255,255,255,0.5)]`}
+                    style={{ animation: 'pulseAuraStriking 2s infinite alternate ease-in-out' }}
+                  ></div>
+
+                  {/* Layer 3: Dynamic Particles / Rotating Quasars (Hyper-Visible) */}
+                  <div className="absolute inset-0 animate-spin-slow">
+                    <div className={`absolute top-0 left-1/4 w-32 h-32 bg-white rounded-full blur-3xl opacity-50 shadow-[0_0_80px_#fff] animate-pulse`}></div>
+                    <div className={`absolute bottom-0 right-1/4 w-40 h-40 bg-cyan-300 rounded-full blur-3xl opacity-50 shadow-[0_0_100px_#67e8f9] animate-pulse`}></div>
+                  </div>
+
+                  {/* Layer 4: Inner Ring Sparkle & Energy Waves */}
+                  <div className={`absolute inset-4 border-2 border-white/40 rounded-full blur-[2px] opacity-40 animate-ping`}></div>
+                  <div className={`absolute inset-12 border border-cyan-400/30 rounded-full blur-sm opacity-30 animate-ping`} style={{ animationDelay: '1s' }}></div>
                 </div>
+              )}
+
+              <div className="relative w-40 h-40 group/avatar">
+                {/* Main Avatar Container */}
+                {(() => {
+                  const frameObj = partnership ? getLinkedFrameStyle(partnership.evolution_level) : getFrameStyle(profile.frame_item_id);
+                  const frameClass = frameObj?.className || '';
+                  const isEvolutivo = frameClass.includes('marco-evolutivo');
+                  const isLv5 = (partnership?.evolution_level >= 5) || frameClass.includes('lv5');
+
+                  return (
+                    <div
+                      className={`relative w-full h-full transition-transform duration-300 group-hover/avatar:scale-105 flex items-center justify-center ${frameClass} ${!(frameClass || (frameObj && (frameObj.border || frameObj.backgroundImage || frameObj.className || frameObj.boxShadow))) ? 'rounded-[30%] overflow-hidden bg-black border border-white/20 shadow-2xl' : ''}`}
+                      style={isEvolutivo ? {} : frameObj}
+                    >
+                      <div className={isLv5 ? 'marco-evolutivo-lv5-img-wrapper' : `w-full h-full ${isEvolutivo ? 'rounded-full' : 'rounded-[inherit]'} overflow-hidden`}>
+                        <img src={profile?.avatar_url || '/default_user_blank.png'} alt="Avatar" className="w-full h-full object-cover" />
+                      </div>
+                    </div>
+                  );
+                })()}
+
                 {/* Pet Overlay */}
-                <div className="absolute -left-8 -bottom-4 pointer-events-none drop-shadow-[0_0_20px_rgba(6,182,212,0.5)] z-30 scale-x-[-1] animate-float">
+                <div className="absolute -left-12 -bottom-4 pointer-events-none drop-shadow-[0_0_20px_rgba(6,182,212,0.5)] z-30 scale-x-[-1] animate-float">
                   <PetDisplay userId={profile?.id} size={60} showName={false} />
                 </div>
               </div>
 
-              <div className={`absolute -bottom-6 left-1/2 -translate-x-1/2 px-8 py-2.5 rounded-2xl border font-black text-sm tracking-tighter z-40 whitespace-nowrap transition-all duration-500 shadow-2xl ${level >= 10 ? 'bg-gradient-to-r from-yellow-400 via-white to-yellow-400 text-black border-yellow-200 animate-shimmer bg-[length:200%_100%]' : 'bg-[#09090b] border-cyan-500/50 text-cyan-400 shadow-[0_0_20px_rgba(6,182,212,0.3)]'}`}>
+              <div className={`absolute -bottom-5 left-1/2 -translate-x-1/2 px-6 py-2 rounded-2xl border font-black text-sm tracking-tighter z-40 whitespace-nowrap transition-all duration-500 shadow-2xl ${level >= 10 ? 'bg-gradient-to-r from-yellow-400 via-white to-yellow-400 text-black border-yellow-200 animate-shimmer bg-[length:200%_100%]' : 'bg-[#09090b] border-cyan-500/50 text-cyan-400 shadow-[0_0_20px_rgba(6,182,212,0.3)]'}`}>
                 NIVEL {level}
               </div>
             </div>
 
             <div className="flex flex-col items-center gap-2 mt-4 relative z-10 w-full">
-              <h1 className={`text-3xl md:text-5xl font-black uppercase tracking-[0.1em] drop-shadow-[0_5px_15px_rgba(0,0,0,0.5)] dan-nickname ${nicknameStyle ? `nick-style-${nicknameStyle.replace('nick_', '')}` : 'from-white via-white to-gray-300 bg-clip-text text-transparent bg-gradient-to-b'}`}>
-                {profile?.username || 'Jugador'}
+              <h1 className={`text-3xl md:text-5xl font-black uppercase tracking-[0.1em] drop-shadow-[0_5px_15px_rgba(0,0,0,0.5)] ${getNicknameClass(profile) || 'from-white via-white to-gray-300 bg-clip-text text-transparent bg-gradient-to-b'}`}>
+                {getUserDisplayName(profile)}
               </h1>
               {profile?.pronouns && (
                 <span className="px-4 py-1.5 rounded-full bg-black/60 border border-white/20 text-[10px] font-black text-white uppercase tracking-[0.2em] backdrop-blur-md shadow-lg animate-fade-in mt-1 ring-1 ring-white/10">
@@ -635,9 +695,22 @@ function ProfileContent({
             </div>
 
             <div className="mt-8 flex flex-col items-center gap-6 pb-12">
-              <div className="p-6 rounded-[2.5rem] bg-black/40 border border-white/5 min-w-[300px] max-w-lg shadow-inner group/bio relative overflow-hidden">
-                <div className="absolute inset-0 bg-cyan-500/5 opacity-0 group-hover/bio:opacity-100 transition-opacity"></div>
-                <p className={`text-sm leading-relaxed relative z-10 transition-colors ${profile.bio ? 'text-gray-300 group-hover:text-white' : 'text-gray-500 italic'}`}>"{profile.bio || 'Sin biografía estelar.'}"</p>
+              <div className="group/bio relative min-w-[300px] max-w-lg w-full">
+                {/* Glow on hover */}
+                <div className="absolute -inset-2 bg-gradient-to-r from-cyan-500/10 via-purple-500/10 to-cyan-500/10 rounded-[3rem] blur-xl opacity-0 group-hover/bio:opacity-100 transition-all duration-700"></div>
+
+                <div className="relative bg-gradient-to-br from-white/[0.04] to-white/[0.01] backdrop-blur-xl border border-white/[0.06] rounded-[2rem] px-8 py-6 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] overflow-hidden">
+                  {/* Decorative corner quotes */}
+                  <div className="absolute top-3 left-4 text-cyan-500/20 text-3xl font-serif leading-none select-none">"</div>
+                  <div className="absolute bottom-1 right-4 text-cyan-500/20 text-3xl font-serif leading-none select-none">"</div>
+
+                  {/* Subtle scan line effect */}
+                  <div className="absolute inset-0 opacity-[0.02] pointer-events-none" style={{ backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(255,255,255,0.03) 2px, rgba(255,255,255,0.03) 4px)' }}></div>
+
+                  <p className={`text-sm md:text-base leading-relaxed tracking-wide text-center relative z-10 transition-colors duration-500 ${profile.bio ? 'text-gray-300/90 group-hover/bio:text-white/90' : 'text-white/20 italic'}`}>
+                    {profile.bio || 'Sin biografía estelar.'}
+                  </p>
+                </div>
               </div>
 
               {partnership ? (

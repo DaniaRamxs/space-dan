@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react'; // System identity system v2.1.0
+import React, { createContext, useContext, useState, useEffect } from 'react'; // System identity system v3.0
 import { supabase } from '../supabaseClient';
 import useAuth from '../hooks/useAuth';
 
@@ -11,6 +11,33 @@ export const UniverseProvider = ({ children, overrideProfile = null }) => {
     const [isAmbientMuted, setIsAmbientMuted] = useState(() => {
         return localStorage.getItem('ambient_muted') === 'true';
     });
+    const [partnership, setPartnership] = useState(null);
+
+    // 0. Fetch global partnership for the logged in user
+    useEffect(() => {
+        if (!user) {
+            setPartnership(null);
+            return;
+        }
+
+        const fetchP = async () => {
+            const { data } = await supabase.rpc('get_active_partnership', { p_user_id: user.id });
+            setPartnership(data);
+        };
+
+        fetchP();
+
+        const channel = supabase.channel('global-partnerships')
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'partnerships' }, payload => {
+                if (payload.new?.user1_id === user.id || payload.new?.user2_id === user.id ||
+                    payload.old?.user1_id === user.id || payload.old?.user2_id === user.id) {
+                    fetchP();
+                }
+            })
+            .subscribe();
+
+        return () => { supabase.removeChannel(channel); };
+    }, [user]);
 
     // 1. Efecto para aplicar el tema al documento mediante CSS Variables
     useEffect(() => {
@@ -18,65 +45,69 @@ export const UniverseProvider = ({ children, overrideProfile = null }) => {
             const vars = profile.theme_item.metadata.vars || {};
             const root = document.documentElement;
 
-            // Limpiar variables de tema anteriores (opcional, pero recomendado)
-            // root.removeAttribute('style'); // Ojo, esto puede borrar otros estilos in-line
-
-            // Aplicar variables dinámicas del tema
             Object.entries(vars).forEach(([key, value]) => {
                 root.style.setProperty(key, value);
             });
 
             root.setAttribute('data-theme', profile.theme_item.id);
         } else if (!overrideProfile) {
-            // Si no hay tema equipado y no es un override, resetear a default
             document.documentElement.removeAttribute('data-theme');
-            // Podríamos resetear variables aquí si fuera necesario
         }
     }, [profile, overrideProfile]);
 
-    // 2. Manejo de sonido ambiental (Lazy Loading)
-    const [ambientAudio] = useState(() => new Audio());
+    // 2. Manejo de sonido ambiental via Web Audio Synth (v3.0)
+    // Las URLs externas de Mixkit devolvían 403, así que generamos el audio proceduralmente.
+    const synthRef = React.useRef(null);
 
-    useEffect(() => {
-        const soundUrl = profile?.ambient_sound_item?.metadata?.url;
-
-        if (soundUrl && !isAmbientMuted) {
-            ambientAudio.src = soundUrl;
-            ambientAudio.loop = true;
-            ambientAudio.volume = 0.2; // Volumen bajo para ambiente
-
-            const startPlayback = () => {
-                ambientAudio.play().catch(() => {
-                    // El navegador bloquea autoplay hasta interacción
-                    console.log("Esperando interacción para audio ambiental...");
-                });
-            };
-
-            startPlayback();
-
-            // Reintentar si hubo bloqueo de autoplay al hacer click en el body
-            const handleUserInteraction = () => {
-                startPlayback();
-                window.removeEventListener('click', handleUserInteraction);
-            };
-            window.addEventListener('click', handleUserInteraction);
-
-            return () => {
-                window.removeEventListener('click', handleUserInteraction);
-                ambientAudio.pause();
-                ambientAudio.src = "";
-            };
-        } else {
-            ambientAudio.pause();
+    const getSynth = React.useCallback(async () => {
+        if (!synthRef.current) {
+            const { ambientSynth } = await import('../utils/ambientSynth.js');
+            synthRef.current = ambientSynth;
         }
-    }, [profile?.ambient_sound_item, isAmbientMuted, ambientAudio]);
+        return synthRef.current;
+    }, []);
 
-    const toggleAmbientMute = () => {
-        setIsAmbientMuted(prev => {
-            const next = !prev;
-            localStorage.setItem('ambient_muted', next);
-            return next;
-        });
+    // Parar sonido cuando se mutea, cambia el item, o se desmonta
+    useEffect(() => {
+        const soundId = profile?.ambient_sound_item?.id;
+
+        if (!soundId || isAmbientMuted) {
+            if (synthRef.current) synthRef.current.stop();
+        }
+        // NO auto-play aquí — el navegador lo bloquea.
+        // Se activa solo desde toggleAmbientMute o playAmbientManually (gesto del usuario).
+
+        return () => {
+            if (synthRef.current) synthRef.current.stop();
+        };
+    }, [profile?.ambient_sound_item?.id, isAmbientMuted]);
+
+    // Reproduce manualmente — debe ser llamado desde un gesto del usuario (click)
+    const playAmbientManually = async () => {
+        const soundId = profile?.ambient_sound_item?.id;
+        if (!soundId || isAmbientMuted) return;
+        const synth = await getSynth();
+        synth.play(soundId);
+    };
+
+    // Toggle mute/unmute — al desmutear arranca el sonido inmediatamente
+    const toggleAmbientMute = async () => {
+        const next = !isAmbientMuted;
+        setIsAmbientMuted(next);
+        localStorage.setItem('ambient_muted', String(next));
+
+        if (next) {
+            // Mutear → parar
+            const synth = await getSynth();
+            synth.stop();
+        } else {
+            // Desmutear → iniciar (desde gesto del usuario, así el navegador lo permite)
+            const soundId = profile?.ambient_sound_item?.id;
+            if (soundId) {
+                const synth = await getSynth();
+                synth.play(soundId);
+            }
+        }
     };
 
     const value = {
@@ -87,6 +118,8 @@ export const UniverseProvider = ({ children, overrideProfile = null }) => {
         ambientSound: profile?.ambient_sound_item,
         isAmbientMuted,
         toggleAmbientMute,
+        playAmbientManually,
+        partnership: overrideProfile ? null : partnership,
         mood: {
             text: profile?.mood_text,
             emoji: profile?.mood_emoji,

@@ -5,6 +5,7 @@ import * as lb from '../services/leaderboard';
 import { motion, AnimatePresence } from 'framer-motion';
 import HoloCard from '../components/HoloCard';
 import SeasonWidget from '../components/SeasonWidget';
+import { getUserDisplayName, getNicknameClass } from '../utils/user';
 
 const TABS = [
   { id: 'games', label: '🎮 Juegos', desc: 'Suma de mejores puntajes en todos los juegos' },
@@ -159,7 +160,9 @@ function CompetitiveRow({ row, i, isMe, formatMetric, onClick }) {
               alignItems: 'center',
               gap: 8
             }}>
-              {row.username || 'Anónimo'}
+              <span className={getNicknameClass(row)}>
+                {getUserDisplayName(row)}
+              </span>
               <span style={{ fontSize: '1rem' }} title={userTier.label}>{userTier.icon}</span>
               {isMe && <span style={{ marginLeft: 6, fontSize: '0.6rem', background: 'var(--accent)', color: '#fff', padding: '1px 6px', borderRadius: '4px' }}>TÚ</span>}
             </div>
@@ -347,8 +350,8 @@ export default function GlobalLeaderboardPage() {
                     <td className="lbUser" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                       <Avatar url={row.avatar_url} name={row.username} />
                       <div style={{ display: 'flex', flexDirection: 'column' }}>
-                        <span style={{ color: isMe ? 'var(--accent)' : 'var(--text)', fontWeight: 500 }}>
-                          {row.username || 'Anónimo'}
+                        <span className={getNicknameClass(row)} style={{ fontWeight: 500 }}>
+                          {getUserDisplayName(row)}
                         </span>
                         {row.user_level && (
                           <span style={{ fontSize: '0.65rem', color: 'var(--cyan)', opacity: 0.8, fontWeight: 'bold' }}>

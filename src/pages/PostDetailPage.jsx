@@ -9,8 +9,10 @@ import { activityService } from '../services/activityService';
 import { useAuthContext } from '../contexts/AuthContext';
 import ReactionsBar from '../components/Social/ReactionsBar';
 import ShareModal from '../components/Social/ShareModal';
+import Comments from '../components/Comments';
 import PostComposer from '../components/Social/PostComposer';
 import { CATEGORIES } from '../components/Social/PostComposer';
+import { getUserDisplayName, getNicknameClass } from '../utils/user';
 
 function getCategoryMeta(id) {
     return CATEGORIES.find(c => c.id === id) || { icon: '🌐', label: 'General' };
@@ -143,7 +145,9 @@ export default function PostDetailPage() {
                                 </Link>
                                 <div>
                                     <Link to={post.author?.username ? `/@${post.author.username}` : `/profile/${post.author_id}`} className="text-sm font-black text-white hover:text-cyan-400 transition-colors uppercase tracking-tight">
-                                        {post.author?.username}
+                                        <span className={getNicknameClass(post.author)}>
+                                            {getUserDisplayName(post.author)}
+                                        </span>
                                     </Link>
                                     <p className="text-[9px] text-white/20 font-black uppercase tracking-[0.25em] mt-0.5">
                                         {formatDistanceToNow(new Date(post.created_at), { addSuffix: true, locale: es })}
@@ -263,6 +267,11 @@ export default function PostDetailPage() {
                 initialMode={shareMode}
                 onSuccess={() => setShowShare(false)}
             />
+
+            {/* ── Comentarios ── */}
+            <div className="mt-12 bg-[#070710] border border-white/[0.06] rounded-3xl p-6 md:p-10 shadow-2xl">
+                <Comments postId={postId} />
+            </div>
         </main>
     );
 }

@@ -51,6 +51,7 @@ RETURNS TABLE (
     avatar_url text,
     total_minutes bigint,
     total_sessions integer,
+    equipped_nickname_style text,
     user_level int,
     rank bigint
 ) LANGUAGE plpgsql SECURITY DEFINER AS $$
@@ -62,6 +63,7 @@ BEGIN
         p.avatar_url,
         s.total_focus_minutes as total_minutes,
         s.total_sessions,
+        p.equipped_nickname_style,
         FLOOR(0.1 * SQRT(public.get_user_xp(p.id)))::int as user_level,
         RANK() OVER (ORDER BY s.total_focus_minutes DESC, public.get_user_xp(p.id) DESC) as rank
     FROM public.cabin_stats s
