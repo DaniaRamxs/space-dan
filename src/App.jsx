@@ -125,7 +125,6 @@ function AnimatedRoutes() {
         <Route path="/profile" element={
           loading ? <FallbackLoader /> : (user ? <Layout><ProfileOwn /></Layout> : <Navigate to="/" replace />)
         } />
-        <Route path="/@:username" element={<Layout><ProfilePublic /></Layout>} />
         <Route path="/bulletin" element={<Layout><BulletinPage /></Layout>} />
         <Route path="/posts" element={<Layout><PostsPage /></Layout>} />
         <Route path="/transmission/:postId" element={<Layout><PostDetailPage /></Layout>} />
@@ -154,6 +153,8 @@ function AnimatedRoutes() {
         <Route path="/foco/:roomId" element={<Layout><FocusRoom /></Layout>} />
         <Route path="/vinculos" element={<Layout><VinculosPage /></Layout>} />
         <Route path="/secret" element={<PageTransition><Secret /></PageTransition>} />
+        {/* Dynamic Profile / 404 Catch-all */}
+        <Route path="/:username" element={<Layout><ProfilePublic /></Layout>} />
       </Routes>
     </AnimatePresence>
   );
