@@ -9,7 +9,7 @@ import { universeService } from '../services/universe';
 import { unlockAchievement } from '../hooks/useAchievements';
 
 // Categories that only live in the DB (no localStorage visual effect)
-const DB_ONLY_CATEGORIES = new Set(['banner', 'frame', 'pet_accessory']);
+const DB_ONLY_CATEGORIES = new Set(['banner', 'frame', 'pet_accessory', 'nickname_style', 'profile_theme', 'role', 'ambient_sound']);
 
 const CAT_LABELS = {
   theme: '🎨 Temas',
@@ -20,10 +20,14 @@ const CAT_LABELS = {
   banner: '🖼️ Banners',
   frame: '🔲 Marcos',
   pet_accessory: '🐱 Mascota',
+  nickname_style: '🧬 Nicknames',
+  profile_theme: '🌌 Universe Themes',
+  role: '🎖️ Roles',
+  ambient_sound: '🎵 Ambientes',
 };
 
 // Preferred category order in the tab bar
-const CAT_ORDER = ['theme', 'cursor', 'screensaver', 'stars', 'radio', 'banner', 'frame', 'pet_accessory'];
+const CAT_ORDER = ['profile_theme', 'nickname_style', 'role', 'ambient_sound', 'theme', 'cursor', 'screensaver', 'stars', 'radio', 'banner', 'frame', 'pet_accessory'];
 
 export default function ShopPage() {
   const { user } = useAuthContext();
@@ -385,11 +389,11 @@ export default function ShopPage() {
                     <p className="text-xs text-white/40 mb-6 line-clamp-2">{item.desc || item.description}</p>
                     <div className="mt-auto">
                       <button
-                        className={`w-full py-3 rounded-2xl font-black text-[11px] tracking-widest transition-all ${canAfford ? 'bg-white text-black hover:shadow-[0_0_20px_white]' : 'bg-white/5 text-white/20'}`}
+                        className={`w-full py-3 rounded-2xl font-black text-[11px] tracking-widest transition-all ${canAfford || owned ? 'bg-white text-black hover:shadow-[0_0_20px_white]' : 'bg-white/5 text-white/20'}`}
                         onClick={() => handleBuy(item)}
-                        disabled={!canAfford}
+                        disabled={!canAfford && !owned}
                       >
-                        {owned ? 'ADQUIRIR' : `VENDER POR ◈ ${item.price}`}
+                        {equipped ? '✓ ACTIVO' : owned ? 'EQUIPAR' : `COMPRAR POR ◈ ${item.price}`}
                       </button>
                     </div>
                   </div>

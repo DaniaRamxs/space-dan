@@ -48,7 +48,14 @@ export default function useAuth() {
       try {
         const { data, error } = await supabase
           .from('profiles')
-          .select('*')
+          .select(`
+            *,
+            theme_item:equipped_theme(id, metadata),
+            nick_style_item:equipped_nickname_style(id, metadata),
+            primary_role_item:equipped_primary_role(id, title, metadata),
+            secondary_role_item:equipped_secondary_role(id, title, metadata),
+            ambient_sound_item:equipped_ambient_sound(id, title, metadata)
+          `)
           .eq('id', session.user.id)
           .maybeSingle();
 
@@ -75,7 +82,8 @@ export default function useAuth() {
         table: 'profiles',
         filter: `id=eq.${session.user.id}`
       }, (payload) => {
-        setProfile(payload.new);
+        // En lugar de solo usar payload.new, re-obtenemos para tener los joins actualizados
+        fetchProfile();
       })
       .subscribe();
 
