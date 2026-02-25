@@ -309,7 +309,7 @@ export const PrivateUniverse = ({ partnership: initialPartnership, onUpdate }) =
                         ) : (
                             <span className="font-medium">Vinculado con </span>
                         )}
-                        <span className="font-black text-white hover:underline decoration-purple-500" onClick={(e) => { e.stopPropagation(); navigate(`/profile/${partnership.partner_id}`); }}>@{partnership.partner_username}</span>
+                        <span className="font-black text-white hover:underline decoration-purple-500" onClick={(e) => { e.stopPropagation(); navigate(partnership.partner_username ? `/@${partnership.partner_username}` : `/profile/${partnership.partner_id}`); }}>@{partnership.partner_username}</span>
                     </span>
                     <span className="text-[10px] opacity-40 font-bold tracking-widest uppercase mt-0.5">Desde {formattedDate}</span>
                 </div>
@@ -345,7 +345,7 @@ export const PrivateUniverse = ({ partnership: initialPartnership, onUpdate }) =
                                         <div className="w-1 h-1 bg-white rounded-full opacity-20 mb-6 animate-pulse" />
                                         <p className="text-neutral-200 text-base tracking-[0.3em] font-extralight uppercase">Nuestro Universo</p>
                                         <button
-                                            onClick={() => navigate(`/profile/${partnership.partner_id}`)}
+                                            onClick={() => navigate(partnership.partner_username ? `/@${partnership.partner_username}` : `/profile/${partnership.partner_id}`)}
                                             className="mt-2 text-[9px] font-black uppercase tracking-[0.4em] text-white/20 hover:text-purple-400 transition-colors"
                                         >
                                             Visitar Perfil de @{partnership.partner_username} →

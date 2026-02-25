@@ -72,7 +72,7 @@ const ActivityCard = memo(({ post, onUpdate, onNewPost }) => {
                     {/* Fila: Avatar + Meta */}
                     <div className="flex items-start gap-3 mb-3">
                         <Link
-                            to={`/profile/${post.author_id}`}
+                            to={post.author?.username ? `/@${post.author.username}` : `/profile/${post.author_id}`}
                             onClick={e => e.stopPropagation()}
                             className="shrink-0"
                         >
@@ -90,7 +90,7 @@ const ActivityCard = memo(({ post, onUpdate, onNewPost }) => {
                         <div className="flex-1 min-w-0 pt-0.5">
                             <div className="flex items-center justify-between gap-2 mb-0.5">
                                 <Link
-                                    to={`/profile/${post.author_id}`}
+                                    to={post.author?.username ? `/@${post.author.username}` : `/profile/${post.author_id}`}
                                     onClick={e => e.stopPropagation()}
                                     className="text-xs font-black text-white/70 hover:text-cyan-400 transition-colors uppercase tracking-wider truncate"
                                 >

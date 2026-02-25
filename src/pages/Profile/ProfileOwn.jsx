@@ -1088,7 +1088,7 @@ export default function ProfileOwn() {
                   <div className="flex flex-col items-center gap-1 text-center">
                     <div className="text-[9px] font-black tracking-[0.4em] text-purple-400 uppercase animate-pulse">Universo Vinculado</div>
                     <Link
-                      to={`/profile/${partnership.partner_id}`}
+                      to={partnership.partner_username ? `/@${partnership.partner_username}` : `/profile/${partnership.partner_id}`}
                       className="text-[10px] font-black text-white/20 hover:text-purple-400 transition-colors uppercase tracking-widest"
                     >
                       Ver perfil de @{partnership.partner_username} →
