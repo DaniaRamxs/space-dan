@@ -278,6 +278,33 @@ export default function GamesPage() {
         </div>
       </div>
 
+      {/* GUEST WARNING */}
+      {!user && (
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bentoItem"
+          style={{
+            background: 'rgba(255,165,0,0.1)',
+            border: '1px solid rgba(255,165,0,0.3)',
+            padding: '12px 20px',
+            marginBottom: 20,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 12,
+            borderRadius: '20px'
+          }}
+        >
+          <span style={{ fontSize: '1.2rem' }}>⚠️</span>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: '0.7rem', fontWeight: 900, color: '#ffa500', textTransform: 'uppercase', letterSpacing: 1 }}>Modo Invitado</div>
+            <div style={{ fontSize: '0.65rem', opacity: 0.8, color: '#fff' }}>
+              Inicia sesión para que tus puntajes se guarden en el ranking global y recibas recompensas.
+            </div>
+          </div>
+        </motion.div>
+      )}
+
       {/* BENTO DASHBOARD */}
       <div className="bentoGrid">
         <div className="bentoItem bentoLarge" style={{

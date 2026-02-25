@@ -1163,40 +1163,53 @@ export default function ProfileOwn() {
                 </div>
               )}
 
-              {partnership ? (
-                <div className="flex flex-col items-center gap-4 w-full">
-                  <div className="relative group/univ">
-                    <div className="absolute -inset-6 bg-purple-500/10 blur-3xl rounded-full opacity-0 md:group-hover/univ:opacity-100 transition-opacity"></div>
-                    <PrivateUniverse
-                      partnership={partnership}
-                      onUpdate={async () => {
-                        const updated = await universeService.getMyPartnership();
-                        setPartnership(updated);
-                      }}
-                    />
+              <div className="flex flex-wrap justify-center gap-4 w-full">
+                {partnership ? (
+                  <div className="flex flex-col items-center gap-4 w-full">
+                    <div className="relative group/univ">
+                      <div className="absolute -inset-6 bg-purple-500/10 blur-3xl rounded-full opacity-0 md:group-hover/univ:opacity-100 transition-opacity"></div>
+                      <PrivateUniverse
+                        partnership={partnership}
+                        onUpdate={async () => {
+                          const updated = await universeService.getMyPartnership();
+                          setPartnership(updated);
+                        }}
+                      />
+                    </div>
+                    <div className="flex flex-col items-center gap-1 text-center">
+                      <div className="text-[9px] font-black tracking-[0.4em] text-purple-400 uppercase animate-pulse">Universo Vinculado</div>
+                      <Link
+                        to={`/profile/vinculos`}
+                        className="text-[10px] font-black text-white/20 hover:text-purple-400 transition-colors uppercase tracking-widest"
+                      >
+                        Gestionar Vínculo →
+                      </Link>
+                    </div>
                   </div>
-                  <div className="flex flex-col items-center gap-1 text-center">
-                    <div className="text-[9px] font-black tracking-[0.4em] text-purple-400 uppercase animate-pulse">Universo Vinculado</div>
-                    <Link
-                      to={partnership.partner_username ? `/@${partnership.partner_username}` : `/profile/${partnership.partner_id}`}
-                      className="text-[10px] font-black text-white/20 hover:text-purple-400 transition-colors uppercase tracking-widest"
-                    >
-                      Ver perfil de @{partnership.partner_username} →
-                    </Link>
-                  </div>
-                </div>
-              ) : (
-                <Link to="/vinculos" className="group relative px-8 py-4 rounded-[2rem] bg-black/40 border border-white/5 overflow-hidden transition-all hover:border-purple-500/50 shadow-lg">
-                  <div className="absolute inset-0 bg-purple-500/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                ) : (
+                  <Link to="/profile/vinculos" className="group relative px-6 py-4 rounded-2xl bg-black/40 border border-white/5 overflow-hidden transition-all hover:border-purple-500/50 shadow-lg flex-1 min-w-[180px]">
+                    <div className="absolute inset-0 bg-purple-500/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                    <div className="relative z-10 flex items-center gap-4">
+                      <span className="text-2xl group-hover:rotate-12 transition-transform">✨</span>
+                      <div className="text-left">
+                        <div className="text-[10px] font-black uppercase tracking-widest text-white/80">Vínculo Estelar</div>
+                        <div className="text-[8px] text-white/30 uppercase font-bold">Solicitar conexión</div>
+                      </div>
+                    </div>
+                  </Link>
+                )}
+
+                <Link to="/profile/logros" className="group relative px-6 py-4 rounded-2xl bg-black/40 border border-white/5 overflow-hidden transition-all hover:border-cyan-500/50 shadow-lg flex-1 min-w-[180px]">
+                  <div className="absolute inset-0 bg-cyan-500/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
                   <div className="relative z-10 flex items-center gap-4">
-                    <span className="text-2xl group-hover:rotate-12 transition-transform">✨</span>
+                    <span className="text-2xl group-hover:scale-110 transition-transform">🏆</span>
                     <div className="text-left">
-                      <div className="text-[10px] font-black uppercase tracking-widest text-white/80">Vínculo Estelar</div>
-                      <div className="text-[8px] text-white/30 uppercase font-bold">Solicitar conexión con otro usuario</div>
+                      <div className="text-[10px] font-black uppercase tracking-widest text-white/80">Mis Logros</div>
+                      <div className="text-[8px] text-white/30 uppercase font-bold">Ver catálogo completo</div>
                     </div>
                   </div>
                 </Link>
-              )}
+              </div>
             </div>
           </div>
         </div>

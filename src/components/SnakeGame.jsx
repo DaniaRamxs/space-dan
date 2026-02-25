@@ -49,7 +49,11 @@ export default function SnakeGame() {
   }, [saveScore]);
 
   const move = useCallback(() => {
+    let collision = false;
+    let finalScore = 0;
+
     setSnake(prevSnake => {
+      if (collision) return prevSnake;
       const d = nextDirRef.current;
       dirRef.current = d;
 
@@ -58,13 +62,15 @@ export default function SnakeGame() {
 
       // Wall collision
       if (newHead[0] < 0 || newHead[0] >= GRID_SIZE || newHead[1] < 0 || newHead[1] >= GRID_SIZE) {
-        gameOver(score);
+        collision = true;
+        finalScore = score;
         return prevSnake;
       }
 
       // Self collision
       if (prevSnake.some(seg => seg[0] === newHead[0] && seg[1] === newHead[1])) {
-        gameOver(score);
+        collision = true;
+        finalScore = score;
         return prevSnake;
       }
 
@@ -74,13 +80,16 @@ export default function SnakeGame() {
       if (newHead[0] === food[0] && newHead[1] === food[1]) {
         setScore(s => s + 1);
         spawnFood(newSnake);
-        // speed handling is done in a separate effect
       } else {
         newSnake.pop();
       }
 
       return newSnake;
     });
+
+    if (collision) {
+      gameOver(finalScore);
+    }
   }, [food, score, gameOver, spawnFood]);
 
   // Adjust speed based on score
@@ -117,6 +126,9 @@ export default function SnakeGame() {
   useEffect(() => {
     const handleKey = (e) => {
       const d = dirRef.current;
+      if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' '].includes(e.key)) {
+        e.preventDefault();
+      }
       if (e.key === 'ArrowUp' && d.y !== 1) nextDirRef.current = { x: 0, y: -1 };
       if (e.key === 'ArrowDown' && d.y !== -1) nextDirRef.current = { x: 0, y: 1 };
       if (e.key === 'ArrowLeft' && d.x !== 1) nextDirRef.current = { x: -1, y: 0 };

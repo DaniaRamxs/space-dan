@@ -39,7 +39,7 @@ const fmtTime = (s) => isNaN(s) || !s ? '0:00' : `${Math.floor(s / 60)}:${String
 function TerminalWindow() {
     const navigate = useNavigate();
     const [lines, setLines] = useState([
-        '> DAN-OS Terminal v1.0',
+        '> SPACE-OS Terminal v1.1',
         '> Escribe "help" para ver comandos disponibles.',
         '',
     ]);
@@ -145,7 +145,7 @@ function TerminalWindow() {
                 '    Features: 24 juegos, guestbook RT, OS desktop',
                 '    GitHub: github.com/DaniaRamxs/space-dan',
                 '  ──────────────────────────────────────────',
-                '  Más en: /proyectos',
+                '  Más en: /proyectos (o usa el comando "open projects")',
             ];
         } else if (c === 'github') {
             out = [
@@ -195,7 +195,7 @@ function TerminalWindow() {
             out = [
                 '           ✦  space-dan ✦',
                 '',
-                '  ██████   OS:      DAN-OS v0.4.2',
+                '  ██████   OS:      SPACE-OS v0.5.0',
                 '  █    █   Shell:   React 19 + Vite 7',
                 '  ██████   CPU:     1× cerebro overclocked',
                 '  █    █   Memory:  ∞ creatividad',
@@ -207,13 +207,13 @@ function TerminalWindow() {
         } else if (c === 'motd' || c === 'welcome') {
             out = [
                 '  ╔════════════════════════════════╗',
-                '  ║   Bienvenid@ a DAN-OS v0.4    ║',
+                '  ║   Bienvenid@ a SPACE-OS v0.5   ║',
                 '  ║   Escribe "help" para ayuda   ║',
                 '  ╚════════════════════════════════╝',
             ];
         } else if (c.startsWith('open ') || c === 'open') {
             if (c === 'open') {
-                out = ['  uso: open [app]  — apps: readme, calc, notepad, music, terminal, chat, guestbook, sysinfo'];
+                out = ['  uso: open [app]  — apps: readme, calc, notepad, music, terminal, chat, guestbook, sysinfo', '  Prueba abriendo "readme" para empezar.'];
             } else {
                 const APP_MAP = {
                     readme: 'readme', 'readme.txt': 'readme',
@@ -246,7 +246,7 @@ function TerminalWindow() {
                 '  — just kidding. o quizás no. 🐇',
             ];
         } else if (c === 'clear') {
-            setLines(['> DAN-OS Terminal v1.0', '> Escribe "help" para ver comandos disponibles.', '']);
+            setLines(['> SPACE-OS Terminal v1.1', '> Escribe "help" para ver comandos disponibles.', '']);
             setCmdHistory(h => cmd ? [cmd, ...h] : h);
             setHistIdx(-1);
             setInput('');
@@ -560,7 +560,7 @@ function SysInfoWindow() {
     return (
         <pre className="osFileContent">{`DAN-OS System Information
 ━━━━━━━━━━━━━━━━━━━━━━━━
-OS:      DAN-OS v0.4.2 (2026)
+OS:      SPACE-OS v0.5.0 (2026)
 Shell:   React 19 + Vite 7
 UI:      CSS custom ~5300 líneas
 DB:      Supabase (PostgreSQL)
@@ -649,7 +649,7 @@ function WindowContent({ type }) {
             return (
                 <pre className="osFileContent">{`SYSTEM BOOT SUCCESSFUL...
 
-DAN-OS v0.4.2 — 2026
+SPACE-OS v0.5.0 — 2026
 
 Hola, explorador/a.
 
@@ -769,7 +769,8 @@ function DraggableWindow({ type, title, icon, initialPos, isActive, isMinimized,
         };
     }, [isDragging]);
 
-    if (isMinimized) return null;
+    // No desmontar el componente (return null) para evitar crasheos en los hijos (Terminal, Juegos, etc.)
+    // En su lugar, lo ocultamos con CSS en el return principal.
 
     const WIN_SIZES = {
         readme: { width: 340, height: 280 },
@@ -802,6 +803,8 @@ function DraggableWindow({ type, title, icon, initialPos, isActive, isMinimized,
                 boxShadow: isActive
                     ? '0 0 0 1px #0000ff, 4px 4px 0 rgba(0,0,0,0.5)'
                     : '2px 2px 0 rgba(0,0,0,0.4)',
+                display: isMinimized ? 'none' : 'flex',
+                pointerEvents: isMinimized ? 'none' : 'auto',
             }}
         >
             <div
@@ -851,7 +854,7 @@ function StartMenu({ onClose }) {
         <>
             <div className="osStartMenuOverlay" onClick={onClose} />
             <div className="osStartMenu">
-                <div className="osStartMenuHeader">DAN-OS</div>
+                <div className="osStartMenuHeader">SPACE-OS</div>
                 <div className="osStartMenuList">
                     {START_LINKS.map(({ icon, label, to }) => (
                         <Link key={to} to={to} className="osStartMenuItem" onClick={onClose}>
@@ -1016,7 +1019,10 @@ export default function DesktopPage() {
 
     return (
         <div className="osDesktop" onContextMenu={handleContextMenu}>
-            <div className="osBackground" />
+            <div className="osBackground">
+                <div className="osBackgroundGlow" />
+                <div className="osBackgroundMesh" />
+            </div>
 
             <div className="osIcons">
                 {ICONS.map(({ id, icon, label }) => (
@@ -1033,7 +1039,7 @@ export default function DesktopPage() {
             </div>
 
             {windows.map((win, idx) => {
-                const meta = WIN_META[win.id];
+                const meta = WIN_META[win.id] || { title: win.id, icon: '📄' };
                 return (
                     <DraggableWindow
                         key={win.id}
@@ -1083,7 +1089,7 @@ export default function DesktopPage() {
                     <div className="osTaskbarSep" />
                     <div className="osTaskbarOpenApps">
                         {windows.map(w => {
-                            const meta = WIN_META[w.id];
+                            const meta = WIN_META[w.id] || { title: w.id, icon: '📄' };
                             return (
                                 <div
                                     key={w.id}

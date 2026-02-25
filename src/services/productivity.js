@@ -115,7 +115,7 @@ export async function finishFocusSession(userId, minutes = 25) {
 export async function getRecentFocusSessions(userId, days = 7) {
     const { data, error } = await supabase
         .from('cabin_sessions')
-        .select('minutes, created_at')
+        .select('duration_minutes, created_at')
         .eq('user_id', userId)
         .gte('created_at', new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString())
         .order('created_at', { ascending: true });

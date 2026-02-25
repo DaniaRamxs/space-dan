@@ -34,8 +34,8 @@ function generateMaze() {
 }
 
 const START = { row: 1, col: 1 };
-const GOAL  = { row: 13, col: 13 };
-const CELL  = 20; // px per cell
+const GOAL = { row: 13, col: 13 };
+const CELL = 20; // px per cell
 
 const styles = {
   wrapper: {
@@ -72,7 +72,7 @@ const styles = {
     outline: 'none',
   },
   cell: (isWall, isPlayer, isGoal) => ({
-    width:  `${CELL}px`,
+    width: `${CELL}px`,
     height: `${CELL}px`,
     background: isWall ? 'rgba(255,110,180,0.3)' : 'transparent',
     display: 'flex',
@@ -136,11 +136,11 @@ const styles = {
 export default function MazeGame() {
   const [best, saveScore] = useHighScore('maze');
 
-  const [maze,     setMaze]     = useState(generateMaze);
-  const [player,   setPlayer]   = useState(START);
-  const [seconds,  setSeconds]  = useState(0);
-  const [running,  setRunning]  = useState(false);
-  const [won,      setWon]      = useState(false);
+  const [maze, setMaze] = useState(generateMaze);
+  const [player, setPlayer] = useState(START);
+  const [seconds, setSeconds] = useState(0);
+  const [running, setRunning] = useState(false);
+  const [won, setWon] = useState(false);
   const [lastScore, setLastScore] = useState(null);
 
   const gridRef = useRef(null);
@@ -190,10 +190,12 @@ export default function MazeGame() {
   // Keyboard handler
   useEffect(() => {
     const onKey = (e) => {
-      const dirs = { ArrowUp: [-1,0], ArrowDown: [1,0], ArrowLeft: [0,-1], ArrowRight: [0,1] };
+      if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' '].includes(e.key)) {
+        e.preventDefault();
+      }
+      const dirs = { ArrowUp: [-1, 0], ArrowDown: [1, 0], ArrowLeft: [0, -1], ArrowRight: [0, 1] };
       const dir = dirs[e.key];
       if (!dir) return;
-      e.preventDefault();
       move(dir[0], dir[1]);
     };
     window.addEventListener('keydown', onKey);
@@ -236,15 +238,15 @@ export default function MazeGame() {
           style={{
             ...styles.grid,
             gridTemplateColumns: `repeat(15, ${cellSize}px)`,
-            gridTemplateRows:    `repeat(15, ${cellSize}px)`,
+            gridTemplateRows: `repeat(15, ${cellSize}px)`,
           }}
           aria-label="laberinto — usa las teclas de flecha para moverte"
         >
           {maze.map((row, ri) =>
             row.map((cell, ci) => {
-              const isWall   = cell === 1;
+              const isWall = cell === 1;
               const isPlayer = ri === player.row && ci === player.col;
-              const isGoal   = ri === GOAL.row   && ci === GOAL.col;
+              const isGoal = ri === GOAL.row && ci === GOAL.col;
               return (
                 <div
                   key={`${ri}-${ci}`}

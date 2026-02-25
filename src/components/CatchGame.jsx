@@ -1,13 +1,13 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import useHighScore from '../hooks/useHighScore';
 
-const CANVAS_W  = 320;
-const CANVAS_H  = 400;
-const BASKET_W  = 60;
-const BASKET_H  = 12;
-const BASKET_Y  = CANVAS_H - 28;
+const CANVAS_W = 320;
+const CANVAS_H = 400;
+const BASKET_W = 60;
+const BASKET_H = 12;
+const BASKET_Y = CANVAS_H - 28;
 const BASKET_SPD = 5;
-const BALL_R    = 8;
+const BALL_R = 8;
 
 /** @returns {string} a random neon color */
 function randomNeon() {
@@ -68,17 +68,17 @@ const STYLES = {
 export default function CatchGame() {
   const [best, saveScore] = useHighScore('catch');
 
-  const canvasRef  = useRef(null);
-  const stateRef   = useRef({
-    phase:    'idle',   // 'idle' | 'playing' | 'over'
-    score:    0,
-    lives:    3,
-    basketX:  CANVAS_W / 2 - BASKET_W / 2,
-    balls:    [],
-    keys:     {},
+  const canvasRef = useRef(null);
+  const stateRef = useRef({
+    phase: 'idle',   // 'idle' | 'playing' | 'over'
+    score: 0,
+    lives: 3,
+    basketX: CANVAS_W / 2 - BASKET_W / 2,
+    balls: [],
+    keys: {},
     lastSpawn: 0,
     spawnInterval: 1200, // ms between spawns
-    animId:   null,
+    animId: null,
   });
 
   // Expose for score display after game over
@@ -146,13 +146,13 @@ export default function CatchGame() {
 
   const startGame = useCallback(() => {
     const s = stateRef.current;
-    s.phase         = 'playing';
-    s.score         = 0;
-    s.lives         = 3;
-    s.basketX       = CANVAS_W / 2 - BASKET_W / 2;
-    s.balls         = [];
-    s.keys          = {};
-    s.lastSpawn     = performance.now();
+    s.phase = 'playing';
+    s.score = 0;
+    s.lives = 3;
+    s.basketX = CANVAS_W / 2 - BASKET_W / 2;
+    s.balls = [];
+    s.keys = {};
+    s.lastSpawn = performance.now();
     s.spawnInterval = 1200;
   }, []);
 
@@ -161,7 +161,7 @@ export default function CatchGame() {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
-    const s   = stateRef.current;
+    const s = stateRef.current;
     let running = true;
 
     const loop = (now) => {
@@ -228,14 +228,14 @@ export default function CatchGame() {
   useEffect(() => {
     const down = (e) => {
       stateRef.current.keys[e.key] = true;
-      if (['ArrowLeft','ArrowRight'].includes(e.key)) e.preventDefault();
+      if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', ' '].includes(e.key)) e.preventDefault();
     };
     const up = (e) => { stateRef.current.keys[e.key] = false; };
     window.addEventListener('keydown', down);
-    window.addEventListener('keyup',   up);
+    window.addEventListener('keyup', up);
     return () => {
       window.removeEventListener('keydown', down);
-      window.removeEventListener('keyup',   up);
+      window.removeEventListener('keyup', up);
     };
   }, []);
 
@@ -262,10 +262,10 @@ export default function CatchGame() {
       s.basketX = Math.max(0, Math.min(CANVAS_W - BASKET_W, tx - BASKET_W / 2));
     };
     canvas.addEventListener('touchstart', onTouchStart, { passive: false });
-    canvas.addEventListener('touchmove',  onTouchMove,  { passive: false });
+    canvas.addEventListener('touchmove', onTouchMove, { passive: false });
     return () => {
       canvas.removeEventListener('touchstart', onTouchStart);
-      canvas.removeEventListener('touchmove',  onTouchMove);
+      canvas.removeEventListener('touchmove', onTouchMove);
     };
   }, [startGame]);
 

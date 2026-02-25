@@ -159,13 +159,7 @@ export default function ShopPage() {
         showFlash(msg, false);
       }
     } else {
-      const ok = localPurchase(item.id);
-      if (ok) {
-        localShop.equip(item.category, item.id);
-        showFlash(`¡${item.title} comprado y equipado!`, true);
-      } else {
-        showFlash(dancoins.coins < item.price ? 'Dancoins insuficientes' : 'Error al comprar', false);
-      }
+      showFlash('Debes registrarte para realizar compras en el universo.', false);
     }
   };
 
@@ -225,9 +219,9 @@ export default function ShopPage() {
   const equippedSummary = fullCatalog.filter(item => isItemEquipped(item));
 
   return (
-    <div className="shopPage max-w-7xl mx-auto px-4 py-8 space-y-12">
+    <div className="shopPage max-w-7xl mx-auto px-6 sm:px-4 py-8 space-y-8 sm:space-y-12 overflow-x-hidden">
       {/* Hero Section with Animated Background */}
-      <div className="relative rounded-[2.5rem] overflow-hidden bg-black border border-white/10 p-8 md:p-12 min-h-[320px] flex flex-col justify-center group/hero">
+      <div className="relative rounded-[2rem] sm:rounded-[2.5rem] overflow-hidden bg-black border border-white/10 p-6 sm:p-8 md:p-12 min-h-[280px] sm:min-h-[320px] flex flex-col justify-center group/hero">
         <div className="absolute inset-0 bg-gradient-to-br from-indigo-900/40 via-purple-900/40 to-pink-900/40 opacity-70"></div>
         <div className="absolute inset-0 shop-hero-mesh opacity-30"></div>
         <div className="absolute top-0 left-0 w-full h-full bg-[url('/grid-pattern.png')] opacity-10 pointer-events-none"></div>
@@ -241,7 +235,7 @@ export default function ShopPage() {
           <span className="inline-block px-3 py-1 rounded-full bg-white/10 backdrop-blur-md text-[10px] font-bold text-pink-400 border border-white/5 mb-6 animate-pulse">
             SISTEMA DE COMERCIO ACTIVO
           </span>
-          <h1 className="text-5xl md:text-7xl font-black italic tracking-tighter text-white mb-6 leading-none">
+          <h1 className="text-4xl sm:text-5xl md:text-7xl font-black italic tracking-tighter text-white mb-4 sm:mb-6 leading-none">
             TIENDA <br />
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-purple-400 to-pink-400">UNIVERSE.exe</span>
           </h1>
@@ -257,11 +251,11 @@ export default function ShopPage() {
 
             {canClaimDailyNow && (
               <button
-                className="relative px-8 py-4 bg-white text-black font-black text-sm rounded-2xl shadow-[0_10px_30px_rgba(255,255,255,0.2)] hover:scale-105 active:scale-95 transition-all flex items-center gap-3 overflow-hidden group/daily"
+                className="relative w-full sm:w-auto px-6 sm:px-8 py-3 sm:py-4 bg-white text-black font-black text-[11px] sm:text-sm rounded-2xl shadow-[0_10px_30px_rgba(255,255,255,0.2)] hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-3 overflow-hidden group/daily"
                 onClick={handleDaily}
               >
                 <span className="relative z-10">RECLAMAR BONUS DIARIO</span>
-                <span className="relative z-10 text-xl text-yellow-500">✨</span>
+                <span className="relative z-10 text-lg sm:text-xl text-yellow-500">✨</span>
                 <div className="absolute inset-0 bg-gradient-to-r from-pink-500 to-purple-500 translate-y-full group-hover/daily:translate-y-0 transition-transform duration-300"></div>
               </button>
             )}
@@ -285,18 +279,18 @@ export default function ShopPage() {
         <div className="relative p-6 rounded-[2rem] bg-pink-500/5 border border-pink-500/20 backdrop-blur-sm overflow-hidden group/equipped">
           <div className="absolute -top-12 -left-12 w-24 h-24 bg-pink-500/20 blur-[50px] rounded-full group-hover/equipped:scale-150 transition-transform duration-1000"></div>
 
-          <div className="relative z-10 flex flex-col md:flex-row md:items-center gap-6">
-            <div className="flex items-center gap-3">
+          <div className="relative z-10 flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-6">
+            <div className="flex items-center gap-3 shrink-0">
               <div className="w-1.5 h-1.5 rounded-full bg-pink-500 animate-ping"></div>
               <span className="text-[10px] font-black uppercase tracking-[0.3em] text-pink-400/80">Equipamiento Actual</span>
             </div>
-            <div className="flex flex-wrap gap-3">
+            <div className="flex flex-wrap gap-2 sm:gap-3">
               {equippedSummary.map(item => (
-                <div key={item.id} className="flex items-center gap-3 pl-4 pr-3 py-1.5 bg-black/40 backdrop-blur-md rounded-2xl border border-white/5 group/eitem transition-all hover:border-pink-500/30">
-                  <span className="text-lg">{item.icon}</span>
-                  <span className="text-xs font-bold text-white/80">{item.title}</span>
+                <div key={item.id} className="flex items-center gap-2 sm:gap-3 pl-3 sm:pl-4 pr-2 sm:pr-3 py-1 sm:py-1.5 bg-black/40 backdrop-blur-md rounded-xl sm:rounded-2xl border border-white/5 group/eitem transition-all hover:border-pink-500/30">
+                  <span className="text-base sm:text-lg">{item.icon}</span>
+                  <span className="text-[10px] sm:text-xs font-bold text-white/80">{item.title}</span>
                   <button
-                    className="w-5 h-5 flex items-center justify-center rounded-full bg-white/5 text-white/40 hover:bg-red-500 hover:text-white transition-all text-[8px]"
+                    className="w-4 h-4 sm:w-5 sm:h-5 flex items-center justify-center rounded-full bg-white/5 text-white/40 hover:bg-red-500 hover:text-white transition-all text-[7px] sm:text-[8px]"
                     title="Desequipar"
                     onClick={() => handleUnequip(item)}
                   >✕</button>
@@ -309,6 +303,13 @@ export default function ShopPage() {
 
       <div className="shopHint">
         <div>Gana ◈ visitando páginas, jugando juegos nuevos, desbloqueando logros y reclamando el bonus diario.</div>
+        {!user && (
+          <div className="mt-4 p-4 bg-yellow-500/10 border border-yellow-500/30 rounded-2xl animate-pulse">
+            <span className="text-yellow-400 font-black flex items-center gap-2 justify-center">
+              ⚠️ ATENCIÓN: Debes iniciar sesión para comprar items permanentes, banners y marcos.
+            </span>
+          </div>
+        )}
         <div className="shopHintCategories">
           <span>🎨 Temas — cambia la paleta de colores</span>
           <span>🖱️ Cursores — trail de partículas</span>
@@ -339,7 +340,7 @@ export default function ShopPage() {
         </div>
 
         {/* Search Bar - Cinematic Style */}
-        <div className="relative min-w-[300px] group/search">
+        <div className="relative w-full lg:min-w-[300px] lg:w-auto group/search">
           <input
             type="text"
             placeholder="Buscar en el catálogo..."
@@ -380,7 +381,7 @@ export default function ShopPage() {
               return (
                 <div key={`feat-${item.id}`} className="group relative rounded-[2rem] bg-gradient-to-br from-white/10 to-transparent p-[1.5px] overflow-hidden hover:scale-[1.02] transition-all duration-500">
                   <div className={`absolute inset-0 opacity-20 ${cardRarityClass}`}></div>
-                  <div className="relative z-10 bg-[#080810] rounded-[calc(2rem-1.5px)] p-6 h-full flex flex-col">
+                  <div className="relative z-10 bg-[#080810] rounded-[calc(2rem-1.5px)] p-5 sm:p-6 h-full flex flex-col">
                     <div className="flex justify-between items-start mb-6">
                       <div className="text-4xl">{item.icon}</div>
                       <span className="text-[10px] font-black px-2.5 py-1 bg-white/10 rounded-full border border-white/10 text-white uppercase">{item.rarity}</span>
@@ -424,7 +425,7 @@ export default function ShopPage() {
         </div>
       )}
 
-      <div className="shopGrid grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+      <div className="shopGrid grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-8">
         {filteredBySearch.map(item => {
           const owned = hasPurchased(item.id);
           const equipped = isItemEquipped(item);
@@ -442,7 +443,7 @@ export default function ShopPage() {
           return (
             <div
               key={item.id}
-              className={`group shopCard-v2 relative flex flex-col bg-white/[0.03] border border-white/10 rounded-3xl p-5 transition-all hover:bg-white/[0.07] hover:-translate-y-1 ${owned ? 'owned' : ''} ${equipped ? 'equipped border-pink-500/50 shadow-[0_0_20px_rgba(236,72,153,0.15)]' : ''} ${item.partnership_only && (!partnership || isLevelLocked) ? 'opacity-40 grayscale-50' : ''}`}
+              className={`group shopCard-v2 relative flex flex-col bg-white/[0.03] border border-white/10 rounded-3xl p-4 sm:p-5 transition-all hover:bg-white/[0.07] hover:-translate-y-1 ${owned ? 'owned' : ''} ${equipped ? 'equipped border-pink-500/50 shadow-[0_0_20px_rgba(236,72,153,0.15)]' : ''} ${item.partnership_only && (!partnership || isLevelLocked) ? 'opacity-40 grayscale-50' : ''}`}
             >
               {/* Rarity Glow */}
               <div className={`absolute -inset-px rounded-[inherit] opacity-0 group-hover:opacity-100 transition-opacity blur-md z-0 ${cardRarityClass}`}></div>
@@ -540,7 +541,9 @@ export default function ShopPage() {
                           onClick={() => handleBuy(item)}
                           disabled={!canAfford}
                         >
-                          <span>◈</span> {item.price}
+                          <span className="opacity-70 group-hover:opacity-100 transition-opacity">
+                            {user ? `◈ ${item.price}` : 'REGÍSTRATE'}
+                          </span>
                         </button>
                         {!canAfford && (
                           <p className="text-[9px] text-red-500/80 text-center font-bold">Te faltan {item.price - currentCoins} coins</p>

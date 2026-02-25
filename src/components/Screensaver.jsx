@@ -196,8 +196,8 @@ export default function Screensaver() {
     if (activeRef.current) { setActive(false); return; }
     clearTimeout(timerRef.current);
 
-    // No activar screensaver en la sección de juegos
-    if (location.pathname.startsWith('/games')) return;
+    // No activar screensaver en la sección de juegos o en la cabina (Focus Guard)
+    if (location.pathname.startsWith('/games') || location.pathname.startsWith('/cabina')) return;
 
     timerRef.current = setTimeout(() => {
       setSaverKey(getActiveScreensaver());
