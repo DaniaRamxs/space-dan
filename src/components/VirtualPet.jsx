@@ -21,14 +21,19 @@ export default function VirtualPet() {
     const [isHovered, setIsHovered] = useState(false);
     const [isMinimized, setIsMinimized] = useState(false);
     const [isDragging, setIsDragging] = useState(false);
+    const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768);
 
     const constraintsRef = useRef(null);
 
-    // Creates a pseudo-element covering the whole screen for drag constraints
-    // without actually rendering one. We'll simply let it drag anywhere in viewport.
+    // Ocultar en móviles
+    useEffect(() => {
+        const check = () => setIsMobile(window.innerWidth < 768);
+        window.addEventListener('resize', check);
+        return () => window.removeEventListener('resize', check);
+    }, []);
 
     useEffect(() => {
-        if (isMinimized) return; // Don't talk if minimized
+        if (isMinimized || isMobile) return;
 
         const scheduleTalk = () => {
             const time = Math.random() * 15000 + 15000;
@@ -43,7 +48,9 @@ export default function VirtualPet() {
 
         const timer = scheduleTalk();
         return () => clearTimeout(timer);
-    }, [isMinimized]);
+    }, [isMinimized, isMobile]);
+
+    if (isMobile) return null;
 
     const handleClick = () => {
         if (isDragging) return; // Don't trigger if it was a drag gesture

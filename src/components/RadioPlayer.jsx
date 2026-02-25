@@ -1,122 +1,96 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { unlockAchievement } from '../hooks/useAchievements';
-import { getEquippedItem } from '../hooks/useShopItems';
+import { getRadioAudio } from '../utils/radioAudio';
+
+/* ── Estaciones ──────────────────────────────────────────────── */
 
 const BASE_STATIONS = [
-  {
-    id:      'nightwave',
-    name:    'Nightwave Plaza',
-    genre:   'Vaporwave · City Pop',
-    stream:  'https://radio.plaza.one/mp3',
-    icon:    '🌃',
-  },
-  {
-    id:      'lofi',
-    name:    'Dan FM — Lofi',
-    genre:   'Lofi · Chillhop',
-    stream:  'https://streams.ilovemusic.de/iloveradio17.mp3',
-    icon:    '☁️',
-  },
+  { id: 'nightwave', name: 'Nightwave Plaza', genre: 'Vaporwave · City Pop', stream: 'https://radio.plaza.one/mp3', icon: '🌃' },
+  { id: 'lofi', name: 'Dan FM — Lofi', genre: 'Lofi · Chillhop', stream: 'https://streams.ilovemusic.de/iloveradio17.mp3', icon: '☁️' },
 ];
 
 const EXTRA_STATIONS = {
-  radio_jcore: {
-    id:     'jcore',
-    name:   'Listen.moe — Anime',
-    genre:  'J-Pop · Anime · K-Pop',
-    stream: 'https://listen.moe/stream',
-    icon:   '🎌',
-  },
-  radio_groove: {
-    id:     'groove',
-    name:   'Groove Salad',
-    genre:  'Ambient · Electronica',
-    stream: 'https://ice4.somafm.com/groovesalad-128-mp3',
-    icon:   '🥗',
-  },
-  radio_beatblender: {
-    id:     'beatblender',
-    name:   'Beat Blender',
-    genre:  'Deep House · Electro',
-    stream: 'https://ice4.somafm.com/beatblender-128-mp3',
-    icon:   '🎛️',
-  },
-  radio_dronezone: {
-    id:     'dronezone',
-    name:   'Drone Zone',
-    genre:  'Ambient · Space',
-    stream: 'https://ice4.somafm.com/dronezone-128-mp3',
-    icon:   '🌌',
-  },
-  radio_secretagent: {
-    id:     'secretagent',
-    name:   'Secret Agent',
-    genre:  'Spy Jazz · Lounge',
-    stream: 'https://ice4.somafm.com/secretagent-128-mp3',
-    icon:   '🕵️',
-  },
+  radio_jcore: { id: 'jcore', name: 'Listen.moe — Anime', genre: 'J-Pop · Anime · K-Pop', stream: 'https://listen.moe/stream', icon: '🎌' },
+  radio_groove: { id: 'groove', name: 'Groove Salad', genre: 'Ambient · Electronica', stream: 'https://ice4.somafm.com/groovesalad-128-mp3', icon: '🥗' },
+  radio_beatblender: { id: 'beatblender', name: 'Beat Blender', genre: 'Deep House · Electro', stream: 'https://ice4.somafm.com/beatblender-128-mp3', icon: '🎛️' },
+  radio_dronezone: { id: 'dronezone', name: 'Drone Zone', genre: 'Ambient · Space', stream: 'https://ice4.somafm.com/dronezone-128-mp3', icon: '🌌' },
+  radio_secretagent: { id: 'secretagent', name: 'Secret Agent', genre: 'Spy Jazz · Lounge', stream: 'https://ice4.somafm.com/secretagent-128-mp3', icon: '🕵️' },
 };
 
 function getStations() {
   const stations = [...BASE_STATIONS];
-  for (const [key, station] of Object.entries(EXTRA_STATIONS)) {
-    try {
-      const purchased = JSON.parse(localStorage.getItem('space-dan-shop-purchased') || '[]');
+  try {
+    const purchased = JSON.parse(localStorage.getItem('space-dan-shop-purchased') || '[]');
+    for (const [key, station] of Object.entries(EXTRA_STATIONS)) {
       if (purchased.includes(key)) stations.push(station);
-    } catch {}
-  }
+    }
+  } catch { }
   return stations;
 }
 
+/* ── Componente ──────────────────────────────────────────────── */
+
 export default function RadioPlayer() {
-  const audioRef              = useRef(null);
+  const audio = useRef(getRadioAudio()).current; // Singleton — nunca se destruye
   const [stations, setStations] = useState(getStations);
   const [current, setCurrent] = useState(0);
-  const [playing, setPlaying] = useState(false);
-  const [volume, setVolume]   = useState(0.6);
+  const [playing, setPlaying] = useState(() => !audio.paused && !!audio.src);
+  const [volume, setVolume] = useState(() => audio.volume);
   const [loading, setLoading] = useState(false);
-  const [open, setOpen]       = useState(false);
-  const hasUnlockedRef        = useRef(false);
+  const [open, setOpen] = useState(false);
+  const hasUnlockedRef = useRef(false);
 
-  // Refresh stations when shop items change
+  // Sincronizar estado si el audio ya estaba sonando (ej: volvimos de otra página)
+  useEffect(() => {
+    if (!audio.paused && audio.src) {
+      setPlaying(true);
+      // Buscar la estación que coincide con el src actual
+      const idx = stations.findIndex(s => audio.src.includes(s.stream));
+      if (idx !== -1) setCurrent(idx);
+    }
+
+    const onPlay = () => { setPlaying(true); setLoading(false); };
+    const onPause = () => setPlaying(false);
+    const onWaiting = () => setLoading(true);
+    const onPlaying = () => setLoading(false);
+    const onError = () => { setPlaying(false); setLoading(false); };
+
+    audio.addEventListener('play', onPlay);
+    audio.addEventListener('pause', onPause);
+    audio.addEventListener('waiting', onWaiting);
+    audio.addEventListener('playing', onPlaying);
+    audio.addEventListener('error', onError);
+
+    return () => {
+      audio.removeEventListener('play', onPlay);
+      audio.removeEventListener('pause', onPause);
+      audio.removeEventListener('waiting', onWaiting);
+      audio.removeEventListener('playing', onPlaying);
+      audio.removeEventListener('error', onError);
+      // NO hacemos audio.pause() aquí — la música sigue sonando
+    };
+  }, [audio, stations]);
+
+  // Refrescar estaciones al comprar nuevas
   useEffect(() => {
     const sync = () => setStations(getStations());
     window.addEventListener('dan:item-purchased', sync);
     return () => window.removeEventListener('dan:item-purchased', sync);
   }, []);
 
-  useEffect(() => {
-    const audio = audioRef.current;
-    if (!audio) return;
-    audio.volume = volume;
-    audio.src    = stations[current]?.stream || '';
+  // Volumen
+  useEffect(() => { audio.volume = volume; }, [volume, audio]);
 
-    if (playing) {
-      setLoading(true);
-      audio.play().catch(() => setPlaying(false));
-    }
-  }, [current, stations]);
-
-  useEffect(() => {
-    const audio = audioRef.current;
-    if (!audio) return;
-    audio.volume = volume;
-  }, [volume]);
-
-  const togglePlay = async () => {
-    const audio = audioRef.current;
-    if (!audio) return;
-
+  const togglePlay = useCallback(async () => {
     if (playing) {
       audio.pause();
-      setPlaying(false);
     } else {
-      audio.src = stations[current].stream;
+      if (!audio.src || !audio.src.includes(stations[current].stream)) {
+        audio.src = stations[current].stream;
+      }
       setLoading(true);
       try {
         await audio.play();
-        setPlaying(true);
-
         if (!hasUnlockedRef.current) {
           hasUnlockedRef.current = true;
           unlockAchievement('radio_listener');
@@ -126,39 +100,45 @@ export default function RadioPlayer() {
         setLoading(false);
       }
     }
-  };
+  }, [playing, audio, stations, current]);
 
-  const selectStation = (idx) => {
-    if (idx === current) { togglePlay(); return; }
-    const audio = audioRef.current;
-    if (audio) audio.pause();
+  const selectStation = useCallback((idx) => {
+    if (idx === current && playing) { audio.pause(); return; }
     setCurrent(idx);
-    setPlaying(true);
+    audio.src = stations[idx].stream;
     setLoading(true);
-    setTimeout(() => {
-      if (audioRef.current) {
-        audioRef.current.src = stations[idx].stream;
-        audioRef.current.play().catch(() => { setPlaying(false); setLoading(false); });
-      }
-    }, 50);
-  };
+    audio.play().catch(() => { setPlaying(false); setLoading(false); });
+  }, [current, playing, audio, stations]);
 
   const station = stations[current];
 
   return (
     <>
-      {/* Floating toggle button */}
-      <button
-        className={`radioToggleBtn${playing ? ' active' : ''}`}
-        onClick={() => setOpen(o => !o)}
-        title="Radio en vivo"
-        aria-label="Abrir radio"
-      >
-        📻
-        {playing && <span className="radioLiveDot" />}
-      </button>
+      {/* ── Botón flotante + mini-player ── */}
+      <div className="radioFloatingArea">
+        {/* Mini info cuando suena (solo visible si está sonando y panel cerrado) */}
+        {playing && !open && (
+          <button className="radioMiniPlayer" onClick={() => setOpen(true)}>
+            <span className="radioMiniIcon">{station?.icon}</span>
+            <span className="radioMiniName">{station?.name}</span>
+            <span className="radioMiniEq">
+              <span /><span /><span />
+            </span>
+          </button>
+        )}
 
-      {/* Player panel */}
+        <button
+          className={`radioToggleBtn${playing ? ' active' : ''}`}
+          onClick={() => setOpen(o => !o)}
+          title="Radio en vivo"
+          aria-label="Abrir radio"
+        >
+          📻
+          {playing && <span className="radioLiveDot" />}
+        </button>
+      </div>
+
+      {/* ── Panel de radio ── */}
       <div className={`radioPanel${open ? ' open' : ''}`}>
         <div className="radioPanelHeader">
           <span className="radioPanelTitle">◈ DAN RADIO</span>
@@ -213,8 +193,6 @@ export default function RadioPlayer() {
             Desbloquea más estaciones en la Tienda ◈
           </div>
         </div>
-
-        <audio ref={audioRef} onPlaying={() => setLoading(false)} onWaiting={() => setLoading(true)} />
       </div>
     </>
   );

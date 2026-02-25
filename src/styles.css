@@ -6451,23 +6451,31 @@ textarea,
 }
 
 /* ── Radio Player ──────────────────────────────────────────────── */
-.radioToggleBtn {
+.radioFloatingArea {
   position: fixed;
-  bottom: 24px;
-  right: 20px;
-  width: 46px;
-  height: 46px;
-  border-radius: 50%;
-  background: rgba(10, 10, 20, 0.9);
-  border: 1px solid var(--border);
-  font-size: 20px;
-  cursor: pointer;
+  bottom: 20px;
+  right: 16px;
   z-index: 9990;
   display: flex;
   align-items: center;
+  gap: 8px;
+  flex-direction: row-reverse;
+}
+
+.radioToggleBtn {
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  background: rgba(10, 10, 20, 0.92);
+  border: 1px solid var(--border);
+  font-size: 20px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
   justify-content: center;
-  transition: all 0.2s;
-  backdrop-filter: blur(8px);
+  transition: all 0.25s ease;
+  backdrop-filter: blur(12px);
+  flex-shrink: 0;
 }
 
 .radioToggleBtn:hover {
@@ -6485,11 +6493,11 @@ textarea,
 
   0%,
   100% {
-    box-shadow: 0 0 8px var(--accent-glow)
+    box-shadow: 0 0 8px var(--accent-glow);
   }
 
   50% {
-    box-shadow: 0 0 18px var(--accent-glow)
+    box-shadow: 0 0 18px var(--accent-glow);
   }
 }
 
@@ -6504,21 +6512,114 @@ textarea,
   animation: dotPulse 1s ease infinite;
 }
 
+/* — Mini Player (visible when playing & panel closed) — */
+.radioMiniPlayer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px 6px 10px;
+  background: rgba(10, 10, 20, 0.92);
+  border: 1px solid var(--border);
+  border-radius: 24px;
+  backdrop-filter: blur(12px);
+  cursor: pointer;
+  transition: all 0.25s ease;
+  max-width: 200px;
+  animation: miniSlideIn 0.3s ease-out;
+  font-family: inherit;
+}
+
+.radioMiniPlayer:hover {
+  border-color: var(--accent);
+  transform: translateX(-2px);
+}
+
+@keyframes miniSlideIn {
+  from {
+    opacity: 0;
+    transform: translateX(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.radioMiniIcon {
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.radioMiniName {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  letter-spacing: 0.02em;
+}
+
+/* Equalizer bars */
+.radioMiniEq {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 12px;
+  flex-shrink: 0;
+}
+
+.radioMiniEq span {
+  width: 2px;
+  background: var(--accent);
+  border-radius: 1px;
+  animation: eqBounce 0.6s ease-in-out infinite alternate;
+}
+
+.radioMiniEq span:nth-child(1) {
+  height: 4px;
+  animation-delay: 0s;
+}
+
+.radioMiniEq span:nth-child(2) {
+  height: 8px;
+  animation-delay: 0.15s;
+}
+
+.radioMiniEq span:nth-child(3) {
+  height: 5px;
+  animation-delay: 0.3s;
+}
+
+@keyframes eqBounce {
+  0% {
+    height: 3px;
+  }
+
+  100% {
+    height: 12px;
+  }
+}
+
+/* — Panel — */
 .radioPanel {
   position: fixed;
-  bottom: 80px;
-  right: 20px;
+  bottom: 76px;
+  right: 16px;
   width: 300px;
   background: rgba(8, 8, 18, 0.97);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   z-index: 9989;
   backdrop-filter: blur(16px);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
-  transform: translateY(20px) scale(0.95);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.7);
+  transform: translateY(12px) scale(0.96);
   opacity: 0;
   pointer-events: none;
-  transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  max-height: calc(100dvh - 120px);
+  overflow-y: auto;
 }
 
 .radioPanel.open {
@@ -6533,6 +6634,10 @@ textarea,
   align-items: center;
   padding: 12px 14px 10px;
   border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  background: rgba(8, 8, 18, 0.97);
+  z-index: 1;
 }
 
 .radioPanelTitle {
@@ -6560,11 +6665,11 @@ textarea,
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 12px 14px;
+  padding: 14px 14px 10px;
 }
 
 .radioStationIcon {
-  font-size: 24px;
+  font-size: 28px;
   flex-shrink: 0;
 }
 
@@ -6574,7 +6679,7 @@ textarea,
 }
 
 .radioStationName {
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 700;
   color: var(--text);
   white-space: nowrap;
@@ -6585,6 +6690,7 @@ textarea,
 .radioStationGenre {
   font-size: 10px;
   color: var(--text-muted);
+  margin-top: 2px;
 }
 
 .radioLoadingDot {
@@ -6593,13 +6699,13 @@ textarea,
 }
 
 .radioPlayBtn {
-  width: 36px;
-  height: 36px;
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
   background: var(--accent-dim);
   border: 1px solid var(--accent);
   color: var(--accent);
-  font-size: 14px;
+  font-size: 15px;
   cursor: pointer;
   flex-shrink: 0;
   display: flex;
@@ -6611,17 +6717,19 @@ textarea,
 
 .radioPlayBtn:hover {
   background: rgba(255, 110, 180, 0.25);
+  transform: scale(1.08);
 }
 
 .radioPlayBtn.playing {
-  background: rgba(255, 110, 180, 0.25);
+  background: rgba(255, 110, 180, 0.2);
+  box-shadow: 0 0 16px var(--accent-glow);
 }
 
 .radioVolume {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 0 14px 10px;
+  padding: 4px 14px 12px;
 }
 
 .radioVolIcon {
@@ -6631,6 +6739,7 @@ textarea,
 .radioVolSlider {
   flex: 1;
   -webkit-appearance: none;
+  appearance: none;
   height: 4px;
   border-radius: 2px;
   background: var(--border);
@@ -6659,7 +6768,7 @@ textarea,
   padding: 0 8px 12px;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 3px;
 }
 
 .radioStationBtn {
@@ -6682,6 +6791,7 @@ textarea,
 .radioStationBtn:hover {
   border-color: var(--border);
   color: var(--text);
+  background: rgba(255, 255, 255, 0.02);
 }
 
 .radioStationBtn.active {
@@ -6692,15 +6802,15 @@ textarea,
 
 .radioStationGenreSmall {
   font-size: 10px;
-  opacity: 0.6;
+  opacity: 0.5;
 }
 
 .radioUnlockHint {
   font-size: 10px;
   color: var(--text-muted);
   text-align: center;
-  margin-top: 4px;
-  opacity: 0.6;
+  margin-top: 6px;
+  opacity: 0.5;
 }
 
 /* ── Screensaver ───────────────────────────────────────────────── */
@@ -6754,18 +6864,27 @@ textarea,
     max-width: none;
   }
 
-  /* Radio panel full width on small screens */
-  .radioPanel {
+  /* Radio — mobile layout */
+  .radioFloatingArea {
+    bottom: 14px;
     right: 12px;
-    left: 12px;
-    width: auto;
-    bottom: 70px;
   }
 
-  .radioToggleBtn {
-    left: 24px;
-    right: auto;
-    bottom: 80px;
+  .radioPanel {
+    right: 8px;
+    left: 8px;
+    width: auto;
+    bottom: 70px;
+    max-height: calc(100dvh - 90px);
+  }
+
+  .radioMiniPlayer {
+    max-width: 160px;
+  }
+
+  .radioMiniName {
+    font-size: 9px;
+    max-width: 80px;
   }
 
   /* Achievements grid */
@@ -8957,10 +9076,10 @@ button,
     radial-gradient(at 0% 100%, hsla(253, 16%, 7%, 1) 0, transparent 50%),
     radial-gradient(at 100% 0%, hsla(225, 39%, 30%, 1) 0, transparent 50%),
     radial-gradient(at 100% 100%, hsla(339, 49%, 30%, 1) 0, transparent 50%);
-  filter: contrast(120%) brightness(150%);
   position: absolute;
   inset: 0;
-  opacity: 0.4;
+  opacity: 0.35;
+  pointer-events: none;
 }
 
 .profile-v2-hero {
@@ -8973,8 +9092,6 @@ button,
 .profile-v2-banner-overlay {
   position: absolute;
   inset: 0;
-  opacity: 0.15;
-  filter: blur(80px);
   pointer-events: none;
 }
 

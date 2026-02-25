@@ -452,9 +452,9 @@ function ProfileContent({
       {/* 1️⃣ HERO SECTION (v2.5) */}
       <section className="profile-v2-hero relative w-full rounded-[3rem] overflow-hidden border border-white/10 group/hero shadow-[0_40px_100px_rgba(0,0,0,0.4)]">
 
-        {/* Animated Mesh Background */}
-        <div className="profile-v2-mesh opacity-30 group-hover/hero:opacity-50 transition-opacity duration-1000"></div>
-        <div className="absolute inset-0 bg-[url('/grid-pattern.png')] opacity-10 pointer-events-none"></div>
+        {/* Mesh Background — subtle, no filter */}
+        <div className="profile-v2-mesh opacity-20 group-hover/hero:opacity-30 transition-opacity duration-1000"></div>
+        <div className="absolute inset-0 bg-[url('/grid-pattern.png')] opacity-[0.04] pointer-events-none"></div>
 
         {/* Dynamic Banner Overlay / Shop Banner */}
         <div
@@ -474,7 +474,7 @@ function ProfileContent({
             ].filter(Boolean).join(', '),
             backgroundSize: bannerItem?.preview_url ? 'cover, auto' : 'auto',
             backgroundPosition: bannerItem?.preview_url ? 'center, center' : 'center',
-            opacity: bannerItem?.preview_url ? 0.4 : 1
+            opacity: bannerItem?.preview_url ? 0.7 : 1
           }}
         >
           {bannerItem?.metadata?.fx === 'matrix' && <div className="absolute inset-0 banner-fx-matrix opacity-20"></div>}
@@ -515,8 +515,8 @@ function ProfileContent({
         </div>
 
         <div className="relative z-10 p-8 pt-32 md:pt-24 md:p-16 flex flex-col items-center text-center">
-          {/* Overlay oscuro para garantizar legibilidad */}
-          <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-transparent to-black/80 pointer-events-none z-0"></div>
+          {/* Overlay: solo bottom fade para legibilidad — NO cubre el centro */}
+          <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-black/70 pointer-events-none z-0"></div>
 
           <div className="relative z-10 w-full flex flex-col items-center">
             {/* Top Actions */}
