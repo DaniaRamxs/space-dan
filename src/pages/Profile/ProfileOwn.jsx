@@ -701,7 +701,8 @@ export default function ProfileOwn() {
   const isOwnProfile = true;
 
   const handleShare = () => {
-    const url = window.location.href;
+    if (!profile?.username) return;
+    const url = `${window.location.origin}/@${profile.username}`;
     navigator.clipboard.writeText(url);
     setIsSharing(true);
     setTimeout(() => setIsSharing(false), 2000);
@@ -752,6 +753,9 @@ export default function ProfileOwn() {
         .catch(err => console.error('[ProfileOwn] Error fetching banner item:', err));
     } else {
       setBannerItem(null);
+    }
+    if (profile) {
+      document.title = "Mi Perfil | Space Dan";
     }
   }, [profile]);
 
