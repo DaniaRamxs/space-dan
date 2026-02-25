@@ -40,7 +40,8 @@ const ArquitecturaPage = lazy(() => import("./pages/ArquitecturaPage"));
 const ProjectsPage = lazy(() => import("./pages/ProjectsPage"));
 const AchievementsPage = lazy(() => import("./pages/AchievementsPage"));
 const ShopPage = lazy(() => import("./pages/ShopPage"));
-const ProfilePage = lazy(() => import("./pages/Profile")); // Centralized router
+const ProfileOwn = lazy(() => import("./pages/Profile/ProfileOwn"));
+const ProfilePublic = lazy(() => import("./pages/Profile/ProfilePublic"));
 const SpaceCabinPage = lazy(() => import("./pages/SpaceCabinPage"));
 const OrbitLettersPage = lazy(() => import("./pages/OrbitLettersPage"));
 const VaultPage = lazy(() => import("./pages/VaultPage"));
@@ -121,8 +122,10 @@ function AnimatedRoutes() {
 
         <Route path="/" element={<PageTransition><Wpage /></PageTransition>} />
         <Route path="/home" element={<Layout><DanProfilePage /></Layout>} />
-        <Route path="/profile" element={<Layout><ProfilePage /></Layout>} />
-        <Route path="/profile/:userId" element={<Layout><ProfilePage /></Layout>} />
+        <Route path="/profile" element={
+          loading ? <FallbackLoader /> : (user ? <Layout><ProfileOwn /></Layout> : <Navigate to="/" replace />)
+        } />
+        <Route path="/@:username" element={<Layout><ProfilePublic /></Layout>} />
         <Route path="/bulletin" element={<Layout><BulletinPage /></Layout>} />
         <Route path="/posts" element={<Layout><PostsPage /></Layout>} />
         <Route path="/transmission/:postId" element={<Layout><PostDetailPage /></Layout>} />

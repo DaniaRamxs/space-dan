@@ -81,10 +81,9 @@ const GAME_NAMES = {
 };
 
 export default function PublicProfilePage() {
-  const { userId } = useParams();
+  const { username } = useParams();
   const { user } = useAuthContext();
   const navigate = useNavigate();
-  const isOwnProfile = user?.id === userId;
 
   const [profile, setProfile] = useState(null);
   const [gameRanks, setGameRanks] = useState([]);
@@ -107,17 +106,32 @@ export default function PublicProfilePage() {
   const [hasPendingRequest, setHasPendingRequest] = useState(false);
   const [requestLoading, setRequestLoading] = useState(false);
 
+  // Determine if it's the current user's profile based on username
+  const isOwnProfile = user && profile && user.id === profile.id;
+
   useEffect(() => {
-    if (!userId) return;
+    if (!username) return;
     load();
-  }, [userId]);
+  }, [username]);
+
+  // Dynamic Metadata
+  useEffect(() => {
+    if (profile?.username) {
+      document.title = `${profile.username} (@${profile.username}) | Space Dan`;
+    } else if (notFound) {
+      document.title = `Usuario no encontrado | Space Dan`;
+    }
+  }, [profile, notFound]);
 
   async function load() {
     let isMounted = true;
     setLoading(true);
     setNotFound(false);
     try {
-      const { data: prof } = await supabase
+      // Clean username from @ if present
+      const cleanUsername = username?.startsWith('@') ? username.slice(1) : username;
+
+      const { data: prof, error } = await supabase
         .from('profiles')
         .select(`
           *,
@@ -126,21 +140,26 @@ export default function PublicProfilePage() {
           primary_role_item:equipped_primary_role(id, title, metadata),
           secondary_role_item:equipped_secondary_role(id, title, metadata)
         `)
-        .eq('id', userId)
+        .eq('username', cleanUsername)
         .maybeSingle();
 
       if (!isMounted) return;
-      if (!prof) { setNotFound(true); setLoading(false); return; }
+      if (error || !prof) {
+        setNotFound(true);
+        setLoading(false);
+        return;
+      }
       setProfile(prof);
+      const targetUserId = prof.id;
 
       const [ranks, achs, socialInfo, profileComments, cStats, userPosts, pData] = await Promise.all([
-        getUserGameRanks(userId).catch(() => []),
-        supabase.from('user_achievements').select('achievement_id').eq('user_id', userId),
-        profileSocialService.getFollowCounts(userId).catch(() => ({ followers: 0, following: 0 })),
-        profileSocialService.getProfileComments(userId).catch(() => []),
-        getProductivityStats(userId).catch(() => null),
-        blogService.getUserPosts(userId).catch(() => []),
-        universeService.getProfilePartnership(userId).catch(() => null)
+        getUserGameRanks(targetUserId).catch(() => []),
+        supabase.from('user_achievements').select('achievement_id').eq('user_id', targetUserId),
+        profileSocialService.getFollowCounts(targetUserId).catch(() => ({ followers: 0, following: 0 })),
+        profileSocialService.getProfileComments(targetUserId).catch(() => []),
+        getProductivityStats(targetUserId).catch(() => null),
+        blogService.getUserPosts(targetUserId).catch(() => []),
+        universeService.getProfilePartnership(targetUserId).catch(() => null)
       ]);
 
       if (!isMounted) return;
@@ -162,31 +181,35 @@ export default function PublicProfilePage() {
       }
 
       // Activity status (non-blocking)
-      socialService.getUserActivity(userId)
+      socialService.getUserActivity(targetUserId)
         .then(label => { if (isMounted) setActivityLabel(label); })
         .catch(() => { });
 
-      if (user && user.id !== userId) {
-        profileSocialService.isFollowing(userId)
+      if (user && user.id !== targetUserId) {
+        profileSocialService.isFollowing(targetUserId)
           .then(following => { if (isMounted) setIsFollowing(following); })
           .catch(() => { if (isMounted) setIsFollowing(false); });
       }
-      if (user && user.id !== userId && !pData) {
+      if (user && user.id !== targetUserId && !pData) {
         supabase
           .from('partnership_requests')
           .select('id')
           .eq('sender_id', user.id)
-          .eq('receiver_id', userId)
+          .eq('receiver_id', targetUserId)
           .eq('status', 'pending')
           .maybeSingle()
           .then(({ data }) => { if (isMounted) setHasPendingRequest(!!data); });
       }
     } catch (err) {
       console.error('[PublicProfilePage]', err);
+      setNotFound(true);
     } finally {
       if (isMounted) setLoading(false);
     }
   }
+
+  // Need to use profile.id for handleToggleFollow, handleAddComment, etc.
+  const targetUserId = profile?.id;
 
   const handleToggleFollow = async () => {
     if (!user) return alert('Debes iniciar sesión para seguir usuarios.');
@@ -258,17 +281,33 @@ export default function PublicProfilePage() {
   };
 
   if (loading) return (
-    <main className="card" style={{ padding: 40, textAlign: 'center' }}>
-      <span className="blinkText" style={{ color: 'var(--accent)' }}>cargando_perfil...</span>
+    <main className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
+      <div className="relative w-16 h-16">
+        <div className="absolute inset-0 border-4 border-cyan-500/20 rounded-full"></div>
+        <div className="absolute inset-0 border-4 border-cyan-500 rounded-full border-t-transparent animate-spin"></div>
+      </div>
+      <span className="text-cyan-500 font-black tracking-[0.3em] uppercase text-xs animate-pulse">sincronizando_perfil...</span>
     </main>
   );
 
   if (notFound) return (
-    <main className="card" style={{ padding: 40, textAlign: 'center' }}>
-      <p style={{ color: 'var(--text)', opacity: 0.7 }}>Usuario no encontrado.</p>
-      <Link to="/leaderboard" style={{ color: 'var(--accent)', marginTop: 12, display: 'inline-block' }}>
-        ← Volver al leaderboard
-      </Link>
+    <main className="flex flex-col items-center justify-center min-h-[70vh] text-center px-6">
+      <div className="mb-8 relative">
+        <span className="text-9xl opacity-10 font-black">404</span>
+        <div className="absolute inset-0 flex items-center justify-center">
+          <span className="text-6xl">📡</span>
+        </div>
+      </div>
+      <h2 className="text-2xl font-black italic text-white mb-2 uppercase tracking-tighter">Usuario fuera de órbita</h2>
+      <p className="text-white/40 max-w-xs mb-8 text-sm">El explorador @{username} no ha sido encontrado en nuestro sector de la galaxia.</p>
+      <div className="flex flex-col sm:flex-row gap-4">
+        <Link to="/leaderboard" className="px-8 py-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-2xl text-[10px] font-black tracking-widest uppercase transition-all">
+          ← Ver Leaderboard
+        </Link>
+        <Link to="/" className="px-8 py-3 bg-cyan-500 text-black rounded-2xl text-[10px] font-black tracking-widest uppercase transition-all hover:bg-cyan-400">
+          Volver al Inicio
+        </Link>
+      </div>
     </main>
   );
 
