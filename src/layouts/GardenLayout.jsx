@@ -3,7 +3,7 @@ import { NavLink, Link, useLocation } from "react-router-dom";
 import CursorTrail from "../components/CursorTrail.jsx";
 import StarfieldBg from "../components/StarfieldBg.jsx";
 import KonamiEasterEgg from "../components/KonamiEasterEgg.jsx";
-import LastFmWidget from "../components/LastFmWidget.jsx";
+
 import RadioPlayer from "../components/RadioPlayer.jsx";
 import AuthWidget from "../components/AuthWidget.jsx";
 import { useEconomy } from '../contexts/EconomyContext';
@@ -130,77 +130,69 @@ export default function GardenLayout({ children }) {
 
           <AuthWidget />
 
-          <div className="sideHeaderDivider" aria-hidden="true" />
 
-          {/* Last.fm */}
-          <LastFmWidget />
 
           <nav className="sideNav">
             <div className="sideNavGroup">
               <NavLink
                 to="/profile"
                 onClick={closeMenu}
-                className={({ isActive }) => "sideLink topLevel" + (isActive ? " active" : "")}
+                className={({ isActive }) => "sideLink topLevel highlight" + (isActive ? " active" : "")}
               >
                 👤 Mi Perfil
               </NavLink>
-              <NavLink to="/home" onClick={closeMenu} className={({ isActive }) => "sideLink topLevel" + (isActive ? " active" : "")}>🏠 Sobre Dan</NavLink>
-              <NavLink to="/cofre" onClick={closeMenu} className={({ isActive }) => "sideLink topLevel" + (isActive ? " active" : "")}>🔒 Cofre Privado</NavLink>
+              <NavLink
+                to="/games"
+                onClick={closeMenu}
+                className={({ isActive }) => "sideLink topLevel gamer-highlight" + (isActive ? " active" : "")}
+              >
+                🎮 Juegos
+              </NavLink>
+              <NavLink
+                to="/leaderboard"
+                onClick={closeMenu}
+                className={({ isActive }) => "sideLink topLevel" + (isActive ? " active" : "")}
+              >
+                🌎 Leaderboard
+              </NavLink>
+              <NavLink
+                to="/posts"
+                onClick={closeMenu}
+                className={({ isActive }) => "sideLink topLevel" + (isActive ? " active" : "")}
+              >
+                🌌 Feed Global
+              </NavLink>
+              <NavLink
+                to="/bulletin"
+                onClick={closeMenu}
+                className={({ isActive }) => "sideLink topLevel" + (isActive ? " active" : "")}
+              >
+                📰 Noticias
+              </NavLink>
+              <NavLink
+                to="/cartas"
+                onClick={closeMenu}
+                className={({ isActive }) => "sideLink topLevel" + (isActive ? " active" : "")}
+              >
+                ✉️ Mensajería
+              </NavLink>
+              <NavLink
+                to="/tienda"
+                onClick={closeMenu}
+                className={({ isActive }) => "sideLink topLevel" + (isActive ? " active" : "")}
+              >
+                🛍️ Tienda
+              </NavLink>
+              <NavLink
+                to="/cabina"
+                onClick={closeMenu}
+                className={({ isActive }) => "sideLink topLevel" + (isActive ? " active" : "")}
+              >
+                🚀 Cabina Espacial
+              </NavLink>
             </div>
 
-            <div className="sideNavDivider" />
 
-            {/* 🎮 Entretenimiento */}
-            <div className="sideSubmenuWrap">
-              <button className={`sideLink submenuToggle ${menuStates.entertainment ? 'open' : ''}`} onClick={() => toggleMenu('entertainment')}>
-                <span>🎮 Entretenimiento</span>
-                <span className="submenuArrow">▾</span>
-              </button>
-              <div className={`submenuItems ${menuStates.entertainment ? 'open' : ''}`}>
-                <NavLink to="/games" onClick={closeMenu} className={({ isActive }) => "sideLink submenuLink" + (isActive ? " active" : "")}>🎮 Juegos</NavLink>
-                <NavLink to="/desktop" onClick={closeMenu} className={({ isActive }) => "sideLink submenuLink" + (isActive ? " active" : "")}>💻 OS Desktop</NavLink>
-              </div>
-            </div>
-
-            {/* 📝 Contenido */}
-            <div className="sideSubmenuWrap">
-              <button className={`sideLink submenuToggle ${menuStates.content ? 'open' : ''}`} onClick={() => toggleMenu('content')}>
-                <span>📝 Contenido</span>
-                <span className="submenuArrow">▾</span>
-              </button>
-              <div className={`submenuItems ${menuStates.content ? 'open' : ''}`}>
-                <NavLink to="/bulletin" onClick={closeMenu} className={({ isActive }) => "sideLink submenuLink" + (isActive ? " active" : "")}>📰 Noticias</NavLink>
-                <NavLink to="/posts" onClick={closeMenu} className={({ isActive }) => "sideLink submenuLink" + (isActive ? " active" : "")}>✍️ Posts</NavLink>
-                <NavLink to="/arquitectura" onClick={closeMenu} className={({ isActive }) => "sideLink submenuLink" + (isActive ? " active" : "")}>🏗️ Arquitectura</NavLink>
-              </div>
-            </div>
-
-            {/* 🏆 Comunidad */}
-            <div className="sideSubmenuWrap">
-              <button className={`sideLink submenuToggle ${menuStates.community ? 'open' : ''}`} onClick={() => toggleMenu('community')}>
-                <span>🏆 Comunidad</span>
-                <span className="submenuArrow">▾</span>
-              </button>
-              <div className={`submenuItems ${menuStates.community ? 'open' : ''}`}>
-                <NavLink to="/leaderboard" onClick={closeMenu} className={({ isActive }) => "sideLink submenuLink" + (isActive ? " active" : "")}>🌎 Leaderboard</NavLink>
-                <NavLink to="/cartas" onClick={closeMenu} className={({ isActive }) => "sideLink submenuLink" + (isActive ? " active" : "")}>✉️ Cartas en Órbita</NavLink>
-                <NavLink to="/guestbook" onClick={closeMenu} className={({ isActive }) => "sideLink submenuLink" + (isActive ? " active" : "")}>📖 Libro de Visitas</NavLink>
-                <NavLink to="/logros" onClick={closeMenu} className={({ isActive }) => "sideLink submenuLink" + (isActive ? " active" : "")}>🏆 Logros</NavLink>
-                <NavLink to="/tienda" onClick={closeMenu} className={({ isActive }) => "sideLink submenuLink" + (isActive ? " active" : "")}>🛍️ Tienda</NavLink>
-                <NavLink to="/vinculos" onClick={closeMenu} className={({ isActive }) => "sideLink submenuLink" + (isActive ? " active" : "")}>✨ Vínculos</NavLink>
-              </div>
-            </div>
-
-            {/* 📚 Productividad */}
-            <div className="sideSubmenuWrap">
-              <button className={`sideLink submenuToggle ${menuStates.productivity ? 'open' : ''}`} onClick={() => toggleMenu('productivity')}>
-                <span>📚 Productividad</span>
-                <span className="submenuArrow">▾</span>
-              </button>
-              <div className={`submenuItems ${menuStates.productivity ? 'open' : ''}`}>
-                <NavLink to="/cabina" onClick={closeMenu} className={({ isActive }) => "sideLink submenuLink" + (isActive ? " active" : "")}>🚀 Cabina Espacial</NavLink>
-              </div>
-            </div>
 
 
           </nav>
@@ -230,6 +222,13 @@ export default function GardenLayout({ children }) {
           </header>
 
           <div className="gardenContent">{children}</div>
+
+          <footer className="gardenFooter">
+            <NavLink to="/guestbook" className="footerLink">📖 Libro de Visitas</NavLink>
+            <NavLink to="/arquitectura" className="footerLink">🏗️ Arquitectura</NavLink>
+            <NavLink to="/home" className="footerLink">🏠 Sobre Dan</NavLink>
+            <NavLink to="/desktop" className="footerLink desktop-highlight">💻 Desktop OS</NavLink>
+          </footer>
 
           {location.pathname !== '/cabina' && location.pathname !== '/cartas' && location.pathname !== '/games' && <VirtualPet />}
 

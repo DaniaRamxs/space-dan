@@ -338,10 +338,12 @@ export default function TetrisGame() {
   useEffect(() => {
     if (status !== 'playing') return;
     const handleKey = (e) => {
+      if (['ArrowLeft', 'ArrowRight', 'ArrowDown', 'ArrowUp', ' '].includes(e.key)) {
+        e.preventDefault();
+      }
       const map = { ArrowLeft: 'left', ArrowRight: 'right', ArrowDown: 'down', ArrowUp: 'rotate', ' ': 'drop' };
       const action = map[e.key];
       if (!action) return;
-      e.preventDefault();
       doAction(action);
     };
     window.addEventListener('keydown', handleKey);
@@ -475,8 +477,8 @@ export default function TetrisGame() {
                 cell === EMPTY
                   ? 'rgba(255,255,255,0.03)'
                   : cell === 'ghost'
-                  ? 'rgba(255,255,255,0.08)'
-                  : cell,
+                    ? 'rgba(255,255,255,0.08)'
+                    : cell,
               boxShadow:
                 cell && cell !== EMPTY && cell !== 'ghost'
                   ? `0 0 8px ${cell}88`

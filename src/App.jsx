@@ -92,7 +92,7 @@ function FallbackLoader() {
   );
 }
 
-function LoginGate() {
+function LoginGate({ message = "Necesitas iniciar sesión para ver esta sección." }) {
   const { loginWithGoogle, loginWithDiscord } = useAuthContext();
   return (
     <div className="flex flex-col items-center justify-center min-h-[60vh] gap-6 text-center px-4">
@@ -102,7 +102,7 @@ function LoginGate() {
           <div className="text-5xl mb-4">🔒</div>
           <h2 className="text-xl font-black text-white tracking-wide mb-2">Acceso Requerido</h2>
           <p className="text-sm text-white/40 leading-relaxed mb-6">
-            Necesitas iniciar sesión para ver tu perfil estelar.
+            {message}
           </p>
           <div className="flex flex-col gap-3">
             <button
@@ -160,10 +160,12 @@ function AnimatedRoutes() {
         <Route path="/" element={<PageTransition><Wpage /></PageTransition>} />
         <Route path="/home" element={<Layout><DanProfilePage /></Layout>} />
         <Route path="/profile" element={
-          loading ? <FallbackLoader /> : (user ? <Layout><ProfileOwn /></Layout> : <Layout><LoginGate /></Layout>)
+          loading ? <FallbackLoader /> : (user ? <Layout><ProfileOwn /></Layout> : <Layout><LoginGate message="Necesitas iniciar sesión para ver tu perfil estelar." /></Layout>)
         } />
         <Route path="/bulletin" element={<Layout><BulletinPage /></Layout>} />
-        <Route path="/posts" element={<Layout><PostsPage /></Layout>} />
+        <Route path="/posts" element={
+          loading ? <FallbackLoader /> : (user ? <Layout><PostsPage /></Layout> : <Layout><LoginGate message="Necesitas iniciar sesión para participar en la comunidad." /></Layout>)
+        } />
         <Route path="/transmission/:postId" element={<Layout><PostDetailPage /></Layout>} />
         <Route path="/log/:slug" element={<Layout><PostPage /></Layout>} />
         <Route path="/create-post" element={<Layout><CreatePostPage /></Layout>} />
@@ -182,13 +184,15 @@ function AnimatedRoutes() {
         <Route path="/guestbook" element={<Layout><GuestbookPage /></Layout>} />
         <Route path="/arquitectura" element={<Layout><ArquitecturaPage /></Layout>} />
         <Route path="/proyectos" element={<Layout><ProjectsPage /></Layout>} />
-        <Route path="/logros" element={<Layout><AchievementsPage /></Layout>} />
+        <Route path="/profile/logros" element={<Layout><AchievementsPage /></Layout>} />
         <Route path="/tienda" element={<Layout><ShopPage /></Layout>} />
-        <Route path="/cabina" element={<Layout><SpaceCabinPage /></Layout>} />
-        <Route path="/cartas" element={<Layout><OrbitLettersPage /></Layout>} />
-        <Route path="/cofre" element={<Layout><VaultPage /></Layout>} />
+        <Route path="/cabina" element={<Suspense fallback={null}><PageTransition><SpaceCabinPage /></PageTransition></Suspense>} />
+        <Route path="/cartas" element={
+          loading ? <FallbackLoader /> : (user ? <Layout><OrbitLettersPage /></Layout> : <Layout><LoginGate message="Necesitas iniciar sesión para comunicarte con otros usuarios." /></Layout>)
+        } />
+
         <Route path="/foco/:roomId" element={<Layout><FocusRoom /></Layout>} />
-        <Route path="/vinculos" element={<Layout><VinculosPage /></Layout>} />
+        <Route path="/profile/vinculos" element={<Layout><VinculosPage /></Layout>} />
         <Route path="/secret" element={<PageTransition><Secret /></PageTransition>} />
         {/* Dynamic Profile / 404 Catch-all */}
         <Route path="/:username" element={<Layout><ProfilePublic /></Layout>} />

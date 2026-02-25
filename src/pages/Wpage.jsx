@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 export default function Wpage() {
   const navigate = useNavigate();
 
-  const enter = useCallback(() => navigate("/home"), [navigate]);
+  const enter = useCallback(() => navigate("/posts"), [navigate]);
 
   useEffect(() => {
     const onKey = (e) => {

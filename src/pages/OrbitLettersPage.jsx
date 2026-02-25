@@ -28,6 +28,39 @@ export default function OrbitLettersPage() {
     // Mobile: 'list' shows conversations sidebar, 'chat' shows the active conversation
     const [mobileView, setMobileView] = useState(toUserId ? 'chat' : 'list');
 
+    // User search states
+    const [searchUserQuery, setSearchUserQuery] = useState('');
+    const [userResults, setUserResults] = useState([]);
+    const [searchingUsers, setSearchingUsers] = useState(false);
+    const [showUserSearch, setShowUserSearch] = useState(false);
+
+    useEffect(() => {
+        if (!searchUserQuery.trim()) {
+            setUserResults([]);
+            return;
+        }
+
+        const delayDebounceFn = setTimeout(async () => {
+            setSearchingUsers(true);
+            try {
+                const { data, error } = await supabase
+                    .from('profiles')
+                    .select('id, username, avatar_url, nickname_style, nick_style_item:equipped_nickname_style(id)')
+                    .ilike('username', `%${searchUserQuery}%`)
+                    .limit(10);
+
+                if (error) throw error;
+                setUserResults(data || []);
+            } catch (err) {
+                console.error(err);
+            } finally {
+                setSearchingUsers(false);
+            }
+        }, 400);
+
+        return () => clearTimeout(delayDebounceFn);
+    }, [searchUserQuery]);
+
     useEffect(() => {
         loadConversations();
 
@@ -82,6 +115,7 @@ export default function OrbitLettersPage() {
     }
 
     async function loadLetters(convId) {
+        if (!convId) return;
         try {
             const data = await socialService.getLetters(convId);
             setLetters(data);
@@ -135,6 +169,28 @@ export default function OrbitLettersPage() {
         }
     };
 
+    const handleStartChat = (profile) => {
+        const existing = conversations.find(c => c.other_user_id === profile.id);
+        if (existing) {
+            handleSelectConv(existing);
+        } else {
+            setActiveConv({
+                conv_id: null,
+                other_user_id: profile.id,
+                other_username: profile.username,
+                other_avatar: profile.avatar_url,
+                other_nickname_style: profile.nickname_style,
+                nick_style_item: profile.equipped_nickname_style,
+                unread_count: 0,
+                last_snippet: null
+            });
+            setLetters([]);
+        }
+        setShowUserSearch(false);
+        setSearchUserQuery('');
+        setMobileView('chat');
+    };
+
     if (loading) return <div className="p-8 text-center opacity-50">Sintonizando frecuencias...</div>;
 
     return (
@@ -147,13 +203,79 @@ export default function OrbitLettersPage() {
                 style={{ padding: 0, display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}
             >
                 <div style={{ flexShrink: 0, padding: '18px 20px', borderBottom: '1px solid var(--glass-border)', display: 'flex', alignItems: 'center', gap: 12 }}>
-                    <h2 style={{ margin: 0, fontSize: '17px', flex: 1 }}>✉️ Cartas en Órbita</h2>
+                    <h2 style={{ margin: 0, fontSize: '17px', flex: 1 }}>✉️ Mensajería</h2>
+                    <button
+                        onClick={() => setShowUserSearch(!showUserSearch)}
+                        style={{
+                            background: showUserSearch ? 'var(--accent)' : 'rgba(255,255,255,0.05)',
+                            border: '1px solid var(--glass-border)',
+                            borderRadius: '50%',
+                            width: '32px',
+                            height: '32px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            cursor: 'pointer',
+                            fontSize: '14px',
+                            transition: 'all 0.2s'
+                        }}
+                        title="Nuevo Mensaje"
+                    >
+                        {showUserSearch ? '✕' : '＋'}
+                    </button>
                 </div>
 
+                {showUserSearch && (
+                    <div style={{ padding: '15px', borderBottom: '1px solid var(--glass-border)', background: 'rgba(255,255,255,0.02)' }}>
+                        <input
+                            type="text"
+                            placeholder="Buscar usuario por nombre..."
+                            value={searchUserQuery}
+                            onChange={(e) => setSearchUserQuery(e.target.value)}
+                            style={{
+                                width: '100%',
+                                background: 'rgba(255,255,255,0.05)',
+                                border: '1px solid var(--glass-border)',
+                                borderRadius: '12px',
+                                padding: '10px 14px',
+                                color: '#fff',
+                                outline: 'none',
+                                fontSize: '13px',
+                                marginBottom: userResults.length > 0 || searchingUsers ? '10px' : 0
+                            }}
+                            autoFocus
+                        />
+                        {searchingUsers && <div style={{ fontSize: '11px', opacity: 0.5, padding: '5px' }}>Buscando...</div>}
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                            {userResults.map(profile => (
+                                <div
+                                    key={profile.id}
+                                    onClick={() => handleStartChat(profile)}
+                                    style={{
+                                        padding: '8px 12px',
+                                        borderRadius: '10px',
+                                        background: 'rgba(255,255,255,0.05)',
+                                        cursor: 'pointer',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '10px',
+                                        border: '1px solid transparent',
+                                        transition: 'all 0.2s'
+                                    }}
+                                    className="search-result-item"
+                                >
+                                    <img src={profile.avatar_url || '/default-avatar.png'} style={{ width: 24, height: 24, borderRadius: '50%' }} />
+                                    <span style={{ fontSize: '13px' }}>{profile.username}</span>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
+
                 <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', overflowX: 'hidden', overscrollBehavior: 'contain' }}>
-                    {conversations.length === 0 && (
+                    {conversations.length === 0 && !showUserSearch && (
                         <div style={{ padding: '40px 20px', textAlign: 'center', opacity: 0.5, fontSize: '13px' }}>
-                            No hay cartas orbitando todavía.
+                            No hay mensajes orbitando todavía.
                         </div>
                     )}
                     {conversations.map(conv => (
@@ -204,7 +326,7 @@ export default function OrbitLettersPage() {
                 {!activeConv ? (
                     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', opacity: 0.4 }}>
                         <div style={{ fontSize: '48px', marginBottom: '20px' }}>✉️</div>
-                        <p>Selecciona una señal para leer tus cartas</p>
+                        <p>Selecciona una señal para leer tus mensajes</p>
                     </div>
                 ) : (
                     <>
@@ -314,7 +436,7 @@ export default function OrbitLettersPage() {
                                     type="text"
                                     value={newContent}
                                     onChange={e => setNewContent(e.target.value)}
-                                    placeholder="Escribe una carta..."
+                                    placeholder="Escribe un mensaje..."
                                     style={{
                                         flex: 1,
                                         minWidth: 0,
