@@ -111,6 +111,14 @@ export default function PublicProfilePage() {
 
   useEffect(() => {
     if (!username) return;
+
+    // If it doesn't start with @, it's not a profile route (likely a 404)
+    if (!username.startsWith('@')) {
+      setNotFound(true);
+      setLoading(false);
+      return;
+    }
+
     load();
   }, [username]);
 
@@ -128,8 +136,8 @@ export default function PublicProfilePage() {
     setLoading(true);
     setNotFound(false);
     try {
-      // Clean username from @ if present
-      const cleanUsername = username?.startsWith('@') ? username.slice(1) : username;
+      // Clean username from @ (at this point we know it has it)
+      const cleanUsername = username.slice(1);
 
       const { data: prof, error } = await supabase
         .from('profiles')
