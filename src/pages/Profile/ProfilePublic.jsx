@@ -20,7 +20,9 @@ import { PrivateUniverse } from '../../components/PrivateUniverse';
 import { universeService } from '../../services/universe';
 import * as storeService from '../../services/store';
 import { useNavigate } from 'react-router-dom';
+import { UniverseProvider, useUniverse } from '../../contexts/UniverseContext.jsx';
 import '../../banner-effects.css';
+import '../../styles/NicknameStyles.css';
 
 function getFrameStyle(frameItemId) {
   if (!frameItemId) return { border: '3px solid var(--accent)', boxShadow: '0 0 15px var(--accent-glow)' };
@@ -117,7 +119,13 @@ export default function PublicProfilePage() {
     try {
       const { data: prof } = await supabase
         .from('profiles')
-        .select('id, username, avatar_url, balance, banner_color, frame_item_id, created_at, bio')
+        .select(`
+          *,
+          theme_item:equipped_theme(id, metadata),
+          nick_style_item:equipped_nickname_style(id, metadata),
+          primary_role_item:equipped_primary_role(id, title, metadata),
+          secondary_role_item:equipped_secondary_role(id, title, metadata)
+        `)
         .eq('id', userId)
         .maybeSingle();
 
@@ -284,6 +292,83 @@ export default function PublicProfilePage() {
   const topGlobalRank = gameRanks.length > 0 ? Math.min(...gameRanks.map(r => Number(r.user_position))) : 'N/A';
   const bestRecord = gameRanks.length > 0 ? Math.max(...gameRanks.map(g => g.max_score || 0)) : 0;
 
+  // Transformar datos para el UniverseProvider
+  const universeProfile = profile ? {
+    ...profile,
+    equipped_theme_id: profile.theme_item?.id,
+    equipped_theme_metadata: profile.theme_item?.metadata,
+    equipped_nickname_style_id: profile.nick_style_item?.id,
+    equipped_nickname_style_metadata: profile.nick_style_item?.metadata,
+    equipped_primary_role: profile.primary_role_item,
+    equipped_secondary_role: profile.secondary_role_item
+  } : null;
+
+  return (
+    <UniverseProvider overrideProfile={universeProfile}>
+      <ProfileContent
+        profile={profile}
+        gameRanks={gameRanks}
+        cabinStats={cabinStats}
+        unlockedAchs={unlockedAchs}
+        followCounts={followCounts}
+        comments={comments}
+        posts={posts}
+        partnership={partnership}
+        bannerItem={bannerItem}
+        isOwnProfile={isOwnProfile}
+        isFollowing={isFollowing}
+        activityLabel={activityLabel}
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+        handleToggleFollow={handleToggleFollow}
+        handleAddComment={handleAddComment}
+        handleDeleteComment={handleDeleteComment}
+        handleSendRequest={handleSendRequest}
+        newComment={newComment}
+        setNewComment={setNewComment}
+        submittingComment={submittingComment}
+        progressPercent={progressPercent}
+        totalXp={totalXp}
+        nextLevelXp={nextLevelXp}
+        level={level}
+        rankName={rankName}
+        topGlobalRank={topGlobalRank}
+        userId={userId}
+      />
+    </UniverseProvider>
+  );
+}
+
+function ProfileContent({
+  profile, gameRanks, cabinStats, unlockedAchs, followCounts, comments, posts,
+  partnership, bannerItem, isOwnProfile, isFollowing, activityLabel, activeTab,
+  setActiveTab, handleToggleFollow, handleAddComment, handleDeleteComment,
+  handleSendRequest, newComment, setNewComment, submittingComment,
+  progressPercent, totalXp, nextLevelXp, level, rankName, topGlobalRank, userId
+}) {
+  const { nicknameStyle, primaryRole, secondaryRole, mood, ambientSound, isAmbientMuted, toggleAmbientMute } = useUniverse();
+  const [isSharing, setIsSharing] = useState(false);
+
+  const handleShare = () => {
+    const url = window.location.href;
+    navigator.clipboard.writeText(url);
+    setIsSharing(true);
+    setTimeout(() => setIsSharing(false), 2000);
+  };
+
+  const getSocialIcon = (id) => {
+    const icons = {
+      twitter: '🐦',
+      instagram: '📸',
+      github: '💻',
+      discord: '👾',
+      youtube: '📺',
+      spotify: '🎵',
+      custom: '🔗'
+    };
+    return icons[id] || '🔗';
+  };
+
   return (
     <div className="w-full max-w-7xl mx-auto min-h-[100dvh] pb-24 text-white font-sans flex flex-col gap-12 pt-8" style={{ background: 'transparent' }}>
 
@@ -314,104 +399,204 @@ export default function PublicProfilePage() {
           {bannerItem?.metadata?.fx === 'matrix' && <div className="absolute inset-0 banner-fx-matrix opacity-20"></div>}
           {bannerItem?.metadata?.fx === 'scanlines' && <div className="absolute inset-0 banner-fx-scanlines opacity-30"></div>}
           {bannerItem?.metadata?.fx === 'stars' && <div className="absolute inset-0 banner-fx-stars"></div>}
+
+          {/* V3 Identity Floating Panel */}
+          <div className="absolute top-6 right-6 md:top-8 md:right-8 z-20 flex flex-col items-end gap-2 pointer-events-none scale-90 md:scale-100 origin-top-right">
+            {mood?.text && !mood.isExpired && (
+              <motion.div
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                className="bg-black/40 backdrop-blur-xl border border-white/10 px-6 py-3 rounded-2xl flex items-center gap-3 shadow-2xl"
+              >
+                <span className="text-3xl animate-bounce-slow drop-shadow-[0_0_10px_rgba(255,255,255,0.5)]">{mood.emoji || '✨'}</span>
+                <div className="text-right">
+                  <div className="text-[8px] font-black uppercase tracking-[0.2em] text-white/30">Frecuencia Actual</div>
+                  <div className="text-xs font-bold text-white/90 italic tracking-wide">"{mood.text}"</div>
+                </div>
+              </motion.div>
+            )}
+
+            <div className="flex gap-2">
+              {profile?.mbti && (
+                <div className="bg-purple-500/20 backdrop-blur-md border border-purple-500/30 px-3 py-1.5 rounded-xl flex items-center gap-2">
+                  <span className="text-[10px] font-black text-purple-300">MBTI:</span>
+                  <span className="text-[10px] font-black text-white">{profile.mbti}</span>
+                </div>
+              )}
+              {profile?.zodiac && (
+                <div className="bg-cyan-500/20 backdrop-blur-md border border-cyan-500/30 px-3 py-1.5 rounded-xl flex items-center gap-2">
+                  <span className="text-[10px] font-black text-cyan-300">SIGNO:</span>
+                  <span className="text-[10px] font-black text-white">{profile.zodiac}</span>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
 
-        <div className="relative z-10 p-8 md:p-16 flex flex-col items-center text-center">
+        <div className="relative z-10 p-8 pt-32 md:pt-24 md:p-16 flex flex-col items-center text-center">
+          {/* Overlay oscuro para garantizar legibilidad */}
+          <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-transparent to-black/80 pointer-events-none z-0"></div>
 
-          {/* Top Actions */}
-          <div className="absolute top-4 right-4 md:top-8 md:right-8 flex flex-col items-end gap-2 md:gap-3 z-[60]">
-            {!isOwnProfile && (
-              <div className="flex items-center gap-1.5 md:gap-2">
-                <button
-                  onClick={handleToggleFollow}
-                  className={`px-3 py-1.5 md:px-5 md:py-2.5 rounded-xl text-[9px] md:text-[10px] font-black uppercase tracking-widest transition-all ${isFollowing ? 'bg-white/5 text-white/40 border border-white/10 hover:bg-white/10' : 'bg-cyan-600 text-white shadow-[0_10px_20px_rgba(6,182,212,0.3)] hover:scale-105'}`}
-                >
-                  {isFollowing ? '✓ Siguiendo' : '+ Seguir'}
-                </button>
-                <Link to={`/cartas?to=${userId}`} className="px-3 py-1.5 md:px-5 md:py-2.5 rounded-xl bg-white/5 backdrop-blur-md border border-white/10 text-[9px] md:text-[10px] font-black uppercase tracking-widest text-white/60 hover:text-white hover:bg-white/10 transition-all decoration-transparent">
-                  ✉️ <span className="hidden md:inline">Mensaje</span>
-                </Link>
-              </div>
-            )}
-            {activityLabel && <span className="text-[8px] md:text-[9px] font-black uppercase tracking-widest bg-cyan-400/10 text-cyan-400 px-2 md:px-3 py-1 rounded-full border border-cyan-400/20">{activityLabel}</span>}
-          </div>
-
-          <div className="absolute top-4 left-4 md:top-8 md:left-8">
-            <Link to="/leaderboard" className="px-3 py-1.5 md:px-4 md:py-2 bg-black/40 backdrop-blur-md border border-white/10 rounded-xl text-[9px] md:text-[10px] font-black uppercase tracking-widest text-white/30 hover:text-white hover:bg-white/10 transition-all decoration-transparent">
-              ← <span className="hidden md:inline">REGRESAR</span><span className="md:hidden">VOLVER</span>
-            </Link>
-          </div>
-
-          <div className="relative mb-8 mt-24 md:mt-0">
-            <div className="relative w-40 h-40 group/avatar">
-              <div className={`absolute -inset-4 bg-gradient-to-r ${partnership ? getLinkedGlowClass(partnership.evolution_level) : 'from-purple-600 to-cyan-500'} rounded-full blur-2xl opacity-20 group-hover/avatar:opacity-50 transition duration-1000`}></div>
-              <div className="relative w-full h-full rounded-[2.5rem] overflow-hidden border-2 border-white/10 shadow-2xl bg-black" style={partnership ? getLinkedFrameStyle(partnership.evolution_level) : getFrameStyle(profile.frame_item_id)}>
-                <img src={profile?.avatar_url || '/default_user_blank.png'} alt="Avatar" className="w-full h-full object-cover" />
-              </div>
-              {/* Pet Overlay */}
-              <div className="absolute -left-8 -bottom-4 pointer-events-none drop-shadow-[0_0_20px_rgba( cyan , 0.5 )] z-30 scale-x-[-1] animate-float">
-                <PetDisplay userId={userId} size={60} showName={false} />
-              </div>
-            </div>
-
-            <div className={`absolute -bottom-6 left-1/2 -translate-x-1/2 px-8 py-2.5 rounded-2xl border font-black text-sm tracking-tighter z-40 whitespace-nowrap transition-all duration-500 shadow-2xl ${level >= 10 ? 'bg-gradient-to-r from-yellow-400 via-white to-yellow-400 text-black border-yellow-200 animate-shimmer bg-[length:200%_100%]' : 'bg-[#09090b] border-cyan-500/50 text-cyan-400 shadow-[0_0_20px_rgba(6,182,212,0.3)]'}`}>
-              NIVEL {level}
-            </div>
-          </div>
-
-          <div className="flex items-center gap-4 mt-4">
-            <h1 className="text-4xl font-black uppercase tracking-[0.1em] bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-400 drop-shadow-2xl">
-              {profile?.username || 'Jugador'}
-            </h1>
-          </div>
-          <p className="text-[12px] font-black text-purple-400 uppercase tracking-[0.4em] mb-4 mt-2 opacity-80">
-            {rankName}
-          </p>
-
-          {/* XP Bar Premium */}
-          <div className="w-full max-w-sm mt-6 px-6">
-            <div className="flex justify-between items-end mb-2">
-              <div className="flex flex-col items-start">
-                <span className="text-[8px] font-black uppercase tracking-[0.3em] text-white/20">Progreso de Nivel</span>
-                <span className="text-xs font-black italic text-cyan-400 tracking-tighter">{Math.floor(totalXp).toLocaleString()} <span className="text-[9px] opacity-40 not-italic uppercase font-sans">XP Total</span></span>
-              </div>
-              <span className="text-[10px] font-black text-purple-400 font-mono">META: {Math.floor(nextLevelXp).toLocaleString()}</span>
-            </div>
-            <div className="profile-v2-xp-bar">
-              <div
-                className="profile-v2-xp-fill transition-all duration-1000 ease-out"
-                style={{ width: `${progressPercent}%` }}
-              ></div>
-            </div>
-            <div className="mt-1.5 text-right">
-              <span className="text-[9px] font-black text-white/10 tracking-[0.4em] uppercase">{progressPercent}% completado</span>
-            </div>
-          </div>
-
-          <div className="mt-8 flex flex-col items-center gap-6">
-            <div className="p-6 rounded-[2.5rem] bg-black/40 border border-white/5 min-w-[300px] max-w-lg shadow-inner group/bio relative overflow-hidden">
-              <div className="absolute inset-0 bg-cyan-500/5 opacity-0 group-hover/bio:opacity-100 transition-opacity"></div>
-              <p className={`text-sm leading-relaxed relative z-10 transition-colors ${profile.bio ? 'text-gray-300 group-hover:text-white' : 'text-gray-500 italic'}`}>"{profile.bio || 'Sin biografía estelar.'}"</p>
-            </div>
-
-            {partnership ? (
-              <div className="flex flex-col items-center gap-3">
-                <div className="relative group/univ">
-                  <div className="absolute -inset-8 bg-purple-500/20 blur-3xl rounded-full opacity-0 md:group-hover/univ:opacity-100 transition-opacity duration-1000"></div>
-                  <PrivateUniverse partnership={partnership} />
-                </div>
-                <div className="flex flex-col items-center gap-1">
-                  <div className="text-[10px] font-black tracking-[0.4em] text-purple-400 uppercase animate-pulse">Universo Vinculado</div>
-                  <Link to={`/profile/${partnership.partner_id}`} className="text-[10px] font-black text-white/20 hover:text-purple-400 transition-colors uppercase tracking-widest">
-                    Ver perfil de @{partnership.partner_username} →
+          <div className="relative z-10 w-full flex flex-col items-center">
+            {/* Top Actions */}
+            <div className="absolute top-4 right-4 md:top-8 md:right-8 flex flex-col items-end gap-2 md:gap-3 z-[60]">
+              {!isOwnProfile && (
+                <div className="flex items-center gap-1.5 md:gap-2">
+                  <button
+                    onClick={handleToggleFollow}
+                    className={`px-3 py-1.5 md:px-5 md:py-2.5 rounded-xl text-[9px] md:text-[10px] font-black uppercase tracking-widest transition-all ${isFollowing ? 'bg-white/5 text-white/40 border border-white/10 hover:bg-white/10' : 'bg-cyan-600 text-white shadow-[0_10px_20px_rgba(6,182,212,0.3)] hover:scale-105'}`}
+                  >
+                    {isFollowing ? '✓ Siguiendo' : '+ Seguir'}
+                  </button>
+                  <Link to={`/cartas?to=${userId}`} className="px-3 py-1.5 md:px-5 md:py-2.5 rounded-xl bg-white/5 backdrop-blur-md border border-white/10 text-[9px] md:text-[10px] font-black uppercase tracking-widest text-white/60 hover:text-white hover:bg-white/10 transition-all decoration-transparent">
+                    ✉️ <span className="hidden md:inline">Mensaje</span>
                   </Link>
+                  {ambientSound && (
+                    <button
+                      onClick={toggleAmbientMute}
+                      className="w-10 h-10 rounded-xl bg-white/5 backdrop-blur-md border border-white/10 flex items-center justify-center hover:bg-white/10 transition-all"
+                      title={isAmbientMuted ? "Activar Sonido Ambiental" : "Silenciar Sonido Ambiental"}
+                    >
+                      {isAmbientMuted ? '🔇' : '🔊'}
+                    </button>
+                  )}
+                </div>
+              )}
+              {activityLabel && <span className="text-[8px] md:text-[9px] font-black uppercase tracking-widest bg-cyan-400/10 text-cyan-400 px-2 md:px-3 py-1 rounded-full border border-cyan-400/20">{activityLabel}</span>}
+            </div>
+
+            <div className="absolute top-4 left-4 md:top-8 md:left-8">
+              <Link to="/leaderboard" className="px-3 py-1.5 md:px-4 md:py-2 bg-black/40 backdrop-blur-md border border-white/10 rounded-xl text-[9px] md:text-[10px] font-black uppercase tracking-widest text-white/30 hover:text-white hover:bg-white/10 transition-all decoration-transparent">
+                ← <span className="hidden md:inline">REGRESAR</span><span className="md:hidden">VOLVER</span>
+              </Link>
+            </div>
+
+            <div className="relative mb-8 mt-24 md:mt-0">
+              <div className="relative w-40 h-40 group/avatar">
+                <div className={`absolute -inset-4 bg-gradient-to-r ${partnership ? getLinkedGlowClass(partnership.evolution_level) : 'from-purple-600 to-cyan-500'} rounded-full blur-2xl opacity-20 group-hover/avatar:opacity-50 transition duration-1000`}></div>
+                <div className="relative w-full h-full rounded-[2.5rem] overflow-hidden border-2 border-white/10 shadow-2xl bg-black" style={partnership ? getLinkedFrameStyle(partnership.evolution_level) : getFrameStyle(profile.frame_item_id)}>
+                  <img src={profile?.avatar_url || '/default_user_blank.png'} alt="Avatar" className="w-full h-full object-cover" />
+                </div>
+                {/* Pet Overlay */}
+                <div className="absolute -left-8 -bottom-4 pointer-events-none drop-shadow-[0_0_20px_rgba(6,182,212,0.5)] z-30 scale-x-[-1] animate-float">
+                  <PetDisplay userId={userId} size={60} showName={false} />
                 </div>
               </div>
-            ) : (
-              <div className="h-16 flex items-center justify-center">
-                <div className="px-4 py-2 rounded-full border border-white/5 bg-white/[0.02] text-[9px] font-black uppercase tracking-[0.3em] text-white/10">Este perfil flota solo en el vacío</div>
+
+              <div className={`absolute -bottom-6 left-1/2 -translate-x-1/2 px-8 py-2.5 rounded-2xl border font-black text-sm tracking-tighter z-40 whitespace-nowrap transition-all duration-500 shadow-2xl ${level >= 10 ? 'bg-gradient-to-r from-yellow-400 via-white to-yellow-400 text-black border-yellow-200 animate-shimmer bg-[length:200%_100%]' : 'bg-[#09090b] border-cyan-500/50 text-cyan-400 shadow-[0_0_20px_rgba(6,182,212,0.3)]'}`}>
+                NIVEL {level}
+              </div>
+            </div>
+
+            <div className="flex flex-col items-center gap-2 mt-4 relative z-10 w-full">
+              <h1 className={`text-3xl md:text-5xl font-black uppercase tracking-[0.1em] drop-shadow-[0_5px_15px_rgba(0,0,0,0.5)] dan-nickname ${nicknameStyle ? `nick-style-${nicknameStyle.replace('nick_', '')}` : 'from-white via-white to-gray-300 bg-clip-text text-transparent bg-gradient-to-b'}`}>
+                {profile?.username || 'Jugador'}
+              </h1>
+              {profile?.pronouns && (
+                <span className="px-4 py-1.5 rounded-full bg-black/60 border border-white/20 text-[10px] font-black text-white uppercase tracking-[0.2em] backdrop-blur-md shadow-lg animate-fade-in mt-1 ring-1 ring-white/10">
+                  {profile.pronouns}
+                </span>
+              )}
+              {!isOwnProfile && (
+                <button
+                  onClick={handleShare}
+                  className={`mt-4 text-[10px] font-black uppercase tracking-widest px-4 py-2 rounded-xl border transition-all flex items-center gap-2 shadow-lg ${isSharing ? 'bg-green-500/20 border-green-500/50 text-green-400' : 'bg-black/40 border-white/10 text-white/70 hover:text-white hover:bg-white/10'}`}
+                >
+                  {isSharing ? '✓ URL COPIADA' : '🔗 COPIAR LINK'}
+                </button>
+              )}
+            </div>
+
+            {/* Roles Premium v3 */}
+            {(primaryRole || secondaryRole) && (
+              <div className="flex flex-col items-center gap-3 mt-6">
+                <div className="flex flex-wrap justify-center gap-3">
+                  {primaryRole && (
+                    <div className="relative group/role">
+                      <div className="absolute -inset-1 bg-gradient-to-r from-purple-500 to-cyan-500 rounded-full blur opacity-25 group-hover/role:opacity-50 transition duration-1000"></div>
+                      <span className="relative px-5 py-2 rounded-full bg-black/60 border border-white/10 text-[10px] font-black uppercase tracking-[0.2em] text-purple-400 flex items-center gap-2 shadow-xl">
+                        <span className="text-sm">{primaryRole.icon || '🛡️'}</span> {primaryRole.title}
+                      </span>
+                    </div>
+                  )}
+                  {secondaryRole && (
+                    <span className="px-4 py-2 rounded-full bg-white/5 border border-white/10 text-[9px] font-black uppercase tracking-[0.2em] text-white/40 flex items-center gap-2">
+                      {secondaryRole.icon || '🛡️'} {secondaryRole.title}
+                    </span>
+                  )}
+                </div>
               </div>
             )}
+
+            {/* Social Links Hero Display */}
+            {profile?.social_links && Array.isArray(profile.social_links) && profile.social_links.length > 0 && (
+              <div className="flex flex-wrap justify-center gap-3 mt-6">
+                {profile.social_links.map((s, i) => (
+                  <a
+                    key={i}
+                    href={s.url.startsWith('http') ? s.url : `https://${s.url}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-9 h-9 md:w-11 md:h-11 rounded-2xl bg-black/40 backdrop-blur-xl border border-white/10 flex items-center justify-center hover:bg-white/10 hover:border-cyan-500/50 transition-all hover:-translate-y-1 group/social shadow-xl"
+                    title={s.platform}
+                  >
+                    <span className="text-base md:text-lg group-hover/social:scale-125 transition-transform drop-shadow-[0_0_8px_rgba(255,255,255,0.3)]">
+                      {getSocialIcon(s.platform)}
+                    </span>
+                  </a>
+                ))}
+              </div>
+            )}
+
+            <p className="text-[12px] font-black text-purple-400 uppercase tracking-[0.4em] mb-4 mt-8 drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
+              {rankName}
+            </p>
+
+            {/* XP Bar Premium */}
+            <div className="w-full max-w-sm mt-4 px-6">
+              <div className="flex justify-between items-end mb-2">
+                <div className="flex flex-col items-start">
+                  <span className="text-[8px] font-black uppercase tracking-[0.3em] text-white/20">Progreso de Nivel</span>
+                  <span className="text-xs font-black italic text-cyan-400 tracking-tighter">{Math.floor(totalXp).toLocaleString()} <span className="text-[9px] opacity-40 not-italic uppercase font-sans">XP Total</span></span>
+                </div>
+                <span className="text-[10px] font-black text-purple-400 font-mono">META: {Math.floor(nextLevelXp).toLocaleString()}</span>
+              </div>
+              <div className="profile-v2-xp-bar">
+                <div
+                  className="profile-v2-xp-fill transition-all duration-1000 ease-out"
+                  style={{ width: `${progressPercent}%` }}
+                ></div>
+              </div>
+              <div className="mt-1.5 text-right">
+                <span className="text-[9px] font-black text-white/10 tracking-[0.4em] uppercase">{progressPercent}% completado</span>
+              </div>
+            </div>
+
+            <div className="mt-8 flex flex-col items-center gap-6 pb-12">
+              <div className="p-6 rounded-[2.5rem] bg-black/40 border border-white/5 min-w-[300px] max-w-lg shadow-inner group/bio relative overflow-hidden">
+                <div className="absolute inset-0 bg-cyan-500/5 opacity-0 group-hover/bio:opacity-100 transition-opacity"></div>
+                <p className={`text-sm leading-relaxed relative z-10 transition-colors ${profile.bio ? 'text-gray-300 group-hover:text-white' : 'text-gray-500 italic'}`}>"{profile.bio || 'Sin biografía estelar.'}"</p>
+              </div>
+
+              {partnership ? (
+                <div className="flex flex-col items-center gap-3">
+                  <div className="relative group/univ">
+                    <div className="absolute -inset-8 bg-purple-500/20 blur-3xl rounded-full opacity-0 md:group-hover/univ:opacity-100 transition-opacity duration-1000"></div>
+                    <PrivateUniverse partnership={partnership} />
+                  </div>
+                  <div className="flex flex-col items-center gap-1">
+                    <div className="text-[10px] font-black tracking-[0.4em] text-purple-400 uppercase animate-pulse">Universo Vinculado</div>
+                    <Link to={`/profile/${partnership.partner_id}`} className="text-[10px] font-black text-white/20 hover:text-purple-400 transition-colors uppercase tracking-widest">
+                      Ver perfil de @{partnership.partner_username} →
+                    </Link>
+                  </div>
+                </div>
+              ) : (
+                <div className="h-16 flex items-center justify-center">
+                  <div className="px-4 py-2 rounded-full border border-white/5 bg-white/[0.02] text-[9px] font-black uppercase tracking-[0.3em] text-white/10">Este perfil flota solo en el vacío</div>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </section>
@@ -420,17 +605,19 @@ export default function PublicProfilePage() {
       <section className="px-6 md:px-0 animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
         <div className="flex items-center justify-between mb-6 px-2">
           <h2 className="text-[10px] text-white/30 uppercase tracking-[0.4em] font-black flex items-center gap-3">
-            <span className="w-1.5 h-1.5 rounded-full bg-purple-500 shadow-[0_0_10px_purple]"></span>
+            <span className="w-1.5 h-1.5 rounded-full bg-cyan-500 shadow-[0_0_10px_cyan]"></span>
             Métricas del Servidor
           </h2>
           <div className="h-px flex-1 bg-white/5 mx-6"></div>
-          <span className="text-[9px] font-mono text-purple-500/40">v2.5.0-PUBLIC</span>
+          <span className="text-[9px] font-mono text-cyan-500/40">v2.5.0-ESTELAR</span>
         </div>
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
           <StatCard title="Seguidores" value={followCounts.followers} icon="👥" highlight="text-purple-400" />
           <StatCard title="Siguiendo" value={followCounts.following} icon="✨" highlight="text-purple-200" />
           <StatCard title="Rank Global" value={topGlobalRank !== 'N/A' ? `#${topGlobalRank}` : '-'} icon="🌍" highlight="text-green-400" />
-          <StatCard title="Economía" value={`◈ ${profile.balance || 0}`} icon="💎" highlight="text-cyan-400" />
+          <StatCard title="Racha Focus" value={`${cabinStats?.current_streak || 0} 🔥`} icon="⏳" highlight="text-orange-400" />
+          <StatCard title="Juegos" value={gameRanks.length} icon="🎮" highlight="text-cyan-400" />
+          <StatCard title="Mejor Récord" value={bestRecord.toLocaleString()} icon="🏆" highlight="text-yellow-500" />
         </div>
       </section>
 
@@ -606,8 +793,8 @@ export default function PublicProfilePage() {
             </div>
           )}
         </div>
-      </section>
-    </div>
+      </section >
+    </div >
   );
 }
 

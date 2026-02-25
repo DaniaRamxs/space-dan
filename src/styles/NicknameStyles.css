@@ -1,0 +1,120 @@
+/* 
+  IDENTITY STYLES: NICKNAMES
+  Enfoque: Senior Software Architect - High Performance CSS
+  Regla: 1 Nodo DOM, animaciones GPU y pseudo-elementos encapsulados.
+*/
+
+.dan-nickname {
+    position: relative;
+    display: inline-block;
+    font-weight: 850;
+    letter-spacing: -0.02em;
+    padding: 0 4px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* 🧬 ESTILO: VORTEX (Partículas contenidas) */
+.nick-style-vortex {
+    background: linear-gradient(135deg, #00f2ff 0%, #006aff 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    text-shadow: 0 0 10px rgba(0, 242, 255, 0.2);
+}
+
+.nick-style-vortex::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background-image:
+        radial-gradient(circle, #fff 0.5px, transparent 0.5px),
+        radial-gradient(circle, #00f2ff 0.5px, transparent 0.5px);
+    background-size: 8px 8px, 12px 12px;
+    mask-image: linear-gradient(to right, transparent, black, transparent);
+    animation: vortexDots 8s linear infinite;
+    opacity: 0.3;
+}
+
+@keyframes vortexDots {
+    from {
+        background-position: 0 0;
+    }
+
+    to {
+        background-position: 24px 24px;
+    }
+}
+
+/* 🛰️ ESTILO: ORBIT (Subrayado minimalista y halo) */
+.nick-style-orbit {
+    color: #fff;
+    text-shadow: 0 0 8px rgba(255, 255, 255, 0.4);
+}
+
+.nick-style-orbit::after {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    left: 0;
+    width: 100%;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, #ff00ff, transparent);
+    box-shadow: 0 0 5px #ff00ff;
+    animation: orbitSlide 3s ease-in-out infinite;
+}
+
+@keyframes orbitSlide {
+
+    0%,
+    100% {
+        transform: scaleX(0.4);
+        opacity: 0.3;
+    }
+
+    50% {
+        transform: scaleX(1);
+        opacity: 1;
+    }
+}
+
+/* 💻 ESTILO: TERMINAL (Cursor parpadeante y glow verde) */
+.nick-style-terminal {
+    color: #00ff41;
+    font-family: 'JetBrains Mono', 'Courier New', monospace;
+    letter-spacing: 0.05em;
+    text-shadow: 0 0 5px rgba(0, 255, 65, 0.5);
+}
+
+.nick-style-terminal::after {
+    content: '_';
+    position: relative;
+    margin-left: 2px;
+    animation: terminalCursor 1s steps(2, start) infinite;
+    color: #00ff41;
+}
+
+@keyframes terminalCursor {
+    to {
+        visibility: hidden;
+    }
+}
+
+/* ✨ ESTILO: NEBULA (Degradado estático y resplandor suave) */
+.nick-style-nebula {
+    background: linear-gradient(45deg, #a855f7, #ec4899);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    position: relative;
+}
+
+.nick-style-nebula::before {
+    content: '';
+    position: absolute;
+    inset: -1px -6px;
+    background: linear-gradient(45deg, #a855f722, #ec489922);
+    filter: blur(8px);
+    z-index: -1;
+    border-radius: 999px;
+}

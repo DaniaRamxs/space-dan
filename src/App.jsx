@@ -11,6 +11,7 @@ import { trackPageVisit } from "./hooks/useDancoins";
 import { applyTheme } from "./hooks/useTheme";
 import { AuthProvider, useAuthContext } from "./contexts/AuthContext";
 import { EconomyProvider, useEconomy } from "./contexts/EconomyContext";
+import { UniverseProvider } from "./contexts/UniverseContext.jsx";
 
 
 
@@ -167,14 +168,16 @@ export default function App() {
   return (
     <AuthProvider>
       <EconomyProvider>
-        <BrowserRouter>
-          <AchievementToast />
-          <Screensaver />
-          <PageTracker />
-          <Suspense fallback={<FallbackLoader />}>
-            <AnimatedRoutes />
-          </Suspense>
-        </BrowserRouter>
+        <UniverseProvider>
+          <BrowserRouter>
+            <AchievementToast />
+            <Screensaver />
+            <PageTracker />
+            <Suspense fallback={<FallbackLoader />}>
+              <AnimatedRoutes />
+            </Suspense>
+          </BrowserRouter>
+        </UniverseProvider>
       </EconomyProvider>
     </AuthProvider>
   );

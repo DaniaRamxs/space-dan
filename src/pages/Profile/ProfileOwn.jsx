@@ -16,9 +16,12 @@ import { Link } from 'react-router-dom';
 import AvatarUploader from '../../components/AvatarUploader';
 import { profileSocialService } from '../../services/profile_social';
 import { PrivateUniverse } from '../../components/PrivateUniverse';
-import { universeService } from '../../services/universe';
 import { useNavigate } from 'react-router-dom';
+import { useUniverse } from '../../contexts/UniverseContext.jsx';
+import { universeService } from '../../services/universe';
+import { motion, AnimatePresence } from 'framer-motion';
 import '../../banner-effects.css';
+import '../../styles/NicknameStyles.css';
 
 const GAME_NAMES = {
   asteroids: 'Asteroids', tetris: 'Tetris', snake: 'Snake', pong: 'Pong',
@@ -463,8 +466,259 @@ function FundSection({ user }) {
   );
 }
 
+function MoodManager({ profile, user }) {
+  const [moodText, setMoodText] = useState(profile?.mood_text || '');
+  const [moodEmoji, setMoodEmoji] = useState(profile?.mood_emoji || '✨');
+  const [duration, setDuration] = useState(24);
+  const [saving, setSaving] = useState(false);
+  const [mbti, setMbti] = useState(profile?.mbti || '');
+  const [zodiac, setZodiac] = useState(profile?.zodiac || '');
+  const [pronouns, setPronouns] = useState(profile?.pronouns || '');
+  const [socials, setSocials] = useState(profile?.social_links || []);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+
+  const handleSaveMood = async () => {
+    setSaving(true);
+    try {
+      await supabase.rpc('set_user_mood', {
+        p_text: moodText,
+        p_emoji: moodEmoji,
+        p_duration_hours: duration === -1 ? null : duration
+      });
+      alert('Mood estelar actualizado 🚀');
+    } catch (err) {
+      console.error(err);
+      alert('Error en protocolos de mood');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleSaveIdentity = async () => {
+    setSaving(true);
+    try {
+      await supabase.from('profiles').update({ mbti, zodiac, pronouns, social_links: socials }).eq('id', user.id);
+      alert('Identidad sincronizada ✓');
+    } catch (err) {
+      alert('Fallo en sincronización');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const emojis = ['✨', '🌌', '🚀', '🔭', '🛸', '🌑', '🔋', '💤', '🔥', '🎮', '💻', '🧪', '🧠', '🎧', '⚡'];
+
+  const socialPlatforms = [
+    { id: 'twitter', name: 'X / Twitter', icon: '🐦' },
+    { id: 'instagram', name: 'Instagram', icon: '📸' },
+    { id: 'github', name: 'GitHub', icon: '💻' },
+    { id: 'discord', name: 'Discord', icon: '👾' },
+    { id: 'youtube', name: 'YouTube', icon: '📺' },
+    { id: 'spotify', name: 'Spotify', icon: '🎵' },
+    { id: 'custom', name: 'Enlace', icon: '🔗' },
+  ];
+
+  const handleAddSocial = () => {
+    if (socials.length >= 5) return;
+    setSocials([...socials, { platform: 'custom', url: '' }]);
+  };
+
+  const updateSocial = (index, field, value) => {
+    const newSocials = [...socials];
+    newSocials[index][field] = value;
+    setSocials(newSocials);
+  };
+
+  const removeSocial = (index) => {
+    setSocials(socials.filter((_, i) => i !== index));
+  };
+
+  return (
+    <div className="profile-v2-section glass-blue space-y-10">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+        {/* Mood Editor */}
+        <div className="space-y-6">
+          <h3 className="text-sm font-black text-cyan-400 uppercase tracking-widest flex items-center gap-2">
+            <span className="w-1.5 h-1.5 rounded-full bg-cyan-500"></span>
+            Estado Vibracional (Mood)
+          </h3>
+
+          <div className="flex flex-col sm:flex-row gap-4">
+            <div className="relative">
+              <button
+                onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                className="w-16 h-16 rounded-2xl bg-black/40 border border-white/10 flex items-center justify-center text-3xl hover:border-cyan-500/50 transition-all active:scale-95 mx-auto sm:mx-0"
+              >
+                {moodEmoji}
+              </button>
+
+              <AnimatePresence>
+                {showEmojiPicker && (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.9, y: 10 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.9, y: 10 }}
+                    className="absolute top-full left-1/2 -translate-x-1/2 sm:left-0 sm:translate-x-0 mt-3 p-4 bg-[#0a0a0f] border border-white/10 rounded-2xl grid grid-cols-5 gap-3 z-[100] shadow-2xl backdrop-blur-2xl w-[260px]"
+                  >
+                    {emojis.map(e => (
+                      <button
+                        key={e}
+                        onClick={() => { setMoodEmoji(e); setShowEmojiPicker(false); }}
+                        className="text-2xl hover:scale-125 active:scale-95 transition-transform p-1"
+                      >
+                        {e}
+                      </button>
+                    ))}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+
+            <input
+              value={moodText}
+              onChange={e => setMoodText(e.target.value)}
+              placeholder="¿Qué energía emites hoy?..."
+              maxLength={60}
+              className="flex-1 bg-black/40 border border-white/10 rounded-2xl px-6 py-4 text-sm font-medium outline-none focus:border-cyan-500 transition-all text-center sm:text-left"
+            />
+          </div>
+
+          <div className="flex flex-col gap-4">
+            <div className="flex flex-wrap justify-center sm:justify-start gap-2">
+              {[2, 8, 24, -1].map(d => (
+                <button
+                  key={d}
+                  onClick={() => setDuration(d)}
+                  className={`flex-1 sm:flex-none px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-tighter border transition-all ${duration === d ? 'bg-cyan-600 border-cyan-500 text-white' : 'bg-white/5 border-white/5 text-white/30 hover:text-white/60'}`}
+                >
+                  {d === -1 ? 'Infinito' : `${d}h`}
+                </button>
+              ))}
+            </div>
+
+            <button
+              onClick={handleSaveMood}
+              disabled={saving}
+              className="w-full py-4 bg-white text-black font-black text-[11px] uppercase rounded-2xl hover:scale-[1.02] active:scale-95 transition-all shadow-[0_10px_30px_rgba(255,255,255,0.1)]"
+            >
+              {saving ? 'PROCESANDO...' : 'TRANSMITIR FRECUENCIA'}
+            </button>
+          </div>
+        </div>
+
+        {/* Vital Info Editor */}
+        <div className="space-y-6">
+          <h3 className="text-sm font-black text-purple-400 uppercase tracking-widest flex items-center gap-2">
+            <span className="w-1.5 h-1.5 rounded-full bg-purple-500"></span>
+            Firma de Identidad
+          </h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <label className="text-[9px] font-black text-white/20 uppercase ml-1">Tipo MBTI</label>
+              <select
+                value={mbti}
+                onChange={e => setMbti(e.target.value)}
+                className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-xs text-white appearance-none outline-none focus:border-purple-500"
+              >
+                <option value="">Desconocido</option>
+                {['INTJ', 'INTP', 'ENTJ', 'ENTP', 'INFJ', 'INFP', 'ENFJ', 'ENFP', 'ISTJ', 'ISFJ', 'ESTJ', 'ESFJ', 'ISTP', 'ISFP', 'ESTP', 'ESFP'].map(o => <option key={o} value={o}>{o}</option>)}
+              </select>
+            </div>
+            <div className="space-y-2">
+              <label className="text-[9px] font-black text-white/20 uppercase ml-1">Signo Zodiacal</label>
+              <select
+                value={zodiac}
+                onChange={e => setZodiac(e.target.value)}
+                className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-xs text-white appearance-none outline-none focus:border-purple-500"
+              >
+                <option value="">Estelar</option>
+                {['Aries', 'Taurus', 'Gemini', 'Cancer', 'Leo', 'Virgo', 'Libra', 'Scorpio', 'Sagittarius', 'Capricorn', 'Aquarius', 'Pisces'].map(o => <option key={o} value={o}>{o}</option>)}
+              </select>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-[9px] font-black text-white/20 uppercase ml-1">Pronombres</label>
+            <input
+              value={pronouns}
+              onChange={e => setPronouns(e.target.value)}
+              placeholder="él / ella / ellos / ..."
+              maxLength={20}
+              className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-xs text-white outline-none focus:border-purple-500"
+            />
+          </div>
+
+          {/* Social Links Editor */}
+          <div className="space-y-4 pt-4 border-t border-white/5">
+            <div className="flex items-center justify-between">
+              <label className="text-[9px] font-black text-white/20 uppercase ml-1">Vínculos Sociales ({socials.length}/5)</label>
+              {socials.length < 5 && (
+                <button onClick={handleAddSocial} className="text-[10px] font-black text-purple-400 hover:text-white transition-colors">+ Añadir</button>
+              )}
+            </div>
+
+            <div className="space-y-3">
+              {socials.map((s, idx) => (
+                <div key={idx} className="flex flex-col sm:flex-row gap-2 items-stretch sm:items-center animate-fade-in bg-black/20 p-3 rounded-2xl sm:bg-transparent sm:p-0">
+                  <div className="flex gap-2 items-center flex-1">
+                    <select
+                      value={s.platform}
+                      onChange={e => updateSocial(idx, 'platform', e.target.value)}
+                      className="bg-black/60 border border-white/10 rounded-lg px-2 py-2 text-[10px] text-white outline-none min-w-[100px]"
+                    >
+                      {socialPlatforms.map(p => <option key={p.id} value={p.id}>{p.icon} {p.name}</option>)}
+                    </select>
+                    <input
+                      value={s.url}
+                      onChange={e => updateSocial(idx, 'url', e.target.value)}
+                      placeholder="https://..."
+                      className="flex-1 bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-[10px] text-white outline-none focus:border-purple-500"
+                    />
+                    <button onClick={() => removeSocial(idx)} className="text-rose-500/50 hover:text-rose-500 transition-colors p-1">✕</button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <button
+            onClick={handleSaveIdentity}
+            disabled={saving}
+            className="w-full py-3 bg-purple-600/20 border border-purple-500/30 text-purple-400 font-black text-[10px] uppercase rounded-2xl hover:bg-purple-600/30 transition-all"
+          >
+            SINCRONIZAR FIRMA
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function ProfileOwn() {
   const { user, profile, loading, loginWithGoogle, loginWithDiscord, logout } = useAuthContext();
+  const { nicknameStyle, primaryRole, secondaryRole, mood, ambientSound, isAmbientMuted, toggleAmbientMute } = useUniverse();
+  const [isSharing, setIsSharing] = useState(false);
+  const isOwnProfile = true;
+
+  const handleShare = () => {
+    const url = window.location.href;
+    navigator.clipboard.writeText(url);
+    setIsSharing(true);
+    setTimeout(() => setIsSharing(false), 2000);
+  };
+
+  const getSocialIcon = (id) => {
+    const icons = {
+      twitter: '🐦',
+      instagram: '📸',
+      github: '💻',
+      discord: '👾',
+      youtube: '📺',
+      spotify: '🎵',
+      custom: '🔗'
+    };
+    return icons[id] || '🔗';
+  };
   const navigate = useNavigate();
 
   const [bannerColor, setBannerLocal] = useState(null);
@@ -627,136 +881,228 @@ export default function ProfileOwn() {
           {bannerItem?.metadata?.fx === 'matrix' && <div className="absolute inset-0 banner-fx-matrix opacity-20"></div>}
           {bannerItem?.metadata?.fx === 'scanlines' && <div className="absolute inset-0 banner-fx-scanlines opacity-30"></div>}
           {bannerItem?.metadata?.fx === 'stars' && <div className="absolute inset-0 banner-fx-stars"></div>}
+
+          {/* V3 Identity Floating Panel - Positioned top-right with extreme margins to stay clear */}
+          <div className="absolute top-6 right-6 md:top-8 md:right-8 z-20 flex flex-col items-end gap-2 pointer-events-none scale-90 md:scale-100 origin-top-right">
+            {mood?.text && !mood.isExpired && (
+              <motion.div
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                className="bg-black/40 backdrop-blur-xl border border-white/10 px-6 py-3 rounded-2xl flex items-center gap-3 shadow-2xl"
+              >
+                <span className="text-3xl animate-bounce-slow drop-shadow-[0_0_10px_rgba(255,255,255,0.5)]">{mood.emoji || '✨'}</span>
+                <div className="text-right">
+                  <div className="text-[8px] font-black uppercase tracking-[0.2em] text-white/30">Frecuencia Actual</div>
+                  <div className="text-xs font-bold text-white/90 italic tracking-wide">"{mood.text}"</div>
+                </div>
+              </motion.div>
+            )}
+
+            <div className="flex gap-2">
+              {profile?.mbti && (
+                <div className="bg-purple-500/20 backdrop-blur-md border border-purple-500/30 px-3 py-1.5 rounded-xl flex items-center gap-2">
+                  <span className="text-[10px] font-black text-purple-300">MBTI:</span>
+                  <span className="text-[10px] font-black text-white">{profile.mbti}</span>
+                </div>
+              )}
+              {profile?.zodiac && (
+                <div className="bg-cyan-500/20 backdrop-blur-md border border-cyan-500/30 px-3 py-1.5 rounded-xl flex items-center gap-2">
+                  <span className="text-[10px] font-black text-cyan-300">SIGNO:</span>
+                  <span className="text-[10px] font-black text-white">{profile.zodiac}</span>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
 
-        <div className="relative z-10 p-8 md:p-16 flex flex-col items-center text-center">
+        <div className="relative z-10 p-8 pt-32 md:pt-24 md:p-16 flex flex-col items-center text-center">
+          {/* Sutil sombra interna para hero content para garantizar legibilidad */}
+          <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-transparent to-black/80 pointer-events-none z-0"></div>
 
-          {/* Top Actions */}
-          <div className="absolute top-4 right-4 md:top-8 md:right-8 flex flex-col items-end gap-2 md:gap-3 z-40">
-            <button
-              className="px-3 py-1.5 md:px-4 md:py-2 bg-black/40 backdrop-blur-md border border-white/10 rounded-xl text-[9px] md:text-[10px] font-black uppercase tracking-widest text-white/60 hover:text-white hover:bg-white/10 transition-all"
-              onClick={logout}
-            >
-              Salir
-            </button>
-
-            {/* Link to Shop for Banners */}
-            <Link
-              to="/tienda?category=banner"
-              className="px-3 py-1.5 md:px-4 md:py-2 bg-cyan-500/20 backdrop-blur-md border border-cyan-500/30 rounded-xl text-[9px] md:text-[10px] font-black uppercase tracking-widest text-cyan-400 hover:text-white hover:bg-cyan-500/30 transition-all flex items-center gap-2"
-            >
-              🖼️ <span className="hidden md:inline">Adquirir Banners</span><span className="md:hidden">Banners</span>
-            </Link>
-          </div>
-
-          <div className="relative mb-6 mt-20 md:mt-0">
-            <AvatarUploader
-              currentAvatar={profile?.avatar_url}
-              frameStyle={getFrameStyle(frameItemId)}
-              onUploadSuccess={(newUrl) => setProfile(prev => ({ ...prev, avatar_url: newUrl }))}
-            />
-
-            {/* Pet Overlay & Holographic Level Badge */}
-            <div className="absolute -left-12 -bottom-4 pointer-events-none drop-shadow-[0_0_20px_rgba(6,182,212,0.5)] z-30 scale-x-[-1] animate-float">
-              <PetDisplay userId={user.id} size={60} showName={false} />
+          <div className="relative z-10 w-full flex flex-col items-center">
+            {/* Top Actions */}
+            <div className="absolute top-4 right-4 md:top-8 md:right-8 flex flex-col items-end gap-2 md:gap-3 z-40">
+              {ambientSound && (
+                <button
+                  onClick={toggleAmbientMute}
+                  className="px-3 py-1.5 md:px-4 md:py-2 bg-white/5 backdrop-blur-md border border-white/10 rounded-xl text-[10px] flex items-center justify-center hover:bg-white/10 transition-all shadow-xl"
+                  title={isAmbientMuted ? "Activar Sonido" : "Silenciar"}
+                >
+                  {isAmbientMuted ? '🔇' : '🔊'}
+                </button>
+              )}
             </div>
 
-            <div className={`absolute -bottom-5 left-1/2 -translate-x-1/2 px-6 py-2 rounded-2xl border font-black text-sm tracking-tighter z-20 whitespace-nowrap transition-all duration-500 shadow-2xl ${level >= 10 ? 'bg-gradient-to-r from-yellow-400 via-white to-yellow-400 text-black border-yellow-200 animate-shimmer bg-[length:200%_100%]' : 'bg-[#09090b] border-cyan-500/50 text-cyan-400 shadow-[0_0_20px_rgba(6,182,212,0.3)]'}`}>
-              NIVEL {level}
+            <div className="relative mb-6 mt-20 md:mt-0">
+              <AvatarUploader
+                currentAvatar={profile?.avatar_url}
+                frameStyle={getFrameStyle(frameItemId)}
+                onUploadSuccess={(newUrl) => {
+                  // El perfil se actualizará mediante la suscripción en real-time de useAuth
+                  console.log('Avatar actualizado:', newUrl);
+                }}
+              />
+
+              {/* Pet Overlay & Holographic Level Badge */}
+              <div className="absolute -left-12 -bottom-4 pointer-events-none drop-shadow-[0_0_20px_rgba(6,182,212,0.5)] z-30 scale-x-[-1] animate-float">
+                <PetDisplay userId={user.id} size={60} showName={false} />
+              </div>
+
+              <div className={`absolute -bottom-5 left-1/2 -translate-x-1/2 px-6 py-2 rounded-2xl border font-black text-sm tracking-tighter z-20 whitespace-nowrap transition-all duration-500 shadow-2xl ${level >= 10 ? 'bg-gradient-to-r from-yellow-400 via-white to-yellow-400 text-black border-yellow-200 animate-shimmer bg-[length:200%_100%]' : 'bg-[#09090b] border-cyan-500/50 text-cyan-400 shadow-[0_0_20px_rgba(6,182,212,0.3)]'}`}>
+                NIVEL {level}
+              </div>
             </div>
-          </div>
 
-          <div className="flex items-center gap-3">
-            <h1 className="text-3xl font-black uppercase tracking-[0.1em] bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-400 drop-shadow-md">
-              {profile?.username || user?.user_metadata?.full_name || (user?.email || '').split('@')[0] || 'Jugador'}
-            </h1>
-            <Link to="/onboarding" className="text-[10px] text-cyan-400 opacity-50 hover:opacity-100 transition-opacity flex items-center gap-1 bg-white/5 px-2 py-1 rounded border border-white/10" title="Cambiar identidad">
-              ✏️ ID
-            </Link>
-          </div>
-          <p className="text-[11px] font-bold text-purple-400 uppercase tracking-[0.3em] mb-4 mt-1 opacity-90">
-            {rankName}
-          </p>
-
-          <div className="flex flex-col items-center gap-4 py-8">
-            {partnership ? (
-              <div className="flex flex-col items-center gap-4 w-full">
-                <div className="relative group/univ">
-                  <div className="absolute -inset-6 bg-purple-500/10 blur-3xl rounded-full opacity-0 md:group-hover/univ:opacity-100 transition-opacity"></div>
-                  <PrivateUniverse
-                    partnership={partnership}
-                    onUpdate={async () => {
-                      const updated = await universeService.getMyPartnership();
-                      setPartnership(updated);
-                    }}
-                  />
-                </div>
-                <div className="flex flex-col items-center gap-1 text-center">
-                  <div className="text-[9px] font-black tracking-[0.4em] text-purple-400/60 uppercase">Universo Vinculado</div>
-                  <Link
-                    to={`/profile/${partnership.partner_id}`}
-                    className="text-[10px] font-black text-white/40 hover:text-purple-400 transition-colors uppercase tracking-widest"
-                  >
-                    Ver perfil de @{partnership.partner_username} →
-                  </Link>
+            <div className="flex flex-col items-center gap-2 mt-4 relative z-10">
+              <h1 className={`text-3xl md:text-5xl font-black uppercase tracking-[0.1em] drop-shadow-[0_5px_15px_rgba(0,0,0,0.5)] dan-nickname ${nicknameStyle ? `nick-style-${nicknameStyle.replace('nick_', '')}` : 'from-white via-white to-gray-300 bg-clip-text text-transparent bg-gradient-to-b'}`}>
+                {profile?.username || user?.user_metadata?.full_name || (user?.email || '').split('@')[0] || 'Jugador'}
+              </h1>
+              {profile?.pronouns ? (
+                <span className="px-4 py-1.5 rounded-full bg-black/60 border border-white/20 text-[10px] font-black text-white uppercase tracking-[0.2em] backdrop-blur-md shadow-lg animate-fade-in ring-1 ring-white/10">
+                  {profile.pronouns}
+                </span>
+              ) : isOwnProfile && (
+                <span className="text-[9px] font-black text-white/20 uppercase tracking-[0.2em] italic drop-shadow-sm">Sin pronombres configurados</span>
+              )}
+              <div className="flex items-center gap-3 mt-1">
+                <Link to="/onboarding" className="text-[10px] text-cyan-400 font-black flex items-center gap-2 bg-black/40 px-4 py-2 rounded-xl border border-white/10 hover:border-cyan-500/50 transition-all shadow-lg" title="Cambiar identidad">
+                  ✏️ EDITAR ID
+                </Link>
+                <button
+                  onClick={handleShare}
+                  className={`text-[10px] font-black uppercase tracking-widest px-4 py-2 rounded-xl border transition-all flex items-center gap-2 shadow-lg ${isSharing ? 'bg-green-500/20 border-green-500/50 text-green-400' : 'bg-black/40 border-white/10 text-white/70 hover:text-white hover:bg-white/10'}`}
+                >
+                  {isSharing ? '✓ COPIADO' : '🔗 COPIAR LINK'}
+                </button>
+              </div>
+            </div>    {/* Roles Premium v3 */}
+            {(primaryRole || secondaryRole) && (
+              <div className="flex flex-col items-center gap-3 mt-6">
+                <div className="flex flex-wrap justify-center gap-3">
+                  {primaryRole && (
+                    <div className="relative group/role">
+                      <div className="absolute -inset-1 bg-gradient-to-r from-cyan-500 to-purple-500 rounded-full blur opacity-25 group-hover/role:opacity-50 transition duration-1000"></div>
+                      <span className="relative px-5 py-2 rounded-full bg-black/60 border border-white/10 text-[10px] font-black uppercase tracking-[0.2em] text-cyan-400 flex items-center gap-2 shadow-xl">
+                        <span className="text-sm">{primaryRole.icon}</span> {primaryRole.title}
+                      </span>
+                    </div>
+                  )}
+                  {secondaryRole && (
+                    <span className="px-4 py-2 rounded-full bg-white/5 border border-white/10 text-[9px] font-black uppercase tracking-[0.2em] text-white/40 flex items-center gap-2">
+                      {secondaryRole.icon || '🛡️'} {secondaryRole.title}
+                    </span>
+                  )}
                 </div>
               </div>
-            ) : (
-              <Link to="/vinculos" className="group relative px-6 py-3 rounded-2xl bg-white/5 border border-white/10 overflow-hidden transition-all hover:border-purple-500/50">
-                <div className="relative z-10 flex items-center gap-3">
-                  <span className="text-xl group-hover:rotate-12 transition-transform">✨</span>
-                  <div className="text-left">
-                    <div className="text-[10px] font-black uppercase tracking-widest text-white/80">Vínculo Estelar</div>
-                    <div className="text-[8px] text-white/30 uppercase font-bold">Solicitar conexión con otro usuario</div>
+            )}
+
+            {/* Social Links Hero Display */}
+            {profile?.social_links && Array.isArray(profile.social_links) && profile.social_links.length > 0 ? (
+              <div className="flex flex-wrap justify-center gap-3 mt-6">
+                {profile.social_links.map((s, i) => (
+                  <a
+                    key={i}
+                    href={s.url.startsWith('http') ? s.url : `https://${s.url}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-9 h-9 md:w-11 md:h-11 rounded-2xl bg-black/40 backdrop-blur-xl border border-white/10 flex items-center justify-center hover:bg-white/10 hover:border-cyan-500/50 transition-all hover:-translate-y-1 group/social shadow-xl"
+                    title={s.platform}
+                  >
+                    <span className="text-base md:text-lg group-hover/social:scale-125 transition-transform drop-shadow-[0_0_8px_rgba(255,255,255,0.3)]">
+                      {getSocialIcon(s.platform)}
+                    </span>
+                  </a>
+                ))}
+              </div>
+            ) : isOwnProfile && (
+              <div className="mt-4 opacity-20 text-[8px] font-black uppercase tracking-widest">Sin redes sociales vinculadas</div>
+            )}
+
+            <p className="text-[12px] font-black text-purple-400 uppercase tracking-[0.4em] mb-4 mt-8 drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] relative z-10">
+              {rankName}
+            </p>
+
+            {/* XP Bar Premium */}
+            <div className="w-full max-w-sm mt-4 px-4">
+              <div className="flex justify-between items-end mb-2">
+                <div className="flex flex-col items-start">
+                  <span className="text-[8px] font-black uppercase tracking-[0.3em] text-white/20">Progreso de Nivel</span>
+                  <span className="text-xs font-black italic text-cyan-400 tracking-tighter">{Math.floor(totalXp).toLocaleString()} <span className="text-[9px] opacity-40 not-italic uppercase font-sans">XP Total</span></span>
+                </div>
+                <span className="text-[10px] font-black text-purple-400 font-mono">META: {Math.floor(nextLevelXp).toLocaleString()}</span>
+              </div>
+              <div className="profile-v2-xp-bar">
+                <div
+                  className="profile-v2-xp-fill transition-all duration-1000 ease-out"
+                  style={{ width: `${progressPercent}%` }}
+                ></div>
+              </div>
+              <div className="mt-1.5 text-right">
+                <span className="text-[9px] font-black text-white/10 tracking-[0.4em] uppercase">{progressPercent}% completado</span>
+              </div>
+            </div>
+
+            <div className="mt-8 flex flex-col items-center gap-6 w-full max-w-md pb-12">
+              {!isEditingBio ? (
+                <div className="flex items-center gap-2 group/bio bg-black/40 px-6 py-4 rounded-[2.5rem] backdrop-blur-sm border border-white/5 cursor-pointer w-full overflow-hidden shadow-inner relative" onClick={() => setIsEditingBio(true)}>
+                  <div className="absolute inset-0 bg-cyan-500/5 opacity-0 group-hover/bio:opacity-100 transition-opacity"></div>
+                  <p className={`text-sm tracking-wide flex-1 break-words relative z-10 ${bio ? 'text-gray-300' : 'text-gray-500 italic'}`}>"{bio || 'Sin biografía...'}"</p>
+                  <button className="text-[10px] text-cyan-400 opacity-0 group-hover/bio:opacity-100 transition-opacity relative z-10">✏️ EDIT</button>
+                </div>
+              ) : (
+                <div className="flex flex-col gap-2 w-full z-20 animate-fade-in-up">
+                  <textarea
+                    autoFocus
+                    value={bio} onChange={e => setBio(e.target.value)} maxLength={250}
+                    className="w-full bg-[#050508] border border-cyan-500/50 rounded-3xl p-4 text-sm text-white resize-none h-32 outline-none focus:border-cyan-400 shadow-[0_0_20px_rgba(6,182,212,0.1)] transition-all"
+                    placeholder="Escribe tu bio..."
+                  />
+                  <div className="flex justify-end gap-2">
+                    <button className="winButton text-xs py-1.5 px-6" onClick={async () => {
+                      try {
+                        await supabase.from('profiles').update({ bio }).eq('id', user.id);
+                        setIsEditingBio(false);
+                      } catch { }
+                    }}>Guardar</button>
+                    <button className="text-xs px-4 opacity-60 hover:opacity-100 transition-opacity" onClick={() => { setBio(profile?.bio || ''); setIsEditingBio(false); }}>Cancelar</button>
                   </div>
                 </div>
-              </Link>
-            )}
-          </div>
+              )}
 
-
-          {!isEditingBio ? (
-            <div className="flex items-center gap-2 mb-6 group/bio bg-black/20 px-4 py-2 rounded-xl backdrop-blur-sm border border-white/5 cursor-pointer max-w-md mx-auto w-full overflow-hidden" onClick={() => setIsEditingBio(true)}>
-              <p className={`text-sm tracking-wide flex-1 break-words overflow-hidden ${bio ? 'text-gray-300' : 'text-gray-500 italic'}`}>"{bio || 'Sin biografía...'}"</p>
-              <button className="text-[10px] text-cyan-400 opacity-0 group-hover/bio:opacity-100 transition-opacity">✏️ EDIT</button>
-            </div>
-          ) : (
-            <div className="flex flex-col gap-2 w-full max-w-md mb-6 z-20 animate-fade-in-up">
-              <textarea
-                autoFocus
-                value={bio} onChange={e => setBio(e.target.value)} maxLength={250}
-                className="w-full bg-[#050508] border border-cyan-500/50 rounded-xl p-3 text-sm text-white resize-none h-24 outline-none focus:border-cyan-400 shadow-[0_0_20px_rgba(6,182,212,0.1)] transition-all"
-                placeholder="Escribe tu bio..."
-              />
-              <div className="flex justify-end gap-2">
-                <button className="winButton text-xs py-1 px-4" onClick={async () => {
-                  try {
-                    await supabase.from('profiles').update({ bio }).eq('id', user.id);
-                    setIsEditingBio(false);
-                  } catch { }
-                }}>Guardar</button>
-                <button className="text-xs px-3 opacity-60 hover:opacity-100 transition-opacity" onClick={() => { setBio(profile?.bio || ''); setIsEditingBio(false); }}>Cancelar</button>
-              </div>
-            </div>
-          )}
-
-          {/* XP Bar Premium */}
-          <div className="w-full max-w-sm mt-4 px-4">
-            <div className="flex justify-between items-end mb-2">
-              <div className="flex flex-col items-start">
-                <span className="text-[8px] font-black uppercase tracking-[0.3em] text-white/20">Progreso de Nivel</span>
-                <span className="text-xs font-black italic text-cyan-400 tracking-tighter">{Math.floor(totalXp).toLocaleString()} <span className="text-[9px] opacity-40 not-italic uppercase font-sans">XP Total</span></span>
-              </div>
-              <span className="text-[10px] font-black text-purple-400 font-mono">META: {Math.floor(nextLevelXp).toLocaleString()}</span>
-            </div>
-            <div className="profile-v2-xp-bar">
-              <div
-                className="profile-v2-xp-fill transition-all duration-1000 ease-out"
-                style={{ width: `${progressPercent}%` }}
-              ></div>
-            </div>
-            <div className="mt-1.5 text-right">
-              <span className="text-[9px] font-black text-white/10 tracking-[0.4em] uppercase">{progressPercent}% completado</span>
+              {partnership ? (
+                <div className="flex flex-col items-center gap-4 w-full">
+                  <div className="relative group/univ">
+                    <div className="absolute -inset-6 bg-purple-500/10 blur-3xl rounded-full opacity-0 md:group-hover/univ:opacity-100 transition-opacity"></div>
+                    <PrivateUniverse
+                      partnership={partnership}
+                      onUpdate={async () => {
+                        const updated = await universeService.getMyPartnership();
+                        setPartnership(updated);
+                      }}
+                    />
+                  </div>
+                  <div className="flex flex-col items-center gap-1 text-center">
+                    <div className="text-[9px] font-black tracking-[0.4em] text-purple-400 uppercase animate-pulse">Universo Vinculado</div>
+                    <Link
+                      to={`/profile/${partnership.partner_id}`}
+                      className="text-[10px] font-black text-white/20 hover:text-purple-400 transition-colors uppercase tracking-widest"
+                    >
+                      Ver perfil de @{partnership.partner_username} →
+                    </Link>
+                  </div>
+                </div>
+              ) : (
+                <Link to="/vinculos" className="group relative px-8 py-4 rounded-[2rem] bg-black/40 border border-white/5 overflow-hidden transition-all hover:border-purple-500/50 shadow-lg">
+                  <div className="absolute inset-0 bg-purple-500/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                  <div className="relative z-10 flex items-center gap-4">
+                    <span className="text-2xl group-hover:rotate-12 transition-transform">✨</span>
+                    <div className="text-left">
+                      <div className="text-[10px] font-black uppercase tracking-widest text-white/80">Vínculo Estelar</div>
+                      <div className="text-[8px] text-white/30 uppercase font-bold">Solicitar conexión con otro usuario</div>
+                    </div>
+                  </div>
+                </Link>
+              )}
             </div>
           </div>
         </div>
@@ -793,9 +1139,10 @@ export default function ProfileOwn() {
             <div className="flex flex-nowrap bg-black/40 backdrop-blur-2xl rounded-2xl md:rounded-3xl p-2 shadow-2xl border border-white/5 overflow-x-auto no-scrollbar gap-1 mb-6">
               <TabButton active={activeTab === 'records'} onClick={() => setActiveTab('records')}>🏆 Archivos</TabButton>
               <TabButton active={activeTab === 'achievements'} onClick={() => setActiveTab('achievements')}>🎖️ Medallas</TabButton>
+              <TabButton active={activeTab === 'identity'} onClick={() => setActiveTab('identity')}>🌌 Identidad</TabButton>
               <TabButton active={activeTab === 'activity'} onClick={() => setActiveTab('activity')}>🛰️ Actividad</TabButton>
               <TabButton active={activeTab === 'wall'} onClick={() => setActiveTab('wall')}>💬 Muro</TabButton>
-              <TabButton active={activeTab === 'economy'} onClick={() => setActiveTab('economy')}>💎 Economía & Bóveda</TabButton>
+              <TabButton active={activeTab === 'economy'} onClick={() => setActiveTab('economy')}>💎 Economía</TabButton>
               <TabButton active={activeTab === 'cabina'} onClick={() => setActiveTab('cabina')}>🚀 Sistema</TabButton>
             </div>
 
@@ -862,6 +1209,13 @@ export default function ProfileOwn() {
                       ))}
                     </div>
                   )}
+                </div>
+              )}
+
+              {/* TAB: IDENTITY */}
+              {activeTab === 'identity' && (
+                <div className="animate-fade-in-up">
+                  <MoodManager profile={profile} user={user} />
                 </div>
               )}
 
