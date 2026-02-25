@@ -586,13 +586,13 @@ function RequestCard({ req, type, actionLoading, onAccept, onReject }) {
             borderRadius: 14, padding: '16px 18px',
             display: 'flex', alignItems: 'center', gap: 14,
         }}>
-            <Link to={`/profile/${person?.id}`}>
+            <Link to={person?.username ? `/@${person?.username}` : `/profile/${person?.id}`}>
                 <img src={person?.avatar_url || '/default_user_blank.png'} alt="Avatar"
                     style={{ width: 44, height: 44, borderRadius: '50%', border: `2px solid ${borderColor}`, objectFit: 'cover' }}
                 />
             </Link>
             <div style={{ flex: 1 }}>
-                <Link to={`/profile/${person?.id}`} style={{ color, fontWeight: 700, fontSize: '0.9rem', textDecoration: 'none' }}>
+                <Link to={person?.username ? `/@${person?.username}` : `/profile/${person?.id}`} style={{ color, fontWeight: 700, fontSize: '0.9rem', textDecoration: 'none' }}>
                     {person?.username || 'Usuario'}
                 </Link>
                 <div style={{ color: '#666', fontSize: '0.7rem', marginTop: 3 }}>

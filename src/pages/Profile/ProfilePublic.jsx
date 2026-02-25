@@ -220,9 +220,9 @@ export default function PublicProfilePage() {
   const targetUserId = profile?.id;
 
   const handleToggleFollow = async () => {
-    if (!user) return alert('Debes iniciar sesión para seguir usuarios.');
+    if (!user || !profile?.id) return alert('Debes iniciar sesión para seguir usuarios.');
     try {
-      const { following } = await profileSocialService.toggleFollow(userId);
+      const { following } = await profileSocialService.toggleFollow(profile.id);
       setIsFollowing(following);
       setFollowCounts(prev => ({
         ...prev,
@@ -236,11 +236,11 @@ export default function PublicProfilePage() {
 
   const handleAddComment = async (e) => {
     e.preventDefault();
-    if (!newComment.trim()) return;
+    if (!newComment.trim() || !profile?.id) return;
     if (!user) return alert('Debes iniciar sesión para comentar.');
     setSubmittingComment(true);
     try {
-      const added = await profileSocialService.addProfileComment(userId, newComment);
+      const added = await profileSocialService.addProfileComment(profile.id, newComment);
       setComments(prev => [added, ...prev]);
       setNewComment('');
     } catch (err) {
@@ -252,10 +252,10 @@ export default function PublicProfilePage() {
   };
 
   const handleSendRequest = async () => {
-    if (!user) return alert('Debes iniciar sesión.');
+    if (!user || !profile?.id) return alert('Debes iniciar sesión.');
     setRequestLoading(true);
     try {
-      await universeService.sendRequest(userId);
+      await universeService.sendRequest(profile.id);
       setHasPendingRequest(true);
       alert('¡Solicitud de vínculo enviada! 🌌');
     } catch (err) {
@@ -380,7 +380,7 @@ export default function PublicProfilePage() {
         level={level}
         rankName={rankName}
         topGlobalRank={topGlobalRank}
-        userId={userId}
+        userId={profile?.id}
       />
     </UniverseProvider>
   );
@@ -495,7 +495,7 @@ function ProfileContent({
                   >
                     {isFollowing ? '✓ Siguiendo' : '+ Seguir'}
                   </button>
-                  <Link to={`/cartas?to=${userId}`} className="px-3 py-1.5 md:px-5 md:py-2.5 rounded-xl bg-white/5 backdrop-blur-md border border-white/10 text-[9px] md:text-[10px] font-black uppercase tracking-widest text-white/60 hover:text-white hover:bg-white/10 transition-all decoration-transparent">
+                  <Link to={`/cartas?to=${profile?.id}`} className="px-3 py-1.5 md:px-5 md:py-2.5 rounded-xl bg-white/5 backdrop-blur-md border border-white/10 text-[9px] md:text-[10px] font-black uppercase tracking-widest text-white/60 hover:text-white hover:bg-white/10 transition-all decoration-transparent">
                     ✉️ <span className="hidden md:inline">Mensaje</span>
                   </Link>
                   {ambientSound && (
@@ -526,7 +526,7 @@ function ProfileContent({
                 </div>
                 {/* Pet Overlay */}
                 <div className="absolute -left-8 -bottom-4 pointer-events-none drop-shadow-[0_0_20px_rgba(6,182,212,0.5)] z-30 scale-x-[-1] animate-float">
-                  <PetDisplay userId={userId} size={60} showName={false} />
+                  <PetDisplay userId={profile?.id} size={60} showName={false} />
                 </div>
               </div>
 
@@ -633,7 +633,7 @@ function ProfileContent({
                   </div>
                   <div className="flex flex-col items-center gap-1">
                     <div className="text-[10px] font-black tracking-[0.4em] text-purple-400 uppercase animate-pulse">Universo Vinculado</div>
-                    <Link to={`/profile/${partnership.partner_id}`} className="text-[10px] font-black text-white/20 hover:text-purple-400 transition-colors uppercase tracking-widest">
+                    <Link to={`/@${partnership.partner_username}`} className="text-[10px] font-black text-white/20 hover:text-purple-400 transition-colors uppercase tracking-widest">
                       Ver perfil de @{partnership.partner_username} →
                     </Link>
                   </div>
@@ -767,7 +767,7 @@ function ProfileContent({
               {/* Feed de transmisiones sociales */}
               <div className="w-full max-w-2xl border-t border-white/10 pt-6">
                 <h3 className="text-[10px] font-black text-white/30 uppercase tracking-[0.4em] px-2 mb-6">🛰️ Transmisiones Sociales</h3>
-                <ActivityFeed userId={userId} />
+                <ActivityFeed userId={profile?.id} />
               </div>
             </div>
           )}
@@ -811,13 +811,13 @@ function ProfileContent({
                           <img className="w-full h-full object-cover" src={c.author?.avatar_url || '/default_user_blank.png'} alt="Avatar" />
                         </div>
                         <div>
-                          <Link to={`/profile/${c.author_id}`} className="text-xs font-black text-cyan-400 hover:text-white transition-colors uppercase tracking-widest">
+                          <Link to={`/@${c.author?.username}`} className="text-xs font-black text-cyan-400 hover:text-white transition-colors uppercase tracking-widest">
                             {c.author?.username}
                           </Link>
                           <span className="block text-[8px] font-black text-white/20 uppercase mt-0.5">{new Date(c.created_at).toLocaleDateString()}</span>
                         </div>
                       </div>
-                      {(user?.id === c.author_id || user?.id === userId) && (
+                      {(user?.id === c.author_id || user?.id === profile?.id) && (
                         <button
                           onClick={() => handleDeleteComment(c.id)}
                           className="w-8 h-8 rounded-xl bg-rose-500/10 text-rose-500 flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-all hover:bg-rose-500 hover:text-white"

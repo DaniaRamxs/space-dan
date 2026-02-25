@@ -132,7 +132,7 @@ export default function PostDetailPage() {
                         {/* Header autor + acciones */}
                         <div className="flex items-start justify-between gap-4 mb-8">
                             <div className="flex items-center gap-3">
-                                <Link to={`/profile/${post.author_id}`}>
+                                <Link to={post.author?.username ? `/@${post.author.username}` : `/profile/${post.author_id}`}>
                                     <div className="w-11 h-11 rounded-2xl overflow-hidden border border-white/10 bg-black hover:scale-105 hover:border-cyan-500/30 transition-all">
                                         <img
                                             src={post.author?.avatar_url || '/default_user_blank.png'}
@@ -142,7 +142,7 @@ export default function PostDetailPage() {
                                     </div>
                                 </Link>
                                 <div>
-                                    <Link to={`/profile/${post.author_id}`} className="text-sm font-black text-white hover:text-cyan-400 transition-colors uppercase tracking-tight">
+                                    <Link to={post.author?.username ? `/@${post.author.username}` : `/profile/${post.author_id}`} className="text-sm font-black text-white hover:text-cyan-400 transition-colors uppercase tracking-tight">
                                         {post.author?.username}
                                     </Link>
                                     <p className="text-[9px] text-white/20 font-black uppercase tracking-[0.25em] mt-0.5">
