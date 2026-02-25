@@ -65,11 +65,11 @@
     animation: aurora 15s ease infinite !important;
 }
 
-/* Add specialized glow for legendary banners */
+/* Legendary banner glow — lightweight edge highlight only */
 .profile-v2-banner-overlay::after {
     content: '';
     position: absolute;
     inset: 0;
-    box-shadow: inset 0 0 100px rgba(0, 0, 0, 0.5);
+    box-shadow: inset 0 -60px 60px -30px rgba(0, 0, 0, 0.4);
     pointer-events: none;
 }
