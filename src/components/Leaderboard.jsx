@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { getLeaderboard, getUserRankInGame } from '../services/supabaseScores';
 import { useAuthContext } from '../contexts/AuthContext';
+import { getUserDisplayName, getNicknameClass } from '../utils/user';
 
 const MEDALS = ['🥇', '🥈', '🥉'];
 
@@ -68,8 +69,8 @@ export default function Leaderboard({ gameId, refreshKey = 0 }) {
                 {entry.avatar_url && (
                   <img src={entry.avatar_url} alt="" className="leaderboardAvatar" />
                 )}
-                <span className="leaderboardName">
-                  {entry.username || 'usuario'}
+                <span className={`leaderboardName ${getNicknameClass(entry)}`}>
+                  {getUserDisplayName(entry)}
                   {entry.game_level && (
                     <span className="gameLevelBadge" title="Nivel en este juego">
                       Lv.{entry.game_level}
@@ -86,8 +87,8 @@ export default function Leaderboard({ gameId, refreshKey = 0 }) {
               <div style={{ textAlign: 'center', opacity: 0.5, margin: '5px 0' }}>⋮</div>
               <div className="leaderboardRow highlight-me" style={{ background: 'rgba(255,110,180,0.15)', borderLeft: '3px solid var(--accent)' }}>
                 <span className="leaderboardRank">#{userRank.user_position}</span>
-                <span className="leaderboardName">
-                  Tu Récord
+                <span className={`leaderboardName ${getNicknameClass(profile)}`}>
+                  {getUserDisplayName(profile)} (Tú)
                   {userRank.game_level && (
                     <span className="gameLevelBadge">Lv.{userRank.game_level}</span>
                   )}

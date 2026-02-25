@@ -18,12 +18,13 @@ export default function SnakeGame() {
   const [phase, setPhase] = useState('idle'); // idle | playing | over
   const [isHighScore, setIsHighScore] = useState(false);
 
-  // Refs for logic to avoid stale closures in interval
-  const snakeRef = useRef([[10, 10], [10, 11], [10, 12]]);
+  const [snake, setSnake] = useState([[10, 10], [10, 11], [10, 12]]);
+  const [food, setFood] = useState([5, 5]);
+  const [speed, setSpeed] = useState(INITIAL_SPEED);
+
+  // Use refs for direction to handle input faster than the tick
   const dirRef = useRef({ x: 0, y: -1 });
   const nextDirRef = useRef({ x: 0, y: -1 });
-  const foodRef = useRef([5, 5]);
-  const speedRef = useRef(INITIAL_SPEED);
   const timerRef = useRef(null);
 
   const spawnFood = useCallback((currentSnake) => {
@@ -36,64 +37,81 @@ export default function SnakeGame() {
       const collision = currentSnake.some(seg => seg[0] === newFood[0] && seg[1] === newFood[1]);
       if (!collision) break;
     }
-    foodRef.current = newFood;
+    setFood(newFood);
   }, []);
 
-  const gameOver = useCallback(() => {
+  const gameOver = useCallback((finalScoreCount) => {
     if (timerRef.current) clearInterval(timerRef.current);
-    const finalScore = score * 15;
+    const finalScore = finalScoreCount * 15;
     const isNewRecord = saveScore(finalScore);
     setIsHighScore(isNewRecord);
     setPhase('over');
-  }, [score, saveScore]);
+  }, [saveScore]);
 
   const move = useCallback(() => {
-    const s = snakeRef.current;
-    const d = nextDirRef.current;
-    dirRef.current = d;
+    setSnake(prevSnake => {
+      const d = nextDirRef.current;
+      dirRef.current = d;
 
-    const head = s[0];
-    const newHead = [head[0] + d.x, head[1] + d.y];
+      const head = prevSnake[0];
+      const newHead = [head[0] + d.x, head[1] + d.y];
 
-    if (newHead[0] < 0 || newHead[0] >= GRID_SIZE || newHead[1] < 0 || newHead[1] >= GRID_SIZE) {
-      gameOver();
-      return;
+      // Wall collision
+      if (newHead[0] < 0 || newHead[0] >= GRID_SIZE || newHead[1] < 0 || newHead[1] >= GRID_SIZE) {
+        gameOver(score);
+        return prevSnake;
+      }
+
+      // Self collision
+      if (prevSnake.some(seg => seg[0] === newHead[0] && seg[1] === newHead[1])) {
+        gameOver(score);
+        return prevSnake;
+      }
+
+      const newSnake = [newHead, ...prevSnake];
+
+      // Food collision
+      if (newHead[0] === food[0] && newHead[1] === food[1]) {
+        setScore(s => s + 1);
+        spawnFood(newSnake);
+        // speed handling is done in a separate effect
+      } else {
+        newSnake.pop();
+      }
+
+      return newSnake;
+    });
+  }, [food, score, gameOver, spawnFood]);
+
+  // Adjust speed based on score
+  useEffect(() => {
+    if (phase === 'playing') {
+      const newSpeed = Math.max(60, INITIAL_SPEED - score * SPEED_INC);
+      setSpeed(newSpeed);
     }
+  }, [score, phase]);
 
-    if (s.some(seg => seg[0] === newHead[0] && seg[1] === newHead[1])) {
-      gameOver();
-      return;
-    }
-
-    const newSnake = [newHead, ...s];
-
-    if (newHead[0] === foodRef.current[0] && newHead[1] === foodRef.current[1]) {
-      setScore(prev => {
-        const next = prev + 1;
-        speedRef.current = Math.max(60, INITIAL_SPEED - next * SPEED_INC);
-        if (timerRef.current) clearInterval(timerRef.current);
-        timerRef.current = setInterval(move, speedRef.current);
-        return next;
-      });
-      spawnFood(newSnake);
+  // Game loop
+  useEffect(() => {
+    if (phase === 'playing') {
+      timerRef.current = setInterval(move, speed);
     } else {
-      newSnake.pop();
+      if (timerRef.current) clearInterval(timerRef.current);
     }
-
-    snakeRef.current = newSnake;
-  }, [gameOver, spawnFood]);
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, [phase, move, speed]);
 
   const start = () => {
-    snakeRef.current = [[10, 10], [10, 11], [10, 12]];
+    setSnake([[10, 10], [10, 11], [10, 12]]);
     dirRef.current = { x: 0, y: -1 };
     nextDirRef.current = { x: 0, y: -1 };
-    speedRef.current = INITIAL_SPEED;
     setScore(0);
+    setSpeed(INITIAL_SPEED);
     setPhase('playing');
     setIsHighScore(false);
-    spawnFood(snakeRef.current);
-    if (timerRef.current) clearInterval(timerRef.current);
-    timerRef.current = setInterval(move, speedRef.current);
+    spawnFood([[10, 10], [10, 11], [10, 12]]);
   };
 
   useEffect(() => {
@@ -105,11 +123,8 @@ export default function SnakeGame() {
       if (e.key === 'ArrowRight' && d.x !== -1) nextDirRef.current = { x: 1, y: 0 };
     };
     window.addEventListener('keydown', handleKey);
-    return () => {
-      window.removeEventListener('keydown', handleKey);
-      if (timerRef.current) clearInterval(timerRef.current);
-    };
-  }, [move]);
+    return () => window.removeEventListener('keydown', handleKey);
+  }, []);
 
   const cellSize = 'min(14px, 4vw)';
 
@@ -140,9 +155,8 @@ export default function SnakeGame() {
         {Array.from({ length: GRID_SIZE * GRID_SIZE }).map((_, i) => {
           const x = i % GRID_SIZE;
           const y = Math.floor(i / GRID_SIZE);
-          const isFood = foodRef.current[0] === x && foodRef.current[1] === y;
-          const snakeCopy = [...snakeRef.current];
-          const segIdx = snakeCopy.findIndex(s => s[0] === x && s[1] === y);
+          const isFood = food[0] === x && food[1] === y;
+          const segIdx = snake.findIndex(s => s[0] === x && s[1] === y);
           const isSnake = segIdx !== -1;
           const isHead = segIdx === 0;
 
@@ -152,8 +166,7 @@ export default function SnakeGame() {
               background: isHead ? C_HEAD : isSnake ? C_SNAKE : isFood ? C_FOOD : 'transparent',
               borderRadius: isFood ? '50%' : isSnake ? 2 : 0,
               boxShadow: isHead ? `0 0 10px ${C_HEAD}` : isFood ? `0 0 12px ${C_FOOD}` : 'none',
-              opacity: isSnake && !isHead ? 0.8 : 1,
-              transition: 'all 0.1s ease'
+              opacity: isSnake && !isHead ? 0.8 : 1
             }} />
           );
         })}
@@ -174,7 +187,7 @@ export default function SnakeGame() {
               </h2>
               {phase === 'over' && (
                 <div style={{ textAlign: 'center' }}>
-                  <div style={{ fontSize: 18, color: '#fff' }}>Score: {score}</div>
+                  <div style={{ fontSize: 18, color: '#fff' }}>Score: {score * 15}</div>
                   {isHighScore && <div style={{ color: '#00e5ff', fontSize: 12, marginTop: 4 }}>¡NUEVO RÉCORD!</div>}
                 </div>
               )}

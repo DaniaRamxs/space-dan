@@ -3,6 +3,8 @@ import { BrowserRouter, Routes, Route, useLocation, Navigate } from "react-route
 
 import { AnimatePresence } from "framer-motion";
 import "./styles.css";
+import "./banner-effects.css";
+import "./styles/NicknameStyles.css";
 import AchievementToast from "./components/AchievementToast";
 import Screensaver from "./components/Screensaver";
 import PageTransition from "./components/PageTransition";

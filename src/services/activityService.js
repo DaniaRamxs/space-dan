@@ -9,7 +9,7 @@ export const activityService = {
             .from('activity_posts')
             .select(`
                 id, title, content, type, category, views_count, created_at, updated_at, author_id,
-                author:profiles!author_id(username, avatar_url, frame_item_id)
+                author:profiles!author_id(username, avatar_url, frame_item_id, nick_style_item:equipped_nickname_style(id))
             `)
             .order('created_at', { ascending: false })
             .range(offset, offset + limit - 1);
@@ -43,7 +43,7 @@ export const activityService = {
             .from('activity_posts')
             .select(`
                 id, title, content, type, category, views_count, created_at, updated_at, author_id,
-                author:profiles!author_id(username, avatar_url, frame_item_id)
+                author:profiles!author_id(username, avatar_url, frame_item_id, nick_style_item:equipped_nickname_style(id))
             `)
             .eq('id', postId)
             .single();

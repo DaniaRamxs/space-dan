@@ -66,14 +66,15 @@ CREATE INDEX IF NOT EXISTS idx_scores_user ON public.scores (user_id);
 CREATE INDEX IF NOT EXISTS idx_scores_rank ON public.scores (game_id, score DESC);
 
 -- Función leaderboard: mejor score por usuario por juego
+DROP FUNCTION IF EXISTS public.get_leaderboard(text, int);
 CREATE OR REPLACE FUNCTION public.get_leaderboard(p_game_id text, p_limit int DEFAULT 10)
-RETURNS TABLE (username text, avatar_url text, best_score int)
+RETURNS TABLE (username text, avatar_url text, best_score int, equipped_nickname_style text)
 LANGUAGE sql STABLE SECURITY DEFINER AS $$
-  SELECT p.username, p.avatar_url, MAX(s.score)::int AS best_score
+  SELECT p.username, p.avatar_url, MAX(s.score)::int AS best_score, p.equipped_nickname_style
   FROM public.scores s
   JOIN public.profiles p ON p.id = s.user_id
   WHERE s.game_id = p_game_id
-  GROUP BY s.user_id, p.username, p.avatar_url
+  GROUP BY s.user_id, p.username, p.avatar_url, p.equipped_nickname_style
   ORDER BY best_score DESC
   LIMIT p_limit;
 $$;
@@ -195,6 +196,7 @@ CREATE POLICY "guestbook_insert"      ON public.guestbook FOR INSERT
 -- ============================================================
 
 -- 1. Function to get a specific user's best score and rank across all games
+DROP FUNCTION IF EXISTS public.get_user_game_ranks(uuid);
 CREATE OR REPLACE FUNCTION public.get_user_game_ranks(p_user_id uuid)
 RETURNS TABLE (game_id text, max_score int, user_position bigint)
 LANGUAGE sql STABLE SECURITY DEFINER AS $$
@@ -214,18 +216,19 @@ LANGUAGE sql STABLE SECURITY DEFINER AS $$
 $$;
 
 -- 2. Function for Global Leaderboard (Total of best scores per user)
+DROP FUNCTION IF EXISTS public.get_global_leaderboard(int);
 CREATE OR REPLACE FUNCTION public.get_global_leaderboard(p_limit int DEFAULT 50)
-RETURNS TABLE (user_id uuid, username text, avatar_url text, total_score bigint)
+RETURNS TABLE (user_id uuid, username text, avatar_url text, total_score bigint, equipped_nickname_style text)
 LANGUAGE sql STABLE SECURITY DEFINER AS $$
   WITH user_best AS (
     SELECT s.game_id, s.user_id, MAX(s.score)::int as max_score
     FROM public.scores s
     GROUP BY s.game_id, s.user_id
   )
-  SELECT ub.user_id, p.username, p.avatar_url, SUM(ub.max_score)::bigint as total_score
+  SELECT ub.user_id, p.username, p.avatar_url, SUM(ub.max_score)::bigint as total_score, p.equipped_nickname_style
   FROM user_best ub
   JOIN public.profiles p ON p.id = ub.user_id
-  GROUP BY ub.user_id, p.username, p.avatar_url
+  GROUP BY ub.user_id, p.username, p.avatar_url, p.equipped_nickname_style
   ORDER BY total_score DESC
   LIMIT p_limit;
 $$;

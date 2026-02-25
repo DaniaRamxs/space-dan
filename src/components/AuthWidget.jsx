@@ -1,23 +1,21 @@
 import { useAuthContext } from '../contexts/AuthContext';
+import { getUserDisplayName, getNicknameClass } from '../utils/user';
 
 export default function AuthWidget() {
-  const { user, loading, loginWithGoogle, loginWithDiscord, logout } = useAuthContext();
+  const { user, profile, loading, loginWithGoogle, loginWithDiscord, logout } = useAuthContext();
 
   if (loading) return null;
 
   if (user) {
-    const avatar = user.user_metadata?.avatar_url;
-    const name =
-      user.user_metadata?.full_name ||
-      user.user_metadata?.name ||
-      (user.email || '').split('@')[0] ||
-      'jugador';
+    const avatar = profile?.avatar_url || user.user_metadata?.avatar_url;
+    const name = getUserDisplayName(profile || { username: user.user_metadata?.full_name || user.user_metadata?.name || (user.email || '').split('@')[0] });
+    const nickClass = getNicknameClass(profile);
 
     return (
       <div className="authWidget">
         <div className="authUserRow">
           {avatar && <img src={avatar} alt="" className="authAvatar" />}
-          <span className="authUsername">{name}</span>
+          <span className={`authUsername ${nickClass}`}>{name}</span>
         </div>
         <button className="authLogoutBtn" onClick={logout}>
           cerrar sesión

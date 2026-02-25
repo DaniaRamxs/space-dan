@@ -296,6 +296,7 @@ END;
 $$;
 
 -- RPC para el Leaderboard Competitivo (Más seguro y evita problemas de RLS/Cache)
+DROP FUNCTION IF EXISTS public.get_competitive_leaderboard(int);
 CREATE OR REPLACE FUNCTION public.get_competitive_leaderboard(p_limit int DEFAULT 50)
 RETURNS TABLE (
   id uuid,
@@ -303,6 +304,7 @@ RETURNS TABLE (
   avatar_url text,
   season_balance int,
   user_level int,
+  equipped_nickname_style text,
   rank bigint
 ) 
 LANGUAGE plpgsql SECURITY DEFINER AS $$
@@ -326,6 +328,7 @@ BEGIN
     p.avatar_url, 
     p.season_balance, 
     FLOOR(0.1 * SQRT(ux.xp))::int as user_level,
+    p.equipped_nickname_style,
     RANK() OVER (ORDER BY p.season_balance DESC) as rank
   FROM public.profiles p
   JOIN user_xp_calc ux ON p.id = ux.uid

@@ -7,6 +7,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useAuthContext } from '../../contexts/AuthContext';
 import { CATEGORIES } from './PostComposer';
+import { getUserDisplayName, getNicknameClass } from '../../utils/user';
 
 // Extrae texto plano desde markdown
 function stripMarkdown(md = '') {
@@ -94,7 +95,9 @@ const ActivityCard = memo(({ post, onUpdate, onNewPost }) => {
                                     onClick={e => e.stopPropagation()}
                                     className="text-xs font-black text-white/70 hover:text-cyan-400 transition-colors uppercase tracking-wider truncate"
                                 >
-                                    {post.author?.username}
+                                    <span className={getNicknameClass(post.author)}>
+                                        {getUserDisplayName(post.author)}
+                                    </span>
                                 </Link>
                                 <div className="flex items-center gap-2 shrink-0">
                                     {/* Vistas */}

@@ -8523,8 +8523,8 @@ button,
 
 /* ──── Marco Animado Evolutivo (Vinculos) ──── */
 .marco-evolutivo-base {
-  width: 100px;
-  height: 100px;
+  width: 100%;
+  height: 100%;
   border-radius: 50%;
   position: relative;
   display: flex;
@@ -8532,13 +8532,6 @@ button,
   justify-content: center;
   transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
   z-index: 1;
-}
-
-@media (max-width: 600px) {
-  .marco-evolutivo-base {
-    width: 85px;
-    height: 85px;
-  }
 }
 
 .marco-evolutivo-base::before,
@@ -8677,6 +8670,42 @@ button,
   }
 }
 
+@keyframes pulseAuraStriking {
+  0% {
+    box-shadow: 0 0 15px rgba(139, 92, 246, 0.4);
+    transform: scale(0.98);
+  }
+
+  100% {
+    box-shadow: 0 0 35px rgba(139, 92, 246, 0.8), 0 0 60px rgba(139, 92, 246, 0.4);
+    transform: scale(1.02);
+  }
+}
+
+@keyframes rotationGradientStriking {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes gradientFlowStriking {
+  0% {
+    background-position: 0% 50%;
+  }
+
+  50% {
+    background-position: 100% 50%;
+  }
+
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
 @keyframes spinSupernova {
   from {
     transform: rotate(0deg);
@@ -8695,6 +8724,20 @@ button,
   to {
     transform: rotate(360deg);
   }
+}
+
+@keyframes rotate-slow {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-spin-slow {
+  animation: rotate-slow 12s linear infinite;
 }
 
 @keyframes rotateGrad {
@@ -9048,4 +9091,69 @@ button,
 .profile-v2-table tr td:last-child {
   border-right: 1px solid rgba(255, 255, 255, 0.03);
   border-radius: 0 1rem 1rem 0;
+}
+
+/* ── Ambient Sound Button ───────────────────────────────────── */
+.ambientSoundBtn {
+  position: fixed;
+  bottom: 80px;
+  right: 20px;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: rgba(10, 10, 20, 0.9);
+  border: 1px solid var(--border);
+  font-size: 16px;
+  cursor: pointer;
+  z-index: 9989;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.25s ease;
+  backdrop-filter: blur(8px);
+}
+
+.ambientSoundBtn:hover {
+  border-color: var(--accent);
+  transform: scale(1.15);
+}
+
+.ambientSoundBtn.active {
+  border-color: var(--accent);
+  box-shadow: 0 0 12px var(--accent-glow);
+}
+
+.ambientSoundPulse {
+  position: absolute;
+  top: -3px;
+  right: -3px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--accent);
+  animation: ambientPulseRing 2s ease-in-out infinite;
+}
+
+@keyframes ambientPulseRing {
+
+  0%,
+  100% {
+    opacity: 1;
+    box-shadow: 0 0 0 0 var(--accent-glow);
+  }
+
+  50% {
+    opacity: 0.7;
+    box-shadow: 0 0 0 6px transparent;
+  }
+}
+
+@media (max-width: 768px) {
+  .ambientSoundBtn {
+    bottom: 76px;
+    right: 14px;
+    width: 36px;
+    height: 36px;
+    font-size: 14px;
+  }
 }

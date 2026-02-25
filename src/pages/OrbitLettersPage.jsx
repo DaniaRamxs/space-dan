@@ -6,6 +6,7 @@ import { useAuthContext } from '../contexts/AuthContext';
 import { supabase } from '../supabaseClient';
 import { GiphyFetch } from '@giphy/js-fetch-api';
 import { Grid } from '@giphy/react-components';
+import { formatUsername, getNicknameClass } from '../utils/user';
 
 const gf = new GiphyFetch('3k4Fdn6D040IQvIq1KquLZzJgutP3dGp');
 
@@ -57,7 +58,7 @@ export default function OrbitLettersPage() {
                 } else {
                     const { data: profile } = await supabase
                         .from('profiles')
-                        .select('id, username, avatar_url')
+                        .select('id, username, avatar_url, nick_style_item:equipped_nickname_style(id)')
                         .eq('id', toUserId)
                         .single();
                     if (profile) {
@@ -174,7 +175,7 @@ export default function OrbitLettersPage() {
                                     style={{ width: '40px', height: '40px', borderRadius: '50%', border: '1px solid var(--border)', flexShrink: 0 }}
                                 />
                                 <div style={{ flex: 1, minWidth: 0 }}>
-                                    <div style={{ fontWeight: '600', fontSize: '14px' }}>{conv.other_username}</div>
+                                    <div className={getNicknameClass({ nicknameStyle: conv.other_nickname_style, nick_style_item: conv.nick_style_item })} style={{ fontWeight: '600', fontSize: '14px' }}>{formatUsername(conv.other_username)}</div>
                                     <div style={{ fontSize: '12px', opacity: 0.6, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                                         {conv.last_snippet?.includes('giphy.com/media') ? '👾 GIF' : (conv.last_snippet || 'Empieza la conversación...')}
                                     </div>
@@ -229,7 +230,7 @@ export default function OrbitLettersPage() {
                                 alt="avatar"
                             />
                             <div style={{ flex: 1, minWidth: 0 }}>
-                                <div style={{ fontWeight: 'bold', fontSize: '14px' }}>{activeConv.other_username}</div>
+                                <div className={getNicknameClass({ nicknameStyle: activeConv.other_nickname_style, nick_style_item: activeConv.nick_style_item })} style={{ fontWeight: 'bold', fontSize: '14px' }}>{formatUsername(activeConv.other_username)}</div>
                                 <div style={{ fontSize: '10px', opacity: 0.45, textTransform: 'uppercase', letterSpacing: '1px' }}>Enlace Establecido</div>
                             </div>
                         </div>
