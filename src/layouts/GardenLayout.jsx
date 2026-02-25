@@ -10,11 +10,14 @@ import { useEconomy } from '../contexts/EconomyContext';
 import NotificationBell from "../components/NotificationBell.jsx";
 import VirtualPet from "../components/VirtualPet.jsx";
 import AmbientOrbs from "../components/AmbientOrbs.jsx";
+import useAuth from '../hooks/useAuth';
+import { useRef } from 'react';
 
 const PERSONAL_PATHS = ['/kinnies', '/tests', '/universo', '/dreamscape'];
 const FIXED_LAYOUT_PATHS = ['/cartas', '/cabina', '/desktop'];
 
 export default function GardenLayout({ children }) {
+  const { user, profile: ownProfile } = useAuth();
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [menuStates, setMenuStates] = useState({
@@ -56,6 +59,7 @@ export default function GardenLayout({ children }) {
 
   const { balance, claimDaily, canClaimDaily } = useEconomy();
   const [dailyFlash, setDailyFlash] = useState(false);
+  const hasCheckedDaily = useRef(false);
 
   // Contador de visitas real
   const [visits, setVisits] = useState('------');
@@ -66,12 +70,12 @@ export default function GardenLayout({ children }) {
       .catch(() => setVisits('??????'));
   }, []);
 
-  // Daily bonus on first visit of the day
   useEffect(() => {
+    if (!user || hasCheckedDaily.current) return;
     let mounted = true;
     async function checkDaily() {
-      // Check synchronously first to avoid network request if already claimed
       if (canClaimDaily && canClaimDaily()) {
+        hasCheckedDaily.current = true;
         try {
           const res = await claimDaily();
           if (mounted && res?.success) {
@@ -79,13 +83,13 @@ export default function GardenLayout({ children }) {
             setTimeout(() => setDailyFlash(false), 3000);
           }
         } catch (e) {
-          // Ya reclamado o error (e.g., 400 Bad Request because already claimed server-side)
+          // Ya reclamado o error
         }
       }
     }
     checkDaily();
     return () => { mounted = false; };
-  }, [claimDaily, canClaimDaily]);
+  }, [user?.id, claimDaily, canClaimDaily]);
 
   const isFixedLayout = FIXED_LAYOUT_PATHS.some(p => location.pathname.startsWith(p));
 
@@ -132,7 +136,13 @@ export default function GardenLayout({ children }) {
 
           <nav className="sideNav">
             <div className="sideNavGroup">
-              <NavLink to="/profile" onClick={closeMenu} className={({ isActive }) => "sideLink topLevel" + (isActive ? " active" : "")}>👤 Mi Perfil</NavLink>
+              <NavLink
+                to="/profile"
+                onClick={closeMenu}
+                className={({ isActive }) => "sideLink topLevel" + (isActive ? " active" : "")}
+              >
+                👤 Mi Perfil
+              </NavLink>
               <NavLink to="/home" onClick={closeMenu} className={({ isActive }) => "sideLink topLevel" + (isActive ? " active" : "")}>🏠 Sobre Dan</NavLink>
               <NavLink to="/cofre" onClick={closeMenu} className={({ isActive }) => "sideLink topLevel" + (isActive ? " active" : "")}>🔒 Cofre Privado</NavLink>
             </div>

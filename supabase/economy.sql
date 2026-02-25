@@ -339,8 +339,11 @@ BEGIN
   WHERE user_id = p_user_id AND type = 'daily_bonus';
 
   IF v_last_claim IS NOT NULL AND v_last_claim > now() - v_COOLDOWN THEN
-    RAISE EXCEPTION 'Ya reclamaste el bonus. Próximo disponible: %',
-      to_char(v_last_claim + v_COOLDOWN, 'DD/MM/YYYY HH24:MI');
+    RETURN jsonb_build_object(
+      'success', false, 
+      'reason', 'cooldown', 
+      'message', format('Ya reclamaste el bonus. Próximo disponible: %s', to_char(v_last_claim + v_COOLDOWN, 'DD/MM/YYYY HH24:MI'))
+    );
   END IF;
 
   -- Conceder bonus

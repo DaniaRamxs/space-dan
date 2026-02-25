@@ -3,7 +3,7 @@ import { useActivityFeed } from '../../hooks/useActivityFeed';
 import ActivityCard from './ActivityCard';
 
 export default function ActivityFeed({ userId, filter = 'all', category = null }) {
-    const { feed, setFeed, loading, loadingMore, hasMore, loadMore } = useActivityFeed(filter, 15, category);
+    const { feed, setFeed, loading, loadingMore, hasMore, loadMore } = useActivityFeed(filter, 15, category, userId);
 
     // Actualiza un post existente en el feed (p.ej. después de reaccionar)
     const handleUpdatePost = useCallback((updatedPost) => {
