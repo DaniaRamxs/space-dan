@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { activityService } from '../services/activityService';
 import { useAuthContext } from '../contexts/AuthContext';
 
-export function useActivityFeed(filter = 'all', initialLimit = 15, category = null) {
+export function useActivityFeed(filter = 'all', initialLimit = 15, category = null, targetUserId = null) {
     const { user } = useAuthContext();
     const [feed, setFeed] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -21,7 +21,7 @@ export function useActivityFeed(filter = 'all', initialLimit = 15, category = nu
 
         try {
             const data = await activityService.getFeed(
-                user.id, filter, initialLimit, currentOffset, category
+                targetUserId || user?.id, filter, initialLimit, currentOffset, category
             );
 
             if (isInitial) {
@@ -51,7 +51,7 @@ export function useActivityFeed(filter = 'all', initialLimit = 15, category = nu
         setHasMore(true);
         loadFeed(true);
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [filter, category, user?.id]);
+    }, [filter, category, user?.id, targetUserId, loadFeed]);
 
     const loadMore = useCallback(() => {
         if (!loadingMore && hasMore && !loading) loadFeed(false);

@@ -132,7 +132,7 @@ export default function PublicProfilePage() {
   }, [profile, notFound]);
 
   async function load() {
-    let isMounted = true;
+    let isMountedLocal = true;
     setLoading(true);
     setNotFound(false);
     try {
@@ -148,10 +148,10 @@ export default function PublicProfilePage() {
           primary_role_item:equipped_primary_role(id, title, metadata),
           secondary_role_item:equipped_secondary_role(id, title, metadata)
         `)
-        .eq('username', cleanUsername)
+        .ilike('username', cleanUsername)
         .maybeSingle();
 
-      if (!isMounted) return;
+      if (!isMountedLocal) return;
       if (error || !prof) {
         setNotFound(true);
         setLoading(false);
@@ -160,21 +160,21 @@ export default function PublicProfilePage() {
       setProfile(prof);
       const targetUserId = prof.id;
 
-      const [ranks, achs, socialInfo, profileComments, cStats, userPosts, pData] = await Promise.all([
+      const [ranks, socialInfo, profileComments, cStats, userPosts, pData, achData] = await Promise.all([
         getUserGameRanks(targetUserId).catch(() => []),
-        supabase.from('user_achievements').select('achievement_id').eq('user_id', targetUserId),
         profileSocialService.getFollowCounts(targetUserId).catch(() => ({ followers: 0, following: 0 })),
         profileSocialService.getProfileComments(targetUserId).catch(() => []),
         getProductivityStats(targetUserId).catch(() => null),
         blogService.getUserPosts(targetUserId).catch(() => []),
-        universeService.getProfilePartnership(targetUserId).catch(() => null)
+        universeService.getProfilePartnership(targetUserId).catch(() => null),
+        supabase.from('user_achievements').select('achievement_id').eq('user_id', targetUserId).then(({ data }) => data || []).catch(() => [])
       ]);
 
-      if (!isMounted) return;
+      if (!isMountedLocal) return;
 
       setGameRanks(ranks || []);
       setCabinStats(cStats);
-      setAchIds((achs.data || []).map(a => a.achievement_id));
+      setAchIds(achData.map(a => a.achievement_id));
       setFollowCounts(socialInfo);
       setComments(profileComments);
       setPosts(userPosts);
@@ -182,7 +182,7 @@ export default function PublicProfilePage() {
 
       if (prof.banner_item_id) {
         storeService.getStoreItem(prof.banner_item_id)
-          .then(setBannerItem)
+          .then(item => { if (isMountedLocal) setBannerItem(item); })
           .catch(() => { });
       } else {
         setBannerItem(null);
@@ -190,14 +190,15 @@ export default function PublicProfilePage() {
 
       // Activity status (non-blocking)
       socialService.getUserActivity(targetUserId)
-        .then(label => { if (isMounted) setActivityLabel(label); })
+        .then(label => { if (isMountedLocal) setActivityLabel(label); })
         .catch(() => { });
 
       if (user && user.id !== targetUserId) {
         profileSocialService.isFollowing(targetUserId)
-          .then(following => { if (isMounted) setIsFollowing(following); })
-          .catch(() => { if (isMounted) setIsFollowing(false); });
+          .then(following => { if (isMountedLocal) setIsFollowing(following); })
+          .catch(() => { if (isMountedLocal) setIsFollowing(false); });
       }
+
       if (user && user.id !== targetUserId && !pData) {
         supabase
           .from('partnership_requests')
@@ -206,13 +207,13 @@ export default function PublicProfilePage() {
           .eq('receiver_id', targetUserId)
           .eq('status', 'pending')
           .maybeSingle()
-          .then(({ data }) => { if (isMounted) setHasPendingRequest(!!data); });
+          .then(({ data }) => { if (isMountedLocal) setHasPendingRequest(!!data); });
       }
     } catch (err) {
-      console.error('[PublicProfilePage]', err);
+      console.error('[PublicProfilePage] load error:', err);
       setNotFound(true);
     } finally {
-      if (isMounted) setLoading(false);
+      if (isMountedLocal) setLoading(false);
     }
   }
 
@@ -307,7 +308,7 @@ export default function PublicProfilePage() {
         </div>
       </div>
       <h2 className="text-2xl font-black italic text-white mb-2 uppercase tracking-tighter">Usuario fuera de órbita</h2>
-      <p className="text-white/40 max-w-xs mb-8 text-sm">El explorador @{username} no ha sido encontrado en nuestro sector de la galaxia.</p>
+      <p className="text-white/40 max-w-xs mb-8 text-sm">El explorador {username.startsWith('@') ? username : `@${username}`} no ha sido encontrado en nuestro sector de la galaxia.</p>
       <div className="flex flex-col sm:flex-row gap-4">
         <Link to="/leaderboard" className="px-8 py-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-2xl text-[10px] font-black tracking-widest uppercase transition-all">
           ← Ver Leaderboard
@@ -321,7 +322,9 @@ export default function PublicProfilePage() {
 
   const unlockedAchs = ACHIEVEMENTS.filter(a => achIds.includes(a.id));
   const joinedYear = profile.created_at ? new Date(profile.created_at).getFullYear() : null;
-  const topGames = [...gameRanks].sort((a, b) => (b.max_score ?? 0) - (a.max_score ?? 0)).slice(0, 6);
+  const topGames = Array.isArray(gameRanks)
+    ? [...gameRanks].sort((a, b) => (b.max_score ?? 0) - (a.max_score ?? 0)).slice(0, 6)
+    : [];
 
   // GAMER STATS CALCULATION
   const totalXp = Math.floor(Math.max(0, (profile?.balance || 0) + (unlockedAchs.length * 150) + (gameRanks.length * 200) + ((cabinStats?.total_focus_minutes || 0) * 2)));
@@ -350,40 +353,52 @@ export default function PublicProfilePage() {
     equipped_secondary_role: profile.secondary_role_item
   } : null;
 
-  return (
-    <UniverseProvider overrideProfile={universeProfile}>
-      <ProfileContent
-        profile={profile}
-        gameRanks={gameRanks}
-        cabinStats={cabinStats}
-        unlockedAchs={unlockedAchs}
-        followCounts={followCounts}
-        comments={comments}
-        posts={posts}
-        partnership={partnership}
-        bannerItem={bannerItem}
-        isOwnProfile={isOwnProfile}
-        isFollowing={isFollowing}
-        activityLabel={activityLabel}
-        activeTab={activeTab}
-        setActiveTab={setActiveTab}
-        handleToggleFollow={handleToggleFollow}
-        handleAddComment={handleAddComment}
-        handleDeleteComment={handleDeleteComment}
-        handleSendRequest={handleSendRequest}
-        newComment={newComment}
-        setNewComment={setNewComment}
-        submittingComment={submittingComment}
-        progressPercent={progressPercent}
-        totalXp={totalXp}
-        nextLevelXp={nextLevelXp}
-        level={level}
-        rankName={rankName}
-        topGlobalRank={topGlobalRank}
-        userId={profile?.id}
-      />
-    </UniverseProvider>
-  );
+  try {
+    return (
+      <UniverseProvider overrideProfile={universeProfile}>
+        <ProfileContent
+          profile={profile}
+          gameRanks={gameRanks}
+          cabinStats={cabinStats}
+          unlockedAchs={unlockedAchs}
+          followCounts={followCounts}
+          comments={comments}
+          posts={posts}
+          partnership={partnership}
+          bannerItem={bannerItem}
+          isOwnProfile={isOwnProfile}
+          isFollowing={isFollowing}
+          activityLabel={activityLabel}
+          activeTab={activeTab}
+          setActiveTab={setActiveTab}
+          handleToggleFollow={handleToggleFollow}
+          handleAddComment={handleAddComment}
+          handleDeleteComment={handleDeleteComment}
+          handleSendRequest={handleSendRequest}
+          newComment={newComment}
+          setNewComment={setNewComment}
+          submittingComment={submittingComment}
+          progressPercent={progressPercent}
+          totalXp={totalXp}
+          nextLevelXp={nextLevelXp}
+          level={level}
+          rankName={rankName}
+          topGlobalRank={topGlobalRank}
+          bestRecord={bestRecord}
+          userId={profile?.id}
+        />
+      </UniverseProvider>
+    );
+  } catch (err) {
+    console.error('[PublicProfilePage] Rendering Error:', err);
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[50vh] text-white">
+        <h2 className="text-xl font-bold mb-2">Error de Sintonización 🛰️</h2>
+        <p className="text-white/40 text-sm">{err.message}</p>
+        <button onClick={() => window.location.reload()} className="mt-4 px-6 py-2 bg-cyan-600 rounded-xl">Reintentar</button>
+      </div>
+    );
+  }
 }
 
 function ProfileContent({
@@ -391,7 +406,7 @@ function ProfileContent({
   partnership, bannerItem, isOwnProfile, isFollowing, activityLabel, activeTab,
   setActiveTab, handleToggleFollow, handleAddComment, handleDeleteComment,
   handleSendRequest, newComment, setNewComment, submittingComment,
-  progressPercent, totalXp, nextLevelXp, level, rankName, topGlobalRank, userId
+  progressPercent, totalXp, nextLevelXp, level, rankName, topGlobalRank, bestRecord, userId
 }) {
   const { nicknameStyle, primaryRole, secondaryRole, mood, ambientSound, isAmbientMuted, toggleAmbientMute } = useUniverse();
   const [isSharing, setIsSharing] = useState(false);
@@ -767,7 +782,7 @@ function ProfileContent({
               {/* Feed de transmisiones sociales */}
               <div className="w-full max-w-2xl border-t border-white/10 pt-6">
                 <h3 className="text-[10px] font-black text-white/30 uppercase tracking-[0.4em] px-2 mb-6">🛰️ Transmisiones Sociales</h3>
-                <ActivityFeed userId={profile?.id} />
+                <ActivityFeed userId={profile?.id} filter="user" />
               </div>
             </div>
           )}
