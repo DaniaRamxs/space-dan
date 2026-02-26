@@ -42,7 +42,7 @@ export default function DreamscapePage() {
             {/* Estrellas estáticas en el fondo negro absoluto */}
             <div className="dreamscapeStars"></div>
 
-            <Link to="/home" className="dreamscapeExit">
+            <Link to="/posts" className="dreamscapeExit">
                 [despertar]
             </Link>
 

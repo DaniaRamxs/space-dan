@@ -226,7 +226,7 @@ export default function GardenLayout({ children }) {
           <footer className="gardenFooter">
             <NavLink to="/guestbook" className="footerLink">📖 Libro de Visitas</NavLink>
             <NavLink to="/arquitectura" className="footerLink">🏗️ Arquitectura</NavLink>
-            <NavLink to="/home" className="footerLink">🏠 Sobre Dan</NavLink>
+            <NavLink to="/dan" className="footerLink">👤 Sobre Dan</NavLink>
             <NavLink to="/desktop" className="footerLink desktop-highlight">💻 Desktop OS</NavLink>
           </footer>
 

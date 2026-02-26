@@ -23,7 +23,7 @@ const PostPage = lazy(() => import("./pages/PostPage"));
 const MusicPage = lazy(() => import("./pages/MusicPage"));
 const GamesPage = lazy(() => import("./pages/GamesPage"));
 const GlobalLeaderboardPage = lazy(() => import("./pages/GlobalLeaderboardPage"));
-const Wpage = lazy(() => import("./pages/Wpage"));
+// const Wpage = lazy(() => import("./pages/Wpage"));
 const GardenLayout = lazy(() => import("./layouts/GardenLayout"));
 const DanProfilePage = lazy(() => import("./pages/DanProfilePage"));
 // const ProfilePage represents ProfileRouter already
@@ -54,7 +54,7 @@ const PostDetailPage = lazy(() => import("./pages/PostDetailPage"));
 
 
 
-const ALL_PAGES = ['/home', '/bulletin', '/posts', '/music', '/games', '/galeria',
+const ALL_PAGES = ['/dan', '/bulletin', '/posts', '/music', '/games', '/galeria',
   '/watchlist', '/desktop', '/timecapsule', '/guestbook', '/proyectos', '/arquitectura',
   '/kinnies', '/tests', '/universo', '/dreamscape', '/logros', '/tienda', '/profile', '/leaderboard', '/cabina', '/cartas', '/cofre', '/foco'];
 
@@ -157,8 +157,8 @@ function AnimatedRoutes() {
         <Route path="/onboarding" element={<Layout><OnboardingPage /></Layout>} />
 
 
-        <Route path="/" element={<PageTransition><Wpage /></PageTransition>} />
-        <Route path="/home" element={<Layout><DanProfilePage /></Layout>} />
+        <Route path="/" element={<Navigate to="/posts" replace />} />
+        <Route path="/dan" element={<Layout><DanProfilePage /></Layout>} />
         <Route path="/profile" element={
           loading ? <FallbackLoader /> : (user ? <Layout><ProfileOwn /></Layout> : <Layout><LoginGate message="Necesitas iniciar sesión para ver tu perfil estelar." /></Layout>)
         } />

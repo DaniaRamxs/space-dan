@@ -893,8 +893,10 @@ textarea,
 .wpageWrap {
   min-height: 100vh;
   width: 100vw;
-  display: grid;
-  place-items: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
   padding: 22px 12px;
 
   background-image: url("https://media.tenor.com/XSSnkuIW5IkAAAAM/smurf-dance.gif");

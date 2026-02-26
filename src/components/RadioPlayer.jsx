@@ -2,6 +2,8 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import { unlockAchievement } from '../hooks/useAchievements';
 import { getRadioAudio } from '../utils/radioAudio';
 import RadioSvg from './RadioSvg';
+import { supabase } from '../supabaseClient';
+import { useAuthContext } from '../contexts/AuthContext';
 
 /* ── Estaciones ──────────────────────────────────────────────── */
 
@@ -67,14 +69,18 @@ const EXTRA_STATIONS = {
   },
 };
 
-function getStations() {
+function getStations(dbItems = []) {
   const stations = [...BASE_STATIONS];
   try {
-    const purchased = JSON.parse(
+    const localPurchased = JSON.parse(
       localStorage.getItem('space-dan-shop-purchased') || '[]'
     );
+    // Combinamos compras locales con compras de la base de datos
+    const dbPurchasedIds = dbItems.map(ui => ui.item_id);
+    const allPurchased = [...new Set([...localPurchased, ...dbPurchasedIds])];
+
     for (const [key, station] of Object.entries(EXTRA_STATIONS)) {
-      if (purchased.includes(key)) stations.push(station);
+      if (allPurchased.includes(key)) stations.push(station);
     }
   } catch { }
   return stations;
@@ -83,14 +89,38 @@ function getStations() {
 /* ── Componente ──────────────────────────────────────────────── */
 
 export default function RadioPlayer() {
+  const { user } = useAuthContext();
   const audio = useRef(getRadioAudio()).current;
-  const [stations, setStations] = useState(getStations);
+  const [stations, setStations] = useState(() => getStations([]));
   const [current, setCurrent] = useState(0);
   const [playing, setPlaying] = useState(() => !audio.paused && !!audio.src);
   const [volume, setVolume] = useState(() => audio.volume);
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(false);
   const hasUnlockedRef = useRef(false);
+
+  // Sincronizar con DB si el usuario está logueado
+  useEffect(() => {
+    if (!user) {
+      setStations(getStations([]));
+      return;
+    }
+
+    const loadDbStations = async () => {
+      try {
+        const { data } = await supabase
+          .from('user_items')
+          .select('item_id')
+          .eq('user_id', user.id);
+
+        if (data) setStations(getStations(data));
+      } catch (err) {
+        console.warn('[RadioPlayer] Error loading DB stations:', err);
+      }
+    };
+
+    loadDbStations();
+  }, [user]);
 
   useEffect(() => {
     if (!audio.paused && audio.src) {
@@ -129,11 +159,21 @@ export default function RadioPlayer() {
   }, [audio, stations]);
 
   useEffect(() => {
-    const sync = () => setStations(getStations());
+    const sync = async () => {
+      if (user) {
+        const { data } = await supabase
+          .from('user_items')
+          .select('item_id')
+          .eq('user_id', user.id);
+        setStations(getStations(data || []));
+      } else {
+        setStations(getStations([]));
+      }
+    };
     window.addEventListener('dan:item-purchased', sync);
     return () =>
       window.removeEventListener('dan:item-purchased', sync);
-  }, []);
+  }, [user]);
 
   useEffect(() => {
     audio.volume = volume;

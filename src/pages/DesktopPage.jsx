@@ -834,7 +834,7 @@ function DraggableWindow({ type, title, icon, initialPos, isActive, isMinimized,
 
 // ─── START MENU ──────────────────────────────────────────────
 const START_LINKS = [
-    { icon: '🏠', label: 'Sobre mí', to: '/home' },
+    { icon: '👤', label: 'Sobre Dan', to: '/dan' },
     { icon: '📰', label: 'Noticias', to: '/bulletin' },
     { icon: '✍️', label: 'Posts', to: '/posts' },
     { icon: '🎧', label: 'Música', to: '/music' },

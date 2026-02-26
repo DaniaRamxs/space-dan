@@ -7,7 +7,7 @@ export default function Secret() {
   useEffect(() => {
     audioRef.current = new Audio('/music/shop.mp3');
     audioRef.current.loop = true;
-    audioRef.current.play().catch(() => {});
+    audioRef.current.play().catch(() => { });
     return () => {
       audioRef.current.pause();
       audioRef.current.src = '';
@@ -23,7 +23,7 @@ export default function Secret() {
       duration: 3 + Math.random() * 3,
       delay: Math.random() * 2,
     })),
-  []);
+    []);
 
   return (
     <div className="secretPage" style={{
@@ -41,9 +41,10 @@ export default function Secret() {
     }}>
       <h1></h1>
       <p>encontraste el hogar de los cangrejos :3</p>
-      
-      <Link 
-        to="/home" 
+
+      <Link
+        to="/posts"
+        className="secretBack"
         style={{
           display: 'inline-block',
           padding: '10px 20px',
@@ -57,7 +58,7 @@ export default function Secret() {
       >
         🏠 Volver a la página principal
       </Link>
-      
+
       {/* Cangrejos */}
       <div className="cangrejos">
         {crabs.map((crab) => (
@@ -77,7 +78,7 @@ export default function Secret() {
           </div>
         ))}
       </div>
-      
+
       <style>{`
         @keyframes crabWalk {
           0% {

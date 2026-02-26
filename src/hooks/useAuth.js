@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../supabaseClient';
 import { ensureProfile, syncAchievementToDb } from '../services/supabaseScores';
+import { Capacitor } from '@capacitor/core';
 
 const ACH_KEY = 'space-dan-achievements';
 
@@ -114,18 +115,36 @@ export default function useAuth() {
   }, [session?.user?.id]);
 
 
-  const loginWithGoogle = () =>
-    supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: { redirectTo: window.location.origin },
-    });
+  const getRedirectUrl = () => {
+    if (Capacitor.isNativePlatform()) {
+      return 'com.dan.space://auth';
+    }
+    return window.location.origin;
+  };
 
-  const loginWithDiscord = () =>
-    supabase.auth.signInWithOAuth({
-      provider: 'discord',
-      options: { redirectTo: window.location.origin },
-    });
+  const loginWithProvider = async (provider) => {
+    try {
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider,
+        options: {
+          redirectTo: getRedirectUrl(),
+          skipBrowserRedirect: Capacitor.isNativePlatform(),
+        },
+      });
 
+      if (error) throw error;
+
+      if (Capacitor.isNativePlatform() && data?.url) {
+        const { Browser } = await import('@capacitor/browser');
+        await Browser.open({ url: data.url, windowName: '_self' });
+      }
+    } catch (err) {
+      console.error(`Error logging in with ${provider}:`, err);
+    }
+  };
+
+  const loginWithGoogle = () => loginWithProvider('google');
+  const loginWithDiscord = () => loginWithProvider('discord');
   const logout = () => supabase.auth.signOut();
 
   return {

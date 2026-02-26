@@ -33,7 +33,7 @@ export default function TimeCapsulePage() {
     return (
         <div className="timeCapsulePage">
             <div className="capsuleHeader">
-                <Link to="/home" className="capsuleBack">{'[TERMINATE_CONNECTION]'}</Link>
+                <Link to="/posts" className="capsuleBack">{'[TERMINATE_CONNECTION]'}</Link>
                 <div className="capsuleWarning blinkText">WARNING: ENCRYPTED VAULT</div>
             </div>
 

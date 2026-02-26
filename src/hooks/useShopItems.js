@@ -161,5 +161,5 @@ export default function useShopItems() {
 
   const getEquipped = useCallback((category) => equipped[category] || null, [equipped]);
 
-  return { shopItems: SHOP_ITEMS, purchased, hasPurchased, equip, unequip, getEquipped };
+  return { shopItems: SHOP_ITEMS, purchased, hasPurchased, purchaseItem, equip, unequip, getEquipped };
 }

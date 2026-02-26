@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import MarkdownGuide from '../components/Social/MarkdownGuide';
+import ApkDownload from '../components/ApkDownload';
 
 const bulletinPosts = [
   { id: 1, date: "2026-01-03", title: "Primer boletín", text: "Hola, estreno el boletín.", tags: ["general"] },
@@ -70,6 +71,11 @@ const bulletinPosts = [
   { id: 65, date: "2026-02-24", title: "Visuales Neón en Juegos", text: "Actualizamos los juegos clásicos (Snake, TTT, Memory) con estética premium neón, efectos de resplandor y animaciones fluidas de 60fps.", tags: ["diseño", "juegos"] },
   { id: 66, date: "2026-02-24", title: "IA Invencible: Minimax", text: "Tic-Tac-Toe ahora cuenta con el algoritmo Minimax. En modo 'Pro' la IA es matemáticamente perfecta. ¿Podrás lograr un empate?", tags: ["update", "juegos"] },
   { id: 67, date: "2026-02-24", title: "Sistema de Puntuación Real", text: "Eliminamos los puntajes estáticos. Ahora los puntos escalan con la dificultad, multiplicadores por combo y rachas de victoria.", tags: ["update", "gamificación"] },
+  { id: 75, date: "2026-02-25", title: "App Android Oficial", text: "¡Lanzamiento de la APK de Dan-Space! Ahora puedes instalar la app directamente en tu Android para una experiencia 100% fluida.", tags: ["update", "mobile"] },
+  { id: 76, date: "2026-02-25", title: "Auth Móvil & Deep Links", text: "Implementamos autenticación nativa con Capacitor. El login de Google y Discord ahora abre el navegador del sistema y vuelve a la app automáticamente manteniendo tu sesión.", tags: ["update", "seguridad", "mobile"] },
+  { id: 77, date: "2026-02-26", title: "Persistencia de Radio", text: "Corregido un fallo donde tus radios compradas no se equipaban al recargar. Ahora tu playlist estelar es persistente en cualquier dispositivo.", tags: ["fix", "música"] },
+  { id: 78, date: "2026-02-26", title: "Navegación Simplificada", text: "Eliminamos la página de bienvenida para un acceso más directo. El feed global de /posts es ahora la nueva entrada principal al universo.", tags: ["update", "diseño"] },
+  { id: 79, date: "2026-02-26", title: "Estabilidad de Tienda", text: "Arreglamos los botones de compra que fallaban ocasionalmente. También mejoramos el soporte para compras de usuarios visitantes.", tags: ["fix", "gamificación"] },
 ];
 
 const PAGE_SIZE = 10;
@@ -139,6 +145,8 @@ export default function BulletinPage() {
           <span className="group-hover:animate-pulse">✨ Aprende a usar la energía estelar</span>
         </button>
       </motion.div>
+
+      <ApkDownload />
 
       <AnimatePresence>
         {showGuide && <MarkdownGuide onClose={() => setShowGuide(false)} />}

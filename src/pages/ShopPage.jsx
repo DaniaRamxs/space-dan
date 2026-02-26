@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { SHOP_ITEMS, purchaseItem as localPurchase } from '../hooks/useShopItems';
+import { SHOP_ITEMS } from '../hooks/useShopItems';
 import useShopItems from '../hooks/useShopItems';
 import useDancoins from '../hooks/useDancoins';
 import { useEconomy } from '../contexts/EconomyContext';
@@ -8,7 +8,7 @@ import * as storeService from '../services/store';
 import { universeService } from '../services/universe';
 import { unlockAchievement } from '../hooks/useAchievements';
 import { getNicknameClass, getUserDisplayName } from '../utils/user';
-import RadioSvg from '../components/RadioIcons';
+import RadioSvg from '../components/RadioSvg';
 import '../styles/NicknameStyles.css';
 
 // Categories that only live in the DB (no localStorage visual effect)
@@ -132,14 +132,16 @@ export default function ShopPage() {
 
   // Equipped check — DB-only categories use dbItems; rest use localStorage
   const isItemEquipped = useCallback((item) => {
+    // Para la radio, si está comprada se considera activa/equipada automáticamente
+    if (item.category === 'radio') return hasPurchased(item.id);
+
     const isEquippedLocal = localShop.getEquipped(item.category) === item.id;
     const isEquippedDb = user && dbItems.some(ui => ui.item_id === item.id && ui.is_equipped);
     return isEquippedLocal || isEquippedDb;
-  }, [dbItems, localShop, user]);
+  }, [dbItems, localShop, user, hasPurchased]);
 
   const handleBuy = async (item) => {
     const owned = hasPurchased(item.id);
-    const isDbOnly = DB_ONLY_CATEGORIES.has(item.category);
 
     if (owned) {
       if (item.category === 'radio') {
@@ -176,7 +178,19 @@ export default function ShopPage() {
         showFlash(msg, false);
       }
     } else {
-      showFlash('Debes registrarte para realizar compras en el universo.', false);
+      // Intento de compra para visitantes (solo para items locales)
+      const isLocalItem = SHOP_ITEMS.some(i => i.id === item.id);
+      if (isLocalItem) {
+        const result = localShop.purchaseItem ? localShop.purchaseItem(item.id) : false;
+        if (result) {
+          localShop.equip(item.category, item.id);
+          showFlash(`¡${item.title} comprado y equipado!`, true);
+        } else {
+          showFlash('Dancoins insuficientes o item ya obtenido', false);
+        }
+      } else {
+        showFlash('Debes registrarte para comprar este tipo de items.', false);
+      }
     }
   };
 
@@ -422,7 +436,7 @@ export default function ShopPage() {
                         onClick={() => handleBuy(item)}
                         disabled={!canAfford && !owned}
                       >
-                        {equipped ? '✓ ACTIVO' : owned ? 'EQUIPAR' : `COMPRAR POR ◈ ${item.price}`}
+                        {equipped ? '✓ ACTIVO' : owned ? 'EQUIPAR' : user ? `COMPRAR POR ◈ ${item.price}` : 'REGÍSTRATE'}
                       </button>
                     </div>
                   </div>
