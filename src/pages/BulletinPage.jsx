@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import MarkdownGuide from '../components/Social/MarkdownGuide';
 
 const bulletinPosts = [
   { id: 1, date: "2026-01-03", title: "Primer boletín", text: "Hola, estreno el boletín.", tags: ["general"] },
@@ -71,7 +72,6 @@ const bulletinPosts = [
   { id: 67, date: "2026-02-24", title: "Sistema de Puntuación Real", text: "Eliminamos los puntajes estáticos. Ahora los puntos escalan con la dificultad, multiplicadores por combo y rachas de victoria.", tags: ["update", "gamificación"] },
 ];
 
-
 const PAGE_SIZE = 10;
 const ALL_TAGS = [...new Set(bulletinPosts.flatMap(p => p.tags || []))].sort();
 
@@ -97,6 +97,7 @@ export default function BulletinPage() {
   const [search, setSearch] = useState('');
   const [activeTag, setActiveTag] = useState(null);
   const [visible, setVisible] = useState(PAGE_SIZE);
+  const [showGuide, setShowGuide] = useState(false);
 
   const sorted = useMemo(() => [...bulletinPosts].reverse(), []);
 
@@ -122,14 +123,26 @@ export default function BulletinPage() {
     <main className="w-full max-w-2xl mx-auto min-h-[100dvh] pb-32 text-white font-sans flex flex-col pt-6 md:pt-10 px-4 relative">
 
       {/* Header */}
-      <motion.div initial={{ opacity: 0, y: -12 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
-        <h1 className="text-4xl md:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-white to-white/30 tracking-tight mb-1 uppercase">
-          Boletín
-        </h1>
-        <p className="text-[10px] text-white/25 uppercase tracking-[0.4em] font-black">
-          {bulletinPosts.length} entradas · Registro de actualizaciones
-        </p>
+      <motion.div initial={{ opacity: 0, y: -12 }} animate={{ opacity: 1, y: 0 }} className="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-4">
+        <div>
+          <h1 className="text-4xl md:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-white to-white/30 tracking-tight mb-1 uppercase">
+            Boletín
+          </h1>
+          <p className="text-[10px] text-white/25 uppercase tracking-[0.4em] font-black">
+            {bulletinPosts.length} entradas · Registro de actualizaciones
+          </p>
+        </div>
+        <button
+          onClick={() => setShowGuide(true)}
+          className="px-4 py-2 bg-white/5 border border-white/10 rounded-xl text-[9px] font-black uppercase tracking-widest text-cyan-400 hover:bg-cyan-400/10 hover:border-cyan-400/30 transition-all self-start md:self-auto shadow-lg shadow-cyan-500/5 group"
+        >
+          <span className="group-hover:animate-pulse">✨ Aprende a usar la energía estelar</span>
+        </button>
       </motion.div>
+
+      <AnimatePresence>
+        {showGuide && <MarkdownGuide onClose={() => setShowGuide(false)} />}
+      </AnimatePresence>
 
       {/* Buscador */}
       <motion.div

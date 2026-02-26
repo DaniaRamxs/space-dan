@@ -774,8 +774,11 @@ export default function ProfileOwn() {
     setFrameItemId(profile.frame_item_id ?? null);
     setBio(profile.bio || '');
 
-    // Fetch banner item if equipped
-    if (profile.banner_item_id) {
+    // Use pre-loaded items from auth context if available
+    if (profile.banner_item) {
+      setBannerItem(profile.banner_item);
+    } else if (profile.banner_item_id) {
+      // Fallback: fetch if not joined (though useAuth now joins it)
       storeService.getStoreItem(profile.banner_item_id)
         .then(setBannerItem)
         .catch(err => console.error('[ProfileOwn] Error fetching banner item:', err));
@@ -912,7 +915,7 @@ export default function ProfileOwn() {
             opacity: bannerItem?.preview_url ? 0.7 : 1
           }}
         >
-          {bannerItem?.metadata?.fx === 'matrix' && <div className="absolute inset-0 banner-fx-matrix opacity-20"></div>}
+          {bannerItem?.metadata?.fx === 'matrix' && <div className="absolute inset-0 banner-fx-matrix opacity-80 z-10"></div>}
           {bannerItem?.metadata?.fx === 'scanlines' && <div className="absolute inset-0 banner-fx-scanlines opacity-30"></div>}
           {bannerItem?.metadata?.fx === 'stars' && <div className="absolute inset-0 banner-fx-stars"></div>}
 
@@ -1012,6 +1015,17 @@ export default function ProfileOwn() {
               <div className={`absolute -bottom-5 left-1/2 -translate-x-1/2 px-6 py-2 rounded-2xl border font-black text-sm tracking-tighter z-20 whitespace-nowrap transition-all duration-500 shadow-2xl ${level >= 10 ? 'bg-gradient-to-r from-yellow-400 via-white to-yellow-400 text-black border-yellow-200 animate-shimmer bg-[length:200%_100%]' : 'bg-[#09090b] border-cyan-500/50 text-cyan-400 shadow-[0_0_20px_rgba(6,182,212,0.3)]'}`}>
                 NIVEL {level}
               </div>
+
+              {/* Racha Estelar Badge */}
+              {profile?.streak > 0 && (
+                <div className="absolute -top-5 right-1/2 translate-x-1/2 px-4 py-1.5 rounded-full bg-gradient-to-r from-orange-500 to-yellow-500 border border-yellow-200/50 shadow-[0_0_15px_rgba(249,115,22,0.4)] z-20 flex items-center gap-2 animate-bounce-slow">
+                  <span className="text-lg">🔥</span>
+                  <div className="flex flex-col items-start leading-none">
+                    <span className="text-[10px] font-black text-white uppercase tracking-tighter">{profile.streak} DÍAS</span>
+                    <span className="text-[7px] font-bold text-white/80 uppercase">Racha Estelar</span>
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="flex flex-col items-center gap-2 mt-4 relative z-10">

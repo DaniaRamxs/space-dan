@@ -4,18 +4,17 @@ const STAR_COUNT = 180;
 
 const STAR_THEMES = {
   default: { r: 255, g: 255, b: 255, neon: ['255,0,255', '0,229,255'] },
-  stars_blue: { r: 100, g: 180, b: 255, neon: ['0,200,255', '0,150,255'] },
-  stars_green: { r: 100, g: 255, b: 130, neon: ['57,255,20', '0,255,136'] },
-  stars_red: { r: 255, g: 120, b: 80, neon: ['255,80,30', '255,200,0'] },
-  stars_purple: { r: 180, g: 100, b: 255, neon: ['180,0,255', '120,80,255'] },
+  stars_blue: { r: 0, g: 191, b: 255, neon: ['0,255,255', '0,100,255'] },
+  stars_green: { r: 57, g: 255, b: 20, neon: ['0,255,0', '0,180,100'] },
+  stars_red: { r: 255, g: 50, b: 50, neon: ['255,0,0', '255,160,0'] },
+  stars_purple: { r: 191, g: 0, b: 255, neon: ['255,0,255', '150,0,255'] },
 };
 
 function getStarTheme() {
   try {
     const equipped = JSON.parse(localStorage.getItem('space-dan-shop-equipped') || '{}');
-    const purchased = JSON.parse(localStorage.getItem('space-dan-shop-purchased') || '[]');
     const pick = equipped.stars;
-    if (pick && purchased.includes(pick) && STAR_THEMES[pick]) return STAR_THEMES[pick];
+    if (pick && STAR_THEMES[pick]) return STAR_THEMES[pick];
   } catch { }
   return STAR_THEMES.default;
 }
@@ -28,15 +27,20 @@ export default function StarfieldBg() {
     const ctx = canvas.getContext('2d');
     let theme = getStarTheme();
 
-    const onThemeChange = () => { theme = getStarTheme(); };
+    const onThemeChange = (e) => {
+      // If the event specifically mentions stars, or it's a general equip, we update
+      if (!e.detail || e.detail.category === 'stars') {
+        theme = getStarTheme();
+      }
+    };
     window.addEventListener('dan:item-equipped', onThemeChange);
 
     const stars = Array.from({ length: STAR_COUNT }, () => ({
       x: Math.random(),
       y: Math.random(),
-      size: Math.random() * 1.6 + 0.3,
+      size: Math.random() * 2.0 + 0.5, // Increased size slightly
       speed: Math.random() * 0.00015 + 0.00005,
-      opacity: Math.random() * 0.6 + 0.3,
+      opacity: Math.random() * 0.7 + 0.3,
       phase: Math.random() * Math.PI * 2,
     }));
 

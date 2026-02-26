@@ -7,13 +7,16 @@ import { useAuthContext } from '../contexts/AuthContext';
 import * as storeService from '../services/store';
 import { universeService } from '../services/universe';
 import { unlockAchievement } from '../hooks/useAchievements';
+import { getNicknameClass, getUserDisplayName } from '../utils/user';
+import RadioSvg from '../components/RadioIcons';
+import '../styles/NicknameStyles.css';
 
 // Categories that only live in the DB (no localStorage visual effect)
 const DB_ONLY_CATEGORIES = new Set(['banner', 'frame', 'pet_accessory', 'nickname_style', 'profile_theme', 'role', 'ambient_sound']);
 
 const CAT_LABELS = {
-  theme: '🎨 Temas',
-  cursor: '🖱️ Cursores',
+  theme: '🎨 Perfil Colección',
+  cursor: '🖱️ Partículas',
   screensaver: '💤 Screensavers',
   stars: '⭐ Estrellas',
   radio: '📻 Radio',
@@ -42,6 +45,15 @@ export default function ShopPage() {
   const [dbCatalog, setDbCatalog] = useState([]);      // store_items from DB
   const [catalogLoading, setCatalogLoading] = useState(false);
   const [partnership, setPartnership] = useState(null);
+
+  const [expandedItems, setExpandedItems] = useState(new Set());
+
+  const toggleDescription = (id) => {
+    const next = new Set(expandedItems);
+    if (next.has(id)) next.delete(id);
+    else next.add(id);
+    setExpandedItems(next);
+  };
 
   // Load full store catalog from DB (banners, frames, pet accs)
   useEffect(() => {
@@ -120,24 +132,29 @@ export default function ShopPage() {
 
   // Equipped check — DB-only categories use dbItems; rest use localStorage
   const isItemEquipped = useCallback((item) => {
-    if (DB_ONLY_CATEGORIES.has(item.category)) {
-      return dbItems.some(ui => ui.item_id === item.id && ui.is_equipped);
-    }
-    return localShop.getEquipped(item.category) === item.id;
-  }, [dbItems, localShop]);
+    const isEquippedLocal = localShop.getEquipped(item.category) === item.id;
+    const isEquippedDb = user && dbItems.some(ui => ui.item_id === item.id && ui.is_equipped);
+    return isEquippedLocal || isEquippedDb;
+  }, [dbItems, localShop, user]);
 
   const handleBuy = async (item) => {
     const owned = hasPurchased(item.id);
     const isDbOnly = DB_ONLY_CATEGORIES.has(item.category);
 
     if (owned) {
-      // Already owned — equip
-      if (!isDbOnly) localShop.equip(item.category, item.id);
+      if (item.category === 'radio') {
+        showFlash(`Esta estación ya está disponible en tu Radio Player 📻`, true);
+        return;
+      }
+      localShop.equip(item.category, item.id);
       if (user) {
         try {
           await storeService.equipItem(user.id, item.id);
           await reloadDbItems();
-        } catch { /* ignore */ }
+        } catch (err) {
+          console.error('[ShopPage] Error equipping:', err);
+          showFlash('Error al sincronizar con el servidor', false);
+        }
       }
       showFlash(`¡${item.title} equipado!`, true);
       return;
@@ -147,7 +164,7 @@ export default function ShopPage() {
       try {
         await storeService.purchaseItem(user.id, item.id);
         await reloadDbItems();
-        if (!isDbOnly) localShop.equip(item.category, item.id);
+        localShop.equip(item.category, item.id);
         await storeService.equipItem(user.id, item.id).catch(() => { });
         await reloadDbItems();
         showFlash(`¡${item.title} comprado y equipado!`, true);
@@ -311,8 +328,9 @@ export default function ShopPage() {
           </div>
         )}
         <div className="shopHintCategories">
-          <span>🎨 Temas — cambia la paleta de colores</span>
-          <span>🖱️ Cursores — trail de partículas</span>
+          <span>🎨 Perfil Colección — cambia los colores de botones, bordes y UI</span>
+          <span>🌌 Universe Themes — cambia el fondo y la dimensión de tu espacio</span>
+          <span>🖱️ Partículas — trail que sigue a tu ratón</span>
           <span>💤 Screensavers — animación tras inactividad</span>
           <span>🖼️ Banners — fondo de tu perfil</span>
           <span>🔲 Marcos — borde de tu avatar</span>
@@ -323,7 +341,7 @@ export default function ShopPage() {
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8 pt-4">
         {/* Advanced Filters */}
         <div className="flex-1">
-          <div className="flex gap-2 overflow-x-auto pb-4 scrollbar-hide">
+          <div className="flex flex-wrap gap-2 pb-4">
             {categories.map(c => (
               <button
                 key={c.id}
@@ -387,7 +405,17 @@ export default function ShopPage() {
                       <span className="text-[10px] font-black px-2.5 py-1 bg-white/10 rounded-full border border-white/10 text-white uppercase">{item.rarity}</span>
                     </div>
                     <h3 className="text-xl font-black italic mb-2 tracking-tighter">{item.title}</h3>
-                    <p className="text-xs text-white/40 mb-6 line-clamp-2">{item.desc || item.description}</p>
+                    <p className={`text-xs text-white/40 mb-2 ${expandedItems.has(item.id) ? '' : 'line-clamp-2'}`}>
+                      {item.desc || item.description}
+                    </p>
+                    {(item.desc || item.description)?.length > 80 && (
+                      <button
+                        onClick={() => toggleDescription(item.id)}
+                        className="text-cyan-400 text-[10px] font-bold mb-4 hover:underline text-left"
+                      >
+                        {expandedItems.has(item.id) ? 'VER MENOS ↑' : 'VER MÁS ↓'}
+                      </button>
+                    )}
                     <div className="mt-auto">
                       <button
                         className={`w-full py-3 rounded-2xl font-black text-[11px] tracking-widest transition-all ${canAfford || owned ? 'bg-white text-black hover:shadow-[0_0_20px_white]' : 'bg-white/5 text-white/20'}`}
@@ -478,15 +506,106 @@ export default function ShopPage() {
 
               <div className="relative z-10 flex flex-col h-full">
                 <div className="flex justify-between items-start mb-4">
-                  <div className="p-3 bg-black/40 rounded-2xl flex items-center justify-center min-w-[64px] min-h-[64px] border border-white/5 relative">
-                    {item.preview_url ? (
+                  <div className={`p-3 bg-black/40 rounded-2xl flex items-center justify-center border border-white/5 relative ${item.category === 'nickname_style' ? 'w-full min-h-[80px]' : 'min-w-[64px] min-h-[64px]'}`}>
+                    {item.category === 'nickname_style' ? (
+                      <div className="flex flex-col items-center justify-center w-full p-2 overflow-visible bg-white/5 rounded-xl border border-white/5">
+                        <span className={`text-base whitespace-nowrap ${getNicknameClass({ nicknameStyle: item.id })}`}>
+                          {user ? getUserDisplayName(user) : 'Explorador'}
+                        </span>
+                      </div>
+                    ) : item.category === 'role' ? (
+                      <div className="flex flex-col items-center justify-center w-full py-6 relative">
+                        {/* Halo etéreo de fondo para dar profundidad sin usar cajas */}
+                        <div className="absolute inset-0 bg-gradient-to-b from-cyan-500/5 to-purple-500/5 blur-2xl rounded-full scale-150 opacity-40"></div>
+
+                        <div className="relative z-10">
+                          {/* El badge real flotando */}
+                          <div className="relative group/role-preview">
+                            <div className="absolute -inset-2 bg-gradient-to-r from-cyan-500/40 to-purple-500/40 rounded-full blur-md opacity-0 group-hover/role-preview:opacity-100 transition-opacity duration-500"></div>
+                            <span className="relative px-6 py-2.5 rounded-full bg-black/80 backdrop-blur-md border border-white/20 text-[10px] font-black uppercase tracking-[0.2em] text-cyan-400 flex items-center gap-3 shadow-[0_0_30px_rgba(0,229,255,0.2)] hover:scale-110 transition-transform duration-500">
+                              <span className="text-lg drop-shadow-[0_0_8px_rgba(255,255,255,0.5)]">{item.icon}</span>
+                              {item.title}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Indicador minimalista inferior */}
+                        <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-12 h-0.5 bg-gradient-to-r from-transparent via-white/10 to-transparent"></div>
+                      </div>
+                    ) : item.category === 'theme' || item.category === 'cursor' ? (
+                      <div className="flex flex-col items-center justify-center w-full min-h-[80px] bg-black/40 rounded-xl border border-white/5 relative overflow-hidden p-3">
+                        <div className="w-full h-8 rounded-lg flex gap-1 mb-2 overflow-hidden border border-white/10 relative">
+                          {(item.swatch || ['#333', '#111']).map((color, i) => (
+                            <div key={i} className="flex-1 h-full" style={{ backgroundColor: color }}></div>
+                          ))}
+                          {item.category === 'cursor' && (
+                            <div className="absolute inset-0 flex items-center justify-center">
+                              <div className="w-2 h-2 rounded-full bg-white shadow-[0_0_10px_white] animate-ping"></div>
+                            </div>
+                          )}
+                        </div>
+                        <div className="w-full flex items-center gap-2">
+                          <div className="h-1 flex-1 bg-white/20 rounded"></div>
+                          <div className={`text-[7px] font-black uppercase text-white/40`}>
+                            {item.category === 'cursor' ? 'Trail FX' : 'Muestra UI'}
+                          </div>
+                        </div>
+                      </div>
+                    ) : item.category === 'profile_theme' ? (
+                      <div className="flex flex-col items-center justify-center w-full min-h-[100px] bg-black/40 rounded-xl border border-white/5 relative overflow-hidden group/universe-preview">
+                        {/* Simulación miniatura del Universe Home */}
+                        <div className="absolute inset-0 opacity-40 transition-transform duration-700 group-hover/universe-preview:scale-110"
+                          style={{
+                            background: item.metadata?.gradient ? `linear-gradient(to bottom, ${item.metadata.gradient.join(', ')})` : 'var(--bg-dark)',
+                            backgroundSize: 'cover'
+                          }}>
+                          {item.metadata?.fx === 'nebula' && <div className="absolute inset-0 animate-pulse bg-purple-500/10 blur-xl"></div>}
+                        </div>
+                        <div className="relative z-10 flex flex-col items-center text-center p-2">
+                          <span className="text-2xl mb-1 drop-shadow-md">{item.icon}</span>
+                          <div className="px-2 py-0.5 rounded bg-white/10 backdrop-blur-md border border-white/10 text-[7px] font-black text-white/60">ESTILO COSMOS</div>
+                        </div>
+                      </div>
+                    ) : item.category === 'stars' ? (
+                      <div className="flex flex-col items-center justify-center w-full min-h-[80px] bg-black/40 rounded-xl border border-white/5 relative overflow-hidden p-3">
+                        <div className="absolute inset-0 bg-gradient-to-b from-transparent to-white/5 opacity-20"></div>
+                        <div className="relative flex gap-2">
+                          <div className="w-2 h-2 rounded-full animate-pulse shadow-[0_0_10px_currentcolor]" style={{ backgroundColor: item.swatch?.[0] || '#fff', color: item.swatch?.[0] || '#fff' }}></div>
+                          <div className="w-1.5 h-1.5 rounded-full animate-bounce shadow-[0_0_10px_currentcolor]" style={{ backgroundColor: item.swatch?.[1] || '#fff', color: item.swatch?.[1] || '#fff', animationDelay: '0.2s' }}></div>
+                          <div className="w-1 h-1 rounded-full animate-pulse shadow-[0_0_10px_currentcolor]" style={{ backgroundColor: item.swatch?.[0] || '#fff', color: item.swatch?.[0] || '#fff', animationDelay: '0.5s' }}></div>
+                        </div>
+                        <span className="mt-3 text-[7px] font-black text-white/30 uppercase tracking-[0.2em]">Atmósfera Estelar</span>
+                      </div>
+                    ) : item.category === 'banner' ? (
+                      <div className="flex flex-col items-center justify-center w-full min-h-[90px] bg-black/40 rounded-xl border border-white/5 relative overflow-hidden group/banner-preview">
+                        <div className="absolute inset-0 opacity-80"
+                          style={{
+                            background: item.metadata?.gradient ? `linear-gradient(to right, ${item.metadata.gradient.join(', ')})` : 'var(--bg-dark)',
+                            backgroundSize: '200% 200%',
+                          }}>
+                          {item.metadata?.fx === 'matrix' && <div className="absolute inset-0 banner-fx-matrix opacity-70"></div>}
+                          {item.metadata?.fx === 'scanlines' && <div className="absolute inset-0 bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.25)_50%),linear-gradient(90deg,rgba(255,0,0,0.06),rgba(0,255,0,0.02),rgba(0,0,255,0.06))] bg-[length:100%_4px,3px_100%]"></div>}
+                        </div>
+                        <div className="relative z-10 flex flex-col items-center justify-center p-4">
+                          <div className="px-3 py-1 rounded bg-black/40 backdrop-blur-md border border-white/20 text-[8px] font-black text-white/80 uppercase tracking-widest">Vista Previa Banner</div>
+                        </div>
+                      </div>
+                    ) : item.preview_url ? (
                       <img
                         src={item.preview_url}
                         alt={item.title}
                         className="w-12 h-12 object-cover rounded-lg pixelated transition-transform group-hover:scale-110"
                       />
                     ) : (
-                      <span className="text-3xl group-hover:scale-110 transition-transform">{item.icon}</span>
+                      <span className="text-3xl group-hover:scale-110 transition-transform">
+                        {typeof item.icon === 'string' && item.icon.startsWith('svg:') ? (
+                          <div className="w-10 h-10 text-white/80">
+                            <RadioSvg type={item.icon.split(':')[1]} />
+                          </div>
+                        ) : (
+                          item.icon
+                        )}
+                      </span>
                     )}
 
                     {/* Category Overlay Badge */}
@@ -512,9 +631,17 @@ export default function ShopPage() {
                   <h3 className="font-black text-sm tracking-tight text-white/90 mb-1 group-hover:text-pink-400 transition-colors">
                     {item.title}
                   </h3>
-                  <p className="text-[11px] text-white/50 line-clamp-2 leading-relaxed mb-3">
+                  <p className={`text-[11px] text-white/50 leading-relaxed ${expandedItems.has(item.id) ? 'mb-2' : 'line-clamp-2 mb-1'}`}>
                     {item.desc || item.description || "Sin descripción disponible."}
                   </p>
+                  {(item.desc || item.description)?.length > 50 && (
+                    <button
+                      onClick={() => toggleDescription(item.id)}
+                      className="text-cyan-400 text-[9px] font-black uppercase tracking-widest hover:underline mb-3"
+                    >
+                      {expandedItems.has(item.id) ? 'Ver menos ↑' : 'Ver más ↓'}
+                    </button>
+                  )}
                 </div>
                 <div className="shopCardFooter">
                   <div className="mt-4">

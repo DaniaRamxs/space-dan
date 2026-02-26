@@ -82,4 +82,22 @@ export async function getCompetitiveLeaderboard(limit = 50) {
   }));
 }
 
+/** Tab 8: Streak Leaderboard (Racha Estelar) */
+export async function getStreakLeaderboard(limit = 50) {
+  const { data, error } = await supabase.rpc('get_streak_leaderboard', {
+    p_limit: limit
+  });
+  if (error) throw error;
+  return data || [];
+}
 
+/** Tab 9: Miembros (Orden de llegada) */
+export async function getMembers(limit = 100) {
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('*')
+    .order('created_at', { ascending: true })
+    .limit(limit);
+  if (error) throw error;
+  return data || [];
+}

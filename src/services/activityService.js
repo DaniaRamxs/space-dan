@@ -1,4 +1,5 @@
 import { supabase } from '../supabaseClient';
+import { streakService } from './streak';
 
 export const activityService = {
     /**
@@ -93,6 +94,10 @@ export const activityService = {
             .single();
 
         if (error) throw error;
+
+        // Registrar racha estelar al crear contenido real
+        streakService.trackActivity();
+
         return data;
     },
 
@@ -127,6 +132,10 @@ export const activityService = {
                 .from('activity_reactions')
                 .insert({ post_id: postId, user_id: userId, reaction_type: reactionType });
             if (error) throw error;
+
+            // Registrar racha estelar al interactuar
+            streakService.trackActivity();
+
             return { action: 'added', type: reactionType };
         }
     },
@@ -156,6 +165,10 @@ export const activityService = {
             p_category: category ?? null,
         });
         if (error) throw error;
+
+        // Registrar racha estelar al actualizar contenido
+        streakService.trackActivity();
+
         return data;
     },
 

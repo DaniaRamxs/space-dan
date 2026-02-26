@@ -1,49 +1,112 @@
 /* Banner Special Effects (Cinema v2.5) */
 
 .banner-fx-matrix {
-    background: linear-gradient(rgba(0, 50, 0, 0.2), rgba(0, 50, 0, 0.2)),
-        url('https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExNHJndzRreGZ0ZzRreGZ0ZzRreGZ0ZzRreGZ0ZzRreGZ0ZzRreGZ0JmVwPXYxX2ludGVybmFsX2dpZl9ieV9pZCZjdD1n/o0vwzuFwCGAFO/giphy.gif');
-    background-size: cover;
-    background-position: center;
-    mix-blend-mode: color-dodge;
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    background: transparent;
+    z-index: 10;
+    /* Usamos un SVG como fondo repetitivo para cubrir TODO el banner sin fallos */
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'%3E%3Ctext x='10' y='20' fill='%234dfa60' font-family='monospace' font-size='12' opacity='0.8'%3E10110%3C/text%3E%3Ctext x='40' y='40' fill='%234dfa60' font-family='monospace' font-size='12' opacity='0.6'%3E01101%3C/text%3E%3Ctext x='70' y='15' fill='%234dfa60' font-family='monospace' font-size='12' opacity='0.7'%3E11010%3C/text%3E%3Ctext x='20' y='60' fill='%234dfa60' font-family='monospace' font-size='12' opacity='0.5'%3E00101%3C/text%3E%3Ctext x='60' y='80' fill='%234dfa60' font-family='monospace' font-size='12' opacity='0.9'%3E10111%3C/text%3E%3Ctext x='10' y='95' fill='%234dfa60' font-family='monospace' font-size='12' opacity='0.4'%3E01010%3C/text%3E%3C/svg%3E");
+    background-size: 150px 150px;
+    animation: matrix-scroll-total 15s linear infinite;
+    filter: brightness(1.5) drop-shadow(0 0 5px rgba(77, 250, 96, 0.4));
 }
 
-.banner-fx-stars {
-    background-image:
-        radial-gradient(1px 1px at 20px 30px, #fff, rgba(0, 0, 0, 0)),
-        radial-gradient(1px 1px at 40px 70px, #fff, rgba(0, 0, 0, 0)),
-        radial-gradient(1.5px 1.5px at 50px 160px, #fff, rgba(0, 0, 0, 0)),
-        radial-gradient(2px 2px at 90px 40px, #fff, rgba(0, 0, 0, 0)),
-        radial-gradient(1.5px 1.5px at 130px 80px, #fff, rgba(0, 0, 0, 0)),
-        radial-gradient(1px 1px at 160px 120px, #fff, rgba(0, 0, 0, 0));
-    background-repeat: repeat;
-    background-size: 200px 200px;
-    opacity: 0.3;
-    animation: stars-twinkle 4s infinite alternate;
+.banner-fx-matrix::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg,
+            rgba(0, 0, 0, 0) 0%,
+            transparent 70%,
+            rgba(0, 0, 0, 0.5) 100%);
+    pointer-events: none;
 }
 
-@keyframes stars-twinkle {
+@keyframes matrix-scroll-total {
     from {
-        opacity: 0.2;
-        transform: scale(1);
+        background-position: 0 0;
     }
 
     to {
-        opacity: 0.4;
-        transform: scale(1.1);
+        background-position: 0 1000px;
     }
 }
 
-.banner-fx-scanlines {
-    background: linear-gradient(to bottom,
-            rgba(18, 16, 16, 0) 50%,
-            rgba(0, 0, 0, 0.25) 50%);
-    background-size: 100% 4px;
-    pointer-events: none;
-    z-index: 1;
+/* 🌌 ESTRELLAS: Campo estelar cinemático con movimiento de profundidad */
+.banner-fx-stars {
+    position: absolute;
+    inset: 0;
+    background-image:
+        radial-gradient(1.5px 1.5px at 20px 30px, #fff, rgba(0, 0, 0, 0)),
+        radial-gradient(2px 2px at 50px 70px, #fff, rgba(0, 0, 0, 0)),
+        radial-gradient(1.5px 1.5px at 110px 140px, #fff, rgba(0, 0, 0, 0)),
+        radial-gradient(2px 2px at 150px 40px, #fff, rgba(0, 0, 0, 0));
+    background-size: 200px 200px;
+    animation: stars-move 60s linear infinite;
+    opacity: 0.6;
 }
 
-@keyframes aurora {
+.banner-fx-stars::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image:
+        radial-gradient(1px 1px at 10px 10px, #fff, rgba(0, 0, 0, 0)),
+        radial-gradient(1px 1px at 100px 100px, #fff, rgba(0, 0, 0, 0));
+    background-size: 150px 150px;
+    animation: stars-move 100s linear infinite reverse;
+    opacity: 0.3;
+}
+
+@keyframes stars-move {
+    from {
+        background-position: 0 0;
+    }
+
+    to {
+        background-position: 1000px 1000px;
+    }
+}
+
+/* 📺 SCANLINES: Efecto CRT retro con flicker y aberración cromática */
+.banner-fx-scanlines {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to bottom,
+            rgba(18, 16, 16, 0) 50%,
+            rgba(0, 0, 0, 0.2) 50%);
+    background-size: 100% 4px;
+    z-index: 10;
+    pointer-events: none;
+    animation: crt-flicker 0.15s infinite;
+}
+
+.banner-fx-scanlines::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03));
+    background-size: 3px 100%;
+}
+
+@keyframes crt-flicker {
+    0% {
+        opacity: 0.9;
+    }
+
+    50% {
+        opacity: 1;
+    }
+
+    100% {
+        opacity: 0.9;
+    }
+}
+
+/* 🌀 AURORA: Movimiento fluido de plasma estelar */
+@keyframes aurora-flow {
     0% {
         background-position: 0% 50%;
         filter: hue-rotate(0deg);
@@ -51,18 +114,57 @@
 
     50% {
         background-position: 100% 50%;
-        filter: hue-rotate(180deg);
+        filter: hue-rotate(30deg);
     }
 
     100% {
         background-position: 0% 50%;
-        filter: hue-rotate(360deg);
+        filter: hue-rotate(0deg);
     }
 }
 
 .animate-aurora {
-    background-size: 300% 300% !important;
-    animation: aurora 15s ease infinite !important;
+    background-size: 400% 400% !important;
+    animation: aurora-flow 20s ease infinite !important;
+    position: relative;
+    filter: brightness(1.6) saturate(1.8) contrast(1.2) !important;
+}
+
+.animate-aurora::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.2) 0%, transparent 70%);
+    mix-blend-mode: hard-light;
+    animation: pulse 5s ease-in-out infinite alternate;
+}
+
+/* 🌑 VACÍO: Agujero negro que devora la luz */
+.banner-fx-void {
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at center, transparent 20%, #000 70%);
+    z-index: 5;
+}
+
+.banner-fx-void::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.02' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23f)' opacity='.2'/%3E%3C/svg%3E");
+    opacity: 0.2;
+    mix-blend-mode: overlay;
+    animation: void-swirl 30s linear infinite;
+}
+
+@keyframes void-swirl {
+    from {
+        transform: rotate(0deg) scale(1.2);
+    }
+
+    to {
+        transform: rotate(360deg) scale(1.5);
+    }
 }
 
 /* Legendary banner glow — lightweight edge highlight only */

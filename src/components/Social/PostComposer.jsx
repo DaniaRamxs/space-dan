@@ -2,8 +2,23 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import rehypeRaw from 'rehype-raw';
+import rehypeSanitize, { defaultSchema } from 'rehype-sanitize';
 import { activityService } from '../../services/activityService';
 import { useAuthContext } from '../../contexts/AuthContext';
+import { parseSpaceEnergies } from '../../utils/markdownUtils';
+
+// Configuración de sanitize para permitir nuestras clases sd-*
+const sanitizeSchema = {
+    ...defaultSchema,
+    tagNames: [...new Set([...defaultSchema.tagNames, 'div', 'span'])],
+    attributes: {
+        ...defaultSchema.attributes,
+        div: [...(defaultSchema.attributes.div || []), 'className', 'class'],
+        span: [...(defaultSchema.attributes.span || []), 'className', 'class'],
+        '*': [...(defaultSchema.attributes['*'] || []), 'className', 'class']
+    }
+};
 
 export const CATEGORIES = [
     { id: 'general', label: 'General', icon: '🌐' },
@@ -221,7 +236,12 @@ export default function PostComposer({
                     prose-ul:text-white/75 prose-ol:text-white/75
                     prose-hr:border-white/10 break-words"
                                     >
-                                        <ReactMarkdown remarkPlugins={[remarkGfm]}>{content}</ReactMarkdown>
+                                        <ReactMarkdown
+                                            remarkPlugins={[remarkGfm]}
+                                            rehypePlugins={[rehypeRaw, [rehypeSanitize, sanitizeSchema]]}
+                                        >
+                                            {parseSpaceEnergies(content)}
+                                        </ReactMarkdown>
                                     </div>
                                 ) : (
                                     <p className="text-[11px] text-white/20 italic">Sin contenido aún...</p>
