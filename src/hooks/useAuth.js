@@ -127,8 +127,11 @@ export default function useAuth() {
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider,
         options: {
-          redirectTo: getRedirectUrl(),
+          redirectTo: redirectUrl,
           skipBrowserRedirect: Capacitor.isNativePlatform(),
+          queryParams: {
+            prompt: 'select_account'
+          }
         },
       });
 

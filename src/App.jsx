@@ -157,7 +157,14 @@ function AnimatedRoutes() {
         <Route path="/onboarding" element={<Layout><OnboardingPage /></Layout>} />
 
 
-        <Route path="/" element={<Navigate to="/posts" replace />} />
+        <Route
+          path="/"
+          element={
+            window.location.hash || window.location.search.includes('code=')
+              ? <FallbackLoader />
+              : <Navigate to="/posts" replace />
+          }
+        />
         <Route path="/dan" element={<Layout><DanProfilePage /></Layout>} />
         <Route path="/profile" element={
           loading ? <FallbackLoader /> : (user ? <Layout><ProfileOwn /></Layout> : <Layout><LoginGate message="Necesitas iniciar sesión para ver tu perfil estelar." /></Layout>)

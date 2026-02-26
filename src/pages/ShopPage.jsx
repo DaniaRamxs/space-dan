@@ -8,6 +8,7 @@ import * as storeService from '../services/store';
 import { universeService } from '../services/universe';
 import { unlockAchievement } from '../hooks/useAchievements';
 import { getNicknameClass, getUserDisplayName } from '../utils/user';
+import { getFrameStyle } from '../utils/styles';
 import RadioSvg from '../components/RadioSvg';
 import '../styles/NicknameStyles.css';
 
@@ -33,7 +34,7 @@ const CAT_LABELS = {
 const CAT_ORDER = ['profile_theme', 'nickname_style', 'role', 'ambient_sound', 'theme', 'cursor', 'screensaver', 'stars', 'radio', 'banner', 'frame', 'pet_accessory'];
 
 export default function ShopPage() {
-  const { user } = useAuthContext();
+  const { user, profile } = useAuthContext();
   const { balance, claimDaily, canClaimDaily } = useEconomy();
   const dancoins = useDancoins();   // guest fallback
   const localShop = useShopItems();  // equip + guest purchases
@@ -132,12 +133,15 @@ export default function ShopPage() {
 
   // Equipped check — DB-only categories use dbItems; rest use localStorage
   const isItemEquipped = useCallback((item) => {
-    // Para la radio, si está comprada se considera activa/equipada automáticamente
     if (item.category === 'radio') return hasPurchased(item.id);
 
-    const isEquippedLocal = localShop.getEquipped(item.category) === item.id;
+    // Prioridad 1: Base de datos (para items permanentes de cuenta)
     const isEquippedDb = user && dbItems.some(ui => ui.item_id === item.id && ui.is_equipped);
-    return isEquippedLocal || isEquippedDb;
+    if (isEquippedDb) return true;
+
+    // Prioridad 2: LocalStorage (para themes, cursores, o si no está logueado)
+    const isEquippedLocal = localShop.getEquipped(item.category) === item.id;
+    return !!isEquippedLocal;
   }, [dbItems, localShop, user, hasPurchased]);
 
   const handleBuy = async (item) => {
@@ -166,9 +170,12 @@ export default function ShopPage() {
       try {
         await storeService.purchaseItem(user.id, item.id);
         await reloadDbItems();
+
+        // Equipar automáticamente tras comprar
         localShop.equip(item.category, item.id);
-        await storeService.equipItem(user.id, item.id).catch(() => { });
+        await storeService.equipItem(user.id, item.id);
         await reloadDbItems();
+
         showFlash(`¡${item.title} comprado y equipado!`, true);
         unlockAchievement('shopper');
       } catch (err) {
@@ -195,13 +202,39 @@ export default function ShopPage() {
   };
 
   const handleUnequip = async (item) => {
-    const isDbOnly = DB_ONLY_CATEGORIES.has(item.category);
-    if (!isDbOnly) localShop.unequip(item.category);
-    if (user) {
-      await storeService.unequipItem(user.id, item.id).catch(console.error);
-      await reloadDbItems();
+    try {
+      // Siempre intentamos desequipar localmente para limpiar estados inconsistentes
+      localShop.unequip(item.category);
+
+      if (user) {
+        await storeService.unequipItem(user.id, item.id);
+        await reloadDbItems();
+        // Disparar evento para que otros componentes (como el Avatar) reaccionen
+        window.dispatchEvent(new CustomEvent('dan:item-equipped', {
+          detail: { category: item.category, itemId: null }
+        }));
+      }
+      showFlash(`${item.title} desequipado correctamente`, true);
+    } catch (err) {
+      console.error('[ShopPage] unequip error:', err);
+      showFlash('Error al desequipar el ítem', false);
     }
-    showFlash(`${item.title} desequipado`, true);
+  };
+
+  const handleTesterCoins = async () => {
+    if (!user) {
+      // Para guests
+      localStorage.setItem('space-dan-coins', '999999');
+      window.dispatchEvent(new CustomEvent('dan:coins-changed'));
+      showFlash('MODO TESTER: 999,999 Dancoins obtenidas (Local)', true);
+    } else {
+      try {
+        await storeService.awardCoins(user.id, 1000000, 'tester_bonus', null, 'Acceso Tester');
+        showFlash('MODO TESTER: 1,000,000 Dancoins otorgadas', true);
+      } catch (err) {
+        showFlash('Error al otorgar coins de tester', false);
+      }
+    }
   };
 
   const handleDaily = async () => {
@@ -268,7 +301,11 @@ export default function ShopPage() {
           </span>
           <h1 className="text-4xl sm:text-5xl md:text-7xl font-black italic tracking-tighter text-white mb-4 sm:mb-6 leading-none">
             TIENDA <br />
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-purple-400 to-pink-400">UNIVERSE.exe</span>
+            <span
+              className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-purple-400 to-pink-400 cursor-help"
+              onDoubleClick={handleTesterCoins}
+              title="Doble clic para Tester Mode"
+            >UNIVERSE.exe</span>
           </h1>
 
           <div className="flex flex-wrap items-center gap-6">
@@ -523,7 +560,7 @@ export default function ShopPage() {
                   <div className={`p-3 bg-black/40 rounded-2xl flex items-center justify-center border border-white/5 relative ${item.category === 'nickname_style' ? 'w-full min-h-[80px]' : 'min-w-[64px] min-h-[64px]'}`}>
                     {item.category === 'nickname_style' ? (
                       <div className="flex flex-col items-center justify-center w-full p-2 overflow-visible bg-white/5 rounded-xl border border-white/5">
-                        <span className={`text-base whitespace-nowrap ${getNicknameClass({ nicknameStyle: item.id })}`}>
+                        <span className={`text-base whitespace-nowrap ${getNicknameClass({ equipped_nickname_style: item.id })}`}>
                           {user ? getUserDisplayName(user) : 'Explorador'}
                         </span>
                       </div>
@@ -603,6 +640,30 @@ export default function ShopPage() {
                         <div className="relative z-10 flex flex-col items-center justify-center p-4">
                           <div className="px-3 py-1 rounded bg-black/40 backdrop-blur-md border border-white/20 text-[8px] font-black text-white/80 uppercase tracking-widest">Vista Previa Banner</div>
                         </div>
+                      </div>
+                    ) : item.category === 'frame' ? (
+                      <div className="relative w-16 h-16 flex items-center justify-center scale-90 group-hover:scale-110 transition-transform duration-500">
+                        {(() => {
+                          const frameObj = getFrameStyle(item.id);
+                          const frameClass = frameObj?.className || '';
+                          const isEvolutivo = frameClass.includes('marco-evolutivo');
+                          const isLv5 = item.id === 'frame_link_lv5';
+
+                          return (
+                            <div
+                              className={`relative w-full h-full flex items-center justify-center ${frameClass} ${!frameClass && !(frameObj.border || frameObj.backgroundImage) ? 'rounded-full border border-white/20' : ''}`}
+                              style={isEvolutivo ? {} : frameObj}
+                            >
+                              <div className={isLv5 ? 'marco-evolutivo-lv5-img-wrapper scale-[0.85]' : `w-full h-full ${isEvolutivo ? 'rounded-full' : 'rounded-[inherit]'} overflow-hidden flex items-center justify-center`}>
+                                <img
+                                  src={profile?.avatar_url || '/dan_profile.jpg'}
+                                  alt="Preview"
+                                  className="w-[90%] h-[90%] object-cover rounded-full"
+                                />
+                              </div>
+                            </div>
+                          );
+                        })()}
                       </div>
                     ) : item.preview_url ? (
                       <img

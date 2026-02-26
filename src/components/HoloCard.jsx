@@ -9,16 +9,7 @@ import { supabase } from '../supabaseClient';
 import { getUserDisplayName, getNicknameClass } from '../utils/user';
 import '../styles/NicknameStyles.css';
 
-function getFrameStyle(frameItemId) {
-    if (!frameItemId) return { border: '3px solid var(--accent)', boxShadow: '0 0 15px var(--accent-glow)' };
-    const id = frameItemId.toLowerCase();
-    if (id === 'frame_stars') return { border: '3px solid #ffd700', boxShadow: '0 0 20px rgba(255,215,0,0.8)' };
-    if (id === 'frame_neon') return { border: '3px solid #00e5ff', boxShadow: '0 0 20px rgba(0,229,255,0.8)' };
-    if (id === 'frame_pixel') return { border: '4px solid #ff6b35', boxShadow: '0 0 15px rgba(255,107,53,0.7)', imageRendering: 'pixelated' };
-    if (id === 'frame_holo') return { border: '3px solid #b464ff', boxShadow: '0 0 20px rgba(180,100,255,0.8), 0 0 40px rgba(0,229,255,0.4)' };
-    if (id === 'frame_crown') return { border: '4px solid #ffd700', boxShadow: '0 0 25px rgba(255,215,0,1), 0 0 50px rgba(255,215,0,0.4)' };
-    return { border: '3px solid var(--accent)', boxShadow: '0 0 15px var(--accent-glow)' };
-}
+import { getFrameStyle } from '../utils/styles';
 
 export default function HoloCard({ profile, onClose }) {
     const navigate = useNavigate();
@@ -84,7 +75,8 @@ export default function HoloCard({ profile, onClose }) {
         }
     }
 
-    if (!profile) return null;
+    const frameObj = getFrameStyle(fullProfile?.frame_item_id || profile?.frame_item_id);
+    const frameClass = frameObj?.className || '';
 
     return createPortal(
         <div
@@ -135,14 +127,14 @@ export default function HoloCard({ profile, onClose }) {
                         pointerEvents: 'none'
                     }} />
 
-                    <div style={{ transform: 'translateZ(50px)', marginBottom: '20px' }}>
+                    <div style={{ transform: 'translateZ(50px)', marginBottom: '20px' }} className={frameClass}>
                         <img
-                            src={profile.avatar_url || '/default-avatar.png'}
+                            src={profile.avatar_url || '/dan_profile.jpg'}
+                            className={frameClass ? 'rounded-full' : 'rounded-[30%]'}
                             style={{
                                 width: '100px', height: '100px',
-                                borderRadius: '50%',
-                                objectCover: 'cover',
-                                ...getFrameStyle(fullProfile?.frame_item_id || profile?.frame_item_id)
+                                objectFit: 'cover',
+                                ...frameObj
                             }}
                         />
                     </div>

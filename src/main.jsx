@@ -4,61 +4,49 @@ import './index.css'
 import './profile-v2.css'
 import App from './App.jsx'
 import { loadSavedTheme } from './hooks/useTheme'
-import { App as CapacitorApp } from '@capacitor/app'
 import { supabase } from './supabaseClient'
+import { Capacitor } from '@capacitor/core'
 
 // Aplicar tema antes del render
 loadSavedTheme()
 
 // --- Deep Link + Auth bootstrap ---
 async function initMobileAuth() {
-  const { Browser } = await import('@capacitor/browser');
-  let isExchanging = false; // Bloqueo para evitar doble ejecución
+  if (!Capacitor.isNativePlatform()) return;
 
-  CapacitorApp.addListener('appUrlOpen', async ({ url }) => {
-    console.log('Deep link detectado:', url);
+  try {
+    const { App: CapacitorApp } = await import('@capacitor/app');
+    const { Browser } = await import('@capacitor/browser');
+    let isExchanging = false;
 
-    // Verificamos si la URL contiene el código de intercambio (PKCE)
-    if (url.includes('code=') && !isExchanging) {
-      isExchanging = true;
-
-      try {
-        // Extraer el código de la URL
-        const parsedUrl = new URL(url);
-        const code = parsedUrl.searchParams.get('code');
-
-        if (code) {
-          const { error } = await supabase.auth.exchangeCodeForSession(code);
-
-          if (error) {
-            console.error('Error en exchangeCodeForSession:', error.message);
-          } else {
-            console.log('Sesión establecida correctamente con PKCE');
+    CapacitorApp.addListener('appUrlOpen', async ({ url }) => {
+      console.log('Deep link detectado:', url);
+      if (url.includes('code=') && !isExchanging) {
+        isExchanging = true;
+        try {
+          const parsedUrl = new URL(url);
+          const code = parsedUrl.searchParams.get('code');
+          if (code) {
+            const { error } = await supabase.auth.exchangeCodeForSession(code);
+            if (error) throw error;
           }
+        } catch (err) {
+          console.error('Error procesando el deep link:', err);
+        } finally {
+          await Browser.close();
+          isExchanging = false;
         }
-      } catch (err) {
-        console.error('Error procesando el deep link:', err);
-      } finally {
-        // Cerramos el browser nativo SIEMPRE después del intento de login
-        await Browser.close();
-        isExchanging = false;
       }
-    }
-  });
-
-  // Listener para DEBUG y consistencia
-  supabase.auth.onAuthStateChange((event, session) => {
-    if (event === 'SIGNED_IN') {
-      console.log('Evento SIGNED_IN detectado:', session?.user?.email);
-    }
-    if (event === 'SIGNED_OUT') {
-      console.log('Evento SIGNED_OUT detectado');
-    }
-  });
+    });
+  } catch (err) {
+    console.warn('No se pudo inicializar la autenticación móvil:', err);
+  }
 }
 
-// Inicializar auth móvil
-initMobileAuth()
+// Inicializar auth solo si estamos en nativo
+if (Capacitor.isNativePlatform()) {
+  initMobileAuth();
+}
 
 // Render app
 createRoot(document.getElementById('root')).render(
