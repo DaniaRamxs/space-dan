@@ -41,19 +41,34 @@ export const UniverseProvider = ({ children, overrideProfile = null }) => {
 
     // 1. Efecto para aplicar el tema al documento mediante CSS Variables
     useEffect(() => {
+        const root = document.documentElement;
+
+        // Limpiar todas las variables --u- previas
+        const currentStyles = root.getAttribute('style') || '';
+        const cleanStyles = currentStyles.split(';').filter(s => !s.trim().startsWith('--u-')).join(';');
+        root.setAttribute('style', cleanStyles);
+
         if (profile?.theme_item?.metadata) {
-            const vars = profile.theme_item.metadata.vars || {};
-            const root = document.documentElement;
+            const metadata = profile.theme_item.metadata;
+            const vars = metadata.vars || {};
+
+            console.log('[UniverseContext] Aplicando tema:', profile.theme_item.id, vars);
 
             Object.entries(vars).forEach(([key, value]) => {
                 root.style.setProperty(key, value);
             });
 
             root.setAttribute('data-theme', profile.theme_item.id);
-        } else if (!overrideProfile) {
-            document.documentElement.removeAttribute('data-theme');
+
+            // Si el tema tiene un degradado global en metadata (Universe Themes v3)
+            if (metadata.gradient) {
+                root.style.setProperty('--u-gradient', `linear-gradient(to bottom, ${metadata.gradient.join(', ')})`);
+            }
+        } else {
+            root.removeAttribute('data-theme');
+            root.style.removeProperty('--u-gradient');
         }
-    }, [profile, overrideProfile]);
+    }, [profile?.theme_item?.id, user?.id]);
 
     // 2. Manejo de sonido ambiental via Web Audio Synth (v3.0)
     // Las URLs externas de Mixkit devolvían 403, así que generamos el audio proceduralmente.

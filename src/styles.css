@@ -9246,9 +9246,10 @@ button,
 
 .profile-v2-hero {
   isolation: isolate;
-  background: #080810;
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  box-shadow: 0 40px 100px rgba(0, 0, 0, 0.8);
+  background: var(--u-bg, var(--bg, #080810));
+  border: 1px solid var(--u-accent, var(--accent, rgba(255, 255, 255, 0.05)));
+  box-shadow: 0 40px 100px rgba(0, 0, 0, 0.8), 0 0 40px var(--u-accent, var(--accent, transparent));
+  color: var(--u-text, #fff);
 }
 
 .profile-v2-banner-overlay {
@@ -9285,12 +9286,13 @@ button,
 }
 
 .profile-v2-stat-card {
-  background: rgba(255, 255, 255, 0.02);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  background: var(--u-card-bg, rgba(255, 255, 255, 0.02));
+  border: 1px solid var(--u-accent, var(--accent, rgba(255, 255, 255, 0.05)));
   border-radius: 1.5rem;
   padding: 1rem;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   backdrop-filter: blur(10px);
+  color: var(--u-text-dim, rgba(255, 255, 255, 0.7));
 }
 
 .profile-v2-stat-card:hover {
