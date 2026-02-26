@@ -283,9 +283,9 @@ export default function ShopPage() {
   const equippedSummary = fullCatalog.filter(item => isItemEquipped(item));
 
   return (
-    <div className="shopPage max-w-7xl mx-auto px-6 sm:px-4 py-8 space-y-8 sm:space-y-12 overflow-x-hidden">
+    <div className="shopPage max-w-7xl mx-auto px-0 md:px-6 py-4 sm:py-8 space-y-6 sm:space-y-12 overflow-x-hidden">
       {/* Hero Section with Animated Background */}
-      <div className="relative rounded-[2rem] sm:rounded-[2.5rem] overflow-hidden bg-black border border-white/10 p-6 sm:p-8 md:p-12 min-h-[280px] sm:min-h-[320px] flex flex-col justify-center group/hero">
+      <div className="relative mx-4 md:mx-0 rounded-[2rem] sm:rounded-[2.5rem] overflow-hidden bg-black border border-white/10 p-6 sm:p-8 md:p-12 min-h-[280px] sm:min-h-[320px] flex flex-col justify-center group/hero">
         <div className="absolute inset-0 bg-gradient-to-br from-indigo-900/40 via-purple-900/40 to-pink-900/40 opacity-70"></div>
         <div className="absolute inset-0 shop-hero-mesh opacity-30"></div>
         <div className="absolute top-0 left-0 w-full h-full bg-[url('/grid-pattern.png')] opacity-10 pointer-events-none"></div>
@@ -344,7 +344,7 @@ export default function ShopPage() {
       )}
 
       {equippedSummary.length > 0 && (
-        <div className="relative p-6 rounded-[2rem] bg-pink-500/5 border border-pink-500/20 backdrop-blur-sm overflow-hidden group/equipped">
+        <div className="relative mx-4 md:mx-0 p-6 rounded-[2rem] bg-pink-500/5 border border-pink-500/20 backdrop-blur-sm overflow-hidden group/equipped">
           <div className="absolute -top-12 -left-12 w-24 h-24 bg-pink-500/20 blur-[50px] rounded-full group-hover/equipped:scale-150 transition-transform duration-1000"></div>
 
           <div className="relative z-10 flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-6">
@@ -369,7 +369,7 @@ export default function ShopPage() {
         </div>
       )}
 
-      <div className="shopHint">
+      <div className="shopHint mx-4 md:mx-0">
         <div>Gana ◈ visitando páginas, jugando juegos nuevos, desbloqueando logros y reclamando el bonus diario.</div>
         {!user && (
           <div className="mt-4 p-4 bg-yellow-500/10 border border-yellow-500/30 rounded-2xl animate-pulse">
@@ -392,11 +392,11 @@ export default function ShopPage() {
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8 pt-4">
         {/* Advanced Filters */}
         <div className="flex-1">
-          <div className="flex flex-wrap gap-2 pb-4">
+          <div className="mobile-scroll-x px-4 md:px-0 pb-4">
             {categories.map(c => (
               <button
                 key={c.id}
-                className={`px-5 py-2.5 rounded-2xl text-[11px] font-black tracking-widest uppercase transition-all whitespace-nowrap border-2 ${activeCategory === c.id
+                className={`px-4 py-2 rounded-2xl text-[10px] font-black tracking-widest uppercase transition-all whitespace-nowrap border-2 ${activeCategory === c.id
                   ? 'bg-white text-black border-white shadow-[0_0_20px_rgba(255,255,255,0.2)]'
                   : 'bg-white/5 border-white/5 text-white/40 hover:bg-white/10 hover:text-white/60'
                   }`}
@@ -441,7 +441,7 @@ export default function ShopPage() {
             <h2 className="text-sm font-black uppercase tracking-[0.4em] text-white/40">Destacados de la Temporada</h2>
             <div className="h-px flex-1 bg-gradient-to-r from-white/10 to-transparent"></div>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 px-4 md:px-0">
             {featuredItems.map(item => {
               const owned = hasPurchased(item.id);
               const equipped = isItemEquipped(item);

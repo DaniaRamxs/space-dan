@@ -72,8 +72,8 @@ const ActivityCard = memo(({ post, onUpdate, onNewPost }) => {
                 initial={{ opacity: 0, y: 12 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.25 }}
-                className="group relative bg-[#070710] border border-white/[0.06] rounded-3xl overflow-hidden cursor-pointer
-                           hover:border-white/[0.12] hover:bg-[#09090f] transition-all duration-300 shadow-lg hover:shadow-xl"
+                className="group relative bg-[#070710] border-y border-transparent md:border md:border-white/[0.06] md:rounded-3xl overflow-hidden cursor-pointer
+                           hover:bg-[#09090f] transition-all duration-300 shadow-none md:shadow-lg hover:shadow-xl"
                 onClick={() => navigate(postUrl)}
                 role="article"
                 aria-label={post.title || 'Post'}

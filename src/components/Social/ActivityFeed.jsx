@@ -75,7 +75,7 @@ export default function ActivityFeed({ userId, filter = 'all', category = null }
                         ))}
                     </div>
                 ) : (
-                    <div className="flex flex-col gap-6">
+                    <div className="flex flex-col gap-0 md:gap-6 divide-y divide-white/[0.05] md:divide-y-0">
                         {feed.map((post) => (
                             <ActivityCard
                                 key={post.id}

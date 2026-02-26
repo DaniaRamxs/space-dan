@@ -11,7 +11,6 @@ import { getTransactionHistory, getActiveFund, getFundTopDonors, donateToFund, t
 import { getProductivityStats } from '../../services/productivity';
 import * as storeService from '../../services/store';
 import { blogService } from '../../services/blogService';
-import PetDisplay from '../../components/PetDisplay';
 import { Link } from 'react-router-dom';
 import AvatarUploader from '../../components/AvatarUploader';
 import { profileSocialService } from '../../services/profile_social';
@@ -929,10 +928,7 @@ export default function ProfileOwn() {
                 }}
               />
 
-              {/* Pet Overlay & Holographic Level Badge */}
-              <div className="absolute -left-12 -bottom-4 pointer-events-none drop-shadow-[0_0_20px_rgba(6,182,212,0.5)] z-30 scale-x-[-1] animate-float">
-                <PetDisplay userId={user.id} size={60} showName={false} />
-              </div>
+
 
               <div className={`absolute -bottom-5 left-1/2 -translate-x-1/2 px-6 py-2 rounded-2xl border font-black text-sm tracking-tighter z-20 whitespace-nowrap transition-all duration-500 shadow-2xl ${level >= 10 ? 'bg-gradient-to-r from-yellow-400 via-white to-yellow-400 text-black border-yellow-200 animate-shimmer bg-[length:200%_100%]' : 'bg-[#09090b] border-cyan-500/50 text-cyan-400 shadow-[0_0_20px_rgba(6,182,212,0.3)]'}`}>
                 NIVEL {level}
