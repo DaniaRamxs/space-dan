@@ -9979,4 +9979,38 @@ div.sd-hacker {
   border-radius: 0.75rem !important;
   box-shadow: none !important;
   /* Quitar sombras pesadas en feed */
+
+}
+
+/* ===========================
+   Radio Icon Animations
+   =========================== */
+
+/* Animación flotante suave */
+@keyframes float {
+  0% {
+    transform: translateY(0px);
+  }
+
+  50% {
+    transform: translateY(-3px);
+  }
+
+  100% {
+    transform: translateY(0px);
+  }
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+/* Glow elegante basado en el color actual */
+.icon-glow {
+  filter: drop-shadow(0 0 6px currentColor) drop-shadow(0 0 12px currentColor);
+}
+
+/* Opcional: transición suave */
+svg {
+  transition: transform 0.3s ease, filter 0.3s ease;
 }

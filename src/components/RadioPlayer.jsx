@@ -1,28 +1,78 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { unlockAchievement } from '../hooks/useAchievements';
 import { getRadioAudio } from '../utils/radioAudio';
-import RadioSvg from './RadioIcons';
+import RadioSvg from './RadioSvg';
 
 /* ── Estaciones ──────────────────────────────────────────────── */
 
 const BASE_STATIONS = [
-  { id: 'nightwave', name: 'Nightwave Plaza', genre: 'Vaporwave · City Pop', stream: 'https://radio.plaza.one/mp3', icon: <RadioSvg type="nightwave" /> },
-  { id: 'lofi', name: 'Dan FM — Lofi', genre: 'Lofi · Chillhop', stream: 'https://streams.ilovemusic.de/iloveradio17.mp3', icon: <RadioSvg type="lofi" /> },
+  {
+    id: 'nightwave',
+    name: 'Nightwave Plaza',
+    genre: 'Vaporwave · City Pop',
+    stream: 'https://radio.plaza.one/mp3',
+    icon: <RadioSvg type="nightwave" />,
+  },
+  {
+    id: 'lofi',
+    name: 'Dan FM — Lofi',
+    genre: 'Lofi · Chillhop',
+    stream: 'https://streams.ilovemusic.de/iloveradio17.mp3',
+    icon: <RadioSvg type="lofi" />,
+  },
 ];
 
 const EXTRA_STATIONS = {
-  radio_jcore: { id: 'jcore', name: 'Listen.moe — Anime', genre: 'J-Pop · Anime · K-Pop', stream: 'https://listen.moe/stream', icon: <RadioSvg type="jcore" /> },
-  radio_groove: { id: 'groove', name: 'Groove Salad', genre: 'Ambient · Electronica', stream: 'https://ice4.somafm.com/groovesalad-128-mp3', icon: <RadioSvg type="groove" /> },
-  radio_beatblender: { id: 'beatblender', name: 'Beat Blender', genre: 'Deep House · Electro', stream: 'https://ice4.somafm.com/beatblender-128-mp3', icon: <RadioSvg type="beat" /> },
-  radio_dronezone: { id: 'dronezone', name: 'Drone Zone', genre: 'Ambient · Space', stream: 'https://ice4.somafm.com/dronezone-128-mp3', icon: <RadioSvg type="space" /> },
-  radio_secretagent: { id: 'secretagent', name: 'Secret Agent', genre: 'Spy Jazz · Lounge', stream: 'https://ice4.somafm.com/secretagent-128-mp3', icon: <RadioSvg type="agent" /> },
-  radio_kpop: { id: 'kpop', name: 'K-Pop Universe', genre: 'K-Pop · Hallyu Hits', stream: 'https://listen.moe/kpop/stream', icon: <RadioSvg type="kpop" /> },
+  radio_jcore: {
+    id: 'jcore',
+    name: 'Listen.moe — Anime',
+    genre: 'J-Pop · Anime · K-Pop',
+    stream: 'https://listen.moe/stream',
+    icon: <RadioSvg type="jcore" />,
+  },
+  radio_groove: {
+    id: 'groove',
+    name: 'Groove Salad',
+    genre: 'Ambient · Electronica',
+    stream: 'https://ice4.somafm.com/groovesalad-128-mp3',
+    icon: <RadioSvg type="groove" />,
+  },
+  radio_beatblender: {
+    id: 'beatblender',
+    name: 'Beat Blender',
+    genre: 'Deep House · Electro',
+    stream: 'https://ice4.somafm.com/beatblender-128-mp3',
+    icon: <RadioSvg type="beat" />,
+  },
+  radio_dronezone: {
+    id: 'dronezone',
+    name: 'Drone Zone',
+    genre: 'Ambient · Space',
+    stream: 'https://ice4.somafm.com/dronezone-128-mp3',
+    icon: <RadioSvg type="space" />,
+  },
+  radio_secretagent: {
+    id: 'secretagent',
+    name: 'Secret Agent',
+    genre: 'Spy Jazz · Lounge',
+    stream: 'https://ice4.somafm.com/secretagent-128-mp3',
+    icon: <RadioSvg type="agent" />,
+  },
+  radio_kpop: {
+    id: 'kpop',
+    name: 'K-Pop Universe',
+    genre: 'K-Pop · Hallyu Hits',
+    stream: 'https://listen.moe/kpop/stream',
+    icon: <RadioSvg type="kpop" />,
+  },
 };
 
 function getStations() {
   const stations = [...BASE_STATIONS];
   try {
-    const purchased = JSON.parse(localStorage.getItem('space-dan-shop-purchased') || '[]');
+    const purchased = JSON.parse(
+      localStorage.getItem('space-dan-shop-purchased') || '[]'
+    );
     for (const [key, station] of Object.entries(EXTRA_STATIONS)) {
       if (purchased.includes(key)) stations.push(station);
     }
@@ -33,7 +83,7 @@ function getStations() {
 /* ── Componente ──────────────────────────────────────────────── */
 
 export default function RadioPlayer() {
-  const audio = useRef(getRadioAudio()).current; // Singleton — nunca se destruye
+  const audio = useRef(getRadioAudio()).current;
   const [stations, setStations] = useState(getStations);
   const [current, setCurrent] = useState(0);
   const [playing, setPlaying] = useState(() => !audio.paused && !!audio.src);
@@ -42,20 +92,26 @@ export default function RadioPlayer() {
   const [open, setOpen] = useState(false);
   const hasUnlockedRef = useRef(false);
 
-  // Sincronizar estado si el audio ya estaba sonando (ej: volvimos de otra página)
   useEffect(() => {
     if (!audio.paused && audio.src) {
       setPlaying(true);
-      // Buscar la estación que coincide con el src actual
-      const idx = stations.findIndex(s => audio.src.includes(s.stream));
+      const idx = stations.findIndex(s =>
+        audio.src.includes(s.stream)
+      );
       if (idx !== -1) setCurrent(idx);
     }
 
-    const onPlay = () => { setPlaying(true); setLoading(false); };
+    const onPlay = () => {
+      setPlaying(true);
+      setLoading(false);
+    };
     const onPause = () => setPlaying(false);
     const onWaiting = () => setLoading(true);
     const onPlaying = () => setLoading(false);
-    const onError = () => { setPlaying(false); setLoading(false); };
+    const onError = () => {
+      setPlaying(false);
+      setLoading(false);
+    };
 
     audio.addEventListener('play', onPlay);
     audio.addEventListener('pause', onPause);
@@ -69,25 +125,28 @@ export default function RadioPlayer() {
       audio.removeEventListener('waiting', onWaiting);
       audio.removeEventListener('playing', onPlaying);
       audio.removeEventListener('error', onError);
-      // NO hacemos audio.pause() aquí — la música sigue sonando
     };
   }, [audio, stations]);
 
-  // Refrescar estaciones al comprar nuevas
   useEffect(() => {
     const sync = () => setStations(getStations());
     window.addEventListener('dan:item-purchased', sync);
-    return () => window.removeEventListener('dan:item-purchased', sync);
+    return () =>
+      window.removeEventListener('dan:item-purchased', sync);
   }, []);
 
-  // Volumen
-  useEffect(() => { audio.volume = volume; }, [volume, audio]);
+  useEffect(() => {
+    audio.volume = volume;
+  }, [volume, audio]);
 
   const togglePlay = useCallback(async () => {
     if (playing) {
       audio.pause();
     } else {
-      if (!audio.src || !audio.src.includes(stations[current].stream)) {
+      if (
+        !audio.src ||
+        !audio.src.includes(stations[current].stream)
+      ) {
         audio.src = stations[current].stream;
       }
       setLoading(true);
@@ -104,13 +163,22 @@ export default function RadioPlayer() {
     }
   }, [playing, audio, stations, current]);
 
-  const selectStation = useCallback((idx) => {
-    if (idx === current && playing) { audio.pause(); return; }
-    setCurrent(idx);
-    audio.src = stations[idx].stream;
-    setLoading(true);
-    audio.play().catch(() => { setPlaying(false); setLoading(false); });
-  }, [current, playing, audio, stations]);
+  const selectStation = useCallback(
+    (idx) => {
+      if (idx === current && playing) {
+        audio.pause();
+        return;
+      }
+      setCurrent(idx);
+      audio.src = stations[idx].stream;
+      setLoading(true);
+      audio.play().catch(() => {
+        setPlaying(false);
+        setLoading(false);
+      });
+    },
+    [current, playing, audio, stations]
+  );
 
   const station = stations[current];
 
@@ -118,19 +186,28 @@ export default function RadioPlayer() {
     <>
       {/* ── Botón flotante + mini-player ── */}
       <div className="radioFloatingArea">
-        {/* Mini info cuando suena (solo visible si está sonando y panel cerrado) */}
         {playing && !open && (
-          <button className="radioMiniPlayer" onClick={() => setOpen(true)}>
-            <span className="radioMiniIcon">{station?.icon}</span>
-            <span className="radioMiniName">{station?.name}</span>
+          <button
+            className="radioMiniPlayer"
+            onClick={() => setOpen(true)}
+          >
+            <span className="radioMiniIcon">
+              {station?.icon}
+            </span>
+            <span className="radioMiniName">
+              {station?.name}
+            </span>
             <span className="radioMiniEq">
-              <span /><span /><span />
+              <span />
+              <span />
+              <span />
             </span>
           </button>
         )}
 
         <button
-          className={`radioToggleBtn${playing ? ' active' : ''}`}
+          className={`radioToggleBtn${playing ? ' active' : ''
+            }`}
           onClick={() => setOpen(o => !o)}
           title="Radio en vivo"
           aria-label="Abrir radio"
@@ -140,27 +217,49 @@ export default function RadioPlayer() {
         </button>
       </div>
 
-      {/* ── Panel de radio ── */}
-      <div className={`radioPanel${open ? ' open' : ''}`}>
+      {/* ── Panel ── */}
+      <div
+        className={`radioPanel${open ? ' open' : ''}`}
+      >
         <div className="radioPanelHeader">
-          <span className="radioPanelTitle">◈ DAN RADIO</span>
-          <button className="radioPanelClose" onClick={() => setOpen(false)}>✕</button>
+          <span className="radioPanelTitle">
+            ◈ DAN RADIO
+          </span>
+          <button
+            className="radioPanelClose"
+            onClick={() => setOpen(false)}
+          >
+            ✕
+          </button>
         </div>
 
-        {/* Now playing */}
+        {/* Now Playing */}
         <div className="radioNowPlaying">
-          <div className="radioStationIcon">{station?.icon}</div>
+          <div className="radioStationIcon">
+            {station?.icon}
+          </div>
+
           <div className="radioStationInfo">
             <div className="radioStationName">
               {station?.name}
-              {loading && playing && <span className="radioLoadingDot">...</span>}
+              {loading && playing && (
+                <span className="radioLoadingDot">
+                  ...
+                </span>
+              )}
             </div>
-            <div className="radioStationGenre">{station?.genre}</div>
+            <div className="radioStationGenre">
+              {station?.genre}
+            </div>
           </div>
+
           <button
-            className={`radioPlayBtn${playing ? ' playing' : ''}`}
+            className={`radioPlayBtn${playing ? ' playing' : ''
+              }`}
             onClick={togglePlay}
-            aria-label={playing ? 'Pausar' : 'Reproducir'}
+            aria-label={
+              playing ? 'Pausar' : 'Reproducir'
+            }
           >
             {playing ? '⏸' : '▶'}
           </button>
@@ -170,9 +269,14 @@ export default function RadioPlayer() {
         <div className="radioVolume">
           <span className="radioVolIcon">🔈</span>
           <input
-            type="range" min="0" max="1" step="0.05"
+            type="range"
+            min="0"
+            max="1"
+            step="0.05"
             value={volume}
-            onChange={e => setVolume(parseFloat(e.target.value))}
+            onChange={(e) =>
+              setVolume(parseFloat(e.target.value))
+            }
             className="radioVolSlider"
             aria-label="Volumen"
           />
@@ -184,13 +288,19 @@ export default function RadioPlayer() {
           {stations.map((s, i) => (
             <button
               key={s.id}
-              className={`radioStationBtn${i === current ? ' active' : ''}`}
+              className={`radioStationBtn${i === current ? ' active' : ''
+                }`}
               onClick={() => selectStation(i)}
             >
-              <span>{s.icon} {s.name}</span>
-              <span className="radioStationGenreSmall">{s.genre}</span>
+              <span>
+                {s.icon} {s.name}
+              </span>
+              <span className="radioStationGenreSmall">
+                {s.genre}
+              </span>
             </button>
           ))}
+
           <div className="radioUnlockHint">
             Desbloquea más estaciones en la Tienda ◈
           </div>
