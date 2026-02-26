@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import HoloCard from '../components/HoloCard';
 import SeasonWidget from '../components/SeasonWidget';
 import { getUserDisplayName, getNicknameClass } from '../utils/user';
+import StreakLeaderboard from '../components/Social/StreakLeaderboard';
 
 const TABS = [
   { id: 'games', label: '🎮 Juegos', desc: 'Suma de mejores puntajes en todos los juegos' },
@@ -15,6 +16,8 @@ const TABS = [
   { id: 'achievements', label: '🏆 Logros', desc: 'Logros desbloqueados' },
   { id: 'focus', label: '🧘 Enfoque', desc: 'Más tiempo de concentración en la cabina espacial' },
   { id: 'competitive', label: '🏆 Temporada', desc: 'Clasificación de riqueza en la temporada actual' },
+  { id: 'streaks', label: '🔥 Racha', desc: 'Días consecutivos con actividad real en Dan-Space' },
+  { id: 'members', label: '👥 Miembros', desc: 'Exploradores que se han unido a la tripulación por orden de llegada' },
 ];
 
 const MEDALS = ['🥇', '🥈', '🥉'];
@@ -101,13 +104,12 @@ function CompetitiveRow({ row, i, isMe, formatMetric, onClick }) {
       }}
     >
       <td style={{ width: 80, textAlign: 'center', position: 'relative' }}>
-        {/* Shine effect for Top Rank - Moved inside TD but covers TR via absolute positioning */}
         {rank === 1 && (
           <div style={{
             position: 'absolute',
             top: 0,
             left: 0,
-            width: '1000%', // Spans across the table row
+            width: '1000%',
             height: '100%',
             background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.14), transparent)',
             animation: 'shine 3s infinite',
@@ -201,7 +203,6 @@ function CompetitiveRow({ row, i, isMe, formatMetric, onClick }) {
         </div>
       </td>
     </motion.tr>
-
   );
 }
 
@@ -209,7 +210,7 @@ export default function GlobalLeaderboardPage() {
   const { user } = useAuthContext();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('competitive');
-  const [data, setData] = useState({});   // { tabId: rows[] }
+  const [data, setData] = useState({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [selectedProfile, setSelectedProfile] = useState(null);
@@ -227,6 +228,8 @@ export default function GlobalLeaderboardPage() {
         case 'achievements': rows = await lb.getAchievementLeaderboard(50); break;
         case 'focus': rows = await lb.getFocusLeaderboard(50); break;
         case 'competitive': rows = await lb.getCompetitiveLeaderboard(50); break;
+        case 'streaks': rows = await lb.getStreakLeaderboard(50); break;
+        case 'members': rows = await lb.getMembers(100); break;
         default: rows = [];
       }
       setData(prev => ({ ...prev, [tabId]: rows ?? [] }));
@@ -237,15 +240,15 @@ export default function GlobalLeaderboardPage() {
     } finally {
       setLoading(false);
     }
-  }, [data]);
+  }, []);
 
-  useEffect(() => { fetchTab(activeTab); }, [activeTab]);
+  useEffect(() => { fetchTab(activeTab); }, [activeTab, fetchTab]);
 
   const rows = data[activeTab] ?? [];
   const activeTab_ = TABS.find(t => t.id === activeTab);
 
   const handleRow = (row) => {
-    if (row.user_id) setSelectedProfile(row);
+    if (row.user_id || row.id) setSelectedProfile(row);
   };
 
   return (
@@ -260,7 +263,6 @@ export default function GlobalLeaderboardPage() {
         <h1>🌎 leaderboard global</h1>
         <p className="tinyText">{activeTab_?.desc}</p>
       </div>
-
 
       {/* Tabs */}
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', margin: '18px 0 0 0', borderBottom: '1px solid var(--border)', paddingBottom: 0 }}>
@@ -285,9 +287,7 @@ export default function GlobalLeaderboardPage() {
         ))}
       </div>
 
-
-
-      {/* Table */}
+      {/* Content */}
       <div className="lbContainer" style={{ marginTop: 18, overflowX: 'auto' }}>
         {loading ? (
           <p className="tinyText" style={{ textAlign: 'center', padding: 30 }}>Cargando ranking...</p>
@@ -295,83 +295,104 @@ export default function GlobalLeaderboardPage() {
           <p style={{ textAlign: 'center', color: '#ff5555', padding: 30 }}>{error}</p>
         ) : rows.length === 0 ? (
           <p className="tinyText" style={{ textAlign: 'center', padding: 30 }}>Aún no hay datos en este ranking.</p>
+        ) : activeTab === 'streaks' ? (
+          <StreakLeaderboard
+            users={rows}
+            onProfileClick={handleRow}
+            isMeId={user?.id}
+          />
         ) : (
-          <table className="lbTable" style={{ width: '100%', borderCollapse: 'collapse', minWidth: activeTab === 'competitive' ? '380px' : 'auto' }}>
-            <thead>
-              <tr>
-                <th style={{ width: 44 }}>#</th>
-                <th style={{ textAlign: 'left' }}>Jugador</th>
-                <th style={{ textAlign: 'right' }}>
-                  {activeTab === 'games' ? 'Puntaje' :
-                    activeTab === 'wealth' ? 'Balance' :
-                      activeTab === 'growth' ? 'Crecimiento' :
-                        activeTab === 'generosity' ? 'Donado' :
-                          activeTab === 'achievements' ? 'Logros' :
-                            activeTab === 'competitive' ? 'Balance Temp.' : 'Enfoque'}
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((row, i) => {
-                const rank = row.rank ?? (i + 1);
-                const isMe = user && row.user_id === user.id;
+          <>
+            <table className="lbTable" style={{ width: '100%', borderCollapse: 'collapse', minWidth: activeTab === 'competitive' ? '380px' : 'auto' }}>
+              <thead>
+                <tr>
+                  <th style={{ width: 44 }}>#</th>
+                  <th style={{ textAlign: 'left' }}>Usuario</th>
+                  <th style={{ textAlign: 'right' }}>
+                    {activeTab === 'games' ? 'Puntaje' :
+                      activeTab === 'wealth' ? 'Balance' :
+                        activeTab === 'growth' ? 'Crecimiento' :
+                          activeTab === 'generosity' ? 'Donado' :
+                            activeTab === 'achievements' ? 'Logros' :
+                              activeTab === 'competitive' ? 'Balance Temp.' :
+                                activeTab === 'members' ? 'Registro' : 'Enfoque'}
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((row, i) => {
+                  const rank = row.rank ?? (i + 1);
+                  const finalUserId = row.user_id || row.id;
+                  const isMe = user && finalUserId === user.id;
 
-                if (activeTab === 'competitive') {
+                  if (activeTab === 'competitive') {
+                    return (
+                      <CompetitiveRow
+                        key={finalUserId || i}
+                        row={row}
+                        i={i}
+                        isMe={isMe}
+                        formatMetric={formatMetric}
+                        onClick={() => handleRow(row)}
+                      />
+                    );
+                  }
+
                   return (
-                    <CompetitiveRow
-                      key={row.user_id ?? i}
-                      row={row}
-                      i={i}
-                      isMe={isMe}
-                      medal={medal}
-                      formatMetric={formatMetric}
+                    <motion.tr
+                      key={finalUserId || i}
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: i * 0.03, duration: 0.3 }}
                       onClick={() => handleRow(row)}
-                    />
-                  );
-                }
-
-                return (
-                  <motion.tr
-                    key={row.user_id ?? i}
-                    initial={{ opacity: 0, x: -10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: i * 0.03, duration: 0.3 }}
-                    onClick={() => handleRow(row)}
-                    title="Ver perfil"
-                    className="group"
-                    style={{
-                      cursor: row.user_id ? 'pointer' : 'default',
-                      background: isMe ? 'rgba(255,110,180,0.08)' : undefined,
-                    }}
-                  >
-                    <td className="lbRank" style={{ fontWeight: 'bold' }}>
-                      {rank <= 3 ? medal(rank) : rank}
-                    </td>
-                    <td className="lbUser" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <Avatar url={row.avatar_url} name={row.username} />
-                      <div style={{ display: 'flex', flexDirection: 'column' }}>
-                        <span className={getNicknameClass(row)} style={{ fontWeight: 500 }}>
-                          {getUserDisplayName(row)}
-                        </span>
-                        {row.user_level && (
-                          <span style={{ fontSize: '0.65rem', color: 'var(--cyan)', opacity: 0.8, fontWeight: 'bold' }}>
-                            LVL {row.user_level}
+                      title="Ver perfil"
+                      className="group"
+                      style={{
+                        cursor: finalUserId ? 'pointer' : 'default',
+                        background: isMe ? 'rgba(255,110,180,0.08)' : undefined,
+                      }}
+                    >
+                      <td className="lbRank" style={{ fontWeight: 'bold' }}>
+                        {rank <= 3 ? medal(rank) : rank}
+                      </td>
+                      <td className="lbUser" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <Avatar url={row.avatar_url} name={row.username} />
+                        <div style={{ display: 'flex', flexDirection: 'column' }}>
+                          <span className={getNicknameClass(row)} style={{ fontWeight: 500 }}>
+                            {getUserDisplayName(row)}
                           </span>
-                        )}
-                      </div>
-                      {isMe && <span style={{ fontSize: '0.7rem', color: 'var(--accent)', opacity: 0.8 }}>tú</span>}
-                    </td>
+                          {row.user_level && (
+                            <span style={{ fontSize: '0.65rem', color: 'var(--cyan)', opacity: 0.8, fontWeight: 'bold' }}>
+                              LVL {row.user_level}
+                            </span>
+                          )}
+                        </div>
+                        {isMe && <span style={{ fontSize: '0.7rem', color: 'var(--accent)', opacity: 0.8 }}>tú</span>}
+                      </td>
 
-                    <td className="lbScore" style={{ textAlign: 'right', fontWeight: 'bold', color: metricColor(activeTab, row) }}>
-                      {formatMetric(activeTab, row)}
-                    </td>
-                  </motion.tr>
-                );
-              })}
-            </tbody>
-          </table>
+                      <td className="lbScore" style={{ textAlign: 'right', fontWeight: 'bold', color: metricColor(activeTab, row) }}>
+                        {activeTab === 'members' ? (
+                          <span className="text-[10px] opacity-40 font-mono">
+                            {new Date(row.created_at).toLocaleDateString()}
+                          </span>
+                        ) : formatMetric(activeTab, row)}
+                      </td>
+                    </motion.tr>
+                  );
+                })}
+              </tbody>
+            </table>
+            {activeTab === 'members' && rows.length >= 10 && (
+              <div className="flex justify-center mt-6">
+                <button className="px-6 py-2 bg-white/5 border border-white/10 rounded-xl text-[10px] font-black uppercase tracking-widest text-white/30 hover:text-white transition-all group">
+                  Cargar más tripulantes <span className="inline-block group-hover:translate-y-0.5 transition-transform">↓</span>
+                </button>
+              </div>
+            )}
+          </>
         )}
       </div>
+
       {/* Holo Profile Modal */}
       <AnimatePresence>
         {selectedProfile && (

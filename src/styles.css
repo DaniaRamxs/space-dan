@@ -9434,3 +9434,549 @@ button,
     font-size: 14px;
   }
 }
+
+/* =============================================
+   Energías Espaciales — Markdown Extension
+   ============================================= */
+
+/* Bloques (div) e Inline (span) */
+.sd-aurora {
+  background: linear-gradient(90deg, #a78bfa, #22d3ee, #f472b6);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  font-weight: 800;
+  display: inline-block;
+}
+
+div.sd-aurora {
+  display: block;
+  padding: 1.5rem;
+  background: linear-gradient(135deg, rgba(167, 139, 250, 0.15), rgba(34, 211, 238, 0.15), rgba(244, 114, 182, 0.15));
+  -webkit-background-clip: unset;
+  background-clip: unset;
+  color: #fff;
+  border-radius: 1.25rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 10px 30px -10px rgba(167, 139, 250, 0.3);
+  margin: 1.5rem 0;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+}
+
+.sd-neon {
+  color: #22d3ee !important;
+  text-shadow: 0 0 8px #22d3ee, 0 0 16px rgba(34, 211, 238, 0.4) !important;
+  font-weight: 700;
+}
+
+div.sd-neon {
+  display: block;
+  border: 1px solid rgba(34, 211, 238, 0.3) !important;
+  background: rgba(34, 211, 238, 0.05) !important;
+  padding: 1.5rem;
+  border-radius: 1.25rem;
+  box-shadow: inset 0 0 20px rgba(34, 211, 238, 0.1), 0 0 15px rgba(34, 211, 238, 0.05);
+  margin: 1.5rem 0;
+  color: #fff;
+}
+
+.sd-memory {
+  border-left: 4px solid #a78bfa !important;
+  padding-left: 1.5rem !important;
+  opacity: 0.9;
+  font-style: italic;
+  color: #d8b4fe !important;
+  background: linear-gradient(90deg, rgba(167, 139, 250, 0.05), transparent) !important;
+  margin: 1.5rem 0;
+  line-height: 1.8;
+}
+
+.sd-warning {
+  border-left: 4px solid #f87171 !important;
+  background: rgba(248, 113, 113, 0.06) !important;
+  padding: 1.25rem 1.5rem !important;
+  border-radius: 0 1rem 1rem 0 !important;
+  color: #fca5a5 !important;
+  margin: 1.5rem 0;
+  font-weight: 500;
+  box-shadow: 0 4px 15px rgba(248, 113, 113, 0.05);
+}
+
+/* Ajustes para Markdown interno */
+.sd-aurora p,
+.sd-neon p,
+.sd-memory p,
+.sd-warning p,
+.sd-rgb p,
+.sd-soft p,
+.sd-glitch p,
+.sd-fire p,
+.sd-void p,
+.sd-hacker p,
+.sd-star p,
+.sd-ocean p,
+.sd-ghost p,
+.sd-toxic p,
+.sd-diamond p,
+.sd-cyber p,
+.sd-rojo p,
+.sd-azul p,
+.sd-verde p,
+.sd-rosa p,
+.sd-naranja p,
+.sd-morado p,
+.sd-cian p {
+  margin: 0 !important;
+}
+
+/* --- Colores Básicos --- */
+.sd-rojo {
+  color: #f87171 !important;
+}
+
+div.sd-rojo {
+  background: rgba(248, 113, 113, 0.1) !important;
+  border-left: 4px solid #f87171 !important;
+  padding: 1.5rem !important;
+  border-radius: 0 1rem 1rem 0 !important;
+  display: block !important;
+  margin: 1.5rem 0 !important;
+  color: #fff !important;
+}
+
+.sd-azul {
+  color: #60a5fa !important;
+}
+
+div.sd-azul {
+  background: rgba(96, 165, 250, 0.1) !important;
+  border-left: 4px solid #60a5fa !important;
+  padding: 1.5rem !important;
+  border-radius: 0 1rem 1rem 0 !important;
+  display: block !important;
+  margin: 1.5rem 0 !important;
+  color: #fff !important;
+}
+
+.sd-verde {
+  color: #4ade80 !important;
+}
+
+div.sd-verde {
+  background: rgba(74, 222, 128, 0.1) !important;
+  border-left: 4px solid #4ade80 !important;
+  padding: 1.5rem !important;
+  border-radius: 0 1rem 1rem 0 !important;
+  display: block !important;
+  margin: 1.5rem 0 !important;
+  color: #fff !important;
+}
+
+.sd-rosa {
+  color: #f472b6 !important;
+}
+
+div.sd-rosa {
+  background: rgba(244, 114, 182, 0.1) !important;
+  border-left: 4px solid #f472b6 !important;
+  padding: 1.5rem !important;
+  border-radius: 0 1rem 1rem 0 !important;
+  display: block !important;
+  margin: 1.5rem 0 !important;
+  color: #fff !important;
+}
+
+.sd-naranja {
+  color: #fb923c !important;
+}
+
+div.sd-naranja {
+  background: rgba(251, 146, 60, 0.1) !important;
+  border-left: 4px solid #fb923c !important;
+  padding: 1.5rem !important;
+  border-radius: 0 1rem 1rem 0 !important;
+  display: block !important;
+  margin: 1.5rem 0 !important;
+  color: #fff !important;
+}
+
+.sd-morado {
+  color: #c084fc !important;
+}
+
+div.sd-morado {
+  background: rgba(192, 132, 252, 0.1) !important;
+  border-left: 4px solid #c084fc !important;
+  padding: 1.5rem !important;
+  border-radius: 0 1rem 1rem 0 !important;
+  display: block !important;
+  margin: 1.5rem 0 !important;
+  color: #fff !important;
+}
+
+.sd-cian {
+  color: #22d3ee !important;
+}
+
+div.sd-cian {
+  background: rgba(34, 211, 238, 0.1) !important;
+  border-left: 4px solid #22d3ee !important;
+  padding: 1.5rem !important;
+  border-radius: 0 1rem 1rem 0 !important;
+  display: block !important;
+  margin: 1.5rem 0 !important;
+  color: #fff !important;
+}
+
+/* ... existing keyframes ... */
+
+/* Star / Gold Sparkle */
+@keyframes sd-star-anim {
+
+  0%,
+  100% {
+    text-shadow: 0 0 5px #facc15, 0 0 10px #facc15;
+    filter: brightness(1);
+  }
+
+  50% {
+    text-shadow: 0 0 20px #facc15, 0 0 30px #fbbf24;
+    filter: brightness(1.3);
+  }
+}
+
+.sd-star {
+  color: #facc15 !important;
+  font-weight: 900 !important;
+  animation: sd-star-anim 2s infinite !important;
+}
+
+div.sd-star {
+  display: block !important;
+  background: linear-gradient(45deg, rgba(250, 204, 21, 0.1), rgba(251, 191, 36, 0.05)) !important;
+  border: 1px solid rgba(250, 204, 21, 0.4) !important;
+  padding: 1.5rem !important;
+  border-radius: 1.25rem !important;
+  box-shadow: 0 0 20px rgba(250, 204, 21, 0.1) !important;
+  color: #fff !important;
+}
+
+/* Ocean / Deep Waves */
+@keyframes sd-ocean-anim {
+  0% {
+    background-position: 0% 50%;
+  }
+
+  50% {
+    background-position: 100% 50%;
+  }
+
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.sd-ocean {
+  background: linear-gradient(90deg, #06b6d4, #3b82f6, #06b6d4) !important;
+  background-size: 200% auto !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+  color: transparent !important;
+  animation: sd-ocean-anim 3s ease infinite !important;
+  font-weight: 700 !important;
+}
+
+div.sd-ocean {
+  display: block !important;
+  background: linear-gradient(135deg, rgba(6, 182, 212, 0.1), rgba(59, 130, 246, 0.1)) !important;
+  border-bottom: 3px solid #06b6d4 !important;
+  padding: 1.5rem !important;
+  border-radius: 1.5rem 1.5rem 0.5rem 0.5rem !important;
+  color: #e0f2fe !important;
+}
+
+/* Ghost / Phantom */
+@keyframes sd-ghost-anim {
+
+  0%,
+  100% {
+    opacity: 0.4;
+    transform: scale(0.98);
+    filter: blur(1px);
+  }
+
+  50% {
+    opacity: 0.9;
+    transform: scale(1);
+    filter: blur(0px);
+  }
+}
+
+.sd-ghost {
+  color: #f3f4f6 !important;
+  opacity: 0.6 !important;
+  font-style: italic !important;
+  animation: sd-ghost-anim 4s ease-in-out infinite !important;
+  display: inline-block;
+}
+
+div.sd-ghost {
+  display: block !important;
+  background: rgba(255, 255, 255, 0.02) !important;
+  backdrop-filter: blur(10px) !important;
+  border: 1px dashed rgba(255, 255, 255, 0.15) !important;
+  padding: 2rem !important;
+  border-radius: 3rem !important;
+  color: #fff !important;
+  text-align: center !important;
+  font-family: serif !important;
+}
+
+/* Toxic / Biohazard */
+@keyframes sd-toxic-anim {
+
+  0%,
+  100% {
+    transform: skewX(0deg);
+  }
+
+  50% {
+    transform: skewX(-1deg);
+  }
+}
+
+.sd-toxic {
+  color: #bef264 !important;
+  text-shadow: 0 0 10px rgba(190, 242, 100, 0.5) !important;
+  font-weight: 800 !important;
+}
+
+div.sd-toxic {
+  display: block !important;
+  background: repeating-linear-gradient(45deg, rgba(190, 242, 100, 0.05), rgba(190, 242, 100, 0.05) 10px, transparent 10px, transparent 20px) !important;
+  border: 2px solid #bef264 !important;
+  padding: 1.5rem !important;
+  border-radius: 0.25rem !important;
+  color: #d9f99d !important;
+  animation: sd-toxic-anim 0.5s infinite !important;
+}
+
+/* Diamond / Crystal */
+.sd-diamond {
+  background: linear-gradient(135deg, #fff, #bfdbfe, #fbcfe8, #fff) !important;
+  background-size: 200% 200% !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+  color: transparent !important;
+  animation: sd-ocean-anim 5s linear infinite !important;
+  font-weight: 900 !important;
+  filter: drop-shadow(0 0 2px rgba(255, 255, 255, 0.5)) !important;
+}
+
+div.sd-diamond {
+  display: block !important;
+  background: rgba(255, 255, 255, 0.05) !important;
+  border: 1px solid rgba(255, 255, 255, 0.3) !important;
+  backdrop-filter: blur(15px) !important;
+  padding: 2.5rem !important;
+  color: #fff !important;
+  text-align: center !important;
+  border-radius: 1.5rem !important;
+  box-shadow: 0 0 30px rgba(255, 255, 255, 0.1) !important;
+}
+
+/* Cyber / Synthwave */
+.sd-cyber {
+  color: #f472b6 !important;
+  text-shadow: 3px 3px #22d3ee !important;
+  font-weight: 900 !important;
+  text-transform: uppercase !important;
+  font-style: italic !important;
+}
+
+div.sd-cyber {
+  display: block !important;
+  background: #020617 !important;
+  border: 2px solid #f472b6 !important;
+  box-shadow: 8px 8px 0px #22d3ee !important;
+  padding: 1.5rem !important;
+  color: #fff !important;
+  font-family: monospace !important;
+  margin-right: 8px !important;
+}
+
+
+/* --- Nuevas Energías --- */
+
+/* RGB Rainbow */
+@keyframes sd-rgb-anim {
+  0% {
+    filter: hue-rotate(0deg);
+  }
+
+  100% {
+    filter: hue-rotate(360deg);
+  }
+}
+
+.sd-rgb {
+  background: linear-gradient(90deg, #ff0000, #ff7f00, #ffff00, #00ff00, #0000ff, #4b0082, #8b00ff) !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+  color: transparent !important;
+  font-weight: 800 !important;
+  animation: sd-rgb-anim 3s linear infinite !important;
+  display: inline-block;
+}
+
+div.sd-rgb {
+  display: block !important;
+  border: 2px solid transparent !important;
+  background: linear-gradient(#050510, #050510) padding-box,
+    linear-gradient(90deg, #ff0000, #00ff00, #0000ff, #ff0000) border-box !important;
+  background-size: 200% auto !important;
+  animation: sd-rgb-anim 5s linear infinite !important;
+  padding: 1.5rem !important;
+  border-radius: 1.25rem !important;
+  box-shadow: 0 0 20px rgba(255, 255, 255, 0.1) !important;
+  color: #ffffff !important;
+  -webkit-background-clip: border-box !important;
+  background-clip: border-box !important;
+}
+
+/* Soft / Dreamy */
+.sd-soft {
+  color: #ffc2eb !important;
+  text-shadow: 0 0 10px rgba(255, 194, 235, 0.5) !important;
+  font-weight: 500 !important;
+}
+
+div.sd-soft {
+  display: block !important;
+  background: rgba(255, 255, 255, 0.03) !important;
+  backdrop-filter: blur(8px) !important;
+  border: 1px solid rgba(255, 194, 235, 0.2) !important;
+  padding: 1.5rem !important;
+  border-radius: 1.5rem !important;
+  color: #fff !important;
+  box-shadow: 0 10px 40px -10px rgba(255, 194, 235, 0.1) !important;
+}
+
+/* Glitch */
+@keyframes sd-glitch-anim {
+  0% {
+    text-shadow: 2px 0 #ff00c1, -2px 0 #00fff9;
+  }
+
+  25% {
+    text-shadow: -2px 0 #ff00c1, 2px 0 #00fff9;
+  }
+
+  50% {
+    text-shadow: 2px -1px #ff00c1, -2px 1px #00fff9;
+  }
+
+  75% {
+    text-shadow: -1px 2px #ff00c1, 1px -2px #00fff9;
+  }
+
+  100% {
+    text-shadow: 2px 0 #ff00c1, -2px 0 #00fff9;
+  }
+}
+
+.sd-glitch {
+  font-family: monospace !important;
+  color: #fff !important;
+  animation: sd-glitch-anim 0.2s infinite linear alternate-reverse !important;
+}
+
+div.sd-glitch {
+  display: block !important;
+  background: rgba(0, 0, 0, 0.8) !important;
+  border: 1px solid #ff00c1 !important;
+  padding: 1.5rem !important;
+  position: relative !important;
+  overflow: hidden !important;
+  border-radius: 1rem !important;
+}
+
+/* Fire / Heat */
+@keyframes sd-fire-anim {
+
+  0%,
+  100% {
+    box-shadow: 0 0 10px #f59e0b;
+  }
+
+  50% {
+    box-shadow: 0 0 25px #ef4444;
+  }
+}
+
+.sd-fire {
+  color: #f59e0b !important;
+  font-weight: 900 !important;
+  text-shadow: 0 0 5px #f59e0b !important;
+}
+
+div.sd-fire {
+  display: block !important;
+  background: linear-gradient(to bottom, rgba(245, 158, 11, 0.05), rgba(239, 68, 68, 0.1)) !important;
+  border-left: 4px solid #ef4444 !important;
+  padding: 1.5rem !important;
+  animation: sd-fire-anim 2s infinite !important;
+  border-radius: 0 1rem 1rem 0 !important;
+  color: #fff !important;
+}
+
+/* Void / Deep Space */
+.sd-void {
+  color: #a855f7 !important;
+  text-shadow: 0 0 15px #6b21a8 !important;
+  letter-spacing: 0.1em !important;
+}
+
+div.sd-void {
+  display: block !important;
+  background: #000 !important;
+  border: 1px solid #3b0764 !important;
+  padding: 2rem !important;
+  box-shadow: inset 0 0 50px rgba(30, 27, 75, 0.5) !important;
+  border-radius: 2rem !important;
+  text-align: center !important;
+  color: #d1d5db !important;
+}
+
+/* Hacker / Matrix */
+.sd-hacker {
+  color: #22c55e !important;
+  font-family: 'Courier New', monospace !important;
+  text-shadow: 0 0 5px #22c55e !important;
+}
+
+div.sd-hacker {
+  display: block !important;
+  background: #050a05 !important;
+  border: 1px solid #166534 !important;
+  padding: 1.5rem !important;
+  font-family: 'Courier New', monospace !important;
+  color: #22c55e !important;
+  border-radius: 0.5rem !important;
+}
+
+/* --- Feed Previews --- */
+.prose-preview p {
+  margin: 0 !important;
+  display: inline !important;
+  /* Para que fluya mejor en el line-clamp */
+}
+
+.prose-preview div[class^="sd-"] {
+  padding: 0.75rem 1rem !important;
+  margin: 0.5rem 0 !important;
+  font-size: 0.85em !important;
+  border-radius: 0.75rem !important;
+  box-shadow: none !important;
+  /* Quitar sombras pesadas en feed */
+}

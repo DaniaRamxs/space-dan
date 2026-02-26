@@ -3,10 +3,25 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import rehypeRaw from 'rehype-raw';
+import rehypeSanitize, { defaultSchema } from 'rehype-sanitize';
 import { formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { activityService } from '../services/activityService';
 import { useAuthContext } from '../contexts/AuthContext';
+import { parseSpaceEnergies } from '../utils/markdownUtils';
+
+// Configuración de sanitize para permitir nuestras clases sd-*
+const sanitizeSchema = {
+    ...defaultSchema,
+    tagNames: [...new Set([...defaultSchema.tagNames, 'div', 'span'])],
+    attributes: {
+        ...defaultSchema.attributes,
+        div: [...(defaultSchema.attributes.div || []), 'className', 'class'],
+        span: [...(defaultSchema.attributes.span || []), 'className', 'class'],
+        '*': [...(defaultSchema.attributes['*'] || []), 'className', 'class']
+    }
+};
 import ReactionsBar from '../components/Social/ReactionsBar';
 import ShareModal from '../components/Social/ShareModal';
 import Comments from '../components/Comments';
@@ -222,8 +237,11 @@ export default function PostDetailPage() {
                                 prose-img:rounded-2xl prose-img:border prose-img:border-white/10 prose-img:shadow-xl
                                 break-words"
                             >
-                                <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                                    {post.content}
+                                <ReactMarkdown
+                                    remarkPlugins={[remarkGfm]}
+                                    rehypePlugins={[rehypeRaw, [rehypeSanitize, sanitizeSchema]]}
+                                >
+                                    {parseSpaceEnergies(post.content)}
                                 </ReactMarkdown>
                             </div>
                         ) : (

@@ -8,8 +8,8 @@ const MAIN_USER_USERNAMES = ['DaniaRamxs', 'Dania', 'dan'];
  * Retorna el nombre a mostrar (normaliza 'Dan' si es el usuario dueño).
  */
 export function getUserDisplayName(profile) {
-    if (!profile) return 'Jugador';
-    const username = profile.username || profile.other_username || 'Jugador';
+    if (!profile) return 'Usuario';
+    const username = profile.username || profile.other_username || 'Usuario';
     if (MAIN_USER_USERNAMES.some(u => u.toLowerCase() === username.toLowerCase())) {
         return 'Dan';
     }
@@ -38,7 +38,7 @@ export function getNicknameClass(profile) {
  * Formatea un username plano (ej. para chats).
  */
 export function formatUsername(username) {
-    if (!username) return 'Jugador';
+    if (!username) return 'Usuario';
     if (MAIN_USER_USERNAMES.some(u => u.toLowerCase() === username.toLowerCase())) {
         return 'Dan';
     }

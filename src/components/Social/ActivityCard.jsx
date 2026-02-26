@@ -1,6 +1,11 @@
 import { memo, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Link, useNavigate } from 'react-router-dom';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import rehypeRaw from 'rehype-raw';
+import rehypeSanitize, { defaultSchema } from 'rehype-sanitize';
+import { parseSpaceEnergies } from '../../utils/markdownUtils';
 import ReactionsBar from './ReactionsBar';
 import ShareModal from './ShareModal';
 import { formatDistanceToNow } from 'date-fns';
@@ -9,17 +14,25 @@ import { useAuthContext } from '../../contexts/AuthContext';
 import { CATEGORIES } from './PostComposer';
 import { getUserDisplayName, getNicknameClass } from '../../utils/user';
 
-// Extrae texto plano desde markdown
-function stripMarkdown(md = '') {
+// Configuración de sanitize para permitir nuestras clases sd-* en la preview
+const sanitizeSchema = {
+    ...defaultSchema,
+    tagNames: [...new Set([...defaultSchema.tagNames, 'div', 'span'])],
+    attributes: {
+        ...defaultSchema.attributes,
+        div: [...(defaultSchema.attributes.div || []), 'className', 'class'],
+        span: [...(defaultSchema.attributes.span || []), 'className', 'class'],
+        '*': [...(defaultSchema.attributes['*'] || []), 'className', 'class']
+    }
+};
+
+// Extrae texto plano básico pero MANTIENE las energías para que el parser pueda actuar
+function cleanMarkdownForPreview(md = '') {
     return md
-        .replace(/```[\s\S]*?```/g, '')
-        .replace(/`[^`]*`/g, '')
-        .replace(/#+\s/g, '')
-        .replace(/\*\*|__|\*|_|~~|>/g, '')
-        .replace(/\[([^\]]*)\]\([^)]*\)/g, '$1')
-        .replace(/!\[[^\]]*\]\([^)]*\)/g, '')
-        .replace(/[-*+]\s/g, '')
-        .replace(/\n+/g, ' ')
+        .replace(/```[\s\S]*?```/g, '[Código]')
+        .replace(/#+\s/g, '') // Quitar headers para que no ocupen tanto espacio
+        .replace(/!\[[^\]]*\]\([^)]*\)/g, '') // Quitar imágenes
+        .replace(/\[([^\]]*)\]\([^)]*\)/g, '$1') // Solo texto de links
         .trim();
 }
 
@@ -45,10 +58,10 @@ const ActivityCard = memo(({ post, onUpdate, onNewPost }) => {
         setShowShareModal(true);
     };
 
-    const plainText = stripMarkdown(post.content || '');
-    const preview = plainText.length > 400
-        ? plainText.slice(0, 400).trimEnd() + '…'
-        : plainText;
+    const previewRaw = cleanMarkdownForPreview(post.content || '');
+    const preview = previewRaw.length > 500
+        ? previewRaw.slice(0, 500).trimEnd() + '…'
+        : previewRaw;
 
     const postUrl = `/transmission/${post.id}`;
     const catMeta = getCategoryMeta(post.category);
@@ -132,11 +145,16 @@ const ActivityCard = memo(({ post, onUpdate, onNewPost }) => {
                         </h2>
                     )}
 
-                    {/* Preview */}
+                    {/* Preview con soporte de Energías */}
                     {preview && (
-                        <p className="text-sm text-white/40 leading-relaxed line-clamp-4 mb-4">
-                            {preview}
-                        </p>
+                        <div className="text-sm text-white/40 leading-relaxed mb-4 line-clamp-4 pointer-events-none select-none prose-preview">
+                            <ReactMarkdown
+                                remarkPlugins={[remarkGfm]}
+                                rehypePlugins={[rehypeRaw, [rehypeSanitize, sanitizeSchema]]}
+                            >
+                                {parseSpaceEnergies(preview)}
+                            </ReactMarkdown>
+                        </div>
                     )}
 
                     {/* Separador */}

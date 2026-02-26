@@ -1,20 +1,22 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { unlockAchievement } from '../hooks/useAchievements';
 import { getRadioAudio } from '../utils/radioAudio';
+import RadioSvg from './RadioIcons';
 
 /* ── Estaciones ──────────────────────────────────────────────── */
 
 const BASE_STATIONS = [
-  { id: 'nightwave', name: 'Nightwave Plaza', genre: 'Vaporwave · City Pop', stream: 'https://radio.plaza.one/mp3', icon: '🌃' },
-  { id: 'lofi', name: 'Dan FM — Lofi', genre: 'Lofi · Chillhop', stream: 'https://streams.ilovemusic.de/iloveradio17.mp3', icon: '☁️' },
+  { id: 'nightwave', name: 'Nightwave Plaza', genre: 'Vaporwave · City Pop', stream: 'https://radio.plaza.one/mp3', icon: <RadioSvg type="nightwave" /> },
+  { id: 'lofi', name: 'Dan FM — Lofi', genre: 'Lofi · Chillhop', stream: 'https://streams.ilovemusic.de/iloveradio17.mp3', icon: <RadioSvg type="lofi" /> },
 ];
 
 const EXTRA_STATIONS = {
-  radio_jcore: { id: 'jcore', name: 'Listen.moe — Anime', genre: 'J-Pop · Anime · K-Pop', stream: 'https://listen.moe/stream', icon: '🎌' },
-  radio_groove: { id: 'groove', name: 'Groove Salad', genre: 'Ambient · Electronica', stream: 'https://ice4.somafm.com/groovesalad-128-mp3', icon: '🥗' },
-  radio_beatblender: { id: 'beatblender', name: 'Beat Blender', genre: 'Deep House · Electro', stream: 'https://ice4.somafm.com/beatblender-128-mp3', icon: '🎛️' },
-  radio_dronezone: { id: 'dronezone', name: 'Drone Zone', genre: 'Ambient · Space', stream: 'https://ice4.somafm.com/dronezone-128-mp3', icon: '🌌' },
-  radio_secretagent: { id: 'secretagent', name: 'Secret Agent', genre: 'Spy Jazz · Lounge', stream: 'https://ice4.somafm.com/secretagent-128-mp3', icon: '🕵️' },
+  radio_jcore: { id: 'jcore', name: 'Listen.moe — Anime', genre: 'J-Pop · Anime · K-Pop', stream: 'https://listen.moe/stream', icon: <RadioSvg type="jcore" /> },
+  radio_groove: { id: 'groove', name: 'Groove Salad', genre: 'Ambient · Electronica', stream: 'https://ice4.somafm.com/groovesalad-128-mp3', icon: <RadioSvg type="groove" /> },
+  radio_beatblender: { id: 'beatblender', name: 'Beat Blender', genre: 'Deep House · Electro', stream: 'https://ice4.somafm.com/beatblender-128-mp3', icon: <RadioSvg type="beat" /> },
+  radio_dronezone: { id: 'dronezone', name: 'Drone Zone', genre: 'Ambient · Space', stream: 'https://ice4.somafm.com/dronezone-128-mp3', icon: <RadioSvg type="space" /> },
+  radio_secretagent: { id: 'secretagent', name: 'Secret Agent', genre: 'Spy Jazz · Lounge', stream: 'https://ice4.somafm.com/secretagent-128-mp3', icon: <RadioSvg type="agent" /> },
+  radio_kpop: { id: 'kpop', name: 'K-Pop Universe', genre: 'K-Pop · Hallyu Hits', stream: 'https://listen.moe/kpop/stream', icon: <RadioSvg type="kpop" /> },
 };
 
 function getStations() {

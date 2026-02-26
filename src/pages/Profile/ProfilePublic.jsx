@@ -157,7 +157,9 @@ export default function PublicProfilePage() {
           nick_style_item:equipped_nickname_style(id, metadata),
           primary_role_item:equipped_primary_role(id, title, metadata),
           secondary_role_item:equipped_secondary_role(id, title, metadata),
-          ambient_sound_item:equipped_ambient_sound(id, title, metadata)
+          ambient_sound_item:equipped_ambient_sound(id, title, metadata),
+          banner_item:banner_item_id(id, title, metadata, preview_url),
+          frame_item:frame_item_id(id, title, metadata, preview_url)
         `)
         .ilike('username', cleanUsername)
         .maybeSingle();
@@ -191,7 +193,9 @@ export default function PublicProfilePage() {
       setPosts(userPosts);
       setPartnership(pData);
 
-      if (prof.banner_item_id) {
+      if (prof.banner_item) {
+        setBannerItem(prof.banner_item);
+      } else if (prof.banner_item_id) {
         storeService.getStoreItem(prof.banner_item_id)
           .then(item => { if (isMountedLocal) setBannerItem(item); })
           .catch(() => { });
@@ -477,7 +481,7 @@ function ProfileContent({
             opacity: bannerItem?.preview_url ? 0.7 : 1
           }}
         >
-          {bannerItem?.metadata?.fx === 'matrix' && <div className="absolute inset-0 banner-fx-matrix opacity-20"></div>}
+          {bannerItem?.metadata?.fx === 'matrix' && <div className="absolute inset-0 banner-fx-matrix opacity-80 z-10"></div>}
           {bannerItem?.metadata?.fx === 'scanlines' && <div className="absolute inset-0 banner-fx-scanlines opacity-30"></div>}
           {bannerItem?.metadata?.fx === 'stars' && <div className="absolute inset-0 banner-fx-stars"></div>}
 

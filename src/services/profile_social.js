@@ -1,4 +1,5 @@
 import { supabase } from '../supabaseClient';
+import { streakService } from './streak';
 
 export const profileSocialService = {
     /**
@@ -29,6 +30,10 @@ export const profileSocialService = {
                 .from('follows')
                 .insert({ follower_id: user.id, following_id: targetUserId });
             if (error) throw error;
+
+            // Racha Estelar al seguir a alguien
+            streakService.trackActivity();
+
             return { following: true };
         }
     },
@@ -108,6 +113,10 @@ export const profileSocialService = {
             .single();
 
         if (error) throw error;
+
+        // Racha Estelar al comentar
+        streakService.trackActivity();
+
         return data;
     },
 

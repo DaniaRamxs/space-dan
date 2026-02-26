@@ -2,8 +2,23 @@ import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import rehypeRaw from 'rehype-raw';
+import rehypeSanitize, { defaultSchema } from 'rehype-sanitize';
 import { blogService } from '../services/blogService';
 import LikeButton from '../components/LikeButton';
+import { parseSpaceEnergies } from '../utils/markdownUtils';
+
+// Configuración de sanitize para permitir nuestras clases sd-*
+const sanitizeSchema = {
+  ...defaultSchema,
+  tagNames: [...new Set([...defaultSchema.tagNames, 'div', 'span'])],
+  attributes: {
+    ...defaultSchema.attributes,
+    div: [...(defaultSchema.attributes.div || []), 'className', 'class'],
+    span: [...(defaultSchema.attributes.span || []), 'className', 'class'],
+    '*': [...(defaultSchema.attributes['*'] || []), 'className', 'class']
+  }
+};
 import Comments from '../components/Comments'; // We might need to ensure this works with string IDs too
 import { useAuthContext } from '../contexts/AuthContext';
 
@@ -77,8 +92,11 @@ export default function PostPage() {
 
         {/* Markdown Content */}
         <div className="postBigText markdownContent mx-auto" style={{ maxWidth: '65ch', fontSize: '1.1rem', lineHeight: '1.7' }}>
-          <ReactMarkdown remarkPlugins={[remarkGfm]}>
-            {post.content_markdown}
+          <ReactMarkdown
+            remarkPlugins={[remarkGfm]}
+            rehypePlugins={[rehypeRaw, [rehypeSanitize, sanitizeSchema]]}
+          >
+            {parseSpaceEnergies(post.content_markdown)}
           </ReactMarkdown>
         </div>
 

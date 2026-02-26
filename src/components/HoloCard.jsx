@@ -172,6 +172,10 @@ export default function HoloCard({ profile, onClose }) {
                                 <div style={{ fontSize: '8px', opacity: 0.5, textTransform: 'uppercase' }}>Balance Temp.</div>
                             </div>
                             <div style={{ textAlign: 'center' }}>
+                                <div style={{ fontWeight: 'bold', fontSize: '14px', color: '#fb923c' }}>🔥 {fullProfile?.streak || profile.streak || 0}</div>
+                                <div style={{ fontSize: '8px', opacity: 0.5, textTransform: 'uppercase' }}>Racha</div>
+                            </div>
+                            <div style={{ textAlign: 'center' }}>
                                 <div style={{ fontWeight: 'bold', fontSize: '14px' }}>{socialStats.followers}</div>
                                 <div style={{ fontSize: '8px', opacity: 0.5, textTransform: 'uppercase' }}>Seguidores</div>
                             </div>

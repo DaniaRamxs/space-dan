@@ -54,7 +54,9 @@ export default function useAuth() {
             nick_style_item:equipped_nickname_style(id, metadata),
             primary_role_item:equipped_primary_role(id, title, metadata),
             secondary_role_item:equipped_secondary_role(id, title, metadata),
-            ambient_sound_item:equipped_ambient_sound(id, title, metadata)
+            ambient_sound_item:equipped_ambient_sound(id, title, metadata),
+            banner_item:banner_item_id(id, title, metadata, preview_url),
+            frame_item:frame_item_id(id, title, metadata, preview_url)
           `)
           .eq('id', session.user.id)
           .maybeSingle();
