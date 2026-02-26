@@ -250,9 +250,9 @@ export default function GamesPage() {
   };
 
   return (
-    <main className="card" style={{ paddingTop: 60, paddingBottom: 40 }}>
-      {/* HUD HEADER */}
-      <div className="pageHeader" style={{
+    <main className="w-full max-w-6xl mx-auto min-h-screen pb-32 text-white font-sans flex flex-col pt-4 md:pt-10 px-0 md:px-6 relative">
+      {/* HUD HEADER - Hidden on mobile for app look */}
+      <div className="pageHeader px-4 md:px-0 hidden md:flex" style={{
         borderBottom: '1px solid rgba(255,255,255,0.05)',
         paddingBottom: 15,
         marginBottom: 20,
@@ -306,7 +306,7 @@ export default function GamesPage() {
       )}
 
       {/* BENTO DASHBOARD */}
-      <div className="bentoGrid">
+      <div className="bentoGrid mx-4 md:mx-0">
         <div className="bentoItem bentoLarge" style={{
           background: 'linear-gradient(135deg, rgba(6,182,212,0.1), rgba(236,72,153,0.05))',
           minHeight: '160px',
@@ -401,7 +401,7 @@ export default function GamesPage() {
       </div>
 
       {/* FILTERS */}
-      <div style={{ marginBottom: 25 }}>
+      <div className="px-4 md:px-0" style={{ marginBottom: 25 }}>
         <div style={{ position: 'relative', marginBottom: 15 }}>
           <span style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', opacity: 0.5 }}>🔍</span>
           <input
@@ -419,7 +419,7 @@ export default function GamesPage() {
             }}
           />
         </div>
-        <div className="categoryTabs" style={{ display: 'flex', gap: 10, overflowX: 'auto', paddingBottom: 10, scrollbarWidth: 'none' }}>
+        <div className="mobile-scroll-x" style={{ paddingBottom: 10 }}>
           {categories.map(cat => (
             <button
               key={cat}
@@ -448,7 +448,7 @@ export default function GamesPage() {
           <p style={{ fontWeight: 'bold' }}>No se detectaron señales de ese juego.</p>
         </div>
       ) : (
-        <div className="gamesGrid" style={{ marginTop: 0 }}>
+        <div className="gamesGrid px-4 md:px-0" style={{ marginTop: 0 }}>
           {filteredGames.map((game, i) => {
             const isPlayed = playedSet.has(game.id);
             const stats = userStats.find(s => s.game_id === game.id);
@@ -484,7 +484,7 @@ export default function GamesPage() {
 
       {/* LIVE TICKER */}
       {!openId && (
-        <div className="liveTickerContainer">
+        <div className="liveTickerContainer mx-4 md:mx-0">
           <div className="liveTicker">
             {[...tickerItems, ...tickerItems].map((text, i) => (
               <span key={i} className="tickerItem">{text}</span>

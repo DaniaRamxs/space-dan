@@ -126,10 +126,9 @@ export default function BulletinPage() {
   }
 
   return (
-    <main className="w-full max-w-2xl mx-auto min-h-[100dvh] pb-32 text-white font-sans flex flex-col pt-6 md:pt-10 px-4 relative">
-
-      {/* Header */}
-      <motion.div initial={{ opacity: 0, y: -12 }} animate={{ opacity: 1, y: 0 }} className="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-4">
+    <main className="w-full max-w-2xl mx-auto min-h-screen pb-32 text-white font-sans flex flex-col pt-6 md:pt-10 px-0 md:px-4 relative">
+      {/* Header - Hidden on mobile */}
+      <motion.div initial={{ opacity: 0, y: -12 }} animate={{ opacity: 1, y: 0 }} className="mb-8 px-4 md:px-0 hidden md:flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
           <h1 className="text-4xl md:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-white to-white/30 tracking-tight mb-1 uppercase">
             Boletín
@@ -146,7 +145,9 @@ export default function BulletinPage() {
         </button>
       </motion.div>
 
-      <ApkDownload />
+      <div className="hidden md:block">
+        <ApkDownload />
+      </div>
 
       <AnimatePresence>
         {showGuide && <MarkdownGuide onClose={() => setShowGuide(false)} />}
@@ -157,7 +158,7 @@ export default function BulletinPage() {
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.06 }}
-        className="relative mb-4"
+        className="relative mb-4 px-4 md:px-0"
       >
         <span className="absolute left-4 top-1/2 -translate-y-1/2 text-white/20 text-sm pointer-events-none">🔍</span>
         <input
@@ -180,7 +181,7 @@ export default function BulletinPage() {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.1 }}
-        className="flex flex-wrap gap-2 mb-8"
+        className="flex flex-wrap gap-2 mb-8 px-4 md:px-0"
       >
         {ALL_TAGS.map(tag => (
           <button
@@ -198,14 +199,14 @@ export default function BulletinPage() {
 
       {/* Resultado */}
       {filtered.length === 0 ? (
-        <div className="text-center py-16 bg-[#0a0a0f] rounded-[2rem] border border-white/5">
+        <div className="mx-4 text-center py-16 bg-[#0a0a0f] rounded-[2rem] border border-white/5">
           <span className="text-3xl mb-3 block opacity-30">🛰️</span>
           <p className="text-[10px] font-black text-white/25 uppercase tracking-[0.4em]">Sin resultados</p>
         </div>
       ) : (
         <>
           {/* Timeline */}
-          <div className="relative flex flex-col gap-0">
+          <div className="relative flex flex-col gap-0 px-4 md:px-0">
             {/* Línea vertical */}
             <div className="absolute left-[19px] top-2 bottom-2 w-px bg-gradient-to-b from-cyan-500/30 via-white/5 to-transparent pointer-events-none" />
 

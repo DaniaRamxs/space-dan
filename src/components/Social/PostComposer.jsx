@@ -117,7 +117,7 @@ export default function PostComposer({
     };
 
     return (
-        <div className={`bg-[#070710] border rounded-3xl shadow-2xl overflow-hidden relative transition-all ${isEditing ? 'border-cyan-500/30' : 'border-white/[0.06]'
+        <div className={`bg-[#070710] border-b md:border border-white/[0.06] md:rounded-3xl shadow-none md:shadow-2xl overflow-hidden relative transition-all ${isEditing ? 'border-cyan-500/30' : 'border-white/[0.06]'
             }`}>
             <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-cyan-500/20 to-transparent pointer-events-none" />
 
@@ -152,7 +152,7 @@ export default function PostComposer({
                 </div>
 
                 {/* Selector de categoría */}
-                <div className="relative ml-12 mb-3">
+                <div className="md:ml-12 mb-3">
                     <button
                         type="button"
                         onClick={() => setCatOpen(v => !v)}
@@ -195,7 +195,7 @@ export default function PostComposer({
                 </div>
 
                 {/* Tabs write/preview */}
-                <div className="flex gap-1 mb-2 ml-12">
+                <div className="flex gap-1 mb-2 md:ml-12">
                     {['write', 'preview'].map(t => (
                         <button
                             key={t}
@@ -210,7 +210,7 @@ export default function PostComposer({
                 </div>
 
                 {/* Editor / Preview */}
-                <div className="ml-12 min-h-[80px]">
+                <div className="md:ml-12 min-h-[80px]">
                     <AnimatePresence mode="wait">
                         {tab === 'write' ? (
                             <motion.textarea
