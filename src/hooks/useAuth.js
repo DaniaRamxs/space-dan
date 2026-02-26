@@ -124,6 +124,7 @@ export default function useAuth() {
 
   const loginWithProvider = async (provider) => {
     try {
+      const redirectUrl = getRedirectUrl();
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider,
         options: {
