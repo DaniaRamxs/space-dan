@@ -53,7 +53,7 @@ export default function OnboardingPage() {
 
             if (data.success) {
                 // Redirigir al perfil o home
-                navigate('/home');
+                navigate('/posts');
                 // Forzar recarga de perfil si es necesario (el hook useAuth ya tiene suscripción)
             }
         } catch (err) {
