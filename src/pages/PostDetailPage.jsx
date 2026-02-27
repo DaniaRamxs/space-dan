@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+﻿import { useState, useEffect, useCallback } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import ReactMarkdown from 'react-markdown';
@@ -11,7 +11,7 @@ import { activityService } from '../services/activityService';
 import { useAuthContext } from '../contexts/AuthContext';
 import { parseSpaceEnergies } from '../utils/markdownUtils';
 
-// Configuración de sanitize para permitir nuestras clases sd-*
+// ConfiguraciÃ³n de sanitize para permitir nuestras clases sd-*
 const sanitizeSchema = {
     ...defaultSchema,
     tagNames: [...new Set([...defaultSchema.tagNames, 'div', 'span'])],
@@ -30,9 +30,18 @@ import { CATEGORIES } from '../components/Social/PostComposer';
 import { getUserDisplayName, getNicknameClass } from '../utils/user';
 
 function getCategoryMeta(id) {
-    return CATEGORIES.find(c => c.id === id) || { icon: '🌐', label: 'General' };
+    return CATEGORIES.find(c => c.id === id) || { icon: 'ðŸŒ', label: 'General' };
 }
 
+function safeTimeAgo(dateValue) {
+    try {
+        const d = new Date(dateValue);
+        if (Number.isNaN(d.getTime())) return 'en el vacio temporal';
+        return formatDistanceToNow(d, { addSuffix: true, locale: es });
+    } catch {
+        return 'en el vacio temporal';
+    }
+}
 
 export default function PostDetailPage() {
     const { postId } = useParams();
@@ -56,7 +65,7 @@ export default function PostDetailPage() {
             setPost(data);
         } catch (err) {
             console.error('[PostDetailPage]', err);
-            setError('No se encontró esta transmisión.');
+            setError('No se encontrÃ³ esta transmisiÃ³n.');
         } finally {
             setLoading(false);
         }
@@ -74,7 +83,7 @@ export default function PostDetailPage() {
     }, []);
 
     const handleDelete = async () => {
-        if (!window.confirm('¿Eliminar esta transmisión? Esta acción no se puede deshacer.')) return;
+        if (!window.confirm('Â¿Eliminar esta transmisiÃ³n? Esta acciÃ³n no se puede deshacer.')) return;
         try {
             await activityService.deletePost(postId);
             navigate('/posts', { replace: true });
@@ -83,23 +92,23 @@ export default function PostDetailPage() {
         }
     };
 
-    // ── Loading ──
+    // â”€â”€ Loading â”€â”€
     if (loading) return (
         <main className="w-full max-w-2xl mx-auto min-h-[100dvh] pb-24 text-white px-4 pt-10 flex justify-center items-center">
             <div className="flex flex-col items-center gap-4">
                 <div className="w-8 h-8 border-2 border-cyan-500/20 border-t-cyan-500 rounded-full animate-spin" />
-                <span className="text-[10px] font-black text-white/30 uppercase tracking-[0.4em]">Cargando transmisión...</span>
+                <span className="text-[10px] font-black text-white/30 uppercase tracking-[0.4em]">Cargando transmisiÃ³n...</span>
             </div>
         </main>
     );
 
-    // ── Error ──
+    // â”€â”€ Error â”€â”€
     if (error || !post) return (
         <main className="w-full max-w-2xl mx-auto min-h-[100dvh] pb-24 text-white px-4 pt-10 flex flex-col items-center justify-center gap-6">
-            <span className="text-5xl">🛰️</span>
-            <p className="text-sm text-white/40 uppercase tracking-widest font-black">{error || 'Transmisión no encontrada'}</p>
+            <span className="text-5xl">ðŸ›°ï¸</span>
+            <p className="text-sm text-white/40 uppercase tracking-widest font-black">{error || 'TransmisiÃ³n no encontrada'}</p>
             <Link to="/posts" className="text-cyan-400 text-[10px] font-black uppercase tracking-widest hover:underline">
-                ← Volver al feed
+                â† Volver al feed
             </Link>
         </main>
     );
@@ -107,16 +116,16 @@ export default function PostDetailPage() {
     return (
         <main className="w-full max-w-3xl mx-auto min-h-[100dvh] pb-32 text-white font-sans flex flex-col pt-6 md:pt-10 px-4">
 
-            {/* ── Back ── */}
+            {/* â”€â”€ Back â”€â”€ */}
             <Link
                 to="/posts"
                 className="mb-8 flex items-center gap-2 text-[10px] font-black text-white/25 hover:text-cyan-400 uppercase tracking-[0.3em] transition-colors w-fit group"
             >
-                <span className="group-hover:-translate-x-1 transition-transform">←</span>
+                <span className="group-hover:-translate-x-1 transition-transform">â†</span>
                 Feed Global
             </Link>
 
-            {/* ── Modo edición ── */}
+            {/* â”€â”€ Modo ediciÃ³n â”€â”€ */}
             <AnimatePresence>
                 {editing && (
                     <motion.div
@@ -134,14 +143,14 @@ export default function PostDetailPage() {
                 )}
             </AnimatePresence>
 
-            {/* ── Post completo ── */}
+            {/* â”€â”€ Post completo â”€â”€ */}
             {!editing && (
                 <motion.article
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     className="relative bg-[#070710] border border-white/[0.06] rounded-3xl overflow-hidden shadow-2xl"
                 >
-                    {/* Línea acento top */}
+                    {/* LÃ­nea acento top */}
                     <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-cyan-500/40 to-transparent" />
 
                     <div className="p-6 md:p-10">
@@ -165,8 +174,8 @@ export default function PostDetailPage() {
                                         </span>
                                     </Link>
                                     <p className="text-[9px] text-white/20 font-black uppercase tracking-[0.25em] mt-0.5">
-                                        {formatDistanceToNow(new Date(post.created_at), { addSuffix: true, locale: es })}
-                                        {post.updated_at > post.created_at && ' · editado'}
+                                        {safeTimeAgo(post.created_at)}
+                                        {post.updated_at > post.created_at && ' Â· editado'}
                                     </p>
                                 </div>
                             </div>
@@ -177,26 +186,26 @@ export default function PostDetailPage() {
                                         onClick={() => setEditing(true)}
                                         className="px-3 py-1.5 text-[9px] font-black text-white/30 hover:text-cyan-400 uppercase tracking-widest border border-white/5 hover:border-cyan-400/30 rounded-xl transition-all"
                                     >
-                                        ✏️ Editar
+                                        âœï¸ Editar
                                     </button>
                                     <button
                                         onClick={handleDelete}
                                         className="px-3 py-1.5 text-[9px] font-black text-white/30 hover:text-rose-400 uppercase tracking-widest border border-white/5 hover:border-rose-400/30 rounded-xl transition-all"
                                     >
-                                        🗑
+                                        ðŸ—‘
                                     </button>
                                 </div>
                             )}
                         </div>
 
-                        {/* Título */}
+                        {/* TÃ­tulo */}
                         {post.title && (
                             <h1 className="text-3xl md:text-4xl font-black text-transparent bg-clip-text bg-gradient-to-br from-white to-white/60 leading-tight tracking-tight uppercase mb-4">
                                 {post.title}
                             </h1>
                         )}
 
-                        {/* Categoría + vistas */}
+                        {/* CategorÃ­a + vistas */}
                         <div className="flex items-center gap-3 mb-6">
                             {post.category && (() => {
                                 const cat = getCategoryMeta(post.category);
@@ -208,7 +217,7 @@ export default function PostDetailPage() {
                             })()}
                             {post.views_count > 0 && (
                                 <span className="text-[9px] font-mono text-white/20 flex items-center gap-1">
-                                    👁 {post.views_count >= 1000 ? `${(post.views_count / 1000).toFixed(1)}k` : post.views_count} vistas
+                                    ðŸ‘ {post.views_count >= 1000 ? `${(post.views_count / 1000).toFixed(1)}k` : post.views_count} vistas
                                 </span>
                             )}
                         </div>
@@ -262,7 +271,7 @@ export default function PostDetailPage() {
                                     onClick={() => { setShareMode('repost'); setShowShare(true); }}
                                     className="flex items-center gap-2 px-4 py-2 rounded-2xl bg-white/[0.03] border border-white/5 text-white/30 hover:text-purple-400 hover:bg-purple-400/10 hover:border-purple-400/20 transition-all text-[9px] font-black uppercase tracking-widest"
                                 >
-                                    🔁 Repost
+                                    ðŸ” Repost
                                 </motion.button>
                                 <motion.button
                                     whileHover={{ scale: 1.04 }}
@@ -270,7 +279,7 @@ export default function PostDetailPage() {
                                     onClick={() => { setShareMode('quote'); setShowShare(true); }}
                                     className="flex items-center gap-2 px-4 py-2 rounded-2xl bg-white/[0.03] border border-white/5 text-white/30 hover:text-cyan-400 hover:bg-cyan-400/10 hover:border-cyan-400/20 transition-all text-[9px] font-black uppercase tracking-widest"
                                 >
-                                    💬 Citar
+                                    ðŸ’¬ Citar
                                 </motion.button>
                             </div>
                         </div>
@@ -286,10 +295,11 @@ export default function PostDetailPage() {
                 onSuccess={() => setShowShare(false)}
             />
 
-            {/* ── Comentarios ── */}
+            {/* â”€â”€ Comentarios â”€â”€ */}
             <div className="mt-12 bg-[#070710] border border-white/[0.06] rounded-3xl p-6 md:p-10 shadow-2xl">
                 <Comments postId={postId} />
             </div>
         </main>
     );
 }
+

@@ -1,4 +1,4 @@
-import { memo, useState } from 'react';
+﻿import { memo, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Link, useNavigate } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
@@ -15,7 +15,7 @@ import { CATEGORIES } from './PostComposer';
 import { getUserDisplayName, getNicknameClass } from '../../utils/user';
 import { Eye, Repeat2, MessageSquare, ChevronRight } from 'lucide-react';
 
-// Configuración de sanitize para permitir nuestras clases sd-* en la preview
+// ConfiguraciÃ³n de sanitize para permitir nuestras clases sd-* en la preview
 const sanitizeSchema = {
     ...defaultSchema,
     tagNames: [...new Set([...defaultSchema.tagNames, 'div', 'span'])],
@@ -27,23 +27,33 @@ const sanitizeSchema = {
     }
 };
 
-// Extrae texto plano básico pero MANTIENE las energías para que el parser pueda actuar
+// Extrae texto plano bÃ¡sico pero MANTIENE las energÃ­as para que el parser pueda actuar
 function cleanMarkdownForPreview(md = '') {
     return md
-        .replace(/```[\s\S]*?```/g, '[Código]')
+        .replace(/```[\s\S]*?```/g, '[CÃ³digo]')
         .replace(/#+\s/g, '') // Quitar headers para que no ocupen tanto espacio
-        .replace(/!\[[^\]]*\]\([^)]*\)/g, '') // Quitar imágenes
+        .replace(/!\[[^\]]*\]\([^)]*\)/g, '') // Quitar imÃ¡genes
         .replace(/\[([^\]]*)\]\([^)]*\)/g, '$1') // Solo texto de links
         .trim();
 }
 
 function getCategoryMeta(id) {
-    return CATEGORIES.find(c => c.id === id) || { icon: '🌐', label: 'General' };
+    return CATEGORIES.find(c => c.id === id) || { icon: 'ðŸŒ', label: 'General' };
 }
 
 function formatViews(n = 0) {
     if (n >= 1000) return `${(n / 1000).toFixed(1)}k`;
     return String(n);
+}
+
+function safeTimeAgo(dateValue, withSuffix = true) {
+    try {
+        const d = new Date(dateValue);
+        if (Number.isNaN(d.getTime())) return 'en el vacio temporal';
+        return formatDistanceToNow(d, { addSuffix: withSuffix, locale: es });
+    } catch {
+        return 'en el vacio temporal';
+    }
 }
 
 const ActivityCard = memo(({ post, onUpdate, onNewPost }) => {
@@ -61,7 +71,7 @@ const ActivityCard = memo(({ post, onUpdate, onNewPost }) => {
 
     const previewRaw = cleanMarkdownForPreview(post.content || '');
     const preview = previewRaw.length > 500
-        ? previewRaw.slice(0, 500).trimEnd() + '…'
+        ? previewRaw.slice(0, 500).trimEnd() + 'â€¦'
         : previewRaw;
 
     const postUrl = `/transmission/${post.id}`;
@@ -79,7 +89,7 @@ const ActivityCard = memo(({ post, onUpdate, onNewPost }) => {
                 role="article"
                 aria-label={post.title || 'Post'}
             >
-                {/* Línea acento top (Reduced 50%) */}
+                {/* LÃ­nea acento top (Reduced 50%) */}
                 <div className="absolute top-0 left-8 right-8 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent
                                 group-hover:via-white/20 transition-all duration-500" />
 
@@ -129,48 +139,40 @@ const ActivityCard = memo(({ post, onUpdate, onNewPost }) => {
                                         </span>
                                     )}
                                     <span className="text-[9px] font-mono text-white/50">
-                                        {(() => {
-                                            try {
-                                                const d = new Date(post.created_at);
-                                                if (isNaN(d.getTime())) return 'en el vacío temporal';
-                                                return formatDistanceToNow(d, { addSuffix: true, locale: es });
-                                            } catch (e) {
-                                                return 'en el vacío temporal';
-                                            }
-                                        })()}
+                                        {safeTimeAgo(post.created_at, true)}
                                     </span>
                                 </div>
                             </div>
 
-                            {/* Categoría y Señales de Vida */}
+                            {/* CategorÃ­a y SeÃ±ales de Vida */}
                             <div className="flex items-center gap-3">
                                 <div className="flex items-center gap-1.5 text-[8px] font-semibold uppercase tracking-[0.2em] font-mono">
                                     <span className="text-cyan-500/25 group-hover:text-cyan-400/50 transition-colors">
                                         {catMeta.icon} {catMeta.label}
                                     </span>
                                     {post.updated_at > post.created_at && (
-                                        <span className="text-white/10">· editado</span>
+                                        <span className="text-white/10">Â· editado</span>
                                     )}
                                 </div>
 
                                 {new Date() - new Date(post.created_at) < 60000 && (
                                     <div className="flex items-center gap-1.5 px-1.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20">
                                         <div className="w-1 h-1 rounded-full bg-emerald-500 animate-pulse" />
-                                        <span className="text-[7px] font-semibold text-emerald-500/80 uppercase tracking-[0.2em] font-mono">_Señal_Nueva</span>
+                                        <span className="text-[7px] font-semibold text-emerald-500/80 uppercase tracking-[0.2em] font-mono">_SeÃ±al_Nueva</span>
                                     </div>
                                 )}
                             </div>
                         </div>
                     </div>
 
-                    {/* Título (Using Typography Scale) */}
+                    {/* TÃ­tulo (Using Typography Scale) */}
                     {post.title && (
                         <h2 className="text-xl md:text-2xl font-bold text-white/90 tracking-tight leading-none mb-3 group-hover:text-white transition-colors">
                             {post.title}
                         </h2>
                     )}
 
-                    {/* Preview con soporte de Energías */}
+                    {/* Preview con soporte de EnergÃ­as */}
                     {preview && (
                         <div className="text-[15px] font-medium leading-relaxed text-white/70 mb-4 line-clamp-4 pointer-events-none select-none prose-preview">
                             <ReactMarkdown
@@ -197,15 +199,7 @@ const ActivityCard = memo(({ post, onUpdate, onNewPost }) => {
                                     @{post.original_post.author?.username || 'piloto'}
                                 </span>
                                 <span className="text-[9px] font-mono text-white/20 ml-auto">
-                                    {(() => {
-                                        try {
-                                            const d = new Date(post.original_post?.created_at);
-                                            if (isNaN(d.getTime())) return 'en el vacío temporal';
-                                            return formatDistanceToNow(d, { locale: es });
-                                        } catch {
-                                            return 'en el vacío temporal';
-                                        }
-                                    })()}
+                                    {safeTimeAgo(post.original_post?.created_at, false)}
                                 </span>
                             </div>
 
@@ -276,3 +270,4 @@ const ActivityCard = memo(({ post, onUpdate, onNewPost }) => {
 });
 
 export default ActivityCard;
+

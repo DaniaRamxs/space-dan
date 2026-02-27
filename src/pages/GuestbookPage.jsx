@@ -1,11 +1,19 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { supabase } from '../supabaseClient';
 import { useAuthContext } from '../contexts/AuthContext';
 import { getUserDisplayName, getNicknameClass } from '../utils/user';
-
+function safeTimeAgo(dateValue) {
+  try {
+    const d = new Date(dateValue);
+    if (Number.isNaN(d.getTime())) return '-';
+    return formatDistanceToNow(d, { addSuffix: true, locale: es });
+  } catch {
+    return '-';
+  }
+}
 export default function GuestbookPage() {
   const { user, profile } = useAuthContext();
   const [messages, setMessages] = useState([]);
@@ -42,7 +50,7 @@ export default function GuestbookPage() {
         setMessages(data || []);
       }
     } catch (err) {
-      console.error("Error crítico cargando firmas:", err);
+      console.error("Error crÃ­tico cargando firmas:", err);
     }
     setLoading(false);
   };
@@ -62,7 +70,7 @@ export default function GuestbookPage() {
     if (!name.trim() || !msg.trim() || sending) return;
     setSending(true);
     const entry = {
-      name: isAnon ? 'Anónimo' : name.trim(),
+      name: isAnon ? 'AnÃ³nimo' : name.trim(),
       text: msg.trim(),
       is_anonymous: isAnon,
     };
@@ -88,7 +96,7 @@ export default function GuestbookPage() {
           Libro de Visitas
         </h1>
         <p className="text-[10px] text-white/25 uppercase tracking-[0.4em] font-black">
-          Deja tu huella en el cosmos ✦
+          Deja tu huella en el cosmos âœ¦
         </p>
       </motion.div>
 
@@ -102,7 +110,7 @@ export default function GuestbookPage() {
         {/* Glow ambiental */}
         <div className="absolute top-0 right-0 w-40 h-40 bg-cyan-500/5 blur-3xl rounded-full pointer-events-none" />
 
-        <h2 className="text-xs font-black text-white/30 uppercase tracking-[0.3em] mb-5">✍️ Firmar</h2>
+        <h2 className="text-xs font-black text-white/30 uppercase tracking-[0.3em] mb-5">âœï¸ Firmar</h2>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4 relative z-10">
           <div className="flex flex-col gap-1.5">
@@ -111,7 +119,7 @@ export default function GuestbookPage() {
             </label>
             <input
               type="text"
-              value={isAnon ? 'Anónimo' : name}
+              value={isAnon ? 'AnÃ³nimo' : name}
               onChange={e => setName(e.target.value)}
               placeholder="tu alias estelar..."
               disabled={isAnon}
@@ -149,7 +157,7 @@ export default function GuestbookPage() {
                     }`} />
                 </div>
                 <span className="text-[10px] font-black text-white/30 uppercase tracking-widest group-hover:text-white/50 transition-colors">
-                  Anónimo
+                  AnÃ³nimo
                 </span>
               </label>
             )}
@@ -158,7 +166,7 @@ export default function GuestbookPage() {
               disabled={sending || !msg.trim() || !name.trim()}
               className="ml-auto px-8 py-2.5 bg-cyan-600 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-cyan-500 hover:scale-105 active:scale-95 transition-all shadow-[0_10px_20px_rgba(6,182,212,0.2)] disabled:opacity-40 disabled:hover:scale-100"
             >
-              {sending ? 'Enviando...' : '✦ Firmar'}
+              {sending ? 'Enviando...' : 'âœ¦ Firmar'}
             </button>
           </div>
         </form>
@@ -180,8 +188,8 @@ export default function GuestbookPage() {
         </div>
       ) : messages.length === 0 ? (
         <div className="text-center py-20 bg-[#0a0a0f] rounded-[3rem] border border-white/5">
-          <span className="text-4xl mb-4 block opacity-30">✦</span>
-          <p className="text-[10px] font-black text-white/30 uppercase tracking-[0.4em]">Sin firmas aún — sé el primero</p>
+          <span className="text-4xl mb-4 block opacity-30">âœ¦</span>
+          <p className="text-[10px] font-black text-white/30 uppercase tracking-[0.4em]">Sin firmas aÃºn â€” sÃ© el primero</p>
         </div>
       ) : (
         <div className="flex flex-col gap-3">
@@ -204,7 +212,7 @@ export default function GuestbookPage() {
                       />
                     ) : (
                       <div className="w-7 h-7 rounded-xl bg-white/5 border border-white/8 flex items-center justify-center shrink-0">
-                        <span className="text-xs opacity-50">{m.is_anonymous ? '👤' : '✦'}</span>
+                        <span className="text-xs opacity-50">{m.is_anonymous ? 'ðŸ‘¤' : 'âœ¦'}</span>
                       </div>
                     )}
                     <span className={`text-sm font-black truncate ${!m.is_anonymous ? getNicknameClass(m.profiles || { username: m.name, equipped_nickname_style: null }) : 'text-white/80'}`}>
@@ -217,9 +225,7 @@ export default function GuestbookPage() {
                     )}
                   </div>
                   <span className="text-[9px] font-black text-white/20 uppercase tracking-widest shrink-0">
-                    {m.created_at
-                      ? formatDistanceToNow(new Date(m.created_at), { addSuffix: true, locale: es })
-                      : '—'}
+                    {safeTimeAgo(m.created_at)}
                   </span>
                 </div>
                 <p className="text-sm text-white/55 leading-relaxed pl-[2.375rem]">
@@ -233,3 +239,4 @@ export default function GuestbookPage() {
     </main>
   );
 }
+
