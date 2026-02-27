@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion';
 import { getNicknameClass, getUserDisplayName } from '../../utils/user';
+import '../../styles/NicknameStyles.css';
 
 const MEDALS_CONFIG = [
     { id: 1, color: 'from-amber-300 via-yellow-500 to-amber-600', shadow: 'shadow-yellow-500/40', size: 'w-24 h-24 md:w-32 md:h-32', aura: true },
@@ -79,8 +80,10 @@ export default function StreakLeaderboard({ users, onProfileClick, isMeId }) {
 
                             {/* Info Podio */}
                             <div className="mt-4 text-center">
-                                <p className={`text-xs font-black uppercase tracking-widest ${getNicknameClass(user)} truncate max-w-[100px]`}>
-                                    {getUserDisplayName(user)}
+                                <p className="text-xs font-black uppercase tracking-widest overflow-hidden">
+                                    <span className={`${getNicknameClass(user) || (user.id === isMeId ? 'text-cyan-400' : 'text-white')} inline-block max-w-[120px] truncate align-bottom`}>
+                                        {getUserDisplayName(user)}
+                                    </span>
                                 </p>
                                 <div className="mt-1 flex flex-col items-center">
                                     <span className="text-xl md:text-2xl font-black text-white leading-none">
@@ -122,9 +125,10 @@ export default function StreakLeaderboard({ users, onProfileClick, isMeId }) {
                             </div>
 
                             <div className="flex-1 min-w-0">
-                                <p className={`text-xs font-black uppercase tracking-wider truncate balance-text ${getNicknameClass(user)}`}>
-                                    {getUserDisplayName(user)}
-                                    {isMe && <span className="ml-2 text-[8px] bg-cyan-500 text-black px-1 rounded">VOS</span>}
+                                <p className="text-xs font-black uppercase tracking-wider truncate balance-text">
+                                    <span className={getNicknameClass(user) || (isMe ? 'text-cyan-400' : 'text-white')}>
+                                        {getUserDisplayName(user)}
+                                    </span>
                                 </p>
                                 <p className="text-[9px] font-bold text-white/25 uppercase tracking-widest mt-0.5">
                                     {getStreakMessage(user.streak)}

@@ -21,6 +21,13 @@ const capacitorStorage = {
   },
 };
 
+if (!supabaseUrl || !supabaseAnonKey) {
+  console.error('Supabase URL or Anon Key is missing! Check your .env file and build process.');
+  if (Capacitor.isNativePlatform()) {
+    alert('Configuración de Supabase ausente. Verifica las variables de entorno.');
+  }
+}
+
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     // Usamos capacitorStorage solo si estamos en plataforma nativa
@@ -30,3 +37,4 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     detectSessionInUrl: true,
   },
 });
+

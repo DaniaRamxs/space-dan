@@ -181,7 +181,20 @@ export default function GamesPage() {
   const playedSet = loadPlayedGames();
   const masteryProgress = (playedSet.size / GAMES.length) * 100;
 
-  useEffect(() => { openIdRef.current = openId; }, [openId]);
+  useEffect(() => {
+    openIdRef.current = openId;
+    // En móviles, hacemos scroll al inicio del contenedor para que el juego sea visible
+    if (openId && window.innerWidth <= 820) {
+      const container = document.querySelector('.gardenContent');
+      if (container) {
+        container.scrollTo({ top: 0, behavior: 'smooth' });
+      } else {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+    }
+  }, [openId]);
+
+
 
   const showCoinToast = useCallback((msg) => {
     setCoinToast(msg);

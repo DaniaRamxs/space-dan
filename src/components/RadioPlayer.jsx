@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
+import { motion } from 'framer-motion';
+
 import { unlockAchievement } from '../hooks/useAchievements';
 import { getRadioAudio } from '../utils/radioAudio';
 import RadioSvg from './RadioSvg';
@@ -225,7 +227,18 @@ export default function RadioPlayer() {
   return (
     <>
       {/* ── Botón flotante + mini-player ── */}
-      <div className="radioFloatingArea">
+      <motion.div
+        className="radioFloatingArea"
+        drag
+        dragMomentum={false}
+        dragConstraints={{
+          left: -window.innerWidth + 100,
+          right: 0,
+          top: -window.innerHeight + 100,
+          bottom: 0
+        }}
+        whileTap={{ cursor: 'grabbing' }}
+      >
         {playing && !open && (
           <button
             className="radioMiniPlayer"
@@ -255,7 +268,8 @@ export default function RadioPlayer() {
           📻
           {playing && <span className="radioLiveDot" />}
         </button>
-      </div>
+      </motion.div>
+
 
       {/* ── Panel ── */}
       <div

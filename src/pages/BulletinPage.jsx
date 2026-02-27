@@ -126,28 +126,34 @@ export default function BulletinPage() {
   }
 
   return (
-    <main className="w-full max-w-2xl mx-auto min-h-screen pb-32 text-white font-sans flex flex-col pt-6 md:pt-10 px-0 md:px-4 relative">
-      {/* Header - Hidden on mobile */}
-      <motion.div initial={{ opacity: 0, y: -12 }} animate={{ opacity: 1, y: 0 }} className="mb-8 px-4 md:px-0 hidden md:flex flex-col md:flex-row md:items-end justify-between gap-4">
+    <main className="w-full max-w-2xl mx-auto min-h-screen pb-64 text-white font-sans flex flex-col pt-6 md:pt-10 px-0 md:px-4 relative overflow-y-auto">
+
+      {/* Header - Now visible on mobile */}
+      <motion.div
+        initial={{ opacity: 0, y: -12 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="mb-8 px-4 md:px-0 flex flex-col md:flex-row md:items-end justify-between gap-6"
+      >
         <div>
-          <h1 className="text-4xl md:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-white to-white/30 tracking-tight mb-1 uppercase">
+          <h1 className="text-3xl md:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-white to-white/30 tracking-tight mb-1 uppercase text-center md:text-left">
             Boletín
           </h1>
-          <p className="text-[10px] text-white/25 uppercase tracking-[0.4em] font-black">
+          <p className="text-[8px] md:text-[10px] text-white/25 uppercase tracking-[0.4em] font-black text-center md:text-left">
             {bulletinPosts.length} entradas · Registro de actualizaciones
           </p>
         </div>
         <button
           onClick={() => setShowGuide(true)}
-          className="px-4 py-2 bg-white/5 border border-white/10 rounded-xl text-[9px] font-black uppercase tracking-widest text-cyan-400 hover:bg-cyan-400/10 hover:border-cyan-400/30 transition-all self-start md:self-auto shadow-lg shadow-cyan-500/5 group"
+          className="px-6 py-3 bg-white/5 border border-white/10 rounded-xl text-[10px] font-black uppercase tracking-widest text-cyan-400 hover:bg-cyan-400/10 hover:border-cyan-400/30 transition-all w-full md:w-auto shadow-lg shadow-cyan-500/5 group text-center"
         >
           <span className="group-hover:animate-pulse">✨ Aprende a usar la energía estelar</span>
         </button>
       </motion.div>
 
-      <div className="hidden md:block">
+      <div className="px-4 md:px-0 mb-8">
         <ApkDownload />
       </div>
+
 
       <AnimatePresence>
         {showGuide && <MarkdownGuide onClose={() => setShowGuide(false)} />}

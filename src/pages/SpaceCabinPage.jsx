@@ -93,7 +93,11 @@ export default function SpaceCabinPage() {
     if (!user) return null;
 
     return (
-        <div className="cabin-cockpit min-h-screen bg-[#020205] text-white p-4 md:p-8 lg:p-12 select-none flex flex-col overflow-x-hidden">
+        <div className="cabin-cockpit w-full bg-[#020205] text-white p-4 md:p-8 lg:p-12 select-none flex flex-col pb-64">
+
+
+
+
             {/* Header / HUD Overlay */}
             <header className="flex flex-col md:flex-row justify-between items-center gap-6 mb-8 md:mb-12 z-50">
                 <div className="flex flex-col md:flex-row items-center gap-4 md:gap-6 w-full md:w-auto text-center md:text-left">
@@ -187,7 +191,8 @@ export default function SpaceCabinPage() {
 
                 {/* Center Panel: MAIN VIEWPORT (Focus Guard) - Top priority on mobile */}
                 <div className="lg:col-span-6 flex flex-col gap-6 lg:gap-8 order-1 lg:order-2">
-                    <div className="relative aspect-video lg:flex-1 rounded-2xl md:rounded-[3rem] bg-gradient-to-b from-cyan-500/20 to-transparent p-[1px] overflow-hidden group/viewport shadow-[0_0_100px_rgba(6,182,212,0.05)] min-h-[350px]">
+                    <div className="relative aspect-auto lg:aspect-video lg:flex-1 rounded-2xl md:rounded-[3rem] bg-gradient-to-b from-cyan-500/20 to-transparent p-[1px] overflow-hidden group/viewport shadow-[0_0_100px_rgba(6,182,212,0.05)] min-h-[450px]">
+
                         <div className="absolute inset-0 bg-[#050510] rounded-2xl md:rounded-[3rem]"></div>
                         <div className="relative h-full overflow-hidden">
                             <FocusGuardSystem onTelemetry={handleTelemetryUpdate} />
@@ -536,7 +541,8 @@ export function FocusGuardSystem({ onTelemetry }) {
     };
 
     return (
-        <div className="h-full w-full flex flex-col p-4 md:p-8 relative overflow-hidden font-mono">
+        <div className="min-h-full w-full flex flex-col p-4 md:p-8 relative font-mono">
+
             {/* HUD Status Bar - Re-structured for mobile */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 md:mb-8 gap-4 z-10">
                 <div className="flex flex-col gap-2 w-full md:w-auto">

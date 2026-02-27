@@ -331,31 +331,37 @@ export default function OrbitLettersPage() {
                 ) : (
                     <>
                         {/* Chat header */}
-                        <div style={{ flexShrink: 0, padding: '13px 20px', borderBottom: '1px solid var(--glass-border)', display: 'flex', alignItems: 'center', gap: 12 }}>
-                            {/* Back button — only visible on mobile */}
+                        <div style={{ flexShrink: 0, padding: '12px 18px', borderBottom: '1px solid var(--glass-border)', display: 'flex', alignItems: 'center', gap: 14, background: 'rgba(5,5,15,0.8)', backdropFilter: 'blur(10px)', sticky: 'top', zIndex: 100 }}>
                             <button
                                 type="button"
                                 onClick={() => setMobileView('list')}
-                                style={{
-                                    background: 'none', border: 'none', color: 'var(--accent)',
-                                    cursor: 'pointer', fontSize: '18px', padding: '0 4px',
-                                    display: 'none', /* shown via CSS on mobile */
-                                }}
                                 className="lettersBackBtn"
-                                aria-label="Volver a conversaciones"
+                                style={{
+                                    background: 'rgba(255,255,255,0.05)', border: '1px solid var(--glass-border)',
+                                    color: '#fff', cursor: 'pointer', fontSize: '18px',
+                                    width: '36px', height: '36px', borderRadius: '12px',
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center'
+                                }}
                             >
                                 ←
                             </button>
-                            <img
-                                src={activeConv.other_avatar || '/default-avatar.png'}
-                                style={{ width: 32, height: 32, borderRadius: '50%', border: '1px solid var(--border)' }}
-                                alt="avatar"
-                            />
+                            <div style={{ position: 'relative' }}>
+                                <img
+                                    src={activeConv.other_avatar || '/default-avatar.png'}
+                                    style={{ width: 40, height: 40, borderRadius: '50%', border: '2px solid var(--accent)' }}
+                                    alt="avatar"
+                                />
+                                <div className="online-indicator" style={{ position: 'absolute', bottom: 2, right: 2, width: 10, height: 10, background: '#10b981', borderRadius: '50%', border: '2px solid #000' }}></div>
+                            </div>
                             <div style={{ flex: 1, minWidth: 0 }}>
-                                <div className={getNicknameClass({ nicknameStyle: activeConv.other_nickname_style, nick_style_item: activeConv.nick_style_item })} style={{ fontWeight: 'bold', fontSize: '14px' }}>{formatUsername(activeConv.other_username)}</div>
-                                <div style={{ fontSize: '10px', opacity: 0.45, textTransform: 'uppercase', letterSpacing: '1px' }}>Enlace Establecido</div>
+                                <div className={getNicknameClass({ nicknameStyle: activeConv.other_nickname_style, nick_style_item: activeConv.nick_style_item })} style={{ fontWeight: '900', fontSize: '15px', letterSpacing: '-0.3px' }}>{formatUsername(activeConv.other_username)}</div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                    <div style={{ width: 4, height: 4, borderRadius: '50%', background: 'var(--accent)', animate: 'pulse 2s infinite' }}></div>
+                                    <div style={{ fontSize: '10px', opacity: 0.4, fontWeight: '800', textTransform: 'uppercase', letterSpacing: '2px' }}>ENLACE_ESTABLECIDO</div>
+                                </div>
                             </div>
                         </div>
+
 
                         {/* Messages */}
                         <div
@@ -396,9 +402,9 @@ export default function OrbitLettersPage() {
                         {/* Input */}
                         <form onSubmit={(e) => handleSend(e)} style={{ flexShrink: 0, padding: '14px 16px', paddingBottom: 'calc(14px + env(safe-area-inset-bottom, 20px))', borderTop: '1px solid var(--glass-border)', background: 'rgba(5,5,10,0.95)', backdropFilter: 'blur(12px)', position: 'relative', zIndex: 50 }}>
                             {showGiphy && (
-                                <div style={{ position: 'absolute', bottom: '100%', left: '0', width: '100%', height: '340px', background: '#111', zIndex: 60, padding: '10px', overflowY: 'auto', borderTop: '1px solid var(--glass-border)' }}>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
-                                        <div style={{ fontWeight: 'bold' }}>Elige un GIF ✨</div>
+                                <div style={{ position: 'absolute', bottom: '100%', left: '0', width: '100%', height: '340px', background: 'rgba(5,5,10,0.98)', backdropFilter: 'blur(30px)', zIndex: 60, padding: '10px', overflowY: 'auto', borderTop: '1px solid var(--glass-border)' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px', marginBottom: '8px' }}>
+                                        <div style={{ fontWeight: '900', textTransform: 'uppercase', letterSpacing: '2px', fontSize: '11px', color: 'var(--accent)' }}>SINTONIZANDO GIFS ✨</div>
                                         <button type="button" onClick={() => setShowGiphy(false)} style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer' }}>✕</button>
                                     </div>
                                     <input

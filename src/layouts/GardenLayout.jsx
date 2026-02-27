@@ -14,7 +14,9 @@ import useAuth from '../hooks/useAuth';
 import { useRef } from 'react';
 
 const PERSONAL_PATHS = ['/kinnies', '/tests', '/universo', '/dreamscape'];
-const FIXED_LAYOUT_PATHS = ['/cartas', '/cabina', '/desktop'];
+const FIXED_LAYOUT_PATHS = ['/cartas', '/cabina', '/desktop', '/posts'];
+
+
 
 export default function GardenLayout({ children }) {
   const { user, profile: ownProfile } = useAuth();
@@ -122,6 +124,9 @@ export default function GardenLayout({ children }) {
 
 
 
+
+
+
         </main>
 
 
@@ -184,16 +189,22 @@ export default function GardenLayout({ children }) {
                 transition={{ delay: 0.1 }}
                 className="hubUserCard"
               >
-                <img
-                  src={ownProfile?.avatar_url || '/default-avatar.png'}
-                  alt=""
-                  className="hubAvatar"
-                />
-                <div className="hubUserDetails">
-                  <div className="hubUserName">{ownProfile?.display_name || user?.email?.split('@')[0] || 'Viajero'}</div>
-                  <div className="hubUserLevel">Nivel Estelar {ownProfile?.level || 1}</div>
+                <div className="flex items-center gap-4 flex-1">
+                  <img
+                    src={ownProfile?.avatar_url || '/default-avatar.png'}
+                    alt=""
+                    className="hubAvatar"
+                  />
+                  <div className="hubUserDetails">
+                    <div className="hubUserName">{ownProfile?.display_name || user?.email?.split('@')[0] || 'Viajero'}</div>
+                    <div className="hubUserLevel">Nivel Estelar {ownProfile?.level || 1}</div>
+                  </div>
+                </div>
+                <div className="hubUserActions">
+                  <NotificationBell />
                 </div>
               </motion.div>
+
 
               {/* Quick Stats */}
               <motion.div
@@ -223,6 +234,7 @@ export default function GardenLayout({ children }) {
               >
                 {[
                   { to: '/bulletin', icon: '📰', label: 'Noticias' },
+                  { to: '/chat', icon: '💬', label: 'Chat Global' },
                   { to: '/logros', icon: '🏆', label: 'Logros' },
                   { to: '/leaderboard', icon: '🌎', label: 'Rankings' },
                   { to: '/cartas', icon: '✉️', label: 'Mensajes' },

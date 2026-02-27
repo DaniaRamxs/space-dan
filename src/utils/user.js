@@ -24,6 +24,7 @@ export function getNicknameClass(profile) {
     // El estilo puede venir en varios nombres de propiedad según el origen del objeto
     const styleItem = profile.nick_style_item;
     const styleId = profile.nicknameStyle ||
+        profile.nickname_style ||
         profile.equipped_nickname_style ||
         profile.other_nickname_style ||
         (typeof styleItem === 'string' ? styleItem : styleItem?.id);

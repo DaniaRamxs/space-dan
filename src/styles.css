@@ -1180,10 +1180,12 @@ textarea,
   padding: 24px;
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 24px;
   margin-bottom: 24px;
   box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4);
 }
+
 
 .hubAvatar {
   width: 80px;
@@ -1473,7 +1475,8 @@ textarea,
 
 @media (max-width: 820px) {
   .gardenTopbar {
-    display: none !important;
+    display: flex !important;
+    /* Re-enabled logo on mobile */
   }
 }
 
@@ -1481,6 +1484,12 @@ textarea,
   display: flex;
   align-items: center;
   gap: 40px;
+}
+
+@media (max-width: 820px) {
+  .topbarLeft {
+    gap: 12px;
+  }
 }
 
 .topbarLogo {
@@ -1502,10 +1511,13 @@ textarea,
 
 /* --- Hide mobile bottom nav on desktop --- */
 @media (min-width: 821px) {
-  .gardenMobileNav {
+
+  .gardenMobileNav,
+  .gardenMobileSpacer {
     display: none !important;
   }
 }
+
 
 .topbarLogo:hover {
   filter: drop-shadow(0 0 20px rgba(0, 229, 255, 0.6));
@@ -1516,6 +1528,13 @@ textarea,
   display: flex;
   align-items: center;
   gap: 8px;
+}
+
+@media (max-width: 820px) {
+  .desktopNav {
+    display: none !important;
+    /* Hide navigation links on mobile */
+  }
 }
 
 .desktopNavLink {
@@ -1552,7 +1571,14 @@ textarea,
 .topbarRight {
   display: flex;
   align-items: center;
-  gap: 24px;
+  gap: 32px;
+}
+
+@media (max-width: 820px) {
+  .topbarRight {
+    display: none !important;
+    /* Hide all right-side actions on mobile */
+  }
 }
 
 .topbarStats {
@@ -1960,14 +1986,17 @@ textarea,
   }
 
   .gardenTopbar {
-    padding: 0 16px;
-    height: 56px;
+    display: none !important;
   }
 
+
   .gardenContent {
-    padding: 16px 16px 100px;
-    /* Space for bottom nav */
+    padding: 16px 16px 90px !important;
   }
+
+
+
+
 
   /* Force HUB to be full screen and more dense on mobile */
   .hubOverlay {
@@ -2004,7 +2033,53 @@ textarea,
   .hubItemLabel {
     font-size: 8px;
   }
+
+  .gardenMobileNav {
+    display: flex;
+    position: fixed;
+    bottom: 12px;
+    left: 8px;
+    right: 8px;
+    height: 64px;
+    background: rgba(15, 15, 25, 0.85);
+    backdrop-filter: blur(25px) saturate(200%);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 24px;
+    z-index: 1500;
+    justify-content: space-around;
+    align-items: center;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    transition: transform 0.3s ease;
+  }
+
+  .mobileNavLink {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    color: rgba(255, 255, 255, 0.4);
+    text-decoration: none;
+    transition: all 0.3s ease;
+    flex: 1;
+  }
+
+  .mobileNavLink.active {
+    color: var(--accent);
+    transform: translateY(-4px);
+  }
+
+  .mobileNavIcon {
+    font-size: 20px;
+  }
+
+  .mobileNavLabel {
+    font-size: 9px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
 }
+
 
 
 
@@ -2036,52 +2111,9 @@ textarea,
   grid-template-columns: 1fr;
 }
 
-.gardenMobileNav {
-  display: flex;
-  position: fixed;
-  bottom: 12px;
-  left: 8px;
-  right: 8px;
-  height: 64px;
-  background: rgba(15, 15, 25, 0.85);
-  backdrop-filter: blur(25px) saturate(200%);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 24px;
-  z-index: 1500;
-  justify-content: space-around;
-  align-items: center;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-  transition: transform 0.3s ease;
-}
-
-.mobileNavLink {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  color: rgba(255, 255, 255, 0.4);
-  text-decoration: none;
-  transition: all 0.3s ease;
-  flex: 1;
-}
-
-.mobileNavLink.active {
-  color: var(--accent);
-  transform: translateY(-4px);
-}
-
-.mobileNavIcon {
-  font-size: 20px;
-}
-
-.mobileNavLabel {
-  font-size: 9px;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-}
 
 @media (max-width: 640px) {
+
   .wpageGrid {
     grid-template-columns: 1fr;
     text-align: center;
@@ -7769,25 +7801,27 @@ textarea,
   max-width: 1000px;
   width: 100%;
   margin: 0 auto;
-  padding: 0 12px;
-  display: grid;
-  grid-template-columns: 320px 1fr;
-  gap: 14px;
-  flex: 1;
-  min-height: 0;
-  height: 100%;
-  max-height: 100%;
-  overflow: hidden;
-  position: relative;
-  z-index: 9995;
+  display: flex;
+  flex-direction: row;
+  height: calc(100vh - 120px);
+  min-height: 500px;
 }
+
+
 
 .lettersPanel {
   min-height: 0;
   height: 100%;
   max-height: 100%;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
+
+.lettersBackBtn {
+  display: none !important;
+}
+
 
 @media (max-width: 767px) {
   .lettersLayout {
@@ -7796,6 +7830,7 @@ textarea,
     padding: 0;
     gap: 0;
     height: 100%;
+    min-height: calc(100vh - 180px);
     max-height: 100%;
     overflow: hidden;
   }
@@ -7807,7 +7842,10 @@ textarea,
     max-height: 100%;
     overflow: hidden;
     width: 100%;
+    border-radius: 0 !important;
+    border: none !important;
   }
+
 
   .lettersPanel--hidden {
     display: none !important;
@@ -8521,10 +8559,16 @@ button,
     font-size: 14px;
   }
 
-  .page,
-  .gardenContent {
+  .page {
     padding: 10px;
   }
+
+  .gardenContent {
+    padding: 10px 10px 90px !important;
+  }
+
+
+
 
   .card {
     padding: 10px;
@@ -8532,8 +8576,13 @@ button,
   }
 
   .gardenTopbar {
-    padding: 8px 10px;
-    gap: 8px;
+    display: flex !important;
+    height: 56px !important;
+    padding: 0 12px !important;
+  }
+
+  .gardenTitle {
+    font-size: 16px;
   }
 
   .gardenTitle {
@@ -8852,10 +8901,14 @@ button,
     position: sticky;
     top: 0;
     z-index: 50;
-    background: rgba(5, 5, 15, 0.88);
+    height: 56px !important;
+    padding: 0 16px !important;
+    background: rgba(5, 5, 15, 0.9);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
     border-bottom: 1px solid rgba(255, 0, 255, 0.1);
+    justify-content: center !important;
+    /* Center logo on mobile */
   }
 
   /* Shell full width */
@@ -8953,8 +9006,12 @@ button,
   }
 
   .gardenContent {
-    padding: 14px var(--mobile-pad);
+    padding: 14px var(--mobile-pad) 90px !important;
   }
+
+
+
+
 
   /* Profile */
   .profileHeader {
