@@ -7,18 +7,20 @@ import HoloCard from '../components/HoloCard';
 import SeasonWidget from '../components/SeasonWidget';
 import { getUserDisplayName, getNicknameClass } from '../utils/user';
 import StreakLeaderboard from '../components/Social/StreakLeaderboard';
+import '../styles/NicknameStyles.css';
 
 const TABS = [
-  { id: 'games', label: '🎮 Juegos', desc: 'Suma de mejores puntajes en todos los juegos' },
+  { id: 'competitive', label: '🏆 Temporada', desc: 'Clasificación de riqueza en la temporada actual' },
   { id: 'wealth', label: '◈ Riqueza', desc: 'Balance actual de Dancoins' },
+  { id: 'games', label: '🎮 Juegos', desc: 'Suma de mejores puntajes en todos los juegos' },
+  { id: 'streaks', label: '🔥 Racha', desc: 'Días consecutivos con actividad real en Dan-Space' },
+  { id: 'focus', label: '🧘 Enfoque', desc: 'Más tiempo de concentración en la cabina espacial' },
   { id: 'growth', label: '📈 Crecimiento', desc: 'Mayor crecimiento de Dancoins esta semana' },
   { id: 'generosity', label: '🤝 Generosidad', desc: 'Más coins donados al fondo comunitario' },
   { id: 'achievements', label: '🏆 Logros', desc: 'Logros desbloqueados' },
-  { id: 'focus', label: '🧘 Enfoque', desc: 'Más tiempo de concentración en la cabina espacial' },
-  { id: 'competitive', label: '🏆 Temporada', desc: 'Clasificación de riqueza en la temporada actual' },
-  { id: 'streaks', label: '🔥 Racha', desc: 'Días consecutivos con actividad real en Dan-Space' },
-  { id: 'members', label: '👥 Miembros', desc: 'Exploradores que se han unido a la tripulación por orden de llegada' },
+  { id: 'members', label: '👥 Miembros', desc: 'Exploradores que se han unido a la tripulación' },
 ];
+
 
 const MEDALS = ['🥇', '🥈', '🥉'];
 
@@ -81,132 +83,79 @@ function CompetitiveRow({ row, i, isMe, formatMetric, onClick }) {
     rank === 2 ? 'rgba(229,229,229,0.3)' :
       rank === 3 ? 'rgba(205,127,50,0.3)' : 'rgba(255,255,255,0.05)';
 
-  const bgGradient = rank === 1 ? 'linear-gradient(90deg, rgba(255,215,0,0.1) 0%, transparent 100%)' :
-    isMe ? 'rgba(255,110,180,0.1)' : 'transparent';
-
   const userTier = [...TIERS].reverse().find(t => (row.season_balance || 0) >= t.min) || TIERS[0];
 
   return (
-    <motion.tr
-      initial={{ opacity: 0, scale: 0.95 }}
-      animate={{ opacity: 1, scale: 1 }}
-      whileHover={{ scale: 1.01, filter: 'brightness(1.2)' }}
-      transition={{ delay: i * 0.05, duration: 0.4 }}
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      whileHover={{ scale: 1.01 }}
+      transition={{ delay: i * 0.05 }}
       onClick={onClick}
-      className={`competitive-row rank-${rank}`}
-      style={{
-        cursor: 'pointer',
-        background: bgGradient,
-        height: isTop3 ? '85px' : '65px',
-        borderBottom: `1px solid ${borderGlow}`,
-        position: 'relative',
-        overflow: 'hidden'
-      }}
+      className={`relative group cursor-pointer mb-3 rounded-2xl overflow-hidden border ${isMe ? 'border-cyan-500/50 bg-cyan-500/10' : 'border-white/10 bg-white/5'} backdrop-blur-md`}
     >
-      <td style={{ width: 80, textAlign: 'center', position: 'relative' }}>
-        {rank === 1 && (
-          <div style={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            width: '1000%',
-            height: '100%',
-            background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.14), transparent)',
-            animation: 'shine 3s infinite',
-            pointerEvents: 'none',
-            zIndex: 0
-          }} />
-        )}
-        <div style={{
-          position: 'relative',
-          zIndex: 1,
-          fontSize: isTop3 ? '2rem' : '1.2rem',
-          fontWeight: '900',
-          fontFamily: 'monospace',
-          color: rank === 1 ? '#ffd700' : rank === 2 ? '#e5e5e5' : rank === 3 ? '#cd7f32' : 'rgba(255,255,255,0.5)',
-          textShadow: isTop3 ? `0 0 15px ${borderGlow}` : 'none',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center'
-        }}>
-          {isTop3 ? medal(rank) : rank}
-          {isTop3 && <span style={{ fontSize: '0.6rem', letterSpacing: 1, marginTop: -5 }}>RANK</span>}
+      {rank === 1 && (
+        <div className="absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-transparent via-yellow-400 to-transparent animate-pulse" />
+      )}
+
+      <div className="flex items-center p-3 md:p-4 gap-4">
+        {/* Rank Section */}
+        <div className="flex flex-col items-center justify-center min-w-[40px] md:min-w-[60px]">
+          <span className={`text-xl md:text-3xl font-black ${rank === 1 ? 'text-yellow-400' : rank === 2 ? 'text-gray-300' : rank === 3 ? 'text-amber-600' : 'text-white/20'}`}>
+            {isTop3 ? medal(rank) : rank}
+          </span>
+          {isTop3 && <span className="text-[8px] font-black tracking-widest text-white/40 uppercase mt-[-4px]">TOP</span>}
         </div>
-      </td>
-      <td>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-          <div style={{ position: 'relative', flexShrink: 0 }}>
-            <div style={{
-              borderRadius: '50%', padding: '3px',
-              background: rank === 1 ? 'linear-gradient(45deg, #ffd700, #fff, #ffd700)' :
-                userTier.min >= 5000 ? `linear-gradient(45deg, ${userTier.color}, #fff, ${userTier.color})` : 'transparent'
-            }}>
-              <Avatar url={row.avatar_url} name={row.username} />
+
+        {/* User Info */}
+        <div className="flex items-center flex-1 gap-3 md:gap-4 overflow-hidden">
+          <div className="relative flex-shrink-0">
+            <div className={`rounded-full p-[2px] ${rank === 1 ? 'bg-gradient-to-tr from-yellow-400 to-yellow-600' : 'bg-white/10'}`}>
+              <div className="w-10 h-10 md:w-12 md:h-12 rounded-full overflow-hidden border-2 border-black/40">
+                <img src={row.avatar_url || '/default-avatar.png'} alt="" className="w-full h-full object-cover" />
+              </div>
             </div>
             {isTop3 && (
-              <div style={{
-                position: 'absolute', top: -4, left: -4, right: -4, bottom: -4,
-                border: `2px solid ${borderGlow}`, borderRadius: '50%',
-                animation: 'pulse 2s infinite'
-              }} />
+              <div className={`absolute -top-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center text-[10px] shadow-lg ${rank === 1 ? 'bg-yellow-500' : rank === 2 ? 'bg-gray-400' : 'bg-amber-700'}`}>
+                👑
+              </div>
             )}
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column' }}>
-            <div style={{
-              fontWeight: '900',
-              fontSize: isTop3 ? '1.2rem' : '1rem',
-              color: isMe ? 'var(--accent)' : '#fff',
-              letterSpacing: '0.05em',
-              textTransform: 'uppercase',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 8
-            }}>
-              <span className={getNicknameClass(row)}>
+
+          <div className="flex flex-col min-w-0">
+            <div className="flex items-center gap-2 overflow-hidden">
+              <span className={`font-black text-sm md:text-lg ${getNicknameClass(row) || (isMe ? 'text-cyan-400' : 'text-white')}`}>
                 {getUserDisplayName(row)}
               </span>
-              <span style={{ fontSize: '1rem' }} title={userTier.label}>{userTier.icon}</span>
-              {isMe && <span style={{ marginLeft: 6, fontSize: '0.6rem', background: 'var(--accent)', color: '#fff', padding: '1px 6px', borderRadius: '4px' }}>TÚ</span>}
+              <span className="text-sm scale-110 flex-shrink-0" title={userTier.label}>{userTier.icon}</span>
             </div>
-            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-              {row.user_level && (
-                <span style={{ fontSize: '0.7rem', color: 'var(--cyan)', fontWeight: 'bold', background: 'rgba(0,229,255,0.1)', padding: '1px 8px', borderRadius: '4px' }}>
-                  LEVEL {row.user_level}
-                </span>
-              )}
-              <span style={{ fontSize: '0.6rem', color: userTier.color, fontWeight: '900', letterSpacing: 1 }}>
+            <div className="flex items-center gap-2">
+              <span className="text-[9px] md:text-[10px] font-black px-2 py-0.5 rounded bg-black/40 border border-white/10 text-cyan-400 uppercase tracking-tighter">
+                LVL {row.user_level || 1}
+              </span>
+              <span className="text-[8px] md:text-[9px] font-black text-white/40 uppercase tracking-widest truncate">
                 {userTier.label}
               </span>
             </div>
           </div>
         </div>
-      </td>
-      <td style={{ textAlign: 'right', paddingRight: 30 }}>
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
-          <span style={{
-            fontSize: isTop3 ? '1.6rem' : '1.3rem',
-            fontWeight: '900',
-            color: 'var(--cyan)',
-            fontFamily: '"Exo 2", monospace',
-            textShadow: '0 0 10px rgba(0,255,255,0.4)',
-            letterSpacing: '0.05em'
-          }}>
+
+        {/* Score Section */}
+        <div className="flex flex-col items-end gap-1">
+          <span className="text-lg md:text-2xl font-black text-cyan-400 font-mono tracking-tighter drop-shadow-[0_0_8px_rgba(34,211,238,0.4)]">
             {formatMetric('competitive', row)}
           </span>
-          {isTop3 && <motion.span
-            animate={{ opacity: [0.5, 1, 0.5] }}
-            transition={{ duration: 2, repeat: Infinity }}
-            style={{ fontSize: '0.65rem', color: '#fff', opacity: 0.7, textTransform: 'uppercase', fontWeight: 'bold' }}
-          >
-            Elite Seasonal
-          </motion.span>}
+          <span className="text-[8px] md:text-[10px] font-bold text-white/20 uppercase tracking-widest">
+            Seasonal_Wealth
+          </span>
         </div>
-      </td>
-    </motion.tr>
+      </div>
+    </motion.div>
   );
 }
 
 export default function GlobalLeaderboardPage() {
+
   const { user } = useAuthContext();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('competitive');
@@ -252,144 +201,150 @@ export default function GlobalLeaderboardPage() {
   };
 
   return (
-    <main className="card">
-      {activeTab === 'competitive' && (
-        <div className="season-widget-sticky-container" style={{ position: 'sticky', zIndex: 1000, background: 'var(--bg)' }}>
-          <SeasonWidget />
+    <main className="w-full max-w-5xl mx-auto px-4 md:px-8 py-6 md:py-12 bg-transparent text-white font-sans flex flex-col gap-6 md:gap-10 pb-32">
+
+      {/* Dynamic Header with Season Focus */}
+      <div className="flex flex-col gap-8">
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></span>
+              <span className="text-[10px] md:text-xs font-black tracking-[0.3em] text-cyan-400 uppercase">Multi-Verse Rankings</span>
+            </div>
+            <h1 className="text-4xl md:text-7xl font-black italic tracking-tighter uppercase leading-[0.9]">
+              GLOBAL <br />
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-white via-white to-white/20">LEADERBOARD</span>
+            </h1>
+            <p className="text-[11px] md:text-sm font-bold text-white/40 uppercase tracking-widest pt-2">
+              {activeTab_?.desc}
+            </p>
+          </div>
+
+          <div className="flex gap-4">
+            <div className="flex flex-col items-end">
+              <span className="text-[10px] font-black text-white/20 uppercase tracking-widest">Active_Tab</span>
+              <span className="text-lg md:text-2xl font-black italic text-cyan-400 uppercase">{activeTab_?.label?.split(' ')[1]}</span>
+            </div>
+          </div>
         </div>
-      )}
 
-      <div className="pageHeader">
-        <h1>🌎 leaderboard global</h1>
-        <p className="tinyText">{activeTab_?.desc}</p>
-      </div>
-
-      {/* Tabs */}
-      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', margin: '18px 0 0 0', borderBottom: '1px solid var(--border)', paddingBottom: 0 }}>
-        {TABS.map(t => (
-          <button
-            key={t.id}
-            onClick={() => setActiveTab(t.id)}
-            style={{
-              background: 'none',
-              border: 'none',
-              borderBottom: activeTab === t.id ? '2px solid var(--accent)' : '2px solid transparent',
-              color: activeTab === t.id ? '#fff' : 'rgba(255,255,255,0.4)',
-              fontWeight: activeTab === t.id ? '900' : '400',
-              padding: '10px 14px',
-              fontSize: '12px',
-              textTransform: 'uppercase',
-              letterSpacing: 1
-            }}
+        {activeTab === 'competitive' && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="w-full"
           >
-            {t.label}
-          </button>
-        ))}
+            <SeasonWidget />
+          </motion.div>
+        )}
       </div>
 
-      {/* Content */}
-      <div className="lbContainer" style={{ marginTop: 18, overflowX: 'auto' }}>
+      {/* Tabs Menu - Scrollable on mobile */}
+      <div className="relative sticky top-0 z-[100] -mx-4 px-4 bg-[#050510]/80 backdrop-blur-xl border-y border-white/5 py-2">
+        <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
+          {TABS.map(t => (
+            <button
+              key={t.id}
+              onClick={() => setActiveTab(t.id)}
+              className={`flex-shrink-0 px-5 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === t.id
+                ? 'bg-cyan-500 text-black shadow-[0_0_20px_rgba(6,182,212,0.4)] scale-105'
+                : 'bg-white/5 text-white/40 hover:bg-white/10 hover:text-white'
+                }`}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Content Container */}
+      <div className="flex-1">
         {loading ? (
-          <p className="tinyText" style={{ textAlign: 'center', padding: 30 }}>Cargando ranking...</p>
+          <div className="flex flex-col items-center justify-center py-20 gap-4">
+            <div className="w-12 h-12 border-4 border-cyan-500/20 border-t-cyan-500 rounded-full animate-spin"></div>
+            <p className="text-[10px] font-black text-cyan-500/60 uppercase tracking-widest">Sincronizando Ranking...</p>
+          </div>
         ) : error ? (
-          <p style={{ textAlign: 'center', color: '#ff5555', padding: 30 }}>{error}</p>
+          <div className="bg-red-500/10 border border-red-500/20 p-8 rounded-3xl text-center">
+            <p className="text-red-400 font-bold">{error}</p>
+          </div>
         ) : rows.length === 0 ? (
-          <p className="tinyText" style={{ textAlign: 'center', padding: 30 }}>Aún no hay datos en este ranking.</p>
+          <div className="bg-white/5 border border-white/10 p-12 rounded-3xl text-center text-white/20 italic font-medium">
+            Aún no hay datos en este sector del multiverso.
+          </div>
         ) : activeTab === 'streaks' ? (
           <StreakLeaderboard
             users={rows}
             onProfileClick={handleRow}
             isMeId={user?.id}
           />
+        ) : activeTab === 'competitive' ? (
+          <div className="space-y-1">
+            {rows.map((row, i) => (
+              <CompetitiveRow
+                key={row.user_id || row.id || i}
+                row={row}
+                i={i}
+                isMe={user && (row.user_id || row.id) === user.id}
+                formatMetric={formatMetric}
+                onClick={() => handleRow(row)}
+              />
+            ))}
+          </div>
         ) : (
-          <>
-            <table className="lbTable" style={{ width: '100%', borderCollapse: 'collapse', minWidth: activeTab === 'competitive' ? '380px' : 'auto' }}>
-              <thead>
-                <tr>
-                  <th style={{ width: 44 }}>#</th>
-                  <th style={{ textAlign: 'left' }}>Usuario</th>
-                  <th style={{ textAlign: 'right' }}>
-                    {activeTab === 'games' ? 'Puntaje' :
-                      activeTab === 'wealth' ? 'Balance' :
-                        activeTab === 'growth' ? 'Crecimiento' :
-                          activeTab === 'generosity' ? 'Donado' :
-                            activeTab === 'achievements' ? 'Logros' :
-                              activeTab === 'competitive' ? 'Balance Temp.' :
-                                activeTab === 'members' ? 'Registro' : 'Enfoque'}
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map((row, i) => {
-                  const rank = row.rank ?? (i + 1);
-                  const finalUserId = row.user_id || row.id;
-                  const isMe = user && finalUserId === user.id;
+          /* Standard Row List for non-competitive tabs */
+          <div className="space-y-2">
+            {rows.map((row, i) => {
+              const rank = row.rank ?? (i + 1);
+              const isMe = user && (row.user_id || row.id) === user.id;
 
-                  if (activeTab === 'competitive') {
-                    return (
-                      <CompetitiveRow
-                        key={finalUserId || i}
-                        row={row}
-                        i={i}
-                        isMe={isMe}
-                        formatMetric={formatMetric}
-                        onClick={() => handleRow(row)}
-                      />
-                    );
-                  }
+              return (
+                <motion.div
+                  key={row.user_id || row.id || i}
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: i * 0.02 }}
+                  onClick={() => handleRow(row)}
+                  className={`flex items-center p-3 rounded-2xl border transition-all cursor-pointer ${isMe ? 'bg-cyan-500/5 border-cyan-500/20' : 'bg-white/[0.02] border-white/5 hover:bg-white/[0.05]'
+                    }`}
+                >
+                  <div className="w-10 md:w-14 text-center font-black text-sm md:text-xl text-white/20">
+                    {rank <= 3 ? medal(rank) : rank}
+                  </div>
 
-                  return (
-                    <motion.tr
-                      key={finalUserId || i}
-                      initial={{ opacity: 0, x: -10 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: i * 0.03, duration: 0.3 }}
-                      onClick={() => handleRow(row)}
-                      title="Ver perfil"
-                      className="group"
-                      style={{
-                        cursor: finalUserId ? 'pointer' : 'default',
-                        background: isMe ? 'rgba(255,110,180,0.08)' : undefined,
-                      }}
-                    >
-                      <td className="lbRank" style={{ fontWeight: 'bold' }}>
-                        {rank <= 3 ? medal(rank) : rank}
-                      </td>
-                      <td className="lbUser" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <Avatar url={row.avatar_url} name={row.username} />
-                        <div style={{ display: 'flex', flexDirection: 'column' }}>
-                          <span className={getNicknameClass(row)} style={{ fontWeight: 500 }}>
-                            {getUserDisplayName(row)}
-                          </span>
-                          {row.user_level && (
-                            <span style={{ fontSize: '0.65rem', color: 'var(--cyan)', opacity: 0.8, fontWeight: 'bold' }}>
-                              LVL {row.user_level}
-                            </span>
-                          )}
-                        </div>
-                        {isMe && <span style={{ fontSize: '0.7rem', color: 'var(--accent)', opacity: 0.8 }}>tú</span>}
-                      </td>
+                  <div className="flex items-center flex-1 gap-3 md:gap-4 overflow-hidden">
+                    <Avatar url={row.avatar_url} name={row.username} />
+                    <div className="flex flex-col min-w-0 overflow-hidden">
+                      <span className={`font-bold text-sm md:text-md ${getNicknameClass(row) || (isMe ? 'text-cyan-400' : 'text-white')}`}>
+                        {getUserDisplayName(row)}
+                      </span>
+                      {row.user_level && (
+                        <span className="text-[9px] font-black text-cyan-400/60 uppercase">LVL {row.user_level}</span>
+                      )}
+                    </div>
+                  </div>
 
-                      <td className="lbScore" style={{ textAlign: 'right', fontWeight: 'bold', color: metricColor(activeTab, row) }}>
-                        {activeTab === 'members' ? (
-                          <span className="text-[10px] opacity-40 font-mono">
-                            {new Date(row.created_at).toLocaleDateString()}
-                          </span>
-                        ) : formatMetric(activeTab, row)}
-                      </td>
-                    </motion.tr>
-                  );
-                })}
-              </tbody>
-            </table>
-            {activeTab === 'members' && rows.length >= 10 && (
-              <div className="flex justify-center mt-6">
-                <button className="px-6 py-2 bg-white/5 border border-white/10 rounded-xl text-[10px] font-black uppercase tracking-widest text-white/30 hover:text-white transition-all group">
-                  Cargar más tripulantes <span className="inline-block group-hover:translate-y-0.5 transition-transform">↓</span>
-                </button>
-              </div>
-            )}
-          </>
+                  <div className="text-right flex flex-col items-end">
+                    <span className="font-black text-sm md:text-xl text-white/90">
+                      {activeTab === 'members' ? (
+                        <span className="text-[10px] opacity-40 font-mono">
+                          {new Date(row.created_at).toLocaleDateString()}
+                        </span>
+                      ) : formatMetric(activeTab, row)}
+                    </span>
+                  </div>
+                </motion.div>
+              );
+            })}
+          </div>
+        )}
+
+        {activeTab === 'members' && rows.length >= 10 && (
+          <div className="flex justify-center mt-8">
+            <button className="px-8 py-3 bg-white/5 border border-white/10 rounded-2xl text-[11px] font-black uppercase tracking-widest text-white/40 hover:bg-white/10 hover:text-white transition-all">
+              Cargar más tripulantes ↓
+            </button>
+          </div>
         )}
       </div>
 
@@ -405,3 +360,4 @@ export default function GlobalLeaderboardPage() {
     </main>
   );
 }
+

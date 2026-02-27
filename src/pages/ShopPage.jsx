@@ -283,7 +283,11 @@ export default function ShopPage() {
   const equippedSummary = fullCatalog.filter(item => isItemEquipped(item));
 
   return (
-    <div className="shopPage max-w-7xl mx-auto px-0 md:px-6 py-4 sm:py-8 space-y-6 sm:space-y-12 overflow-x-hidden">
+    <div className="shopPage max-w-7xl mx-auto px-0 md:px-6 py-4 sm:py-8 space-y-6 sm:space-y-12 overflow-x-hidden min-h-screen overflow-y-auto pb-64 md:mb-8">
+
+
+
+
       {/* Hero Section with Animated Background */}
       <div className="relative mx-4 md:mx-0 rounded-[2rem] sm:rounded-[2.5rem] overflow-hidden bg-black border border-white/10 p-6 sm:p-8 md:p-12 min-h-[280px] sm:min-h-[320px] flex flex-col justify-center group/hero">
         <div className="absolute inset-0 bg-gradient-to-br from-indigo-900/40 via-purple-900/40 to-pink-900/40 opacity-70"></div>

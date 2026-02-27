@@ -1,0 +1,178 @@
+/* Bifrost Scroll Effect */
+.chat-window {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    background: rgba(5, 5, 15, 0.4);
+    border-radius: 24px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    overflow: hidden;
+}
+
+.chat-messages-scroll {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.1) transparent;
+}
+
+/* Bifrost Masking (Fade top and bottom) */
+.chat-messages-container {
+    mask-image: linear-gradient(to bottom, transparent, black 8%, black 92%, transparent);
+    -webkit-mask-image: linear-gradient(to bottom, transparent, black 8%, black 92%, transparent);
+    height: 100%;
+}
+
+/* Glassmorphism Bubbles */
+.chat-message-bubble {
+    background: rgba(255, 255, 255, 0.03);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 20px;
+    padding: 12px 16px;
+    max-width: 85%;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+}
+
+.chat-message-bubble:hover {
+    border-color: rgba(255, 255, 255, 0.12);
+    background: rgba(255, 255, 255, 0.05);
+    transform: translateX(4px);
+}
+
+/* VIP / Highlighted Messages */
+.chat-message-vip {
+    background: linear-gradient(135deg, rgba(234, 179, 8, 0.08) 0%, rgba(255, 255, 255, 0.03) 100%);
+    border: 1px solid rgba(234, 179, 8, 0.3);
+    box-shadow: 0 0 25px rgba(234, 179, 8, 0.15);
+}
+
+.vip-tag {
+    font-size: 8px;
+    font-weight: 950;
+    color: #eab308;
+    text-transform: uppercase;
+    letter-spacing: 0.2em;
+    display: block;
+    margin-bottom: 4px;
+}
+
+/* Avatar & Frame */
+.chat-avatar-container {
+    position: relative;
+    width: 36px;
+    height: 36px;
+    flex-shrink: 0;
+}
+
+.chat-avatar {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+/* Stellar Mentions */
+.chat-mention {
+    color: var(--cyan);
+    font-weight: 900;
+    padding: 2px 6px;
+    background: rgba(0, 229, 255, 0.1);
+    border-radius: 6px;
+    text-shadow: 0 0 10px rgba(0, 229, 255, 0.5);
+    animation: mentionPulse 2s infinite ease-in-out;
+}
+
+@keyframes mentionPulse {
+
+    0%,
+    100% {
+        opacity: 0.8;
+        transform: scale(1);
+    }
+
+    50% {
+        opacity: 1;
+        transform: scale(1.05);
+    }
+}
+
+/* Energy Reactions */
+.chat-reactions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 8px;
+}
+
+.energy-reaction {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 99px;
+    padding: 2px 8px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.energy-reaction:hover {
+    background: rgba(255, 255, 255, 0.15);
+    transform: scale(1.1) rotate(5deg);
+}
+
+/* Chat Input Styling */
+.chat-input-area {
+    padding: 16px;
+    background: rgba(10, 10, 20, 0.8);
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+    display: flex;
+    gap: 12px;
+    align-items: flex-end;
+}
+
+.chat-textarea {
+    flex: 1;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 16px;
+    padding: 12px;
+    color: white;
+    font-size: 14px;
+    resize: none;
+    max-height: 120px;
+    transition: all 0.3s;
+}
+
+.chat-textarea:focus {
+    outline: none;
+    border-color: var(--cyan);
+    background: rgba(255, 255, 255, 0.06);
+    box-shadow: 0 0 20px rgba(0, 229, 255, 0.1);
+}
+
+.chat-send-btn {
+    width: 44px;
+    height: 44px;
+    border-radius: 16px;
+    background: var(--cyan);
+    color: black;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    border: none;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.chat-send-btn:hover {
+    transform: scale(1.05) rotate(-5deg);
+    box-shadow: 0 0 25px rgba(0, 229, 255, 0.4);
+}

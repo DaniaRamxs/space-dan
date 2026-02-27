@@ -28,7 +28,8 @@ export default function AchievementsPage() {
   const progressPercent = Math.round((unlocked.length / ACHIEVEMENTS.length) * 100);
 
   return (
-    <div className="achPage max-w-6xl mx-auto px-4 py-8 space-y-12">
+    <div className="achPage max-w-6xl mx-auto px-4 pt-8 pb-64 space-y-12 min-h-screen overflow-y-auto">
+
       {/* Cinematic Header */}
       <div className="relative rounded-[2.5rem] overflow-hidden bg-black border border-white/10 p-8 md:p-12 min-h-[280px] flex flex-col justify-center group/hero">
         <div className="absolute inset-0 bg-gradient-to-br from-purple-900/30 via-pink-900/20 to-indigo-900/30 opacity-70"></div>
@@ -103,8 +104,8 @@ export default function AchievementsPage() {
             <div
               key={ach.id}
               className={`ach-card-v2 group relative rounded-[2rem] p-6 transition-all duration-500 ${isUnlocked
-                  ? 'bg-white/[0.03] border-white/10 hover:bg-white/[0.07] hover:-translate-y-2 cursor-pointer'
-                  : 'bg-black/40 border-white/5 opacity-50'
+                ? 'bg-white/[0.03] border-white/10 hover:bg-white/[0.07] hover:-translate-y-2 cursor-pointer'
+                : 'bg-black/40 border-white/5 opacity-50'
                 }`}
               style={{ animationDelay: `${idx * 40}ms` }}
             >

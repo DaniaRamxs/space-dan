@@ -20,28 +20,49 @@ async function initMobileAuth() {
     let isExchanging = false;
 
     CapacitorApp.addListener('appUrlOpen', async ({ url }) => {
-      console.log('Deep link detectado:', url);
+      console.log('[MobileAuth] Deep link detectado:', url);
+
       if (url.includes('code=') && !isExchanging) {
         isExchanging = true;
+        console.log('[MobileAuth] Intercambiando código por sesión...');
         try {
           const parsedUrl = new URL(url);
           const code = parsedUrl.searchParams.get('code');
           if (code) {
             const { error } = await supabase.auth.exchangeCodeForSession(code);
-            if (error) throw error;
+            if (error) {
+              console.error('[MobileAuth] Error exchangeCodeForSession:', error);
+              alert(`Error de sesión: ${error.message}`);
+            } else {
+              console.log('[MobileAuth] Sesión establecida correctamente');
+            }
           }
         } catch (err) {
-          console.error('Error procesando el deep link:', err);
+          console.error('[MobileAuth] Error procesando el deep link:', err);
+          alert(`Error en deep link: ${err.message}`);
         } finally {
-          await Browser.close();
-          isExchanging = false;
+          setTimeout(async () => {
+            await Browser.close();
+            isExchanging = false;
+          }, 500);
         }
       }
     });
+
+    // También manejar el caso donde la app se abre desde un link estando cerrada
+    CapacitorApp.getLaunchUrl().then((ret) => {
+      if (ret?.url) {
+        console.log('[MobileAuth] Launch URL detectada:', ret.url);
+        // El listener appUrlOpen debería disparar esto también en la mayoría de los casos,
+        // pero lo registramos por si acaso.
+      }
+    });
+
   } catch (err) {
     console.warn('No se pudo inicializar la autenticación móvil:', err);
   }
 }
+
 
 // Inicializar auth solo si estamos en nativo
 if (Capacitor.isNativePlatform()) {

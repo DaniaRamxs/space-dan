@@ -51,12 +51,13 @@ const FocusRoom = lazy(() => import("./pages/FocusRoom"));
 const OnboardingPage = lazy(() => import("./pages/OnboardingPage"));
 const VinculosPage = lazy(() => import("./pages/VinculosPage"));
 const PostDetailPage = lazy(() => import("./pages/PostDetailPage"));
+const GlobalChatPage = lazy(() => import("./pages/GlobalChatPage"));
 
 
 
 const ALL_PAGES = ['/dan', '/bulletin', '/posts', '/music', '/games', '/galeria',
   '/watchlist', '/desktop', '/timecapsule', '/guestbook', '/proyectos', '/arquitectura',
-  '/kinnies', '/tests', '/universo', '/dreamscape', '/logros', '/tienda', '/profile', '/leaderboard', '/cabina', '/cartas', '/cofre', '/foco'];
+  '/kinnies', '/tests', '/universo', '/dreamscape', '/logros', '/tienda', '/profile', '/leaderboard', '/cabina', '/cartas', '/cofre', '/foco', '/chat'];
 
 function PageTracker() {
   const location = useLocation();
@@ -180,6 +181,7 @@ function AnimatedRoutes() {
         <Route path="/music" element={<Layout><MusicPage /></Layout>} />
         <Route path="/games" element={<Layout><GamesPage /></Layout>} />
         <Route path="/leaderboard" element={<Layout><GlobalLeaderboardPage /></Layout>} />
+        <Route path="/chat" element={<Layout><GlobalChatPage /></Layout>} />
         <Route path="/kinnies" element={<Layout><KinniesPage /></Layout>} />
         <Route path="/tests" element={<Layout><TestsPage /></Layout>} />
         <Route path="/galeria" element={<Layout><GalleryPage /></Layout>} />
@@ -193,7 +195,8 @@ function AnimatedRoutes() {
         <Route path="/proyectos" element={<Layout><ProjectsPage /></Layout>} />
         <Route path="/profile/logros" element={<Layout><AchievementsPage /></Layout>} />
         <Route path="/tienda" element={<Layout><ShopPage /></Layout>} />
-        <Route path="/cabina" element={<Suspense fallback={null}><PageTransition><SpaceCabinPage /></PageTransition></Suspense>} />
+        <Route path="/cabina" element={<Layout><SpaceCabinPage /></Layout>} />
+
         <Route path="/cartas" element={
           loading ? <FallbackLoader /> : (user ? <Layout><OrbitLettersPage /></Layout> : <Layout><LoginGate message="Necesitas iniciar sesión para comunicarte con otros usuarios." /></Layout>)
         } />

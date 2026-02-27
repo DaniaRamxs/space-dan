@@ -3,7 +3,14 @@ import { supabase } from '../supabaseClient';
 import { ensureProfile, syncAchievementToDb } from '../services/supabaseScores';
 import { Capacitor } from '@capacitor/core';
 
+// Safe import for Browser (avoids issues in some environments)
+let Browser = null;
+if (Capacitor.isNativePlatform()) {
+  import('@capacitor/browser').then(m => { Browser = m.Browser; });
+}
+
 const ACH_KEY = 'space-dan-achievements';
+
 
 /**
  * Manages Supabase Auth session.
@@ -124,28 +131,60 @@ export default function useAuth() {
 
   const loginWithProvider = async (provider) => {
     try {
+      const isNative = Capacitor.isNativePlatform();
       const redirectUrl = getRedirectUrl();
+
+      if (isNative) {
+        console.log(`[OAuth] Iniciando con ${provider}. Redirect: ${redirectUrl}`);
+      }
+
+      // Validar que Supabase esté configurado
+      if (!supabase.auth) {
+        throw new Error('Supabase Auth no está inicializado.');
+      }
+
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider,
         options: {
           redirectTo: redirectUrl,
-          skipBrowserRedirect: Capacitor.isNativePlatform(),
+          skipBrowserRedirect: isNative,
           queryParams: {
             prompt: 'select_account'
           }
         },
       });
 
-      if (error) throw error;
-
-      if (Capacitor.isNativePlatform() && data?.url) {
-        const { Browser } = await import('@capacitor/browser');
-        await Browser.open({ url: data.url, windowName: '_self' });
+      if (error) {
+        if (isNative) alert(`Error Supabase OAuth: ${error.message}`);
+        throw error;
       }
+
+      if (isNative) {
+        if (data?.url) {
+          console.log(`[OAuth] Abriendo navegador: ${data.url}`);
+          if (Browser) {
+            await Browser.open({ url: data.url });
+          } else {
+            // Fallback: try to import again if not ready
+            const { Browser: B } = await import('@capacitor/browser');
+            await B.open({ url: data.url });
+          }
+        } else {
+          console.error('[OAuth] No se recibió URL de Supabase');
+          alert('Error: Supabase no devolvió una URL para el login móvil.');
+        }
+      }
+
     } catch (err) {
       console.error(`Error logging in with ${provider}:`, err);
+      if (Capacitor.isNativePlatform()) {
+        alert(`Error fatal en login: ${err.message || 'Error desconocido'}`);
+      }
     }
   };
+
+
+
 
   const loginWithGoogle = () => loginWithProvider('google');
   const loginWithDiscord = () => loginWithProvider('discord');
