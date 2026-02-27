@@ -13,7 +13,7 @@ import { trackPageVisit } from "./hooks/useDancoins";
 import { applyTheme } from "./hooks/useTheme";
 import { AuthProvider, useAuthContext } from "./contexts/AuthContext";
 import { EconomyProvider, useEconomy } from "./contexts/EconomyContext";
-import { UniverseProvider } from "./contexts/UniverseContext.jsx";
+import { UniverseProvider, useUniverse } from "./contexts/UniverseContext.jsx";
 
 
 
