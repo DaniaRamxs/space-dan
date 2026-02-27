@@ -24,6 +24,27 @@ export const parseMentions = (text) => {
     return text.replace(/@([\w]+(?:\s[\w]+)?)(?=[.,!?;:]?(\s|$))/g, '<span class="chat-mention">@$1</span>');
 };
 
+export const parseLinksToImages = (text) => {
+    if (!text) return '';
+    // Detecta URLs de imágenes comunes o GIPHY
+    const imageExtensions = /\.(jpeg|jpg|gif|png|webp|svg|gifv)$|giphy\.com\/media\/|tenor\.com\/view\//i;
+
+    // Dividir protengiendo lo que ya es una imagen Markdown ![texto](url)
+    const parts = text.split(/(!\[.*?\]\(.*?\))/g);
+
+    return parts.map(part => {
+        if (part.startsWith('![')) return part;
+
+        const urlRegex = /(https?:\/\/[^\s]+)/gi;
+        return part.replace(urlRegex, (url) => {
+            if (imageExtensions.test(url)) {
+                return `![visual](${url})`;
+            }
+            return url;
+        });
+    }).join('');
+};
+
 export default function ChatMessage({ message, isMe }) {
     const { author, content, is_vip, created_at, reactions } = message;
     const { onlineUsers } = useUniverse();
@@ -88,7 +109,7 @@ export default function ChatMessage({ message, isMe }) {
                             remarkPlugins={[remarkGfm]}
                             rehypePlugins={[rehypeRaw, [rehypeSanitize, sanitizeSchema]]}
                         >
-                            {parseMentions(parseSpaceEnergies(content))}
+                            {parseMentions(parseLinksToImages(parseSpaceEnergies(content)))}
                         </ReactMarkdown>
                     </div>
                 </div>

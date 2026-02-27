@@ -90,7 +90,8 @@ export default function ChatInput({ onSendMessage, isVipMode, setIsVipMode, bala
                                 }
                                 onGifClick={(gif, e) => {
                                     e.preventDefault();
-                                    onSendMessage(gif.images.fixed_height.url, isVipMode);
+                                    const gifMarkdown = `![gif](${gif.images.fixed_height.url})`;
+                                    onSendMessage(gifMarkdown, isVipMode);
                                     setShowGiphy(false);
                                 }}
                             />
