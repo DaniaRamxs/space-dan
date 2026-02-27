@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useAuthContext } from '../contexts/AuthContext';
 import * as lb from '../services/leaderboard';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -7,33 +7,20 @@ import HoloCard from '../components/HoloCard';
 import SeasonWidget from '../components/SeasonWidget';
 import { getUserDisplayName, getNicknameClass } from '../utils/user';
 import StreakLeaderboard from '../components/Social/StreakLeaderboard';
+import { Trophy, Coins, Target, Award, Users, BarChart3, Heart, Zap, Infinity as InfinityIcon } from 'lucide-react';
 import '../styles/NicknameStyles.css';
 
 const TABS = [
-  { id: 'competitive', label: '🏆 Temporada', desc: 'Clasificación de riqueza en la temporada actual' },
-  { id: 'wealth', label: '◈ Riqueza', desc: 'Balance actual de Dancoins' },
-  { id: 'games', label: '🎮 Juegos', desc: 'Suma de mejores puntajes en todos los juegos' },
-  { id: 'streaks', label: '🔥 Racha', desc: 'Días consecutivos con actividad real en Dan-Space' },
-  { id: 'focus', label: '🧘 Enfoque', desc: 'Más tiempo de concentración en la cabina espacial' },
-  { id: 'growth', label: '📈 Crecimiento', desc: 'Mayor crecimiento de Dancoins esta semana' },
-  { id: 'generosity', label: '🤝 Generosidad', desc: 'Más coins donados al fondo comunitario' },
-  { id: 'achievements', label: '🏆 Logros', desc: 'Logros desbloqueados' },
-  { id: 'members', label: '👥 Miembros', desc: 'Exploradores que se han unido a la tripulación' },
+  { id: 'competitive', label: 'Temporada', icon: <Trophy size={14} />, desc: 'Clasificación de riqueza en la temporada actual' },
+  { id: 'wealth', label: 'Riqueza', icon: <Coins size={14} />, desc: 'Balance actual de Dancoins en circulación' },
+  { id: 'games', label: 'Juegos', icon: <Zap size={14} />, desc: 'Suma de mejores puntajes en todos los sectores' },
+  { id: 'streaks', label: 'Racha', icon: <BarChart3 size={14} />, desc: 'Días consecutivos de actividad sincronizada' },
+  { id: 'focus', label: 'Enfoque', icon: <Target size={14} />, desc: 'Tiempo de concentración en la cabina espacial' },
+  { id: 'growth', label: 'Crecimiento', icon: <Target size={14} />, desc: 'Mayor incremento de capital esta semana' },
+  { id: 'generosity', label: 'Generosidad', icon: <Heart size={14} />, desc: 'Aportaciones al fondo comunitario' },
+  { id: 'achievements', label: 'Logros', icon: <Award size={14} />, desc: 'Hitos desbloqueados en el multiverso' },
+  { id: 'members', label: 'Miembros', icon: <Users size={14} />, desc: 'Exploradores que se han unido a la tripulación' },
 ];
-
-
-const MEDALS = ['🥇', '🥈', '🥉'];
-
-function medal(rank) {
-  const n = typeof rank === 'number' ? rank : 999;
-  return MEDALS[n - 1] ?? String(n);
-}
-
-function Avatar({ url, name }) {
-  return url
-    ? <img src={url} alt={name} style={{ width: 24, height: 24, borderRadius: '50%', objectFit: 'cover' }} />
-    : <span style={{ fontSize: 14 }}>👤</span>;
-}
 
 function formatMetric(tab, row) {
   switch (tab) {
@@ -43,121 +30,99 @@ function formatMetric(tab, row) {
       const g = row.growth ?? 0;
       const p = row.growth_pct ?? 0;
       return (
-        <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
-          <span>{(g >= 0 ? '+' : '') + '◈ ' + g.toLocaleString()}</span>
-          <span style={{ fontSize: '0.65rem', opacity: 0.6, fontWeight: 'normal' }}>
-            {p}% esta semana
+        <div className="flex flex-col items-end">
+          <span className="font-mono">{(g >= 0 ? '+' : '') + '◈ ' + g.toLocaleString()}</span>
+          <span className="text-[8px] opacity-40 uppercase tracking-tighter">
+            {p}% semana
           </span>
-        </span>
+        </div>
       );
     }
     case 'generosity': return '◈ ' + (row.total_donated ?? 0).toLocaleString();
-    case 'achievements': return (row.achievement_count ?? 0) + ' logros';
-    case 'focus': return Math.round((row.total_minutes ?? 0) / 60) + ' h';
+    case 'achievements': return (row.achievement_count ?? 0) + ' / ' + (row.total_possible ?? '∞');
+    case 'focus': return Math.round((row.total_minutes ?? 0) / 60) + 'h';
     case 'competitive': return '◈ ' + (row.season_balance ?? row.metric ?? 0).toLocaleString();
     default: return '—';
   }
 }
 
-function metricColor(tab, row) {
-  if (tab === 'growth') {
-    return (row.growth ?? 0) >= 0 ? 'var(--accent)' : '#ff5555';
-  }
-  return 'var(--accent)';
-}
-
 const TIERS = [
-  { label: 'BRONCE', min: 0, color: '#cd7f32', icon: '🥉' },
-  { label: 'PLATA', min: 500, color: '#c0c0c0', icon: '🥈' },
-  { label: 'ORO', min: 2000, color: '#ffd700', icon: '🥇' },
-  { label: 'PLATINO', min: 5000, color: '#e5e4e2', icon: '💎' },
-  { label: 'DIAMANTE', min: 12000, color: '#00eeee', icon: '💠' },
-  { label: 'MAESTRO', min: 25000, color: '#ff00ff', icon: '👑' },
-  { label: 'ELITE', min: 50000, color: '#ff3333', icon: '🔥' },
+  { label: 'Bronce', min: 0, color: 'text-orange-500/60', icon: '🥉' },
+  { label: 'Plata', min: 500, color: 'text-slate-400', icon: '🥈' },
+  { label: 'Oro', min: 2000, color: 'text-yellow-500/80', icon: '🥇' },
+  { label: 'Platino', min: 5000, color: 'text-cyan-400/80', icon: '💎' },
+  { label: 'Diamante', min: 12000, color: 'text-purple-400/80', icon: '💠' },
+  { label: 'Maestro', min: 25000, color: 'text-rose-400/80', icon: '👑' },
+  { label: 'Élite', min: 50000, color: 'text-white', icon: '🔥' },
 ];
 
-function CompetitiveRow({ row, i, isMe, formatMetric, onClick }) {
+function CompetitiveRow({ row, i, isMe, onClick }) {
   const rank = row.rank ?? (i + 1);
   const isTop3 = rank <= 3;
-  const borderGlow = rank === 1 ? 'rgba(255,215,0,0.4)' :
-    rank === 2 ? 'rgba(229,229,229,0.3)' :
-      rank === 3 ? 'rgba(205,127,50,0.3)' : 'rgba(255,255,255,0.05)';
-
   const userTier = [...TIERS].reverse().find(t => (row.season_balance || 0) >= t.min) || TIERS[0];
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      whileHover={{ scale: 1.01 }}
-      transition={{ delay: i * 0.05 }}
+      initial={{ opacity: 0, x: -10 }}
+      animate={{ opacity: 1, x: 0 }}
+      transition={{ delay: i * 0.03 }}
       onClick={onClick}
-      className={`relative group cursor-pointer mb-3 rounded-2xl overflow-hidden border ${isMe ? 'border-cyan-500/50 bg-cyan-500/10' : 'border-white/10 bg-white/5'} backdrop-blur-md`}
+      className={`group relative flex items-center p-4 rounded-[24px] border transition-all cursor-pointer overflow-hidden ${isMe ? 'bg-white/[0.05] border-white/20 ring-1 ring-white/10' : 'bg-white/[0.02] border-white/5 hover:bg-white/[0.04] hover:border-white/10'
+        }`}
     >
-      {rank === 1 && (
-        <div className="absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-transparent via-yellow-400 to-transparent animate-pulse" />
-      )}
+      {/* Subtle rank indicator */}
+      <div className="w-12 md:w-16 flex-shrink-0 flex items-center justify-center relative">
+        <span className={`text-xl md:text-2xl font-black italic tracking-tighter tabular-nums ${isTop3 ? 'text-white' : 'opacity-10'}`}>
+          {rank.toString().padStart(2, '0')}
+        </span>
+        {isTop3 && (
+          <div className="absolute inset-0 flex items-center justify-center opacity-10 blur-xl scale-150 rotate-12 bg-white rounded-full" />
+        )}
+      </div>
 
-      <div className="flex items-center p-3 md:p-4 gap-4">
-        {/* Rank Section */}
-        <div className="flex flex-col items-center justify-center min-w-[40px] md:min-w-[60px]">
-          <span className={`text-xl md:text-3xl font-black ${rank === 1 ? 'text-yellow-400' : rank === 2 ? 'text-gray-300' : rank === 3 ? 'text-amber-600' : 'text-white/20'}`}>
-            {isTop3 ? medal(rank) : rank}
-          </span>
-          {isTop3 && <span className="text-[8px] font-black tracking-widest text-white/40 uppercase mt-[-4px]">TOP</span>}
+      {/* Identity Card */}
+      <div className="flex items-center flex-1 gap-4 min-w-0">
+        <div className="relative">
+          <div className={`w-10 h-10 md:w-12 md:h-12 rounded-full overflow-hidden border border-white/10 p-[2px]`}>
+            <img src={row.avatar_url || '/default_user_blank.png'} alt="" className="w-full h-full object-cover rounded-full group-hover:scale-110 transition-transform duration-500" />
+          </div>
+          {isTop3 && (
+            <div className={`absolute -top-1 -right-1 w-4 h-4 rounded-full flex items-center justify-center text-[8px] bg-white text-black font-black shadow-xl ring-2 ring-black`}>
+              {rank === 1 ? '❶' : rank === 2 ? '❷' : '❸'}
+            </div>
+          )}
         </div>
 
-        {/* User Info */}
-        <div className="flex items-center flex-1 gap-3 md:gap-4 overflow-hidden">
-          <div className="relative flex-shrink-0">
-            <div className={`rounded-full p-[2px] ${rank === 1 ? 'bg-gradient-to-tr from-yellow-400 to-yellow-600' : 'bg-white/10'}`}>
-              <div className="w-10 h-10 md:w-12 md:h-12 rounded-full overflow-hidden border-2 border-black/40">
-                <img src={row.avatar_url || '/default-avatar.png'} alt="" className="w-full h-full object-cover" />
-              </div>
-            </div>
-            {isTop3 && (
-              <div className={`absolute -top-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center text-[10px] shadow-lg ${rank === 1 ? 'bg-yellow-500' : rank === 2 ? 'bg-gray-400' : 'bg-amber-700'}`}>
-                👑
-              </div>
-            )}
+        <div className="flex flex-col min-w-0">
+          <div className="flex items-center gap-2 overflow-hidden">
+            <span className={`font-bold text-sm md:text-base truncate transition-colors ${getNicknameClass(row) || (isMe ? 'text-white' : 'text-white/80 group-hover:text-white')}`}>
+              {getUserDisplayName(row)}
+            </span>
           </div>
-
-          <div className="flex flex-col min-w-0">
-            <div className="flex items-center gap-2 overflow-hidden">
-              <span className={`font-black text-sm md:text-lg ${getNicknameClass(row) || (isMe ? 'text-cyan-400' : 'text-white')}`}>
-                {getUserDisplayName(row)}
-              </span>
-              <span className="text-sm scale-110 flex-shrink-0" title={userTier.label}>{userTier.icon}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-[9px] md:text-[10px] font-black px-2 py-0.5 rounded bg-black/40 border border-white/10 text-cyan-400 uppercase tracking-tighter">
-                LVL {row.user_level || 1}
-              </span>
-              <span className="text-[8px] md:text-[9px] font-black text-white/40 uppercase tracking-widest truncate">
-                {userTier.label}
-              </span>
-            </div>
+          <div className="flex items-center gap-3">
+            <span className={`text-[8px] font-black uppercase tracking-[0.2em] px-1.5 py-0.5 rounded-md bg-white/[0.04] border border-white/5 flex items-center gap-1.5 ${userTier.color}`}>
+              <span className="scale-75 opacity-60">{userTier.icon}</span> {userTier.label}
+            </span>
+            <span className="text-[8px] font-mono text-white/20 uppercase">LVL {row.user_level || 1}</span>
           </div>
         </div>
+      </div>
 
-        {/* Score Section */}
-        <div className="flex flex-col items-end gap-1">
-          <span className="text-lg md:text-2xl font-black text-cyan-400 font-mono tracking-tighter drop-shadow-[0_0_8px_rgba(34,211,238,0.4)]">
-            {formatMetric('competitive', row)}
-          </span>
-          <span className="text-[8px] md:text-[10px] font-bold text-white/20 uppercase tracking-widest">
-            Seasonal_Wealth
-          </span>
-        </div>
+      {/* Metrics Section */}
+      <div className="text-right flex flex-col items-end gap-0.5">
+        <span className="font-black text-sm md:text-xl font-mono tracking-tighter text-white tabular-nums">
+          {formatMetric('competitive', row)}
+        </span>
+        <span className="text-[8px] font-black text-white/10 uppercase tracking-[0.3em]">
+          Sector_Wealth
+        </span>
       </div>
     </motion.div>
   );
 }
 
 export default function GlobalLeaderboardPage() {
-
   const { user } = useAuthContext();
-  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('competitive');
   const [data, setData] = useState({});
   const [loading, setLoading] = useState(false);
@@ -183,9 +148,7 @@ export default function GlobalLeaderboardPage() {
       }
       setData(prev => ({ ...prev, [tabId]: rows ?? [] }));
     } catch (err) {
-      console.error('[Leaderboard]', tabId, err);
-      setError('No se pudo cargar el ranking. Inténtalo de nuevo.');
-      setData(prev => ({ ...prev, [tabId]: [] }));
+      setError('Sincronización fallida. Sector inaccesible.');
     } finally {
       setLoading(false);
     }
@@ -194,161 +157,154 @@ export default function GlobalLeaderboardPage() {
   useEffect(() => { fetchTab(activeTab); }, [activeTab, fetchTab]);
 
   const rows = data[activeTab] ?? [];
-  const activeTab_ = TABS.find(t => t.id === activeTab);
-
-  const handleRow = (row) => {
-    if (row.user_id || row.id) setSelectedProfile(row);
-  };
+  const activeTabDetails = TABS.find(t => t.id === activeTab);
 
   return (
-    <main className="w-full max-w-5xl mx-auto px-4 md:px-8 py-6 md:py-12 bg-transparent text-white font-sans flex flex-col gap-6 md:gap-10 pb-32">
+    <main className="w-full max-w-5xl mx-auto px-6 py-12 text-white font-sans flex flex-col gap-12 pb-32">
 
-      {/* Dynamic Header with Season Focus */}
-      <div className="flex flex-col gap-8">
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
-          <div className="space-y-1">
-            <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></span>
-              <span className="text-[10px] md:text-xs font-black tracking-[0.3em] text-cyan-400 uppercase">Multi-Verse Rankings</span>
+      {/* Elegant Header */}
+      <div className="space-y-8">
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 border-b border-white/5 pb-8">
+          <div className="space-y-3">
+            <div className="flex items-center gap-3">
+              <div className="flex items-center bg-white/[0.04] px-3 py-1 rounded-full border border-white/5 gap-2">
+                <div className="w-1.5 h-1.5 rounded-full bg-purple-500 animate-pulse" />
+                <span className="text-[9px] font-black tracking-[0.4em] text-white/40 uppercase">Multiverse Registry</span>
+              </div>
             </div>
-            <h1 className="text-4xl md:text-7xl font-black italic tracking-tighter uppercase leading-[0.9]">
-              GLOBAL <br />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-white via-white to-white/20">LEADERBOARD</span>
+            <h1 className="text-5xl md:text-8xl font-black italic tracking-tighter uppercase leading-[0.8] mix-blend-difference">
+              REGISTRO <br />
+              <span className="opacity-40">GLOBAL</span>
             </h1>
-            <p className="text-[11px] md:text-sm font-bold text-white/40 uppercase tracking-widest pt-2">
-              {activeTab_?.desc}
+            <p className="text-[10px] md:text-xs font-medium text-white/30 uppercase tracking-[0.4em] max-w-md">
+              {activeTabDetails?.desc}
             </p>
           </div>
 
-          <div className="flex gap-4">
-            <div className="flex flex-col items-end">
-              <span className="text-[10px] font-black text-white/20 uppercase tracking-widest">Active_Tab</span>
-              <span className="text-lg md:text-2xl font-black italic text-cyan-400 uppercase">{activeTab_?.label?.split(' ')[1]}</span>
-            </div>
+          <div className="hidden md:flex flex-col items-end gap-1 opacity-20">
+            <span className="text-[9px] font-black uppercase tracking-widest">Sector_Active</span>
+            <span className="text-2xl font-black italic tracking-tighter uppercase">{activeTabDetails?.label}</span>
           </div>
         </div>
 
-        {activeTab === 'competitive' && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="w-full"
-          >
-            <SeasonWidget />
-          </motion.div>
-        )}
+        {activeTab === 'competitive' && <SeasonWidget />}
       </div>
 
-      {/* Tabs Menu - Scrollable on mobile */}
-      <div className="relative sticky top-0 z-[100] -mx-4 px-4 bg-[#050510]/80 backdrop-blur-xl border-y border-white/5 py-2">
-        <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
-          {TABS.map(t => (
-            <button
-              key={t.id}
-              onClick={() => setActiveTab(t.id)}
-              className={`flex-shrink-0 px-5 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === t.id
-                ? 'bg-cyan-500 text-black shadow-[0_0_20px_rgba(6,182,212,0.4)] scale-105'
-                : 'bg-white/5 text-white/40 hover:bg-white/10 hover:text-white'
-                }`}
-            >
-              {t.label}
-            </button>
-          ))}
-        </div>
-      </div>
+      {/* Tabs Layout */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-start">
 
-      {/* Content Container */}
-      <div className="flex-1">
-        {loading ? (
-          <div className="flex flex-col items-center justify-center py-20 gap-4">
-            <div className="w-12 h-12 border-4 border-cyan-500/20 border-t-cyan-500 rounded-full animate-spin"></div>
-            <p className="text-[10px] font-black text-cyan-500/60 uppercase tracking-widest">Sincronizando Ranking...</p>
-          </div>
-        ) : error ? (
-          <div className="bg-red-500/10 border border-red-500/20 p-8 rounded-3xl text-center">
-            <p className="text-red-400 font-bold">{error}</p>
-          </div>
-        ) : rows.length === 0 ? (
-          <div className="bg-white/5 border border-white/10 p-12 rounded-3xl text-center text-white/20 italic font-medium">
-            Aún no hay datos en este sector del multiverso.
-          </div>
-        ) : activeTab === 'streaks' ? (
-          <StreakLeaderboard
-            users={rows}
-            onProfileClick={handleRow}
-            isMeId={user?.id}
-          />
-        ) : activeTab === 'competitive' ? (
-          <div className="space-y-1">
-            {rows.map((row, i) => (
-              <CompetitiveRow
-                key={row.user_id || row.id || i}
-                row={row}
-                i={i}
-                isMe={user && (row.user_id || row.id) === user.id}
-                formatMetric={formatMetric}
-                onClick={() => handleRow(row)}
-              />
-            ))}
-          </div>
-        ) : (
-          /* Standard Row List for non-competitive tabs */
-          <div className="space-y-2">
-            {rows.map((row, i) => {
-              const rank = row.rank ?? (i + 1);
-              const isMe = user && (row.user_id || row.id) === user.id;
-
-              return (
-                <motion.div
-                  key={row.user_id || row.id || i}
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: i * 0.02 }}
-                  onClick={() => handleRow(row)}
-                  className={`flex items-center p-3 rounded-2xl border transition-all cursor-pointer ${isMe ? 'bg-cyan-500/5 border-cyan-500/20' : 'bg-white/[0.02] border-white/5 hover:bg-white/[0.05]'
+        {/* Sidebar Nav */}
+        <aside className="lg:col-span-3 lg:sticky lg:top-12 space-y-4">
+          <div className="p-1 rounded-[28px] bg-white/[0.02] border border-white/5 backdrop-blur-xl">
+            <div className="flex lg:flex-col overflow-x-auto no-scrollbar gap-1 p-1">
+              {TABS.map(t => (
+                <button
+                  key={t.id}
+                  onClick={() => setActiveTab(t.id)}
+                  className={`flex items-center gap-3 px-5 py-3 rounded-2xl text-[10px] font-bold uppercase tracking-widest transition-all whitespace-nowrap ${activeTab === t.id
+                    ? 'bg-white text-black shadow-xl scale-[1.02]'
+                    : 'text-white/40 hover:text-white/70 hover:bg-white/5'
                     }`}
                 >
-                  <div className="w-10 md:w-14 text-center font-black text-sm md:text-xl text-white/20">
-                    {rank <= 3 ? medal(rank) : rank}
-                  </div>
+                  <span className={activeTab === t.id ? 'opacity-100' : 'opacity-40'}>{t.icon}</span>
+                  {t.label}
+                </button>
+              ))}
+            </div>
+          </div>
 
-                  <div className="flex items-center flex-1 gap-3 md:gap-4 overflow-hidden">
-                    <Avatar url={row.avatar_url} name={row.username} />
-                    <div className="flex flex-col min-w-0 overflow-hidden">
-                      <span className={`font-bold text-sm md:text-md ${getNicknameClass(row) || (isMe ? 'text-cyan-400' : 'text-white')}`}>
-                        {getUserDisplayName(row)}
-                      </span>
-                      {row.user_level && (
-                        <span className="text-[9px] font-black text-cyan-400/60 uppercase">LVL {row.user_level}</span>
-                      )}
+          <div className="p-6 rounded-[28px] border border-white/5 bg-gradient-to-br from-white/[0.02] to-transparent space-y-4 hidden lg:block">
+            <div className="flex items-center gap-2 text-[9px] font-black text-white/20 uppercase tracking-widest">
+              <Zap size={10} className="text-purple-400" />
+              <span>Tip del Protocolo</span>
+            </div>
+            <p className="text-[10px] text-white/40 leading-relaxed italic">
+              La clasificación se actualiza cada 5 minutos. Los logros especiales otorgan un boost de XP permanente.
+            </p>
+          </div>
+        </aside>
+
+        {/* Content Section */}
+        <section className="lg:col-span-9 space-y-4 min-h-[600px]">
+          {loading ? (
+            <div className="flex flex-col items-center justify-center py-32 gap-6">
+              <div className="relative w-16 h-16">
+                <div className="absolute inset-0 border-4 border-white/5 rounded-full" />
+                <div className="absolute inset-0 border-4 border-purple-500 rounded-full border-t-transparent animate-spin" />
+              </div>
+              <span className="text-white/20 font-black tracking-[0.4em] uppercase text-[10px] animate-pulse">Sincronizando_Memoria</span>
+            </div>
+          ) : error ? (
+            <div className="p-12 text-center rounded-[32px] bg-rose-500/5 border border-rose-500/10">
+              <p className="text-rose-500 text-xs font-black uppercase tracking-widest">{error}</p>
+              <button onClick={() => fetchTab(activeTab)} className="mt-4 text-[10px] font-bold underline opacity-40 hover:opacity-100 uppercase tracking-widest transition-opacity">Reintentar Protocolo</button>
+            </div>
+          ) : rows.length === 0 ? (
+            <div className="p-20 text-center rounded-[32px] bg-white/[0.02] border border-white/5 italic text-white/20 text-sm uppercase tracking-widest">
+              Sector vacío. Sin actividad detectada.
+            </div>
+          ) : activeTab === 'streaks' ? (
+            <StreakLeaderboard users={rows} onProfileClick={setSelectedProfile} isMeId={user?.id} />
+          ) : activeTab === 'competitive' ? (
+            <div className="space-y-3">
+              {rows.map((row, i) => (
+                <CompetitiveRow
+                  key={row.user_id || row.id || i}
+                  row={row} i={i}
+                  isMe={user && (row.user_id || row.id) === user.id}
+                  onClick={() => setSelectedProfile(row)}
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {rows.map((row, i) => {
+                const rank = row.rank ?? (i + 1);
+                const isMe = user && (row.user_id || row.id) === user.id;
+
+                return (
+                  <motion.div
+                    key={row.user_id || row.id || i}
+                    initial={{ opacity: 0, scale: 0.98 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ delay: i * 0.02 }}
+                    onClick={() => setSelectedProfile(row)}
+                    className={`flex items-center p-4 rounded-[24px] border transition-all cursor-pointer group ${isMe ? 'bg-white/[0.05] border-white/20' : 'bg-white/[0.02] border-white/5 hover:bg-white/[0.04]'
+                      }`}
+                  >
+                    <div className="w-12 text-center text-xs font-black text-white/10 group-hover:text-white/20 transition-colors">
+                      {rank.toString().padStart(2, '0')}
                     </div>
-                  </div>
 
-                  <div className="text-right flex flex-col items-end">
-                    <span className="font-black text-sm md:text-xl text-white/90">
-                      {activeTab === 'members' ? (
-                        <span className="text-[10px] opacity-40 font-mono">
-                          {new Date(row.created_at).toLocaleDateString()}
+                    <div className="flex items-center flex-1 gap-4 overflow-hidden">
+                      <img src={row.avatar_url || '/default_user_blank.png'} className="w-10 h-10 rounded-full object-cover border border-white/5" alt="" />
+                      <div className="flex flex-col min-w-0">
+                        <span className={`font-bold text-sm md:text-base truncate ${getNicknameClass(row) || (isMe ? 'text-white' : 'text-white/60 group-hover:text-white')}`}>
+                          {getUserDisplayName(row)}
                         </span>
-                      ) : formatMetric(activeTab, row)}
-                    </span>
-                  </div>
-                </motion.div>
-              );
-            })}
-          </div>
-        )}
+                        {row.user_level && (
+                          <span className="text-[8px] font-black text-white/10 uppercase tracking-widest">LVL {row.user_level}</span>
+                        )}
+                      </div>
+                    </div>
 
-        {activeTab === 'members' && rows.length >= 10 && (
-          <div className="flex justify-center mt-8">
-            <button className="px-8 py-3 bg-white/5 border border-white/10 rounded-2xl text-[11px] font-black uppercase tracking-widest text-white/40 hover:bg-white/10 hover:text-white transition-all">
-              Cargar más tripulantes ↓
-            </button>
-          </div>
-        )}
+                    <div className="text-right flex flex-col items-end">
+                      <span className="font-bold text-sm md:text-lg tabular-nums text-white/90">
+                        {activeTab === 'members' ? (
+                          <span className="text-[9px] opacity-40 font-mono">
+                            {new Date(row.created_at).toLocaleDateString()}
+                          </span>
+                        ) : formatMetric(activeTab, row)}
+                      </span>
+                    </div>
+                  </motion.div>
+                );
+              })}
+            </div>
+          )}
+        </section>
       </div>
 
-      {/* Holo Profile Modal */}
       <AnimatePresence>
         {selectedProfile && (
           <HoloCard

@@ -1,15 +1,14 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useSeason } from '../hooks/useSeason';
+import { motion } from 'framer-motion';
+import { Timer, Trophy, TrendingUp, Sparkles, Orbit } from 'lucide-react';
 
-/**
- * Calculador de cuenta regresiva
- */
 function getRemainingTime(endAt) {
     const endTime = new Date(endAt).getTime();
     const now = new Date().getTime();
     const d = endTime - now;
 
-    if (d <= 0) return '0d 00:00:00';
+    if (d <= 0) return '00:00:00';
     const days = Math.floor(d / (1000 * 60 * 60 * 24));
     const hrs = Math.floor((d / (1000 * 60 * 60)) % 24);
     const mins = Math.floor((d / 1000 / 60) % 60);
@@ -19,28 +18,19 @@ function getRemainingTime(endAt) {
 }
 
 const TIERS = [
-    { label: 'BRONCE I', min: 0, color: '#cd7f32', icon: '🥉' },
-    { label: 'PLATA II', min: 500, color: '#c0c0c0', icon: '🥈' },
-    { label: 'ORO III', min: 2000, color: '#ffd700', icon: '🥇' },
-    { label: 'PLATINO IV', min: 5000, color: '#e5e4e2', icon: '💎' },
-    { label: 'DIAMANTE V', min: 12000, color: '#00eeee', icon: '💠' },
-    { label: 'MAESTRO', min: 25000, color: '#ff00ff', icon: '👑' },
-    { label: 'ELITE SUPREMA', min: 50000, color: '#ff3333', icon: '🔥' },
+    { label: 'Bronce I', min: 0, color: 'text-orange-500', bg: 'bg-orange-500/10', border: 'border-orange-500/20' },
+    { label: 'Plata II', min: 500, color: 'text-slate-300', bg: 'bg-slate-300/10', border: 'border-slate-300/20' },
+    { label: 'Oro III', min: 2000, color: 'text-yellow-400', bg: 'bg-yellow-400/10', border: 'border-yellow-400/20' },
+    { label: 'Platino IV', min: 5000, color: 'text-cyan-400', bg: 'bg-cyan-400/10', border: 'border-cyan-400/20' },
+    { label: 'Diamante V', min: 12000, color: 'text-purple-400', bg: 'bg-purple-400/10', border: 'border-purple-400/20' },
+    { label: 'Maestro', min: 25000, color: 'text-rose-400', bg: 'bg-rose-400/10', border: 'border-rose-400/20' },
+    { label: 'Élite', min: 50000, color: 'text-white', bg: 'bg-white/10', border: 'border-white/20' },
 ];
 
 export default function SeasonWidget() {
     const { season, loading } = useSeason();
     const [timeLeft, setTimeLeft] = useState('...');
 
-    // Memoize particles to prevent re-randomization on every render (causes mobile flicker)
-    const particles = useMemo(() => [...Array(6)].map(() => ({
-        top: `${Math.random() * 100}%`,
-        left: `${Math.random() * 100}%`,
-        duration: 3 + Math.random() * 4,
-        delay: Math.random() * 5
-    })), []);
-
-    // Actualizador manual de cuenta atrás de UI 
     useEffect(() => {
         if (!season?.end_at) return;
         const interval = setInterval(() => {
@@ -58,158 +48,103 @@ export default function SeasonWidget() {
         : 100;
 
     return (
-        <div className="season-widget" style={{
-            background: 'linear-gradient(135deg, rgba(20,10,40,0.95) 0%, rgba(40,20,60,0.9) 50%, rgba(20,10,40,0.95) 100%)',
-            backgroundSize: '200% 200%',
-            animation: 'gradientMove 6s ease infinite',
-            border: '1px solid rgba(255,110,180,0.5)',
-            borderRadius: '24px',
-            margin: '0 0 24px 0',
-            position: 'relative',
-            overflow: 'hidden',
-            boxShadow: '0 12px 40px rgba(0,0,0,0.7), inset 0 0 30px rgba(255,110,180,0.15)',
-            color: '#fff'
-        }}>
-            {/* Glossy Overlay */}
-            <div style={{
-                position: 'absolute', top: 0, left: 0, right: 0, height: '50%',
-                background: 'linear-gradient(180deg, rgba(255,255,255,0.05) 0%, transparent 100%)',
-                pointerEvents: 'none',
-                zIndex: 2
-            }} />
+        <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-8 p-6 md:p-8 rounded-[32px] bg-[#0c0c16] border border-white/5 relative overflow-hidden group/season"
+        >
+            {/* Subtle Aurora background */}
+            <div className="absolute inset-0 opacity-20 pointer-events-none bg-[radial-gradient(circle_at_top_right,rgba(139,92,246,0.15),transparent_70%)]" />
 
-            <style>{`
-                @keyframes gradientMove {
-                    0% { background-position: 0% 50%; }
-                    50% { background-position: 100% 50%; }
-                    100% { background-position: 0% 50%; }
-                }
-                @keyframes floatParticle {
-                    0%, 100% { transform: translateY(0) scale(1); opacity: 0.3; }
-                    50% { transform: translateY(-20px) scale(1.5); opacity: 0.7; }
-                }
-                @keyframes pulseBadge {
-                    0% { transform: scale(1); filter: brightness(1); }
-                    50% { transform: scale(1.05); filter: brightness(1.3); }
-                    100% { transform: scale(1); filter: brightness(1); }
-                }
-            `}</style>
+            <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
 
-            {/* Floating Particles Overlay */}
-            <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 1 }}>
-                {particles.map((p, i) => (
-                    <div key={i} style={{
-                        position: 'absolute',
-                        top: p.top,
-                        left: p.left,
-                        width: '2px', height: '2px',
-                        background: '#fff',
-                        borderRadius: '50%',
-                        boxShadow: '0 0 10px #fff, 0 0 20px var(--accent)',
-                        animation: `floatParticle ${p.duration}s ease-in-out infinite`,
-                        animationDelay: `${p.delay}s`,
-                        opacity: 0.4
-                    }} />
-                ))}
-            </div>
+                {/* Info Section */}
+                <div className="lg:col-span-4 space-y-6">
+                    <div className="space-y-1">
+                        <div className="flex items-center gap-2 text-[10px] font-black tracking-[0.3em] text-purple-400 uppercase">
+                            <Orbit size={12} />
+                            <span>Temporada {season.number}</span>
+                        </div>
+                        <h2 className="text-3xl font-black italic tracking-tighter uppercase text-white leading-none">
+                            CRÓNICA <br /> ESTELAR
+                        </h2>
+                    </div>
 
-            {/* Background Rush Indicator */}
-            {season.is_final_phase && (
-                <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, background: '#ff0044', boxShadow: '0 0 15px #ff0044', zIndex: 10 }} />
-            )}
-
-            {/* Header: Title & Timer */}
-            <div className="season-widget-header" style={{ position: 'relative', zIndex: 3, marginBottom: 20 }}>
-                <div>
-                    <h3 style={{ margin: 0, fontSize: '0.9rem', color: 'var(--accent)', textTransform: 'uppercase', letterSpacing: 2, fontWeight: '900' }}>
-                        TEMPORADA {season.number}
-                    </h3>
-                    <div style={{ fontSize: '0.75rem', opacity: 0.6, fontFamily: 'monospace', marginTop: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
-                        <span style={{ color: '#00e5ff' }}>⏱</span> FINALIZA EN: {timeLeft}
+                    <div className="flex items-center gap-3 py-3 px-4 rounded-2xl bg-white/[0.03] border border-white/5 w-fit">
+                        <Timer size={14} className="text-white/40" />
+                        <div className="flex flex-col">
+                            <span className="text-[8px] font-black text-white/20 uppercase tracking-widest">Finaliza en</span>
+                            <span className="text-xs font-mono font-bold text-white/60">{timeLeft}</span>
+                        </div>
                     </div>
                 </div>
 
-                <div style={{ textAlign: 'right' }}>
-                    <div style={{ fontSize: '1.4rem', fontWeight: '900', color: season.in_top_zone ? '#ffd700' : '#fff', textShadow: season.in_top_zone ? '0 0 10px rgba(255,215,0,0.5)' : 'none' }}>
-                        #{season.my_position}
+                {/* Progress & Tier Section */}
+                <div className="lg:col-span-5 space-y-6">
+                    <div className="flex justify-between items-end">
+                        <div className="space-y-1">
+                            <span className="text-[9px] font-black text-white/20 uppercase tracking-widest block">Rango de Temporada</span>
+                            <div className={`text-2xl font-black italic tracking-tight uppercase ${currentTier.color}`}>
+                                {currentTier.label}
+                            </div>
+                        </div>
+                        <div className="text-right space-y-1">
+                            <span className="text-[9px] font-black text-white/20 uppercase tracking-widest block">Posición</span>
+                            <div className="text-2xl font-black font-mono tracking-tighter text-white">
+                                #{season.my_position}
+                            </div>
+                        </div>
                     </div>
-                    <div style={{ fontSize: '0.6rem', opacity: 0.5, textTransform: 'uppercase', letterSpacing: 1 }}>Global Rank</div>
-                </div>
-            </div>
 
-            {/* Tier Status Row */}
-            <div className="season-tier-row" style={{ position: 'relative', zIndex: 3, background: 'rgba(255,255,255,0.03)', padding: '12px 18px', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.05)' }}>
-                <div className="season-tier-icon" style={{
-                    fontSize: '2.2rem', background: 'rgba(0,0,0,0.2)',
-                    width: '60px', height: '60px', borderRadius: '12px',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    border: `1px solid ${currentTier.color}`,
-                    boxShadow: `inset 0 0 15px ${currentTier.color}33`,
-                    flexShrink: 0
-                }}>
-                    {currentTier.icon}
-                </div>
-                <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: '0.6rem', opacity: 0.5, textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 2 }}>Rango Actual</div>
-                    <div style={{ fontSize: '1.3rem', fontWeight: '900', color: currentTier.color, textShadow: `0 0 12px ${currentTier.color}55` }}>
-                        {currentTier.label}
+                    {/* Clean Progress Bar */}
+                    <div className="space-y-3">
+                        <div className="flex justify-between text-[10px] items-center">
+                            <span className="font-bold text-white/40 uppercase tracking-widest flex items-center gap-2">
+                                <TrendingUp size={10} />
+                                Próximo: {nextTier?.label || 'Máximo'}
+                            </span>
+                            <span className="font-mono text-purple-400">{Math.floor(progress)}%</span>
+                        </div>
+                        <div className="h-2 bg-white/[0.03] rounded-full overflow-hidden p-[2px]">
+                            <motion.div
+                                initial={{ width: 0 }}
+                                animate={{ width: `${progress}%` }}
+                                transition={{ duration: 1.5, ease: "circOut" }}
+                                className="h-full bg-gradient-to-r from-purple-500 to-cyan-400 rounded-full shadow-[0_0_10px_rgba(139,92,246,0.3)]"
+                            />
+                        </div>
+                        <div className="text-[8px] font-black text-white/10 uppercase tracking-[0.2em] text-center">
+                            {season.my_balance.toLocaleString()} / {nextTier?.min.toLocaleString() || '∞'} SECTOR_COINS
+                        </div>
                     </div>
                 </div>
-            </div>
 
-            {/* Progress to Next Tier */}
-            {nextTier && (
-                <div style={{ marginBottom: 20, position: 'relative', zIndex: 3 }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.65rem', marginBottom: 8, textTransform: 'uppercase', fontWeight: 'bold' }}>
-                        <span style={{ opacity: 0.6 }}>Progreso a {nextTier.label}</span>
-                        <span style={{ color: currentTier.color }}>{Math.floor(progress)}%</span>
-                    </div>
-                    <div style={{ height: 8, background: 'rgba(255,255,255,0.07)', borderRadius: 10, overflow: 'hidden', padding: 1 }}>
-                        <div style={{
-                            height: '100%', width: `${progress}%`,
-                            background: `linear-gradient(90deg, ${currentTier.color}, ${nextTier.color})`,
-                            boxShadow: `0 0 15px ${currentTier.color}44`,
-                            transition: 'width 1.5s cubic-bezier(0.4, 0, 0.2, 1)',
-                            borderRadius: 10
-                        }} />
-                    </div>
-                    <div style={{ textAlign: 'center', fontSize: '0.6rem', marginTop: 6, opacity: 0.4 }}>
-                        {season.my_balance.toLocaleString()} / {nextTier.min.toLocaleString()} COINS
-                    </div>
-                </div>
-            )}
-
-            {/* Bottom Stats & Boosts */}
-            <div className="season-stats-row" style={{ position: 'relative', zIndex: 3 }}>
-                <div style={{ display: 'flex', flexDirection: 'column' }}>
-                    <span style={{ fontSize: '0.6rem', opacity: 0.5, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4 }}>Balance de Temporada</span>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                        <span style={{ fontSize: '1.8rem', fontWeight: '900', color: 'var(--cyan)', textShadow: '0 0 15px rgba(0,229,255,0.6)', fontFamily: '"Exo 2", sans-serif' }}>
-                            ◈ {season.my_balance.toLocaleString()}
-                        </span>
+                {/* Rewards & Boosts */}
+                <div className="lg:col-span-3 lg:border-l lg:border-white/5 lg:pl-8 space-y-6">
+                    <div className="p-4 rounded-3xl bg-gradient-to-br from-white/[0.04] to-transparent border border-white/5 space-y-3">
+                        <div className="flex items-center gap-2 text-[9px] font-black text-white/30 uppercase tracking-widest">
+                            <Sparkles size={12} className="text-yellow-400/40" />
+                            <span>Recompensa Estimada</span>
+                        </div>
+                        <div className="text-2xl font-black font-mono text-white tracking-tighter">
+                            ◈ {Math.floor(season.my_balance * 0.1).toLocaleString()}
+                        </div>
                         {(season.active_boosts?.night || season.active_boosts?.weekend || season.is_final_phase) && (
-                            <div style={{ display: 'flex', gap: 4 }}>
-                                {season.active_boosts?.night && <span title="Night Boost active" style={{ animation: 'pulseBadge 2s infinite', fontSize: '14px' }}>🌙</span>}
-                                {season.active_boosts?.weekend && <span title="Weekend Boost active" style={{ animation: 'pulseBadge 2s infinite', fontSize: '14px' }}>🎉</span>}
-                                {season.is_final_phase && <span title="Final Phase boost active" style={{ animation: 'pulseBadge 1s infinite', fontSize: '14px' }}>🔥</span>}
+                            <div className="flex gap-2 pt-2 border-t border-white/5">
+                                {season.active_boosts?.night && <span className="p-1.5 rounded-lg bg-indigo-500/10 text-indigo-400" title="Night Boost"><Timer size={12} /></span>}
+                                {season.active_boosts?.weekend && <span className="p-1.5 rounded-lg bg-rose-500/10 text-rose-400" title="Weekend Boost group-hover"><Sparkles size={12} /></span>}
+                                {season.is_final_phase && <div className="h-2 w-2 rounded-full bg-rose-500 animate-pulse ml-auto" title="Final Phase Active" />}
                             </div>
                         )}
                     </div>
-                    <div style={{ fontSize: '0.6rem', color: '#ffd700', marginTop: 4, fontWeight: 'bold' }}>
-                        🎁 RECOMPENSA ESTIMADA: {Math.floor(season.my_balance * 0.1).toLocaleString()} DANCOINS
-                    </div>
-                </div>
 
-                {season.gap_to_next > 0 && (
-                    <div style={{
-                        textAlign: 'right', fontSize: '0.7rem', color: '#ff5555',
-                        background: 'rgba(255,85,85,0.1)', padding: '6px 12px', borderRadius: '8px',
-                        border: '1px solid rgba(255,85,85,0.2)'
-                    }}>
-                        A <b>◈ {season.gap_to_next.toLocaleString()}</b> del sgte puesto
-                    </div>
-                )}
+                    {season.gap_to_next > 0 && (
+                        <div className="px-4 py-2 rounded-xl bg-rose-500/5 border border-rose-500/10 text-[9px] font-bold text-rose-500/60 uppercase tracking-widest text-center">
+                            A ◈ {season.gap_to_next.toLocaleString()} del sgte puesto
+                        </div>
+                    )}
+                </div>
             </div>
-        </div>
+        </motion.div>
     );
 }

@@ -296,7 +296,7 @@ export const PrivateUniverse = ({ partnership: initialPartnership, onUpdate }) =
     return (
         <>
             <motion.div
-                className="mt-3 flex items-center w-max cursor-pointer text-sm font-light text-neutral-400 hover:text-neutral-200 transition-colors duration-200 ease-out p-2 px-3 rounded-xl select-none relative z-50 bg-white/0 active:bg-white/5"
+                className="mt-3 flex items-center w-max cursor-pointer text-xs md:text-sm font-medium text-neutral-400 hover:text-white transition-all duration-300 p-3 px-4 rounded-2xl select-none relative z-50 bg-white/[0.05] backdrop-blur-2xl border border-white/10 hover:bg-white/[0.1] active:scale-95 group/univ-trigger shadow-lg shadow-black/40"
                 onClick={handleOpen}
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.95 }}
@@ -305,13 +305,13 @@ export const PrivateUniverse = ({ partnership: initialPartnership, onUpdate }) =
                 <div className="flex flex-col text-left">
                     <span className="leading-tight">
                         {partnership.status === 'eclipse' ? (
-                            <span className="text-rose-500 italic font-medium">Vínculo en eclipse con </span>
+                            <span className="text-rose-500 italic font-medium text-[10px] md:text-xs">Vínculo en eclipse con </span>
                         ) : (
-                            <span className="font-medium">Vinculado con </span>
+                            <span className="font-medium text-[10px] md:text-xs">Vinculado con </span>
                         )}
-                        <span className="font-black text-white hover:underline decoration-purple-500" onClick={(e) => { e.stopPropagation(); navigate(partnership.partner_username ? `/@${partnership.partner_username}` : `/profile/${partnership.partner_id}`); }}>@{partnership.partner_username}</span>
+                        <span className="font-black text-white hover:underline decoration-purple-500 text-[10px] md:text-xs" onClick={(e) => { e.stopPropagation(); navigate(partnership.partner_username ? `/@${partnership.partner_username}` : `/profile/${partnership.partner_id}`); }}>@{partnership.partner_username}</span>
                     </span>
-                    <span className="text-[10px] opacity-40 font-bold tracking-widest uppercase mt-0.5">Desde {formattedDate}</span>
+                    <span className="text-[9px] opacity-40 font-bold tracking-widest uppercase mt-0.5">Desde {formattedDate}</span>
                 </div>
             </motion.div>
 
@@ -321,13 +321,16 @@ export const PrivateUniverse = ({ partnership: initialPartnership, onUpdate }) =
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
-                        className="fixed inset-0 z-[100] bg-black overflow-y-auto"
+                        className="fixed inset-0 z-[500] bg-[#040408] overflow-y-auto"
                         style={{ WebkitOverflowScrolling: 'touch' }}
                     >
                         <div className="relative min-h-[100dvh] flex flex-col items-center justify-start pt-24 pb-20 px-4">
                             <PrivateUniverseCanvas partnership={partnership} bothOnline={otherOnline} />
 
-                            <button onClick={() => setIsOpen(false)} className="absolute top-8 right-8 z-50 text-neutral-500 hover:text-white transition-colors">
+                            <button
+                                onClick={() => setIsOpen(false)}
+                                className="fixed top-6 right-6 z-[510] w-12 h-12 rounded-full bg-white/5 backdrop-blur-xl border border-white/10 flex items-center justify-center text-white/40 hover:text-white transition-all hover:bg-white/10 active:scale-90"
+                            >
                                 <CloseIcon />
                             </button>
 
@@ -356,16 +359,16 @@ export const PrivateUniverse = ({ partnership: initialPartnership, onUpdate }) =
                                             initial={{ scale: 0.8, opacity: 0 }}
                                             animate={{ scale: 1, opacity: 1 }}
                                             transition={{ duration: 1.5, delay: 0.5 }}
-                                            className="flex items-center gap-0 mt-8 relative"
+                                            className="flex items-center gap-0 mt-8 md:mt-12 relative"
                                         >
                                             {/* My Avatar */}
-                                            <div className={`relative z-10 marco-evolutivo-base marco-evolutivo-lv${Math.min(5, Math.max(1, partnership.evolution_level || 1))}`}>
+                                            <div className={`relative z-10 w-24 h-24 md:w-32 md:h-32 marco-evolutivo-base marco-evolutivo-lv${Math.min(5, Math.max(1, partnership.evolution_level || 1))}`}>
                                                 {partnership.evolution_level >= 5 ? (
                                                     <div className="marco-evolutivo-lv5-img-wrapper">
                                                         <img src={myProfile?.avatar_url || '/default_user_blank.png'} alt="Tú" className="w-full h-full object-cover" />
                                                     </div>
                                                 ) : (
-                                                    <img src={myProfile?.avatar_url || '/default_user_blank.png'} alt="Tú" className="w-full h-full object-cover" />
+                                                    <img src={myProfile?.avatar_url || '/default_user_blank.png'} alt="Tú" className="w-full h-full object-cover rounded-full" />
                                                 )}
                                             </div>
 
@@ -386,24 +389,24 @@ export const PrivateUniverse = ({ partnership: initialPartnership, onUpdate }) =
                                                 }}
                                                 className="relative z-20"
                                                 style={{
-                                                    width: 36, height: 36,
-                                                    margin: '0 -10px',
+                                                    width: 44, height: 44,
+                                                    margin: '0 -15px',
                                                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                                                     background: 'radial-gradient(circle, rgba(255,110,180,0.15) 0%, transparent 70%)',
                                                     borderRadius: '50%',
                                                 }}
                                             >
-                                                <span style={{ fontSize: '1.4rem' }}>💖</span>
+                                                <span className="text-2xl md:text-3xl">💖</span>
                                             </motion.div>
 
                                             {/* Partner Avatar */}
-                                            <div className={`relative z-10 marco-evolutivo-base marco-evolutivo-lv${Math.min(5, Math.max(1, partnership.evolution_level || 1))}`}>
+                                            <div className={`relative z-10 w-24 h-24 md:w-32 md:h-32 marco-evolutivo-base marco-evolutivo-lv${Math.min(5, Math.max(1, partnership.evolution_level || 1))}`}>
                                                 {partnership.evolution_level >= 5 ? (
                                                     <div className="marco-evolutivo-lv5-img-wrapper">
                                                         <img src={partnership.partner_avatar || '/default_user_blank.png'} alt={partnership.partner_username} className="w-full h-full object-cover" />
                                                     </div>
                                                 ) : (
-                                                    <img src={partnership.partner_avatar || '/default_user_blank.png'} alt={partnership.partner_username} className="w-full h-full object-cover" />
+                                                    <img src={partnership.partner_avatar || '/default_user_blank.png'} alt={partnership.partner_username} className="w-full h-full object-cover rounded-full" />
                                                 )}
                                             </div>
                                         </motion.div>

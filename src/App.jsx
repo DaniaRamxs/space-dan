@@ -217,7 +217,57 @@ export default function App() {
       if (e.detail?.category === 'theme') applyTheme(e.detail.itemId || 'theme_default');
     };
     window.addEventListener('dan:item-equipped', onEquip);
-    return () => window.removeEventListener('dan:item-equipped', onEquip);
+
+    // Global drag-to-scroll logic for .mobile-scroll-x
+    let activeEl = null;
+    let startX = 0;
+    let scrollLeft = 0;
+    let isMoved = false;
+
+    const onMouseDown = (e) => {
+      const el = e.target.closest('.mobile-scroll-x');
+      if (!el) return;
+      activeEl = el;
+      startX = e.pageX - el.offsetLeft;
+      scrollLeft = el.scrollLeft;
+      isMoved = false;
+    };
+
+    const onMouseMove = (e) => {
+      if (!activeEl) return;
+      const x = e.pageX - activeEl.offsetLeft;
+      const walk = (x - startX) * 1.5;
+      if (Math.abs(walk) > 5) {
+        isMoved = true;
+        activeEl.style.cursor = 'grabbing';
+      }
+      activeEl.scrollLeft = scrollLeft - walk;
+    };
+
+    const onMouseUp = () => {
+      if (!activeEl) return;
+      activeEl.style.cursor = '';
+      if (isMoved) {
+        const preventClick = (e) => {
+          e.stopImmediatePropagation();
+          e.preventDefault();
+          window.removeEventListener('click', preventClick, true);
+        };
+        window.addEventListener('click', preventClick, true);
+      }
+      activeEl = null;
+    };
+
+    window.addEventListener('mousedown', onMouseDown);
+    window.addEventListener('mousemove', onMouseMove);
+    window.addEventListener('mouseup', onMouseUp);
+
+    return () => {
+      window.removeEventListener('dan:item-equipped', onEquip);
+      window.removeEventListener('mousedown', onMouseDown);
+      window.removeEventListener('mousemove', onMouseMove);
+      window.removeEventListener('mouseup', onMouseUp);
+    };
   }, []);
 
   return (

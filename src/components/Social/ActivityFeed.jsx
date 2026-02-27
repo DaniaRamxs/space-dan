@@ -1,6 +1,9 @@
-import React, { useRef, useEffect, useCallback } from 'react';
+import React, { useEffect, useCallback } from 'react';
 import { useActivityFeed } from '../../hooks/useActivityFeed';
 import ActivityCard from './ActivityCard';
+import { PostSkeleton } from '../Skeletons/Skeleton';
+import { motion, AnimatePresence } from 'framer-motion';
+import LivenessSignals from './LivenessSignals';
 
 export default function ActivityFeed({ userId, filter = 'all', category = null }) {
     const { feed, setFeed, loading, loadingMore, hasMore, loadMore } = useActivityFeed(filter, 15, category, userId);
@@ -58,32 +61,31 @@ export default function ActivityFeed({ userId, filter = 'all', category = null }
         <div className="w-full flex items-center justify-center">
             <div className="w-full max-w-2xl flex flex-col gap-6">
 
+                {/* Liveness Header */}
+                <LivenessSignals />
+
                 {loading && !loadingMore && feed.length === 0 ? (
-                    // Skeleton Loader
                     <div className="flex flex-col gap-6">
-                        {[...Array(3)].map((_, i) => (
-                            <div key={i} className="animate-pulse bg-[#0a0a0f] border border-white/5 rounded-[2.5rem] p-6 h-40">
-                                <div className="flex gap-4 h-full">
-                                    <div className="w-12 h-12 bg-white/5 rounded-2xl shrink-0" />
-                                    <div className="flex-1 space-y-3 py-1">
-                                        <div className="h-3 bg-white/5 rounded-full w-1/3" />
-                                        <div className="h-2 bg-white/5 rounded-full w-3/4 mt-4" />
-                                        <div className="h-2 bg-white/5 rounded-full w-2/3" />
-                                    </div>
-                                </div>
-                            </div>
-                        ))}
+                        {[...Array(3)].map((_, i) => <PostSkeleton key={i} />)}
                     </div>
                 ) : (
                     <div className="flex flex-col gap-0 md:gap-6 divide-y divide-white/[0.05] md:divide-y-0">
-                        {feed.map((post) => (
-                            <ActivityCard
-                                key={post.id}
-                                post={post}
-                                onUpdate={handleUpdatePost}
-                                onNewPost={handleNewPost}
-                            />
-                        ))}
+                        <AnimatePresence mode="popLayout">
+                            {feed.map((post, index) => (
+                                <motion.div
+                                    key={post.id}
+                                    initial={{ opacity: 0, y: 10 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    transition={{ delay: index * 0.05, duration: 0.4 }}
+                                >
+                                    <ActivityCard
+                                        post={post}
+                                        onUpdate={handleUpdatePost}
+                                        onNewPost={handleNewPost}
+                                    />
+                                </motion.div>
+                            ))}
+                        </AnimatePresence>
                     </div>
                 )}
 

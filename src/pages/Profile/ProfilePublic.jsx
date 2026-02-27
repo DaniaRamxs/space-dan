@@ -4,13 +4,15 @@
  */
 import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 
 import { supabase } from '../../supabaseClient';
 import { ACHIEVEMENTS } from '../../hooks/useAchievements';
 import { getUserGameRanks } from '../../services/supabaseScores';
 import { useAuthContext } from '../../contexts/AuthContext';
 import ActivityFeed from '../../components/Social/ActivityFeed';
+import { activityService } from '../../services/activityService';
+import { PostSkeleton } from '../../components/Skeletons/Skeleton';
 import BlogPostCard from '../../components/Social/BlogPostCard';
 import { profileSocialService } from '../../services/profile_social';
 import { socialService } from '../../services/social';
@@ -398,483 +400,333 @@ function ProfileContent({
   };
 
   return (
-    <div className="w-full max-w-7xl mx-auto min-h-[100dvh] pb-24 text-white font-sans flex flex-col gap-12 pt-8" style={{ background: 'transparent' }}>
+    <div className="min-h-screen bg-[#040408] text-white font-sans relative">
+      <div className="fixed inset-0 bg-[url('/grid-pattern.png')] opacity-[0.02] pointer-events-none" />
 
-      {/* 1️⃣ HERO SECTION (v2.5) */}
-      <section className="profile-v2-hero relative w-full rounded-[3rem] overflow-hidden border border-white/10 group/hero shadow-[0_40px_100px_rgba(0,0,0,0.4)]">
-
-        {/* Mesh Background — subtle, no filter */}
-        <div className="profile-v2-mesh opacity-20 group-hover/hero:opacity-30 transition-opacity duration-1000"></div>
-        <div className="absolute inset-0 bg-[url('/grid-pattern.png')] opacity-[0.04] pointer-events-none"></div>
-
-        {/* Dynamic Banner Overlay / Shop Banner */}
-        <div
-          className={`profile-v2-banner-overlay transition-all duration-1000 ${bannerItem ? 'animate-pulse-slow' : ''} ${bannerItem?.metadata?.animated ? 'animate-aurora' : ''}`}
-          style={{
-            backgroundImage: [
-              bannerItem?.preview_url ? `url(${bannerItem.preview_url})` : null,
-              bannerItem?.metadata?.gradient
-                ? `linear-gradient(to right, ${bannerItem.metadata.gradient.join(', ')})`
-                : (bannerItem?.metadata?.hex
-                  ? `radial-gradient(circle at top right, ${bannerItem.metadata.hex}66 0%, transparent 70%)`
-                  : (profile.banner_color
-                    ? `radial-gradient(circle at top right, ${profile.banner_color}66 0%, transparent 60%)`
-                    : 'radial-gradient(circle at top right, rgba(139,92,246,0.2) 0%, transparent 60%)'
-                  )
+      {/* Banner Hero */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 1 }}
+        className={`h-64 md:h-80 w-full relative overflow-hidden bg-[#06060c] border-b border-white/5 transition-all duration-1000 ${bannerItem?.metadata?.animated ? 'animate-aurora' : ''}`}
+        style={{
+          backgroundImage: [
+            bannerItem?.preview_url ? `url(${bannerItem.preview_url})` : null,
+            bannerItem?.metadata?.gradient
+              ? `linear-gradient(to right, ${bannerItem.metadata.gradient.join(', ')})`
+              : (bannerItem?.metadata?.hex
+                ? `radial-gradient(circle at top right, ${bannerItem.metadata.hex}66 0%, transparent 70%)`
+                : (profile?.banner_color
+                  ? `radial-gradient(circle at top right, ${profile.banner_color}66 0%, transparent 60%)`
+                  : 'radial-gradient(circle at top right, rgba(139,92,246,0.1) 0%, transparent 60%)'
                 )
-            ].filter(Boolean).join(', '),
-            backgroundSize: bannerItem?.preview_url ? 'cover, auto' : 'auto',
-            backgroundPosition: bannerItem?.preview_url ? 'center, center' : 'center',
-            opacity: bannerItem?.preview_url ? 0.7 : 1
-          }}
-        >
-          {bannerItem?.metadata?.fx === 'matrix' && <div className="absolute inset-0 banner-fx-matrix opacity-80 z-10"></div>}
-          {bannerItem?.metadata?.fx === 'scanlines' && <div className="absolute inset-0 banner-fx-scanlines opacity-30"></div>}
-          {bannerItem?.metadata?.fx === 'stars' && <div className="absolute inset-0 banner-fx-stars"></div>}
+              )
+          ].filter(Boolean).join(', '),
+          backgroundSize: bannerItem?.preview_url ? 'cover, auto' : 'auto',
+          backgroundPosition: bannerItem?.preview_url ? 'center, center' : 'center',
+        }}
+      >
+        {/* Effects Layers */}
+        {bannerItem?.metadata?.fx === 'matrix' && <div className="absolute inset-0 banner-fx-matrix opacity-60 z-10"></div>}
+        {bannerItem?.metadata?.fx === 'scanlines' && <div className="absolute inset-0 banner-fx-scanlines opacity-20"></div>}
+        {bannerItem?.metadata?.fx === 'stars' && <div className="absolute inset-0 banner-fx-stars opacity-40"></div>}
+        {bannerItem?.metadata?.fx === 'void' && <div className="absolute inset-0 banner-fx-void opacity-50"></div>}
 
-          {/* V3 Identity Floating Panel */}
-          <div className="absolute top-6 right-6 md:top-8 md:right-8 z-20 flex flex-col items-end gap-2 pointer-events-none scale-90 md:scale-100 origin-top-right">
-            {mood?.text && !mood.isExpired && (
-              <motion.div
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                className="bg-black/40 backdrop-blur-xl border border-white/10 px-6 py-3 rounded-2xl flex items-center gap-3 shadow-2xl"
-              >
-                <span className="text-3xl animate-bounce-slow drop-shadow-[0_0_10px_rgba(255,255,255,0.5)]">{mood.emoji || '✨'}</span>
-                <div className="text-right">
-                  <div className="text-[8px] font-black uppercase tracking-[0.2em] text-white/30">Frecuencia Actual</div>
-                  <div className="text-xs font-bold text-white/90 italic tracking-wide">"{mood.text}"</div>
-                </div>
-              </motion.div>
-            )}
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[#040408]/20 to-[#040408]" />
 
-            <div className="flex gap-2">
-              {profile?.mbti && (
-                <div className="bg-purple-500/20 backdrop-blur-md border border-purple-500/30 px-3 py-1.5 rounded-xl flex items-center gap-2">
-                  <span className="text-[10px] font-black text-purple-300">MBTI:</span>
-                  <span className="text-[10px] font-black text-white">{profile.mbti}</span>
-                </div>
-              )}
-              {profile?.zodiac && (
-                <div className="bg-cyan-500/20 backdrop-blur-md border border-cyan-500/30 px-3 py-1.5 rounded-xl flex items-center gap-2">
-                  <span className="text-[10px] font-black text-cyan-300">SIGNO:</span>
-                  <span className="text-[10px] font-black text-white">{profile.zodiac}</span>
-                </div>
-              )}
-            </div>
-          </div>
+        {/* Navigation Return */}
+        <div className="absolute top-8 left-8 z-50">
+          <Link to="/leaderboard" className="px-5 py-2.5 rounded-xl bg-black/40 backdrop-blur-md border border-white/10 text-[9px] font-black uppercase tracking-widest text-white/40 hover:text-white hover:bg-white/10 transition-all decoration-transparent">
+            ← REGRESAR
+          </Link>
         </div>
+      </motion.div>
 
-        <div className="relative z-10 p-8 pt-32 md:pt-24 md:p-16 flex flex-col items-center text-center">
-          {/* Overlay: solo bottom fade para legibilidad — NO cubre el centro */}
-          <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-black/70 pointer-events-none z-0"></div>
+      {/* Profile Container */}
+      <div className="max-w-7xl mx-auto px-6 -mt-16 md:-mt-20 relative z-10 pb-20">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-16 items-start">
 
-          <div className="relative z-10 w-full flex flex-col items-center">
-            {/* Top Actions */}
-            <div className="absolute top-4 right-4 md:top-8 md:right-8 flex flex-col items-end gap-2 md:gap-3 z-[60]">
-              {!isOwnProfile && (
-                <div className="flex items-center gap-1.5 md:gap-2">
-                  <button
-                    onClick={handleToggleFollow}
-                    className={`px-3 py-1.5 md:px-5 md:py-2.5 rounded-xl text-[9px] md:text-[10px] font-black uppercase tracking-widest transition-all ${isFollowing ? 'bg-white/5 text-white/40 border border-white/10 hover:bg-white/10' : 'bg-cyan-600 text-white shadow-[0_10px_20px_rgba(6,182,212,0.3)] hover:scale-105'}`}
-                  >
-                    {isFollowing ? '✓ Siguiendo' : '+ Seguir'}
-                  </button>
-                  <Link to={`/cartas?to=${profile?.id}`} className="px-3 py-1.5 md:px-5 md:py-2.5 rounded-xl bg-white/5 backdrop-blur-md border border-white/10 text-[9px] md:text-[10px] font-black uppercase tracking-widest text-white/60 hover:text-white hover:bg-white/10 transition-all decoration-transparent">
-                    ✉️ <span className="hidden md:inline">Mensaje</span>
-                  </Link>
-                  {ambientSound && (
-                    <button
-                      onClick={toggleAmbientMute}
-                      className="w-10 h-10 rounded-xl bg-white/5 backdrop-blur-md border border-white/10 flex items-center justify-center hover:bg-white/10 transition-all"
-                      title={isAmbientMuted ? "Activar Sonido Ambiental" : "Silenciar Sonido Ambiental"}
-                    >
-                      {isAmbientMuted ? '🔇' : '🔊'}
-                    </button>
-                  )}
-                </div>
-              )}
-              {activityLabel && <span className="text-[8px] md:text-[9px] font-black uppercase tracking-widest bg-cyan-400/10 text-cyan-400 px-2 md:px-3 py-1 rounded-full border border-cyan-400/20">{activityLabel}</span>}
-            </div>
-
-            <div className="absolute top-4 left-4 md:top-8 md:left-8">
-              <Link to="/leaderboard" className="px-3 py-1.5 md:px-4 md:py-2 bg-black/40 backdrop-blur-md border border-white/10 rounded-xl text-[9px] md:text-[10px] font-black uppercase tracking-widest text-white/30 hover:text-white hover:bg-white/10 transition-all decoration-transparent">
-                ← <span className="hidden md:inline">REGRESAR</span><span className="md:hidden">VOLVER</span>
-              </Link>
-            </div>
-
-            <div className="relative mb-8 mt-24 md:mt-0 group/avatar">
-              {/* Aura Glow removida para optimización móvil */}
-
-              <div className="relative w-40 h-40 group/avatar">
-                {/* Main Avatar Container */}
+          {/* ASIDE: Identity Sidebar */}
+          <aside className="lg:col-span-4 lg:sticky lg:top-12 space-y-12">
+            <div className="space-y-8">
+              <div className="relative w-40 h-40">
+                {/* Frame Handling */}
                 {(() => {
-                  const frameObj = getFrameStyle(profile.frame_item_id);
+                  const frameObj = getFrameStyle(profile?.frame_item_id);
                   const frameClass = frameObj?.className || '';
-                  const isEvolutivo = frameClass.includes('marco-evolutivo');
-                  const isLv5 = profile.frame_item_id === 'frame_link_lv5';
+                  const isLv5 = profile?.frame_item_id === 'frame_link_lv5';
 
                   return (
                     <div
-                      className={`relative w-full h-full transition-transform duration-300 group-hover/avatar:scale-105 flex items-center justify-center ${frameClass} ${!(frameClass || (frameObj && (frameObj.border || frameObj.backgroundImage || frameObj.className || frameObj.boxShadow))) ? 'rounded-[30%] overflow-hidden bg-black border border-white/20 shadow-2xl' : ''}`}
-                      style={isEvolutivo ? {} : frameObj}
+                      className={`relative w-full h-full flex items-center justify-center ${frameClass} ${!(frameClass || (frameObj && (frameObj.border || frameObj.backgroundImage || frameObj.className || frameObj.boxShadow))) ? 'rounded-[30%] overflow-hidden bg-black border border-white/20' : ''}`}
+                      style={frameObj}
                     >
-                      <div className={isLv5 ? 'marco-evolutivo-lv5-img-wrapper' : `w-full h-full ${isEvolutivo ? 'rounded-full' : 'rounded-[inherit]'} overflow-hidden`}>
+                      <div className={isLv5 ? 'marco-evolutivo-lv5-img-wrapper' : `w-full h-full rounded-[inherit] overflow-hidden`}>
                         <img src={profile?.avatar_url || '/default_user_blank.png'} alt="Avatar" className="w-full h-full object-cover" />
                       </div>
                     </div>
                   );
                 })()}
 
-
-              </div>
-
-              <div className={`absolute -bottom-5 left-1/2 -translate-x-1/2 px-6 py-2 rounded-2xl border font-black text-sm tracking-tighter z-40 whitespace-nowrap transition-all duration-500 shadow-2xl ${level >= 10 ? 'bg-gradient-to-r from-yellow-400 via-white to-yellow-400 text-black border-yellow-200 animate-shimmer bg-[length:200%_100%]' : 'bg-[#09090b] border-cyan-500/50 text-cyan-400 shadow-[0_0_20px_rgba(6,182,212,0.3)]'}`}>
-                NIVEL {level}
-              </div>
-            </div>
-
-            <div className="flex flex-col items-center gap-2 mt-4 relative z-10 w-full">
-              <h1 className={`text-3xl md:text-5xl font-black uppercase tracking-[0.1em] drop-shadow-[0_5px_15px_rgba(0,0,0,0.5)] ${getNicknameClass(profile) || 'from-white via-white to-gray-300 bg-clip-text text-transparent bg-gradient-to-b'}`}>
-                {getUserDisplayName(profile)}
-              </h1>
-              {profile?.pronouns && (
-                <span className="px-4 py-1.5 rounded-full bg-black/60 border border-white/20 text-[10px] font-black text-white uppercase tracking-[0.2em] backdrop-blur-md shadow-lg animate-fade-in mt-1 ring-1 ring-white/10">
-                  {profile.pronouns}
-                </span>
-              )}
-              {!isOwnProfile && (
-                <button
-                  onClick={handleShare}
-                  className={`mt-4 text-[10px] font-black uppercase tracking-widest px-4 py-2 rounded-xl border transition-all flex items-center gap-2 shadow-lg ${isSharing ? 'bg-green-500/20 border-green-500/50 text-green-400' : 'bg-black/40 border-white/10 text-white/70 hover:text-white hover:bg-white/10'}`}
-                >
-                  {isSharing ? '✓ URL COPIADA' : '🔗 COPIAR LINK'}
-                </button>
-              )}
-            </div>
-
-            {/* Roles Premium v3 */}
-            {(primaryRole || secondaryRole) && (
-              <div className="flex flex-col items-center gap-3 mt-6">
-                <div className="flex flex-wrap justify-center gap-3">
-                  {primaryRole && (
-                    <div className="relative group/role">
-                      <div className="absolute -inset-1 bg-gradient-to-r from-purple-500 to-cyan-500 rounded-full blur opacity-25 group-hover/role:opacity-50 transition duration-1000"></div>
-                      <span className="relative px-5 py-2 rounded-full bg-black/60 border border-white/10 text-[10px] font-black uppercase tracking-[0.2em] text-purple-400 flex items-center gap-2 shadow-xl">
-                        <span className="text-sm">{primaryRole.icon || '🛡️'}</span> {primaryRole.title}
-                      </span>
-                    </div>
-                  )}
-                  {secondaryRole && (
-                    <span className="px-4 py-2 rounded-full bg-white/5 border border-white/10 text-[9px] font-black uppercase tracking-[0.2em] text-white/40 flex items-center gap-2">
-                      {secondaryRole.icon || '🛡️'} {secondaryRole.title}
-                    </span>
-                  )}
+                <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 px-4 py-1.5 rounded-full bg-white text-black text-[10px] font-black uppercase tracking-widest shadow-xl z-50">
+                  LVL {level}
                 </div>
-              </div>
-            )}
-
-            {/* Social Links Hero Display */}
-            {profile?.social_links && Array.isArray(profile.social_links) && profile.social_links.length > 0 && (
-              <div className="flex flex-wrap justify-center gap-3 mt-6">
-                {profile.social_links.map((s, i) => (
-                  <a
-                    key={i}
-                    href={s.url.startsWith('http') ? s.url : `https://${s.url}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="w-9 h-9 md:w-11 md:h-11 rounded-2xl bg-black/40 backdrop-blur-xl border border-white/10 flex items-center justify-center hover:bg-white/10 hover:border-cyan-500/50 transition-all hover:-translate-y-1 group/social shadow-xl"
-                    title={s.platform}
-                  >
-                    <span className="text-base md:text-lg group-hover/social:scale-125 transition-transform drop-shadow-[0_0_8px_rgba(255,255,255,0.3)]">
-                      {getSocialIcon(s.platform)}
-                    </span>
-                  </a>
-                ))}
-              </div>
-            )}
-
-            <p className="text-[12px] font-black text-purple-400 uppercase tracking-[0.4em] mb-4 mt-8 drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
-              {rankName}
-            </p>
-
-            {/* XP Bar Premium */}
-            <div className="w-full max-w-sm mt-4 px-6">
-              <div className="flex justify-between items-end mb-2">
-                <div className="flex flex-col items-start">
-                  <span className="text-[8px] font-black uppercase tracking-[0.3em] text-white/20">Progreso de Nivel</span>
-                  <span className="text-xs font-black italic text-cyan-400 tracking-tighter">{Math.floor(totalXp).toLocaleString()} <span className="text-[9px] opacity-40 not-italic uppercase font-sans">XP Total</span></span>
-                </div>
-                <span className="text-[10px] font-black text-purple-400 font-mono">META: {Math.floor(nextLevelXp).toLocaleString()}</span>
-              </div>
-              <div className="profile-v2-xp-bar">
-                <div
-                  className="profile-v2-xp-fill transition-all duration-1000 ease-out"
-                  style={{ width: `${progressPercent}%` }}
-                ></div>
-              </div>
-              <div className="mt-1.5 text-right">
-                <span className="text-[9px] font-black text-white/10 tracking-[0.4em] uppercase">{progressPercent}% completado</span>
-              </div>
-            </div>
-
-            <div className="mt-8 flex flex-col items-center gap-6 pb-12">
-              <div className="group/bio relative min-w-[300px] max-w-lg w-full">
-                {/* Glow on hover */}
-                <div className="absolute -inset-2 bg-gradient-to-r from-cyan-500/10 via-purple-500/10 to-cyan-500/10 rounded-[3rem] blur-xl opacity-0 group-hover/bio:opacity-100 transition-all duration-700"></div>
-
-                <div className="relative bg-gradient-to-br from-white/[0.04] to-white/[0.01] backdrop-blur-xl border border-white/[0.06] rounded-[2rem] px-8 py-6 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] overflow-hidden">
-                  {/* Decorative corner quotes */}
-                  <div className="absolute top-3 left-4 text-cyan-500/20 text-3xl font-serif leading-none select-none">"</div>
-                  <div className="absolute bottom-1 right-4 text-cyan-500/20 text-3xl font-serif leading-none select-none">"</div>
-
-                  {/* Subtle scan line effect */}
-                  <div className="absolute inset-0 opacity-[0.02] pointer-events-none" style={{ backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(255,255,255,0.03) 2px, rgba(255,255,255,0.03) 4px)' }}></div>
-
-                  <p className={`text-sm md:text-base leading-relaxed tracking-wide text-center relative z-10 transition-colors duration-500 ${profile.bio ? 'text-gray-300/90 group-hover/bio:text-white/90' : 'text-white/20 italic'}`}>
-                    {profile.bio || 'Sin biografía estelar.'}
-                  </p>
-                </div>
-              </div>
-
-              {partnership ? (
-                <div className="flex flex-col items-center gap-3">
-                  <div className="relative group/univ">
-                    <div className="absolute -inset-8 bg-purple-500/20 blur-3xl rounded-full opacity-0 md:group-hover/univ:opacity-100 transition-opacity duration-1000"></div>
-                    <PrivateUniverse partnership={partnership} />
-                  </div>
-                  <div className="flex flex-col items-center gap-1">
-                    <div className="text-[10px] font-black tracking-[0.4em] text-purple-400 uppercase animate-pulse">Universo Vinculado</div>
-                    <Link to={`/@${partnership.partner_username}`} className="text-[10px] font-black text-white/20 hover:text-purple-400 transition-colors uppercase tracking-widest">
-                      Ver perfil de @{partnership.partner_username} →
-                    </Link>
-                  </div>
-                </div>
-              ) : (
-                <div className="h-16 flex items-center justify-center">
-                  <div className="px-4 py-2 rounded-full border border-white/5 bg-white/[0.02] text-[9px] font-black uppercase tracking-[0.3em] text-white/10">Este perfil flota solo en el vacío</div>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* 2️⃣ STATS CORE GRID */}
-      <section className="px-6 md:px-0 animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
-        <div className="flex items-center justify-between mb-6 px-2">
-          <h2 className="text-[10px] text-white/30 uppercase tracking-[0.4em] font-black flex items-center gap-3">
-            <span className="w-1.5 h-1.5 rounded-full bg-cyan-500 shadow-[0_0_10px_cyan]"></span>
-            Métricas del Servidor
-          </h2>
-          <div className="h-px flex-1 bg-white/5 mx-6"></div>
-          <span className="text-[9px] font-mono text-cyan-500/40">v2.5.0-ESTELAR</span>
-        </div>
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-          <StatCard title="Seguidores" value={followCounts.followers} icon="👥" highlight="text-purple-400" />
-          <StatCard title="Siguiendo" value={followCounts.following} icon="✨" highlight="text-purple-200" />
-          <StatCard title="Rank Global" value={topGlobalRank !== 'N/A' ? `#${topGlobalRank}` : '-'} icon="🌍" highlight="text-green-400" />
-          <StatCard title="Racha Focus" value={`${cabinStats?.current_streak || 0} 🔥`} icon="⏳" highlight="text-orange-400" />
-          <StatCard title="Juegos" value={gameRanks.length} icon="🎮" highlight="text-cyan-400" />
-          <StatCard title="Mejor Récord" value={bestRecord.toLocaleString()} icon="🏆" highlight="text-yellow-500" />
-        </div>
-      </section>
-
-      {/* 3️⃣ TABS */}
-      <section className="px-6 md:px-0 flex-1 flex flex-col min-h-0 animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
-        <div className="flex flex-nowrap bg-black/40 backdrop-blur-2xl rounded-3xl p-2 shadow-2xl border border-white/5 overflow-x-auto no-scrollbar gap-1 mb-8">
-          <TabButton active={activeTab === 'records'} onClick={() => setActiveTab('records')}>🏆 Archivos</TabButton>
-          <TabButton active={activeTab === 'achievements'} onClick={() => setActiveTab('achievements')}>🎖️ Medallas</TabButton>
-          <TabButton active={activeTab === 'activity'} onClick={() => setActiveTab('activity')}>🛰️ Actividad</TabButton>
-          <TabButton active={activeTab === 'wall'} onClick={() => setActiveTab('wall')}>💬 Muro</TabButton>
-        </div>
-
-        <div className="mt-5 flex-1 mb-8">
-
-          {/* TAB: RECORDS */}
-          {activeTab === 'records' && (
-            <div className="animate-fade-in-up">
-              {gameRanks.length === 0 ? (
-                <div className="text-center p-12 border border-white/5 rounded-2xl bg-[#0a0a0f] text-gray-500 text-sm">Sin récords registrados.</div>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {gameRanks.map(rank => (
-                    <div key={rank.game_id} className="group relative bg-black/40 border border-white/5 rounded-[2rem] p-6 hover:border-cyan-500/30 transition-all hover:shadow-[0_20px_40px_rgba(0,0,0,0.4)] overflow-hidden">
-                      <div className="absolute top-0 right-0 w-24 h-24 bg-cyan-500/5 blur-3xl rounded-full translate-x-1/2 -translate-y-1/2 group-hover:bg-cyan-500/10 transition-colors"></div>
-
-                      <div className="flex items-center gap-5 relative z-10">
-                        <div className="w-14 h-14 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-2xl shadow-inner group-hover:scale-110 transition-transform">
-                          🎮
-                        </div>
-                        <div className="flex-1">
-                          <h3 className="text-sm font-black text-white/90 uppercase tracking-[0.2em]">{GAME_NAMES[rank.game_id] || rank.game_id}</h3>
-                          <div className="mt-1 flex items-center gap-2">
-                            <span className="text-[10px] font-black text-cyan-500 font-mono tracking-tighter">SCORE: {(rank.max_score ?? 0).toLocaleString()}</span>
-                            <div className="h-2 w-px bg-white/10"></div>
-                            <span className="text-[10px] font-black text-purple-400 font-mono">RANK #{rank.user_position}</span>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="mt-6 flex gap-1 h-1">
-                        <div className="flex-1 bg-cyan-500/40 rounded-full"></div>
-                        <div className="flex-1 bg-white/5 rounded-full"></div>
-                        <div className="flex-1 bg-white/5 rounded-full"></div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* TAB: ACHIEVEMENTS */}
-          {activeTab === 'achievements' && (
-            <div className="animate-fade-in-up">
-              <div className="mb-4 flex justify-between items-end px-1">
-                <span className="text-[10px] text-gray-500 uppercase tracking-[0.2em] font-bold">Insignias Desbloqueadas</span>
-                <span className="text-[11px] text-cyan-500 font-mono bg-cyan-900/20 px-2.5 py-1 rounded border border-cyan-800/40">{unlockedAchs.length}/{ACHIEVEMENTS.length}</span>
-              </div>
-              {unlockedAchs.length === 0 ? (
-                <div className="text-center p-12 border border-white/5 rounded-2xl bg-[#0a0a0f] text-gray-500 text-sm">El usuario no tiene logros visibles.</div>
-              ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                  {unlockedAchs.map(ach => (
-                    <div key={ach.id} className="group relative p-6 rounded-[2rem] bg-gradient-to-br from-white/[0.03] to-transparent border border-white/5 hover:border-purple-500/30 transition-all overflow-hidden flex flex-col items-center text-center">
-                      <div className="absolute inset-0 bg-purple-500/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                      <div className="text-4xl mb-4 grayscale group-hover:grayscale-0 transition-all duration-500 transform group-hover:scale-125 group-hover:rotate-6 drop-shadow-[0_0_15px_rgba(255,255,255,0.2)]">{ach.icon}</div>
-                      <h4 className="text-xs font-black text-white uppercase tracking-widest mb-2">{ach.title}</h4>
-                      <p className="text-[10px] text-white/40 leading-relaxed font-medium">{ach.desc}</p>
-                      <div className="mt-4 pt-4 border-t border-white/5 w-full">
-                        <span className="text-[8px] font-black text-purple-400 uppercase tracking-[0.2em]">Sincronizado ✓</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* TAB: ACTIVITY (SOCIAL FEED + BLOG POSTS) */}
-          {activeTab === 'activity' && (
-            <div className="animate-fade-in-up flex flex-col items-center gap-8">
-
-              {/* Blog posts del piloto */}
-              {posts.length > 0 && (
-                <div className="w-full max-w-2xl flex flex-col gap-4">
-                  <div className="flex items-center px-2">
-                    <h3 className="text-[10px] font-black text-white/30 uppercase tracking-[0.4em]">📖 Entradas de Bitácora</h3>
-                  </div>
-                  {posts.map(post => (
-                    <BlogPostCard
-                      key={post.id}
-                      post={post}
-                      authorProfile={profile}
-                      onActionComplete={() => { }}
-                    />
-                  ))}
-                </div>
-              )}
-
-              {/* Feed de transmisiones sociales */}
-              <div className="w-full max-w-2xl border-t border-white/10 pt-6">
-                <h3 className="text-[10px] font-black text-white/30 uppercase tracking-[0.4em] px-2 mb-6">🛰️ Transmisiones Sociales</h3>
-                <ActivityFeed userId={profile?.id} filter="user" />
-              </div>
-            </div>
-          )}
-
-          {/* TAB: WALL */}
-          {activeTab === 'wall' && (
-            <div className="animate-fade-in-up">
-              <div className="profile-v2-section glass-blue space-y-6 mb-8">
-                <form onSubmit={handleAddComment}>
-                  <div className="flex flex-col gap-4">
-                    <h3 className="text-xs font-black text-cyan-400 uppercase tracking-[0.4em]">Dejar un mensaje</h3>
-                    <div className="relative">
-                      <textarea
-                        value={newComment}
-                        onChange={(e) => setNewComment(e.target.value)}
-                        placeholder="Transmite tus pensamientos..."
-                        maxLength={500}
-                        className="w-full bg-black/40 border border-white/10 rounded-[2rem] p-6 text-sm text-white resize-none min-h-[120px] outline-none focus:border-cyan-500/50 transition-all shadow-inner"
-                      />
-                    </div>
-                    <button
-                      type="submit"
-                      disabled={submittingComment || !newComment.trim()}
-                      className="self-end px-8 py-3 bg-cyan-600 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-cyan-500 hover:scale-105 active:scale-95 transition-all shadow-[0_10px_20px_rgba(6,182,212,0.2)] disabled:opacity-50 disabled:hover:scale-100"
-                    >
-                      {submittingComment ? 'Procesando...' : 'Publicar en Muro'}
-                    </button>
-                  </div>
-                </form>
               </div>
 
               <div className="space-y-4">
-                {comments.map(c => (
-                  <div
-                    key={c.id}
-                    className="group relative bg-black/20 border border-white/5 p-6 rounded-[2rem] hover:bg-white/[0.03] transition-all flex flex-col gap-4"
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-4">
-                        <div className="w-10 h-10 rounded-2xl overflow-hidden border border-white/10 shadow-lg">
-                          <img className="w-full h-full object-cover" src={c.author?.avatar_url || '/default_user_blank.png'} alt="Avatar" />
-                        </div>
-                        <div>
-                          <Link to={`/@${c.author?.username}`} className="text-xs font-black text-cyan-400 hover:text-white transition-colors uppercase tracking-widest">
-                            {c.author?.username}
-                          </Link>
-                          <span className="block text-[8px] font-black text-white/20 uppercase mt-0.5">{new Date(c.created_at).toLocaleDateString()}</span>
-                        </div>
+                <h1 className={`text-display font-black tracking-tight leading-none ${getNicknameClass(profile)} text-white uppercase`}>
+                  {getUserDisplayName(profile)}
+                </h1>
+                {profile?.pronouns && (
+                  <span className="text-micro opacity-40 block uppercase tracking-widest">{profile.pronouns}</span>
+                )}
+
+                {/* Role Badges */}
+                {(profile?.primary_role_item || profile?.secondary_role_item) && (
+                  <div className="flex flex-wrap gap-3 pt-2">
+                    {profile?.primary_role_item && (
+                      <div className="relative group/role">
+                        <div className="absolute -inset-0.5 bg-gradient-to-r from-purple-500/50 to-cyan-500/50 rounded-full blur-sm opacity-20 group-hover:opacity-40 transition-opacity"></div>
+                        <span className="relative px-3 py-1 rounded-full bg-white/[0.03] border border-white/10 text-[9px] font-black uppercase tracking-widest text-purple-400 flex items-center gap-1.5 shadow-lg">
+                          <span>🛡️</span> {profile.primary_role_item.title}
+                        </span>
                       </div>
-                      {(user?.id === c.author_id || user?.id === profile?.id) && (
-                        <button
-                          onClick={() => handleDeleteComment(c.id)}
-                          className="w-8 h-8 rounded-xl bg-rose-500/10 text-rose-500 flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-all hover:bg-rose-500 hover:text-white"
-                        >
-                          ✕
-                        </button>
-                      )}
-                    </div>
-                    <div className="pl-1.5">
-                      <p className="text-xs text-white/70 leading-relaxed break-words font-medium">{c.content}</p>
-                    </div>
+                    )}
                   </div>
-                ))}
-                {comments.length === 0 && (
-                  <div className="text-center p-24 bg-black/20 rounded-[3rem] border border-white/5">
-                    <p className="text-[10px] font-black text-white/10 uppercase tracking-[0.4em]">El muro de transmisiones está vacío</p>
+                )}
+
+                <p className="text-sm text-white/50 leading-relaxed italic">
+                  "{profile?.bio || 'Sin biografía estelar.'}"
+                </p>
+              </div>
+
+              {/* Server Metrics Sidebar */}
+              <div className="space-y-6 pt-12 border-t border-white/5">
+                <div className="flex justify-between items-end">
+                  <span className="text-micro opacity-40 uppercase tracking-widest">Dancoins</span>
+                  <span className="text-xl font-bold font-mono tracking-tighter">◈ {profile?.balance?.toLocaleString() || 0}</span>
+                </div>
+                <div className="flex justify-between items-end">
+                  <span className="text-micro opacity-40 uppercase tracking-widest">Racha Social</span>
+                  <span className="text-xl font-bold font-mono text-white tracking-tighter">{profile?.streak || 0}D</span>
+                </div>
+                {topGlobalRank !== 'N/A' && (
+                  <div className="flex justify-between items-end">
+                    <span className="text-micro opacity-40 uppercase tracking-widest">Posición Global</span>
+                    <span className="text-xl font-bold font-mono text-cyan-400 tracking-tighter">#{topGlobalRank}</span>
                   </div>
+                )}
+                <div className="space-y-2 pt-2">
+                  <div className="flex justify-between text-[9px] font-mono opacity-20 uppercase tracking-widest">
+                    <span>Progreso Galáctico</span>
+                    <span>{progressPercent}%</span>
+                  </div>
+                  <div className="h-1 bg-white/[0.03] rounded-full overflow-hidden">
+                    <motion.div
+                      initial={{ width: 0 }}
+                      animate={{ width: `${progressPercent}%` }}
+                      className="h-full bg-white/80"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Social Interactions */}
+              <div className="flex flex-col gap-3">
+                <div className="flex gap-3">
+                  <button
+                    onClick={handleToggleFollow}
+                    className={`flex-1 px-6 py-2.5 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${isFollowing ? 'bg-white/5 text-white/40 border border-white/10' : 'bg-white text-black hover:bg-white/90 shadow-[0_10px_20px_rgba(255,255,255,0.1)]'}`}
+                  >
+                    {isFollowing ? '✓ Siguiendo' : '+ Seguir'}
+                  </button>
+                  <Link to={`/cartas?to=${profile?.id}`} className="flex-1 px-6 py-2.5 rounded-xl bg-white/5 border border-white/10 text-[9px] font-black uppercase tracking-widest text-center text-white/60 hover:text-white hover:bg-white/10 transition-all decoration-transparent">
+                    MENSAJE
+                  </Link>
+                </div>
+                {/* Partnership Logic */}
+                {partnership ? (
+                  <div className="pt-8 border-t border-white/5 w-full">
+                    <PrivateUniverse partnership={partnership} />
+                    <div className="mt-2 text-[9px] font-black tracking-[0.3em] text-purple-400/40 uppercase text-center">Universo Vinculado</div>
+                  </div>
+                ) : (
+                  !isOwnProfile && user && (
+                    <div className="pt-8 border-t border-white/5 w-full">
+                      <button
+                        onClick={handleSendRequest}
+                        disabled={hasPendingRequest || requestLoading}
+                        className={`w-full py-3 rounded-xl text-[9px] font-black uppercase tracking-[0.4em] transition-all border ${hasPendingRequest
+                          ? 'bg-white/5 border-white/10 text-white/20 cursor-default'
+                          : 'bg-gradient-to-r from-purple-500/10 to-cyan-500/10 border-white/10 text-white/60 hover:text-white hover:border-purple-500/50 hover:from-purple-500/20 hover:to-cyan-500/20'
+                          }`}
+                      >
+                        {requestLoading ? 'Sincronizando...' : (hasPendingRequest ? 'Solicitud Pendiente ⏳' : 'Solicitar Vínculo Estelar 🌌')}
+                      </button>
+                    </div>
+                  )
                 )}
               </div>
             </div>
-          )}
-        </div>
-      </section >
-    </div >
-  );
-}
+          </aside>
 
-// --- SUBCOMPONENTES REUTILIZABLES ---
-function StatCard({ title, value, icon, highlight = 'text-white' }) {
-  return (
-    <div className="profile-v2-stat-card flex flex-col items-center justify-center text-center group">
-      <div className="text-2xl mb-2 transition-transform duration-500 group-hover:scale-125 group-hover:rotate-12">{icon}</div>
-      <div className={`text-xl md:text-2xl font-black italic tracking-tighter ${highlight} leading-none`}>{value}</div>
-      <div className="text-[9px] text-white/20 uppercase tracking-[0.2em] font-black mt-2">{title}</div>
+          {/* MAIN: Navigation & Views */}
+          <main className="lg:col-span-8 space-y-12">
+            <nav className="flex gap-8 border-b border-white/5 overflow-x-auto no-scrollbar">
+              <TabButton
+                active={activeTab === 'activity'}
+                onClick={() => setActiveTab('activity')}
+                onMouseEnter={() => profile?.id && activityService.prefetchFeed(profile.id, 'user')}
+              >
+                Actividad
+              </TabButton>
+              <TabButton active={activeTab === 'records'} onClick={() => setActiveTab('records')}>Registros</TabButton>
+              <TabButton active={activeTab === 'achievements'} onClick={() => setActiveTab('achievements')}>Logros</TabButton>
+              <TabButton active={activeTab === 'wall'} onClick={() => setActiveTab('wall')}>Muro</TabButton>
+            </nav>
+
+            <div className="w-full max-w-2xl mx-auto min-h-[400px]">
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={activeTab}
+                  initial={{ opacity: 0, x: 10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -10 }}
+                  transition={{ duration: 0.2 }}
+                  className="space-y-12"
+                >
+                  {activeTab === 'activity' && (
+                    <div className="space-y-12">
+                      <ActivityFeed userId={profile?.id} filter="user" />
+                    </div>
+                  )}
+
+                  {activeTab === 'records' && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {gameRanks.length === 0 ? (
+                        <div className="col-span-2 py-20 text-center text-micro opacity-20 uppercase tracking-widest">Sin registros detectados</div>
+                      ) : (
+                        gameRanks.map(rank => (
+                          <div key={rank.game_id} className="p-8 rounded-3xl bg-white/[0.01] border border-white/5 space-y-4 hover:bg-white/[0.02] transition-all">
+                            <div className="flex justify-between items-start">
+                              <h3 className="text-micro opacity-40 uppercase tracking-widest">{GAME_NAMES[rank.game_id] || rank.game_id}</h3>
+                              <span className="text-[9px] font-mono opacity-20">RANK #{rank.user_position}</span>
+                            </div>
+                            <div className="text-3xl font-bold font-mono tracking-tighter">{(rank.max_score ?? 0).toLocaleString()}</div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  )}
+
+                  {activeTab === 'achievements' && (
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                      {unlockedAchs.length === 0 ? (
+                        <div className="col-span-4 py-20 text-center text-micro opacity-20 uppercase tracking-widest">Sin medallas sincronizadas</div>
+                      ) : (
+                        unlockedAchs.map(ach => (
+                          <div key={ach.id} className="aspect-square flex flex-col items-center justify-center p-6 rounded-3xl bg-white/[0.01] border border-white/5 text-center group transition-all hover:bg-white/[0.02]">
+                            <span className="text-4xl mb-3 grayscale group-hover:grayscale-0 transition-all duration-500 opacity-40 group-hover:opacity-100">{ach.icon}</span>
+                            <span className="text-[8px] font-black uppercase tracking-[0.2em] opacity-40">{ach.title}</span>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  )}
+
+                  {activeTab === 'wall' && (
+                    <div className="space-y-12">
+                      <div className="p-8 rounded-3xl bg-white/[0.01] border border-white/5 space-y-6">
+                        <textarea
+                          value={newComment}
+                          onChange={e => setNewComment(e.target.value)}
+                          placeholder={`Escribe algo en el muro de ${profile?.username}...`}
+                          className="w-full bg-transparent border-none text-sm outline-none h-24 text-white opacity-80 resize-none"
+                        />
+                        <div className="flex justify-end">
+                          <button
+                            onClick={handleAddComment}
+                            disabled={submittingComment}
+                            className="text-micro font-black px-6 py-2 bg-white text-black rounded-xl hover:bg-white/90 transition-all uppercase tracking-widest disabled:opacity-50"
+                          >
+                            {submittingComment ? 'Emitiendo...' : 'Publicar Mensaje'}
+                          </button>
+                        </div>
+                      </div>
+                      <div className="space-y-6">
+                        {comments.map(c => (
+                          <div key={c.id} className="p-8 rounded-3xl bg-white/[0.01] border border-white/5 flex gap-6 hover:bg-white/[0.02] transition-colors relative group">
+                            <img src={c.author?.avatar_url || '/default_user_blank.png'} className="w-12 h-12 rounded-2xl object-cover opacity-60" />
+                            <div className="space-y-1 flex-1">
+                              <div className="flex justify-between items-center">
+                                <Link to={`/@${c.author?.username}`} className="text-micro font-black uppercase tracking-widest opacity-40 hover:opacity-100 transition-opacity">
+                                  {c.author?.username}
+                                </Link>
+                                {(user?.id === c.author_id || user?.id === profile?.id) && (
+                                  <button
+                                    onClick={() => handleDeleteComment(c.id)}
+                                    className="text-[10px] text-rose-500/40 hover:text-rose-500 opacity-0 group-hover:opacity-100 transition-all font-black uppercase tracking-widest"
+                                  >
+                                    Eliminar
+                                  </button>
+                                )}
+                              </div>
+                              <p className="text-sm text-white/50 leading-relaxed">{c.content}</p>
+                            </div>
+                          </div>
+                        ))}
+                        {comments.length === 0 && (
+                          <div className="py-20 text-center text-micro opacity-20 uppercase tracking-widest">El muro está vacío</div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </motion.div>
+              </AnimatePresence>
+            </div>
+          </main>
+        </div>
+      </div>
     </div>
   );
 }
 
-function TabButton({ active, onClick, children }) {
+// --- SUBCOMPONENTES REUTILIZABLES CON MICROINTERACCIONES ---
+
+function StatCard({ title, value, icon, highlight = 'text-white' }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true }}
+      transition={{ type: "spring", stiffness: 100, damping: 20 }}
+      whileHover={{ y: -2, backgroundColor: "rgba(255,255,255,0.03)" }}
+      className="flex flex-col items-start p-8 rounded-3xl bg-white/[0.01] border border-white/5 transition-all group/stat"
+    >
+      <span className="text-micro opacity-40 uppercase tracking-widest font-mono mb-4 group-hover/stat:opacity-60 transition-opacity">{title}</span>
+      <div className={`text-display font-bold font-mono tracking-tighter ${highlight} tabular-nums`}>
+        {value}
+      </div>
+      {icon && <div className="text-xl mt-6 opacity-20 group-hover/stat:opacity-40 transition-opacity">{icon}</div>}
+    </motion.div>
+  );
+}
+
+function TabButton({ active, onClick, onMouseEnter, children }) {
   return (
     <button
       onClick={onClick}
-      className={`profile-v2-tab-btn ${active ? 'active' : ''}`}
+      onMouseEnter={onMouseEnter}
+      className={`relative py-4 text-heading font-black uppercase tracking-widest transition-all duration-300 ${active ? 'text-white' : 'text-white/20 hover:text-white/60'}`}
     >
-      {children}
+      <span className="relative z-10">{children}</span>
+      {active && (
+        <motion.div
+          layoutId="activeTabIndicator"
+          className="absolute bottom-0 left-0 right-0 h-[2px] bg-white"
+          transition={{ type: "spring", stiffness: 350, damping: 35 }}
+        />
+      )}
     </button>
   );
 }

@@ -72,36 +72,54 @@ export default function PostComposer({
                     updated_at: new Date().toISOString(),
                 });
             } else {
-                const newPost = await activityService.createPost({
+                // 1. OPTIMISTIC UI: Emite el post inmediatamente
+                const tempId = `temp-${Date.now()}`;
+                const optimisticPost = {
+                    id: tempId,
                     author_id: user.id,
                     title: title.trim(),
                     content: content.trim() || null,
                     category,
                     type: 'post',
-                });
-
-                const enriched = {
-                    ...newPost,
-                    category,
+                    created_at: new Date().toISOString(),
+                    isOptimistic: true, // Flag para feedback visual si se desea
                     author: {
                         username: profile?.username || user.user_metadata?.username || 'tú',
                         avatar_url: profile?.avatar_url || user.user_metadata?.avatar_url || '/default_user_blank.png',
-                        frame_item_id: profile?.frame_item_id || null,
                     },
-                    reactions_metadata: { total_count: 0, top_reactions: [], user_reaction: null },
-                    original_post: null,
-                    views_count: 0,
+                    reactions_metadata: { total_count: 0, top_reactions: [], user_reaction: null }
                 };
 
+                if (onPostCreated) onPostCreated(optimisticPost);
+
+                // Limpiar campos inmediatamente para sensación de velocidad
                 setTitle('');
                 setContent('');
                 setCategory('general');
                 setTab('write');
+
+                const newPost = await activityService.createPost({
+                    author_id: user.id,
+                    title: optimisticPost.title,
+                    content: optimisticPost.content,
+                    category,
+                    type: 'post',
+                });
+
+                // 2. SYNC: El feed recibirá el post real y reemplazará el temporal por ID si se maneja en ActivityFeed
+                // O simplemente emitimos el real para que el feed lo procese
+                const enriched = {
+                    ...newPost,
+                    author: optimisticPost.author,
+                    reactions_metadata: optimisticPost.reactions_metadata,
+                };
+
                 if (onPostCreated) onPostCreated(enriched);
             }
         } catch (err) {
             console.error('[PostComposer]', err);
             setError(err.message || 'Error al publicar');
+            // Nota: En una implementación completa, aquí dispararíamos un evento de rollback para remover el optimisticPost
         } finally {
             setSubmitting(false);
         }
@@ -117,13 +135,13 @@ export default function PostComposer({
     };
 
     return (
-        <div className={`bg-[#070710] border-b md:border border-white/[0.06] md:rounded-3xl shadow-none md:shadow-2xl overflow-hidden relative transition-all ${isEditing ? 'border-cyan-500/30' : 'border-white/[0.06]'
+        <div className={`bg-[#070710] border-b md:border border-white/[0.04] md:rounded-3xl shadow-none md:shadow-xl overflow-hidden relative transition-all ${isEditing ? 'border-white/20' : 'border-white/[0.04]'
             }`}>
-            <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-cyan-500/20 to-transparent pointer-events-none" />
+            <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/5 to-transparent pointer-events-none" />
 
             {isEditing && (
                 <div className="flex items-center justify-between px-5 pt-4 pb-0">
-                    <span className="text-[9px] font-black text-cyan-400 uppercase tracking-[0.3em]">✏️ Editando</span>
+                    <span className="text-[10px] font-semibold text-cyan-400/80 uppercase tracking-[0.2em] font-mono">:: Editando_Transmisión</span>
                     <button onClick={handleCancel} className="text-[9px] font-black text-white/25 hover:text-white/60 uppercase tracking-widest transition-colors">
                         Cancelar
                     </button>
@@ -181,7 +199,7 @@ export default function PostComposer({
                                             type="button"
                                             onClick={() => { setCategory(cat.id); setCatOpen(false); }}
                                             className={`flex items-center gap-2 px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all text-left ${category === cat.id
-                                                ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/30'
+                                                ? 'bg-white/10 text-white border border-white/20'
                                                 : 'text-white/40 hover:bg-white/5 hover:text-white/70'
                                                 }`}
                                         >
@@ -201,10 +219,10 @@ export default function PostComposer({
                             key={t}
                             type="button"
                             onClick={() => setTab(t)}
-                            className={`px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${tab === t ? 'bg-white/10 text-white' : 'text-white/20 hover:text-white/50'
+                            className={`px-3 py-1 rounded-lg text-[9px] font-semibold uppercase tracking-[0.2em] font-mono transition-all ${tab === t ? 'bg-white/10 text-white' : 'text-white/20 hover:text-white/50'
                                 }`}
                         >
-                            {t === 'write' ? '✍️ Escribir' : '👁 Preview'}
+                            {t === 'write' ? '✍️ Escribir_Modo' : '👁 Preview_Signal'}
                         </button>
                     ))}
                 </div>
@@ -244,7 +262,7 @@ export default function PostComposer({
                                         </ReactMarkdown>
                                     </div>
                                 ) : (
-                                    <p className="text-[11px] text-white/20 italic">Sin contenido aún...</p>
+                                    <p className="text-[10px] text-white/10 font-semibold uppercase tracking-[0.2em] font-mono italic">:: _Esperando_Señal...</p>
                                 )}
                             </motion.div>
                         )}
@@ -259,9 +277,9 @@ export default function PostComposer({
                         <button
                             type="submit"
                             disabled={!canSubmit}
-                            className="px-6 py-2.5 bg-cyan-600 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest
-                         hover:bg-cyan-500 hover:scale-105 active:scale-95 transition-all
-                         shadow-[0_8px_20px_rgba(6,182,212,0.2)] disabled:opacity-40 disabled:hover:scale-100"
+                            className="px-6 py-2.5 bg-white/90 text-black rounded-2xl font-black text-[10px] uppercase tracking-widest
+                         hover:bg-white hover:scale-105 active:scale-95 transition-all
+                         shadow-lg disabled:opacity-40 disabled:hover:scale-100"
                         >
                             {submitting
                                 ? (isEditing ? 'Guardando...' : 'Transmitiendo...')

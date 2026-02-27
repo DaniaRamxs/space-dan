@@ -16,18 +16,18 @@ import '../styles/NicknameStyles.css';
 const DB_ONLY_CATEGORIES = new Set(['banner', 'frame', 'pet_accessory', 'nickname_style', 'profile_theme', 'role', 'ambient_sound']);
 
 const CAT_LABELS = {
-  theme: '🎨 Perfil Colección',
-  cursor: '🖱️ Partículas',
-  screensaver: '💤 Screensavers',
-  stars: '⭐ Estrellas',
-  radio: '📻 Radio',
-  banner: '🖼️ Banners',
-  frame: '🔲 Marcos',
-  pet_accessory: '🐱 Mascota',
-  nickname_style: '🧬 Nicknames',
-  profile_theme: '🌌 Universe Themes',
-  role: '🎖️ Roles',
-  ambient_sound: '🎵 Ambientes',
+  theme: 'Perfil_Col',
+  cursor: 'Partículas_FX',
+  screensaver: 'Sleep_Modes',
+  stars: 'Atmósfera_Estelar',
+  radio: 'Frecuencias_Radio',
+  banner: 'Banners_Ident',
+  frame: 'Marcos_Avatar',
+  pet_accessory: 'Genética_Pet',
+  nickname_style: 'Estilo_Nick',
+  profile_theme: 'Universos_Exp',
+  role: 'Rangos_Rango',
+  ambient_sound: 'Ambientes_Snd',
 };
 
 // Preferred category order in the tab bar
@@ -283,87 +283,68 @@ export default function ShopPage() {
   const equippedSummary = fullCatalog.filter(item => isItemEquipped(item));
 
   return (
-    <div className="shopPage max-w-7xl mx-auto px-0 md:px-6 py-4 sm:py-8 space-y-6 sm:space-y-12 overflow-x-hidden min-h-screen overflow-y-auto pb-64 md:mb-8">
+    <div className="shopPage max-w-7xl mx-auto px-0 md:px-6 py-4 sm:py-8 space-y-12 min-h-screen pb-64">
 
+      {/* Activation Chamber Header */}
+      <div className="relative mx-4 md:mx-0 rounded-[2.5rem] overflow-hidden bg-[#070710] border border-white/5 p-8 md:p-14 flex flex-col justify-center min-h-[300px]">
+        {/* Sutil depth effect */}
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.02),transparent)]"></div>
+        <div className="absolute top-0 left-0 w-full h-full bg-[url('/grid-pattern.png')] opacity-[0.03] pointer-events-none"></div>
 
+        <div className="relative z-10">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="w-1.5 h-1.5 rounded-full bg-cyan-500 animate-pulse"></div>
+            <span className="text-[10px] font-semibold text-cyan-400/60 uppercase tracking-[0.2em] font-mono">:: Cámara_de_Activación</span>
+          </div>
 
-
-      {/* Hero Section with Animated Background */}
-      <div className="relative mx-4 md:mx-0 rounded-[2rem] sm:rounded-[2.5rem] overflow-hidden bg-black border border-white/10 p-6 sm:p-8 md:p-12 min-h-[280px] sm:min-h-[320px] flex flex-col justify-center group/hero">
-        <div className="absolute inset-0 bg-gradient-to-br from-indigo-900/40 via-purple-900/40 to-pink-900/40 opacity-70"></div>
-        <div className="absolute inset-0 shop-hero-mesh opacity-30"></div>
-        <div className="absolute top-0 left-0 w-full h-full bg-[url('/grid-pattern.png')] opacity-10 pointer-events-none"></div>
-
-        {/* Animated Particles/Stars (Simplified) */}
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="stars-float absolute inset-0 opacity-40"></div>
-        </div>
-
-        <div className="relative z-10 max-w-2xl">
-          <span className="inline-block px-3 py-1 rounded-full bg-white/10 backdrop-blur-md text-[10px] font-bold text-pink-400 border border-white/5 mb-6 animate-pulse">
-            SISTEMA DE COMERCIO ACTIVO
-          </span>
-          <h1 className="text-4xl sm:text-5xl md:text-7xl font-black italic tracking-tighter text-white mb-4 sm:mb-6 leading-none">
-            TIENDA <br />
-            <span
-              className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-purple-400 to-pink-400 cursor-help"
-              onDoubleClick={handleTesterCoins}
-              title="Doble clic para Tester Mode"
-            >UNIVERSE.exe</span>
+          <h1 className="text-4xl md:text-6xl font-black uppercase tracking-tighter text-transparent bg-clip-text bg-gradient-to-b from-white to-white/40 mb-6 leading-none">
+            Bóveda_Estelar
           </h1>
 
-          <div className="flex flex-wrap items-center gap-6">
-            <div className="px-6 py-3 bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl flex items-center gap-4 group/wallet transition-all hover:bg-white/10">
-              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-yellow-400 to-orange-500 flex items-center justify-center text-xl shadow-[0_0_15px_rgba(245,158,11,0.5)]">◈</div>
-              <div>
-                <div className="text-xs uppercase tracking-[0.2em] opacity-40 font-bold leading-tight">Tu Balance</div>
-                <div className="text-2xl font-black font-mono tracking-tight text-white">{currentCoins}</div>
+          <div className="flex flex-wrap items-center gap-8">
+            <div className="flex flex-col">
+              <span className="text-[9px] font-semibold text-white/20 uppercase tracking-[0.3em] font-mono mb-1">:: Balance_Sincronizado</span>
+              <div className="flex items-center gap-3">
+                <span className="text-3xl font-bold font-mono tracking-tighter text-white/90">◈ {currentCoins}</span>
+                {canClaimDailyNow && (
+                  <button
+                    onClick={handleDaily}
+                    className="px-4 py-1.5 rounded-full bg-white/5 border border-white/10 text-[9px] font-bold uppercase tracking-widest text-cyan-400 hover:bg-cyan-400/10 hover:border-cyan-400/30 transition-all underline decoration-cyan-400/20 underline-offset-4"
+                  >
+                    :: Reclamar_Bonus_Diario
+                  </button>
+                )}
               </div>
             </div>
-
-            {canClaimDailyNow && (
-              <button
-                className="relative w-full sm:w-auto px-6 sm:px-8 py-3 sm:py-4 bg-white text-black font-black text-[11px] sm:text-sm rounded-2xl shadow-[0_10px_30px_rgba(255,255,255,0.2)] hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-3 overflow-hidden group/daily"
-                onClick={handleDaily}
-              >
-                <span className="relative z-10">RECLAMAR BONUS DIARIO</span>
-                <span className="relative z-10 text-lg sm:text-xl text-yellow-500">✨</span>
-                <div className="absolute inset-0 bg-gradient-to-r from-pink-500 to-purple-500 translate-y-full group-hover/daily:translate-y-0 transition-transform duration-300"></div>
-              </button>
-            )}
           </div>
         </div>
 
-        {/* Decorative Element */}
-        <div className="absolute right-12 bottom-12 hidden lg:flex flex-col items-end gap-2 opacity-20 group-hover/hero:opacity-40 transition-opacity">
-          <div className="text-8xl font-black italic leading-none">DAN</div>
-          <div className="text-4xl font-light tracking-[0.5em] leading-none">CORP</div>
+        {/* Corporate branding (Minimal) */}
+        <div className="absolute right-12 bottom-12 hidden lg:flex flex-col items-end opacity-[0.05]">
+          <span className="text-6xl font-black italic leading-none font-mono">DAN</span>
+          <span className="text-2xl font-light tracking-[0.5em] leading-none uppercase">System_Vault</span>
         </div>
       </div>
 
       {flash && (
-        <div className={`fixed top-24 left-1/2 -translate-x-1/2 z-[100] px-6 py-3 rounded-2xl backdrop-blur-xl border border-white/10 shadow-2xl animate-in slide-in-from-top-4 duration-300 ${flash.ok ? 'bg-green-500/20 text-green-300' : 'bg-red-500/20 text-red-300'}`}>
+        <div className={`fixed top-24 left-1/2 -translate-x-1/2 z-[100] px-6 py-2 rounded-xl backdrop-blur-xl border border-white/5 shadow-2xl font-mono text-[10px] tracking-[0.1em] font-semibold animate-in slide-in-from-top-4 duration-300 ${flash.ok ? 'bg-white/5 text-cyan-400' : 'bg-red-500/10 text-red-400'}`}>
           {flash.msg}
         </div>
       )}
 
       {equippedSummary.length > 0 && (
-        <div className="relative mx-4 md:mx-0 p-6 rounded-[2rem] bg-pink-500/5 border border-pink-500/20 backdrop-blur-sm overflow-hidden group/equipped">
-          <div className="absolute -top-12 -left-12 w-24 h-24 bg-pink-500/20 blur-[50px] rounded-full group-hover/equipped:scale-150 transition-transform duration-1000"></div>
-
-          <div className="relative z-10 flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-6">
+        <div className="mx-4 md:mx-0 p-6 rounded-[2rem] bg-white/[0.02] border border-white/[0.05] backdrop-blur-sm">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-6">
             <div className="flex items-center gap-3 shrink-0">
-              <div className="w-1.5 h-1.5 rounded-full bg-pink-500 animate-ping"></div>
-              <span className="text-[10px] font-black uppercase tracking-[0.3em] text-pink-400/80">Equipamiento Actual</span>
+              <span className="text-[9px] font-semibold text-white/30 uppercase tracking-[0.3em] font-mono">:: Equipo_Activo</span>
             </div>
-            <div className="flex flex-wrap gap-2 sm:gap-3">
+            <div className="flex flex-wrap gap-2">
               {equippedSummary.map(item => (
-                <div key={item.id} className="flex items-center gap-2 sm:gap-3 pl-3 sm:pl-4 pr-2 sm:pr-3 py-1 sm:py-1.5 bg-black/40 backdrop-blur-md rounded-xl sm:rounded-2xl border border-white/5 group/eitem transition-all hover:border-pink-500/30">
-                  <span className="text-base sm:text-lg">{item.icon}</span>
-                  <span className="text-[10px] sm:text-xs font-bold text-white/80">{item.title}</span>
+                <div key={item.id} className="group flex items-center gap-3 pl-4 pr-2 py-2 bg-black/40 rounded-xl border border-white/5 hover:border-white/10 transition-all">
+                  <span className="text-lg opacity-60">{item.icon}</span>
+                  <span className="text-[10px] font-bold text-white/60 tracking-tight uppercase">{item.title}</span>
                   <button
-                    className="w-4 h-4 sm:w-5 sm:h-5 flex items-center justify-center rounded-full bg-white/5 text-white/40 hover:bg-red-500 hover:text-white transition-all text-[7px] sm:text-[8px]"
-                    title="Desequipar"
+                    className="w-5 h-5 flex items-center justify-center rounded-lg bg-white/5 text-white/20 hover:bg-red-500/20 hover:text-red-400 transition-all text-[8px]"
                     onClick={() => handleUnequip(item)}
                   >✕</button>
                 </div>
@@ -373,63 +354,53 @@ export default function ShopPage() {
         </div>
       )}
 
-      <div className="shopHint mx-4 md:mx-0">
-        <div>Gana ◈ visitando páginas, jugando juegos nuevos, desbloqueando logros y reclamando el bonus diario.</div>
+      <div className="mx-4 md:mx-0 grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="p-6 bg-white/[0.01] border border-white/[0.03] rounded-2xl">
+          <p className="text-[9px] font-semibold text-white/20 uppercase tracking-[0.2em] font-mono mb-3">:: Inf_de_Suministro</p>
+          <p className="text-[11px] text-white/40 leading-relaxed font-medium">
+            Gana ◈ visitando sectores, sincronizando datos diarios y completando hitos de sistema.
+          </p>
+        </div>
         {!user && (
-          <div className="mt-4 p-4 bg-yellow-500/10 border border-yellow-500/30 rounded-2xl animate-pulse">
-            <span className="text-yellow-400 font-black flex items-center gap-2 justify-center">
-              ⚠️ ATENCIÓN: Debes iniciar sesión para comprar items permanentes, banners y marcos.
-            </span>
+          <div className="p-6 bg-red-500/[0.03] border border-red-500/20 rounded-2xl flex items-center gap-4">
+            <span className="text-xl">⚠️</span>
+            <p className="text-[10px] text-red-400/60 font-medium leading-relaxed">
+              <span className="font-black uppercase tracking-widest block mb-1">Restricción_de_Acceso</span>
+              Requiere conexión estelar para desbloquear Banners, Marcos y Genética de Mascota.
+            </p>
           </div>
         )}
-        <div className="shopHintCategories">
-          <span>🎨 Perfil Colección — cambia los colores de botones, bordes y UI</span>
-          <span>🌌 Universe Themes — cambia el fondo y la dimensión de tu espacio</span>
-          <span>🖱️ Partículas — trail que sigue a tu ratón</span>
-          <span>💤 Screensavers — animación tras inactividad</span>
-          <span>🖼️ Banners — fondo de tu perfil</span>
-          <span>🔲 Marcos — borde de tu avatar</span>
-          <span>🐱 Mascota — accesorios para el gato</span>
-        </div>
       </div>
 
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8 pt-4">
-        {/* Advanced Filters */}
         <div className="flex-1">
-          <div className="mobile-scroll-x px-4 md:px-0 pb-4">
+          <div className="mobile-scroll-x px-4 md:px-0 pb-2 flex gap-2">
             {categories.map(c => (
               <button
                 key={c.id}
-                className={`px-4 py-2 rounded-2xl text-[10px] font-black tracking-widest uppercase transition-all whitespace-nowrap border-2 ${activeCategory === c.id
-                  ? 'bg-white text-black border-white shadow-[0_0_20px_rgba(255,255,255,0.2)]'
-                  : 'bg-white/5 border-white/5 text-white/40 hover:bg-white/10 hover:text-white/60'
+                className={`px-5 py-2 rounded-xl text-[9px] font-semibold tracking-[0.2em] uppercase transition-all whitespace-nowrap border ${activeCategory === c.id
+                  ? 'bg-white/10 text-white border-white/30 shadow-lg'
+                  : 'bg-white/[0.02] border-white/5 text-white/30 hover:bg-white/[0.05] hover:text-white/60'
                   }`}
                 onClick={() => setActiveCategory(c.id)}
               >
-                {c.label}
+                {c.label.includes(' ') ? c.label.split(' ')[1] : c.label}
               </button>
             ))}
           </div>
         </div>
 
-        {/* Search Bar - Cinematic Style */}
-        <div className="relative w-full lg:min-w-[300px] lg:w-auto group/search">
+        <div className="relative w-full lg:min-w-[320px] lg:w-auto px-4 md:px-0">
           <input
             type="text"
-            placeholder="Buscar en el catálogo..."
+            placeholder="Filtrar telemetría..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-white/[0.03] border-2 border-white/10 rounded-2xl px-12 py-3.5 text-sm transition-all focus:bg-white/5 focus:border-cyan-500/50 focus:ring-4 focus:ring-cyan-500/10 outline-none placeholder:text-white/20"
+            className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-12 py-3 text-[11px] font-medium transition-all focus:bg-white/5 focus:border-white/20 outline-none placeholder:text-white/10 text-white/60"
           />
-          <div className="absolute left-4 top-1/2 -translate-y-1/2 text-white/20 group-focus-within/search:text-cyan-500 transition-colors pointer-events-none">
+          <div className="absolute left-8 md:left-4 top-1/2 -translate-y-1/2 text-white/10">
             🔍
           </div>
-          {searchQuery && (
-            <button
-              onClick={() => setSearchQuery('')}
-              className="absolute right-4 top-1/2 -translate-y-1/2 text-white/20 hover:text-white transition-colors"
-            >✕</button>
-          )}
         </div>
       </div>
 
@@ -450,36 +421,31 @@ export default function ShopPage() {
               const owned = hasPurchased(item.id);
               const equipped = isItemEquipped(item);
               const canAfford = currentCoins >= item.price;
-              const cardRarityClass = `rarity-${item.rarity || 'common'}`;
               return (
-                <div key={`feat-${item.id}`} className="group relative rounded-[2rem] bg-gradient-to-br from-white/10 to-transparent p-[1.5px] overflow-hidden hover:scale-[1.02] transition-all duration-500">
-                  <div className={`absolute inset-0 opacity-20 ${cardRarityClass}`}></div>
-                  <div className="relative z-10 bg-[#080810] rounded-[calc(2rem-1.5px)] p-5 sm:p-6 h-full flex flex-col">
-                    <div className="flex justify-between items-start mb-6">
-                      <div className="text-4xl">{item.icon}</div>
-                      <span className="text-[10px] font-black px-2.5 py-1 bg-white/10 rounded-full border border-white/10 text-white uppercase">{item.rarity}</span>
+                <div key={`feat-${item.id}`} className="group relative rounded-[2rem] bg-white/[0.02] border border-white/5 p-6 overflow-hidden hover:bg-white/[0.04] transition-all duration-500">
+                  <div className="flex justify-between items-start mb-8">
+                    <div className="text-5xl opacity-80 group-hover:scale-110 transition-transform duration-700">{item.icon}</div>
+                    <span className="text-[9px] font-semibold text-white/20 uppercase tracking-[0.2em] font-mono">:: {item.rarity || 'standard'}_class</span>
+                  </div>
+
+                  <h3 className="text-xl font-bold text-white/90 mb-2 tracking-tight uppercase">{item.title}</h3>
+                  <p className="text-[12px] font-medium text-white/50 leading-relaxed mb-6 line-clamp-3">
+                    {item.desc || item.description || "Segmento de datos sin descripción."}
+                  </p>
+
+                  <div className="mt-auto flex items-center justify-between gap-4">
+                    <div className="flex flex-col">
+                      <span className="text-[8px] font-semibold text-white/10 uppercase tracking-[0.2em] font-mono">Precio_Activación</span>
+                      <span className="text-sm font-bold font-mono text-white/40 group-hover:text-white/60 transition-colors">◈ {item.price}</span>
                     </div>
-                    <h3 className="text-xl font-black italic mb-2 tracking-tighter">{item.title}</h3>
-                    <p className={`text-xs text-white/40 mb-2 ${expandedItems.has(item.id) ? '' : 'line-clamp-2'}`}>
-                      {item.desc || item.description}
-                    </p>
-                    {(item.desc || item.description)?.length > 80 && (
-                      <button
-                        onClick={() => toggleDescription(item.id)}
-                        className="text-cyan-400 text-[10px] font-bold mb-4 hover:underline text-left"
-                      >
-                        {expandedItems.has(item.id) ? 'VER MENOS ↑' : 'VER MÁS ↓'}
-                      </button>
-                    )}
-                    <div className="mt-auto">
-                      <button
-                        className={`w-full py-3 rounded-2xl font-black text-[11px] tracking-widest transition-all ${canAfford || owned ? 'bg-white text-black hover:shadow-[0_0_20px_white]' : 'bg-white/5 text-white/20'}`}
-                        onClick={() => handleBuy(item)}
-                        disabled={!canAfford && !owned}
-                      >
-                        {equipped ? '✓ ACTIVO' : owned ? 'EQUIPAR' : user ? `COMPRAR POR ◈ ${item.price}` : 'REGÍSTRATE'}
-                      </button>
-                    </div>
+
+                    <button
+                      className={`px-6 py-2.5 rounded-xl font-bold text-[10px] tracking-[0.1em] uppercase transition-all ${equipped ? 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/20' : owned ? 'bg-white/10 text-white hover:bg-white/20' : canAfford ? 'bg-white text-black hover:scale-105 active:scale-95' : 'bg-white/5 text-white/10 cursor-not-allowed border border-white/5'}`}
+                      onClick={() => handleBuy(item)}
+                      disabled={!canAfford && !owned}
+                    >
+                      {equipped ? ':: Activo' : owned ? 'Aplicar' : user ? 'Activar' : 'Conec_Req'}
+                    </button>
                   </div>
                 </div>
               )
@@ -534,10 +500,10 @@ export default function ShopPage() {
               {/* Partnership Lock Overlay */}
               {item.partnership_only && (
                 (!partnership) ? (
-                  <div className="absolute inset-0 z-20 bg-black/80 backdrop-blur-[2px] rounded-3xl flex flex-col items-center justify-center p-6 text-center">
-                    <span className="text-3xl mb-2">🔒</span>
-                    <div className="font-bold text-xs uppercase tracking-widest text-pink-400 mb-1">Vínculo Requerido</div>
-                    <p className="text-[9px] opacity-60">Solo para parejas del Universo</p>
+                  <div className="absolute inset-0 z-20 bg-black/90 backdrop-blur-sm rounded-3xl flex flex-col items-center justify-center p-6 text-center">
+                    <span className="text-3xl mb-4 opacity-20">🔒</span>
+                    <div className="font-semibold text-[10px] uppercase tracking-[0.2em] text-white/20 mb-1 font-mono">:: Vínculo_Requerido</div>
+                    <p className="text-[9px] text-white/10 font-mono tracking-wider">Solo para parejas del Universo</p>
                   </div>
                 ) : (
                   (() => {
@@ -547,10 +513,10 @@ export default function ShopPage() {
 
                     if (itemLevel > userLevel) {
                       return (
-                        <div className="absolute inset-0 z-20 bg-black/80 backdrop-blur-[2px] rounded-3xl flex flex-col items-center justify-center p-6 text-center">
-                          <span className="text-3xl mb-2">⚡</span>
-                          <div className="font-bold text-xs uppercase tracking-widest text-purple-400 mb-1">NVL {itemLevel} +</div>
-                          <p className="text-[9px] opacity-60">Tu Vínculo: Nivel {userLevel}</p>
+                        <div className="absolute inset-0 z-20 bg-black/90 backdrop-blur-sm rounded-3xl flex flex-col items-center justify-center p-6 text-center">
+                          <span className="text-3xl mb-4 opacity-20">⚡</span>
+                          <div className="font-semibold text-[10px] uppercase tracking-[0.2em] text-white/20 mb-1 font-mono">:: NIVEL_REQ_{itemLevel}+</div>
+                          <p className="text-[9px] text-white/10 font-mono tracking-wider">Vínculo Actual: NVL_{userLevel}</p>
                         </div>
                       );
                     }
@@ -577,8 +543,8 @@ export default function ShopPage() {
                           {/* El badge real flotando */}
                           <div className="relative group/role-preview">
                             <div className="absolute -inset-2 bg-gradient-to-r from-cyan-500/40 to-purple-500/40 rounded-full blur-md opacity-0 group-hover/role-preview:opacity-100 transition-opacity duration-500"></div>
-                            <span className="relative px-6 py-2.5 rounded-full bg-black/80 backdrop-blur-md border border-white/20 text-[10px] font-black uppercase tracking-[0.2em] text-cyan-400 flex items-center gap-3 shadow-[0_0_30px_rgba(0,229,255,0.2)] hover:scale-110 transition-transform duration-500">
-                              <span className="text-lg drop-shadow-[0_0_8px_rgba(255,255,255,0.5)]">{item.icon}</span>
+                            <span className="relative px-6 py-2.5 rounded-full bg-black/80 backdrop-blur-md border border-white/10 text-[10px] font-bold uppercase tracking-[0.2em] text-white/60 flex items-center gap-3 shadow-xl hover:scale-105 transition-transform duration-500">
+                              <span className="text-lg opacity-80">{item.icon}</span>
                               {item.title}
                             </span>
                           </div>
@@ -601,8 +567,8 @@ export default function ShopPage() {
                         </div>
                         <div className="w-full flex items-center gap-2">
                           <div className="h-1 flex-1 bg-white/20 rounded"></div>
-                          <div className={`text-[7px] font-black uppercase text-white/40`}>
-                            {item.category === 'cursor' ? 'Trail FX' : 'Muestra UI'}
+                          <div className={`text-[7px] font-semibold uppercase text-white/20 font-mono tracking-widest`}>
+                            {item.category === 'cursor' ? 'Trail_FX' : 'UI_Sample'}
                           </div>
                         </div>
                       </div>
@@ -618,7 +584,7 @@ export default function ShopPage() {
                         </div>
                         <div className="relative z-10 flex flex-col items-center text-center p-2">
                           <span className="text-2xl mb-1 drop-shadow-md">{item.icon}</span>
-                          <div className="px-2 py-0.5 rounded bg-white/10 backdrop-blur-md border border-white/10 text-[7px] font-black text-white/60">ESTILO COSMOS</div>
+                          <div className="px-2 py-0.5 rounded bg-white/5 backdrop-blur-md border border-white/5 text-[7px] font-semibold text-white/30 font-mono uppercase tracking-widest">:: Estilo_Cosmos</div>
                         </div>
                       </div>
                     ) : item.category === 'stars' ? (
@@ -629,7 +595,7 @@ export default function ShopPage() {
                           <div className="w-1.5 h-1.5 rounded-full animate-bounce shadow-[0_0_10px_currentcolor]" style={{ backgroundColor: item.swatch?.[1] || '#fff', color: item.swatch?.[1] || '#fff', animationDelay: '0.2s' }}></div>
                           <div className="w-1 h-1 rounded-full animate-pulse shadow-[0_0_10px_currentcolor]" style={{ backgroundColor: item.swatch?.[0] || '#fff', color: item.swatch?.[0] || '#fff', animationDelay: '0.5s' }}></div>
                         </div>
-                        <span className="mt-3 text-[7px] font-black text-white/30 uppercase tracking-[0.2em]">Atmósfera Estelar</span>
+                        <span className="mt-3 text-[7px] font-semibold text-white/20 uppercase tracking-[0.2em] font-mono">:: Atmósfera_Estelar</span>
                       </div>
                     ) : item.category === 'banner' ? (
                       <div className="flex flex-col items-center justify-center w-full min-h-[90px] bg-black/40 rounded-xl border border-white/5 relative overflow-hidden group/banner-preview">
@@ -707,54 +673,40 @@ export default function ShopPage() {
                 </div>
 
                 <div className="flex-1">
-                  <h3 className="font-black text-sm tracking-tight text-white/90 mb-1 group-hover:text-pink-400 transition-colors">
+                  <h3 className="font-bold text-[13px] tracking-tight text-white/90 mb-1 group-hover:text-cyan-400 transition-colors uppercase">
                     {item.title}
                   </h3>
-                  <p className={`text-[11px] text-white/50 leading-relaxed ${expandedItems.has(item.id) ? 'mb-2' : 'line-clamp-2 mb-1'}`}>
-                    {item.desc || item.description || "Sin descripción disponible."}
+                  <p className={`text-[10px] font-medium text-white/40 leading-relaxed ${expandedItems.has(item.id) ? 'mb-2' : 'line-clamp-2 mb-1'}`}>
+                    {item.desc || item.description || "Segmento de datos sin descripción."}
                   </p>
-                  {(item.desc || item.description)?.length > 50 && (
-                    <button
-                      onClick={() => toggleDescription(item.id)}
-                      className="text-cyan-400 text-[9px] font-black uppercase tracking-widest hover:underline mb-3"
-                    >
-                      {expandedItems.has(item.id) ? 'Ver menos ↑' : 'Ver más ↓'}
-                    </button>
-                  )}
                 </div>
-                <div className="shopCardFooter">
-                  <div className="mt-4">
+
+                <div className="mt-4 pt-4 border-t border-white/[0.03]">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex flex-col">
+                      {owned ? (
+                        <span className="text-[8px] font-semibold text-cyan-500/40 uppercase tracking-[0.2em] font-mono">:: Adquirido</span>
+                      ) : (
+                        <>
+                          <span className="text-[8px] font-semibold text-white/10 uppercase tracking-[0.2em] font-mono">Precio_Act</span>
+                          <span className="text-[11px] font-bold font-mono text-white/30 group-hover:text-white/50 transition-colors">◈ {item.price}</span>
+                        </>
+                      )}
+                    </div>
+
                     {equipped ? (
-                      <div className="flex flex-col items-center gap-2">
-                        <span className="text-[10px] text-pink-500 font-black uppercase tracking-widest bg-pink-500/10 w-full py-1 text-center rounded-lg">✓ Activo</span>
-                        <button
-                          className="text-[10px] text-white/30 hover:text-white/60 transition-colors uppercase tracking-widest underline"
-                          onClick={() => handleUnequip(item)}
-                        >Desequipar</button>
-                      </div>
-                    ) : owned ? (
                       <button
-                        className={`w-full py-2.5 rounded-xl font-bold text-xs transition-all ${isLevelLocked ? 'bg-white/5 text-white/20 cursor-not-allowed' : 'bg-cyan-500 text-black hover:bg-cyan-400 active:scale-95'}`}
-                        onClick={() => handleBuy(item)}
-                        disabled={isLevelLocked}
-                      >
-                        EQUIPAR
-                      </button>
+                        className="text-[9px] text-white/20 hover:text-red-400 transition-colors uppercase font-semibold tracking-widest font-mono"
+                        onClick={() => handleUnequip(item)}
+                      >Desactivar_::</button>
                     ) : (
-                      <div className="flex flex-col gap-2">
-                        <button
-                          className={`w-full py-2.5 rounded-xl font-black text-xs transition-all flex items-center justify-center gap-2 ${canAfford ? 'bg-pink-500 text-white hover:bg-pink-400 shadow-[0_4px_12_rgba(236,72,153,0.3)] active:scale-95' : 'bg-white/5 text-white/30 cursor-not-allowed'}`}
-                          onClick={() => handleBuy(item)}
-                          disabled={!canAfford}
-                        >
-                          <span className="opacity-70 group-hover:opacity-100 transition-opacity">
-                            {user ? `◈ ${item.price}` : 'REGÍSTRATE'}
-                          </span>
-                        </button>
-                        {!canAfford && (
-                          <p className="text-[9px] text-red-500/80 text-center font-bold">Te faltan {item.price - currentCoins} coins</p>
-                        )}
-                      </div>
+                      <button
+                        className={`px-4 py-2 rounded-xl text-[9px] font-bold tracking-widest uppercase transition-all ${owned ? 'bg-white/5 text-white/60 hover:bg-white/10' : canAfford ? 'bg-white text-black hover:scale-105' : 'bg-white/5 text-white/10 cursor-not-allowed opacity-40'}`}
+                        onClick={() => handleBuy(item)}
+                        disabled={!canAfford && !owned}
+                      >
+                        {owned ? 'Aplicar' : 'Activar'}
+                      </button>
                     )}
                   </div>
                 </div>

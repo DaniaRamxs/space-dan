@@ -28,17 +28,19 @@
     height: 100%;
 }
 
-/* Glassmorphism Bubbles */
+/* Glassmorphism Bubbles (Reduced Effects) */
 .chat-message-bubble {
-    background: rgba(255, 255, 255, 0.03);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border: 1px solid rgba(255, 255, 255, 0.05);
+    background: rgba(255, 255, 255, 0.02);
+    /* More transparent */
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.04);
     border-radius: 20px;
     padding: 12px 16px;
     max-width: 85%;
     transition: all 0.3s ease;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    /* Reduced shadow */
 }
 
 .chat-message-bubble:hover {
@@ -47,11 +49,11 @@
     transform: translateX(4px);
 }
 
-/* VIP / Highlighted Messages */
+/* VIP / Highlighted Messages (Subtle) */
 .chat-message-vip {
-    background: linear-gradient(135deg, rgba(234, 179, 8, 0.08) 0%, rgba(255, 255, 255, 0.03) 100%);
-    border: 1px solid rgba(234, 179, 8, 0.3);
-    box-shadow: 0 0 25px rgba(234, 179, 8, 0.15);
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.04) 0%, rgba(255, 255, 255, 0.01) 100%);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 0 15px rgba(255, 255, 255, 0.05);
 }
 
 .vip-tag {
@@ -79,15 +81,15 @@
     object-fit: cover;
 }
 
-/* Stellar Mentions */
+/* Stellar Mentions (Subtle) */
 .chat-mention {
-    color: var(--cyan);
-    font-weight: 900;
-    padding: 2px 6px;
-    background: rgba(0, 229, 255, 0.1);
-    border-radius: 6px;
-    text-shadow: 0 0 10px rgba(0, 229, 255, 0.5);
-    animation: mentionPulse 2s infinite ease-in-out;
+    color: #fff;
+    font-weight: 700;
+    padding: 1px 4px;
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 4px;
+    text-shadow: none;
+    border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 @keyframes mentionPulse {

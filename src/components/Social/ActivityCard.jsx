@@ -13,6 +13,7 @@ import { es } from 'date-fns/locale';
 import { useAuthContext } from '../../contexts/AuthContext';
 import { CATEGORIES } from './PostComposer';
 import { getUserDisplayName, getNicknameClass } from '../../utils/user';
+import { Eye, Repeat2, MessageSquare, ChevronRight } from 'lucide-react';
 
 // Configuración de sanitize para permitir nuestras clases sd-* en la preview
 const sanitizeSchema = {
@@ -78,9 +79,9 @@ const ActivityCard = memo(({ post, onUpdate, onNewPost }) => {
                 role="article"
                 aria-label={post.title || 'Post'}
             >
-                {/* Línea acento top */}
-                <div className="absolute top-0 left-8 right-8 h-px bg-gradient-to-r from-transparent via-cyan-500/20 to-transparent
-                                group-hover:via-cyan-500/50 transition-all duration-500" />
+                {/* Línea acento top (Reduced 50%) */}
+                <div className="absolute top-0 left-8 right-8 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent
+                                group-hover:via-white/20 transition-all duration-500" />
 
                 <div className="p-5 md:p-6">
                     {/* Fila: Avatar + Meta */}
@@ -106,48 +107,56 @@ const ActivityCard = memo(({ post, onUpdate, onNewPost }) => {
                                 <Link
                                     to={post.author?.username ? `/@${post.author.username}` : `/profile/${post.author_id}`}
                                     onClick={e => e.stopPropagation()}
-                                    className="text-xs font-black text-white/70 hover:text-cyan-400 transition-colors uppercase tracking-wider truncate"
+                                    className="text-micro hover:text-white transition-colors"
                                 >
-                                    <span className={getNicknameClass(post.author)}>
+                                    <span className={`text-[11px] font-bold uppercase tracking-[0.15em] transition-colors ${getNicknameClass(post.author)}`}>
                                         {getUserDisplayName(post.author)}
                                     </span>
                                 </Link>
                                 <div className="flex items-center gap-2 shrink-0">
                                     {/* Vistas */}
                                     {post.views_count > 0 && (
-                                        <span className="text-[9px] font-mono text-white/20 flex items-center gap-1">
-                                            👁 {formatViews(post.views_count)}
+                                        <span className="text-[9px] font-mono text-white/30 flex items-center gap-1">
+                                            <Eye size={10} strokeWidth={1.5} /> {formatViews(post.views_count)}
                                         </span>
                                     )}
-                                    <span className="text-[9px] font-mono text-white/20">
+                                    <span className="text-[9px] font-mono text-white/50">
                                         {formatDistanceToNow(new Date(post.created_at), { addSuffix: true, locale: es })}
                                     </span>
                                 </div>
                             </div>
 
-                            {/* Categoría */}
-                            <div className="flex items-center gap-1.5 text-[8px] font-black uppercase tracking-[0.25em]">
-                                <span className="text-cyan-500/40 group-hover:text-cyan-400/60 transition-colors">
-                                    {catMeta.icon} {catMeta.label}
-                                </span>
-                                {post.updated_at > post.created_at && (
-                                    <span className="text-white/15">· editado</span>
+                            {/* Categoría y Señales de Vida */}
+                            <div className="flex items-center gap-3">
+                                <div className="flex items-center gap-1.5 text-[8px] font-semibold uppercase tracking-[0.2em] font-mono">
+                                    <span className="text-cyan-500/25 group-hover:text-cyan-400/50 transition-colors">
+                                        {catMeta.icon} {catMeta.label}
+                                    </span>
+                                    {post.updated_at > post.created_at && (
+                                        <span className="text-white/10">· editado</span>
+                                    )}
+                                </div>
+
+                                {new Date() - new Date(post.created_at) < 60000 && (
+                                    <div className="flex items-center gap-1.5 px-1.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20">
+                                        <div className="w-1 h-1 rounded-full bg-emerald-500 animate-pulse" />
+                                        <span className="text-[7px] font-semibold text-emerald-500/80 uppercase tracking-[0.2em] font-mono">_Señal_Nueva</span>
+                                    </div>
                                 )}
                             </div>
                         </div>
                     </div>
 
-                    {/* Título */}
+                    {/* Título (Using Typography Scale) */}
                     {post.title && (
-                        <h2 className="text-base md:text-lg font-black text-white leading-snug tracking-tight mb-2.5
-                                       group-hover:text-cyan-50 transition-colors uppercase">
+                        <h2 className="text-xl md:text-2xl font-bold text-white/90 tracking-tight leading-none mb-3 group-hover:text-white transition-colors">
                             {post.title}
                         </h2>
                     )}
 
                     {/* Preview con soporte de Energías */}
                     {preview && (
-                        <div className="text-sm text-white/40 leading-relaxed mb-4 line-clamp-4 pointer-events-none select-none prose-preview">
+                        <div className="text-[15px] font-medium leading-relaxed text-white/70 mb-6 line-clamp-4 pointer-events-none select-none prose-preview">
                             <ReactMarkdown
                                 remarkPlugins={[remarkGfm]}
                                 rehypePlugins={[rehypeRaw, [rehypeSanitize, sanitizeSchema]]}
@@ -161,34 +170,39 @@ const ActivityCard = memo(({ post, onUpdate, onNewPost }) => {
                     <div className="w-full h-px bg-white/[0.04] mb-3" />
 
                     {/* Footer */}
-                    <div
-                        className="flex items-center justify-between"
-                        onClick={e => e.stopPropagation()}
-                    >
-                        <ReactionsBar post={post} onUpdate={onUpdate} />
+                    <div className="flex items-center justify-between">
+                        <div onClick={e => e.stopPropagation()}>
+                            <ReactionsBar post={post} onUpdate={onUpdate} />
+                        </div>
 
                         <div className="flex items-center gap-1.5">
-                            <span className="text-[9px] font-black text-cyan-500/25 group-hover:text-cyan-400/50 uppercase tracking-widest transition-colors mr-1">
-                                Leer →
+                            <span className="text-[9px] font-black text-cyan-500/25 group-hover:text-cyan-400/50 uppercase tracking-widest transition-colors mr-1 flex items-center gap-1">
+                                Leer <ChevronRight size={10} strokeWidth={2} />
                             </span>
-                            <motion.button
-                                whileHover={{ scale: 1.1 }}
-                                whileTap={{ scale: 0.88 }}
-                                onClick={e => openShare('repost', e)}
-                                title="Repostear"
-                                className="w-7 h-7 rounded-xl bg-white/[0.03] border border-white/5
+                            <div className="flex items-center gap-1.5" onClick={e => e.stopPropagation()}>
+                                <motion.button
+                                    whileHover={{ scale: 1.1 }}
+                                    whileTap={{ scale: 0.88 }}
+                                    onClick={e => openShare('repost', e)}
+                                    title="Repostear"
+                                    className="w-7 h-7 rounded-xl bg-white/[0.03] border border-white/5
                                            flex items-center justify-center text-white/25
-                                           hover:text-purple-400 hover:bg-purple-400/10 hover:border-purple-400/20 transition-all text-xs"
-                            >🔁</motion.button>
-                            <motion.button
-                                whileHover={{ scale: 1.1 }}
-                                whileTap={{ scale: 0.88 }}
-                                onClick={e => openShare('quote', e)}
-                                title="Citar"
-                                className="w-7 h-7 rounded-xl bg-white/[0.03] border border-white/5
+                                           hover:text-purple-400 hover:bg-purple-400/10 hover:border-purple-400/20 transition-all"
+                                >
+                                    <Repeat2 size={14} strokeWidth={1.5} />
+                                </motion.button>
+                                <motion.button
+                                    whileHover={{ scale: 1.1 }}
+                                    whileTap={{ scale: 0.88 }}
+                                    onClick={e => openShare('quote', e)}
+                                    title="Citar"
+                                    className="w-7 h-7 rounded-xl bg-white/[0.03] border border-white/5
                                            flex items-center justify-center text-white/25
-                                           hover:text-cyan-400 hover:bg-cyan-400/10 hover:border-cyan-400/20 transition-all text-xs"
-                            >💬</motion.button>
+                                           hover:text-cyan-400 hover:bg-cyan-400/10 hover:border-cyan-400/20 transition-all font-bold"
+                                >
+                                    <MessageSquare size={14} strokeWidth={1.5} />
+                                </motion.button>
+                            </div>
                         </div>
                     </div>
                 </div>

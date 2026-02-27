@@ -10,6 +10,37 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer base {
+  :root {
+    /* Color Palette */
+    --bg-main: #050510;
+    --acc-purple: #8b5cf6;
+    --acc-cyan: #06b6d4;
+    --acc-rose: #f43f5e;
+
+    /* Layout Tokens */
+    --radius-sm: 6px;
+    --radius-md: 10px;
+    --radius-lg: 16px;
+    --radius-xl: 24px;
+
+    --border-subtle: rgba(255, 255, 255, 0.05);
+    --border-elevated: rgba(255, 255, 255, 0.1);
+
+    --focus-ring: 0 0 0 2px rgba(139, 92, 246, 0.5);
+  }
+
+  body {
+    @apply bg-[#050510] text-white selection:bg-purple-500/30;
+  }
+}
+
+@layer components {
+  .focus-ring {
+    @apply focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:ring-offset-2 focus:ring-offset-[#050510];
+  }
+}
+
 /* 🛡️ MARCOS EVOLUTIVOS (Vínculos) */
 .marco-evolutivo-base {
   position: relative;

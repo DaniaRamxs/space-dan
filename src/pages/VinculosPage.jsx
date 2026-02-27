@@ -1,15 +1,12 @@
-/**
- * VinculosPage — Gestión de vínculos, notas estelares, galería y stats.
- * Ruta: /vinculos
- */
 import { useEffect, useState, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
 import { useAuthContext } from '../contexts/AuthContext';
 import { universeService } from '../services/universe';
 import { PrivateUniverse } from '../components/PrivateUniverse';
+import { motion, AnimatePresence } from 'framer-motion';
 
-// ── Milestones definition ──
+// --- Milestones definition ---
 const MILESTONES = [
     { id: 'first_visit', icon: '🌟', title: 'Primera Visita', desc: 'Visitaron su universo por primera vez', check: (s) => s.visit_count >= 1 },
     { id: 'ten_visits', icon: '🔭', title: '10 Exploraciones', desc: '10 visitas al universo compartido', check: (s) => s.visit_count >= 10 },
@@ -26,7 +23,7 @@ const MILESTONES = [
 ];
 
 export default function VinculosPage() {
-    const { user } = useAuthContext();
+    const { user, profile: myProfile } = useAuthContext();
     const [incoming, setIncoming] = useState([]);
     const [outgoing, setOutgoing] = useState([]);
     const [partnership, setPartnership] = useState(null);
@@ -75,7 +72,6 @@ export default function VinculosPage() {
             setOutgoing(outRes.data || []);
             setPartnership(pData);
 
-            // Load extras if partnership exists
             if (pData?.id) {
                 const [sData, nData, gData] = await Promise.all([
                     universeService.getStats(pData.id).catch(() => null),
@@ -100,7 +96,6 @@ export default function VinculosPage() {
             alert('✨ ¡Vínculo aceptado! Su universo privado ha sido creado.');
             loadAll();
         } catch (err) {
-            console.error('[VinculosPage] accept error:', err);
             alert('❌ Error al aceptar: ' + (err?.message || 'Error desconocido'));
         } finally {
             setActionLoading(null);
@@ -120,7 +115,6 @@ export default function VinculosPage() {
         }
     };
 
-    // ── Notes handlers ──
     const handleAddNote = async (e) => {
         e.preventDefault();
         if (!newNote.trim() || !partnership) return;
@@ -130,7 +124,7 @@ export default function VinculosPage() {
             setNotes(prev => [note, ...prev]);
             setNewNote('');
         } catch (err) {
-            alert('Error al enviar nota: ' + (err?.message || ''));
+            alert('Error al enviar nota');
         } finally {
             setNoteLoading(false);
         }
@@ -141,15 +135,14 @@ export default function VinculosPage() {
             await universeService.deleteNote(noteId);
             setNotes(prev => prev.filter(n => n.id !== noteId));
         } catch (err) {
-            alert('Error al eliminar nota.');
+            alert('Error al eliminar nota');
         }
     };
 
-    // ── Gallery handlers ──
     const handleUploadImage = async (e) => {
         const file = e.target.files?.[0];
         if (!file || !partnership) return;
-        if (file.size > 5 * 1024 * 1024) return alert('Máximo 5MB por imagen.');
+        if (file.size > 5 * 1024 * 1024) return alert('Máximo 5MB.');
         setGalleryLoading(true);
         try {
             const img = await universeService.uploadGalleryImage(partnership.id, file, caption);
@@ -157,7 +150,7 @@ export default function VinculosPage() {
             setCaption('');
             if (fileRef.current) fileRef.current.value = '';
         } catch (err) {
-            alert('Error al subir imagen: ' + (err?.message || ''));
+            alert('Error al subir imagen');
         } finally {
             setGalleryLoading(false);
         }
@@ -169,11 +162,10 @@ export default function VinculosPage() {
             await universeService.deleteGalleryImage(img.id, img.image_url);
             setGallery(prev => prev.filter(g => g.id !== img.id));
         } catch (err) {
-            alert('Error al eliminar imagen.');
+            alert('Error al eliminar imagen');
         }
     };
 
-    // ── Computed values ──
     const daysTogether = partnership?.linked_at
         ? Math.max(0, Math.floor((Date.now() - new Date(partnership.linked_at).getTime()) / 86400000))
         : 0;
@@ -184,370 +176,322 @@ export default function VinculosPage() {
 
     if (!user) {
         return (
-            <main className="card" style={{ padding: 40, textAlign: 'center' }}>
-                <p style={{ color: 'var(--text)', opacity: 0.7 }}>Debes iniciar sesión para ver tus vínculos.</p>
-            </main>
+            <div className="flex flex-col items-center justify-center min-h-[60vh] text-center p-8">
+                <p className="text-white/40 font-black uppercase tracking-[0.3em] text-xs">Acceso Denegado</p>
+                <p className="text-white/20 mt-4 text-sm">Debes iniciar sesión para explorar tus vínculos estelares.</p>
+            </div>
         );
     }
 
     if (loading) {
         return (
-            <main className="card" style={{ padding: 40, textAlign: 'center' }}>
-                <span className="blinkText" style={{ color: 'var(--accent)' }}>cargando_vínculos...</span>
-            </main>
+            <div className="flex flex-col items-center justify-center min-h-[60vh]">
+                <div className="w-12 h-12 border-2 border-white/5 border-t-white/40 rounded-full animate-spin"></div>
+                <p className="mt-8 text-white/20 font-black uppercase tracking-[0.4em] text-[10px] animate-pulse">Sincronizando Órbitas...</p>
+            </div>
         );
     }
 
     return (
-        <div style={{ maxWidth: 700, margin: '0 auto', padding: '0 16px', paddingBottom: 80, minHeight: '100vh' }}>
+        <div className="max-w-4xl mx-auto px-4 md:px-8 pb-32 pt-12">
 
-            {/* Header */}
-            <div style={{
-                textAlign: 'center', marginBottom: 28, padding: '28px 16px 20px',
-                background: 'linear-gradient(135deg, rgba(139,92,246,0.08) 0%, rgba(0,229,255,0.05) 100%)',
-                borderRadius: 20, border: '1px solid rgba(255,255,255,0.05)',
-            }}>
-                <div style={{ fontSize: '2.5rem', marginBottom: 8 }}>✨</div>
-                <h1 style={{
-                    margin: 0, fontSize: '1.4rem', fontWeight: 900,
-                    textTransform: 'uppercase', letterSpacing: '0.15em',
-                    background: 'linear-gradient(to right, #fff, #a0a0b0)',
-                    WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
-                }}>
-                    Vínculos Estelares
-                </h1>
-                <p style={{ color: '#888', fontSize: '0.8rem', marginTop: 6, letterSpacing: '0.1em' }}>
-                    Gestiona tus conexiones cósmicas
-                </p>
-            </div>
+            {/* Header Moderno */}
+            <header className="relative mb-16 py-12 px-8 rounded-[2.5rem] bg-gradient-to-br from-purple-500/10 via-transparent to-cyan-500/10 border border-white/5 overflow-hidden text-center">
+                <div className="absolute top-0 left-0 w-full h-full bg-[url('/grid-pattern.png')] opacity-[0.03] pointer-events-none"></div>
+                <div className="relative z-10">
+                    <span className="text-4xl mb-4 block">✨</span>
+                    <h1 className="text-display font-black uppercase tracking-[0.2em] bg-gradient-to-r from-white to-white/40 bg-clip-text text-transparent">Vínculos Estelares</h1>
+                    <p className="text-[10px] font-bold text-white/30 uppercase tracking-[0.4em] mt-4">Gestión de conexiones en el cosmos</p>
+                </div>
+            </header>
 
-            {/* ── Active Partnership ── */}
             {partnership && (
-                <>
-                    {/* Universe opener + Day counter */}
-                    <section style={{ marginBottom: 20 }}>
-                        <div style={{
-                            background: 'linear-gradient(135deg, rgba(139,92,246,0.12) 0%, rgba(0,229,255,0.08) 100%)',
-                            border: '1px solid rgba(139,92,246,0.25)', borderRadius: 16,
-                            padding: '20px 24px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
-                        }}>
-                            <div style={{
-                                width: 48, height: 48, borderRadius: '50%',
-                                background: 'linear-gradient(135deg, #8b5cf6, #06b6d4)',
-                                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                fontSize: '1.5rem', boxShadow: '0 0 20px rgba(139,92,246,0.4)'
-                            }}>💫</div>
-                            <PrivateUniverse partnership={partnership} onUpdate={loadAll} />
+                <div className="space-y-16">
+                    {/* Tarjeta de Vínculo Activo */}
+                    <section className="relative group">
+                        <div className="absolute -inset-1 bg-gradient-to-r from-purple-500/20 to-cyan-500/20 rounded-[2.5rem] blur-2xl opacity-40 group-hover:opacity-60 transition-opacity"></div>
+                        <div className="relative bg-black/40 backdrop-blur-3xl border border-white/10 rounded-[2.5rem] p-8 md:p-12 overflow-hidden">
 
-                            {/* Day counter */}
-                            <div style={{
-                                marginTop: 12, textAlign: 'center',
-                                background: 'rgba(0,0,0,0.3)', borderRadius: 12,
-                                padding: '12px 20px', border: '1px solid rgba(255,255,255,0.05)',
-                            }}>
-                                <div style={{
-                                    fontSize: '2rem', fontWeight: 900,
-                                    background: 'linear-gradient(135deg, #06b6d4, #8b5cf6)',
-                                    WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
-                                    lineHeight: 1,
-                                }}>
-                                    {daysTogether}
+                            <div className="flex flex-col items-center text-center space-y-8">
+                                <div className="p-1 rounded-full bg-gradient-to-r from-purple-500 to-cyan-500 shadow-[0_0_30px_rgba(139,92,246,0.3)] animate-pulse">
+                                    <div className="w-16 h-16 bg-black rounded-full flex items-center justify-center text-2xl">💫</div>
                                 </div>
-                                <div style={{ color: '#888', fontSize: '0.6rem', textTransform: 'uppercase', letterSpacing: '0.25em', marginTop: 4 }}>
-                                    días conectados en el cosmos
-                                </div>
-                                <div style={{ color: '#555', fontSize: '0.55rem', marginTop: 4 }}>
-                                    desde {new Date(partnership.linked_at).toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' })}
+
+                                <PrivateUniverse partnership={partnership} onUpdate={loadAll} />
+
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 w-full mt-8">
+                                    <div className="p-8 rounded-[2rem] bg-white/[0.02] border border-white/5 flex flex-col items-center">
+                                        <span className="text-display font-bold font-mono text-cyan-400 tracking-tighter tabular-nums">{daysTogether}</span>
+                                        <span className="text-[9px] font-black uppercase tracking-[0.3em] text-white/20 mt-2 text-center">Días de Conexión Estelar</span>
+                                    </div>
+                                    <div className="p-8 rounded-[2rem] bg-white/[0.02] border border-white/5 flex flex-col items-center">
+                                        <span className="text-[10px] font-black text-white/40 uppercase tracking-[0.2em] border-b border-white/5 pb-2 mb-4 w-full text-center">Iniciado el</span>
+                                        <span className="text-xs font-mono text-white/60">
+                                            {new Date(partnership.linked_at).toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' })}
+                                        </span>
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     </section>
 
-                    {/* Tabs for partnership content */}
-                    <div className="vinculos-mobile-glass" style={{
-                        display: 'flex', borderRadius: 12,
-                        padding: 4, marginBottom: 20,
-                        overflowX: 'auto', WebkitOverflowScrolling: 'touch',
-                    }}>
+                    {/* Navegación Interna */}
+                    <nav className="flex items-center gap-4 overflow-x-auto no-scrollbar pb-2">
                         {['stats', 'notes', 'gallery', 'milestones'].map(tab => (
-                            <button key={tab} onClick={() => setActiveTab(tab)} style={{
-                                flex: 1, padding: '8px 12px', borderRadius: 8, border: 'none',
-                                background: activeTab === tab ? 'rgba(255,255,255,0.08)' : 'transparent',
-                                color: activeTab === tab ? '#fff' : '#666',
-                                fontSize: '0.7rem', fontWeight: 700, cursor: 'pointer',
-                                textTransform: 'uppercase', letterSpacing: '0.1em',
-                                transition: 'all 0.2s', whiteSpace: 'nowrap',
-                                borderBottom: activeTab === tab ? '2px solid #06b6d4' : '2px solid transparent',
-                            }}>
-                                {{ stats: '📊 Stats', notes: '💌 Notas', gallery: '📸 Galería', milestones: '🏆 Hitos' }[tab]}
+                            <button
+                                key={tab}
+                                onClick={() => setActiveTab(tab)}
+                                className={`px-6 py-3 rounded-full text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap border ${activeTab === tab
+                                    ? 'bg-white text-black border-white shadow-[0_10px_30px_rgba(255,255,255,0.1)]'
+                                    : 'bg-white/5 border-white/5 text-white/40 hover:text-white/60'
+                                    }`}
+                            >
+                                {{ stats: 'Métricas', notes: 'Bitácora', gallery: 'Recuerdos', milestones: 'Hitos' }[tab]}
                             </button>
                         ))}
-                    </div>
+                    </nav>
 
-                    {/* TAB: Stats */}
-                    {activeTab === 'stats' && (
-                        <section style={{ marginBottom: 28 }}>
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10 }}>
-                                <StatBox icon="🚀" label="Visitas Totales" value={stats?.visit_count || 0} color="#06b6d4" />
-                                <StatBox icon="✨" label="Sincronías" value={stats?.sync_hits || 0} color="#8b5cf6" />
-                                <StatBox icon="🔥" label="Racha Actual" value={`${stats?.streak_days || 0}d`} color="#f59e0b" />
-                                <StatBox icon="⚡" label="Mejor Racha" value={`${stats?.best_streak || 0}d`} color="#ef4444" />
-                                <StatBox icon="🌌" label="Nivel Evolución" value={stats?.evolution_level || 1} color="#10b981" />
-                                <StatBox icon="📅" label="Días Juntos" value={daysTogether} color="#ec4899" />
+                    {/* Contenido de Pestañas */}
+                    <div className="min-h-[400px]">
+                        {activeTab === 'stats' && (
+                            <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 animate-fade-in">
+                                <StatCardV icon="🚀" label="Visitas" value={stats?.visit_count || 0} color="text-cyan-400" />
+                                <StatCardV icon="✨" label="Sincronías" value={stats?.sync_hits || 0} color="text-purple-400" />
+                                <StatCardV icon="🔥" label="Racha" value={`${stats?.streak_days || 0}d`} color="text-orange-400" />
+                                <StatCardV icon="🌌" label="Nivel" value={stats?.evolution_level || 1} color="text-green-400" />
+                                <StatCardV icon="📅" label="Unión" value={daysTogether} color="text-pink-400" />
+                                <StatCardV icon="⚡" label="Récord" value={`${stats?.best_streak || 0}d`} color="text-blue-400" />
                             </div>
-                        </section>
-                    )}
+                        )}
 
-                    {/* TAB: Stellar Notes */}
-                    {activeTab === 'notes' && (
-                        <section style={{ marginBottom: 28 }}>
-                            {/* Add note form */}
-                            <form onSubmit={handleAddNote} className="vinculos-mobile-glass" style={{
-                                borderRadius: 14,
-                                padding: 16, marginBottom: 16,
-                            }}>
-                                <textarea
-                                    value={newNote} onChange={e => setNewNote(e.target.value)}
-                                    placeholder="Escribe una nota estelar para tu pareja..."
-                                    maxLength={200}
-                                    style={{
-                                        width: '100%', background: 'rgba(0,0,0,0.4)', border: '1px solid rgba(255,255,255,0.08)',
-                                        borderRadius: 10, padding: 12, color: '#fff', fontSize: '0.85rem',
-                                        resize: 'none', minHeight: 70, outline: 'none', fontFamily: 'inherit',
-                                    }}
-                                />
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 8 }}>
-                                    <span style={{ color: '#555', fontSize: '0.65rem' }}>{newNote.length}/200</span>
-                                    <button type="submit" className="vinculos-action-btn" disabled={noteLoading || !newNote.trim()} style={{
-                                        background: newNote.trim() ? 'linear-gradient(135deg, #06b6d4, #8b5cf6)' : 'rgba(255,255,255,0.05)',
-                                        border: 'none', borderRadius: 8, padding: '6px 18px',
-                                        color: newNote.trim() ? '#fff' : '#555', fontSize: '0.75rem',
-                                        fontWeight: 700, cursor: newNote.trim() ? 'pointer' : 'default',
-                                        transition: 'all 0.2s',
-                                    }}>
-                                        {noteLoading ? '...' : '✨ Enviar'}
-                                    </button>
-                                </div>
-                            </form>
-
-                            {/* Notes list */}
-                            {notes.length === 0 ? (
-                                <EmptyState text="Aún no hay notas estelares. ¡Sé el primero en dejar una! 💫" />
-                            ) : (
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                                    {notes.map(note => (
-                                        <div key={note.id} style={{
-                                            background: note.author_id === user.id
-                                                ? 'rgba(6,182,212,0.06)' : 'rgba(139,92,246,0.06)',
-                                            border: `1px solid ${note.author_id === user.id ? 'rgba(6,182,212,0.15)' : 'rgba(139,92,246,0.15)'}`,
-                                            borderRadius: 12, padding: '12px 16px',
-                                        }}>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-                                                <img src={note.author?.avatar_url || '/default_user_blank.png'} alt=""
-                                                    style={{ width: 22, height: 22, borderRadius: '50%', objectFit: 'cover', border: '1px solid rgba(255,255,255,0.1)' }}
-                                                />
-                                                <span style={{ color: note.author_id === user.id ? '#06b6d4' : '#a78bfa', fontSize: '0.75rem', fontWeight: 700 }}>
-                                                    {note.author?.username || 'Anónimo'}
-                                                </span>
-                                                <span style={{ color: '#444', fontSize: '0.6rem', marginLeft: 'auto' }}>
-                                                    {new Date(note.created_at).toLocaleDateString()}
-                                                </span>
-                                                {note.author_id === user.id && (
-                                                    <button onClick={() => handleDeleteNote(note.id)} style={{
-                                                        background: 'none', border: 'none', cursor: 'pointer',
-                                                        color: '#555', fontSize: '0.7rem', padding: '2px 4px',
-                                                    }}>✕</button>
-                                                )}
-                                            </div>
-                                            <p style={{ color: '#ddd', fontSize: '0.85rem', margin: 0, lineHeight: 1.5, wordBreak: 'break-word' }}>
-                                                {note.content}
-                                            </p>
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
-                        </section>
-                    )}
-
-                    {/* TAB: Gallery */}
-                    {activeTab === 'gallery' && (
-                        <section style={{ marginBottom: 28 }}>
-                            {/* Upload */}
-                            <div className="vinculos-mobile-glass" style={{
-                                borderRadius: 14,
-                                padding: 16, marginBottom: 16,
-                                display: 'flex', flexDirection: 'column', gap: 10,
-                            }}>
-                                <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-                                    <input
-                                        type="file" accept="image/*" ref={fileRef} onChange={handleUploadImage}
-                                        style={{ display: 'none' }}
+                        {activeTab === 'notes' && (
+                            <div className="space-y-8 animate-fade-in">
+                                <form onSubmit={handleAddNote} className="p-8 rounded-[2.5rem] bg-white/[0.02] border border-white/10 space-y-6">
+                                    <textarea
+                                        value={newNote}
+                                        onChange={e => setNewNote(e.target.value)}
+                                        placeholder="Escribe algo estelar..."
+                                        className="w-full bg-transparent border-none text-sm text-white/80 placeholder:text-white/10 outline-none h-24 resize-none"
                                     />
-                                    <button className="vinculos-action-btn" onClick={() => fileRef.current?.click()} disabled={galleryLoading} style={{
-                                        background: 'linear-gradient(135deg, #06b6d4, #8b5cf6)',
-                                        border: 'none', borderRadius: 8, padding: '8px 18px',
-                                        color: '#fff', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer',
-                                        opacity: galleryLoading ? 0.5 : 1, transition: 'transform 0.2s'
-                                    }}>
-                                        {galleryLoading ? 'Subiendo...' : '📸 Subir Imagen'}
-                                    </button>
-                                    <span style={{ color: '#555', fontSize: '0.6rem' }}>Max 5MB • JPG, PNG, GIF</span>
-                                </div>
-                            </div>
+                                    <div className="flex items-center justify-between pt-4 border-t border-white/5">
+                                        <span className="text-[9px] font-black font-mono text-white/10">{newNote.length}/200</span>
+                                        <button
+                                            type="submit"
+                                            disabled={noteLoading || !newNote.trim()}
+                                            className={`px-8 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all ${newNote.trim() ? 'bg-cyan-600 text-white shadow-lg' : 'bg-white/5 text-white/10 cursor-not-allowed'
+                                                }`}
+                                        >
+                                            {noteLoading ? 'PROCESANDO...' : 'ENVIAR MENSAJE'}
+                                        </button>
+                                    </div>
+                                </form>
 
-                            {/* Gallery grid */}
-                            {gallery.length === 0 ? (
-                                <EmptyState text="La galería está vacía. ¡Suban recuerdos juntos! 📸" />
-                            ) : (
-                                <div style={{
-                                    display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8,
-                                }}>
-                                    {gallery.map(img => (
-                                        <div key={img.id} style={{
-                                            position: 'relative', paddingBottom: '100%', borderRadius: 12,
-                                            overflow: 'hidden', border: '1px solid rgba(255,255,255,0.05)',
-                                            cursor: 'pointer', background: '#0a0a0f',
-                                        }} onClick={() => setLightbox(img)}>
-                                            <img src={img.image_url} alt={img.caption || ''} style={{
-                                                position: 'absolute', top: 0, left: 0, width: '100%', height: '100%',
-                                                objectFit: 'cover', transition: 'transform 0.3s',
-                                            }} />
-                                            {img.uploaded_by === user.id && (
-                                                <button onClick={(e) => { e.stopPropagation(); handleDeleteImage(img); }}
-                                                    style={{
-                                                        position: 'absolute', top: 4, right: 4,
-                                                        background: 'rgba(0,0,0,0.7)', border: 'none', borderRadius: '50%',
-                                                        width: 22, height: 22, color: '#f87171', fontSize: '0.65rem',
-                                                        cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                                    }}>✕</button>
-                                            )}
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
-
-                            {/* Lightbox */}
-                            {lightbox && (
-                                <div onClick={() => setLightbox(null)} style={{
-                                    position: 'fixed', inset: 0, zIndex: 99999,
-                                    background: 'rgba(0,0,0,0.9)', display: 'flex',
-                                    alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
-                                }}>
-                                    <img src={lightbox.image_url} alt="" style={{
-                                        maxWidth: '90%', maxHeight: '85vh', borderRadius: 12,
-                                        boxShadow: '0 0 40px rgba(0,0,0,0.8)',
-                                    }} />
-                                    {lightbox.caption && (
-                                        <div style={{
-                                            position: 'absolute', bottom: 30, left: '50%', transform: 'translateX(-50%)',
-                                            background: 'rgba(0,0,0,0.7)', padding: '8px 20px', borderRadius: 20,
-                                            color: '#ddd', fontSize: '0.8rem',
-                                        }}>
-                                            {lightbox.caption}
-                                        </div>
+                                <div className="space-y-4">
+                                    {notes.length === 0 ? (
+                                        <div className="py-20 text-center text-[10px] font-black uppercase tracking-[0.4em] text-white/10">No hay transmisiones registradas</div>
+                                    ) : (
+                                        notes.map(note => (
+                                            <div key={note.id} className="p-6 rounded-[2rem] bg-white/[0.01] border border-white/5 group hover:bg-white/[0.02] transition-colors">
+                                                <div className="flex items-center gap-4 mb-4">
+                                                    <img src={note.author?.avatar_url || '/default_user_blank.png'} className="w-8 h-8 rounded-full border border-white/10 object-cover opacity-60" />
+                                                    <div className="flex-1">
+                                                        <span className="text-[9px] font-black uppercase tracking-[0.1em] text-white/40">@{note.author?.username}</span>
+                                                        <span className="text-[8px] font-mono text-white/10 block mt-0.5">{new Date(note.created_at).toLocaleDateString()}</span>
+                                                    </div>
+                                                    {note.author_id === user.id && (
+                                                        <button onClick={() => handleDeleteNote(note.id)} className="text-rose-500/20 hover:text-rose-500 transition-colors opacity-0 group-hover:opacity-100 p-2">✕</button>
+                                                    )}
+                                                </div>
+                                                <p className="text-sm text-white/60 leading-relaxed pl-12">{note.content}</p>
+                                            </div>
+                                        ))
                                     )}
                                 </div>
-                            )}
-                        </section>
-                    )}
-
-                    {/* TAB: Milestones */}
-                    {activeTab === 'milestones' && (
-                        <section style={{ marginBottom: 28 }}>
-                            <div style={{
-                                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                                marginBottom: 12, paddingLeft: 4,
-                            }}>
-                                <span style={{ color: '#888', fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.15em' }}>
-                                    Hitos desbloqueados
-                                </span>
-                                <span style={{
-                                    background: 'rgba(6,182,212,0.15)', color: '#06b6d4',
-                                    fontSize: '0.6rem', fontWeight: 800, padding: '2px 8px', borderRadius: 10,
-                                    border: '1px solid rgba(6,182,212,0.25)',
-                                }}>
-                                    {unlockedMilestones.length}/{MILESTONES.length}
-                                </span>
                             </div>
+                        )}
 
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10 }}>
-                                {MILESTONES.map(m => {
-                                    const unlocked = unlockedMilestones.find(u => u.id === m.id);
-                                    return (
-                                        <div key={m.id} style={{
-                                            background: unlocked ? 'rgba(139,92,246,0.08)' : 'rgba(255,255,255,0.01)',
-                                            border: `1px solid ${unlocked ? 'rgba(139,92,246,0.2)' : 'rgba(255,255,255,0.04)'}`,
-                                            borderRadius: 12, padding: '14px 12px',
-                                            opacity: unlocked ? 1 : 0.35, transition: 'all 0.3s',
-                                            position: 'relative', overflow: 'hidden',
-                                        }}>
-                                            {unlocked && (
-                                                <div style={{
-                                                    position: 'absolute', top: -8, right: -8,
-                                                    width: 40, height: 40, borderRadius: '50%',
-                                                    background: 'rgba(139,92,246,0.15)', filter: 'blur(15px)',
-                                                }} />
-                                            )}
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                                                <span style={{ fontSize: '1.3rem' }}>{m.icon}</span>
-                                                {unlocked && <span style={{ color: '#4ade80', fontSize: '0.6rem' }}>✓</span>}
+                        {activeTab === 'gallery' && (
+                            <div className="space-y-8 animate-fade-in">
+                                <div className="p-8 rounded-[2.5rem] bg-white/[0.02] border border-white/10 flex flex-col items-center">
+                                    <input type="file" accept="image/*" ref={fileRef} onChange={handleUploadImage} className="hidden" />
+                                    <button
+                                        onClick={() => fileRef.current?.click()}
+                                        disabled={galleryLoading}
+                                        className="px-10 py-4 bg-white text-black font-black text-[11px] uppercase tracking-widest rounded-2xl hover:scale-[1.05] transition-transform active:scale-95 disabled:bg-white/20"
+                                    >
+                                        {galleryLoading ? 'SUBIENDO...' : 'SUBIR RECUERDO FOTOGRÁFICO'}
+                                    </button>
+                                    <p className="text-[9px] font-black text-white/10 uppercase tracking-[0.4em] mt-6">Acepta JPG, PNG y GIF hasta 5MB</p>
+                                </div>
+
+                                {gallery.length === 0 ? (
+                                    <div className="py-32 text-center text-[10px] font-black uppercase tracking-[0.4em] text-white/10 italic">La bóveda de recuerdos está vacía</div>
+                                ) : (
+                                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                                        {gallery.map(img => (
+                                            <div
+                                                key={img.id}
+                                                onClick={() => setLightbox(img)}
+                                                className="aspect-square rounded-3xl overflow-hidden border border-white/5 bg-black/40 group cursor-pointer relative"
+                                            >
+                                                <img src={img.image_url} className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-700 hover:scale-110" />
+                                                {img.uploaded_by === user.id && (
+                                                    <button
+                                                        onClick={(e) => { e.stopPropagation(); handleDeleteImage(img); }}
+                                                        className="absolute top-4 right-4 bg-black/60 backdrop-blur-md p-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity text-rose-500 hover:bg-rose-500 hover:text-white"
+                                                    >
+                                                        ✕
+                                                    </button>
+                                                )}
                                             </div>
-                                            <div style={{ fontWeight: 700, fontSize: '0.8rem', color: unlocked ? '#fff' : '#555' }}>{m.title}</div>
-                                            <div style={{ fontSize: '0.65rem', color: '#666', marginTop: 2 }}>{m.desc}</div>
-                                        </div>
-                                    );
-                                })}
+                                        ))}
+                                    </div>
+                                )}
                             </div>
-                        </section>
-                    )}
-                </>
+                        )}
+
+                        {activeTab === 'milestones' && (
+                            <div className="space-y-6 animate-fade-in">
+                                <div className="flex justify-between items-center px-4">
+                                    <span className="text-[10px] font-black uppercase tracking-[0.4em] text-white/20">Hitos de la Constelación</span>
+                                    <span className="text-[10px] font-black font-mono text-cyan-400 bg-cyan-400/10 px-3 py-1 rounded-full border border-cyan-400/20">
+                                        {unlockedMilestones.length} / {MILESTONES.length}
+                                    </span>
+                                </div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    {MILESTONES.map(m => {
+                                        const unlocked = unlockedMilestones.some(u => u.id === m.id);
+                                        return (
+                                            <div
+                                                key={m.id}
+                                                className={`p-6 rounded-[2rem] border transition-all ${unlocked
+                                                    ? 'bg-purple-500/5 border-purple-500/20'
+                                                    : 'bg-white/[0.01] border-white/5 opacity-40 grayscale'
+                                                    }`}
+                                            >
+                                                <div className="flex items-center gap-4 mb-3">
+                                                    <span className="text-3xl">{m.icon}</span>
+                                                    <div>
+                                                        <h3 className="text-xs font-black uppercase tracking-widest text-white/80">{m.title}</h3>
+                                                        <p className="text-[10px] text-white/30">{m.desc}</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </div>
             )}
 
-            {/* ── Requests Section (always visible) ── */}
+            {/* Secciones de Solicitudes */}
+            <div className="mt-24 space-y-12">
 
-            {/* Incoming Requests */}
-            <section style={{ marginBottom: 28 }}>
-                <SectionTitle icon="📩" text="Solicitudes Recibidas" count={incoming.length} />
-                {incoming.length === 0 ? (
-                    <EmptyState text="No tienes solicitudes pendientes." />
-                ) : (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                        {incoming.map(req => (
-                            <RequestCard key={req.id} req={req} type="incoming"
-                                actionLoading={actionLoading}
-                                onAccept={() => handleAccept(req.id)}
-                                onReject={() => handleReject(req.id)}
-                            />
-                        ))}
+                {/* Solicitudes Recibidas */}
+                <section>
+                    <div className="flex items-center gap-4 mb-8">
+                        <span className="w-8 h-px bg-white/5"></span>
+                        <h2 className="text-[10px] font-black uppercase tracking-[0.4em] text-white/30">Solicitudes Recibidas ({incoming.length})</h2>
                     </div>
-                )}
-            </section>
+                    {incoming.length === 0 ? (
+                        <div className="py-12 text-center text-[10px] font-black text-white/10 uppercase tracking-[0.4em] border border-white/5 border-dashed rounded-[2rem]">Bandeja vacía</div>
+                    ) : (
+                        <div className="space-y-4">
+                            {incoming.map(req => (
+                                <RequestRow key={req.id} req={req} type="incoming" actionLoading={actionLoading} onAccept={() => handleAccept(req.id)} onReject={() => handleReject(req.id)} />
+                            ))}
+                        </div>
+                    )}
+                </section>
 
-            {/* Outgoing Requests */}
-            <section style={{ marginBottom: 28 }}>
-                <SectionTitle icon="📤" text="Solicitudes Enviadas" count={outgoing.length} />
-                {outgoing.length === 0 ? (
-                    <EmptyState text="No has enviado solicitudes." />
-                ) : (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                        {outgoing.map(req => (
-                            <RequestCard key={req.id} req={req} type="outgoing" />
-                        ))}
+                {/* Solicitudes Enviadas */}
+                <section>
+                    <div className="flex items-center gap-4 mb-8">
+                        <span className="w-8 h-px bg-white/5"></span>
+                        <h2 className="text-[10px] font-black uppercase tracking-[0.4em] text-white/30">Solicitudes Enviadas ({outgoing.length})</h2>
                     </div>
-                )}
-            </section>
+                    {outgoing.length === 0 ? (
+                        <div className="py-12 text-center text-[10px] font-black text-white/10 uppercase tracking-[0.4em] border border-white/5 border-dashed rounded-[2rem]">No hay expediciones en curso</div>
+                    ) : (
+                        <div className="space-y-4">
+                            {outgoing.map(req => (
+                                <RequestRow key={req.id} req={req} type="outgoing" />
+                            ))}
+                        </div>
+                    )}
+                </section>
+            </div>
 
-            {/* Tip */}
-            <div style={{
-                textAlign: 'center', padding: '16px 20px',
-                background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.04)',
-                borderRadius: 12, marginBottom: 32,
-            }}>
-                <p style={{ color: '#555', fontSize: '0.7rem', margin: 0, letterSpacing: '0.05em', lineHeight: 1.6 }}>
-                    💡 Para enviar una solicitud de vínculo, visita el perfil de otro usuario
-                    y haz clic en <strong style={{ color: '#06b6d4' }}>"✨ Solicitar Vínculo"</strong>.
+            {/* Lightbox para Galería */}
+            <AnimatePresence>
+                {lightbox && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        onClick={() => setLightbox(null)}
+                        className="fixed inset-0 z-[200] bg-black/95 backdrop-blur-2xl flex items-center justify-center p-4 cursor-pointer"
+                    >
+                        <motion.img
+                            initial={{ scale: 0.9 }}
+                            animate={{ scale: 1 }}
+                            src={lightbox.image_url}
+                            className="max-h-[80vh] max-w-full rounded-3xl shadow-2xl border border-white/10"
+                        />
+                    </motion.div>
+                )}
+            </AnimatePresence>
+        </div>
+    );
+}
+
+// ── Subcomponentes Estilizados ──
+
+function StatCardV({ icon, label, value, color }) {
+    return (
+        <div className="p-8 rounded-[2rem] bg-white/[0.01] border border-white/5 hover:bg-white/[0.03] transition-all group overflow-hidden relative">
+            <div className="absolute top-0 right-0 p-4 text-3xl opacity-5 group-hover:scale-125 transition-transform">{icon}</div>
+            <span className="text-[9px] font-black uppercase tracking-[0.3em] text-white/20 block mb-3">{label}</span>
+            <span className={`text-2xl font-bold font-mono tracking-tighter ${color}`}>{value}</span>
+        </div>
+    );
+}
+
+function RequestRow({ req, type, actionLoading, onAccept, onReject }) {
+    const person = type === 'incoming' ? req.sender : req.receiver;
+    return (
+        <div className="flex items-center gap-4 p-6 rounded-3xl bg-white/[0.02] border border-white/5 hover:bg-white/[0.04] transition-colors">
+            <Link to={`/@${person?.username}`}>
+                <img src={person?.avatar_url || '/default_user_blank.png'} className="w-12 h-12 rounded-2xl object-cover opacity-60 hover:opacity-100 transition-opacity" />
+            </Link>
+            <div className="flex-1">
+                <Link to={`/@${person?.username}`} className="text-sm font-black text-white/80 hover:text-white transition-colors uppercase tracking-widest">@{person?.username}</Link>
+                <p className="text-[10px] text-white/20 uppercase mt-1">
+                    {type === 'incoming' ? 'Solicita conexión estelar' : 'Esperando respuesta...'}
                 </p>
             </div>
+            {type === 'incoming' ? (
+                <div className="flex gap-2">
+                    <button
+                        disabled={actionLoading === req.id}
+                        onClick={onAccept}
+                        className="px-6 py-2 bg-white text-black text-[10px] font-black uppercase rounded-xl hover:scale-105 transition-transform active:scale-95"
+                    >
+                        ✓ Aceptar
+                    </button>
+                    <button
+                        disabled={actionLoading === req.id}
+                        onClick={onReject}
+                        className="px-4 py-2 bg-white/5 text-white/40 text-[10px] font-black uppercase rounded-xl hover:bg-rose-500/20 hover:text-rose-500 transition-all"
+                    >
+                        ✕
+                    </button>
+                </div>
+            ) : (
+                <span className="text-[9px] font-black text-white/10 uppercase tracking-widest bg-white/5 px-4 py-2 rounded-xl border border-white/5">Pendiente</span>
+            )}
         </div>
     );
 }

@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { useAuthContext } from '../contexts/AuthContext';
 import ActivityFeed from '../components/Social/ActivityFeed';
 import PostComposer, { CATEGORIES } from '../components/Social/PostComposer';
+import { Globe } from 'lucide-react';
 
 export default function PostsPage() {
   const { user } = useAuthContext();
@@ -18,11 +19,11 @@ export default function PostsPage() {
 
       {/* Header */}
       <motion.div initial={{ opacity: 0, y: -12 }} animate={{ opacity: 1, y: 0 }} className="mb-8 hidden md:block">
-        <h1 className="text-4xl md:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-white to-white/30 tracking-tight mb-1 uppercase">
-          Global Feed
+        <h1 className="text-4xl md:text-5xl font-black uppercase tracking-tighter text-transparent bg-clip-text bg-gradient-to-b from-white to-white/40 mb-1">
+          Global_Feed
         </h1>
-        <p className="text-[10px] text-white/25 uppercase tracking-[0.4em] font-black">
-          Transmisiones Estelares
+        <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-white/20 font-mono">
+          :: Transmisiones_Estelares
         </p>
       </motion.div>
 
@@ -52,7 +53,7 @@ export default function PostsPage() {
             : 'bg-white/[0.03] text-white/30 border-white/[0.06] hover:text-white/60 hover:border-white/15'
             }`}
         >
-          🌐 Todo
+          <Globe size={12} strokeWidth={1.5} className="mr-1.5 inline" /> Todo
         </button>
         {CATEGORIES.map(cat => (
           <button

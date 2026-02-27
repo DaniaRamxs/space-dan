@@ -1,11 +1,30 @@
 import { supabase } from '../supabaseClient';
 import { streakService } from './streak';
 
+const serviceCache = new Map();
+
 export const activityService = {
+    /**
+     * Prefetch feed data to cache
+     */
+    async prefetchFeed(targetUserId = null, filter = 'all', limit = 15, offset = 0, category = null) {
+        const key = `${targetUserId}-${filter}-${category}`;
+        if (serviceCache.has(key)) return;
+
+        try {
+            const data = await this.getFeed(targetUserId, filter, limit, offset, category);
+            serviceCache.set(key, data);
+            // Auto-expire cache after 1 minute to keep it fresh
+            setTimeout(() => serviceCache.delete(key), 60000);
+        } catch (err) {
+            console.error('[activityService] Prefetch error:', err);
+        }
+    },
+
     /**
      * Obtiene el feed — filtrado por tipo y/o categoría
      */
-    async getFeed(viewerId, filter = 'all', limit = 10, offset = 0, category = null) {
+    async getFeed(targetUserId = null, filter = 'all', limit = 10, offset = 0, category = null) {
         let query = supabase
             .from('activity_posts')
             .select(`
@@ -15,9 +34,18 @@ export const activityService = {
             .order('created_at', { ascending: false })
             .range(offset, offset + limit - 1);
 
-        // Filtrar por tipo
-        if (filter === 'post') query = query.eq('type', 'post');
-        else if (filter !== 'all') query = query.eq('type', filter);
+        // Filtrar por autor si se especifica (feed de perfil)
+        if (targetUserId) {
+            query = query.eq('author_id', targetUserId);
+            if (filter === 'all') {
+                query = query.in('type', ['post', 'repost', 'quote']);
+            }
+        }
+
+        // Filtrar por tipo (si no es 'all' o si no estamos en feed de perfil)
+        if (filter !== 'all') {
+            query = query.eq('type', filter === 'post' ? 'post' : filter);
+        }
 
         // Filtrar por categoría
         if (category && category !== 'all') query = query.eq('category', category);

@@ -1,13 +1,14 @@
 import { useEffect, useRef } from 'react';
 
-const STAR_COUNT = 180;
+const STAR_COUNT = 120; // Fewer stars for more elegance
+const NEBULA_COUNT = 3;
 
 const STAR_THEMES = {
-  default: { r: 255, g: 255, b: 255, neon: ['255,0,255', '0,229,255'] },
-  stars_blue: { r: 0, g: 191, b: 255, neon: ['0,255,255', '0,100,255'] },
-  stars_green: { r: 57, g: 255, b: 20, neon: ['0,255,0', '0,180,100'] },
-  stars_red: { r: 255, g: 50, b: 50, neon: ['255,0,0', '255,160,0'] },
-  stars_purple: { r: 191, g: 0, b: 255, neon: ['255,0,255', '150,0,255'] },
+  default: { r: 255, g: 255, b: 255, nebula: 'rgba(139, 92, 246, 0.03)' },
+  stars_blue: { r: 0, g: 191, b: 255, nebula: 'rgba(6, 182, 212, 0.03)' },
+  stars_green: { r: 57, g: 255, b: 20, nebula: 'rgba(16, 185, 129, 0.03)' },
+  stars_red: { r: 255, g: 50, b: 50, nebula: 'rgba(244, 63, 94, 0.03)' },
+  stars_purple: { r: 191, g: 0, b: 255, nebula: 'rgba(168, 85, 247, 0.03)' },
 };
 
 function getStarTheme() {
@@ -28,7 +29,6 @@ export default function StarfieldBg() {
     let theme = getStarTheme();
 
     const onThemeChange = (e) => {
-      // If the event specifically mentions stars, or it's a general equip, we update
       if (!e.detail || e.detail.category === 'stars') {
         theme = getStarTheme();
       }
@@ -38,10 +38,18 @@ export default function StarfieldBg() {
     const stars = Array.from({ length: STAR_COUNT }, () => ({
       x: Math.random(),
       y: Math.random(),
-      size: Math.random() * 2.0 + 0.5, // Increased size slightly
-      speed: Math.random() * 0.00015 + 0.00005,
-      opacity: Math.random() * 0.7 + 0.3,
+      size: Math.random() * 1.2 + 0.2,
+      speed: Math.random() * 0.00008 + 0.00002,
+      opacity: Math.random() * 0.4 + 0.1,
       phase: Math.random() * Math.PI * 2,
+    }));
+
+    const nebulas = Array.from({ length: NEBULA_COUNT }, () => ({
+      x: Math.random(),
+      y: Math.random(),
+      rad: Math.random() * 400 + 200,
+      phase: Math.random() * Math.PI * 2,
+      speed: Math.random() * 0.0005 + 0.0002
     }));
 
     let raf;
@@ -52,6 +60,11 @@ export default function StarfieldBg() {
     const resize = () => {
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
+      // Dpr management for crispness
+      const dpr = window.devicePixelRatio || 1;
+      canvas.width = window.innerWidth * dpr;
+      canvas.height = window.innerHeight * dpr;
+      ctx.scale(dpr, dpr);
     };
 
     const onMouseMove = (e) => {
@@ -61,43 +74,51 @@ export default function StarfieldBg() {
 
     const draw = () => {
       t += 1;
-      // Smooth interpolation for mouse
-      mouse.x += (targetMouse.x - mouse.x) * 0.05;
-      mouse.y += (targetMouse.y - mouse.y) * 0.05;
+      mouse.x += (targetMouse.x - mouse.x) * 0.03; // Even smoother
+      mouse.y += (targetMouse.y - mouse.y) * 0.03;
 
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
 
+      // 1. Subtle Nebulas (Atmosphere)
+      for (const n of nebulas) {
+        const nx = (n.x * window.innerWidth) + (mouse.x - 0.5) * 50;
+        const ny = (n.y * window.innerHeight) + (mouse.y - 0.5) * 50;
+        const drift = Math.sin(n.phase + t * n.speed) * 20;
+
+        const grad = ctx.createRadialGradient(nx + drift, ny + drift, 0, nx + drift, ny + drift, n.rad);
+        grad.addColorStop(0, theme.nebula);
+        grad.addColorStop(0.5, theme.nebula.replace('0.03', '0.01'));
+        grad.addColorStop(1, 'transparent');
+
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, window.innerWidth, window.innerHeight);
+      }
+
+      // 2. Elegant Stars
       for (const s of stars) {
-        s.y += s.speed;
-        if (s.y > 1) { s.y = 0; s.x = Math.random(); }
+        s.y -= s.speed; // Floating upwards feels more weightless
+        if (s.y < 0) { s.y = 1; s.x = Math.random(); }
 
-        const alpha = s.opacity * (0.75 + 0.25 * Math.sin(s.phase + t * 0.018));
+        const alpha = s.opacity * (0.6 + 0.4 * Math.sin(s.phase + t * 0.012));
 
-        // Parallax offset
-        const offsetX = (mouse.x - 0.5) * s.size * 20;
-        const offsetY = (mouse.y - 0.5) * s.size * 20;
+        const offsetX = (mouse.x - 0.5) * s.size * 30;
+        const offsetY = (mouse.y - 0.5) * s.size * 30;
 
-        const px = s.x * canvas.width + offsetX;
-        const py = s.y * canvas.height + offsetY;
+        const px = s.x * window.innerWidth + offsetX;
+        const py = s.y * window.innerHeight + offsetY;
 
         ctx.beginPath();
         ctx.arc(px, py, s.size, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(${theme.r},${theme.g},${theme.b},${alpha.toFixed(2)})`;
+        ctx.fillStyle = `rgba(${theme.r},${theme.g},${theme.b},${alpha.toFixed(3)})`;
         ctx.fill();
-      }
 
-      // occasional neon accent star
-      if (t % 120 === 0) {
-        const nx = Math.random() * canvas.width;
-        const ny = Math.random() * canvas.height;
-        const nc = theme.neon[Math.random() > 0.5 ? 0 : 1];
-        ctx.beginPath();
-        ctx.arc(nx, ny, 1.5, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(${nc},0.9)`;
-        ctx.shadowColor = `rgba(${nc},0.8)`;
-        ctx.shadowBlur = 8;
-        ctx.fill();
-        ctx.shadowBlur = 0;
+        // Anti-competition: ensure stars stay dim
+        if (s.size > 1.0) {
+          ctx.shadowBlur = 4;
+          ctx.shadowColor = `rgba(${theme.r},${theme.g},${theme.b},0.1)`;
+        } else {
+          ctx.shadowBlur = 0;
+        }
       }
 
       raf = requestAnimationFrame(draw);
@@ -126,9 +147,10 @@ export default function StarfieldBg() {
         left: 0,
         width: '100%',
         height: '100%',
-        zIndex: -1,
+        zIndex: -2, // Lower than potential content backgrounds
         pointerEvents: 'none',
         display: 'block',
+        backgroundColor: '#030308', // True deep space
       }}
     />
   );
