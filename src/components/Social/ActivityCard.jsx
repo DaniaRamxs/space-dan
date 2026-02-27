@@ -84,6 +84,14 @@ const ActivityCard = memo(({ post, onUpdate, onNewPost }) => {
                                 group-hover:via-white/20 transition-all duration-500" />
 
                 <div className="p-5 md:p-6">
+                    {/* Repost Header */}
+                    {post.type === 'repost' && post.original_post && (
+                        <div className="flex items-center gap-2 mb-3 px-1">
+                            <Repeat2 size={12} className="text-purple-400" />
+                            <span className="text-[10px] font-black text-purple-400 uppercase tracking-widest">Reposteo Estelar</span>
+                        </div>
+                    )}
+
                     {/* Fila: Avatar + Meta */}
                     <div className="flex items-start gap-3 mb-3">
                         <Link
@@ -164,13 +172,42 @@ const ActivityCard = memo(({ post, onUpdate, onNewPost }) => {
 
                     {/* Preview con soporte de Energías */}
                     {preview && (
-                        <div className="text-[15px] font-medium leading-relaxed text-white/70 mb-6 line-clamp-4 pointer-events-none select-none prose-preview">
+                        <div className="text-[15px] font-medium leading-relaxed text-white/70 mb-4 line-clamp-4 pointer-events-none select-none prose-preview">
                             <ReactMarkdown
                                 remarkPlugins={[remarkGfm]}
                                 rehypePlugins={[rehypeRaw, [rehypeSanitize, sanitizeSchema]]}
                             >
                                 {parseSpaceEnergies(preview)}
                             </ReactMarkdown>
+                        </div>
+                    )}
+
+                    {/* Original Post Embed (For reposts and quotes) */}
+                    {post.original_post && (
+                        <div className="mt-2 mb-4 p-4 rounded-3xl bg-white/[0.03] border border-white/10 hover:border-white/20 transition-all">
+                            <div className="flex items-center gap-2 mb-2">
+                                <div className="w-5 h-5 rounded-lg overflow-hidden border border-white/10 shrink-0">
+                                    <img
+                                        src={post.original_post.author?.avatar_url || '/default_user_blank.png'}
+                                        className="w-full h-full object-cover"
+                                        alt={post.original_post.author?.username}
+                                    />
+                                </div>
+                                <span className="text-[10px] font-black text-white/50 uppercase tracking-widest">
+                                    @{post.original_post.author?.username || 'piloto'}
+                                </span>
+                                <span className="text-[9px] font-mono text-white/20 ml-auto">
+                                    {formatDistanceToNow(new Date(post.original_post.created_at), { locale: es })}
+                                </span>
+                            </div>
+
+                            {post.original_post.title && (
+                                <h4 className="text-xs font-black text-white/80 uppercase mb-1">{post.original_post.title}</h4>
+                            )}
+
+                            <p className="text-[13px] text-white/40 leading-relaxed line-clamp-2">
+                                {cleanMarkdownForPreview(post.original_post.content || '')}
+                            </p>
                         </div>
                     )}
 

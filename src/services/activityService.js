@@ -28,8 +28,12 @@ export const activityService = {
         let query = supabase
             .from('activity_posts')
             .select(`
-                id, title, content, type, category, views_count, created_at, updated_at, author_id,
-                author:profiles!author_id(username, avatar_url, frame_item_id, nick_style_item:equipped_nickname_style(id))
+                id, title, content, type, category, views_count, created_at, updated_at, author_id, original_post_id,
+                author:profiles!author_id(username, avatar_url, frame_item_id, nick_style_item:equipped_nickname_style(id)),
+                original_post:activity_posts!original_post_id(
+                    id, title, content, type, category, created_at, author_id,
+                    author:profiles!author_id(username, avatar_url, frame_item_id)
+                )
             `)
             .order('created_at', { ascending: false })
             .range(offset, offset + limit - 1);
@@ -59,8 +63,7 @@ export const activityService = {
         // Enriquecer con reactions_metadata básico (vacío hasta que se cargue)
         return (data || []).map(p => ({
             ...p,
-            reactions_metadata: p.reactions_metadata || { total_count: 0, top_reactions: [], user_reaction: null },
-            original_post: null,
+            reactions_metadata: p.reactions_metadata || { total_count: 0, top_reactions: [], user_reaction: null }
         }));
     },
 
@@ -71,8 +74,12 @@ export const activityService = {
         const { data, error } = await supabase
             .from('activity_posts')
             .select(`
-                id, title, content, type, category, views_count, created_at, updated_at, author_id,
-                author:profiles!author_id(username, avatar_url, frame_item_id, nick_style_item:equipped_nickname_style(id))
+                id, title, content, type, category, views_count, created_at, updated_at, author_id, original_post_id,
+                author:profiles!author_id(username, avatar_url, frame_item_id, nick_style_item:equipped_nickname_style(id)),
+                original_post:activity_posts!original_post_id(
+                    id, title, content, type, category, created_at, author_id,
+                    author:profiles!author_id(username, avatar_url, frame_item_id)
+                )
             `)
             .eq('id', postId)
             .single();
@@ -106,8 +113,7 @@ export const activityService = {
                 total_count: reactions?.length || 0,
                 top_reactions: topReactions,
                 user_reaction: userReaction,
-            },
-            original_post: null,
+            }
         };
     },
 

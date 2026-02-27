@@ -70,7 +70,7 @@ export default function PostsPage() {
       </motion.div>
 
       {/* Feed */}
-      <ActivityFeed filter="post" category={activeCategory === 'all' ? null : activeCategory} />
+      <ActivityFeed filter="all" category={activeCategory === 'all' ? null : activeCategory} />
     </main>
   );
 }

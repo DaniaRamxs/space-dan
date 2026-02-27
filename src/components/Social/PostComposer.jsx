@@ -141,8 +141,7 @@ export default function PostComposer({
     };
 
     return (
-        <div className={`bg-[#070710] border-b md:border border-white/[0.04] md:rounded-3xl shadow-none md:shadow-xl overflow-hidden relative transition-all ${isEditing ? 'border-white/20' : 'border-white/[0.04]'
-            }`}>
+        <div className={`group relative bg-[#0a0a14] md:rounded-3xl shadow-none md:shadow-xl overflow-visible relative border-y border-transparent md:border md:border-white/5 p-4 md:p-6 transition-all duration-500`}>
             <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/5 to-transparent pointer-events-none" />
 
             {isEditing && (
@@ -176,7 +175,7 @@ export default function PostComposer({
                 </div>
 
                 {/* Selector de categoría */}
-                <div className="md:ml-12 mb-3">
+                <div className="md:ml-12 mb-3 relative">
                     <button
                         type="button"
                         onClick={() => setCatOpen(v => !v)}

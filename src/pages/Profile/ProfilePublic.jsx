@@ -602,7 +602,7 @@ function ProfileContent({
                 >
                   {activeTab === 'activity' && (
                     <div className="space-y-12">
-                      <ActivityFeed userId={profile?.id} filter="user" />
+                      <ActivityFeed userId={profile?.id} filter="all" />
                     </div>
                   )}
 
