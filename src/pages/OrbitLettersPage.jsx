@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { socialService } from '../services/social';
 import { useAuthContext } from '../contexts/AuthContext';
 import { supabase } from '../supabaseClient';
@@ -12,6 +12,8 @@ const gf = new GiphyFetch('3k4Fdn6D040IQvIq1KquLZzJgutP3dGp');
 
 export default function OrbitLettersPage() {
     const { user } = useAuthContext();
+    const navigate = useNavigate();
+    const userId = user?.id ?? null;
 
     const [conversations, setConversations] = useState([]);
     const [activeConv, setActiveConv] = useState(null);
@@ -21,12 +23,22 @@ export default function OrbitLettersPage() {
     const [newContent, setNewContent] = useState('');
     const [showGiphy, setShowGiphy] = useState(false);
     const [gifSearchTerm, setGifSearchTerm] = useState('');
+    const [gifGridWidth, setGifGridWidth] = useState(280);
+    const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768);
     const [searchParams] = useSearchParams();
     const toUserId = searchParams.get('to');
     const scrollRef = useRef(null);
+    const giphyPanelRef = useRef(null);
+    const activeConvId = activeConv?.conv_id ?? null;
 
-    // Mobile: 'list' shows conversations sidebar, 'chat' shows the active conversation
-    const [mobileView, setMobileView] = useState(toUserId ? 'chat' : 'list');
+    const scrollToBottom = () => {
+        const el = scrollRef.current;
+        if (!el) return;
+        el.scrollTop = el.scrollHeight;
+    };
+
+    const showMobileChat = isMobile ? Boolean(activeConv) : true;
+    const showMobileList = isMobile ? !activeConv : true;
 
     // User search states
     const [searchUserQuery, setSearchUserQuery] = useState('');
@@ -35,7 +47,8 @@ export default function OrbitLettersPage() {
     const [showUserSearch, setShowUserSearch] = useState(false);
 
     useEffect(() => {
-        if (!searchUserQuery.trim()) {
+        const query = searchUserQuery.trim();
+        if (query.length < 2) {
             setUserResults([]);
             return;
         }
@@ -45,8 +58,9 @@ export default function OrbitLettersPage() {
             try {
                 const { data, error } = await supabase
                     .from('profiles')
-                    .select('id, username, avatar_url, nickname_style, nick_style_item:equipped_nickname_style(id)')
-                    .ilike('username', `%${searchUserQuery}%`)
+                    .select('id, username, avatar_url, nick_style_item:equipped_nickname_style(id)')
+                    .ilike('username', `%${query}%`)
+                    .neq('id', userId)
                     .limit(10);
 
                 if (error) throw error;
@@ -59,7 +73,26 @@ export default function OrbitLettersPage() {
         }, 400);
 
         return () => clearTimeout(delayDebounceFn);
-    }, [searchUserQuery]);
+    }, [searchUserQuery, userId]);
+
+    useEffect(() => {
+        const onResize = () => setIsMobile(window.innerWidth < 768);
+        window.addEventListener('resize', onResize);
+        return () => window.removeEventListener('resize', onResize);
+    }, []);
+
+    useEffect(() => {
+        if (!showGiphy) return;
+
+        const syncGridWidth = () => {
+            if (!giphyPanelRef.current) return;
+            setGifGridWidth(Math.max(220, Math.floor(giphyPanelRef.current.clientWidth - 20)));
+        };
+
+        syncGridWidth();
+        window.addEventListener('resize', syncGridWidth);
+        return () => window.removeEventListener('resize', syncGridWidth);
+    }, [showGiphy]);
 
     useEffect(() => {
         loadConversations();
@@ -68,14 +101,14 @@ export default function OrbitLettersPage() {
             .channel('letters_changes')
             .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'letters' }, payload => {
                 if (activeConv && payload.new.conversation_id === activeConv.conv_id) {
-                    loadLetters(activeConv.conv_id);
+                    loadLetters(activeConvId);
                 }
                 loadConversations();
             })
             .subscribe();
 
         return () => supabase.removeChannel(channel);
-    }, [activeConv]);
+    }, [activeConvId]);
 
     async function loadConversations() {
         try {
@@ -87,7 +120,6 @@ export default function OrbitLettersPage() {
                 if (existing) {
                     setActiveConv(existing);
                     loadLetters(existing.conv_id);
-                    setMobileView('chat');
                 } else {
                     const { data: profile } = await supabase
                         .from('profiles')
@@ -103,7 +135,6 @@ export default function OrbitLettersPage() {
                             unread_count: 0,
                             last_snippet: null
                         });
-                        setMobileView('chat');
                     }
                 }
             }
@@ -128,16 +159,45 @@ export default function OrbitLettersPage() {
         }
     }
 
-    useEffect(() => {
-        if (scrollRef.current) {
-            scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    async function loadConversationProfileMeta(userIdForMeta) {
+        if (!userIdForMeta) return null;
+        try {
+            const { data, error } = await supabase
+                .from('profiles')
+                .select('id, mood_text, mood_emoji, bio')
+                .eq('id', userIdForMeta)
+                .single();
+            if (error) throw error;
+            return data;
+        } catch (err) {
+            console.error(err);
+            return null;
         }
-    }, [letters]);
+    }
+
+    useEffect(() => {
+        const raf = requestAnimationFrame(() => {
+            scrollToBottom();
+            setTimeout(scrollToBottom, 80);
+        });
+        return () => cancelAnimationFrame(raf);
+    }, [letters.length, activeConvId]);
 
     const handleSelectConv = (conv) => {
         setActiveConv(conv);
         loadLetters(conv.conv_id);
-        setMobileView('chat');
+        loadConversationProfileMeta(conv.other_user_id).then((meta) => {
+            if (!meta) return;
+            setActiveConv((prev) => {
+                if (!prev || prev.other_user_id !== conv.other_user_id) return prev;
+                return {
+                    ...prev,
+                    other_mood_text: meta.mood_text || '',
+                    other_mood_emoji: meta.mood_emoji || '✨',
+                    other_status_text: meta.mood_text || meta.bio || ''
+                };
+            });
+        });
     };
 
     const handleSend = async (e, forceContent = null) => {
@@ -179,8 +239,8 @@ export default function OrbitLettersPage() {
                 other_user_id: profile.id,
                 other_username: profile.username,
                 other_avatar: profile.avatar_url,
-                other_nickname_style: profile.nickname_style,
-                nick_style_item: profile.equipped_nickname_style,
+                other_nickname_style: null,
+                nick_style_item: profile.nick_style_item,
                 unread_count: 0,
                 last_snippet: null
             });
@@ -188,7 +248,6 @@ export default function OrbitLettersPage() {
         }
         setShowUserSearch(false);
         setSearchUserQuery('');
-        setMobileView('chat');
     };
 
     if (loading) return <div className="p-8 text-center opacity-50">Sintonizando frecuencias...</div>;
@@ -199,11 +258,28 @@ export default function OrbitLettersPage() {
             {/* ── SIDEBAR: Conversations ─────────────────────────────
                 Hidden on mobile when mobileView === 'chat'          */}
             <div
-                className={`glassCard lettersPanel${mobileView === 'chat' ? ' lettersPanel--hidden' : ''}`}
+                className={`glassCard lettersPanel${showMobileList ? '' : ' lettersPanel--hidden'}`}
                 style={{ padding: 0, display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}
             >
                 <div style={{ flexShrink: 0, padding: '18px 20px', borderBottom: '1px solid var(--glass-border)', display: 'flex', alignItems: 'center', gap: 12 }}>
                     <h2 style={{ margin: 0, fontSize: '17px', flex: 1 }}>✉️ Mensajería</h2>
+                    <button
+                        type="button"
+                        className="lettersFeedBtn"
+                        onClick={() => navigate('/posts')}
+                        style={{
+                            background: 'rgba(255,255,255,0.05)',
+                            border: '1px solid var(--glass-border)',
+                            borderRadius: '10px',
+                            color: '#fff',
+                            padding: '6px 10px',
+                            fontSize: '12px',
+                            fontWeight: 700,
+                            cursor: 'pointer'
+                        }}
+                    >
+                        Feed
+                    </button>
                     <button
                         onClick={() => setShowUserSearch(!showUserSearch)}
                         style={{
@@ -272,7 +348,7 @@ export default function OrbitLettersPage() {
                     </div>
                 )}
 
-                <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', overflowX: 'hidden', overscrollBehavior: 'contain' }}>
+                <div className="lettersScrollArea" style={{ flex: 1, minHeight: 0, overflowY: 'auto', overflowX: 'hidden', overscrollBehavior: 'contain' }}>
                     {conversations.length === 0 && !showUserSearch && (
                         <div style={{ padding: '40px 20px', textAlign: 'center', opacity: 0.5, fontSize: '13px' }}>
                             No hay mensajes orbitando todavía.
@@ -320,8 +396,17 @@ export default function OrbitLettersPage() {
             {/* ── CHAT AREA ──────────────────────────────────────────
                 Hidden on mobile when mobileView === 'list'          */}
             <div
-                className={`glassCard lettersPanel${mobileView === 'list' ? ' lettersPanel--hidden' : ''}`}
-                style={{ padding: 0, display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}
+                className={`glassCard lettersPanel lettersPanel--chat${showMobileChat ? '' : ' lettersPanel--hidden'}`}
+                style={{
+                    padding: 0,
+                    display: activeConv ? 'grid' : 'flex',
+                    gridTemplateRows: activeConv ? 'auto minmax(0, 1fr) auto' : undefined,
+                    flexDirection: activeConv ? undefined : 'column',
+                    flex: 1,
+                    minHeight: 0,
+                    height: '100%',
+                    overflow: 'hidden'
+                }}
             >
                 {!activeConv ? (
                     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', opacity: 0.4 }}>
@@ -331,10 +416,10 @@ export default function OrbitLettersPage() {
                 ) : (
                     <>
                         {/* Chat header */}
-                        <div style={{ flexShrink: 0, padding: '12px 18px', borderBottom: '1px solid var(--glass-border)', display: 'flex', alignItems: 'center', gap: 14, background: 'rgba(5,5,15,0.8)', backdropFilter: 'blur(10px)', sticky: 'top', zIndex: 100 }}>
+                        <div style={{ flexShrink: 0, padding: '12px 18px', borderBottom: '1px solid var(--glass-border)', display: 'flex', alignItems: 'center', gap: 14, background: 'rgba(5,5,15,0.8)', backdropFilter: 'blur(10px)', zIndex: 100 }}>
                             <button
                                 type="button"
-                                onClick={() => setMobileView('list')}
+                                onClick={() => setActiveConv(null)}
                                 className="lettersBackBtn"
                                 style={{
                                     background: 'rgba(255,255,255,0.05)', border: '1px solid var(--glass-border)',
@@ -360,13 +445,85 @@ export default function OrbitLettersPage() {
                                     <div style={{ fontSize: '10px', opacity: 0.4, fontWeight: '800', textTransform: 'uppercase', letterSpacing: '2px' }}>ENLACE_ESTABLECIDO</div>
                                 </div>
                             </div>
+                            <button
+                                type="button"
+                                className="lettersExitBtn"
+                                onClick={() => {
+                                    setActiveConv(null);
+                                }}
+                                style={{
+                                    background: 'rgba(255,255,255,0.05)',
+                                    border: '1px solid var(--glass-border)',
+                                    color: '#fff',
+                                    borderRadius: '10px',
+                                    padding: '8px 12px',
+                                    fontSize: '12px',
+                                    fontWeight: 700,
+                                    cursor: 'pointer'
+                                }}
+                            >
+                                Bandeja
+                            </button>
+                            <button
+                                type="button"
+                                className="lettersFeedBtn"
+                                onClick={() => navigate('/posts')}
+                                style={{
+                                    background: 'rgba(255,255,255,0.05)',
+                                    border: '1px solid var(--glass-border)',
+                                    color: '#fff',
+                                    borderRadius: '10px',
+                                    padding: '8px 12px',
+                                    fontSize: '12px',
+                                    fontWeight: 700,
+                                    cursor: 'pointer'
+                                }}
+                            >
+                                Feed
+                            </button>
                         </div>
+
+                        {(activeConv.other_status_text || activeConv.other_mood_text) && (
+                            <div
+                                style={{
+                                    margin: '10px 14px 0',
+                                    padding: '10px 12px',
+                                    borderRadius: '12px',
+                                    border: '1px solid var(--glass-border)',
+                                    background: 'rgba(255,255,255,0.03)',
+                                    fontSize: '12px',
+                                    lineHeight: 1.4
+                                }}
+                            >
+                                <div style={{ opacity: 0.55, fontSize: '10px', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '4px' }}>
+                                    Mood Card
+                                </div>
+                                <div>
+                                    <span style={{ marginRight: 6 }}>{activeConv.other_mood_emoji || '✨'}</span>
+                                    {activeConv.other_status_text || activeConv.other_mood_text}
+                                </div>
+                            </div>
+                        )}
 
 
                         {/* Messages */}
                         <div
+                            className="lettersScrollArea lettersMessages"
                             ref={scrollRef}
-                            style={{ flex: 1, minHeight: 0, overflowY: 'auto', overflowX: 'hidden', padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px' }}
+                            style={{
+                                minHeight: 0,
+                                height: '100%',
+                                overflowY: 'auto',
+                                overflowX: 'hidden',
+                                WebkitOverflowScrolling: 'touch',
+                                touchAction: 'pan-y',
+                                overscrollBehavior: 'contain',
+                                padding: '20px',
+                                paddingBottom: isMobile ? '12px' : '20px',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                gap: '16px'
+                            }}
                         >
                             <AnimatePresence initial={false}>
                                 {letters.map((l) => (
@@ -386,7 +543,7 @@ export default function OrbitLettersPage() {
                                             overflow: 'hidden'
                                         }}>
                                             {l.content.includes('giphy.com/media') ? (
-                                                <img src={l.content} alt="GIF" style={{ maxWidth: '100%', borderRadius: '12px', display: 'block' }} />
+                                                <img src={l.content} alt="GIF" onLoad={scrollToBottom} style={{ maxWidth: '100%', borderRadius: '12px', display: 'block' }} />
                                             ) : (
                                                 l.content
                                             )}
@@ -400,9 +557,9 @@ export default function OrbitLettersPage() {
                         </div>
 
                         {/* Input */}
-                        <form onSubmit={(e) => handleSend(e)} style={{ flexShrink: 0, padding: '14px 16px', paddingBottom: 'calc(14px + env(safe-area-inset-bottom, 20px))', borderTop: '1px solid var(--glass-border)', background: 'rgba(5,5,10,0.95)', backdropFilter: 'blur(12px)', position: 'relative', zIndex: 50 }}>
+                        <form className="lettersComposer" onSubmit={(e) => handleSend(e)} style={{ flexShrink: 0, marginTop: 'auto', padding: '14px 16px', paddingBottom: 'calc(14px + env(safe-area-inset-bottom, 20px))', borderTop: '1px solid var(--glass-border)', background: 'rgba(5,5,10,0.95)', backdropFilter: 'blur(12px)', position: 'relative', zIndex: 50 }}>
                             {showGiphy && (
-                                <div style={{ position: 'absolute', bottom: '100%', left: '0', width: '100%', height: '340px', background: 'rgba(5,5,10,0.98)', backdropFilter: 'blur(30px)', zIndex: 60, padding: '10px', overflowY: 'auto', borderTop: '1px solid var(--glass-border)' }}>
+                                <div className="lettersScrollArea" ref={giphyPanelRef} style={{ position: 'absolute', bottom: '100%', left: '0', width: '100%', height: isMobile ? '56dvh' : '340px', maxHeight: isMobile ? '56dvh' : '420px', background: 'rgba(5,5,10,0.98)', backdropFilter: 'blur(30px)', zIndex: 60, padding: '10px', overflowY: 'auto', borderTop: '1px solid var(--glass-border)' }}>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px', marginBottom: '8px' }}>
                                         <div style={{ fontWeight: '900', textTransform: 'uppercase', letterSpacing: '2px', fontSize: '11px', color: 'var(--accent)' }}>SINTONIZANDO GIFS ✨</div>
                                         <button type="button" onClick={() => setShowGiphy(false)} style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer' }}>✕</button>
@@ -416,9 +573,9 @@ export default function OrbitLettersPage() {
                                     />
                                     <Grid
                                         key={gifSearchTerm}
-                                        width={300}
-                                        columns={3}
-                                        fetchGifs={(offset) => gifSearchTerm.trim() ? gf.search(gifSearchTerm, { offset, limit: 10 }) : gf.trending({ offset, limit: 10 })}
+                                        width={gifGridWidth}
+                                        columns={isMobile ? 2 : 3}
+                                        fetchGifs={(offset) => gifSearchTerm.trim() ? gf.search(gifSearchTerm, { offset, limit: 12 }) : gf.trending({ offset, limit: 12 })}
                                         onGifClick={(gif, e) => {
                                             e.preventDefault();
                                             handleSend(null, gif.images.fixed_height.url);
@@ -439,9 +596,11 @@ export default function OrbitLettersPage() {
                                     👾
                                 </motion.button>
                                 <input
+                                    className="lettersComposerInput"
                                     type="text"
                                     value={newContent}
                                     onChange={e => setNewContent(e.target.value)}
+                                    onFocus={() => setShowGiphy(false)}
                                     placeholder="Escribe un mensaje..."
                                     style={{
                                         flex: 1,
@@ -452,12 +611,11 @@ export default function OrbitLettersPage() {
                                         padding: '11px 18px',
                                         color: '#fff',
                                         outline: 'none',
-                                        fontSize: '14px',
+                                        fontSize: '14px'
                                     }}
                                 />
                                 <motion.button
                                     type="submit"
-                                    onClick={handleSend}
                                     whileHover={{ scale: 1.05 }}
                                     whileTap={{ scale: 0.95 }}
                                     disabled={sending || !newContent.trim()}

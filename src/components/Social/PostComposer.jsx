@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -53,9 +53,24 @@ export default function PostComposer({
     const [catOpen, setCatOpen] = useState(false);
     const [showGiphy, setShowGiphy] = useState(false);
     const [gifSearchTerm, setGifSearchTerm] = useState('');
+    const [gifGridWidth, setGifGridWidth] = useState(320);
+    const editorRef = useRef(null);
 
     const canSubmit = title.trim().length > 0 && !submitting;
     const selectedCat = CATEGORIES.find(c => c.id === category) || CATEGORIES[0];
+
+    useEffect(() => {
+        const recalcGifGridWidth = () => {
+            const viewportWidth = window.innerWidth || 360;
+            const containerWidth = editorRef.current?.clientWidth || (viewportWidth - 24);
+            const next = Math.max(220, Math.min(containerWidth - 16, viewportWidth - 24, 760));
+            setGifGridWidth(Math.floor(next));
+        };
+
+        recalcGifGridWidth();
+        window.addEventListener('resize', recalcGifGridWidth);
+        return () => window.removeEventListener('resize', recalcGifGridWidth);
+    }, []);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -233,7 +248,7 @@ export default function PostComposer({
                 </div>
 
                 {/* Editor / Preview */}
-                <div className="md:ml-12 min-h-[80px] relative">
+                <div ref={editorRef} className="md:ml-12 min-h-[140px] md:min-h-[100px] relative">
                     {/* GIPHY PANEL (Relative to editor for better UX in posts) */}
                     <AnimatePresence>
                         {showGiphy && (
@@ -241,7 +256,7 @@ export default function PostComposer({
                                 initial={{ opacity: 0, scale: 0.95 }}
                                 animate={{ opacity: 1, scale: 1 }}
                                 exit={{ opacity: 0, scale: 0.95 }}
-                                className="absolute top-0 left-0 w-full z-[100] h-[350px] overflow-hidden flex flex-col shadow-2xl bg-[#090912] border border-white/10 rounded-2xl"
+                                className="absolute top-0 left-0 w-full z-[100] h-[70vh] max-h-[560px] min-h-[320px] overflow-hidden flex flex-col shadow-2xl bg-[#090912] border border-white/10 rounded-2xl"
                             >
                                 <div className="flex items-center justify-between p-4 bg-white/[0.02]">
                                     <span className="text-[10px] font-black uppercase tracking-[0.2em] text-cyan-400">Dimensión GIPHY ✨</span>
@@ -259,12 +274,12 @@ export default function PostComposer({
                                 <div className="flex-1 overflow-y-auto px-2 no-scrollbar">
                                     <Grid
                                         key={gifSearchTerm}
-                                        width={400}
-                                        columns={2}
+                                        width={gifGridWidth}
+                                        columns={gifGridWidth >= 560 ? 3 : 2}
                                         gutter={8}
                                         fetchGifs={(offset) => gifSearchTerm.trim()
-                                            ? gf.search(gifSearchTerm, { offset, limit: 12 })
-                                            : gf.trending({ offset, limit: 12 })
+                                            ? gf.search(gifSearchTerm, { offset, limit: 18 })
+                                            : gf.trending({ offset, limit: 18 })
                                         }
                                         onGifClick={(gif, e) => {
                                             e.preventDefault();
@@ -285,7 +300,7 @@ export default function PostComposer({
                                 value={content}
                                 onChange={e => setContent(e.target.value)}
                                 placeholder={"Contenido en Markdown (opcional)\n\n**negrita**, _itálica_, # Encabezado, - Lista..."}
-                                className="w-full bg-transparent border-none text-sm text-white/80 placeholder:text-white/15 resize-none outline-none min-h-[80px] font-mono leading-relaxed"
+                                className="w-full bg-transparent border-none text-[16px] md:text-sm text-white/80 placeholder:text-white/15 resize-none outline-none min-h-[180px] md:min-h-[100px] max-h-[44vh] overflow-y-auto font-mono leading-relaxed"
                                 maxLength={5000}
                             />
                         ) : (

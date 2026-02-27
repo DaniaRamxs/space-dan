@@ -7,12 +7,13 @@ import { activityService } from '../../services/activityService';
 import { useAuthContext } from '../../contexts/AuthContext';
 
 const REACTION_CONFIG = {
-    connection: { icon: 'ðŸ’–', label: 'ConexiÃ³n' },
-    impact: { icon: 'ðŸ”¥', label: 'Impacto' },
-    represent: { icon: 'ðŸŒ™', label: 'Representa' },
-    think: { icon: 'ðŸ§ ', label: 'Interesante' },
-    underrated: { icon: 'ðŸª', label: 'Infravalorado' },
+    connection: { icon: '💖', label: 'Conexión' },
+    impact: { icon: '🔥', label: 'Impacto' },
+    represent: { icon: '🌙', label: 'Representa' },
+    think: { icon: '🧠', label: 'Interesante' },
+    underrated: { icon: '🪐', label: 'Infravalorado' },
 };
+
 function safeTimeAgo(dateValue) {
     try {
         const d = new Date(dateValue);
@@ -22,12 +23,10 @@ function safeTimeAgo(dateValue) {
         return 'en el vacio temporal';
     }
 }
+
 /**
- * BlogPostCard â€” muestra un post de bitÃ¡cora (tabla "posts") dentro
- * del feed de Actividad.  Tiene su propia mini-bar de reacciones
- * (que escriben en activity_reactions si el post tiene un ID espejado
- * en activity_posts), mÃ¡s botones de Repost y Citar que abren un
- * modal embebido.
+ * BlogPostCard — muestra un post de bitácora (tabla "posts") dentro
+ * del feed de Actividad.
  */
 const BlogPostCard = memo(({ post, authorProfile, onActionComplete }) => {
     const { user } = useAuthContext();
@@ -49,7 +48,6 @@ const BlogPostCard = memo(({ post, authorProfile, onActionComplete }) => {
         setShowPicker(false);
         setProcessing(true);
 
-        // Optimistic
         const isRemoving = reactions.user_reaction === type;
         const optimistic = { ...reactions };
         if (isRemoving) {
@@ -75,7 +73,6 @@ const BlogPostCard = memo(({ post, authorProfile, onActionComplete }) => {
         setReactions(optimistic);
 
         try {
-            // Los blog posts se espejan en activity_posts con el mismo id
             await activityService.toggleReaction(post.id, user.id, type);
         } catch (err) {
             console.error('[BlogPostCard] toggleReaction error:', err);
@@ -93,7 +90,7 @@ const BlogPostCard = memo(({ post, authorProfile, onActionComplete }) => {
                 author_id: user.id,
                 content: null,
                 type: 'repost',
-                original_post_id: post.id, // usa mismo id espejado
+                original_post_id: post.id,
             });
             onActionComplete?.('repost');
         } catch (err) {
@@ -122,7 +119,7 @@ const BlogPostCard = memo(({ post, authorProfile, onActionComplete }) => {
     };
 
     const avatarSrc = authorProfile?.avatar_url || post.avatar_url || '/default_user_blank.png';
-    const username = authorProfile?.username || post.username || 'piloto';
+    const username = authorProfile?.username || post.username || 'usuario';
 
     return (
         <motion.div
@@ -132,24 +129,20 @@ const BlogPostCard = memo(({ post, authorProfile, onActionComplete }) => {
             layout
             className="group relative bg-[#0a0a0f] border border-white/5 rounded-[2.5rem] p-6 hover:bg-white/[0.02] hover:border-white/10 transition-all shadow-xl overflow-hidden"
         >
-            {/* Badge tipo */}
             <div className="absolute top-5 right-6">
                 <span className="text-[8px] font-black font-mono px-2.5 py-1 rounded-full border text-cyan-400 bg-cyan-400/10 border-cyan-400/20 uppercase tracking-widest">
-                    ðŸ“– BLOG
+                    📖 BLOG
                 </span>
             </div>
 
             <div className="flex gap-4">
-                {/* Avatar */}
                 <Link to={username ? `/@${encodeURIComponent(username)}` : `/profile/${post.author_id}`} className="shrink-0">
                     <div className="w-12 h-12 rounded-2xl overflow-hidden border border-white/10 shadow-lg bg-black hover:scale-105 transition-transform">
                         <img src={avatarSrc} alt={username} className="w-full h-full object-cover" loading="lazy" />
                     </div>
                 </Link>
 
-                {/* Contenido */}
                 <div className="flex-1 min-w-0">
-                    {/* Header */}
                     <div className="flex items-center gap-2 mb-3">
                         <Link to={username ? `/@${encodeURIComponent(username)}` : `/profile/${post.author_id}`} className="text-sm font-black text-white hover:text-cyan-400 transition-colors uppercase tracking-tight">
                             {username}
@@ -160,7 +153,6 @@ const BlogPostCard = memo(({ post, authorProfile, onActionComplete }) => {
                         </span>
                     </div>
 
-                    {/* Link al post real */}
                     <Link to={`/log/${post.slug}`} className="block group/link">
                         <h3 className="text-lg md:text-xl font-black text-white group-hover/link:text-cyan-400 transition-colors uppercase tracking-tight leading-tight mb-1">
                             {post.title}
@@ -172,13 +164,10 @@ const BlogPostCard = memo(({ post, authorProfile, onActionComplete }) => {
                         )}
                     </Link>
 
-                    {/* Stats + Actions */}
                     <div className="flex items-center flex-wrap gap-4 mt-4">
-                        {/* Reaction picker */}
                         <div className="relative">
                             <button
                                 onClick={() => setShowPicker(v => !v)}
-                                aria-label="Reaccionar"
                                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 transition-all active:scale-95 cursor-pointer"
                             >
                                 <div className="flex -space-x-1.5">
@@ -188,7 +177,7 @@ const BlogPostCard = memo(({ post, authorProfile, onActionComplete }) => {
                                                 {REACTION_CONFIG[r.reaction_type]?.icon}
                                             </span>
                                         ))
-                                        : <span className="text-sm opacity-40 group-hover:opacity-100 transition-opacity">âœ¨</span>
+                                        : <span className="text-sm opacity-40 group-hover:opacity-100 transition-opacity">✨</span>
                                     }
                                 </div>
                                 {reactions.total_count > 0 && (
@@ -217,15 +206,11 @@ const BlogPostCard = memo(({ post, authorProfile, onActionComplete }) => {
                                                         whileHover={{ scale: 1.25, y: -4 }}
                                                         whileTap={{ scale: 0.8 }}
                                                         onClick={() => handleReact(type)}
-                                                        aria-label={cfg.label}
                                                         className={`p-2.5 rounded-xl transition-all relative group/rb ${active ? 'bg-white/10' : 'hover:bg-white/5'}`}
                                                     >
                                                         <span className={`text-xl ${active ? '' : 'grayscale-[0.5] opacity-60 group-hover/rb:grayscale-0 group-hover/rb:opacity-100 transition-all'}`}>
                                                             {cfg.icon}
                                                         </span>
-                                                        <div className="absolute top-full mt-1 left-1/2 -translate-x-1/2 px-2 py-0.5 bg-white text-black text-[8px] font-black uppercase rounded opacity-0 group-hover/rb:opacity-100 pointer-events-none whitespace-nowrap transition-opacity">
-                                                            {cfg.label}
-                                                        </div>
                                                     </motion.button>
                                                 );
                                             })}
@@ -235,35 +220,29 @@ const BlogPostCard = memo(({ post, authorProfile, onActionComplete }) => {
                             </AnimatePresence>
                         </div>
 
-                        {/* Repost */}
                         <button
                             onClick={handleRepost}
                             disabled={reposting || !user}
-                            aria-label="Repostear"
                             className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-white/30 hover:text-purple-400 transition-colors active:scale-95 disabled:opacity-40"
                         >
-                            <span className="text-base">ðŸ”</span>
+                            <span className="text-base">🔄</span>
                             {reposting ? 'Reposteando...' : 'Repost'}
                         </button>
 
-                        {/* Citar */}
                         <button
                             onClick={() => setQuoteOpen(v => !v)}
                             disabled={!user}
-                            aria-label="Citar post"
                             className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-white/30 hover:text-orange-400 transition-colors active:scale-95 disabled:opacity-40"
                         >
-                            <span className="text-base">ðŸ’¬</span>
+                            <span className="text-base">💬</span>
                             Citar
                         </button>
 
-                        {/* Views */}
                         <span className="ml-auto text-[10px] font-black text-white/20 font-mono flex items-center gap-1">
-                            ðŸ‘ {post.views || 0}
+                            👁️ {post.views || 0}
                         </span>
                     </div>
 
-                    {/* Quote form */}
                     <AnimatePresence>
                         {quoteOpen && (
                             <motion.form
@@ -274,14 +253,13 @@ const BlogPostCard = memo(({ post, authorProfile, onActionComplete }) => {
                                 className="overflow-hidden mt-4"
                             >
                                 <div className="bg-black/40 border border-white/10 rounded-2xl p-4 flex flex-col gap-3">
-                                    {/* Preview del post citado */}
                                     <div className="text-xs text-white/30 italic border-l-2 border-cyan-500/40 pl-3">
                                         {post.title}
                                     </div>
                                     <textarea
                                         value={quoteText}
                                         onChange={e => setQuoteText(e.target.value)}
-                                        placeholder="Escribe tu comentario sobre esta transmisiÃ³n..."
+                                        placeholder="Escribe tu comentario sobre esta transmisión..."
                                         maxLength={280}
                                         rows={3}
                                         className="w-full bg-transparent border-none text-sm text-white placeholder:text-white/20 resize-none outline-none"
@@ -312,4 +290,3 @@ const BlogPostCard = memo(({ post, authorProfile, onActionComplete }) => {
 });
 
 export default BlogPostCard;
-

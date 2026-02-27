@@ -154,7 +154,7 @@ export default function GamesPage() {
         .limit(5);
 
       if (data) {
-        const events = data.map(s => `🎰 ${s.profiles?.username || 'Piloto'} marcó ${s.score} en ${s.game_id.toUpperCase()}`);
+        const events = data.map(s => `🎰 ${s.profiles?.username || 'Explorador'} marcó ${s.score} en ${s.game_id.toUpperCase()}`);
         setTickerItems(prev => [...events, ...prev].slice(0, 10));
       }
     };

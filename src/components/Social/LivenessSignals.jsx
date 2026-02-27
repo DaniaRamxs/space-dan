@@ -7,8 +7,15 @@ import { Users, Radio, Activity } from 'lucide-react';
 export default function LivenessSignals() {
     const { user } = useAuthContext();
     const [onlineCount, setOnlineCount] = useState(0);
+    const [visits, setVisits] = useState('------');
 
     useEffect(() => {
+        // Fetch visits counter
+        fetch('https://api.counterapi.dev/v1/space-dan.netlify/visits/up')
+            .then(r => r.json())
+            .then(data => setVisits(String(data.count).padStart(6, '0')))
+            .catch(() => setVisits('??????'));
+
         const channel = supabase.channel('global_liveness', {
             config: {
                 presence: {
@@ -49,14 +56,14 @@ export default function LivenessSignals() {
 
                     <div className="flex flex-col">
                         <h4 className="text-[10px] font-semibold uppercase tracking-[0.2em] text-white/30 font-mono">
-                            Estado_Sector
+                            Visitas_Sistema
                         </h4>
                         <div className="flex items-center gap-2">
                             <span className="text-sm font-black text-white tabular-nums">
-                                {onlineCount} Exploradores
+                                {visits}
                             </span>
                             <span className="text-[8px] font-semibold text-emerald-500/40 uppercase tracking-[0.15em] font-mono">
-                                Sincronía_Activa
+                                {onlineCount} online
                             </span>
                         </div>
                     </div>

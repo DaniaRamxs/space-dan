@@ -428,7 +428,7 @@ function FundSection({ user }) {
   );
 }
 
-function MoodManager({ profile, user }) {
+function MoodManager({ profile, user, bgColor, setBgColor }) {
   const [moodText, setMoodText] = useState(profile?.mood_text || '');
   const [moodEmoji, setMoodEmoji] = useState(profile?.mood_emoji || '✨');
   const [duration, setDuration] = useState(24);
@@ -438,6 +438,32 @@ function MoodManager({ profile, user }) {
   const [pronouns, setPronouns] = useState(profile?.pronouns || '');
   const [socials, setSocials] = useState(profile?.social_links || []);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+
+  const colors = [
+    { name: 'Vacío', hex: '#040408' },
+    { name: 'Nebulosa', hex: '#0a0a1f' },
+    { name: 'Abismo', hex: '#050a0a' },
+    { name: 'Sangre', hex: '#0f0505' },
+    { name: 'Bosque', hex: '#050f05' },
+    { name: 'Mística', hex: '#0f050f' },
+    { name: 'Ámbar', hex: '#0f0a05' },
+    { name: 'Cian', hex: '#050a0f' },
+    { name: 'Rosa Etéreo', hex: '#2d1b2d' },
+    { name: 'Cielo Suave', hex: '#1b262d' },
+    { name: 'Menta Espacial', hex: '#1b2d26' },
+    { name: 'Lavanda', hex: '#231b2d' },
+    { name: 'Arena Estelar', hex: '#2d261b' },
+    { name: 'Atardecer', hex: '#4a2a1b' },
+    { name: 'Océano Profundo', hex: '#0a1b2d' },
+    { name: 'Esmeralda', hex: '#0a2d1b' },
+    { name: 'Nube Rosa', hex: '#4a3640' },
+    { name: 'Brisa Celeste', hex: '#36444a' },
+    { name: 'Sueño Verde', hex: '#364a3d' },
+    { name: 'Pastel Rosa', hex: '#ffc0cb' },
+    { name: 'Pastel Azul', hex: '#add8e6' },
+    { name: 'Pastel Verde', hex: '#98fb98' },
+    { name: 'Pastel Lila', hex: '#e6e6fa' },
+  ];
 
   const handleSaveMood = async () => {
     setSaving(true);
@@ -459,7 +485,14 @@ function MoodManager({ profile, user }) {
   const handleSaveIdentity = async () => {
     setSaving(true);
     try {
-      await supabase.from('profiles').update({ mbti, zodiac, pronouns, social_links: socials }).eq('id', user.id);
+      const updatedEquipped = { ...(profile?.equipped_items || {}), profile_bg: bgColor };
+      await supabase.from('profiles').update({
+        mbti,
+        zodiac,
+        pronouns,
+        social_links: socials,
+        equipped_items: updatedEquipped
+      }).eq('id', user.id);
       alert('Identidad sincronizada ✓');
     } catch (err) {
       alert('Fallo en sincronización');
@@ -610,6 +643,46 @@ function MoodManager({ profile, user }) {
             />
           </div>
 
+          <div className="space-y-4">
+            <div className="flex items-center justify-between ml-1">
+              <label className="text-[9px] font-black text-white/20 uppercase">Fondo de Perfil</label>
+              <div className="flex items-center gap-3">
+                <span className="text-[8px] font-bold text-white/30 uppercase tracking-tighter">Color Custom:</span>
+                <input
+                  type="color"
+                  value={bgColor}
+                  onChange={(e) => setBgColor(e.target.value)}
+                  className="w-6 h-6 rounded-lg bg-transparent border-none cursor-pointer overflow-hidden p-0"
+                />
+                <input
+                  type="text"
+                  value={bgColor}
+                  onChange={(e) => setBgColor(e.target.value)}
+                  className="w-20 bg-black/40 border border-white/10 rounded-lg px-2 py-1 text-[9px] font-mono text-white/60 focus:border-purple-500 outline-none"
+                  placeholder="#000000"
+                />
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-3 p-1">
+              {colors.map((c) => (
+                <button
+                  key={c.hex}
+                  onClick={() => setBgColor(c.hex)}
+                  className={`group relative w-10 h-10 rounded-full border-2 transition-all ${bgColor.toLowerCase() === c.hex.toLowerCase() ? 'border-white scale-110 shadow-[0_0_15px_rgba(255,255,255,0.3)]' : 'border-white/10 hover:border-white/40'}`}
+                  title={c.name}
+                  style={{ backgroundColor: c.hex }}
+                >
+                  {bgColor.toLowerCase() === c.hex.toLowerCase() && (
+                    <motion.div layoutId="colorActive" className="absolute -inset-1 rounded-full border border-white/50" />
+                  )}
+                  <span className="absolute -bottom-6 left-1/2 -translate-x-1/2 text-[7px] font-black uppercase opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-50">
+                    {c.name}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
+
           {/* Social Links Editor */}
           <div className="space-y-4 pt-4 border-t border-white/5">
             <div className="flex items-center justify-between">
@@ -702,12 +775,14 @@ export default function ProfileOwn() {
   const [newComment, setNewComment] = useState('');
   const [submittingComment, setSubmittingComment] = useState(false);
   const [bannerItem, setBannerItem] = useState(null);
+  const [bgColor, setBgColor] = useState('#040408');
 
   useEffect(() => {
     if (!profile) return;
     setBannerLocal(profile.banner_color ?? null);
     setFrameItemId(profile.frame_item_id ?? null);
     setBio(profile.bio || '');
+    setBgColor(profile.equipped_items?.profile_bg || '#040408');
 
     // Use pre-loaded items from auth context if available
     if (profile.banner_item) {
@@ -819,8 +894,10 @@ export default function ProfileOwn() {
     }
   };
 
+  const profileBg = bgColor;
+
   return (
-    <div className="min-h-screen bg-[#040408] text-white font-sans relative">
+    <div className="min-h-screen text-white font-sans relative transition-colors duration-700" style={{ backgroundColor: profileBg }}>
       <div className="fixed inset-0 bg-[url('/grid-pattern.png')] opacity-[0.02] pointer-events-none" />
 
       {/* Banner Hero */}
@@ -853,7 +930,7 @@ export default function ProfileOwn() {
         {bannerItem?.metadata?.fx === 'void' && <div className="absolute inset-0 banner-fx-void opacity-50"></div>}
 
         {/* Global Bottom Fade for better transition to content */}
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[#040408]/20 to-[#040408]" />
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[var(--profile-bg)]" style={{ '--profile-bg': profileBg }} />
 
         {/* Dynamic Mesh Overlays */}
         <div className="absolute inset-0 bg-[url('/grid-pattern.png')] opacity-[0.03] pointer-events-none" />
@@ -875,6 +952,19 @@ export default function ProfileOwn() {
                 />
                 <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 px-4 py-1.5 rounded-full bg-white text-black text-[10px] font-black uppercase tracking-widest shadow-xl z-50">
                   LVL {level}
+                </div>
+
+                {/* Mood Thought Bubble */}
+                <div className="absolute -top-16 left-20 z-[60] pointer-events-none animate-bounce-subtle">
+                  <div className="relative">
+                    <div className="inline-flex max-w-[180px] items-center gap-2 rounded-2xl border border-white/20 bg-black/80 backdrop-blur-md px-4 py-2.5 text-[10px] text-white shadow-2xl ring-1 ring-white/10">
+                      <span className="text-sm leading-none drop-shadow-md">{profile?.mood_emoji || '💭'}</span>
+                      <span className="font-medium tracking-tight truncate">{profile?.mood_text?.trim() || '...'}</span>
+                    </div>
+                    {/* Comic bubble dots leading to avatar */}
+                    <div className="absolute -bottom-1 left-6 h-2.5 w-2.5 rounded-full border border-white/10 bg-black/70 shadow-xl" />
+                    <div className="absolute -bottom-4 left-3 h-1.5 w-1.5 rounded-full border border-white/10 bg-black/50 shadow-xl" />
+                  </div>
                 </div>
               </div>
 
@@ -918,6 +1008,47 @@ export default function ProfileOwn() {
                         setIsEditingBio(false);
                       }}>Guardar</button>
                     </div>
+                  </div>
+                )}
+
+                {/* Identity Signature & Social Links */}
+                {(profile?.mbti || profile?.zodiac || (profile?.social_links && profile.social_links.length > 0)) && (
+                  <div className="pt-4 space-y-5">
+                    {/* Pills: MBTI & Zodiac */}
+                    {(profile?.mbti || profile?.zodiac) && (
+                      <div className="flex flex-wrap gap-2">
+                        {profile?.mbti && (
+                          <div className="px-3 py-1.5 rounded-lg bg-purple-500/10 border border-purple-500/20 flex items-center gap-2">
+                            <span className="text-[8px] font-black text-purple-400 uppercase tracking-[0.2em] opacity-50">MBTI</span>
+                            <span className="text-[10px] font-bold text-purple-300 font-mono tracking-wider">{profile.mbti}</span>
+                          </div>
+                        )}
+                        {profile?.zodiac && (
+                          <div className="px-3 py-1.5 rounded-lg bg-cyan-500/10 border border-cyan-500/20 flex items-center gap-2">
+                            <span className="text-[8px] font-black text-cyan-400 uppercase tracking-[0.2em] opacity-50">Zodiaco</span>
+                            <span className="text-[10px] font-bold text-cyan-300 font-mono tracking-wider">{profile.zodiac}</span>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Social Grid */}
+                    {profile?.social_links && profile.social_links.length > 0 && (
+                      <div className="flex flex-wrap gap-2 pt-1">
+                        {profile.social_links.map((link, idx) => (
+                          <a
+                            key={idx}
+                            href={link.url.startsWith('http') ? link.url : `https://${link.url}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="w-10 h-10 rounded-xl bg-white/[0.03] border border-white/10 flex items-center justify-center text-lg hover:bg-white/10 hover:border-white/20 transition-all hover:-translate-y-1 shadow-sm"
+                            title={link.platform}
+                          >
+                            {getSocialIcon(link.platform)}
+                          </a>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -982,6 +1113,7 @@ export default function ProfileOwn() {
               <TabButton active={activeTab === 'achievements'} onClick={() => setActiveTab('achievements')}>Logros</TabButton>
               <TabButton active={activeTab === 'wall'} onClick={() => setActiveTab('wall')}>Muro</TabButton>
               <TabButton active={activeTab === 'economy'} onClick={() => setActiveTab('economy')}>Cartera</TabButton>
+              <TabButton active={activeTab === 'identity'} onClick={() => setActiveTab('identity')}>Identidad</TabButton>
               <TabButton active={activeTab === 'cabina'} onClick={() => setActiveTab('cabina')}>Cabina</TabButton>
             </nav>
 
@@ -1065,6 +1197,10 @@ export default function ProfileOwn() {
                       <EconomySection user={user} />
                       <FundSection user={user} />
                     </div>
+                  )}
+
+                  {activeTab === 'identity' && (
+                    <MoodManager profile={profile} user={user} bgColor={bgColor} setBgColor={setBgColor} />
                   )}
 
                   {activeTab === 'cabina' && (

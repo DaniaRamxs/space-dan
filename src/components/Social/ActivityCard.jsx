@@ -15,7 +15,7 @@ import { CATEGORIES } from './PostComposer';
 import { getUserDisplayName, getNicknameClass } from '../../utils/user';
 import { Eye, Repeat2, MessageSquare, ChevronRight } from 'lucide-react';
 
-// ConfiguraciÃ³n de sanitize para permitir nuestras clases sd-* en la preview
+// Configuración de sanitize para permitir nuestras clases sd-* en la preview
 const sanitizeSchema = {
     ...defaultSchema,
     tagNames: [...new Set([...defaultSchema.tagNames, 'div', 'span'])],
@@ -27,18 +27,18 @@ const sanitizeSchema = {
     }
 };
 
-// Extrae texto plano bÃ¡sico pero MANTIENE las energÃ­as para que el parser pueda actuar
+// Extrae texto plano básico pero MANTIENE las energías para que el parser pueda actuar
 function cleanMarkdownForPreview(md = '') {
     return md
-        .replace(/```[\s\S]*?```/g, '[CÃ³digo]')
+        .replace(/```[\s\S]*?```/g, '[Código]')
         .replace(/#+\s/g, '') // Quitar headers para que no ocupen tanto espacio
-        .replace(/!\[[^\]]*\]\([^)]*\)/g, '') // Quitar imÃ¡genes
+        .replace(/!\[[^\]]*\]\([^)]*\)/g, '') // Quitar imágenes
         .replace(/\[([^\]]*)\]\([^)]*\)/g, '$1') // Solo texto de links
         .trim();
 }
 
 function getCategoryMeta(id) {
-    return CATEGORIES.find(c => c.id === id) || { icon: 'ðŸŒ', label: 'General' };
+    return CATEGORIES.find(c => c.id === id) || { icon: '🌐', label: 'General' };
 }
 
 function formatViews(n = 0) {
@@ -71,7 +71,7 @@ const ActivityCard = memo(({ post, onUpdate, onNewPost }) => {
 
     const previewRaw = cleanMarkdownForPreview(post.content || '');
     const preview = previewRaw.length > 500
-        ? previewRaw.slice(0, 500).trimEnd() + 'â€¦'
+        ? previewRaw.slice(0, 500).trimEnd() + '…'
         : previewRaw;
 
     const postUrl = `/transmission/${post.id}`;
@@ -89,7 +89,7 @@ const ActivityCard = memo(({ post, onUpdate, onNewPost }) => {
                 role="article"
                 aria-label={post.title || 'Post'}
             >
-                {/* LÃ­nea acento top (Reduced 50%) */}
+                {/* Línea acento top (Reduced 50%) */}
                 <div className="absolute top-0 left-8 right-8 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent
                                 group-hover:via-white/20 transition-all duration-500" />
 
@@ -144,35 +144,35 @@ const ActivityCard = memo(({ post, onUpdate, onNewPost }) => {
                                 </div>
                             </div>
 
-                            {/* CategorÃ­a y SeÃ±ales de Vida */}
+                            {/* Categoría y Señales de Vida */}
                             <div className="flex items-center gap-3">
                                 <div className="flex items-center gap-1.5 text-[8px] font-semibold uppercase tracking-[0.2em] font-mono">
                                     <span className="text-cyan-500/25 group-hover:text-cyan-400/50 transition-colors">
                                         {catMeta.icon} {catMeta.label}
                                     </span>
                                     {post.updated_at > post.created_at && (
-                                        <span className="text-white/10">Â· editado</span>
+                                        <span className="text-white/10">· editado</span>
                                     )}
                                 </div>
 
                                 {new Date() - new Date(post.created_at) < 60000 && (
                                     <div className="flex items-center gap-1.5 px-1.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20">
                                         <div className="w-1 h-1 rounded-full bg-emerald-500 animate-pulse" />
-                                        <span className="text-[7px] font-semibold text-emerald-500/80 uppercase tracking-[0.2em] font-mono">_SeÃ±al_Nueva</span>
+                                        <span className="text-[7px] font-semibold text-emerald-500/80 uppercase tracking-[0.2em] font-mono">_Señal_Nueva</span>
                                     </div>
                                 )}
                             </div>
                         </div>
                     </div>
 
-                    {/* TÃ­tulo (Using Typography Scale) */}
+                    {/* Título (Using Typography Scale) */}
                     {post.title && (
                         <h2 className="text-xl md:text-2xl font-bold text-white/90 tracking-tight leading-none mb-3 group-hover:text-white transition-colors">
                             {post.title}
                         </h2>
                     )}
 
-                    {/* Preview con soporte de EnergÃ­as */}
+                    {/* Preview con soporte de Energías */}
                     {preview && (
                         <div className="text-[15px] font-medium leading-relaxed text-white/70 mb-4 line-clamp-4 pointer-events-none select-none prose-preview">
                             <ReactMarkdown
@@ -185,7 +185,7 @@ const ActivityCard = memo(({ post, onUpdate, onNewPost }) => {
                     )}
 
                     {/* Original Post Embed (For reposts and quotes) */}
-                    {post.original_post && (
+                    {post.original_post && post.original_post.id && post.original_post.author && post.original_post.created_at && (
                         <div className="mt-2 mb-4 p-4 rounded-3xl bg-white/[0.03] border border-white/10 hover:border-white/20 transition-all">
                             <div className="flex items-center gap-2 mb-2">
                                 <div className="w-5 h-5 rounded-lg overflow-hidden border border-white/10 shrink-0">
@@ -196,7 +196,7 @@ const ActivityCard = memo(({ post, onUpdate, onNewPost }) => {
                                     />
                                 </div>
                                 <span className="text-[10px] font-black text-white/50 uppercase tracking-widest">
-                                    @{post.original_post.author?.username || 'piloto'}
+                                    @{getUserDisplayName(post.original_post.author)}
                                 </span>
                                 <span className="text-[9px] font-mono text-white/20 ml-auto">
                                     {safeTimeAgo(post.original_post?.created_at, false)}
@@ -253,7 +253,7 @@ const ActivityCard = memo(({ post, onUpdate, onNewPost }) => {
                         </div>
                     </div>
                 </div>
-            </motion.div >
+            </motion.div>
 
             <ShareModal
                 isOpen={showShareModal}
@@ -270,4 +270,3 @@ const ActivityCard = memo(({ post, onUpdate, onNewPost }) => {
 });
 
 export default ActivityCard;
-

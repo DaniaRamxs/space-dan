@@ -404,8 +404,10 @@ function ProfileContent({
     return icons[id] || '🔗';
   };
 
+  const profileBg = profile?.equipped_items?.profile_bg || '#040408';
+
   return (
-    <div className="min-h-screen bg-[#040408] text-white font-sans relative">
+    <div className="min-h-screen text-white font-sans relative transition-colors duration-700" style={{ backgroundColor: profileBg }}>
       <div className="fixed inset-0 bg-[url('/grid-pattern.png')] opacity-[0.02] pointer-events-none" />
 
       {/* Banner Hero */}
@@ -437,7 +439,7 @@ function ProfileContent({
         {bannerItem?.metadata?.fx === 'stars' && <div className="absolute inset-0 banner-fx-stars opacity-40"></div>}
         {bannerItem?.metadata?.fx === 'void' && <div className="absolute inset-0 banner-fx-void opacity-50"></div>}
 
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[#040408]/20 to-[#040408]" />
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[var(--profile-bg)]" style={{ '--profile-bg': profileBg }} />
 
         {/* Navigation Return */}
         <div className="absolute top-8 left-8 z-50">
@@ -476,6 +478,19 @@ function ProfileContent({
                 <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 px-4 py-1.5 rounded-full bg-white text-black text-[10px] font-black uppercase tracking-widest shadow-xl z-50">
                   LVL {level}
                 </div>
+
+                {/* Mood Thought Bubble */}
+                <div className="absolute -top-16 left-20 z-[60] pointer-events-none animate-bounce-subtle">
+                  <div className="relative">
+                    <div className="inline-flex max-w-[180px] items-center gap-2 rounded-2xl border border-white/20 bg-black/80 backdrop-blur-md px-4 py-2.5 text-[10px] text-white shadow-2xl ring-1 ring-white/10">
+                      <span className="text-sm leading-none drop-shadow-md">{profile?.mood_emoji || '💭'}</span>
+                      <span className="font-medium tracking-tight truncate">{profile?.mood_text?.trim() || '...'}</span>
+                    </div>
+                    {/* Comic bubble dots leading to avatar */}
+                    <div className="absolute -bottom-1 left-6 h-2.5 w-2.5 rounded-full border border-white/10 bg-black/70 shadow-xl" />
+                    <div className="absolute -bottom-4 left-3 h-1.5 w-1.5 rounded-full border border-white/10 bg-black/50 shadow-xl" />
+                  </div>
+                </div>
               </div>
 
               <div className="space-y-4">
@@ -485,6 +500,7 @@ function ProfileContent({
                 {profile?.pronouns && (
                   <span className="text-micro opacity-40 block uppercase tracking-widest">{profile.pronouns}</span>
                 )}
+
 
                 {/* Role Badges */}
                 {(profile?.primary_role_item || profile?.secondary_role_item) && (
@@ -503,6 +519,47 @@ function ProfileContent({
                 <p className="text-sm text-white/50 leading-relaxed italic">
                   "{profile?.bio || 'Sin biografía estelar.'}"
                 </p>
+
+                {/* Identity Signature & Social Links */}
+                {(profile?.mbti || profile?.zodiac || (profile?.social_links && profile.social_links.length > 0)) && (
+                  <div className="pt-4 space-y-5">
+                    {/* Pills: MBTI & Zodiac */}
+                    {(profile?.mbti || profile?.zodiac) && (
+                      <div className="flex flex-wrap gap-2">
+                        {profile?.mbti && (
+                          <div className="px-3 py-1.5 rounded-lg bg-purple-500/10 border border-purple-500/20 flex items-center gap-2 group/mbti">
+                            <span className="text-[8px] font-black text-purple-400 uppercase tracking-[0.2em] opacity-50">MBTI</span>
+                            <span className="text-[10px] font-bold text-purple-300 font-mono tracking-wider">{profile.mbti}</span>
+                          </div>
+                        )}
+                        {profile?.zodiac && (
+                          <div className="px-3 py-1.5 rounded-lg bg-cyan-500/10 border border-cyan-500/20 flex items-center gap-2 group/zodiac">
+                            <span className="text-[8px] font-black text-cyan-400 uppercase tracking-[0.2em] opacity-50">Zodiaco</span>
+                            <span className="text-[10px] font-bold text-cyan-300 font-mono tracking-wider">{profile.zodiac}</span>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Social Grid */}
+                    {profile?.social_links && profile.social_links.length > 0 && (
+                      <div className="flex flex-wrap gap-2 pt-1">
+                        {profile.social_links.map((link, idx) => (
+                          <a
+                            key={idx}
+                            href={link.url.startsWith('http') ? link.url : `https://${link.url}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="w-10 h-10 rounded-xl bg-white/[0.03] border border-white/10 flex items-center justify-center text-lg hover:bg-white/10 hover:border-white/20 transition-all hover:-translate-y-1 shadow-sm"
+                            title={link.platform}
+                          >
+                            {getSocialIcon(link.platform)}
+                          </a>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
               {/* Server Metrics Sidebar */}

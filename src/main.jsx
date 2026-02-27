@@ -69,6 +69,13 @@ if (Capacitor.isNativePlatform()) {
   initMobileAuth();
 }
 
+// Disable old PWA caches while debugging mobile layout issues.
+if ('serviceWorker' in navigator && !Capacitor.isNativePlatform()) {
+  navigator.serviceWorker.getRegistrations().then((regs) => {
+    regs.forEach((reg) => reg.unregister());
+  });
+}
+
 // Render app
 createRoot(document.getElementById('root')).render(
   <StrictMode>

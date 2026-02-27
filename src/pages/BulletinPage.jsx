@@ -82,6 +82,8 @@ const bulletinPosts = [
   { id: 83, date: "2026-02-27", title: "Chat de Pantalla Completa", text: "Aumentamos el ancho de las burbujas de chat al 95%. Las palabras largas y URLs ya no se cortan, y el texto tiene mucho más aire para respirar.", tags: ["diseño", "update"] },
   { id: 84, date: "2026-02-27", title: "AI Biometrics & Arquitectura", text: "Actualización masiva de la página de Arquitectura para documentar el uso de MediaPipe (IA) en la cabina, Supabase Realtime y el nuevo stack de sincronización social.", tags: ["update", "tecnología"] },
   { id: 85, date: "2026-02-27", title: "Limpieza de Cabina", text: "Optimizamos el HUD de la cabina espacial eliminando la radio duplicada. Ahora el sistema usa la radio global del OS para una experiencia sonora fluida.", tags: ["fix", "diseño"] },
+  { id: 86, date: "2026-02-27", title: "Refinamiento de Embeds", text: "Mejoramos la lógica de los posts compartidos (reposts/citas). Ahora el cuadro de la publicación original solo se muestra si contiene datos válidos, evitando mensajes de error como 'vacio temporal'.", tags: ["fix", "social"] },
+  { id: 87, date: "2026-02-27", title: "Visitas en el Feed", text: "Integramos el contador de visitas global directamente en el feed de actividad (LivenessSignals). Para mantener la interfaz limpia, lo eliminamos de la barra superior y el menú móvil.", tags: ["update", "diseño"] },
 ];
 
 const PAGE_SIZE = 10;

@@ -16,11 +16,8 @@ import { useRef } from 'react';
 const PERSONAL_PATHS = ['/kinnies', '/tests', '/universo', '/dreamscape'];
 const FIXED_LAYOUT_PATHS = ['/cartas', '/cabina', '/desktop'];
 
-
-
 export default function GardenLayout({ children }) {
   const { user, profile: ownProfile } = useAuth();
-
   const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -37,15 +34,6 @@ export default function GardenLayout({ children }) {
   const { balance, claimDaily, canClaimDaily } = useEconomy();
   const [dailyFlash, setDailyFlash] = useState(false);
   const hasCheckedDaily = useRef(false);
-
-  // Contador de visitas real
-  const [visits, setVisits] = useState('------');
-  useEffect(() => {
-    fetch('https://api.counterapi.dev/v1/space-dan.netlify/visits/up')
-      .then(r => r.json())
-      .then(data => setVisits(String(data.count).padStart(6, '0')))
-      .catch(() => setVisits('??????'));
-  }, []);
 
   useEffect(() => {
     if (!user || hasCheckedDaily.current) return;
@@ -78,10 +66,8 @@ export default function GardenLayout({ children }) {
       <KonamiEasterEgg />
       <RadioPlayer />
 
-      {/* Overlay para cerrar el menu en mobile */}
       <div className={`gardenShell ${isFixedLayout ? 'gardenShell--fixed' : ''}`}>
-
-        <main className="gardenMain">
+        <main className={`gardenMain ${isFixedLayout ? 'gardenMain--fixed' : ''}`}>
           <header className="gardenTopbar">
             <div className="topbarLeft">
               <div className="topbarLogo">
@@ -89,7 +75,7 @@ export default function GardenLayout({ children }) {
               </div>
 
               <nav className="desktopNav hidden md:flex">
-                <NavLink to="/posts" className="desktopNavLink">Social</NavLink>
+                <NavLink to="/posts" className="desktopNavLink" end>Social</NavLink>
                 <NavLink to="/games" className="desktopNavLink">Juegos</NavLink>
                 <NavLink to="/tienda" className="desktopNavLink">Tienda</NavLink>
                 <button onClick={() => setMobileMenuOpen(true)} className="desktopNavLink moreBtn">
@@ -101,10 +87,6 @@ export default function GardenLayout({ children }) {
 
             <div className="topbarRight">
               <div className="topbarStats hidden lg:flex">
-                <div className="statItem">
-                  <span className="statLabel">VSS</span>
-                  <span className="statValue">{visits}</span>
-                </div>
                 <div className="statItem">
                   <span className="statLabel">DNC</span>
                   <span className="statValue">◈ {balance}</span>
@@ -121,15 +103,7 @@ export default function GardenLayout({ children }) {
           </header>
 
           <div className="gardenContent">{children}</div>
-
-
-
-
-
-
         </main>
-
-
       </div>
 
       {dailyFlash && (
@@ -166,8 +140,6 @@ export default function GardenLayout({ children }) {
         </button>
       </nav>
 
-      {/* Modern Mobile HUB Overlay */}
-      {/* Unified System HUB Overlay */}
       <AnimatePresence>
         {mobileMenuOpen && (
           <motion.div
@@ -182,7 +154,6 @@ export default function GardenLayout({ children }) {
                 <button className="hubClose" onClick={closeMenu}>✕</button>
               </div>
 
-              {/* User Card */}
               <motion.div
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
@@ -205,8 +176,6 @@ export default function GardenLayout({ children }) {
                 </div>
               </motion.div>
 
-
-              {/* Quick Stats */}
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -217,13 +186,8 @@ export default function GardenLayout({ children }) {
                   <span className="hubStatLabel">Dancoins</span>
                   <span className="hubStatValue text-amber-400">◈ {balance}</span>
                 </div>
-                <div className="hubStatItem">
-                  <span className="hubStatLabel">Visitas Globales</span>
-                  <span className="hubStatValue text-cyan-400">{visits}</span>
-                </div>
               </motion.div>
 
-              {/* Grid Items */}
               <motion.div
                 variants={{
                   show: { transition: { staggerChildren: 0.05, delayChildren: 0.2 } }
