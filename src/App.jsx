@@ -85,6 +85,33 @@ function PageTracker() {
   return null;
 }
 
+function PresenceTracker() {
+  const location = useLocation();
+  const { updatePresence, activeStation } = useUniverse();
+  const { profile } = useAuthContext();
+
+  useEffect(() => {
+    if (!profile) return;
+
+    const getStatus = () => {
+      if (activeStation) return `SINTONIZANDO: ${activeStation} 🎵`;
+
+      const path = location.pathname;
+      if (path === '/chat') return 'EN EL CHAT GLOBAL 💬';
+      if (path === '/cabina') return 'EN LA CABINA DE MANDO 🚀';
+      if (path === '/desktop') return 'OPERANDO SPACE-OS 💻';
+      if (path === '/tienda') return 'EN EL MERCADO ESTELAR 🛍️';
+      if (path === '/games') return 'EN EL SECTOR DE JUEGOS 🎮';
+      if (path === '/universo') return 'OBSERVANDO EL COSMOS 🌌';
+      return 'NAVEGANDO EL SISTEMA';
+    };
+
+    updatePresence({ status: getStatus() });
+  }, [location.pathname, profile, updatePresence, activeStation]);
+
+  return null;
+}
+
 function FallbackLoader() {
   return (
     <div style={{ height: "100vh", display: "flex", justifyContent: "center", alignItems: "center", background: "#050510" }}>
@@ -278,6 +305,7 @@ export default function App() {
             <AchievementToast />
             <Screensaver />
             <PageTracker />
+            <PresenceTracker />
             <Suspense fallback={<FallbackLoader />}>
               <AnimatedRoutes />
             </Suspense>

@@ -6,6 +6,7 @@ import { getRadioAudio } from '../utils/radioAudio';
 import RadioSvg from './RadioSvg';
 import { supabase } from '../supabaseClient';
 import { useAuthContext } from '../contexts/AuthContext';
+import { useUniverse } from '../contexts/UniverseContext';
 
 /* ── Estaciones ──────────────────────────────────────────────── */
 
@@ -100,6 +101,7 @@ export default function RadioPlayer() {
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(false);
   const hasUnlockedRef = useRef(false);
+  const { setActiveStation } = useUniverse();
 
   // Sincronizar con DB si el usuario está logueado
   useEffect(() => {
@@ -159,6 +161,14 @@ export default function RadioPlayer() {
       audio.removeEventListener('error', onError);
     };
   }, [audio, stations]);
+
+  useEffect(() => {
+    if (playing && stations[current]) {
+      setActiveStation(stations[current].name);
+    } else {
+      setActiveStation(null);
+    }
+  }, [playing, current, stations, setActiveStation]);
 
   useEffect(() => {
     const sync = async () => {

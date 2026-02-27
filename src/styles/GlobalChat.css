@@ -39,6 +39,65 @@
     pointer-events: none;
 }
 
+/* Orbit Presence & Activity Badge */
+.avatar-online-ring {
+    position: relative;
+}
+
+.avatar-online-ring::after {
+    content: '';
+    position: absolute;
+    inset: -2px;
+    border-radius: inherit;
+    border: 2px solid #22c55e;
+    box-shadow: 0 0 10px #22c55e, inset 0 0 5px #22c55e;
+    filter: blur(0.5px);
+    animation: orbit-pulse 2s infinite;
+    pointer-events: none;
+    z-index: 10;
+}
+
+@keyframes orbit-pulse {
+    0% {
+        opacity: 0.4;
+        scale: 1;
+    }
+
+    50% {
+        opacity: 1;
+        scale: 1.05;
+    }
+
+    100% {
+        opacity: 0.4;
+        scale: 1;
+    }
+}
+
+.orbit-status-label {
+    font-size: 8px;
+    font-weight: 900;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: #22d3ee;
+    background: rgba(34, 211, 238, 0.1);
+    padding: 2px 6px;
+    border-radius: 6px;
+    border: 1px solid rgba(34, 211, 238, 0.2);
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.orbit-status-dot {
+    width: 4px;
+    height: 4px;
+    border-radius: full;
+    background: #22c55e;
+    box-shadow: 0 0 5px #22c55e;
+    animation: pulse 1.5s infinite;
+}
+
 /* Pinned Messages Area (Sticky for persistent visibility) */
 .chat-pins-area {
     position: sticky;

@@ -12,6 +12,8 @@ export const UniverseProvider = ({ children, overrideProfile = null }) => {
         return localStorage.getItem('ambient_muted') === 'true';
     });
     const [partnership, setPartnership] = useState(null);
+    const [onlineUsers, setOnlineUsers] = useState({}); // { userId: { username, status, avatar_url, last_active } }
+    const [activeStation, setActiveStation] = useState(null);
 
     // 0. Fetch global partnership for the logged in user
     useEffect(() => {
@@ -38,6 +40,65 @@ export const UniverseProvider = ({ children, overrideProfile = null }) => {
 
         return () => { supabase.removeChannel(channel); };
     }, [user]);
+
+    // 0.5 Realtime Presence Tracking
+    useEffect(() => {
+        if (!user) {
+            setOnlineUsers({});
+            return;
+        }
+
+        const presenceChannel = supabase.channel('online-users', {
+            config: { presence: { key: user.id } }
+        });
+
+        presenceChannel
+            .on('presence', { event: 'sync' }, () => {
+                const state = presenceChannel.presenceState();
+                const users = {};
+                Object.keys(state).forEach(key => {
+                    users[key] = state[key][0];
+                });
+                setOnlineUsers(users);
+            })
+            .on('presence', { event: 'join' }, ({ key, newPresences }) => {
+                setOnlineUsers(prev => ({ ...prev, [key]: newPresences[0] }));
+            })
+            .on('presence', { event: 'leave' }, ({ key }) => {
+                setOnlineUsers(prev => {
+                    const next = { ...prev };
+                    delete next[key];
+                    return next;
+                });
+            })
+            .subscribe(async (status) => {
+                if (status === 'SUBSCRIBED') {
+                    await presenceChannel.track({
+                        id: user.id,
+                        username: profile?.username || 'Viajero',
+                        avatar_url: profile?.avatar_url,
+                        status: 'Explorando el Vacío',
+                        last_active: new Date().toISOString()
+                    });
+                }
+            });
+
+        return () => {
+            presenceChannel.unsubscribe();
+        };
+    }, [user?.id, profile?.username, profile?.avatar_url]);
+
+    const updatePresence = async (data) => {
+        if (!user) return;
+        const channel = supabase.channel('online-users');
+        await channel.track({
+            id: user.id,
+            username: profile?.username || 'Viajero',
+            avatar_url: profile?.avatar_url,
+            last_active: new Date().toISOString(),
+            ...data
+        });
+    };
 
     // 1. Efecto para aplicar el tema al documento mediante CSS Variables
     useEffect(() => {
@@ -139,7 +200,11 @@ export const UniverseProvider = ({ children, overrideProfile = null }) => {
             text: profile?.mood_text,
             emoji: profile?.mood_emoji,
             isExpired: profile?.mood_expires_at && new Date(profile.mood_expires_at) < new Date()
-        }
+        },
+        onlineUsers,
+        updatePresence,
+        activeStation,
+        setActiveStation
     };
 
     return (
