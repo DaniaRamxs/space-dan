@@ -79,7 +79,7 @@ export default function PostPage() {
           {post.subtitle && <h2 className="text-xl text-gray-400 mb-6">{post.subtitle}</h2>}
 
           <div className="flex items-center justify-center gap-4 text-sm mt-6">
-            <Link to={post.author?.username ? `/@${post.author.username}` : `/profile/${post.user_id}`} className="flex items-center gap-2 group">
+            <Link to={post.author?.username ? `/@${encodeURIComponent(post.author.username)}` : `/profile/${post.user_id}`} className="flex items-center gap-2 group">
               <img src={post.author?.avatar_url || '/dan_profile.jpg'} alt="Avatar" className="w-8 h-8 rounded-full border border-white/10 group-hover:border-cyan-500 transition-colors" />
               <span className="font-bold text-gray-200 group-hover:text-cyan-400 transition-colors">{post.author?.username || 'Usuario'}</span>
             </Link>

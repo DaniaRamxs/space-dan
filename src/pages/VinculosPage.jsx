@@ -463,11 +463,11 @@ function RequestRow({ req, type, actionLoading, onAccept, onReject }) {
     const person = type === 'incoming' ? req.sender : req.receiver;
     return (
         <div className="flex items-center gap-4 p-6 rounded-3xl bg-white/[0.02] border border-white/5 hover:bg-white/[0.04] transition-colors">
-            <Link to={`/@${person?.username}`}>
+            <Link to={`/@${encodeURIComponent(person?.username || '')}`}>
                 <img src={person?.avatar_url || '/default_user_blank.png'} className="w-12 h-12 rounded-2xl object-cover opacity-60 hover:opacity-100 transition-opacity" />
             </Link>
             <div className="flex-1">
-                <Link to={`/@${person?.username}`} className="text-sm font-black text-white/80 hover:text-white transition-colors uppercase tracking-widest">@{person?.username}</Link>
+                <Link to={`/@${encodeURIComponent(person?.username || '')}`} className="text-sm font-black text-white/80 hover:text-white transition-colors uppercase tracking-widest">@{person?.username}</Link>
                 <p className="text-[10px] text-white/20 uppercase mt-1">
                     {type === 'incoming' ? 'Solicita conexión estelar' : 'Esperando respuesta...'}
                 </p>
@@ -530,13 +530,13 @@ function RequestCard({ req, type, actionLoading, onAccept, onReject }) {
             borderRadius: 14, padding: '16px 18px',
             display: 'flex', alignItems: 'center', gap: 14,
         }}>
-            <Link to={person?.username ? `/@${person?.username}` : `/profile/${person?.id}`}>
+            <Link to={person?.username ? `/@${encodeURIComponent(person.username)}` : `/profile/${person?.id}`}>
                 <img src={person?.avatar_url || '/default_user_blank.png'} alt="Avatar"
                     style={{ width: 44, height: 44, borderRadius: '50%', border: `2px solid ${borderColor}`, objectFit: 'cover' }}
                 />
             </Link>
             <div style={{ flex: 1 }}>
-                <Link to={person?.username ? `/@${person?.username}` : `/profile/${person?.id}`} style={{ color, fontWeight: 700, fontSize: '0.9rem', textDecoration: 'none' }}>
+                <Link to={person?.username ? `/@${encodeURIComponent(person.username)}` : `/profile/${person?.id}`} style={{ color, fontWeight: 700, fontSize: '0.9rem', textDecoration: 'none' }}>
                     {person?.username || 'Usuario'}
                 </Link>
                 <div style={{ color: '#666', fontSize: '0.7rem', marginTop: 3 }}>

@@ -76,6 +76,12 @@ const bulletinPosts = [
   { id: 77, date: "2026-02-26", title: "Persistencia de Radio", text: "Corregido un fallo donde tus radios compradas no se equipaban al recargar. Ahora tu playlist estelar es persistente en cualquier dispositivo.", tags: ["fix", "música"] },
   { id: 78, date: "2026-02-26", title: "Navegación Simplificada", text: "Eliminamos la página de bienvenida para un acceso más directo. El feed global de /posts es ahora la nueva entrada principal al universo.", tags: ["update", "diseño"] },
   { id: 79, date: "2026-02-26", title: "Estabilidad de Tienda", text: "Arreglamos los botones de compra que fallaban ocasionalmente. También mejoramos el soporte para compras de usuarios visitantes.", tags: ["fix", "gamificación"] },
+  { id: 80, date: "2026-02-27", title: "Protocolo de Estabilidad de Perfiles", text: "Corregido crash crítico al visitar perfiles con nombres compuestos (espacios). Además, se solventaron errores de referencia en el sistema de Vínculos Estelares que impedían la sincronización entre pilotos.", tags: ["fix", "identidad"] },
+  { id: 81, date: "2026-02-27", title: "Chat Global: Persistencia VIP", text: "Los mensajes destacados (VIP) ahora son sticky. Se quedan clavados en la parte superior de la pantalla incluso si scrolleas hacia abajo, asegurando que las transmisiones prioritarias nunca se pierdan.", tags: ["update", "comunidad"] },
+  { id: 82, date: "2026-02-27", title: "Giphy en el Feed", text: "Expandimos el soporte de GIFs a las publicaciones del feed de actividad. Ahora puedes buscar y añadir GIFs de Giphy directamente desde el Post Composer.", tags: ["update", "blog"] },
+  { id: 83, date: "2026-02-27", title: "Chat de Pantalla Completa", text: "Aumentamos el ancho de las burbujas de chat al 95%. Las palabras largas y URLs ya no se cortan, y el texto tiene mucho más aire para respirar.", tags: ["diseño", "update"] },
+  { id: 84, date: "2026-02-27", title: "AI Biometrics & Arquitectura", text: "Actualización masiva de la página de Arquitectura para documentar el uso de MediaPipe (IA) en la cabina, Supabase Realtime y el nuevo stack de sincronización social.", tags: ["update", "tecnología"] },
+  { id: 85, date: "2026-02-27", title: "Limpieza de Cabina", text: "Optimizamos el HUD de la cabina espacial eliminando la radio duplicada. Ahora el sistema usa la radio global del OS para una experiencia sonora fluida.", tags: ["fix", "diseño"] },
 ];
 
 const PAGE_SIZE = 10;

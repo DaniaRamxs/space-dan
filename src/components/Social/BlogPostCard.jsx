@@ -133,7 +133,7 @@ const BlogPostCard = memo(({ post, authorProfile, onActionComplete }) => {
 
             <div className="flex gap-4">
                 {/* Avatar */}
-                <Link to={username ? `/@${username}` : `/profile/${post.author_id}`} className="shrink-0">
+                <Link to={username ? `/@${encodeURIComponent(username)}` : `/profile/${post.author_id}`} className="shrink-0">
                     <div className="w-12 h-12 rounded-2xl overflow-hidden border border-white/10 shadow-lg bg-black hover:scale-105 transition-transform">
                         <img src={avatarSrc} alt={username} className="w-full h-full object-cover" loading="lazy" />
                     </div>
@@ -143,7 +143,7 @@ const BlogPostCard = memo(({ post, authorProfile, onActionComplete }) => {
                 <div className="flex-1 min-w-0">
                     {/* Header */}
                     <div className="flex items-center gap-2 mb-3">
-                        <Link to={username ? `/@${username}` : `/profile/${post.author_id}`} className="text-sm font-black text-white hover:text-cyan-400 transition-colors uppercase tracking-tight">
+                        <Link to={username ? `/@${encodeURIComponent(username)}` : `/profile/${post.author_id}`} className="text-sm font-black text-white hover:text-cyan-400 transition-colors uppercase tracking-tight">
                             {username}
                         </Link>
                         <div className="w-1 h-1 rounded-full bg-white/20" />

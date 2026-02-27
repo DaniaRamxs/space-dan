@@ -7,11 +7,10 @@
     background: rgba(5, 5, 15, 0.4);
     border-radius: 24px;
     border: 1px solid rgba(255, 255, 255, 0.05);
-    overflow: hidden;
 }
 
 .chat-messages-scroll {
-    flex: 1;
+    height: 100%;
     overflow-y: auto;
     padding: 20px;
     display: flex;
@@ -21,39 +20,110 @@
     scrollbar-color: rgba(255, 255, 255, 0.1) transparent;
 }
 
-/* Bifrost Masking (Fade top and bottom) */
+/* Container for messages and pinned elements */
 .chat-messages-container {
-    mask-image: linear-gradient(to bottom, transparent, black 8%, black 92%, transparent);
-    -webkit-mask-image: linear-gradient(to bottom, transparent, black 8%, black 92%, transparent);
     height: 100%;
+    position: relative;
+    background: rgba(5, 5, 10, 0.2);
 }
 
-/* Glassmorphism Bubbles (Reduced Effects) */
+/* Cinematic Top Fade (Replaces mask-image for better stability) */
+.chat-fade-top {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 40px;
+    background: linear-gradient(to bottom, #05050a 0%, transparent 100%);
+    z-index: 90;
+    pointer-events: none;
+}
+
+/* Pinned Messages Area (Sticky for persistent visibility) */
+.chat-pins-area {
+    position: sticky;
+    top: 0;
+    left: 0;
+    width: 100%;
+    z-index: 200;
+    pointer-events: all;
+    border-top-left-radius: inherit;
+    border-top-right-radius: inherit;
+}
+
+/* Glassmorphism Bubbles (Increased Width & Clarity) */
 .chat-message-bubble {
-    background: rgba(255, 255, 255, 0.02);
-    /* More transparent */
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    border: 1px solid rgba(255, 255, 255, 0.04);
-    border-radius: 20px;
-    padding: 12px 16px;
-    max-width: 85%;
-    transition: all 0.3s ease;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-    /* Reduced shadow */
+    background: rgba(10, 10, 20, 0.7);
+    /* Darker for better contrast */
+    backdrop-filter: blur(25px);
+    -webkit-backdrop-filter: blur(25px);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 18px;
+    padding: 12px 18px;
+    width: fit-content;
+    max-width: 100%;
+    /* Take all space provided by parent */
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+    overflow-wrap: anywhere;
+    word-break: break-word;
+    position: relative;
+    z-index: 2;
+    color: rgba(255, 255, 255, 0.95);
+    /* Sharper text */
+}
+
+/* Images & GIFs Styling in Chat */
+.chat-message-bubble img {
+    max-width: 100%;
+    max-height: 250px;
+    border-radius: 12px;
+    margin-top: 8px;
+    display: block;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    cursor: zoom-in;
+    transition: transform 0.2s;
+}
+
+.chat-message-bubble img:hover {
+    transform: scale(1.02);
+    border-color: rgba(0, 229, 255, 0.3);
 }
 
 .chat-message-bubble:hover {
-    border-color: rgba(255, 255, 255, 0.12);
-    background: rgba(255, 255, 255, 0.05);
-    transform: translateX(4px);
+    border-color: rgba(0, 229, 255, 0.25);
+    background: rgba(10, 10, 20, 0.8);
 }
 
-/* VIP / Highlighted Messages (Subtle) */
+/* VIP / Highlighted Messages (Luxury High-End) */
 .chat-message-vip {
-    background: linear-gradient(135deg, rgba(255, 255, 255, 0.04) 0%, rgba(255, 255, 255, 0.01) 100%);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    box-shadow: 0 0 15px rgba(255, 255, 255, 0.05);
+    background: linear-gradient(135deg, rgba(30, 25, 10, 0.98) 0%, rgba(10, 10, 15, 0.9) 100%);
+    border: 2px solid #eab308;
+    box-shadow: 0 0 35px rgba(234, 179, 8, 0.2), inset 0 0 20px rgba(234, 179, 8, 0.1);
+    position: relative;
+    overflow: hidden;
+}
+
+.chat-message-vip::after {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: linear-gradient(45deg, transparent, rgba(234, 179, 8, 0.05), transparent);
+    transform: rotate(45deg);
+    animation: vipShine 4s infinite linear;
+}
+
+@keyframes vipShine {
+    0% {
+        transform: rotate(45deg) translateX(-100%);
+    }
+
+    100% {
+        transform: rotate(45deg) translateX(100%);
+    }
 }
 
 .vip-tag {
@@ -61,9 +131,16 @@
     font-weight: 950;
     color: #eab308;
     text-transform: uppercase;
-    letter-spacing: 0.2em;
-    display: block;
-    margin-bottom: 4px;
+    letter-spacing: 0.3em;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-bottom: 8px;
+}
+
+.vip-tag::before {
+    content: '★';
+    font-size: 10px;
 }
 
 /* Avatar & Frame */
@@ -129,14 +206,24 @@
     transform: scale(1.1) rotate(5deg);
 }
 
+/* Giphy Dimensions */
+.giphy-panel {
+    background: #05050a !important;
+    /* Solid background */
+    opacity: 1 !important;
+}
+
 /* Chat Input Styling */
 .chat-input-area {
-    padding: 16px;
-    background: rgba(10, 10, 20, 0.8);
-    border-top: 1px solid rgba(255, 255, 255, 0.05);
+    padding: 14px 16px;
+    background: #05050a;
+    /* Solid background to prevent overlap translucency */
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
     display: flex;
     gap: 12px;
     align-items: flex-end;
+    position: relative;
+    z-index: 110;
 }
 
 .chat-textarea {

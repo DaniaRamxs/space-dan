@@ -87,7 +87,7 @@ const ActivityCard = memo(({ post, onUpdate, onNewPost }) => {
                     {/* Fila: Avatar + Meta */}
                     <div className="flex items-start gap-3 mb-3">
                         <Link
-                            to={post.author?.username ? `/@${post.author.username}` : `/profile/${post.author_id}`}
+                            to={post.author?.username ? `/@${encodeURIComponent(post.author.username)}` : `/profile/${post.author_id}`}
                             onClick={e => e.stopPropagation()}
                             className="shrink-0"
                         >
@@ -105,7 +105,7 @@ const ActivityCard = memo(({ post, onUpdate, onNewPost }) => {
                         <div className="flex-1 min-w-0 pt-0.5">
                             <div className="flex items-center justify-between gap-2 mb-0.5">
                                 <Link
-                                    to={post.author?.username ? `/@${post.author.username}` : `/profile/${post.author_id}`}
+                                    to={post.author?.username ? `/@${encodeURIComponent(post.author.username)}` : `/profile/${post.author_id}`}
                                     onClick={e => e.stopPropagation()}
                                     className="text-micro hover:text-white transition-colors"
                                 >
@@ -121,7 +121,15 @@ const ActivityCard = memo(({ post, onUpdate, onNewPost }) => {
                                         </span>
                                     )}
                                     <span className="text-[9px] font-mono text-white/50">
-                                        {formatDistanceToNow(new Date(post.created_at), { addSuffix: true, locale: es })}
+                                        {(() => {
+                                            try {
+                                                const d = new Date(post.created_at);
+                                                if (isNaN(d.getTime())) return 'en el vacío temporal';
+                                                return formatDistanceToNow(d, { addSuffix: true, locale: es });
+                                            } catch (e) {
+                                                return 'en el vacío temporal';
+                                            }
+                                        })()}
                                     </span>
                                 </div>
                             </div>
@@ -206,7 +214,7 @@ const ActivityCard = memo(({ post, onUpdate, onNewPost }) => {
                         </div>
                     </div>
                 </div>
-            </motion.div>
+            </motion.div >
 
             <ShareModal
                 isOpen={showShareModal}

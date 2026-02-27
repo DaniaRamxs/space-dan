@@ -38,7 +38,7 @@ export default function GlobalChatPage() {
                 <div className="absolute -top-10 -right-10 w-40 h-40 bg-cyan-500/5 blur-[80px] rounded-full" />
                 <div className="absolute -bottom-10 -left-10 w-40 h-40 bg-purple-500/5 blur-[80px] rounded-full" />
 
-                <div className="relative z-10 bg-[#070710]/80 backdrop-blur-3xl border border-white/[0.06] rounded-[32px] overflow-hidden shadow-2xl">
+                <div className="relative z-10 bg-[#070710]/80 backdrop-blur-3xl border border-white/[0.06] rounded-[32px] shadow-2xl">
                     <div className="flex items-center justify-between px-6 py-4 border-b border-white/[0.05] bg-white/[0.02]">
                         <div className="flex items-center gap-3">
                             <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse shadow-[0_0_10px_rgba(34,197,94,0.5)]" />

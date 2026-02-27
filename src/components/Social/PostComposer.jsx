@@ -7,6 +7,10 @@ import rehypeSanitize, { defaultSchema } from 'rehype-sanitize';
 import { activityService } from '../../services/activityService';
 import { useAuthContext } from '../../contexts/AuthContext';
 import { parseSpaceEnergies } from '../../utils/markdownUtils';
+import { GiphyFetch } from '@giphy/js-fetch-api';
+import { Grid } from '@giphy/react-components';
+
+const gf = new GiphyFetch('3k4Fdn6D040IQvIq1KquLZzJgutP3dGp');
 
 // Configuración de sanitize para permitir nuestras clases sd-*
 const sanitizeSchema = {
@@ -47,6 +51,8 @@ export default function PostComposer({
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState(null);
     const [catOpen, setCatOpen] = useState(false);
+    const [showGiphy, setShowGiphy] = useState(false);
+    const [gifSearchTerm, setGifSearchTerm] = useState('');
 
     const canSubmit = title.trim().length > 0 && !submitting;
     const selectedCat = CATEGORIES.find(c => c.id === category) || CATEGORIES[0];
@@ -228,7 +234,50 @@ export default function PostComposer({
                 </div>
 
                 {/* Editor / Preview */}
-                <div className="md:ml-12 min-h-[80px]">
+                <div className="md:ml-12 min-h-[80px] relative">
+                    {/* GIPHY PANEL (Relative to editor for better UX in posts) */}
+                    <AnimatePresence>
+                        {showGiphy && (
+                            <motion.div
+                                initial={{ opacity: 0, scale: 0.95 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                exit={{ opacity: 0, scale: 0.95 }}
+                                className="absolute top-0 left-0 w-full z-[100] h-[350px] overflow-hidden flex flex-col shadow-2xl bg-[#090912] border border-white/10 rounded-2xl"
+                            >
+                                <div className="flex items-center justify-between p-4 bg-white/[0.02]">
+                                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-cyan-400">Dimensión GIPHY ✨</span>
+                                    <button type="button" onClick={() => setShowGiphy(false)} className="text-white/40 hover:text-white">✕</button>
+                                </div>
+                                <div className="px-4 pb-2">
+                                    <input
+                                        type="text"
+                                        placeholder="Buscar GIFs estelares..."
+                                        value={gifSearchTerm}
+                                        onChange={(e) => setGifSearchTerm(e.target.value)}
+                                        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-sm text-white outline-none focus:border-cyan-500/50 transition-all"
+                                    />
+                                </div>
+                                <div className="flex-1 overflow-y-auto px-2 no-scrollbar">
+                                    <Grid
+                                        key={gifSearchTerm}
+                                        width={400}
+                                        columns={2}
+                                        gutter={8}
+                                        fetchGifs={(offset) => gifSearchTerm.trim()
+                                            ? gf.search(gifSearchTerm, { offset, limit: 12 })
+                                            : gf.trending({ offset, limit: 12 })
+                                        }
+                                        onGifClick={(gif, e) => {
+                                            e.preventDefault();
+                                            const gifMarkdown = `\n![GIF](${gif.images.fixed_height.url})\n`;
+                                            setContent(prev => prev + gifMarkdown);
+                                            setShowGiphy(false);
+                                        }}
+                                    />
+                                </div>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
                     <AnimatePresence mode="wait">
                         {tab === 'write' ? (
                             <motion.textarea
@@ -271,7 +320,16 @@ export default function PostComposer({
 
                 {/* Footer */}
                 <div className="flex items-center justify-between border-t border-white/[0.05] pt-3 mt-4">
-                    <div />
+                    <div className="flex items-center gap-3 md:ml-12">
+                        <button
+                            type="button"
+                            onClick={() => setShowGiphy(!showGiphy)}
+                            className={`p-2 rounded-xl border transition-all flex items-center gap-2 group ${showGiphy ? 'bg-cyan-400/20 border-cyan-400/50 text-cyan-400' : 'bg-white/5 border-white/10 text-white/40 hover:border-white/20 hover:text-white/60'}`}
+                        >
+                            <span className="text-sm">🎞️</span>
+                            <span className="text-[9px] font-black uppercase tracking-widest hidden sm:inline">GIF Giphy</span>
+                        </button>
+                    </div>
                     <div className="flex items-center gap-3">
                         {error && <p className="text-[10px] text-rose-400 font-bold">⚠️ {error}</p>}
                         <button

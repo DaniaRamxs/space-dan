@@ -666,7 +666,7 @@ export default function ProfileOwn() {
 
   const handleShare = () => {
     if (!profile?.username) return;
-    const url = `${window.location.origin}/@${profile.username}`;
+    const url = `${window.location.origin}/@${encodeURIComponent(profile.username)}`;
     navigator.clipboard.writeText(url);
     setIsSharing(true);
     setTimeout(() => setIsSharing(false), 2000);

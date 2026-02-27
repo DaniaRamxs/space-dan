@@ -9,9 +9,8 @@
  * @returns {object} { border, borderRadius, boxShadow, className, imageRendering, animated }
  */
 export function getFrameStyle(frameItemId) {
-    if (!frameItemId) return {}; // Sin marco = sin estilos extra
-
-    const id = frameItemId.toLowerCase();
+    const id = String(frameItemId || '').toLowerCase();
+    if (!id) return {};
 
     // Marcos de Vínculo Especiales (Usando Clases CSS)
     if (id === 'frame_link_lv1') return { className: 'marco-evolutivo-base marco-evolutivo-lv1' };
@@ -45,7 +44,8 @@ export function getFrameStyle(frameItemId) {
  * @returns {object} Style object
  */
 export function getLinkedFrameStyle(evolutionLevel) {
-    const lvl = evolutionLevel || 1;
+    // If an object (partnership) is passed, extract the level
+    const lvl = (typeof evolutionLevel === 'object' ? evolutionLevel?.evolution_level : evolutionLevel) || 1;
     if (lvl >= 5) return {
         border: 'none', padding: '4px', background: 'conic-gradient(from 0deg, #ff007f, #06b6d4, #8b5cf6, #ff007f)', borderRadius: '50%', boxShadow: '0 0 40px rgba(6,182,212,0.5)', animation: 'spinStriking 2s linear infinite'
     };

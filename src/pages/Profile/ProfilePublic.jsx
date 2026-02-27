@@ -96,7 +96,8 @@ export default function PublicProfilePage() {
     setNotFound(false);
     try {
       // Clean username from @ (at this point we know it has it)
-      const cleanUsername = username.slice(1);
+      let cleanUsername = username.slice(1);
+      try { cleanUsername = decodeURIComponent(cleanUsername); } catch (e) { console.warn("Could not decode username", e); }
 
       const { data: prof, error } = await supabase
         .from('profiles')
@@ -354,6 +355,8 @@ export default function PublicProfilePage() {
           topGlobalRank={topGlobalRank}
           bestRecord={bestRecord}
           userId={profile?.id}
+          hasPendingRequest={hasPendingRequest}
+          requestLoading={requestLoading}
         />
       </UniverseProvider>
     );
@@ -374,8 +377,10 @@ function ProfileContent({
   partnership, bannerItem, isOwnProfile, isFollowing, activityLabel, activeTab,
   setActiveTab, handleToggleFollow, handleAddComment, handleDeleteComment,
   handleSendRequest, newComment, setNewComment, submittingComment,
-  progressPercent, totalXp, nextLevelXp, level, rankName, topGlobalRank, bestRecord, userId
+  progressPercent, totalXp, nextLevelXp, level, rankName, topGlobalRank, bestRecord, userId,
+  hasPendingRequest, requestLoading
 }) {
+  const { user } = useAuthContext();
   const { nicknameStyle, primaryRole, secondaryRole, mood, ambientSound, isAmbientMuted, toggleAmbientMute } = useUniverse();
   const [isSharing, setIsSharing] = useState(false);
 

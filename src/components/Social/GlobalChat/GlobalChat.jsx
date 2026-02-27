@@ -4,7 +4,7 @@ import { useAuthContext } from '../../../contexts/AuthContext';
 import { useEconomy } from '../../../contexts/EconomyContext';
 import { chatService } from '../../../services/chatService';
 import { supabase } from '../../../supabaseClient';
-import ChatMessage from './ChatMessage';
+import ChatMessage, { parseMentions } from './ChatMessage';
 import ChatInput from './ChatInput';
 import '../../../styles/GlobalChat.css';
 
@@ -116,9 +116,51 @@ export default function GlobalChat() {
     };
 
     return (
-        <div className="chat-window h-[500px] md:h-[600px] flex flex-col">
-            <div className="chat-messages-container flex-1 min-h-0">
-                <div ref={scrollRef} className="chat-messages-scroll no-scrollbar h-full">
+        <div className="chat-window h-[500px] md:h-[600px] flex flex-col relative overflow-hidden">
+            <div className="chat-messages-container flex-1 min-h-0 relative">
+
+                {/* Cinematic Top Fade */}
+                <div className="chat-fade-top" />
+
+                {/* Pinned VIP Message (Absolute Overlay for total persistence) */}
+                {messages.filter(m => m.is_vip).length > 0 && (
+                    <div className="chat-pins-area p-3 px-4 bg-[#080812]/98 border-b border-amber-500/50 shadow-[0_8px_32px_rgba(0,0,0,0.8)]">
+                        <div className="flex items-center gap-3">
+                            <span className="flex-shrink-0 w-8 h-8 rounded-full border border-amber-500/50 overflow-hidden ring-1 ring-amber-500/30">
+                                <img
+                                    src={messages.filter(m => m.is_vip).slice(-1)[0].author?.avatar_url || '/default-avatar.png'}
+                                    className="w-full h-full object-cover"
+                                />
+                            </span>
+                            <div className="flex-1 min-w-0">
+                                <span className="text-[9px] font-black uppercase tracking-[0.2em] text-amber-500 flex items-center gap-1 mb-0.5">
+                                    <span className="animate-pulse">★</span> DIFUSIÓN PRIORITARIA
+                                </span>
+                                <p
+                                    className="text-[11px] text-white/95 line-clamp-1 italic font-bold leading-tight"
+                                    dangerouslySetInnerHTML={{
+                                        __html: messages.filter(m => m.is_vip).slice(-1)[0].content.includes('giphy.com')
+                                            ? '👾 GIF Destacado'
+                                            : parseMentions(messages.filter(m => m.is_vip).slice(-1)[0].content)
+                                    }}
+                                ></p>
+                            </div>
+                            <button
+                                onClick={() => {
+                                    const vipMsg = messages.filter(m => m.is_vip).slice(-1)[0];
+                                    const el = document.getElementById(`msg-${vipMsg.id}`);
+                                    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                }}
+                                className="bg-amber-500/20 p-2 rounded-lg hover:bg-amber-500/30 active:scale-90 transition-all border border-amber-500/40 text-amber-500 shadow-inner"
+                                title="Localizar origen"
+                            >
+                                <span className="text-xs">📍</span>
+                            </button>
+                        </div>
+                    </div>
+                )}
+
+                <div ref={scrollRef} className="chat-messages-scroll no-scrollbar h-full pt-16 pb-12">
                     {loading ? (
                         <div className="flex flex-col items-center justify-center h-full gap-4 opacity-40">
                             <div className="w-8 h-8 border-2 border-cyan-500/20 border-t-cyan-500 rounded-full animate-spin" />
@@ -135,11 +177,12 @@ export default function GlobalChat() {
                                 </div>
                             )}
                             {messages.map((m) => (
-                                <ChatMessage
-                                    key={m.id}
-                                    message={m}
-                                    isMe={m.user_id === user?.id}
-                                />
+                                <div key={m.id} id={`msg-${m.id}`} className="mb-4 last:mb-0">
+                                    <ChatMessage
+                                        message={m}
+                                        isMe={m.user_id === user?.id}
+                                    />
+                                </div>
                             ))}
                         </>
                     )}

@@ -19,14 +19,13 @@ const sanitizeSchema = {
     }
 };
 
+export const parseMentions = (text) => {
+    if (!text) return '';
+    return text.replace(/@([\w]+(?:\s[\w]+)?)(?=[.,!?;:]?(\s|$))/g, '<span class="chat-mention">@$1</span>');
+};
+
 export default function ChatMessage({ message, isMe }) {
     const { author, content, is_vip, created_at, reactions } = message;
-
-    // Parse mentions: @username -> <span class="chat-mention">@username</span>
-    const parseMentions = (text) => {
-        if (!text) return '';
-        return text.replace(/@(\w+)/g, '<span class="chat-mention">@$1</span>');
-    };
 
     return (
         <motion.div
@@ -53,7 +52,7 @@ export default function ChatMessage({ message, isMe }) {
             </div>
 
             {/* Content Bubble */}
-            <div className={`flex flex-col ${isMe ? 'items-end' : 'items-start'} max-w-[80%]`}>
+            <div className={`flex flex-col ${isMe ? 'items-end' : 'items-start'} max-w-[95%] sm:max-w-[90%]`}>
                 <div className="flex items-center gap-2 mb-1 px-1">
                     <span className={`text-[10px] font-black tracking-wider ${getNicknameClass(author)}`}>
                         {getUserDisplayName(author)}
@@ -64,7 +63,12 @@ export default function ChatMessage({ message, isMe }) {
                 </div>
 
                 <div className={`chat-message-bubble ${is_vip ? 'chat-message-vip' : ''}`}>
-                    {is_vip && <span className="vip-tag">Destacado</span>}
+                    {is_vip && (
+                        <div className="vip-tag flex items-center justify-between mb-2">
+                            <span>★ TRANSMISIÓN VIP ★</span>
+                            <span className="opacity-40 text-[7px]">LEVEL {author?.level || 1}</span>
+                        </div>
+                    )}
                     <div className="prose prose-invert prose-xs max-w-none break-words
                         prose-p:my-0 prose-p:leading-relaxed
                         prose-strong:text-cyan-400 prose-em:text-pink-400">

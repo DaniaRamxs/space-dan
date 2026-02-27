@@ -95,7 +95,7 @@ body {
   display: flex;
   justify-content: center;
   margin: 0;
-  background-color: #040408;
+  background-color: var(--bg);
   /* Darker, more solid */
   color: var(--text);
   font-family: var(--font-main);
@@ -1150,7 +1150,8 @@ textarea,
   width: 100vw !important;
   margin: 0 !important;
   padding: 0 !important;
-  background-image: url("/gifs/wpage-bg.gif");
+  background-color: var(--bg);
+  background-image: var(--bg-image, url("/gifs/wpage-bg.gif"));
   background-repeat: repeat;
   background-size: auto;
   overflow: hidden;
@@ -1179,7 +1180,7 @@ textarea,
   inset: 0;
   background: radial-gradient(circle at top right, rgba(255, 0, 255, 0.1), transparent 40%),
     radial-gradient(circle at bottom left, rgba(0, 255, 255, 0.1), transparent 40%),
-    rgba(3, 3, 8, 0.95);
+    var(--bg);
   backdrop-filter: blur(50px) saturate(220%);
   z-index: 5000;
   display: flex;
@@ -1515,7 +1516,7 @@ textarea,
   height: 72px;
   width: 100% !important;
   padding: 0 40px;
-  background: rgba(5, 5, 12, 0.75);
+  background: color-mix(in srgb, var(--bg) 75%, transparent);
   backdrop-filter: blur(40px) saturate(200%);
   border-bottom: 1px solid rgba(255, 255, 255, 0.04);
   display: flex;

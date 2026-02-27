@@ -227,10 +227,8 @@ export default function SpaceCabinPage() {
                 </div>
             </div>
 
-            {/* Radio / Atmospheric control */}
-            <div className="fixed bottom-12 right-12 z-[100]">
-                <RadioPlayer />
-            </div>
+            {/* Radio / Atmospheric control is handled globally by GardenLayout */}
+
 
             {/* Background Atmosphere */}
             <div className="fixed inset-0 pointer-events-none -z-50 overflow-hidden">
