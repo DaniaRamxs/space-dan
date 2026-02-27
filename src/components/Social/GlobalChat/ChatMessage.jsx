@@ -87,7 +87,9 @@ export default function ChatMessage({ message, isMe }) {
                     {isOnline && userPresence?.status && (
                         <span className="orbit-status-label">
                             <span className="orbit-status-dot" />
-                            {userPresence.status}
+                            <div className="orbit-status-ticker">
+                                <span>{userPresence.status}</span>
+                            </div>
                         </span>
                     )}
                     <span className="text-[8px] text-white/20 font-mono">

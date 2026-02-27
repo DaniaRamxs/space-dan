@@ -1,4 +1,4 @@
-import React, { useState, memo } from 'react';
+﻿import React, { useState, memo } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { formatDistanceToNow } from 'date-fns';
@@ -7,18 +7,26 @@ import { activityService } from '../../services/activityService';
 import { useAuthContext } from '../../contexts/AuthContext';
 
 const REACTION_CONFIG = {
-    connection: { icon: '💖', label: 'Conexión' },
-    impact: { icon: '🔥', label: 'Impacto' },
-    represent: { icon: '🌙', label: 'Representa' },
-    think: { icon: '🧠', label: 'Interesante' },
-    underrated: { icon: '🪐', label: 'Infravalorado' },
+    connection: { icon: 'ðŸ’–', label: 'ConexiÃ³n' },
+    impact: { icon: 'ðŸ”¥', label: 'Impacto' },
+    represent: { icon: 'ðŸŒ™', label: 'Representa' },
+    think: { icon: 'ðŸ§ ', label: 'Interesante' },
+    underrated: { icon: 'ðŸª', label: 'Infravalorado' },
 };
-
+function safeTimeAgo(dateValue) {
+    try {
+        const d = new Date(dateValue);
+        if (Number.isNaN(d.getTime())) return 'en el vacio temporal';
+        return formatDistanceToNow(d, { addSuffix: true, locale: es });
+    } catch {
+        return 'en el vacio temporal';
+    }
+}
 /**
- * BlogPostCard — muestra un post de bitácora (tabla "posts") dentro
+ * BlogPostCard â€” muestra un post de bitÃ¡cora (tabla "posts") dentro
  * del feed de Actividad.  Tiene su propia mini-bar de reacciones
  * (que escriben en activity_reactions si el post tiene un ID espejado
- * en activity_posts), más botones de Repost y Citar que abren un
+ * en activity_posts), mÃ¡s botones de Repost y Citar que abren un
  * modal embebido.
  */
 const BlogPostCard = memo(({ post, authorProfile, onActionComplete }) => {
@@ -127,7 +135,7 @@ const BlogPostCard = memo(({ post, authorProfile, onActionComplete }) => {
             {/* Badge tipo */}
             <div className="absolute top-5 right-6">
                 <span className="text-[8px] font-black font-mono px-2.5 py-1 rounded-full border text-cyan-400 bg-cyan-400/10 border-cyan-400/20 uppercase tracking-widest">
-                    📖 BLOG
+                    ðŸ“– BLOG
                 </span>
             </div>
 
@@ -148,7 +156,7 @@ const BlogPostCard = memo(({ post, authorProfile, onActionComplete }) => {
                         </Link>
                         <div className="w-1 h-1 rounded-full bg-white/20" />
                         <span className="text-[10px] font-black text-white/30 uppercase tracking-widest">
-                            {formatDistanceToNow(new Date(post.created_at), { addSuffix: true, locale: es })}
+                            {safeTimeAgo(post.created_at)}
                         </span>
                     </div>
 
@@ -180,7 +188,7 @@ const BlogPostCard = memo(({ post, authorProfile, onActionComplete }) => {
                                                 {REACTION_CONFIG[r.reaction_type]?.icon}
                                             </span>
                                         ))
-                                        : <span className="text-sm opacity-40 group-hover:opacity-100 transition-opacity">✨</span>
+                                        : <span className="text-sm opacity-40 group-hover:opacity-100 transition-opacity">âœ¨</span>
                                     }
                                 </div>
                                 {reactions.total_count > 0 && (
@@ -234,7 +242,7 @@ const BlogPostCard = memo(({ post, authorProfile, onActionComplete }) => {
                             aria-label="Repostear"
                             className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-white/30 hover:text-purple-400 transition-colors active:scale-95 disabled:opacity-40"
                         >
-                            <span className="text-base">🔁</span>
+                            <span className="text-base">ðŸ”</span>
                             {reposting ? 'Reposteando...' : 'Repost'}
                         </button>
 
@@ -245,13 +253,13 @@ const BlogPostCard = memo(({ post, authorProfile, onActionComplete }) => {
                             aria-label="Citar post"
                             className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-white/30 hover:text-orange-400 transition-colors active:scale-95 disabled:opacity-40"
                         >
-                            <span className="text-base">💬</span>
+                            <span className="text-base">ðŸ’¬</span>
                             Citar
                         </button>
 
                         {/* Views */}
                         <span className="ml-auto text-[10px] font-black text-white/20 font-mono flex items-center gap-1">
-                            👁 {post.views || 0}
+                            ðŸ‘ {post.views || 0}
                         </span>
                     </div>
 
@@ -273,7 +281,7 @@ const BlogPostCard = memo(({ post, authorProfile, onActionComplete }) => {
                                     <textarea
                                         value={quoteText}
                                         onChange={e => setQuoteText(e.target.value)}
-                                        placeholder="Escribe tu comentario sobre esta transmisión..."
+                                        placeholder="Escribe tu comentario sobre esta transmisiÃ³n..."
                                         maxLength={280}
                                         rows={3}
                                         className="w-full bg-transparent border-none text-sm text-white placeholder:text-white/20 resize-none outline-none"
@@ -304,3 +312,4 @@ const BlogPostCard = memo(({ post, authorProfile, onActionComplete }) => {
 });
 
 export default BlogPostCard;
+

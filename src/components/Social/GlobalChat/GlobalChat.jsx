@@ -116,7 +116,7 @@ export default function GlobalChat() {
     };
 
     return (
-        <div className="chat-window h-[500px] md:h-[600px] flex flex-col relative overflow-hidden">
+        <div className="chat-window min-h-[500px] flex flex-col relative">
             <div className="chat-messages-container flex-1 min-h-0 relative">
 
                 {/* Cinematic Top Fade */}
@@ -160,7 +160,7 @@ export default function GlobalChat() {
                     </div>
                 )}
 
-                <div ref={scrollRef} className="chat-messages-scroll no-scrollbar h-full pt-16 pb-12">
+                <div ref={scrollRef} className="chat-messages-scroll no-scrollbar min-h-[400px] h-auto pt-16 pb-12 touch-pan-y">
                     {loading ? (
                         <div className="flex flex-col items-center justify-center h-full gap-4 opacity-40">
                             <div className="w-8 h-8 border-2 border-cyan-500/20 border-t-cyan-500 rounded-full animate-spin" />

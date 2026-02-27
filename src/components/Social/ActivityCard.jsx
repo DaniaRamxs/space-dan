@@ -197,7 +197,15 @@ const ActivityCard = memo(({ post, onUpdate, onNewPost }) => {
                                     @{post.original_post.author?.username || 'piloto'}
                                 </span>
                                 <span className="text-[9px] font-mono text-white/20 ml-auto">
-                                    {formatDistanceToNow(new Date(post.original_post.created_at), { locale: es })}
+                                    {(() => {
+                                        try {
+                                            const d = new Date(post.original_post?.created_at);
+                                            if (isNaN(d.getTime())) return 'en el vacío temporal';
+                                            return formatDistanceToNow(d, { locale: es });
+                                        } catch {
+                                            return 'en el vacío temporal';
+                                        }
+                                    })()}
                                 </span>
                             </div>
 

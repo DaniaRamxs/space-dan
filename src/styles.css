@@ -52,8 +52,7 @@
 
 html {
   scrollbar-gutter: stable;
-  overflow: hidden;
-  overscroll-behavior-y: none;
+  overflow-y: auto;
 }
 
 html,
@@ -61,12 +60,14 @@ body,
 #root {
   width: 100%;
   height: 100%;
-  height: 100dvh;
+  min-height: 100dvh;
   margin: 0;
   padding: 0;
-  position: fixed;
-  overflow: hidden;
+  overflow-x: hidden;
+  position: relative;
   user-select: none;
+  touch-action: pan-y;
+  /* Ensure touch gestures reach scrollable areas */
   /* Estilo app, evitar seleccion accidental */
   -webkit-tap-highlight-color: transparent;
 }
@@ -1146,30 +1147,29 @@ textarea,
 
 /* ---------- Garden Layout — definicion unica consolidada ---------- */
 .gardenPage {
-  height: 100vh !important;
-  width: 100vw !important;
-  margin: 0 !important;
-  padding: 0 !important;
+  min-height: 100dvh;
+  width: 100vw;
+  margin: 0;
+  padding: 0;
   background-color: var(--bg);
   background-image: var(--bg-image, url("/gifs/wpage-bg.gif"));
   background-repeat: repeat;
   background-size: auto;
-  overflow: hidden;
-  display: block;
+  overflow-y: auto;
   position: relative;
+  display: flex;
+  flex-direction: column;
 }
 
 .gardenShell {
-  position: absolute !important;
-  inset: 0 !important;
-  width: 100% !important;
-  height: 100% !important;
-  display: flex !important;
-  flex-direction: column !important;
-  overflow: hidden;
+  position: relative;
+  width: 100%;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
   z-index: 10;
-  margin: 0 !important;
-  padding: 0 !important;
+  margin: 0;
+  padding: 0;
 }
 
 /* Sidebar removed for App look */
@@ -1496,16 +1496,18 @@ textarea,
 
 .gardenMain {
   width: 100% !important;
-  height: 100% !important;
+  min-height: 100% !important;
+  height: auto !important;
   flex: 1;
   display: flex;
   flex-direction: column;
   background: radial-gradient(circle at 50% -20%, rgba(0, 229, 255, 0.1), transparent 70%),
     rgba(3, 3, 10, 0.98);
-  overflow: hidden;
+  overflow: visible;
   position: relative;
   margin: 0 !important;
   padding: 0 !important;
+  touch-action: pan-y;
 }
 
 .gardenMain--fixed {
@@ -1715,6 +1717,7 @@ textarea,
   min-height: 0;
   overflow-y: auto;
   overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
   padding: 40px;
   background: rgba(0, 0, 0, 0.08);
   /* Fondo mas sutil */
@@ -1736,6 +1739,14 @@ textarea,
     max-width: 1400px;
     margin: 0 auto;
     flex-shrink: 0;
+  }
+}
+
+@media (max-width: 768px) {
+  .gardenContent {
+    padding: 16px;
+    padding-bottom: 100px;
+    /* Space for mobile nav */
   }
 }
 

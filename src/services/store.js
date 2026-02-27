@@ -84,6 +84,23 @@ export async function purchaseItem(userId, itemId) {
   return data;
 }
 
+/**
+ * Otorga monedas (uso administrativo/tester).
+ * Mantiene compatibilidad con llamadas existentes desde ShopPage.
+ */
+export async function awardCoins(userId, amount, type, reference = null, description = null) {
+  const { data, error } = await supabase.rpc('award_coins', {
+    p_user_id: userId,
+    p_amount: amount,
+    p_type: type,
+    p_reference: reference,
+    p_description: description,
+    p_metadata: {},
+  });
+  if (error) throw error;
+  return data;
+}
+
 // ─────────────────────────────────────────────────────────────
 // EQUIPAR / DESEQUIPAR
 // ─────────────────────────────────────────────────────────────

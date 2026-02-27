@@ -14,6 +14,7 @@ export const UniverseProvider = ({ children, overrideProfile = null }) => {
     const [partnership, setPartnership] = useState(null);
     const [onlineUsers, setOnlineUsers] = useState({}); // { userId: { username, status, avatar_url, last_active } }
     const [activeStation, setActiveStation] = useState(null);
+    const [isPresenceReady, setIsPresenceReady] = useState(false);
 
     // 0. Fetch global partnership for the logged in user
     useEffect(() => {
@@ -41,16 +42,25 @@ export const UniverseProvider = ({ children, overrideProfile = null }) => {
         return () => { supabase.removeChannel(channel); };
     }, [user]);
 
+    const presenceChannelRef = React.useRef(null);
+
     // 0.5 Realtime Presence Tracking
     useEffect(() => {
         if (!user) {
             setOnlineUsers({});
+            setIsPresenceReady(false);
+            if (presenceChannelRef.current) {
+                presenceChannelRef.current.unsubscribe();
+                presenceChannelRef.current = null;
+            }
             return;
         }
 
         const presenceChannel = supabase.channel('online-users', {
             config: { presence: { key: user.id } }
         });
+
+        presenceChannelRef.current = presenceChannel;
 
         presenceChannel
             .on('presence', { event: 'sync' }, () => {
@@ -77,28 +87,36 @@ export const UniverseProvider = ({ children, overrideProfile = null }) => {
                         id: user.id,
                         username: profile?.username || 'Viajero',
                         avatar_url: profile?.avatar_url,
-                        status: 'Explorando el Vacío',
                         last_active: new Date().toISOString()
                     });
+                    setIsPresenceReady(true);
                 }
             });
 
         return () => {
             presenceChannel.unsubscribe();
+            presenceChannelRef.current = null;
+            setIsPresenceReady(false);
         };
     }, [user?.id, profile?.username, profile?.avatar_url]);
 
-    const updatePresence = async (data) => {
-        if (!user) return;
-        const channel = supabase.channel('online-users');
-        await channel.track({
-            id: user.id,
-            username: profile?.username || 'Viajero',
-            avatar_url: profile?.avatar_url,
-            last_active: new Date().toISOString(),
-            ...data
-        });
-    };
+    const updatePresence = React.useCallback(async (data) => {
+        if (!user || !presenceChannelRef.current) return false;
+
+        try {
+            await presenceChannelRef.current.track({
+                id: user.id,
+                username: profile?.username || 'Viajero',
+                avatar_url: profile?.avatar_url,
+                last_active: new Date().toISOString(),
+                ...data
+            });
+            return true;
+        } catch (err) {
+            console.error('[UniverseContext] track error:', err);
+            return false;
+        }
+    }, [user?.id, profile?.username, profile?.avatar_url]);
 
     // 1. Efecto para aplicar el tema al documento mediante CSS Variables
     useEffect(() => {
@@ -204,7 +222,8 @@ export const UniverseProvider = ({ children, overrideProfile = null }) => {
         onlineUsers,
         updatePresence,
         activeStation,
-        setActiveStation
+        setActiveStation,
+        isPresenceReady
     };
 
     return (

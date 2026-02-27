@@ -1,4 +1,4 @@
-import { Suspense, lazy, useEffect } from "react";
+import React, { Suspense, lazy, useEffect, useRef } from "react";
 import { BrowserRouter, Routes, Route, useLocation, Navigate } from "react-router-dom";
 
 import { AnimatePresence } from "framer-motion";
@@ -87,15 +87,15 @@ function PageTracker() {
 
 function PresenceTracker() {
   const location = useLocation();
-  const { updatePresence, activeStation } = useUniverse();
+  const { updatePresence, activeStation, isPresenceReady } = useUniverse();
   const { profile } = useAuthContext();
+  const lastStatus = React.useRef('');
 
   useEffect(() => {
-    if (!profile) return;
+    // Solo proceder si tenemos todo lo necesario para evitar cambios en el tamaño del array de dependencias
+    if (!profile || !isPresenceReady || !updatePresence) return;
 
-    const getStatus = () => {
-      if (activeStation) return `SINTONIZANDO: ${activeStation} 🎵`;
-
+    const getBaseStatus = () => {
       const path = location.pathname;
       if (path === '/chat') return 'EN EL CHAT GLOBAL 💬';
       if (path === '/cabina') return 'EN LA CABINA DE MANDO 🚀';
@@ -103,11 +103,28 @@ function PresenceTracker() {
       if (path === '/tienda') return 'EN EL MERCADO ESTELAR 🛍️';
       if (path === '/games') return 'EN EL SECTOR DE JUEGOS 🎮';
       if (path === '/universo') return 'OBSERVANDO EL COSMOS 🌌';
-      return 'NAVEGANDO EL SISTEMA';
+      if (path === '/foco') return 'EN SESIÓN DE ENFOQUE 🧘';
+      if (path === '/cartas') return 'ENVIANDO CARTAS 💌';
+      if (path === '/posts') return 'EXPLORANDO EL FEED 🌌';
+      if (path === '/leaderboard') return 'VIENDO EL RANKING 🌍';
+      if (path.startsWith('/profile/')) return 'MIRANDO LOGROS 🏆';
+      if (path.startsWith('/@') || (path.startsWith('/profile') && path.length > 8)) return 'MIRANDO UN PERFIL 👤';
+      return 'EXPLORANDO EL SISTEMA';
     };
 
-    updatePresence({ status: getStatus() });
-  }, [location.pathname, profile, updatePresence, activeStation]);
+    const activity = getBaseStatus();
+    const finalStatus = activeStation
+      ? `SINTONIZANDO: ${activeStation} 🎵 • ${activity}`
+      : activity;
+
+    if (finalStatus !== lastStatus.current) {
+      updatePresence({ status: finalStatus }).then((success) => {
+        if (success !== false) {
+          lastStatus.current = finalStatus;
+        }
+      });
+    }
+  }, [location.pathname, profile?.id, updatePresence, activeStation, isPresenceReady]);
 
   return null;
 }

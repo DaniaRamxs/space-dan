@@ -3,7 +3,7 @@
     position: relative;
     display: flex;
     flex-direction: column;
-    height: 100%;
+    min-height: 500px;
     background: rgba(5, 5, 15, 0.4);
     border-radius: 24px;
     border: 1px solid rgba(255, 255, 255, 0.05);
@@ -12,6 +12,7 @@
 .chat-messages-scroll {
     height: 100%;
     overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
     padding: 20px;
     display: flex;
     flex-direction: column;
@@ -87,12 +88,52 @@
     display: inline-flex;
     align-items: center;
     gap: 4px;
+    max-width: 120px;
+    /* Mobile first limit */
+    overflow: hidden;
+    position: relative;
+    mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent);
+}
+
+.orbit-status-ticker {
+    display: flex;
+    white-space: nowrap;
+    overflow: hidden;
+}
+
+@keyframes orbit-ticker {
+    0% {
+        transform: translateX(0.5rem);
+    }
+
+    100% {
+        transform: translateX(-100%);
+    }
+}
+
+.orbit-status-ticker span {
+    display: inline-block;
+    padding-left: 20px;
+    animation: orbit-ticker 15s linear infinite;
+    text-shadow: 0 0 5px rgba(34, 211, 238, 0.5);
+}
+
+
+
+.orbit-status-label::-webkit-scrollbar {
+    display: none;
+}
+
+@media (min-width: 768px) {
+    .orbit-status-label {
+        max-width: 300px;
+    }
 }
 
 .orbit-status-dot {
     width: 4px;
     height: 4px;
-    border-radius: full;
+    border-radius: 50%;
     background: #22c55e;
     box-shadow: 0 0 5px #22c55e;
     animation: pulse 1.5s infinite;
@@ -130,6 +171,14 @@
     z-index: 2;
     color: rgba(255, 255, 255, 0.95);
     /* Sharper text */
+}
+
+@media (max-width: 640px) {
+    .chat-message-bubble {
+        padding: 8px 12px;
+        font-size: 13px;
+        border-radius: 14px;
+    }
 }
 
 /* Images & GIFs Styling in Chat */
@@ -210,6 +259,13 @@
     flex-shrink: 0;
 }
 
+@media (max-width: 640px) {
+    .chat-avatar-container {
+        width: 32px;
+        height: 32px;
+    }
+}
+
 .chat-avatar {
     width: 100%;
     height: 100%;
@@ -276,13 +332,32 @@
 .chat-input-area {
     padding: 14px 16px;
     background: #05050a;
-    /* Solid background to prevent overlap translucency */
     border-top: 1px solid rgba(255, 255, 255, 0.08);
     display: flex;
     gap: 12px;
     align-items: flex-end;
     position: relative;
     z-index: 110;
+}
+
+@media (max-width: 768px) {
+    .chat-input-area {
+        padding: 10px 12px;
+        gap: 8px;
+    }
+
+    .chat-textarea {
+        padding: 10px;
+        font-size: 16px;
+        /* Prevent iOS zoom */
+        border-radius: 12px;
+    }
+
+    .chat-send-btn {
+        width: 40px;
+        height: 40px;
+        border-radius: 12px;
+    }
 }
 
 .chat-textarea {
