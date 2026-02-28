@@ -844,20 +844,21 @@ export default function GlobalChat() {
                 <div className="chat-messages-container flex-1 min-h-0 relative">
                     {/* Voice Bar - Highly Visible */}
                     <VoicePartyBar
-                        activeParticipants={Object.values(onlineUsers).filter(u => u.inVoice)}
+                        activeParticipants={Object.values(onlineUsers)}
                         onJoin={() => { setHasJoinedVoice(true); setShowVoiceRoom(true); }}
                         onCreateRoom={handleCreateVoiceRoom}
                         isActive={inVoiceRoom}
                         currentRoom={voiceRoomName}
                     />
 
-                    {/* VIP Sticky Message */}
+                    {/* VIP Sticky Message - in flow, below VoicePartyBar */}
                     <AnimatePresence>
                         {lastVip && (
                             <motion.div
-                                initial={{ opacity: 0, y: -20 }}
+                                initial={{ opacity: 0, y: -8 }}
                                 animate={{ opacity: 1, y: 0 }}
-                                className="absolute top-[60px] left-4 right-4 z-[80] pointer-events-none"
+                                exit={{ opacity: 0, y: -8 }}
+                                className="mx-4 mt-2 mb-1 pointer-events-none shrink-0"
                             >
                                 <div className="bg-gradient-to-r from-amber-500/20 to-amber-600/20 backdrop-blur-md border border-amber-500/30 rounded-2xl p-3 shadow-[0_10px_30px_rgba(234,179,8,0.2)]">
                                     <div className="flex items-center gap-2 mb-1">
@@ -871,7 +872,7 @@ export default function GlobalChat() {
                         )}
                     </AnimatePresence>
 
-                    <div className="chat-fade-top" style={{ top: '60px' }} />
+                    <div className="chat-fade-top" />
                     <div ref={scrollRef} className="chat-messages-scroll no-scrollbar h-full pt-4 pb-40 touch-pan-y">
                         {loading ? (
                             <div className="flex flex-col items-center justify-center h-full opacity-40">

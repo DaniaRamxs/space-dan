@@ -6,6 +6,10 @@ export default function VoicePartyBar({ activeParticipants = [], onJoin, onCreat
     const [isExpanded, setIsExpanded] = useState(false);
     const [customRoom, setCustomRoom] = useState('');
 
+    const inVoice = activeParticipants.filter(u => u.inVoice);
+    const onlineOnly = activeParticipants.filter(u => !u.inVoice);
+    const totalOnline = activeParticipants.length;
+
     const handleCreateRoom = () => {
         if (!customRoom.trim()) return;
         onCreateRoom(customRoom.trim());
@@ -14,7 +18,7 @@ export default function VoicePartyBar({ activeParticipants = [], onJoin, onCreat
     };
 
     return (
-        <div className="border-b border-white/10">
+        <div className="border-b border-white/10 relative z-10">
             {/* Barra principal siempre visible */}
             <div className={`p-3 px-4 bg-gradient-to-r from-purple-900/40 to-cyan-900/40 backdrop-blur-xl flex items-center justify-between transition-all ${!isExpanded && 'hover:from-purple-900/50 hover:to-cyan-900/50'}`}>
                 <div className="flex items-center gap-3">
@@ -30,12 +34,10 @@ export default function VoicePartyBar({ activeParticipants = [], onJoin, onCreat
                 </div>
 
                 <div className="flex items-center gap-2">
-                    {activeParticipants.length > 0 && (
-                        <div className="flex items-center gap-1.5 text-white/40">
-                            <Users size={12} />
-                            <span className="text-[10px] font-black">{activeParticipants.length}</span>
-                        </div>
-                    )}
+                    <div className="flex items-center gap-1.5 text-white/40">
+                        <Users size={12} />
+                        <span className="text-[10px] font-black">{totalOnline}</span>
+                    </div>
                     <button
                         onClick={() => setIsExpanded(v => !v)}
                         className="w-8 h-8 rounded-full bg-white/5 border border-white/10 flex items-center justify-center hover:bg-white/10 active:scale-95 transition-all"
@@ -59,12 +61,29 @@ export default function VoicePartyBar({ activeParticipants = [], onJoin, onCreat
                     >
                         <div className="p-4 space-y-4">
 
-                            {/* Participantes en voz */}
-                            {activeParticipants.length > 0 ? (
+                            {/* En voz ahora */}
+                            {inVoice.length > 0 && (
                                 <div className="space-y-2">
-                                    <p className="text-[9px] font-black uppercase tracking-[0.2em] text-white/30">En Voz Ahora</p>
+                                    <p className="text-[9px] font-black uppercase tracking-[0.2em] text-cyan-400/60">🎙️ En Voz Ahora</p>
                                     <div className="flex flex-wrap gap-2">
-                                        {activeParticipants.map((p, i) => (
+                                        {inVoice.map((p, i) => (
+                                            <div key={i} className="flex items-center gap-2 bg-cyan-500/10 rounded-xl px-3 py-1.5 border border-cyan-500/20">
+                                                <img src={p.avatar_url || '/default_user_blank.png'} className="w-5 h-5 rounded-full object-cover" alt="" />
+                                                <span className="text-[10px] font-bold text-cyan-300">{p.username}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Online en el chat */}
+                            {onlineOnly.length > 0 && (
+                                <div className="space-y-2">
+                                    <p className="text-[9px] font-black uppercase tracking-[0.2em] text-white/30">
+                                        {inVoice.length > 0 ? '💬 En el Chat' : '🌐 Conectados'}
+                                    </p>
+                                    <div className="flex flex-wrap gap-2">
+                                        {onlineOnly.map((p, i) => (
                                             <div key={i} className="flex items-center gap-2 bg-white/5 rounded-xl px-3 py-1.5 border border-white/5">
                                                 <img src={p.avatar_url || '/default_user_blank.png'} className="w-5 h-5 rounded-full object-cover" alt="" />
                                                 <span className="text-[10px] font-bold text-white/70">{p.username}</span>
@@ -72,9 +91,11 @@ export default function VoicePartyBar({ activeParticipants = [], onJoin, onCreat
                                         ))}
                                     </div>
                                 </div>
-                            ) : (
+                            )}
+
+                            {totalOnline === 0 && (
                                 <p className="text-[9px] text-white/20 uppercase font-black tracking-widest text-center py-1">
-                                    Nadie en voz todavía...
+                                    Sin viajeros en línea...
                                 </p>
                             )}
 
