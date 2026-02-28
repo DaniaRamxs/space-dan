@@ -935,21 +935,24 @@ export default function GlobalChat() {
             </div>
 
             <AnimatePresence>
-                {selectedProfile && <HoloCard profile={selectedProfile} onClose={() => setSelectedProfile(null)} />}
-                {hasJoinedVoice && (
-                    <VoiceRoomUI
-                        roomName={voiceRoomName}
-                        isOpen={showVoiceRoom}
-                        onMinimize={() => setShowVoiceRoom(false)}
-                        onExpand={() => setShowVoiceRoom(true)}
-                        onLeave={handleLeaveVoice}
-                        onConnected={() => { setInVoiceRoom(true); updatePresence({ inVoice: true, voiceRoom: voiceRoomName }); }}
-                        userAvatar={userProfile?.avatar_url}
-                        nicknameStyle={userProfile?.equipped_nickname_style}
-                        frameId={userProfile?.frame_item_id}
-                    />
-                )}
+                {selectedProfile && <HoloCard key="holocard" profile={selectedProfile} onClose={() => setSelectedProfile(null)} />}
             </AnimatePresence>
+
+            {/* VoiceRoomUI fuera de AnimatePresence para evitar desmontaje accidental */}
+            {hasJoinedVoice && (
+                <VoiceRoomUI
+                    key="voice-room"
+                    roomName={voiceRoomName}
+                    isOpen={showVoiceRoom}
+                    onMinimize={() => setShowVoiceRoom(false)}
+                    onExpand={() => setShowVoiceRoom(true)}
+                    onLeave={handleLeaveVoice}
+                    onConnected={() => { setInVoiceRoom(true); updatePresence({ inVoice: true, voiceRoom: voiceRoomName }); }}
+                    userAvatar={userProfile?.avatar_url}
+                    nicknameStyle={userProfile?.equipped_nickname_style}
+                    frameId={userProfile?.frame_item_id}
+                />
+            )}
         </div>
     );
 }

@@ -39,24 +39,20 @@ export default function VoiceRoomUI({ roomName, onLeave, onConnected, userAvatar
 
     useEffect(() => {
         if (token || (!isOpen && !token)) return;
-
         const fetchToken = async () => {
             try {
                 const { data: { session } } = await supabase.auth.getSession();
                 const userId = session?.user?.id || 'anon-' + Math.random().toString(36).substring(7);
                 const participantName = session?.user?.user_metadata?.username || 'Explorador';
-
                 const response = await fetch(`/api/livekit-token?t=${Date.now()}`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ roomName, userId, participantName, userAvatar, nicknameStyle, frameId })
                 });
-
                 if (!response.ok) {
                     const errorText = await response.text();
                     throw new Error(`Error API (${response.status}): ${errorText.substring(0, 100)}`);
                 }
-
                 const data = await response.json();
                 if (data.error) throw new Error(data.error);
                 setToken(data.token);
@@ -67,11 +63,10 @@ export default function VoiceRoomUI({ roomName, onLeave, onConnected, userAvatar
                 setConnecting(false);
             }
         };
-
         fetchToken();
     }, [roomName, token, isOpen]);
 
-    // Loading / error state
+    // Estado de carga / error: solo muestra portal si isOpen
     if (!token && (connecting || error)) {
         if (!isOpen) return null;
         return createPortal(
@@ -109,76 +104,100 @@ export default function VoiceRoomUI({ roomName, onLeave, onConnected, userAvatar
         >
             <RoomAudioRenderer />
 
-            {/* Mini-barra persistente cuando el panel está minimizado */}
+            {/* Mini-barra flotante cuando el panel está minimizado */}
             {!isOpen && <MinimizedBar roomName={roomName} onExpand={onExpand} onLeave={onLeave} />}
 
-            {/* Panel completo */}
-            <AnimatePresence>
-                {isOpen && createPortal(
-                    <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 overflow-hidden">
-                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-black/90 backdrop-blur-md" onClick={onMinimize} />
-                        <motion.div
-                            initial={{ opacity: 0, y: 30, scale: 0.95 }}
-                            animate={{ opacity: 1, y: 0, scale: 1 }}
-                            exit={{ opacity: 0, y: 30, scale: 0.95 }}
-                            className="relative w-full max-w-md bg-[#050518] border border-white/10 rounded-[3rem] shadow-[0_30px_100px_rgba(0,0,0,0.8)] overflow-hidden flex flex-col max-h-[90vh]"
-                            onClick={e => e.stopPropagation()}
-                        >
-                            <header className="flex flex-col p-6 sm:p-8 border-b border-white/5 bg-white/[0.02]">
-                                <div className="flex items-center justify-between mb-6">
-                                    <div className="flex items-center gap-4">
-                                        <div className="w-12 h-12 rounded-2xl bg-cyan-500/10 flex items-center justify-center border border-cyan-500/20"><Radio size={24} className="text-cyan-400" /></div>
-                                        <div>
-                                            <h3 className="text-sm sm:text-base font-black text-white uppercase tracking-widest leading-tight">{roomName}</h3>
-                                            <div className="flex items-center gap-2 mt-1">
-                                                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                                                <p className="text-[9px] font-black text-emerald-400 uppercase tracking-[0.2em]">En Directo</p>
+            {/* Panel completo: AnimatePresence DENTRO del portal para que funcione correctamente */}
+            {createPortal(
+                <AnimatePresence>
+                    {isOpen && (
+                        <div key="voice-panel-root" className="fixed inset-0 z-[10000] flex items-center justify-center p-4 overflow-hidden">
+                            <motion.div
+                                key="voice-backdrop"
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                exit={{ opacity: 0 }}
+                                className="absolute inset-0 bg-black/90 backdrop-blur-md"
+                                onClick={onMinimize}
+                            />
+                            <motion.div
+                                key="voice-modal"
+                                initial={{ opacity: 0, y: 30, scale: 0.95 }}
+                                animate={{ opacity: 1, y: 0, scale: 1 }}
+                                exit={{ opacity: 0, y: 30, scale: 0.95 }}
+                                className="relative w-full max-w-md bg-[#050518] border border-white/10 rounded-[3rem] shadow-[0_30px_100px_rgba(0,0,0,0.8)] overflow-hidden flex flex-col max-h-[90vh]"
+                                onClick={e => e.stopPropagation()}
+                            >
+                                <header className="flex flex-col p-6 sm:p-8 border-b border-white/5 bg-white/[0.02]">
+                                    <div className="flex items-center justify-between mb-6">
+                                        <div className="flex items-center gap-4">
+                                            <div className="w-12 h-12 rounded-2xl bg-cyan-500/10 flex items-center justify-center border border-cyan-500/20">
+                                                <Radio size={24} className="text-cyan-400" />
+                                            </div>
+                                            <div>
+                                                <h3 className="text-sm sm:text-base font-black text-white uppercase tracking-widest leading-tight">{roomName}</h3>
+                                                <div className="flex items-center gap-2 mt-1">
+                                                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                                                    <p className="text-[9px] font-black text-emerald-400 uppercase tracking-[0.2em]">En Directo</p>
+                                                </div>
                                             </div>
                                         </div>
+                                        <div className="flex items-center gap-2">
+                                            <button
+                                                onClick={onMinimize}
+                                                title="Minimizar"
+                                                className="w-10 h-10 rounded-xl bg-white/5 text-white/40 border border-white/10 hover:bg-white/10 active:scale-95 transition-all flex items-center justify-center"
+                                            >
+                                                <ChevronDown size={20} />
+                                            </button>
+                                            <button
+                                                onClick={onLeave}
+                                                title="Salir de la sala"
+                                                className="w-12 h-12 rounded-2xl bg-rose-500/10 text-rose-400 border border-rose-500/20 hover:bg-rose-500/20 active:scale-95 transition-all flex items-center justify-center"
+                                            >
+                                                <LogOut size={20} />
+                                            </button>
+                                        </div>
                                     </div>
-                                    <div className="flex items-center gap-2">
-                                        <button onClick={onMinimize} className="w-10 h-10 rounded-xl bg-white/5 text-white/40 border border-white/10 hover:bg-white/10 active:scale-95 transition-all flex items-center justify-center" title="Minimizar">
-                                            <ChevronDown size={20} />
+                                    <div className="flex gap-2 p-1 bg-black/20 rounded-2xl">
+                                        <button
+                                            onClick={() => setActiveTab('participants')}
+                                            className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'participants' ? 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/20' : 'text-white/30 hover:bg-white/5'}`}
+                                        >
+                                            <Users size={14} /> Tripulación
                                         </button>
-                                        <button onClick={onLeave} className="w-12 h-12 rounded-2xl bg-rose-500/10 text-rose-400 border border-rose-500/20 hover:bg-rose-500/20 active:scale-95 transition-all flex items-center justify-center" title="Salir de la sala">
-                                            <LogOut size={20} />
+                                        <button
+                                            onClick={() => setActiveTab('chat')}
+                                            className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'chat' ? 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/20' : 'text-white/30 hover:bg-white/5'}`}
+                                        >
+                                            <MessageSquare size={14} /> Chat Temporal
                                         </button>
                                     </div>
+                                </header>
+                                <div className="flex-1 overflow-y-auto p-6 sm:p-8 no-scrollbar">
+                                    {activeTab === 'participants' ? <ParticipantsList /> : <ChatPanel />}
                                 </div>
-                                <div className="flex gap-2 p-1 bg-black/20 rounded-2xl">
-                                    <button onClick={() => setActiveTab('participants')} className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'participants' ? 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/20' : 'text-white/30 hover:bg-white/5'}`}><Users size={14} /> Tripulación</button>
-                                    <button onClick={() => setActiveTab('chat')} className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'chat' ? 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/20' : 'text-white/30 hover:bg-white/5'}`}><MessageSquare size={14} /> Chat Temporal</button>
-                                </div>
-                            </header>
-                            <div className="flex-1 overflow-y-auto p-6 sm:p-8 no-scrollbar">
-                                {activeTab === 'participants' ? <ParticipantsList /> : <ChatPanel />}
-                            </div>
-                            <footer className="p-6 sm:p-8 bg-black/40 border-t border-white/5 flex items-center justify-center">
-                                <MuteToggle />
-                            </footer>
-                        </motion.div>
-                    </div>, document.body
-                )}
-            </AnimatePresence>
+                                <footer className="p-6 sm:p-8 bg-black/40 border-t border-white/5 flex items-center justify-center">
+                                    <MuteToggle />
+                                </footer>
+                            </motion.div>
+                        </div>
+                    )}
+                </AnimatePresence>,
+                document.body
+            )}
         </LiveKitRoom>
     );
 }
 
-/* Mini-barra flotante cuando el panel está minimizado */
 function MinimizedBar({ roomName, onExpand, onLeave }) {
     const { isMicrophoneEnabled, localParticipant } = useLocalParticipant();
 
     return createPortal(
-        <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 20 }}
-            className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[9999] flex items-center gap-2 bg-[#050518]/95 backdrop-blur-xl border border-cyan-500/30 rounded-full px-4 py-2.5 shadow-[0_8px_40px_rgba(0,0,0,0.7)]"
-        >
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[9999] flex items-center gap-2 bg-[#050518]/95 backdrop-blur-xl border border-cyan-500/30 rounded-full px-4 py-2.5 shadow-[0_8px_40px_rgba(0,0,0,0.7)]">
             <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse flex-shrink-0" />
             <span className="text-[10px] font-black uppercase tracking-widest text-white/70 max-w-[110px] truncate">{roomName}</span>
             <div className="w-px h-4 bg-white/10 mx-0.5" />
-            {/* Mute */}
             <button
                 onClick={() => localParticipant.setMicrophoneEnabled(!isMicrophoneEnabled)}
                 className={`w-8 h-8 rounded-full flex items-center justify-center transition-all active:scale-90 ${isMicrophoneEnabled ? 'bg-white/10 text-white/70 hover:bg-white/20' : 'bg-rose-500/20 text-rose-400 border border-rose-500/40 hover:bg-rose-500/30'}`}
@@ -186,7 +205,6 @@ function MinimizedBar({ roomName, onExpand, onLeave }) {
             >
                 {isMicrophoneEnabled ? <Mic size={14} /> : <MicOff size={14} />}
             </button>
-            {/* Expandir panel */}
             <button
                 onClick={onExpand}
                 className="w-8 h-8 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-white/50 hover:bg-white/15 transition-all active:scale-90"
@@ -194,7 +212,6 @@ function MinimizedBar({ roomName, onExpand, onLeave }) {
             >
                 <ChevronUp size={14} />
             </button>
-            {/* Salir */}
             <button
                 onClick={onLeave}
                 className="w-8 h-8 rounded-full bg-rose-500/10 border border-rose-500/20 flex items-center justify-center text-rose-400 hover:bg-rose-500/20 transition-all active:scale-90"
@@ -202,7 +219,7 @@ function MinimizedBar({ roomName, onExpand, onLeave }) {
             >
                 <LogOut size={14} />
             </button>
-        </motion.div>,
+        </div>,
         document.body
     );
 }
@@ -289,21 +306,34 @@ function ChatPanel() {
                     placeholder="Escribe en el canal..."
                     className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-6 pr-14 text-[11px] text-white placeholder:text-white/20 outline-none focus:border-cyan-500/50 transition-all"
                 />
-                <button onClick={handleSend} className="absolute right-2 top-2 bottom-2 px-4 rounded-xl bg-cyan-500 text-black hover:bg-cyan-400 transition-all scale-90 group-focus-within:scale-100"><Send size={14} /></button>
+                <button onClick={handleSend} className="absolute right-2 top-2 bottom-2 px-4 rounded-xl bg-cyan-500 text-black hover:bg-cyan-400 transition-all scale-90 group-focus-within:scale-100">
+                    <Send size={14} />
+                </button>
             </div>
         </div>
     );
 }
 
 function MuteIndicator({ participant }) {
-    if (!participant.isMicrophoneEnabled) return <div className="w-8 h-8 rounded-full bg-rose-500/10 flex items-center justify-center border border-rose-500/20"><MicOff size={12} className="text-rose-500" /></div>;
-    return <div className={`w-8 h-8 rounded-full flex items-center justify-center border transition-all ${participant.isSpeaking ? 'bg-cyan-500/20 border-cyan-400/40' : 'bg-emerald-500/5 border-emerald-500/20'}`}><Mic size={12} className={participant.isSpeaking ? 'text-cyan-400' : 'text-emerald-500/40'} /></div>;
+    if (!participant.isMicrophoneEnabled) return (
+        <div className="w-8 h-8 rounded-full bg-rose-500/10 flex items-center justify-center border border-rose-500/20">
+            <MicOff size={12} className="text-rose-500" />
+        </div>
+    );
+    return (
+        <div className={`w-8 h-8 rounded-full flex items-center justify-center border transition-all ${participant.isSpeaking ? 'bg-cyan-500/20 border-cyan-400/40' : 'bg-emerald-500/5 border-emerald-500/20'}`}>
+            <Mic size={12} className={participant.isSpeaking ? 'text-cyan-400' : 'text-emerald-500/40'} />
+        </div>
+    );
 }
 
 function MuteToggle() {
     const { isMicrophoneEnabled, localParticipant } = useLocalParticipant();
     return (
-        <button onClick={() => localParticipant.setMicrophoneEnabled(!isMicrophoneEnabled)} className={`w-14 h-14 rounded-full flex items-center justify-center transition-all shadow-xl ${isMicrophoneEnabled ? 'bg-white/90 text-black hover:bg-white scale-110' : 'bg-rose-500/20 text-rose-400 border border-rose-500/40 hover:bg-rose-500/30'}`}>
+        <button
+            onClick={() => localParticipant.setMicrophoneEnabled(!isMicrophoneEnabled)}
+            className={`w-14 h-14 rounded-full flex items-center justify-center transition-all shadow-xl ${isMicrophoneEnabled ? 'bg-white/90 text-black hover:bg-white scale-110' : 'bg-rose-500/20 text-rose-400 border border-rose-500/40 hover:bg-rose-500/30'}`}
+        >
             {isMicrophoneEnabled ? <Mic size={24} /> : <MicOff size={24} />}
         </button>
     );
