@@ -34,7 +34,7 @@ export default function GlobalChat() {
     const user = auth?.user;
     const userProfile = auth?.profile;
     const { balance, awardCoins, transfer, claimDaily } = useEconomy();
-    const { onlineUsers } = useUniverse();
+    const { onlineUsers, updatePresence } = useUniverse();
 
     const [activeChannel, setActiveChannel] = useState('global');
     const [messages, setMessages] = useState([]);
@@ -56,7 +56,6 @@ export default function GlobalChat() {
 
     useEffect(() => {
         loadMessages(activeChannel);
-        ensureHyperBotExists();
 
         // Limpiar IDs procesados al cambiar de canal para recargar
         processedIds.current = new Set();
@@ -78,19 +77,6 @@ export default function GlobalChat() {
         };
     }, [user?.id, activeChannel]);
 
-    const ensureHyperBotExists = async () => {
-        try {
-            await supabase.from('profiles').upsert({
-                id: HYPERBOT.id,
-                username: HYPERBOT.username,
-                username_normalized: HYPERBOT.username.toLowerCase(),
-                avatar_url: HYPERBOT.avatar_url,
-                equipped_nickname_style: HYPERBOT.nickname_style
-            }, { onConflict: 'id' });
-        } catch (err) {
-            console.error('[GlobalChat] HyperBot Upsert Error:', err);
-        }
-    };
 
     useEffect(() => {
         const lastMsg = messages[messages.length - 1];
@@ -778,8 +764,8 @@ export default function GlobalChat() {
                         roomName={voiceRoomName}
                         isOpen={showVoiceRoom}
                         onMinimize={() => setShowVoiceRoom(false)}
-                        onLeave={() => { setHasJoinedVoice(false); setShowVoiceRoom(false); setInVoiceRoom(false); setVoiceRoomName('Sala Galáctica'); }}
-                        onConnected={() => setInVoiceRoom(true)}
+                        onLeave={() => { setHasJoinedVoice(false); setShowVoiceRoom(false); setInVoiceRoom(false); setVoiceRoomName('Sala Galáctica'); updatePresence({ inVoice: false, voiceRoom: null }); }}
+                        onConnected={() => { setInVoiceRoom(true); updatePresence({ inVoice: true, voiceRoom: voiceRoomName }); }}
                         userAvatar={userProfile?.avatar_url}
                         nicknameStyle={userProfile?.equipped_nickname_style}
                         frameId={userProfile?.frame_item_id}
