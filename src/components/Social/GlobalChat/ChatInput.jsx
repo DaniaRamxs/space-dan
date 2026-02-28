@@ -1,25 +1,38 @@
 
-import { useState, useRef } from 'react';
+import { useState, useRef, memo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { GiphyFetch } from '@giphy/js-fetch-api';
 import { Grid } from '@giphy/react-components';
 
 const gf = new GiphyFetch('3k4Fdn6D040IQvIq1KquLZzJgutP3dGp');
 
-export default function ChatInput({ onSendMessage, isVipMode, setIsVipMode, balance, replyingTo, setReplyingTo }) {
+const ChatInput = memo(({ onSendMessage, isVipMode, setIsVipMode, balance, replyingTo, setReplyingTo, isAdmin, activeChannel }) => {
     const [text, setText] = useState('');
     const textareaRef = useRef(null);
     const [showGiphy, setShowGiphy] = useState(false);
     const [gifSearchTerm, setGifSearchTerm] = useState('');
     const [isUploading, setIsUploading] = useState(false);
 
+    const isReadOnly = activeChannel === 'avisos' && !isAdmin;
+
     const handleSubmit = (e) => {
         if (e) e.preventDefault();
+        if (isReadOnly) return;
         if (!text.trim()) return;
         onSendMessage(text, isVipMode, replyingTo?.id);
         setText('');
         if (textareaRef.current) textareaRef.current.style.height = 'auto';
     };
+
+    if (isReadOnly) {
+        return (
+            <div className="chat-input-area justify-center py-6 opacity-60">
+                <span className="text-[10px] font-black uppercase tracking-[0.3em] text-cyan-400/50 flex items-center gap-2">
+                    🔒 Canal de Solo Lectura
+                </span>
+            </div>
+        );
+    }
 
     const handleImageUpload = async (e) => {
         const file = e.target.files[0];
@@ -184,4 +197,6 @@ export default function ChatInput({ onSendMessage, isVipMode, setIsVipMode, bala
             </motion.button>
         </form>
     );
-}
+});
+
+export default ChatInput;

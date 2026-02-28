@@ -5,7 +5,7 @@
 
 -- ── 1. PROFILES ─────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS public.profiles (
-  id         uuid PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+  id         uuid PRIMARY KEY,
   username   text,
   avatar_url text,
   bio        text,

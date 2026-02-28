@@ -8,6 +8,7 @@ import "./styles/NicknameStyles.css";
 import AchievementToast from "./components/AchievementToast";
 import Screensaver from "./components/Screensaver";
 import PageTransition from "./components/PageTransition";
+import ScrollToTop from "./components/ScrollToTop";
 import { unlockAchievement } from "./hooks/useAchievements";
 import { trackPageVisit } from "./hooks/useDancoins";
 import { applyTheme } from "./hooks/useTheme";
@@ -322,6 +323,7 @@ export default function App() {
             <AchievementToast />
             <Screensaver />
             <PageTracker />
+            <ScrollToTop />
             <PresenceTracker />
             <Suspense fallback={<FallbackLoader />}>
               <AnimatedRoutes />

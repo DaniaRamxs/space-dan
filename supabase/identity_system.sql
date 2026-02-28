@@ -5,12 +5,14 @@
 
 -- 1. CLEANUP OLD LOGIC (IF EXISTS)
 DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+DROP TRIGGER IF EXISTS on_auth_user_created_v2 ON auth.users;
 DROP FUNCTION IF EXISTS public.handle_new_user();
 
 -- 2. CORE TABLES & ALTERATIONS
 -- Asegurar que la tabla existe
+-- NOTA: Se eliminó la referencia estricta a auth.users(id) para permitir usuarios virtuales (bots)
 CREATE TABLE IF NOT EXISTS public.profiles (
-    id uuid PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE
+    id uuid PRIMARY KEY
 );
 
 -- Añadir columnas faltantes a profiles (si ya existía)

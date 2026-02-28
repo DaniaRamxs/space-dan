@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { memo, useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, useMotionValue, useTransform } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
@@ -11,7 +11,7 @@ import '../styles/NicknameStyles.css';
 
 import { getFrameStyle } from '../utils/styles';
 
-export default function HoloCard({ profile, onClose }) {
+const HoloCard = memo(function HoloCard({ profile, onClose }) {
     const navigate = useNavigate();
     const x = useMotionValue(0);
     const y = useMotionValue(0);
@@ -127,15 +127,16 @@ export default function HoloCard({ profile, onClose }) {
                         pointerEvents: 'none'
                     }} />
 
-                    <div style={{ transform: 'translateZ(50px)', marginBottom: '20px' }} className={frameClass}>
+                    <div style={{ transform: 'translateZ(50px)', marginBottom: '20px', width: '100px', height: '100px' }} className={`relative flex items-center justify-center ${frameClass}`}>
                         <img
                             src={profile.avatar_url || '/dan_profile.jpg'}
                             className={frameClass ? 'rounded-full' : 'rounded-[30%]'}
                             style={{
-                                width: '100px', height: '100px',
+                                width: '100%', height: '100%',
                                 objectFit: 'cover',
                                 ...frameObj
                             }}
+                            loading="lazy"
                         />
                     </div>
 
@@ -214,4 +215,6 @@ export default function HoloCard({ profile, onClose }) {
         </div>,
         document.body
     );
-}
+});
+
+export default HoloCard;

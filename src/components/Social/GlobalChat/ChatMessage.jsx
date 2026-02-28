@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { motion } from 'framer-motion';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -6,7 +7,6 @@ import rehypeSanitize, { defaultSchema } from 'rehype-sanitize';
 import { getNicknameClass, getUserDisplayName } from '../../../utils/user';
 import { getFrameStyle } from '../../../utils/styles';
 import { parseSpaceEnergies } from '../../../utils/markdownUtils';
-import { useUniverse } from '../../../contexts/UniverseContext';
 
 const sanitizeSchema = {
     ...defaultSchema,
@@ -45,85 +45,83 @@ export const parseLinksToImages = (text) => {
     }).join('');
 };
 
-export default function ChatMessage({ message, isMe, onProfileClick, onReply }) {
+const ChatMessage = memo(({ message, isMe, isOnline, userPresence, onProfileClick, onReply }) => {
     const { author, content, is_vip, created_at, reactions, reply } = message;
-    const { onlineUsers } = useUniverse();
 
-    const isOnline = author?.id && onlineUsers[author.id];
-    const userPresence = onlineUsers[author?.id];
+    // Fallback author for safety
+    const safeAuthor = author || { username: 'Viajero', id: message.user_id };
 
     return (
         <motion.div
             initial={{ opacity: 0, x: isMe ? 20 : -20 }}
             animate={{ opacity: 1, x: 0 }}
-            className={`flex gap-3 ${isMe ? 'flex-row-reverse' : 'flex-row'}`}
+            className={`flex gap-3 group/msg ${isMe ? 'flex-row-reverse' : 'flex-row'} items-start`}
         >
             {/* Avatar + Frame */}
-            <div className="chat-avatar-container">
+            <div className="relative shrink-0 w-8 sm:w-10 mt-1">
                 <div
-                    className={`shrink-0 ${isOnline ? 'avatar-online-ring' : ''} relative cursor-pointer active:scale-95 transition-transform`}
-                    onClick={() => onProfileClick?.(author)}
+                    className={`w-8 h-8 sm:w-10 sm:h-10 ${isOnline ? 'avatar-online-ring p-[1px]' : ''} relative cursor-pointer active:scale-95 transition-transform flex items-center justify-center`}
+                    onClick={() => onProfileClick?.(safeAuthor)}
                 >
-                    <div
-                        className="w-9 h-9 rounded-full overflow-hidden relative border border-white/5"
-                        style={getFrameStyle ? getFrameStyle(author?.frame_item_id || author?.equipped_frame) : {}}
-                    >
-                        <img
-                            src={author?.avatar_url || '/default-avatar.png'}
-                            className="w-full h-full object-cover"
-                            alt={author?.username}
-                        />
-                    </div>
+                    {(() => {
+                        const frame = getFrameStyle ? getFrameStyle(safeAuthor?.frame_item_id || safeAuthor?.equipped_frame) : {};
+                        return (
+                            <div
+                                className={`w-full h-full rounded-full relative flex items-center justify-center border border-white/5 ${frame.className || ''}`}
+                                style={{ ...frame, width: '100%', height: '100%' }} // Force size inheritance from locked parent
+                            >
+                                <div className="w-full h-full rounded-full overflow-hidden bg-black/40">
+                                    <img
+                                        src={safeAuthor?.avatar_url || '/default-avatar.png'}
+                                        className="w-full h-full object-cover"
+                                        alt={safeAuthor?.username}
+                                        loading="lazy"
+                                    />
+                                </div>
+                            </div>
+                        );
+                    })()}
                 </div>
                 {/* Level Badge */}
-                <div className="absolute -bottom-1 -right-1 bg-black/80 border border-white/10 rounded-full px-1 text-[7px] font-black text-cyan-400 z-20">
-                    {author?.user_level || author?.level || 1}
+                <div className="absolute -bottom-1 -right-1 bg-black/80 border border-white/20 rounded-full px-1.5 py-0.5 text-[7px] font-black text-cyan-400 z-20 shadow-lg">
+                    {safeAuthor?.user_level || safeAuthor?.level || 1}
                 </div>
             </div>
 
-            {/* Content Bubble */}
-            <div className={`flex flex-col ${isMe ? 'items-end' : 'items-start'} max-w-[calc(100%-48px)] sm:max-w-[90%]`}>
-                <div className="flex items-center gap-2 mb-1 px-1">
+            {/* Content Bubble Area */}
+            <div className={`flex flex-col ${isMe ? 'items-end' : 'items-start'} max-w-[calc(100%-48px)] sm:max-w-[85%]`}>
+                <div className={`flex items-center gap-2 mb-1 px-1 overflow-hidden max-w-full ${isMe ? 'flex-row-reverse' : 'flex-row'}`}>
                     <span
-                        className={`text-[10px] font-black tracking-wider ${getNicknameClass(author)} cursor-pointer hover:underline decoration-white/20 underline-offset-2 transition-all`}
-                        onClick={() => onProfileClick?.(author)}
+                        className={`text-[10px] sm:text-[11px] font-black tracking-wider ${getNicknameClass(safeAuthor)} cursor-pointer hover:underline decoration-white/20 underline-offset-2 transition-all truncate`}
+                        onClick={() => onProfileClick?.(safeAuthor)}
                     >
-                        {getUserDisplayName(author)}
+                        {getUserDisplayName(safeAuthor)}
                     </span>
-                    {isOnline && (
-                        <span className="orbit-status-label">
-                            <span className="orbit-status-dot" />
-                            <div className="orbit-status-ticker">
-                                <span>{userPresence?.status || 'En Órbita ✨'}</span>
-                            </div>
-                        </span>
-                    )}
-                    <span className="text-[8px] text-white/20 font-mono">
+                    <span className="text-[8px] text-white/20 font-mono flex-shrink-0">
                         {new Date(created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </span>
                 </div>
 
-                <div className="flex items-center gap-2 w-full">
-                    <div className={`chat-message-bubble relative group/bubble ${is_vip ? 'chat-message-vip' : ''} flex-1`}>
+                <div className={`flex items-start gap-2 w-full ${isMe ? 'flex-row-reverse' : 'flex-row'}`}>
+                    <div className={`chat-message-bubble relative group/bubble ${is_vip ? 'chat-message-vip' : ''} shadow-xl`}>
                         {reply && (
-                            <div className="mb-2 p-2 rounded-lg bg-white/5 border-l-2 border-cyan-500/50 text-[10px] opacity-80">
+                            <div className="mb-2 p-2 rounded-xl bg-white/5 border-l-2 border-cyan-500/50 text-[10px] opacity-80 backdrop-blur-sm">
                                 <div className="font-black text-[8px] uppercase tracking-widest text-cyan-400 mb-0.5">
                                     {reply.author}
                                 </div>
-                                <div className="line-clamp-1 italic text-white/60">
+                                <div className="line-clamp-1 italic text-white/40">
                                     {reply.content.replace(/!\[.*?\]\(.*?\)/g, '🖼️ Imagen')}
                                 </div>
                             </div>
                         )}
                         {is_vip && (
-                            <div className="vip-tag flex items-center justify-between mb-2">
+                            <div className="vip-tag flex items-center justify-between mb-2 border-b border-amber-500/20 pb-1">
                                 <span>★ TRANSMISIÓN VIP ★</span>
-                                <span className="opacity-40 text-[7px]">LEVEL {author?.level || 1}</span>
                             </div>
                         )}
                         <div className="prose prose-invert prose-xs max-w-none break-words
-                            prose-p:my-0 prose-p:leading-relaxed
-                            prose-strong:text-cyan-400 prose-em:text-pink-400">
+                            prose-p:my-0 prose-p:leading-tight sm:prose-p:leading-relaxed
+                            prose-strong:text-cyan-400 prose-em:text-pink-400 text-[14px] sm:text-[15px]">
                             <ReactMarkdown
                                 remarkPlugins={[remarkGfm]}
                                 rehypePlugins={[rehypeRaw, [rehypeSanitize, sanitizeSchema]]}
@@ -133,13 +131,13 @@ export default function ChatMessage({ message, isMe, onProfileClick, onReply }) 
                         </div>
                     </div>
 
-                    {/* Reply Action Button - Prominent */}
+                    {/* Compact Reply Button */}
                     <button
                         onClick={() => onReply?.(message)}
-                        className="p-2 rounded-xl bg-white/5 hover:bg-cyan-500/20 hover:text-cyan-400 border border-white/5 hover:border-cyan-500/30 transition-all opacity-0 group-hover:opacity-100 active:scale-90"
-                        title="Responder a este mensaje"
+                        className="p-2 rounded-xl bg-white/5 border border-white/10 opacity-0 group-hover/msg:opacity-100 transition-all active:scale-90 flex-shrink-0 hover:bg-white/10"
+                        title="Responder"
                     >
-                        <span className="text-xs">↩️</span>
+                        <span className="text-[11px]">↩️</span>
                     </button>
                 </div>
 
@@ -156,4 +154,15 @@ export default function ChatMessage({ message, isMe, onProfileClick, onReply }) 
             </div>
         </motion.div>
     );
-}
+}, (prev, next) => {
+    return (
+        prev.message.id === next.message.id &&
+        prev.isMe === next.isMe &&
+        prev.isOnline === next.isOnline &&
+        prev.userPresence?.status === next.userPresence?.status &&
+        prev.onReply === next.onReply &&
+        prev.onProfileClick === next.onProfileClick
+    );
+});
+
+export default ChatMessage;

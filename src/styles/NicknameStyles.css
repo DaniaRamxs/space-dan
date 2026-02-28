@@ -395,3 +395,48 @@
         background-position: -200% 0;
     }
 }
+
+/* 🤖 ESTILO: HYPERBOT (Oro blindado, escudo y circuitos) */
+.nick-style-hyperbot {
+    background: linear-gradient(to bottom, #ffd700, #b8860b);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    font-weight: 900;
+    text-shadow: 0 0 10px rgba(255, 215, 0, 0.4);
+    position: relative;
+    padding-right: 20px !important;
+}
+
+.nick-style-hyperbot::after {
+    content: '🛡️';
+    position: absolute;
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 10px;
+    -webkit-text-fill-color: initial;
+    filter: drop-shadow(0 0 5px rgba(255, 215, 0, 0.5));
+}
+
+.nick-style-hyperbot::before {
+    content: '';
+    position: absolute;
+    inset: -2px;
+    background: linear-gradient(90deg, transparent, rgba(255, 215, 0, 0.2), transparent);
+    background-size: 200% 100%;
+    animation: goldSweep 3s linear infinite;
+    mask-image: linear-gradient(black, black);
+    -webkit-mask-image: linear-gradient(black, black);
+    pointer-events: none;
+}
+
+@keyframes goldSweep {
+    from {
+        background-position: 200% 0;
+    }
+
+    to {
+        background-position: -200% 0;
+    }
+}

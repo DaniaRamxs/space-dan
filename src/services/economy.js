@@ -100,6 +100,52 @@ export async function transferCoins(fromUserId, toUserId, amount, message = null
   return data;
 }
 
+/** Obtiene el Top 5 de usuarios destacados */
+export async function getLeaderboard(limit = 5) {
+  const { data, error } = await supabase.rpc('get_leaderboard', { p_limit: limit });
+  if (error) throw error;
+  return data;
+}
+
+/** Realiza una misión espacial para ganar coins (cooldown 4h) */
+export async function workMission(userId) {
+  const { data, error } = await supabase.rpc('work_mission', { p_user_id: userId });
+  if (error) throw error;
+  return data;
+}
+
+/** Intenta robar a otro usuario por su username */
+export async function robUser(fromUserId, targetUsername) {
+  const { data, error } = await supabase.rpc('rob_user', {
+    p_from_user_id: fromUserId,
+    p_target_username: targetUsername
+  });
+  if (error) throw error;
+  return data;
+}
+
+/** Descuenta coins (para /tax o slots) */
+export async function deductCoins(userId, amount, type = 'admin_deduct', description = 'Deducción del sistema') {
+  const { data, error } = await supabase.rpc('deduct_coins', {
+    p_user_id: userId,
+    p_amount: amount,
+    p_type: type,
+    p_desc: description
+  });
+  if (error) throw error;
+  return data;
+}
+
+/** Actualiza el estado de ánimo (mood) */
+export async function updateMood(userId, mood) {
+  const { error } = await supabase
+    .from('profiles')
+    .update({ mood })
+    .eq('id', userId);
+  if (error) throw error;
+  return { success: true };
+}
+
 /**
  * Historial de transferencias (enviadas y recibidas)
  */

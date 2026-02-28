@@ -51,22 +51,6 @@ export default function GlobalChatPage() {
 
                     <GlobalChat />
                 </div>
-
-                {/* Legend / Tips */}
-                <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="p-4 rounded-3xl bg-white/[0.02] border border-white/5">
-                        <span className="text-[10px] font-black text-cyan-400 uppercase tracking-widest block mb-1">Menciones</span>
-                        <p className="text-[9px] text-white/30 leading-relaxed uppercase">Usa @nombre para resaltar a un usuario y notificarle con un pulso estelar.</p>
-                    </div>
-                    <div className="p-4 rounded-3xl bg-white/[0.02] border border-white/5">
-                        <span className="text-[10px] font-black text-amber-400 uppercase tracking-widest block mb-1">Impacto VIP</span>
-                        <p className="text-[9px] text-white/30 leading-relaxed uppercase">Activa el modo VIP para que tu mensaje brille con aura dorada en todo el chat.</p>
-                    </div>
-                    <div className="p-4 rounded-3xl bg-white/[0.02] border border-white/5">
-                        <span className="text-[10px] font-black text-purple-400 uppercase tracking-widest block mb-1">Markdown</span>
-                        <p className="text-[9px] text-white/30 leading-relaxed uppercase">Usa ::neon:: o ::cyber:: para dar energía a tus palabras de forma personalizada.</p>
-                    </div>
-                </div>
             </motion.div>
         </main>
     );

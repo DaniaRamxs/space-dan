@@ -1,9 +1,10 @@
 
-// v2.6 - LiveKit Project Z Integration
-import { useState, useEffect, useRef } from 'react';
+// v2.8.0 - Discord Mode: Channels & Multi-Room Support 📡🛰️
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuthContext } from '../../../contexts/AuthContext';
 import { useEconomy } from '../../../contexts/EconomyContext';
+import * as economyService from '../../../services/economy';
 import { chatService } from '../../../services/chatService';
 import { supabase } from '../../../supabaseClient';
 import ChatMessage, { parseMentions } from './ChatMessage';
@@ -11,11 +12,31 @@ import ChatInput from './ChatInput';
 import VoicePartyBar from './VoicePartyBar';
 import VoiceRoomUI from '../../VoiceRoom/VoiceRoomUI';
 import HoloCard from '../../HoloCard';
+import { useUniverse } from '../../../contexts/UniverseContext';
 import '../../../styles/GlobalChat.css';
 
+const HYPERBOT = {
+    id: '00000000-0000-0000-0000-000000000bb1',
+    username: 'HyperBot',
+    avatar_url: 'https://api.dicebear.com/7.x/bottts-neutral/svg?seed=HyperBot&backgroundColor=b6e3f4',
+    nickname_style: 'hyperbot',
+    level: 999
+};
+
+const CHANNELS = [
+    { id: 'global', name: 'general', icon: '💬', description: 'Chat principal de la comunidad' },
+    { id: 'comandos', name: 'comandos', icon: '🤖', description: 'Interacción exclusiva con HyperBot' },
+    { id: 'avisos', name: 'avisos', icon: '📢', description: 'Noticias y actualizaciones' }
+];
+
 export default function GlobalChat() {
-    const { user } = useAuthContext();
-    const { balance, awardCoins } = useEconomy();
+    const auth = useAuthContext();
+    const user = auth?.user;
+    const userProfile = auth?.profile;
+    const { balance, awardCoins, transfer, claimDaily } = useEconomy();
+    const { onlineUsers } = useUniverse();
+
+    const [activeChannel, setActiveChannel] = useState('global');
     const [messages, setMessages] = useState([]);
     const [loading, setLoading] = useState(true);
     const [isVipMode, setIsVipMode] = useState(false);
@@ -23,19 +44,28 @@ export default function GlobalChat() {
     const [inVoiceRoom, setInVoiceRoom] = useState(false);
     const [selectedProfile, setSelectedProfile] = useState(null);
     const [replyingTo, setReplyingTo] = useState(null);
+    const [sidebarOpen, setSidebarOpen] = useState(false);
+
     const scrollRef = useRef(null);
     const messagesEndRef = useRef(null);
+    const pendingDuel = useRef(null);
+    const activeGames = useRef({}); // { [userId]: { type, data } }
+    const processedIds = useRef(new Set());
 
     useEffect(() => {
-        loadMessages();
+        loadMessages(activeChannel);
+        ensureHyperBotExists();
 
-        // Realtime Subscription
+        // Limpiar IDs procesados al cambiar de canal para recargar
+        processedIds.current = new Set();
+
         const channel = supabase
-            .channel('global-chat-room')
+            .channel(`global-chat-${activeChannel}`)
             .on('postgres_changes', {
                 event: 'INSERT',
                 schema: 'public',
-                table: 'global_chat'
+                table: 'global_chat',
+                filter: `channel_id=eq.${activeChannel}`
             }, (payload) => {
                 handleNewMessage(payload.new.id);
             })
@@ -44,233 +74,696 @@ export default function GlobalChat() {
         return () => {
             supabase.removeChannel(channel);
         };
-    }, [user?.id]);
+    }, [user?.id, activeChannel]);
 
-    // Auto-scroll on new messages
-    useEffect(() => {
-        scrollToBottom();
-    }, [messages]);
-
-    const loadMessages = async () => {
+    const ensureHyperBotExists = async () => {
         try {
-            const data = await chatService.getRecentMessages();
-            setMessages(data);
+            await supabase.from('profiles').upsert({
+                id: HYPERBOT.id,
+                username: HYPERBOT.username,
+                username_normalized: HYPERBOT.username.toLowerCase(),
+                avatar_url: HYPERBOT.avatar_url,
+                equipped_nickname_style: HYPERBOT.nickname_style
+            }, { onConflict: 'id' });
         } catch (err) {
-            console.error('[GlobalChat] Error loading messages:', err);
+            console.error('[GlobalChat] HyperBot Upsert Error:', err);
+        }
+    };
+
+    useEffect(() => {
+        const lastMsg = messages[messages.length - 1];
+        if (lastMsg?.user_id === user?.id || lastMsg?.user_id === HYPERBOT.id) {
+            scrollToBottom(true);
+        }
+    }, [messages, user?.id]);
+
+    const loadMessages = async (chanId) => {
+        setLoading(true);
+        try {
+            const data = await chatService.getRecentMessages(50, chanId);
+            setMessages(data);
+            data.forEach(m => processedIds.current.add(m.id));
+        } catch (err) {
+            console.error('[GlobalChat] Load Error:', err);
         } finally {
             setLoading(false);
         }
     };
 
     const handleNewMessage = async (id) => {
-        // 1. Fetch message basic data
-        const { data: msg, error: msgError } = await supabase
+        if (processedIds.current.has(id)) return;
+        processedIds.current.add(id);
+
+        const { data: msg, error } = await supabase
             .from('global_chat')
-            .select('id, content, created_at, user_id, is_vip, reply_to_id')
+            .select('*')
             .eq('id', id)
             .single();
 
-        if (msgError || !msg) return;
+        if (error || !msg) return;
+        if (msg.channel_id !== activeChannel) return;
 
-        // 2. Fetch profile separately
-        const { data: prof } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', msg.user_id)
-            .single();
+        const existingAuthor = messages.find(m => m.user_id === msg.user_id)?.author;
+        let author = existingAuthor;
+
+        if (!author) {
+            const { data: prof } = await supabase.from('profiles').select('*').eq('id', msg.user_id).single();
+            author = prof || { username: 'Viajero' };
+        }
+
+        let content = msg.content;
+        let isHyperBot = false;
+
+        if (content.startsWith('[HYPERBOT_MSG]:')) {
+            content = content.replace('[HYPERBOT_MSG]:', '');
+            author = HYPERBOT;
+            isHyperBot = true;
+        }
+
+        const fullMessage = { ...msg, content, author, user_id: author.id };
 
         setMessages(prev => {
-            if (prev.find(m => m.id === msg.id)) return prev;
+            const cleanContent = content.trim();
+            const tempIndex = prev.findIndex(m => String(m.id).startsWith('temp-') && m.content.trim() === cleanContent);
 
             let reply = null;
             if (msg.reply_to_id) {
-                const originalMsg = prev.find(om => om.id === msg.reply_to_id);
-                if (originalMsg) {
-                    reply = {
-                        content: originalMsg.content,
-                        author: originalMsg.author?.username || 'Anónimo'
-                    };
+                const original = prev.find(om => om.id === msg.reply_to_id) || messages.find(om => om.id === msg.reply_to_id);
+                if (original) {
+                    reply = { content: original.content, author: original.author?.username || 'Anónimo' };
                 }
             }
 
-            const fullMessage = { ...msg, author: prof || { username: 'Viajero' }, reply };
-            return [...prev, fullMessage].slice(-100);
+            if (tempIndex !== -1) {
+                const updated = [...prev];
+                updated[tempIndex] = { ...fullMessage, reply };
+                return updated;
+            }
+
+            if (prev.find(m => m.id === msg.id)) return prev;
+            return [...prev, { ...fullMessage, reply }].slice(-100);
         });
 
-        if (msg.user_id !== user?.id) playNotificationSound();
+        if (msg.user_id !== user?.id && !isHyperBot) playNotificationSound();
     };
 
-    const scrollToBottom = () => {
-        setTimeout(() => {
-            if (messagesEndRef.current) {
-                messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    const scrollToBottom = (force = false) => {
+        if (!scrollRef.current) return;
+        const { scrollTop, scrollHeight, clientHeight } = scrollRef.current;
+        const isAtBottom = scrollHeight - scrollTop - clientHeight < 200;
+        if (force || isAtBottom) {
+            setTimeout(() => {
+                messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+            }, 100);
+        }
+    };
+
+    const handleBotCommand = useCallback(async (content) => {
+        const parts = content.trim().split(' ');
+        const cmd = parts[0].toLowerCase();
+        const args = parts.slice(1);
+        const senderName = userProfile?.username || user?.user_metadata?.username || 'Viajero';
+        const getHandValue = (hand) => {
+            let val = 0; let aces = 0;
+            for (const c of hand) {
+                const s = c.substring(0, c.length - 1);
+                if (s === 'A') { aces++; val += 11; }
+                else if (['J', 'Q', 'K'].includes(s)) val += 10;
+                else val += parseInt(s);
             }
-        }, 250);
-    };
+            while (val > 21 && aces > 0) { val -= 10; aces--; }
+            return val;
+        };
 
-    const handleSendMessage = async (content, isVip, replyToId = null) => {
-        if (!user) return;
-        if (isVip && balance < 50) {
-            alert('No tienes suficientes Dancoins para un mensaje VIP (Costo: 50 DNC).');
-            return;
+        const renderHand = (hand) => hand.map(c => `[${c}]`).join(' ');
+
+        let response = '';
+
+        switch (cmd) {
+            case '/help':
+                if (args[0] === 'economy') {
+                    response = '💰 **Gestión Financiera Galáctica:**\n\n' +
+                        '- `/bal`: Tu balance.\n' +
+                        '- `/daily`: Bono 24h.\n' +
+                        '- `/work`: Misión (4h).\n' +
+                        '- `/bet <monto>`: 50/50.\n' +
+                        '- `/slots <monto>`: Tragamonedas.\n' +
+                        '- `/rob @user`: Robar.\n' +
+                        '- `/give @user <m>`: Enviar.\n' +
+                        '- `/lb`: Top Ricos.';
+                } else if (args[0] === 'social') {
+                    response = '🎭 **Interacción Estelar:**\n\n' +
+                        '- `/profile @user`: Info.\n' +
+                        '- `/mood <text>`: Estado.\n' +
+                        '- `/ship @u1 @u2`: Amor.\n' +
+                        '- `/marry @user`: Boda.\n' +
+                        '- `/avatar @user`: Foto.\n' +
+                        '- `/hug`, `/kiss`, `/slap`, `/dance`.';
+                } else if (args[0] === 'admin' && userProfile?.is_admin) {
+                    response = '🛡️ **Protocolos de Élite:**\n\n' +
+                        '- `/clear`: Purgar canal.\n' +
+                        '- `/tax @user <m>`: Multar.\n' +
+                        '- `/announce <msg>`: Comunicado.';
+                } else {
+                    response = '🤖 **Protocolos HyperBot:**\n\n' +
+                        '💰 `/help economy`: Dinero y Juegos.\n' +
+                        '🎭 `/help social`: Perfil y Amigos.\n' +
+                        '⚔️ `/duel @user`: Combate 21.\n' +
+                        '✨ `/joke`, `/quote`, `/pick`, `/roll`.';
+                }
+                break;
+
+            case '/bal':
+                response = `💰 **@${senderName}**, tu balance es de **${balance} ◈ Dancoins**.`;
+                break;
+
+            case '/daily':
+                try {
+                    const result = await claimDaily();
+                    if (result.success) response = `✨ **Bono de ${result.bonus} ◈** reclamado por @${senderName}. Total: **${result.balance} ◈**.`;
+                    else response = `⏳ **Espera:** @${senderName}, ${result.message}`;
+                } catch (err) { response = '❌ Error al reclamar.'; }
+                break;
+
+            case '/bet':
+                const betAmt = parseInt(args[0]);
+                if (isNaN(betAmt) || betAmt < 10) {
+                    response = '❌ Uso: `/bet 50`. (Mín. 10 ◈).';
+                } else if (betAmt > balance) {
+                    response = `⚠️ Solo tienes **${balance} ◈**.`;
+                } else {
+                    const win = Math.random() > 0.55;
+                    if (win) {
+                        await awardCoins(betAmt, 'game_reward');
+                        response = `🎰 **¡Ganaste!** @${senderName} apostó **${betAmt} ◈** y duplicó. 🚀`;
+                    } else {
+                        try {
+                            await transfer(HYPERBOT.id, betAmt, 'Bet Loss');
+                            response = `📉 **Perdiste:** @${senderName} entregó **${betAmt} ◈** a HyperBot.`;
+                        } catch (err) { response = '❌ Error bancario.'; }
+                    }
+                }
+                break;
+
+            case '/blackjack':
+                if (activeGames.current[user.id]) {
+                    response = '⚠️ Ya tienes un juego activo. Usa `/hit` o `/stand`.';
+                    break;
+                }
+                const bjBet = parseInt(args[0]);
+                if (isNaN(bjBet) || bjBet < 10) {
+                    response = '❌ Uso: `/blackjack <monto>`. (Mín. 10 ◈).';
+                    break;
+                }
+                if (bjBet > balance) {
+                    response = `⚠️ Fondos insuficientes (**${balance} ◈**).`;
+                    break;
+                }
+
+                const suits = ['♠', '♥', '♦', '♣'];
+                const faces = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
+                const deck = [];
+                for (let s of suits) for (let f of faces) deck.push(f + s);
+                const shuffle = (d) => d.sort(() => Math.random() - 0.5);
+                const gameDeck = shuffle(deck);
+
+                const pHand = [gameDeck.pop(), gameDeck.pop()];
+                const dHand = [gameDeck.pop(), gameDeck.pop()];
+
+                const pVal = getHandValue(pHand);
+                if (pVal === 21) {
+                    const prize = Math.floor(bjBet * 1.5);
+                    await awardCoins(prize, 'blackjack_win');
+                    response = `🃏 **BLACKJACK NATURAL!** 🃏\n@${senderName} sacó **${renderHand(pHand)}** (**21**).\n💰 Ganaste **${prize} ◈**!`;
+                } else {
+                    activeGames.current[user.id] = { type: 'blackjack', bet: bjBet, player: pHand, dealer: dHand, deck: gameDeck };
+                    response = `🃏 **BLACKJACK: Arena de @${senderName}** 🃏\n\n` +
+                        `Tu mano: **${renderHand(pHand)}** (${pVal})\n` +
+                        `Dealer: **[ ? ] [${dHand[1]}]**\n\n` +
+                        `👉 Escribe \`/hit\` para otra carta o \`/stand\` para plantarte.`;
+                }
+                break;
+
+            case '/hit':
+                const gameHit = activeGames.current[user.id];
+                if (!gameHit || gameHit.type !== 'blackjack') {
+                    response = '❌ No tienes un juego de Blackjack activo.';
+                } else {
+                    const deckH = gameHit.deck;
+                    gameHit.player.push(deckH.pop());
+                    const newVal = getHandValue(gameHit.player);
+                    if (newVal > 21) {
+                        delete activeGames.current[user.id];
+                        await transfer(HYPERBOT.id, gameHit.bet, 'Blackjack Loss');
+                        response = `💥 **¡BUST!** @${senderName} se pasó de 21.\n` +
+                            `Tu mano: **${renderHand(gameHit.player)}** (**${newVal}**)\n` +
+                            `💸 Perdiste **${gameHit.bet} ◈**.`;
+                    } else if (newVal === 21) {
+                        response = `🔥 **¡21!** @${senderName}, tus cartas: **${renderHand(gameHit.player)}**.\nTe sugiero \`/stand\` ahora.`;
+                    } else {
+                        response = `🃏 **Hit de @${senderName}:**\n` +
+                            `Tus cartas: **${renderHand(gameHit.player)}** (**${newVal}**)\n` +
+                            `¿Otra? \`/hit\` o \`/stand\`.`;
+                    }
+                }
+                break;
+
+            case '/stand':
+                const gameS = activeGames.current[user.id];
+                if (!gameS || gameS.type !== 'blackjack') {
+                    response = '❌ No tienes juego activo.';
+                } else {
+                    delete activeGames.current[user.id];
+                    let dH = gameS.dealer;
+                    let dV = getHandValue(dH);
+                    while (dV < 17) {
+                        dH.push(gameS.deck.pop());
+                        dV = getHandValue(dH);
+                    }
+                    const pV = getHandValue(gameS.player);
+                    response = `🃏 **RESULTADO BLACKJACK** 🃏\n\n` +
+                        `Tú: **${renderHand(gameS.player)}** (${pV})\n` +
+                        `Dealer: **${renderHand(dH)}** (${dV})\n\n`;
+
+                    if (dV > 21 || pV > dV) {
+                        await awardCoins(gameS.bet, 'blackjack_win');
+                        response += `🎉 **¡GANASTE!** HyperBot ha sido derrotado.\n💰 Ganaste **${gameS.bet} ◈**.`;
+                    } else if (dV > pV) {
+                        await transfer(HYPERBOT.id, gameS.bet, 'blackjack_loss');
+                        response += `💀 **PERDISTE.** HyperBot gana esta ronda.\n💸 Perdiste **${gameS.bet} ◈**.`;
+                    } else {
+                        response += `🤝 **EMPATE.** Las monedas regresan a tu cuenta.`;
+                    }
+                }
+                break;
+
+            case '/duel':
+                const duelAmt = parseInt(args[1]);
+                if (!args[0] || isNaN(duelAmt) || duelAmt < 10) {
+                    response = '❌ `/duel @usuario <monto>`.';
+                } else if (duelAmt > balance) {
+                    response = '⚠️ Fondos insuficientes.';
+                } else {
+                    const targetUsername = args[0].replace('@', '');
+                    if (targetUsername === senderName) {
+                        response = '❌ No puedes pelear contigo mismo.';
+                    } else {
+                        let targetId = Object.keys(onlineUsers).find(id => onlineUsers[id].username === targetUsername);
+                        if (!targetId) {
+                            const { data: p } = await supabase.from('profiles').select('id').eq('username', targetUsername).single();
+                            if (p) targetId = p.id;
+                        }
+                        if (!targetId) response = `❌ **${targetUsername}** no está en línea.`;
+                        else {
+                            pendingDuel.current = { challengerId: user.id, challengerName: senderName, targetId, targetName: targetUsername, amount: duelAmt, expiry: Date.now() + 60000 };
+                            response = `⚔️ **¡DUELO!** @${senderName} retó a **@${targetUsername}** por **${duelAmt} ◈**. Escribe \`/accept\`.`;
+                        }
+                    }
+                }
+                break;
+
+            case '/accept':
+                if (!pendingDuel.current || pendingDuel.current.expiry < Date.now()) response = '❌ No hay duelos.';
+                else if (pendingDuel.current.targetId !== user.id) response = '❌ Este duelo no es para ti.';
+                else if (balance < pendingDuel.current.amount) response = '⚠️ Fondos insuficientes.';
+                else {
+                    const { challengerId, challengerName, targetName, amount } = pendingDuel.current;
+                    pendingDuel.current = null;
+                    const win = Math.random() > 0.5;
+                    const winnerId = win ? user.id : challengerId;
+                    const winnerName = win ? targetName : challengerName;
+                    const loserName = win ? challengerName : targetName;
+                    try {
+                        if (win) await awardCoins(amount, 'game_reward', winnerId);
+                        else await transfer(challengerId, amount, 'Duel Loss');
+                        response = `🏟️ **${winnerName}** derrotó a **${loserName}** y ganó **${amount} ◈**!`;
+                    } catch (err) { response = '❌ Error de combate.'; }
+                }
+                break;
+
+            case '/hug':
+            case '/kiss':
+            case '/slap':
+            case '/punch':
+            case '/bite':
+            case '/pat':
+            case '/dance':
+                const target = args[0] || 'al vacío';
+                if (cmd === '/hug') response = `🤗 **${senderName}** abraza a **${target}**.`;
+                if (cmd === '/kiss') response = `💋 **${senderName}** besa a **${target}**.`;
+                if (cmd === '/slap') response = `👋 **${senderName}** abofetea a **${target}**.`;
+                if (cmd === '/punch') response = `👊 **${senderName}** golpea a **${target}**.`;
+                if (cmd === '/bite') response = `👄 **${senderName}** muerde a **${target}**.`;
+                if (cmd === '/pat') response = `👋 **${senderName}** acaricia a **${target}**.`;
+                if (cmd === '/dance') response = `💃 **${senderName}** baila con **${target}**.`;
+                break;
+
+            case '/slots':
+                const slotsAmt = parseInt(args[0]);
+                if (isNaN(slotsAmt) || slotsAmt < 10) {
+                    response = '🎰 Uso: `/slots 50`. (Mín. 10 ◈).';
+                } else if (slotsAmt > balance) {
+                    response = `⚠️ Fondos insuficientes (**${balance} ◈**).`;
+                } else {
+                    const symbols = ['🚀', '🌌', '⭐', '💎', '👾'];
+                    const r1 = symbols[Math.floor(Math.random() * symbols.length)];
+                    const r2 = symbols[Math.floor(Math.random() * symbols.length)];
+                    const r3 = symbols[Math.floor(Math.random() * symbols.length)];
+                    const isWin = r1 === r2 && r2 === r3;
+                    const isPartial = r1 === r2 || r2 === r3 || r1 === r3;
+
+                    if (isWin) {
+                        const jackpot = slotsAmt * 10;
+                        await awardCoins(jackpot, 'game_reward');
+                        response = `🎰 **JACKPOT!!** [${r1}|${r2}|${r3}] ¡@${senderName} ganó **${jackpot} ◈**! 💎✨`;
+                    } else if (isPartial) {
+                        const smallWin = Math.floor(slotsAmt * 1.5);
+                        await awardCoins(smallWin - slotsAmt, 'game_reward');
+                        response = `🎰 **Casi!** [${r1}|${r2}|${r3}] @${senderName} recuperó **${smallWin} ◈**.`;
+                    } else {
+                        await economyService.deductCoins(user.id, slotsAmt, 'game_loss', 'Perdió en tragamonedas');
+                        response = `🎰 [${r1}|${r2}|${r3}] **Mala suerte, @${senderName}.** Perdiste **${slotsAmt} ◈**.`;
+                    }
+                }
+                break;
+
+            case '/give':
+                const giveTarget = args[0]?.replace('@', '');
+                const giveAmt = parseInt(args[1]);
+                if (!giveTarget || isNaN(giveAmt) || giveAmt < 1) {
+                    response = '📦 Uso: `/give @usuario 100`.';
+                } else {
+                    try {
+                        const targetProfile = await chatService.getProfileByUsername(giveTarget);
+                        if (!targetProfile) response = `❌ Usuario **@${giveTarget}** no detectado en el radar.`;
+                        else {
+                            await transfer(targetProfile.id, giveAmt, `Regalo de ${senderName}`);
+                            response = `📦 **Transferencia estelar:** @${senderName} envió **${giveAmt} ◈** a @${giveTarget}.`;
+                        }
+                    } catch (e) { response = '❌ Error en la red bancaria.'; }
+                }
+                break;
+
+            case '/lb':
+            case '/leaderboard':
+                try {
+                    const top = await economyService.getLeaderboard(5);
+                    response = '🏆 **Top 5 Viajeros más Ricos:**\n' +
+                        top.map((u, i) => `${i + 1}. **@${u.username}** — ${u.balance} ◈`).join('\n');
+                } catch (e) { response = '❌ Error al consultar el registro estelar.'; }
+                break;
+
+            case '/work':
+                try {
+                    const result = await economyService.workMission(user.id);
+                    if (result.success) response = `🚀 **Misión Completada:** @${senderName} recolectó restos estelares y ganó **${result.reward} ◈**.`;
+                    else {
+                        const mins = Math.ceil((new Date(result.next_available) - new Date()) / 60000);
+                        response = `⏳ **Fatiga espacial:** @${senderName}, descansa. Vuelve en **${mins} min**.`;
+                    }
+                } catch (e) { response = '❌ Fallo en los motores.'; }
+                break;
+
+            case '/rob':
+                const robTarget = args[0]?.replace('@', '');
+                if (!robTarget) response = '🕵️ Uso: `/rob @usuario`.';
+                else {
+                    try {
+                        const result = await economyService.robUser(user.id, robTarget);
+                        if (result.success) response = `🥷 **¡Atraco exitoso!** @${senderName} le robó **${result.amount} ◈** a @${robTarget}. 🌌`;
+                        else if (result.reason === 'caught') response = `🚨 **¡CAPTURADO!** @${senderName} intentó robar a @${robTarget} y fue multado con **${result.penalty} ◈**.`;
+                        else if (result.reason === 'cooldown') response = '🕵️ El radar de la policía está activo. Espera un poco.';
+                    } catch (e) { response = `❌ Error: ${e.message || 'Intento fallido.'}`; }
+                }
+                break;
+
+            case '/ship':
+                if (args.length < 2) response = '💖 Uso: `/ship @u1 @u2`.';
+                else {
+                    const love = Math.floor(Math.random() * 101);
+                    const bar = '▓'.repeat(Math.floor(love / 10)) + '░'.repeat(10 - Math.floor(love / 10));
+                    let comment = 'Una pareja imposible...';
+                    if (love > 90) comment = '¡Destinados a gobernar la galaxia juntos! 🔥';
+                    else if (love > 70) comment = 'Hay mucha química estelar aquí. ✨';
+                    else if (love > 50) comment = 'Podría funcionar con un poco de combustible. 🚀';
+                    response = `💖 **Nivel de Compatibilidad:**\n**${args[0]}** + **${args[1]}**\n**${love}%** [${bar}]\n\n*${comment}*`;
+                }
+                break;
+
+            case '/marry':
+                const marryTarget = args[0]?.replace('@', '');
+                if (!marryTarget) response = '💍 Uso: `/marry @usuario`.';
+                else response = `💍 **@${senderName}** se ha arrodillado ante **@${marryTarget}** con un anillo de diamantes lunares... ¡Que el universo sea testigo!`;
+                break;
+
+            case '/profile':
+                const profTarget = args[0]?.replace('@', '');
+                if (!profTarget) response = '👤 Uso: `/profile @usuario`.';
+                else {
+                    const p = await chatService.getProfileByUsername(profTarget);
+                    if (!p) response = `❌ Perfil de **@${profTarget}** fuera de línea.`;
+                    else response = `👤 **Perfil de @${p.username}:**\n💰 Balance: **${p.balance} ◈**\n🎭 Mood: *${p.mood || 'Explorando...'}*\n📅 Llegada: ${new Date(p.created_at).toLocaleDateString()}`;
+                }
+                break;
+
+            case '/avatar':
+                const avTarget = args[0]?.replace('@', '');
+                if (!avTarget) response = '🖼️ Uso: `/avatar @usuario`.';
+                else {
+                    const p = await chatService.getProfileByUsername(avTarget);
+                    if (!p) response = `❌ No se encontró el holograma de **@${avTarget}**.`;
+                    else response = `🖼️ **Holograma de @${avTarget}:**\n${p.avatar_url}`;
+                }
+                break;
+
+            case '/mood':
+                const moodText = args.join(' ');
+                if (!moodText) response = '💭 Uso: `/mood <estado>`.';
+                else {
+                    await economyService.updateMood(user.id, moodText);
+                    response = `💭 **@${senderName}** ahora se siente: *${moodText}* ✨`;
+                }
+                break;
+
+            case '/clear':
+                if (!userProfile?.is_admin) response = '🚫 Solo los Administradores de Élite pueden hacer esto.';
+                else {
+                    await chatService.clearChannel(activeChannel);
+                    response = '🧹 **PROTOCOLOS DE LIMPIEZA:** El canal ha sido purgado de registros antiguos.';
+                }
+                break;
+
+            case '/tax':
+                const taxTarget = args[0]?.replace('@', '');
+                const taxAmt = parseInt(args[1]);
+                if (!userProfile?.is_admin) response = '🚫 Permisos de administración requeridos.';
+                else if (!taxTarget || isNaN(taxAmt)) response = '🛡️ Uso: `/tax @usuario 500`.';
+                else {
+                    const p = await chatService.getProfileByUsername(taxTarget);
+                    if (!p) response = '❌ Usuario no encontrado.';
+                    else {
+                        await economyService.deductCoins(p.id, taxAmt, 'admin_deduct', `Impuesto aplicado por ${senderName}`);
+                        response = `🛡️ **Impuesto Galáctico:** Se han deducido **${taxAmt} ◈** a @${taxTarget} por orden superior.`;
+                    }
+                }
+                break;
+
+            case '/announce':
+                const annMsg = args.join(' ');
+                if (!userProfile?.is_admin) response = '🚫 Solo la realeza galáctica puede anunciar.';
+                else if (!annMsg) response = '📢 Uso: `/announce <mensaje>`.';
+                else {
+                    // Enviar a todos los canales (simulado por ahora enviando un bot message especial)
+                    response = `🚨 **COMUNICADO OFICIAL:**\n\n${annMsg.toUpperCase()}\n\nPor orden de: @${senderName}`;
+                }
+                break;
+
+            case '/joke': response = ["¿Por qué los astronautas no pueden tener relaciones estables? Porque necesitan su espacio. 🚀", "¿Cuál es el plato favorito de un extraterrestre? ¡Los avistamientos! 🛸"][Math.floor(Math.random() * 2)]; break;
+            case '/quote': response = ["\"El cosmos es todo lo que es...\" — Carl Sagan", "\"El espacio es grande...\""][Math.floor(Math.random() * 2)]; break;
+            case '/weather': response = `🛰️ **Clima:** ${['Tormenta Solar', 'Calma', 'Lluvia Estelar'][Math.floor(Math.random() * 3)]}`; break;
+            case '/pick': response = args.length < 2 ? '❌ `/pick op1 op2`' : `🎯 **IA:** Sugiero: **${args[Math.floor(Math.random() * args.length)]}**.`; break;
+            case '/roll': response = `🎲 **Dado:** **${senderName}** obtuvo un **${Math.floor(Math.random() * 100) + 1}**.`; break;
+            case '/flip': response = `🪙 **Moneda:** **${senderName}** lanzó y cayó **${Math.random() > 0.5 ? 'CARA 🌕' : 'CRUZ 🌑'}**.`; break;
+            default: return;
         }
 
+        setTimeout(async () => {
+            const persistentCmds = [
+                '/roll', '/flip', '/status', '/stats', '/hug', '/slap', '/joke', '/quote',
+                '/weather', '/pick', '/kiss', '/punch', '/bite', '/pat', '/dance',
+                '/duel', '/accept', '/bal', '/daily', '/bet', '/blackjack', '/hit', '/stand',
+                '/slots', '/give', '/lb', '/leaderboard', '/work', '/rob', '/ship', '/marry',
+                '/profile', '/avatar', '/mood', '/clear', '/tax', '/announce'
+            ];
+            if (persistentCmds.includes(cmd)) {
+                try {
+                    await chatService.sendBotMessage(response, activeChannel);
+                } catch (err) { }
+            } else {
+                setMessages(prev => [...prev, { id: `local-${Date.now()}`, content: response, created_at: new Date().toISOString(), user_id: HYPERBOT.id, author: HYPERBOT, reply: null }].slice(-100));
+            }
+        }, 1000);
+    }, [userProfile, user, balance, awardCoins, transfer, claimDaily, onlineUsers, activeChannel]);
+
+    const handleSendMessage = useCallback(async (content, isVip, replyToId = null) => {
+        if (!user || !content.trim()) return;
+        const cmd = content.trim().split(' ')[0].toLowerCase();
+        const tempMsg = { id: `temp-${Date.now()}`, content, created_at: new Date().toISOString(), user_id: user.id, author: userProfile || { username: user.user_metadata?.username || 'Tú' }, is_vip: isVip, reply: replyingTo ? { content: replyingTo.content, author: replyingTo.author?.username || 'Anónimo' } : null };
+        setMessages(prev => [...prev, tempMsg].slice(-100));
+        if (content.startsWith('/')) {
+            handleBotCommand(content);
+            if (['/help', '/bal'].includes(cmd)) return;
+        }
+        if (isVip && balance < 50) return alert('Dancoins insuficientes.');
         try {
-            await chatService.sendMessage(content, isVip, replyToId);
-            if (isVip) {
-                awardCoins(-50, 'vip_chat_highlight');
-                setIsVipMode(false);
-            }
+            await chatService.sendMessage(content, isVip, replyToId, activeChannel);
+            if (isVip) await transfer(HYPERBOT.id, 50, 'VIP Message Cost');
             setReplyingTo(null);
-        } catch (err) {
-            console.error('[GlobalChat] Error sending message:', err);
-            alert('No se pudo enviar el mensaje. Revisa tu conexión.');
-        }
-    };
+            setIsVipMode(false);
+        } catch (err) { console.error('[GlobalChat] Send Error:', err); }
+    }, [user, userProfile, balance, awardCoins, transfer, handleBotCommand, replyingTo, activeChannel]);
 
     const playNotificationSound = () => {
         const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2857/2857-preview.mp3');
-        audio.volume = 0.15;
+        audio.volume = 0.1;
         audio.play().catch(() => { });
     };
 
-    const vipMessages = messages.filter(m => m.is_vip);
-    const lastVip = vipMessages[vipMessages.length - 1];
+    const lastVip = messages.filter(m => m.is_vip).pop();
 
     return (
-        <div className="chat-window min-h-[500px] flex flex-col relative">
-            <div className="chat-messages-container flex-1 min-h-0 relative">
-
-                <VoicePartyBar
-                    isActive={inVoiceRoom}
-                    onJoin={() => setShowVoiceRoom(true)}
-                    activeParticipants={[]}
-                />
-
-                <div className="chat-fade-top" style={{ top: '60px' }} />
-
-                {lastVip && (
-                    <div className="chat-pins-area p-3 px-4 bg-[#080812]/98 border-b border-amber-500/50 shadow-[0_8px_32px_rgba(0,0,0,0.8)]" style={{ top: '64px' }}>
-                        <div className="flex items-center gap-3">
-                            <span className="flex-shrink-0 w-8 h-8 rounded-full border border-amber-500/50 overflow-hidden ring-1 ring-amber-500/30">
-                                <img
-                                    src={lastVip.author?.avatar_url || '/default-avatar.png'}
-                                    className="w-full h-full object-cover"
-                                />
-                            </span>
-                            <div className="flex-1 min-w-0">
-                                <span className="text-[9px] font-black uppercase tracking-[0.2em] text-amber-500 flex items-center gap-1 mb-0.5">
-                                    <span className="animate-pulse">★</span> DIFUSIÓN PRIORITARIA
-                                </span>
-                                <p
-                                    className="text-[11px] text-white/95 line-clamp-1 italic font-bold leading-tight"
-                                    dangerouslySetInnerHTML={{
-                                        __html: lastVip.content.includes('giphy.com')
-                                            ? '👾 GIF Destacado'
-                                            : parseMentions(lastVip.content)
-                                    }}
-                                ></p>
-                            </div>
-                            <button
-                                onClick={() => {
-                                    const el = document.getElementById(`msg-${lastVip.id}`);
-                                    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                                }}
-                                className="bg-amber-500/20 p-2 rounded-lg hover:bg-amber-500/30 active:scale-90 transition-all border border-amber-500/40 text-amber-500 shadow-inner"
-                                title="Localizar origen"
-                            >
-                                <span className="text-xs">📍</span>
-                            </button>
-                        </div>
-                    </div>
-                )}
-
-                <div ref={scrollRef} className="chat-messages-scroll no-scrollbar h-full pt-16 pb-40 touch-pan-y">
-                    {loading ? (
-                        <div className="flex flex-col items-center justify-center h-full gap-4 opacity-40">
-                            <div className="w-8 h-8 border-2 border-cyan-500/20 border-t-cyan-500 rounded-full animate-spin" />
-                            <span className="text-[10px] font-black uppercase tracking-widest font-mono">
-                                Conectando con el satélite...
-                            </span>
-                        </div>
-                    ) : (
-                        <>
-                            {messages.length === 0 && (
-                                <div className="text-center py-10 opacity-20">
-                                    <span className="text-3xl block mb-2">☄️</span>
-                                    <p className="text-[10px] uppercase font-black tracking-widest">El canal está en silencio... Di hola.</p>
-                                </div>
-                            )}
-                            {messages.map((m) => (
-                                <div key={m.id} id={`msg-${m.id}`} className="mb-4 last:mb-0">
-                                    <ChatMessage
-                                        message={m}
-                                        isMe={m.user_id === user?.id}
-                                        onProfileClick={(author) => setSelectedProfile(author)}
-                                        onReply={(msg) => setReplyingTo(msg)}
-                                    />
-                                </div>
-                            ))}
-                            <div ref={messagesEndRef} />
-                        </>
-                    )}
-                </div>
-            </div>
-
-            <ChatInput
-                onSendMessage={handleSendMessage}
-                isVipMode={isVipMode}
-                setIsVipMode={setIsVipMode}
-                balance={balance}
-                replyingTo={replyingTo}
-                setReplyingTo={setReplyingTo}
-            />
-
+        <div className="chat-window-wrapper relative overflow-hidden">
+            {/* Sidebar Backdrop (Mobile) */}
             <AnimatePresence>
-                {showVoiceRoom && (
+                {sidebarOpen && (
                     <motion.div
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
-                        className="voice-overlay-container"
-                        onClick={() => setShowVoiceRoom(false)}
-                    >
-                        <motion.div
-                            initial={{ y: "100%", opacity: 0 }}
-                            animate={{ y: 0, opacity: 1 }}
-                            exit={{ y: "100%", opacity: 0 }}
-                            transition={{ type: "spring", damping: 30, stiffness: 300 }}
-                            className="voice-overlay-content w-full max-w-md bg-[#050510]/98 backdrop-blur-2xl border-t border-white/10 rounded-t-[2.5rem] shadow-2xl"
-                            onClick={e => e.stopPropagation()}
-                        >
-                            <div className="w-12 h-1 bg-white/10 rounded-full mx-auto mb-6 mt-1 md:hidden" />
-
-                            <VoiceRoomUI
-                                roomName="Chat Global - Voz"
-                                userAvatar={user?.user_metadata?.avatar_url}
-                                onLeave={() => {
-                                    setShowVoiceRoom(false);
-                                    setInVoiceRoom(false);
-                                }}
-                                onConnected={() => setInVoiceRoom(true)}
-                            />
-
-                            <button
-                                onClick={() => setShowVoiceRoom(false)}
-                                className="w-full mt-6 p-4 rounded-3xl bg-white/5 border border-white/10 text-[10px] font-black uppercase tracking-widest text-white/50 hover:bg-white/10 hover:text-white transition-all shadow-xl"
-                            >
-                                Mantener en Segundo Plano 🌌
-                            </button>
-                        </motion.div>
-                    </motion.div>
+                        onClick={() => setSidebarOpen(false)}
+                        className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[900] md:hidden"
+                    />
                 )}
             </AnimatePresence>
 
+            {/* Sidebar Discord-Like */}
+            <aside className={`chat-sidebar w-72 bg-[#08081a]/98 border-r border-white/5 flex flex-col transition-all duration-300 ease-out z-[1000] ${sidebarOpen ? 'open' : ''}`}>
+                <div className="p-6 border-b border-white/5">
+                    <h2 className="text-xs font-black uppercase tracking-[0.2em] text-cyan-500/80">Canales Galácticos</h2>
+                </div>
+                <div className="flex-1 overflow-y-auto p-4 space-y-2">
+                    {CHANNELS.map(chan => (
+                        <button key={chan.id} onClick={() => { setActiveChannel(chan.id); setSidebarOpen(false); }}
+                            className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl transition-all ${activeChannel === chan.id ? 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/20' : 'text-white/40 hover:bg-white/5 hover:text-white/60'}`}>
+                            <span className="text-lg">{chan.icon}</span>
+                            <div className="text-left">
+                                <p className="text-sm font-bold capitalize">{chan.name}</p>
+                                <p className="text-[10px] opacity-40 truncate w-32">{chan.description}</p>
+                            </div>
+                            {activeChannel === chan.id && <motion.div layoutId="active-pill" className="w-1 h-4 bg-cyan-400 rounded-full" />}
+                        </button>
+                    ))}
+                </div>
+                <div className="p-4 bg-white/5">
+                    <div className="flex items-center gap-3 px-2">
+                        <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-cyan-500 to-blue-600 flex items-center justify-center text-[10px] font-black">
+                            {userProfile?.username?.[0] || '?'}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                            <p className="text-[11px] font-bold truncate">@{userProfile?.username || 'Anónimo'}</p>
+                            <p className="text-[9px] text-white/30 truncate">{balance} ◈ Dancoins</p>
+                        </div>
+                    </div>
+                </div>
+            </aside>
+
+            <div className="flex-1 flex flex-col relative min-w-0">
+                {/* Channel Header */}
+                <header className="h-14 sm:h-16 flex items-center justify-between px-4 sm:px-6 border-b border-white/5 bg-[#050510]/40 backdrop-blur-md z-50">
+                    <div className="flex items-center gap-3 sm:gap-4">
+                        <button onClick={() => setSidebarOpen(!sidebarOpen)} className="md:hidden text-white/50 hover:text-white p-2 -ml-2">
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>
+                        </button>
+                        <div className="flex items-center gap-1.5 sm:gap-2">
+                            <span className="text-cyan-500 font-bold text-lg">#</span>
+                            <span className="text-[13px] sm:text-sm font-black uppercase tracking-wider">{CHANNELS.find(c => c.id === activeChannel)?.name}</span>
+                        </div>
+                    </div>
+                    <div className="flex items-center gap-2 sm:gap-4 opacity-40 text-[9px] sm:text-[10px] font-black uppercase tracking-tighter">
+                        <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+                        <span className="hidden xs:inline">Conexión Segura</span>
+                        <span className="xs:hidden">Live</span>
+                    </div>
+                </header>
+
+                <div className="chat-messages-container flex-1 min-h-0 relative">
+                    {/* Voice Bar - Highly Visible */}
+                    <VoicePartyBar
+                        activeParticipants={Object.values(onlineUsers).filter(u => u.inVoice)}
+                        onJoin={() => setShowVoiceRoom(true)}
+                        isActive={inVoiceRoom}
+                    />
+
+                    {/* VIP Sticky Message */}
+                    <AnimatePresence>
+                        {lastVip && (
+                            <motion.div
+                                initial={{ opacity: 0, y: -20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                className="absolute top-[60px] left-4 right-4 z-[80] pointer-events-none"
+                            >
+                                <div className="bg-gradient-to-r from-amber-500/20 to-amber-600/20 backdrop-blur-md border border-amber-500/30 rounded-2xl p-3 shadow-[0_10px_30px_rgba(234,179,8,0.2)]">
+                                    <div className="flex items-center gap-2 mb-1">
+                                        <span className="text-[8px] font-black uppercase tracking-[0.2em] text-amber-500">★ Transmisión VIP ★</span>
+                                        <div className="h-[1px] flex-1 bg-amber-500/20" />
+                                        <span className="text-[9px] font-black text-white/60">@{lastVip.author?.username}</span>
+                                    </div>
+                                    <p className="text-xs text-white/90 line-clamp-1 italic font-medium">"{lastVip.content}"</p>
+                                </div>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
+
+                    <div className="chat-fade-top" style={{ top: '60px' }} />
+                    <div ref={scrollRef} className="chat-messages-scroll no-scrollbar h-full pt-4 pb-40 touch-pan-y">
+                        {loading ? (
+                            <div className="flex flex-col items-center justify-center h-full opacity-40">
+                                <div className="w-8 h-8 border-2 border-cyan-500/20 border-t-cyan-500 rounded-full animate-spin mb-4" />
+                            </div>
+                        ) : (
+                            <>
+                                {messages.length === 0 && <div className="text-center py-20 opacity-20 text-[10px] uppercase font-black">Silencio espacial...</div>}
+                                {messages.map((m) => (
+                                    <div key={String(m.id)} id={`msg-${m.id}`} className="px-4 mb-2">
+                                        <ChatMessage message={m} isMe={m.user_id === user?.id} isOnline={m.author?.id && !!onlineUsers[m.author.id]} userPresence={onlineUsers[m.author?.id]} onProfileClick={setSelectedProfile} onReply={setReplyingTo} />
+                                    </div>
+                                ))}
+                                <div ref={messagesEndRef} />
+                            </>
+                        )}
+                    </div>
+                </div>
+
+                <ChatInput
+                    onSendMessage={handleSendMessage}
+                    isVipMode={isVipMode}
+                    setIsVipMode={setIsVipMode}
+                    balance={balance}
+                    replyingTo={replyingTo}
+                    setReplyingTo={setReplyingTo}
+                    isAdmin={userProfile?.is_admin}
+                    activeChannel={activeChannel}
+                />
+            </div>
+
             <AnimatePresence>
-                {selectedProfile && (
-                    <HoloCard
-                        profile={selectedProfile}
-                        onClose={() => setSelectedProfile(null)}
+                {selectedProfile && <HoloCard profile={selectedProfile} onClose={() => setSelectedProfile(null)} />}
+                {showVoiceRoom && (
+                    <VoiceRoomUI
+                        roomName="Sala Galáctica"
+                        onLeave={() => setShowVoiceRoom(false)}
+                        onConnected={() => setInVoiceRoom(true)}
+                        userAvatar={userProfile?.avatar_url}
                     />
                 )}
             </AnimatePresence>
