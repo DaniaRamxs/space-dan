@@ -3,7 +3,7 @@
   "outputDirectory": "dist",
   "rewrites": [
     {
-      "source": "/((?!assets/|icons/|gifs/|sounds/|.*\\.js|.*\\.css|.*\\.png|.*\\.jpg|.*\\.jpeg|.*\\.gif|.*\\.svg|.*\\.ico|.*\\.webp|.*\\.mp3|.*\\.woff2|.*\\.woff|.*\\.ttf|.*\\.json|.*\\.txt|.*\\.xml|.*\\.webmanifest).*)",
+      "source": "/((?!api/|assets/|icons/|gifs/|sounds/|.*\\.js|.*\\.css|.*\\.png|.*\\.jpg|.*\\.jpeg|.*\\.gif|.*\\.svg|.*\\.ico|.*\\.webp|.*\\.mp3|.*\\.woff2|.*\\.woff|.*\\.ttf|.*\\.json|.*\\.txt|.*\\.xml|.*\\.webmanifest).*)",
       "destination": "/index.html"
     }
   ],
