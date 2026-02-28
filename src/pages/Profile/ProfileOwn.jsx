@@ -969,9 +969,24 @@ export default function ProfileOwn() {
               </div>
 
               <div className="space-y-4">
-                <h1 className={`text-display font-black tracking-tight leading-none ${getNicknameClass(profile)} text-white uppercase`}>
-                  {getUserDisplayName(profile || { username: user?.user_metadata?.full_name || (user?.email || '').split('@')[0] })}
-                </h1>
+                <div className="flex items-center gap-3">
+                  <h1 className={`text-display font-black tracking-tight leading-none ${getNicknameClass(profile)} text-white uppercase`}>
+                    {getUserDisplayName(profile || { username: user?.user_metadata?.full_name || (user?.email || '').split('@')[0] })}
+                  </h1>
+                  {(() => {
+                    const { onlineUsers } = useUniverse();
+                    const isOnline = user?.id && onlineUsers[user.id];
+                    const userPresence = onlineUsers[user?.id];
+                    return isOnline && (
+                      <span className="orbit-status-label mt-1">
+                        <span className="orbit-status-dot" />
+                        <div className="orbit-status-ticker">
+                          <span>{userPresence?.status || 'En Órbita ✨'}</span>
+                        </div>
+                      </span>
+                    );
+                  })()}
+                </div>
                 {profile?.pronouns && (
                   <span className="text-micro opacity-40 block uppercase tracking-widest">{profile.pronouns}</span>
                 )}

@@ -177,3 +177,81 @@
   object-fit: cover;
   border-radius: 50%;
 }
+
+/* 🌀 ACTIVIDAD ORBITAL (Neon Status Ticker) */
+.orbit-status-label {
+  font-size: 8px;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #22d3ee;
+  background: rgba(34, 211, 238, 0.1);
+  padding: 1px 6px;
+  border-radius: 6px;
+  border: 1px solid rgba(34, 211, 238, 0.2);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 90px;
+  overflow: hidden;
+  position: relative;
+  box-shadow: 0 0 10px rgba(34, 211, 238, 0.05);
+  backdrop-filter: blur(4px);
+}
+
+.orbit-status-dot {
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: #22c55e;
+  box-shadow: 0 0 5px #22c55e;
+  flex-shrink: 0;
+  animation: orbit-pulse 2s infinite;
+}
+
+.orbit-status-ticker {
+  display: flex;
+  white-space: nowrap;
+  overflow: hidden;
+  mask-image: linear-gradient(to right, transparent, black 15%, black 85%, transparent);
+}
+
+.orbit-status-ticker span {
+  display: inline-block;
+  padding-left: 10px;
+  animation: orbit-ticker 15s linear infinite;
+  text-shadow: 0 0 5px rgba(34, 211, 238, 0.5);
+}
+
+@keyframes orbit-ticker {
+  0% {
+    transform: translateX(100%);
+  }
+
+  100% {
+    transform: translateX(-100%);
+  }
+}
+
+@keyframes orbit-pulse {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+
+  50% {
+    transform: scale(1.5);
+    opacity: 0.5;
+  }
+
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@media (min-width: 768px) {
+  .orbit-status-label {
+    max-width: 140px;
+  }
+}

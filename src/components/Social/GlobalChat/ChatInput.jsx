@@ -6,7 +6,7 @@ import { Grid } from '@giphy/react-components';
 
 const gf = new GiphyFetch('3k4Fdn6D040IQvIq1KquLZzJgutP3dGp');
 
-export default function ChatInput({ onSendMessage, isVipMode, setIsVipMode, balance }) {
+export default function ChatInput({ onSendMessage, isVipMode, setIsVipMode, balance, replyingTo, setReplyingTo }) {
     const [text, setText] = useState('');
     const textareaRef = useRef(null);
     const [showGiphy, setShowGiphy] = useState(false);
@@ -16,7 +16,7 @@ export default function ChatInput({ onSendMessage, isVipMode, setIsVipMode, bala
     const handleSubmit = (e) => {
         if (e) e.preventDefault();
         if (!text.trim()) return;
-        onSendMessage(text, isVipMode);
+        onSendMessage(text, isVipMode, replyingTo?.id);
         setText('');
         if (textareaRef.current) textareaRef.current.style.height = 'auto';
     };
@@ -96,6 +96,33 @@ export default function ChatInput({ onSendMessage, isVipMode, setIsVipMode, bala
                                 }}
                             />
                         </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
+            <AnimatePresence>
+                {replyingTo && (
+                    <motion.div
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: 10 }}
+                        className="absolute bottom-[100%] left-0 w-full p-3 bg-[#0a0a1a] border-t border-cyan-500/20 shadow-2xl z-50 rounded-t-2xl flex items-center gap-3"
+                    >
+                        <div className="flex-1 min-w-0 border-l-2 border-cyan-500 pl-3">
+                            <span className="text-[8px] font-black uppercase tracking-widest text-cyan-400 block mb-0.5">
+                                Respondiendo a {replyingTo.author?.username || 'Viajero'}
+                            </span>
+                            <p className="text-[10px] text-white/50 truncate italic">
+                                {replyingTo.content.replace(/!\[.*?\]\(.*?\)/g, '🖼️ Imagen')}
+                            </p>
+                        </div>
+                        <button
+                            type="button"
+                            onClick={() => setReplyingTo(null)}
+                            className="p-1 px-3 rounded-lg bg-white/5 text-[10px] hover:bg-white/10 transition-colors uppercase font-black"
+                        >
+                            ✕
+                        </button>
                     </motion.div>
                 )}
             </AnimatePresence>

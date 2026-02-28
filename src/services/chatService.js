@@ -2,7 +2,7 @@
 import { supabase } from '../supabaseClient';
 
 export const chatService = {
-    async sendMessage(content, isVip = false) {
+    async sendMessage(content, isVip = false, replyToId = null) {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) throw new Error('Debes iniciar sesión para chatear.');
 
@@ -11,9 +11,10 @@ export const chatService = {
             .insert({
                 user_id: user.id,
                 content: content,
-                is_vip: isVip
+                is_vip: isVip,
+                reply_to_id: replyToId
             })
-            .select('id, content, created_at, user_id, is_vip')
+            .select('id, content, created_at, user_id, is_vip, reply_to_id')
             .single();
 
         if (error) throw error;
@@ -24,7 +25,7 @@ export const chatService = {
         // 1. Obtener mensajes básicos
         const { data: messages, error: msgError } = await supabase
             .from('global_chat')
-            .select('id, content, created_at, user_id, is_vip')
+            .select('id, content, created_at, user_id, is_vip, reply_to_id')
             .order('created_at', { ascending: false })
             .limit(limit);
 
@@ -44,10 +45,25 @@ export const chatService = {
                 .in('id', userIds);
 
             if (!profError && profiles) {
-                const enriched = messages.map(m => ({
-                    ...m,
-                    author: profiles.find(p => p.id === m.user_id) || { username: 'Viajero' }
-                }));
+                const enriched = messages.map(m => {
+                    const author = profiles.find(p => p.id === m.user_id) || { username: 'Viajero' };
+                    let reply = null;
+                    if (m.reply_to_id) {
+                        const originalMsg = messages.find(om => om.id === m.reply_to_id);
+                        if (originalMsg) {
+                            const originalAuthor = profiles.find(p => p.id === originalMsg.user_id);
+                            reply = {
+                                content: originalMsg.content,
+                                author: originalAuthor?.username || 'Anónimo'
+                            };
+                        }
+                    }
+                    return {
+                        ...m,
+                        author,
+                        reply
+                    };
+                });
                 return enriched.reverse();
             }
         }

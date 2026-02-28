@@ -5,7 +5,7 @@ import { Link } from 'react-router-dom';
 
 export default function GlobalChatPage() {
     return (
-        <main className="w-full max-w-4xl mx-auto min-h-screen pb-32 text-white font-sans flex flex-col pt-6 md:pt-10 px-4 overflow-y-auto">
+        <main className="w-full max-w-4xl mx-auto min-h-screen pb-32 text-white font-sans flex flex-col pt-6 md:pt-10 px-0 md:px-4">
 
             {/* Header Area */}
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-8">
