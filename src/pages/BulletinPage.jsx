@@ -84,6 +84,7 @@ const bulletinPosts = [
   { id: 85, date: "2026-02-27", title: "Limpieza de Cabina", text: "Optimizamos el HUD de la cabina espacial eliminando la radio duplicada. Ahora el sistema usa la radio global del OS para una experiencia sonora fluida.", tags: ["fix", "diseño"] },
   { id: 86, date: "2026-02-27", title: "Refinamiento de Embeds", text: "Mejoramos la lógica de los posts compartidos (reposts/citas). Ahora el cuadro de la publicación original solo se muestra si contiene datos válidos, evitando mensajes de error como 'vacio temporal'.", tags: ["fix", "social"] },
   { id: 87, date: "2026-02-27", title: "Visitas en el Feed", text: "Integramos el contador de visitas global directamente en el feed de actividad (LivenessSignals). Para mantener la interfaz limpia, lo eliminamos de la barra superior y el menú móvil.", tags: ["update", "diseño"] },
+  { id: 88, date: "2026-02-27", title: "Protocolo de Voz (MVP)", text: "¡Lanzamiento de las salas de audio! Sintoniza canales de voz premium de hasta 5 personas con cancelación de eco, supresión de ruido e indicador visual de quién está hablando.", tags: ["update", "tecnología"] },
 ];
 
 const PAGE_SIZE = 10;
