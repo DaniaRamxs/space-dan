@@ -10424,7 +10424,8 @@ div.sd-cyber {
   }
 }
 
-.sd-rgb {
+.sd-rgb,
+.sd-rainbow {
   background: linear-gradient(90deg, #ff0000, #ff7f00, #ffff00, #00ff00, #0000ff, #4b0082, #8b00ff) !important;
   -webkit-background-clip: text !important;
   background-clip: text !important;
@@ -10434,7 +10435,8 @@ div.sd-cyber {
   display: inline-block;
 }
 
-div.sd-rgb {
+div.sd-rgb,
+div.sd-rainbow {
   display: block !important;
   border: 2px solid transparent !important;
   background: linear-gradient(#050510, #050510) padding-box,

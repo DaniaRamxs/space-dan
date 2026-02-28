@@ -19,7 +19,7 @@ export function parseSpaceEnergies(content) {
             // Permite espacios después de :: y antes del tipo.
             // Permite cualquier contenido incluyendo saltos de línea.
             // Case-insensitive.
-            const blockRegex = /::\s*(aurora|neon|memory|warning|rgb|soft|glitch|fire|void|hacker|star|ocean|ghost|toxic|diamond|cyber|rojo|azul|verde|rosa|naranja|morado|cian)\s*([\s\S]*?)\s*::/gi;
+            const blockRegex = /::\s*(aurora|neon|memory|warning|rgb|rainbow|soft|glitch|fire|void|hacker|star|ocean|ghost|toxic|diamond|cyber|rojo|azul|verde|rosa|naranja|morado|cian)\s*([\s\S]*?)\s*::/gi;
             text = text.replace(blockRegex, (match, type, inner) => {
                 const safeType = type.toLowerCase().trim();
                 const safeInner = (inner || '').trim();
@@ -27,7 +27,7 @@ export function parseSpaceEnergies(content) {
             });
 
             // 3. Inline: ((tipo)) ... ((/tipo))
-            const inlineRegex = /\(\(\s*(aurora|neon|memory|warning|rgb|soft|glitch|fire|void|hacker|star|ocean|ghost|toxic|diamond|cyber|rojo|azul|verde|rosa|naranja|morado|cian)\s*\)\)([\s\S]*?)\(\(\s*\/\s*(aurora|neon|memory|warning|rgb|soft|glitch|fire|void|hacker|star|ocean|ghost|toxic|diamond|cyber|rojo|azul|verde|rosa|naranja|morado|cian)\s*\)\)/gi;
+            const inlineRegex = /\(\(\s*(aurora|neon|memory|warning|rgb|rainbow|soft|glitch|fire|void|hacker|star|ocean|ghost|toxic|diamond|cyber|rojo|azul|verde|rosa|naranja|morado|cian)\s*\)\)([\s\S]*?)\(\(\s*\/\s*(aurora|neon|memory|warning|rgb|rainbow|soft|glitch|fire|void|hacker|star|ocean|ghost|toxic|diamond|cyber|rojo|azul|verde|rosa|naranja|morado|cian)\s*\)\)/gi;
             text = text.replace(inlineRegex, (match, type, inner, typeClose) => {
                 const safeType = type.toLowerCase().trim();
                 const safeTypeClose = typeClose.toLowerCase().trim();
