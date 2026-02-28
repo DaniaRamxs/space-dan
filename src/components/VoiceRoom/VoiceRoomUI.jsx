@@ -17,7 +17,7 @@ import { supabase } from '../../supabaseClient';
 
 const LIVEKIT_URL = "wss://danspace-76f5bceh.livekit.cloud";
 
-export default function VoiceRoomUI({ roomName, onLeave }) {
+export default function VoiceRoomUI({ roomName, onLeave, onConnected }) {
     const [token, setToken] = useState(null);
     const [connecting, setConnecting] = useState(true);
     const [error, setError] = useState(null);
@@ -77,7 +77,10 @@ export default function VoiceRoomUI({ roomName, onLeave }) {
                 video={false}
                 token={token}
                 serverUrl={LIVEKIT_URL}
-                onConnected={() => console.log("Conectado a la sala de voz")}
+                onConnected={() => {
+                    console.log("Conectado a la sala de voz");
+                    if (onConnected) onConnected();
+                }}
                 onDisconnected={onLeave}
                 className="voice-room-container"
             >

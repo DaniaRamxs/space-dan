@@ -6,6 +6,8 @@ import { chatService } from '../../../services/chatService';
 import { supabase } from '../../../supabaseClient';
 import ChatMessage, { parseMentions } from './ChatMessage';
 import ChatInput from './ChatInput';
+import VoicePartyBar from './VoicePartyBar';
+import VoiceRoomUI from '../../VoiceRoom/VoiceRoomUI';
 import '../../../styles/GlobalChat.css';
 
 export default function GlobalChat() {
@@ -14,6 +16,8 @@ export default function GlobalChat() {
     const [messages, setMessages] = useState([]);
     const [loading, setLoading] = useState(true);
     const [isVipMode, setIsVipMode] = useState(false);
+    const [showVoiceRoom, setShowVoiceRoom] = useState(false);
+    const [inVoiceRoom, setInVoiceRoom] = useState(false);
     const scrollRef = useRef(null);
 
     useEffect(() => {
@@ -119,12 +123,19 @@ export default function GlobalChat() {
         <div className="chat-window min-h-[500px] flex flex-col relative">
             <div className="chat-messages-container flex-1 min-h-0 relative">
 
+                {/* PROJECT Z STYLE VOICE BAR */}
+                <VoicePartyBar
+                    isActive={inVoiceRoom}
+                    onJoin={() => setShowVoiceRoom(true)}
+                    activeParticipants={[]} // En MVP esto podría venir de un hook de presencia de Supabase o LiveKit
+                />
+
                 {/* Cinematic Top Fade */}
-                <div className="chat-fade-top" />
+                <div className="chat-fade-top" style={{ top: '60px' }} />
 
                 {/* Pinned VIP Message (Absolute Overlay for total persistence) */}
                 {messages.filter(m => m.is_vip).length > 0 && (
-                    <div className="chat-pins-area p-3 px-4 bg-[#080812]/98 border-b border-amber-500/50 shadow-[0_8px_32px_rgba(0,0,0,0.8)]">
+                    <div className="chat-pins-area p-3 px-4 bg-[#080812]/98 border-b border-amber-500/50 shadow-[0_8px_32px_rgba(0,0,0,0.8)]" style={{ top: '64px' }}>
                         <div className="flex items-center gap-3">
                             <span className="flex-shrink-0 w-8 h-8 rounded-full border border-amber-500/50 overflow-hidden ring-1 ring-amber-500/30">
                                 <img
@@ -195,6 +206,37 @@ export default function GlobalChat() {
                 setIsVipMode={setIsVipMode}
                 balance={balance}
             />
+
+            {/* VOICE ROOM OVERLAY (Project Z Style) */}
+            <AnimatePresence>
+                {showVoiceRoom && (
+                    <motion.div
+                        initial={{ opacity: 0, y: 50 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, scale: 0.95 }}
+                        className="fixed inset-0 z-[1000] flex items-center justify-center p-4 bg-[#050510]/95 backdrop-blur-md"
+                        onClick={() => setShowVoiceRoom(false)}
+                    >
+                        <div className="w-full max-w-md" onClick={e => e.stopPropagation()}>
+                            <VoiceRoomUI
+                                roomName="Chat Global - Voz"
+                                onLeave={() => {
+                                    setShowVoiceRoom(false);
+                                    setInVoiceRoom(false);
+                                }}
+                                onConnected={() => setInVoiceRoom(true)} // Añadir esta prop al componente original
+                            />
+
+                            <button
+                                onClick={() => setShowVoiceRoom(false)}
+                                className="w-full mt-4 p-4 rounded-3xl bg-white/5 border border-white/10 text-[10px] font-black uppercase tracking-widest text-white/50 hover:bg-white/10 hover:text-white transition-all shadow-xl"
+                            >
+                                Mantener en Segundo Plano 🌌
+                            </button>
+                        </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
         </div>
     );
 }

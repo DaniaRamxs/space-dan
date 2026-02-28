@@ -399,3 +399,27 @@
     transform: scale(1.05) rotate(-5deg);
     box-shadow: 0 0 25px rgba(0, 229, 255, 0.4);
 }
+
+/* Voice Party Bar (Project Z Style) */
+.voice-party-bar {
+    position: sticky;
+    top: 0;
+    left: 0;
+    width: 100%;
+    z-index: 250;
+    /* Above pins */
+    transition: all 0.3s ease;
+}
+
+.voice-party-bar:hover {
+    background: linear-gradient(to right, rgba(88, 28, 135, 0.6), rgba(21, 94, 117, 0.6));
+}
+
+.scale-102 {
+    transform: scale(1.02);
+}
+
+/* Ensure Chat Messages Scroll Area accounts for the fixed height bar if needed */
+.chat-messages-scroll {
+    padding-top: 20px;
+}
