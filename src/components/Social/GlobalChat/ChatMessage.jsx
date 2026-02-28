@@ -10,12 +10,12 @@ import { parseSpaceEnergies } from '../../../utils/markdownUtils';
 
 const sanitizeSchema = {
     ...defaultSchema,
-    tagNames: [...new Set([...defaultSchema.tagNames, 'div', 'span'])],
+    tagNames: [...new Set([...defaultSchema.tagNames, 'div', 'span', 'strong', 'em'])],
     attributes: {
         ...defaultSchema.attributes,
-        div: [...(defaultSchema.attributes.div || []), 'className', 'class'],
-        span: [...(defaultSchema.attributes.span || []), 'className', 'class'],
-        '*': [...(defaultSchema.attributes['*'] || []), 'className', 'class']
+        div: [...(defaultSchema.attributes.div || []), 'className', 'class', 'style'],
+        span: [...(defaultSchema.attributes.span || []), 'className', 'class', 'style'],
+        '*': [...(defaultSchema.attributes['*'] || []), 'className', 'class', 'style']
     }
 };
 

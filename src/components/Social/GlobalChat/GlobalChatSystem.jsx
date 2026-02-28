@@ -44,6 +44,7 @@ export default function GlobalChat() {
     const [inVoiceRoom, setInVoiceRoom] = useState(false);
     const [hasJoinedVoice, setHasJoinedVoice] = useState(false);
     const [voiceRoomName, setVoiceRoomName] = useState('Sala Galáctica');
+    const [tempVoiceChannel, setTempVoiceChannel] = useState(null);
     const [selectedProfile, setSelectedProfile] = useState(null);
     const [replyingTo, setReplyingTo] = useState(null);
     const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -166,6 +167,13 @@ export default function GlobalChat() {
         }
     };
 
+    const handleCreateVoiceRoom = (name) => {
+        setVoiceRoomName(name);
+        setTempVoiceChannel({ id: `voice-${name}`, name, icon: '🎙️' });
+        setHasJoinedVoice(true);
+        setShowVoiceRoom(true);
+    };
+
     const handleBotCommand = useCallback(async (content) => {
         const parts = content.trim().split(' ');
         const cmd = parts[0].toLowerCase();
@@ -193,10 +201,8 @@ export default function GlobalChat() {
                 if (!room) {
                     response = '🔊 Uso: `/voice <nombre_de_sala>`.';
                 } else {
-                    setVoiceRoomName(room);
-                    setHasJoinedVoice(true);
-                    setShowVoiceRoom(true);
-                    response = `📡 **Sintonizando canal temporal:** \`${room}\`. ¡Todos invitados!`;
+                    handleCreateVoiceRoom(room);
+                    response = `📡 **Canal temporal creado:** \`${room}\`. ¡Todos invitados!`;
                 }
                 break;
 
@@ -235,7 +241,7 @@ export default function GlobalChat() {
                 break;
 
             case '/bal':
-                response = `💰 **@${senderName}**, tu balance es de **${balance} ◈ Dancoins**.`;
+                response = `<div class="bot-card">\n<div class="bot-card-label">💰 Balance · @${senderName}</div>\n<div class="bot-card-answer bot-answer-maybe bot-text-xl bot-text-center"><strong>${balance.toLocaleString()}</strong></div>\n<div class="bot-card-footer">◈ Dancoins disponibles</div>\n</div>`;
                 break;
 
             case '/daily':
@@ -410,13 +416,17 @@ export default function GlobalChat() {
             case '/pat':
             case '/dance':
                 const target = args[0] || 'al vacío';
-                if (cmd === '/hug') response = `🤗 **${senderName}** abraza a **${target}**.`;
-                if (cmd === '/kiss') response = `💋 **${senderName}** besa a **${target}**.`;
-                if (cmd === '/slap') response = `👋 **${senderName}** abofetea a **${target}**.`;
-                if (cmd === '/punch') response = `👊 **${senderName}** golpea a **${target}**.`;
-                if (cmd === '/bite') response = `👄 **${senderName}** muerde a **${target}**.`;
-                if (cmd === '/pat') response = `👋 **${senderName}** acaricia a **${target}**.`;
-                if (cmd === '/dance') response = `💃 **${senderName}** baila con **${target}**.`;
+                const socialActions = {
+                    '/hug':   [`🤗 **@${senderName}** envuelve a **${target}** en un abrazo estelar.`, `🤗 Un abrazo galáctico de **@${senderName}** llega a **${target}**. ✨`],
+                    '/kiss':  [`💋 **@${senderName}** besa a **${target}** bajo la luz de las estrellas.`, `💋 **${target}** recibe un beso de **@${senderName}**. 🌙`],
+                    '/slap':  [`👋 **@${senderName}** abofetea a **${target}** con la fuerza de un pulsar.`, `💥 ¡**${target}** recibió una bofetada de **@${senderName}**!`],
+                    '/punch': [`👊 **@${senderName}** golpea a **${target}** con energía de quásar.`, `💥 **${target}** fue golpeado por **@${senderName}**. ¡Au!`],
+                    '/bite':  [`😬 **@${senderName}** muerde a **${target}**. ¡Cuidado con los dientes cósmicos!`, `🦷 **${target}** fue mordido por **@${senderName}**. 🌌`],
+                    '/pat':   [`🫶 **@${senderName}** acaricia a **${target}** con ternura galáctica.`, `✨ Qué bonito gesto de **@${senderName}** hacia **${target}**.`],
+                    '/dance': [`💃 **@${senderName}** baila con **${target}** al ritmo del universo. 🎶`, `🕺 **@${senderName}** y **${target}** se mueven al compás estelar. ✨`],
+                };
+                const pool = socialActions[cmd] || [`✨ **@${senderName}** hace algo con **${target}**.`];
+                response = pool[Math.floor(Math.random() * pool.length)];
                 break;
 
             case '/slots':
@@ -431,20 +441,25 @@ export default function GlobalChat() {
                     const r2 = symbols[Math.floor(Math.random() * symbols.length)];
                     const r3 = symbols[Math.floor(Math.random() * symbols.length)];
                     const isWin = r1 === r2 && r2 === r3;
-                    const isPartial = r1 === r2 || r2 === r3 || r1 === r3;
-
+                    const isPartial = !isWin && (r1 === r2 || r2 === r3 || r1 === r3);
+                    let resultHtml, colorClass;
                     if (isWin) {
                         const jackpot = slotsAmt * 10;
                         await awardCoins(jackpot, 'game_reward');
-                        response = `🎰 **JACKPOT!!** [${r1}|${r2}|${r3}] ¡@${senderName} ganó **${jackpot} ◈**! 💎✨`;
+                        resultHtml = `💎 <strong>¡JACKPOT!</strong> +${jackpot} ◈`;
+                        colorClass = 'bot-answer-yes';
                     } else if (isPartial) {
                         const smallWin = Math.floor(slotsAmt * 1.5);
                         await awardCoins(smallWin - slotsAmt, 'game_reward');
-                        response = `🎰 **Casi!** [${r1}|${r2}|${r3}] @${senderName} recuperó **${smallWin} ◈**.`;
+                        resultHtml = `⚡ <strong>¡Casi!</strong> Recuperaste ${smallWin} ◈`;
+                        colorClass = 'bot-answer-maybe';
                     } else {
                         await economyService.deductCoins(user.id, slotsAmt, 'game_loss', 'Perdió en tragamonedas');
-                        response = `🎰 [${r1}|${r2}|${r3}] **Mala suerte, @${senderName}.** Perdiste **${slotsAmt} ◈**.`;
+                        resultHtml = `💸 Mala suerte. Perdiste <strong>${slotsAmt} ◈</strong>`;
+                        colorClass = 'bot-answer-no';
                     }
+                    const wc = isWin ? 'bot-slot-win' : '';
+                    response = `<div class="bot-card">\n<div class="bot-card-label">🎰 Máquina Estelar · @${senderName}</div>\n<div class="bot-slots-display"><div class="bot-slot-cell ${wc}">${r1}</div><div class="bot-slot-cell ${wc}">${r2}</div><div class="bot-slot-cell ${wc}">${r3}</div></div>\n<div class="bot-card-answer ${colorClass}">${resultHtml}</div>\n</div>`;
                 }
                 break;
 
@@ -469,18 +484,23 @@ export default function GlobalChat() {
             case '/leaderboard':
                 try {
                     const top = await economyService.getLeaderboard(5);
-                    response = '🏆 **Top 5 Viajeros más Ricos:**\n' +
-                        top.map((u, i) => `${i + 1}. **@${u.username}** — ${u.balance} ◈`).join('\n');
+                    const medals = ['🥇', '🥈', '🥉', '4️⃣', '5️⃣'];
+                    const rankClasses = ['bot-lb-first', 'bot-lb-second', 'bot-lb-third', '', ''];
+                    const entries = top.map((u, i) =>
+                        `<div class="bot-lb-entry ${rankClasses[i]}"><div class="bot-lb-rank">${medals[i]}</div><div class="bot-lb-name">@${u.username}</div><div class="bot-lb-coins">${u.balance.toLocaleString()} ◈</div></div>`
+                    ).join('\n');
+                    response = `<div class="bot-card">\n<div class="bot-card-label">🏆 Top Viajeros Galácticos</div>\n${entries}\n</div>`;
                 } catch (e) { response = '❌ Error al consultar el registro estelar.'; }
                 break;
 
             case '/work':
                 try {
                     const result = await economyService.workMission(user.id);
-                    if (result.success) response = `🚀 **Misión Completada:** @${senderName} recolectó restos estelares y ganó **${result.reward} ◈**.`;
-                    else {
+                    if (result.success) {
+                        response = `<div class="bot-card">\n<div class="bot-card-label">🚀 Misión Completada · @${senderName}</div>\n<div class="bot-card-answer bot-answer-yes bot-text-center"><strong>+${result.reward} ◈</strong></div>\n<div class="bot-card-footer">Recolección de restos estelares exitosa</div>\n</div>`;
+                    } else {
                         const mins = Math.ceil((new Date(result.next_available) - new Date()) / 60000);
-                        response = `⏳ **Fatiga espacial:** @${senderName}, descansa. Vuelve en **${mins} min**.`;
+                        response = `<div class="bot-card">\n<div class="bot-card-label">⏳ Fatiga Espacial · @${senderName}</div>\n<div class="bot-card-answer bot-answer-maybe bot-text-center"><strong>${mins} min</strong></div>\n<div class="bot-card-footer">Descansa y vuelve más tarde</div>\n</div>`;
                     }
                 } catch (e) { response = '❌ Fallo en los motores.'; }
                 break;
@@ -491,8 +511,8 @@ export default function GlobalChat() {
                 else {
                     try {
                         const result = await economyService.robUser(user.id, robTarget);
-                        if (result.success) response = `🥷 **¡Atraco exitoso!** @${senderName} le robó **${result.amount} ◈** a @${robTarget}. 🌌`;
-                        else if (result.reason === 'caught') response = `🚨 **¡CAPTURADO!** @${senderName} intentó robar a @${robTarget} y fue multado con **${result.penalty} ◈**.`;
+                        if (result.success) response = `<div class="bot-card">\n<div class="bot-card-label">🥷 Atraco Espacial</div>\n<div class="bot-card-answer bot-answer-yes bot-text-center"><strong>+${result.amount} ◈</strong></div>\n<div class="bot-card-footer">@${senderName} le robó a @${robTarget} exitosamente 🌌</div>\n</div>`;
+                        else if (result.reason === 'caught') response = `<div class="bot-card">\n<div class="bot-card-label">🚨 ¡Capturado!</div>\n<div class="bot-card-answer bot-answer-no bot-text-center"><strong>-${result.penalty} ◈</strong></div>\n<div class="bot-card-footer">@${senderName} fue atrapado intentando robar a @${robTarget}</div>\n</div>`;
                         else if (result.reason === 'cooldown') response = '🕵️ El radar de la policía está activo. Espera un poco.';
                     } catch (e) { response = `❌ Error: ${e.message || 'Intento fallido.'}`; }
                 }
@@ -503,11 +523,13 @@ export default function GlobalChat() {
                 else {
                     const love = Math.floor(Math.random() * 101);
                     const bar = '▓'.repeat(Math.floor(love / 10)) + '░'.repeat(10 - Math.floor(love / 10));
-                    let comment = 'Una pareja imposible...';
-                    if (love > 90) comment = '¡Destinados a gobernar la galaxia juntos! 🔥';
-                    else if (love > 70) comment = 'Hay mucha química estelar aquí. ✨';
-                    else if (love > 50) comment = 'Podría funcionar con un poco de combustible. 🚀';
-                    response = `💖 **Nivel de Compatibilidad:**\n**${args[0]}** + **${args[1]}**\n**${love}%** [${bar}]\n\n*${comment}*`;
+                    let comment, shipColor;
+                    if (love > 90) { comment = '¡Destinados a gobernar la galaxia juntos! 🔥'; shipColor = 'bot-answer-yes'; }
+                    else if (love > 70) { comment = 'Hay mucha química estelar aquí. ✨'; shipColor = 'bot-answer-yes'; }
+                    else if (love > 50) { comment = 'Podría funcionar con un poco de combustible. 🚀'; shipColor = 'bot-answer-maybe'; }
+                    else if (love > 30) { comment = 'Las señales son débiles... 💫'; shipColor = 'bot-answer-maybe'; }
+                    else { comment = 'Una pareja imposible... 🌌'; shipColor = 'bot-answer-no'; }
+                    response = `<div class="bot-card">\n<div class="bot-card-label">💖 Detector de Compatibilidad Galáctica</div>\n<div class="bot-text-center" style="font-size:13px;color:rgba(255,255,255,0.7);padding:4px 0"><strong>${args[0]}</strong> + <strong>${args[1]}</strong></div>\n<div class="bot-card-answer ${shipColor} bot-text-xl bot-text-center"><strong>${love}%</strong></div>\n<div class="bot-progress">${bar}</div>\n<div class="bot-card-footer">${comment}</div>\n</div>`;
                 }
                 break;
 
@@ -579,12 +601,112 @@ export default function GlobalChat() {
                 }
                 break;
 
-            case '/joke': response = ["¿Por qué los astronautas no pueden tener relaciones estables? Porque necesitan su espacio. 🚀", "¿Cuál es el plato favorito de un extraterrestre? ¡Los avistamientos! 🛸"][Math.floor(Math.random() * 2)]; break;
-            case '/quote': response = ["\"El cosmos es todo lo que es...\" — Carl Sagan", "\"El espacio es grande...\""][Math.floor(Math.random() * 2)]; break;
-            case '/weather': response = `🛰️ **Clima:** ${['Tormenta Solar', 'Calma', 'Lluvia Estelar'][Math.floor(Math.random() * 3)]}`; break;
-            case '/pick': response = args.length < 2 ? '❌ `/pick op1 op2`' : `🎯 **IA:** Sugiero: **${args[Math.floor(Math.random() * args.length)]}**.`; break;
-            case '/roll': response = `🎲 **Dado:** **${senderName}** obtuvo un **${Math.floor(Math.random() * 100) + 1}**.`; break;
-            case '/flip': response = `🪙 **Moneda:** **${senderName}** lanzó y cayó **${Math.random() > 0.5 ? 'CARA 🌕' : 'CRUZ 🌑'}**.`; break;
+            case '/joke': {
+                const jokes = [
+                    '¿Por qué los astronautas no pueden tener relaciones estables? Porque siempre necesitan su *espacio*. 🚀',
+                    '¿Cuál es el plato favorito de un extraterrestre? ¡Los *avistamientos*! 🛸',
+                    '¿Por qué el sol no fue a la escuela? Porque ya tenía *millones de grados*. ☀️',
+                    '¿Cómo llamas a un cinturón de asteroides elegante? ¡El *cinturón* de Orión! 💫',
+                    '¿Por qué Plutón no fue a la fiesta? Porque ya no lo consideran parte del *grupo*. 🥲',
+                    '¿Qué le dijo la Tierra a la Luna? Para de girar a mi alrededor, ¡ya sé que estás ahí! 🌙',
+                    '¿Qué hace una estrella cuando tiene frío? ¡Se pone una *nebulosa*! 🌌',
+                    '¿Por qué los agujeros negros son tan populares? Porque tienen mucha *gravedad*. ⚫',
+                ];
+                response = jokes[Math.floor(Math.random() * jokes.length)];
+                break;
+            }
+            case '/quote': {
+                const quotes = [
+                    '"El cosmos es todo lo que es, todo lo que fue y todo lo que será." — Carl Sagan',
+                    '"Somos polvo de estrellas explorando el cosmos." — Neil deGrasse Tyson',
+                    '"La Tierra es la cuna de la humanidad, pero no podemos vivir en la cuna para siempre." — Tsiolkovsky',
+                    '"Alcanza la luna; incluso si fallas, aterrizarás entre las estrellas." — Norman Vincent Peale',
+                    '"El espacio no es el límite, es el principio." — Desconocido',
+                    '"Mirar las estrellas y no preguntarse es no vivir." — Anónimo',
+                    '"Dos posibilidades: o estamos solos en el universo, o no lo estamos. Ambas son igualmente aterradoras." — Arthur C. Clarke',
+                ];
+                response = `> ${quotes[Math.floor(Math.random() * quotes.length)]}`;
+                break;
+            }
+            case '/weather': {
+                const weathers = [
+                    { icon: '⚡', status: 'Tormenta Solar', detail: 'Interferencias en comunicaciones galácticas.' },
+                    { icon: '🌌', status: 'Calma Interestelar', detail: 'Condiciones perfectas para explorar.' },
+                    { icon: '☄️', status: 'Lluvia de Meteoritos', detail: 'Mantente dentro de tu nave.' },
+                    { icon: '💫', status: 'Aurora Cósmica', detail: 'Espectáculo de colores en el horizonte.' },
+                    { icon: '🌀', status: 'Viento Solar', detail: 'Corrientes de plasma detectadas.' },
+                    { icon: '🌑', status: 'Eclipse Galáctico', detail: 'Oscuridad temporal. Nada que temer.' },
+                ];
+                const w = weathers[Math.floor(Math.random() * weathers.length)];
+                response = `<div class="bot-card">\n<div class="bot-card-label">🛰️ Pronóstico Galáctico</div>\n<div class="bot-text-center bot-text-xl">${w.icon}</div>\n<div class="bot-card-answer bot-answer-maybe bot-text-center"><strong>${w.status}</strong></div>\n<div class="bot-card-footer">${w.detail}</div>\n</div>`;
+                break;
+            }
+            case '/pick': {
+                if (args.length < 2) { response = '🎯 Uso: `/pick opcion1 opcion2 ...`.'; break; }
+                const chosen = args[Math.floor(Math.random() * args.length)];
+                response = `<div class="bot-card">\n<div class="bot-card-label">🎯 Decisión de la IA Cósmica</div>\n<div class="bot-card-answer bot-answer-yes bot-text-center"><strong>${chosen}</strong></div>\n<div class="bot-card-footer">Entre: ${args.join(' · ')}</div>\n</div>`;
+                break;
+            }
+            case '/roll': {
+                const rolled = Math.floor(Math.random() * 100) + 1;
+                const rollColor = rolled >= 80 ? 'bot-answer-yes' : rolled >= 40 ? 'bot-answer-maybe' : 'bot-answer-no';
+                response = `<div class="bot-card">\n<div class="bot-card-label">🎲 Dado Cuántico · @${senderName}</div>\n<div class="bot-card-answer ${rollColor} bot-text-xl bot-text-center"><strong>${rolled}</strong></div>\n<div class="bot-card-footer">de 100</div>\n</div>`;
+                break;
+            }
+            case '/flip': {
+                const isCara = Math.random() > 0.5;
+                response = `<div class="bot-card">\n<div class="bot-card-label">🪙 Moneda Cósmica · @${senderName}</div>\n<div class="bot-text-center bot-text-xl">${isCara ? '🌕' : '🌑'}</div>\n<div class="bot-card-answer ${isCara ? 'bot-answer-yes' : 'bot-answer-no'} bot-text-center"><strong>${isCara ? 'CARA' : 'CRUZ'}</strong></div>\n</div>`;
+                break;
+            }
+            case '/8ball': {
+                const question = args.join(' ');
+                if (!question) { response = '🎱 Uso: `/8ball <tu pregunta>`.'; break; }
+                const answers = [
+                    { text: 'Así es, definitivamente.', type: 'yes' },
+                    { text: 'El cosmos lo confirma.', type: 'yes' },
+                    { text: 'Sin ninguna duda.', type: 'yes' },
+                    { text: 'Las estrellas dicen que sí.', type: 'yes' },
+                    { text: 'Todo apunta que sí.', type: 'yes' },
+                    { text: 'Muy probable.', type: 'yes' },
+                    { text: 'Señales favorables detectadas.', type: 'yes' },
+                    { text: 'La nebulosa nubla mi visión.', type: 'maybe' },
+                    { text: 'Incierto... vuelve a preguntar.', type: 'maybe' },
+                    { text: 'Las señales son confusas.', type: 'maybe' },
+                    { text: 'Concéntrate y pregunta de nuevo.', type: 'maybe' },
+                    { text: 'El universo guarda silencio.', type: 'maybe' },
+                    { text: 'No cuentes con ello.', type: 'no' },
+                    { text: 'Mis sensores dicen que no.', type: 'no' },
+                    { text: 'Perspectivas poco favorables.', type: 'no' },
+                    { text: 'El universo dice que no.', type: 'no' },
+                    { text: 'Los astros están en contra.', type: 'no' },
+                    { text: 'Definitivamente no.', type: 'no' },
+                    { text: 'Muy poco probable.', type: 'no' },
+                    { text: 'Ni lo intentes.', type: 'no' },
+                ];
+                const pick = answers[Math.floor(Math.random() * answers.length)];
+                const ballColor = pick.type === 'yes' ? 'bot-answer-yes' : pick.type === 'no' ? 'bot-answer-no' : 'bot-answer-maybe';
+                const ballIcon = pick.type === 'yes' ? '✅' : pick.type === 'no' ? '❌' : '🌀';
+                response = `<div class="bot-card">\n<div class="bot-card-label">🎱 La Bola Cósmica Responde</div>\n<div class="bot-card-question">"${question}"</div>\n<div class="bot-card-answer ${ballColor}">${ballIcon} <strong>${pick.text}</strong></div>\n</div>`;
+                break;
+            }
+            case '/confession': {
+                const confText = args.join(' ');
+                if (!confText) { response = '🤫 Uso: `/confession <tu secreto>`.'; break; }
+                response = `<div class="bot-card bot-card-confession">\n<div class="bot-card-label">🤫 Confesión Anónima del Espacio</div>\n<div class="bot-confession-text">"${confText}"</div>\n<div class="bot-card-footer">— Un viajero que prefiere el anonimato</div>\n</div>`;
+                break;
+            }
+            case '/poll': {
+                const fullText = args.join(' ');
+                const pollMatch = fullText.match(/"([^"]+)"\s+(.+)/);
+                if (!pollMatch) { response = '📊 Uso: `/poll "pregunta" opcion1 opcion2`.'; break; }
+                const pollQ = pollMatch[1];
+                const pollOpts = pollMatch[2].trim().split(/\s+/).slice(0, 4);
+                if (pollOpts.length < 2) { response = '📊 Necesitas al menos 2 opciones.'; break; }
+                const nums = ['1️⃣', '2️⃣', '3️⃣', '4️⃣'];
+                const optHtml = pollOpts.map((o, i) => `<div class="bot-poll-option">${nums[i]} <strong>${o}</strong></div>`).join('\n');
+                response = `<div class="bot-card bot-card-poll">\n<div class="bot-card-label">📊 Encuesta Estelar</div>\n<div class="bot-poll-question"><strong>${pollQ}</strong></div>\n${optHtml}\n<div class="bot-card-footer">Responde con el número de tu elección</div>\n</div>`;
+                break;
+            }
             default: return;
         }
 
@@ -594,7 +716,9 @@ export default function GlobalChat() {
                 '/weather', '/pick', '/kiss', '/punch', '/bite', '/pat', '/dance',
                 '/duel', '/accept', '/bal', '/daily', '/bet', '/blackjack', '/hit', '/stand',
                 '/slots', '/give', '/lb', '/leaderboard', '/work', '/rob', '/ship', '/marry',
-                '/profile', '/avatar', '/mood', '/clear', '/tax', '/announce'
+                '/profile', '/avatar', '/mood', '/clear', '/tax', '/announce',
+                '/help', '/voice', '/8ball', '/confession', '/poll',
+                '/roll', '/flip', '/weather', '/pick', '/joke', '/quote', '/ship'
             ];
             if (persistentCmds.includes(cmd)) {
                 try {
@@ -664,6 +788,26 @@ export default function GlobalChat() {
                             {activeChannel === chan.id && <motion.div layoutId="active-pill" className="w-1 h-4 bg-cyan-400 rounded-full" />}
                         </button>
                     ))}
+
+                    {/* Canal de voz temporal */}
+                    {tempVoiceChannel && (
+                        <div className="mt-2 pt-2 border-t border-white/5">
+                            <p className="text-[8px] font-black uppercase tracking-[0.2em] text-white/20 px-2 mb-2">Voz Temporal</p>
+                            <button
+                                onClick={() => { setShowVoiceRoom(true); setSidebarOpen(false); }}
+                                className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl transition-all bg-cyan-500/5 border border-cyan-500/20 text-cyan-400 hover:bg-cyan-500/10"
+                            >
+                                <span className="text-lg relative">
+                                    {tempVoiceChannel.icon}
+                                    {inVoiceRoom && <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />}
+                                </span>
+                                <div className="text-left flex-1 min-w-0">
+                                    <p className="text-sm font-bold truncate">{tempVoiceChannel.name}</p>
+                                    <p className="text-[10px] opacity-40">{inVoiceRoom ? 'Conectado' : 'Sala de voz'}</p>
+                                </div>
+                            </button>
+                        </div>
+                    )}
                 </div>
                 <div className="p-4 bg-white/5">
                     <div className="flex items-center gap-3 px-2">
@@ -702,7 +846,9 @@ export default function GlobalChat() {
                     <VoicePartyBar
                         activeParticipants={Object.values(onlineUsers).filter(u => u.inVoice)}
                         onJoin={() => { setHasJoinedVoice(true); setShowVoiceRoom(true); }}
+                        onCreateRoom={handleCreateVoiceRoom}
                         isActive={inVoiceRoom}
+                        currentRoom={voiceRoomName}
                     />
 
                     {/* VIP Sticky Message */}
@@ -764,7 +910,7 @@ export default function GlobalChat() {
                         roomName={voiceRoomName}
                         isOpen={showVoiceRoom}
                         onMinimize={() => setShowVoiceRoom(false)}
-                        onLeave={() => { setHasJoinedVoice(false); setShowVoiceRoom(false); setInVoiceRoom(false); setVoiceRoomName('Sala Galáctica'); updatePresence({ inVoice: false, voiceRoom: null }); }}
+                        onLeave={() => { setHasJoinedVoice(false); setShowVoiceRoom(false); setInVoiceRoom(false); setVoiceRoomName('Sala Galáctica'); setTempVoiceChannel(null); updatePresence({ inVoice: false, voiceRoom: null }); }}
                         onConnected={() => { setInVoiceRoom(true); updatePresence({ inVoice: true, voiceRoom: voiceRoomName }); }}
                         userAvatar={userProfile?.avatar_url}
                         nicknameStyle={userProfile?.equipped_nickname_style}

@@ -45,7 +45,15 @@ export const chatService = {
     },
 
     async getRecentMessages(limit = 50, channelId = 'global') {
-        // 1. Obtener mensajes básicos filtrados por canal
+        const HYPERBOT_AUTHOR = {
+            id: '00000000-0000-0000-0000-000000000bb1',
+            username: 'HyperBot',
+            avatar_url: 'https://api.dicebear.com/7.x/bottts-neutral/svg?seed=HyperBot&backgroundColor=b6e3f4',
+            nickname_style: 'hyperbot',
+            level: 999
+        };
+
+        // 1. Obtener mensajes filtrados por canal
         const { data: messages, error: msgError } = await supabase
             .from('global_chat')
             .select('id, content, created_at, user_id, is_vip, reply_to_id, channel_id')
@@ -56,58 +64,53 @@ export const chatService = {
         if (msgError) throw msgError;
         if (!messages || messages.length === 0) return [];
 
-        // 2. Enriquecer (Con Joins para roles si es posible)
+        // 2. Enriquecer con perfiles (sin join a store_items para evitar errores RLS)
         const userIds = [...new Set(messages.map(m => m.user_id))].filter(id => id && id.length > 10);
+        let profileMap = {};
 
         if (userIds.length > 0) {
-            const { data: profiles, error: profError } = await supabase
+            const { data: profiles } = await supabase
                 .from('profiles')
-                .select(`
-                    id, username, avatar_url, equipped_nickname_style,
-                    primary_role_item:equipped_primary_role(id, title, metadata)
-                `)
+                .select('id, username, avatar_url, equipped_nickname_style')
                 .in('id', userIds);
 
-            if (!profError && profiles) {
-                const enriched = messages.map(m => {
-                    let author = profiles.find(p => p.id === m.user_id) || { username: 'Viajero', id: m.user_id };
-                    let content = m.content;
-
-                    if (content.startsWith('[HYPERBOT_MSG]:')) {
-                        content = content.replace('[HYPERBOT_MSG]:', '');
-                        author = {
-                            id: '00000000-0000-0000-0000-000000000bb1',
-                            username: 'HyperBot',
-                            avatar_url: 'https://api.dicebear.com/7.x/bottts-neutral/svg?seed=HyperBot&backgroundColor=b6e3f4',
-                            nickname_style: 'hyperbot',
-                            level: 999
-                        };
-                    }
-
-                    let reply = null;
-                    if (m.reply_to_id) {
-                        const originalMsg = messages.find(om => om.id === m.reply_to_id);
-                        if (originalMsg) {
-                            const originalAuthor = profiles.find(p => p.id === originalMsg.user_id);
-                            reply = {
-                                content: originalMsg.content,
-                                author: originalAuthor?.username || 'Anónimo'
-                            };
-                        }
-                    }
-                    return {
-                        ...m,
-                        user_id: author.id,
-                        content,
-                        author,
-                        reply
-                    };
-                });
-                return enriched.reverse();
+            if (profiles) {
+                profiles.forEach(p => { profileMap[p.id] = p; });
             }
         }
 
-        return messages.reverse();
+        // 3. Transformar mensajes — siempre, independiente de si profiles cargó
+        const enriched = messages.map(m => {
+            let content = m.content;
+            let author;
+
+            if (content.startsWith('[HYPERBOT_MSG]:')) {
+                content = content.replace('[HYPERBOT_MSG]:', '');
+                author = HYPERBOT_AUTHOR;
+            } else {
+                author = profileMap[m.user_id] || { username: 'Viajero', id: m.user_id };
+            }
+
+            let reply = null;
+            if (m.reply_to_id) {
+                const originalMsg = messages.find(om => om.id === m.reply_to_id);
+                if (originalMsg) {
+                    const isOriginalBot = originalMsg.content.startsWith('[HYPERBOT_MSG]:');
+                    reply = {
+                        content: isOriginalBot
+                            ? originalMsg.content.replace('[HYPERBOT_MSG]:', '')
+                            : originalMsg.content,
+                        author: isOriginalBot
+                            ? 'HyperBot'
+                            : (profileMap[originalMsg.user_id]?.username || 'Anónimo')
+                    };
+                }
+            }
+
+            return { ...m, user_id: author.id, content, author, reply };
+        });
+
+        return enriched.reverse();
     },
 
     async clearChannel(channelId) {

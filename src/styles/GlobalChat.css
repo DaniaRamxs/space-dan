@@ -159,3 +159,149 @@
     background: rgba(255, 255, 255, 0.1);
     border-radius: 10px;
 }
+
+/* ═══ HyperBot Cards ═══ */
+.bot-card {
+    background: linear-gradient(135deg, rgba(8,8,25,0.9), rgba(12,12,30,0.95));
+    border: 1px solid rgba(34,211,238,0.15);
+    border-radius: 18px;
+    padding: 14px 16px;
+    margin: 2px 0;
+    position: relative;
+    overflow: hidden;
+    font-family: inherit;
+}
+.bot-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(34,211,238,0.5), transparent);
+}
+.bot-card-label {
+    font-size: 8px;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.3em;
+    color: rgba(34,211,238,0.55);
+    margin-bottom: 10px;
+}
+.bot-card-question {
+    font-size: 12px;
+    color: rgba(255,255,255,0.6);
+    font-style: italic;
+    margin-bottom: 10px;
+    padding: 8px 12px;
+    background: rgba(255,255,255,0.03);
+    border-left: 2px solid rgba(34,211,238,0.2);
+    border-radius: 0 10px 10px 0;
+}
+.bot-card-answer {
+    font-size: 13px;
+    padding: 10px 14px;
+    border-radius: 12px;
+    border: 1px solid rgba(255,255,255,0.07);
+    background: rgba(0,0,0,0.25);
+    text-align: center;
+}
+.bot-answer-yes  { color: #22d3ee; border-color: rgba(34,211,238,0.2);  background: rgba(34,211,238,0.06); }
+.bot-answer-no   { color: #f43f5e; border-color: rgba(244,63,94,0.2);   background: rgba(244,63,94,0.06);  }
+.bot-answer-maybe{ color: #f59e0b; border-color: rgba(245,158,11,0.2);  background: rgba(245,158,11,0.06); }
+.bot-card-footer {
+    font-size: 9px;
+    color: rgba(255,255,255,0.2);
+    text-align: right;
+    margin-top: 10px;
+    font-style: italic;
+}
+.bot-text-center { text-align: center; }
+.bot-text-xl     { font-size: 30px; font-weight: 900; line-height: 1.1; padding: 6px 0; }
+
+/* Confession */
+.bot-card-confession { border-color: rgba(168,85,247,0.2); }
+.bot-card-confession::before { background: linear-gradient(90deg,transparent,rgba(168,85,247,0.5),transparent); }
+.bot-card-confession .bot-card-label { color: rgba(168,85,247,0.6); }
+.bot-confession-text {
+    font-size: 13px;
+    color: rgba(255,255,255,0.82);
+    font-style: italic;
+    line-height: 1.6;
+    padding: 10px 14px;
+    background: rgba(168,85,247,0.05);
+    border-radius: 12px;
+    border: 1px solid rgba(168,85,247,0.12);
+    margin: 8px 0;
+}
+
+/* Poll */
+.bot-card-poll { border-color: rgba(251,191,36,0.2); }
+.bot-card-poll::before { background: linear-gradient(90deg,transparent,rgba(251,191,36,0.5),transparent); }
+.bot-card-poll .bot-card-label { color: rgba(251,191,36,0.6); }
+.bot-poll-question {
+    font-size: 13px;
+    font-weight: 700;
+    color: rgba(255,255,255,0.9);
+    margin-bottom: 10px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid rgba(255,255,255,0.07);
+}
+.bot-poll-option {
+    padding: 8px 12px;
+    margin: 4px 0;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 10px;
+    font-size: 12px;
+    color: rgba(255,255,255,0.7);
+}
+
+/* Slots */
+.bot-slots-display {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    margin: 12px 0;
+}
+.bot-slot-cell {
+    width: 52px; height: 52px;
+    background: rgba(0,0,0,0.4);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 26px;
+}
+.bot-slot-win {
+    border-color: rgba(34,211,238,0.5);
+    box-shadow: 0 0 16px rgba(34,211,238,0.2);
+    background: rgba(34,211,238,0.07);
+}
+
+/* Leaderboard */
+.bot-lb-entry {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 12px;
+    border-radius: 12px;
+    margin: 4px 0;
+    background: rgba(255,255,255,0.02);
+    border: 1px solid transparent;
+}
+.bot-lb-rank  { font-size: 16px; width: 24px; text-align: center; flex-shrink: 0; }
+.bot-lb-name  { flex: 1; font-size: 12px; font-weight: 700; color: rgba(255,255,255,0.8); }
+.bot-lb-coins { font-size: 11px; font-weight: 900; color: #f59e0b; flex-shrink: 0; }
+.bot-lb-first  { background: rgba(251,191,36,0.08);  border-color: rgba(251,191,36,0.2);  }
+.bot-lb-second { background: rgba(148,163,184,0.06); border-color: rgba(148,163,184,0.15); }
+.bot-lb-third  { background: rgba(180,107,56,0.06);  border-color: rgba(180,107,56,0.15);  }
+
+/* Progress (ship) */
+.bot-progress {
+    font-size: 11px;
+    letter-spacing: 2px;
+    text-align: center;
+    color: rgba(255,255,255,0.3);
+    margin: 8px 0;
+    font-family: monospace;
+}

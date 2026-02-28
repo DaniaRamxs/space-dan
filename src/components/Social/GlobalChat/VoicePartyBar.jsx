@@ -1,46 +1,119 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Radio, Users, Mic, ChevronRight, X } from 'lucide-react';
+import { Radio, Mic, ChevronDown, ChevronUp, Plus, Users } from 'lucide-react';
 
-export default function VoicePartyBar({ activeParticipants = [], onJoin, isActive }) {
+export default function VoicePartyBar({ activeParticipants = [], onJoin, onCreateRoom, isActive, currentRoom }) {
+    const [isExpanded, setIsExpanded] = useState(false);
+    const [customRoom, setCustomRoom] = useState('');
+
+    const handleCreateRoom = () => {
+        if (!customRoom.trim()) return;
+        onCreateRoom(customRoom.trim());
+        setCustomRoom('');
+        setIsExpanded(false);
+    };
+
     return (
-        <div className="voice-party-bar p-3 px-4 bg-gradient-to-r from-purple-900/40 to-cyan-900/40 border-b border-white/10 backdrop-blur-xl flex items-center justify-between group cursor-pointer hover:from-purple-900/50 hover:to-cyan-900/50 transition-all" onClick={onJoin}>
-            <div className="flex items-center gap-3">
-                <div className="relative">
+        <div className="border-b border-white/10">
+            {/* Barra principal siempre visible */}
+            <div className={`p-3 px-4 bg-gradient-to-r from-purple-900/40 to-cyan-900/40 backdrop-blur-xl flex items-center justify-between transition-all ${!isExpanded && 'hover:from-purple-900/50 hover:to-cyan-900/50'}`}>
+                <div className="flex items-center gap-3">
                     <div className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${isActive ? 'bg-cyan-400 text-black shadow-[0_0_15px_rgba(34,211,238,0.5)]' : 'bg-white/10 text-white/40 border border-white/10'}`}>
                         {isActive ? <Mic size={20} className="animate-pulse" /> : <Radio size={20} />}
                     </div>
-                    {!isActive && activeParticipants.length > 0 && (
-                        <div className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-emerald-500 border-2 border-[#050510] flex items-center justify-center">
-                            <span className="text-[8px] font-black text-white">{activeParticipants.length}</span>
+                    <div className="flex flex-col">
+                        <span className={`text-[10px] font-black uppercase tracking-[0.2em] ${isActive ? 'text-cyan-400' : 'text-white/40'}`}>
+                            {isActive ? 'Transmisión Activa' : 'Sala de Voz'}
+                        </span>
+                        <h4 className="text-xs font-bold text-white/90">{currentRoom || 'Sala Galáctica'}</h4>
+                    </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                    {activeParticipants.length > 0 && (
+                        <div className="flex items-center gap-1.5 text-white/40">
+                            <Users size={12} />
+                            <span className="text-[10px] font-black">{activeParticipants.length}</span>
                         </div>
                     )}
-                </div>
-
-                <div className="flex flex-col">
-                    <span className={`text-[10px] font-black uppercase tracking-[0.2em] ${isActive ? 'text-cyan-400' : 'text-white/40'}`}>
-                        {isActive ? 'Transmisión Activa' : 'Sintonizar Voz'}
-                    </span>
-                    <h4 className="text-xs font-bold text-white/90">
-                        {isActive ? 'Estás en la sala de audio' : 'Únete a la charla grupal'}
-                    </h4>
+                    <button
+                        onClick={() => setIsExpanded(v => !v)}
+                        className="w-8 h-8 rounded-full bg-white/5 border border-white/10 flex items-center justify-center hover:bg-white/10 active:scale-95 transition-all"
+                    >
+                        {isExpanded
+                            ? <ChevronUp size={14} className="text-white/60" />
+                            : <ChevronDown size={14} className="text-white/60" />}
+                    </button>
                 </div>
             </div>
 
-            <div className="flex items-center gap-2">
-                {activeParticipants.length > 0 && (
-                    <div className="flex -space-x-2 mr-2">
-                        {activeParticipants.slice(0, 3).map((p, i) => (
-                            <div key={i} className="w-6 h-6 rounded-full border-2 border-[#050510] overflow-hidden bg-white/5">
-                                <img src={p.avatar_url || '/default_user_blank.png'} alt="" className="w-full h-full object-cover" />
-                            </div>
-                        ))}
-                    </div>
+            {/* Panel expandible */}
+            <AnimatePresence>
+                {isExpanded && (
+                    <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: 'auto', opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.2 }}
+                        className="overflow-hidden bg-black/30 border-b border-white/5"
+                    >
+                        <div className="p-4 space-y-4">
+
+                            {/* Participantes en voz */}
+                            {activeParticipants.length > 0 ? (
+                                <div className="space-y-2">
+                                    <p className="text-[9px] font-black uppercase tracking-[0.2em] text-white/30">En Voz Ahora</p>
+                                    <div className="flex flex-wrap gap-2">
+                                        {activeParticipants.map((p, i) => (
+                                            <div key={i} className="flex items-center gap-2 bg-white/5 rounded-xl px-3 py-1.5 border border-white/5">
+                                                <img src={p.avatar_url || '/default_user_blank.png'} className="w-5 h-5 rounded-full object-cover" alt="" />
+                                                <span className="text-[10px] font-bold text-white/70">{p.username}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            ) : (
+                                <p className="text-[9px] text-white/20 uppercase font-black tracking-widest text-center py-1">
+                                    Nadie en voz todavía...
+                                </p>
+                            )}
+
+                            {/* Botón unirse / abrir control */}
+                            <button
+                                onClick={() => { onJoin(); setIsExpanded(false); }}
+                                className={`w-full py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${isActive
+                                    ? 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 hover:bg-cyan-500/20'
+                                    : 'bg-white/5 text-white/60 border border-white/10 hover:bg-white/10'}`}
+                            >
+                                {isActive ? 'Abrir Control de Voz' : `Unirse · ${currentRoom || 'Sala Galáctica'}`}
+                            </button>
+
+                            {/* Crear sala temporal (solo si no está en voz) */}
+                            {!isActive && (
+                                <div className="space-y-2">
+                                    <p className="text-[9px] font-black uppercase tracking-[0.2em] text-white/30">Crear Sala Temporal</p>
+                                    <div className="flex gap-2">
+                                        <input
+                                            value={customRoom}
+                                            onChange={e => setCustomRoom(e.target.value)}
+                                            onKeyDown={e => e.key === 'Enter' && handleCreateRoom()}
+                                            placeholder="Nombre de sala..."
+                                            className="flex-1 bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-[11px] text-white placeholder:text-white/20 outline-none focus:border-cyan-500/50 transition-all"
+                                        />
+                                        <button
+                                            onClick={handleCreateRoom}
+                                            disabled={!customRoom.trim()}
+                                            className="px-3 py-2 rounded-xl bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 hover:bg-cyan-500/20 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                                        >
+                                            <Plus size={16} />
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </motion.div>
                 )}
-                <div className="w-8 h-8 rounded-full bg-white/5 border border-white/10 flex items-center justify-center group-hover:bg-white/10 group-hover:border-white/20 transition-all">
-                    <ChevronRight size={16} className="text-white/40 group-hover:text-white" />
-                </div>
-            </div>
+            </AnimatePresence>
         </div>
     );
 }
