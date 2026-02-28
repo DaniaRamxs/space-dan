@@ -45,6 +45,7 @@ export default function GlobalChat() {
     const [hasJoinedVoice, setHasJoinedVoice] = useState(false);
     const [voiceRoomName, setVoiceRoomName] = useState('Sala Galáctica');
     const [tempVoiceChannel, setTempVoiceChannel] = useState(null);
+    const [tempTextChannelId, setTempTextChannelId] = useState(null);
     const [selectedProfile, setSelectedProfile] = useState(null);
     const [replyingTo, setReplyingTo] = useState(null);
     const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -168,11 +169,25 @@ export default function GlobalChat() {
     };
 
     const handleCreateVoiceRoom = (name) => {
+        const textChanId = 'voz-' + name.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-');
         setVoiceRoomName(name);
         setTempVoiceChannel({ id: `voice-${name}`, name, icon: '🎙️' });
+        setTempTextChannelId(textChanId);
         setHasJoinedVoice(true);
         setShowVoiceRoom(true);
+        setActiveChannel(textChanId);
     };
+
+    const handleLeaveVoice = useCallback(() => {
+        setHasJoinedVoice(false);
+        setShowVoiceRoom(false);
+        setInVoiceRoom(false);
+        setVoiceRoomName('Sala Galáctica');
+        setTempVoiceChannel(null);
+        setTempTextChannelId(null);
+        setActiveChannel(prev => prev.startsWith('voz-') ? 'global' : prev);
+        updatePresence({ inVoice: false, voiceRoom: null });
+    }, [updatePresence]);
 
     const handleBotCommand = useCallback(async (content) => {
         const parts = content.trim().split(' ');
@@ -789,10 +804,11 @@ export default function GlobalChat() {
                         </button>
                     ))}
 
-                    {/* Canal de voz temporal */}
+                    {/* Canal de voz temporal + canal de texto vinculado */}
                     {tempVoiceChannel && (
-                        <div className="mt-2 pt-2 border-t border-white/5">
+                        <div className="mt-2 pt-2 border-t border-white/5 space-y-1">
                             <p className="text-[8px] font-black uppercase tracking-[0.2em] text-white/20 px-2 mb-2">Voz Temporal</p>
+                            {/* Botón sala de voz */}
                             <button
                                 onClick={() => { setShowVoiceRoom(true); setSidebarOpen(false); }}
                                 className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl transition-all bg-cyan-500/5 border border-cyan-500/20 text-cyan-400 hover:bg-cyan-500/10"
@@ -806,6 +822,20 @@ export default function GlobalChat() {
                                     <p className="text-[10px] opacity-40">{inVoiceRoom ? 'Conectado' : 'Sala de voz'}</p>
                                 </div>
                             </button>
+                            {/* Canal de texto vinculado */}
+                            {tempTextChannelId && (
+                                <button
+                                    onClick={() => { setActiveChannel(tempTextChannelId); setSidebarOpen(false); }}
+                                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl transition-all ${activeChannel === tempTextChannelId ? 'bg-purple-500/10 text-purple-400 border border-purple-500/20' : 'text-white/40 hover:bg-white/5 hover:text-white/60'}`}
+                                >
+                                    <span className="text-lg">💬</span>
+                                    <div className="text-left flex-1 min-w-0">
+                                        <p className="text-sm font-bold truncate"># {tempVoiceChannel.name}</p>
+                                        <p className="text-[10px] opacity-40">Chat de sala</p>
+                                    </div>
+                                    {activeChannel === tempTextChannelId && <motion.div layoutId="active-pill" className="w-1 h-4 bg-purple-400 rounded-full" />}
+                                </button>
+                            )}
                         </div>
                     )}
                 </div>
@@ -911,7 +941,8 @@ export default function GlobalChat() {
                         roomName={voiceRoomName}
                         isOpen={showVoiceRoom}
                         onMinimize={() => setShowVoiceRoom(false)}
-                        onLeave={() => { setHasJoinedVoice(false); setShowVoiceRoom(false); setInVoiceRoom(false); setVoiceRoomName('Sala Galáctica'); setTempVoiceChannel(null); updatePresence({ inVoice: false, voiceRoom: null }); }}
+                        onExpand={() => setShowVoiceRoom(true)}
+                        onLeave={handleLeaveVoice}
                         onConnected={() => { setInVoiceRoom(true); updatePresence({ inVoice: true, voiceRoom: voiceRoomName }); }}
                         userAvatar={userProfile?.avatar_url}
                         nicknameStyle={userProfile?.equipped_nickname_style}

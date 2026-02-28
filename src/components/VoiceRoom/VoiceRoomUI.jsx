@@ -8,7 +8,7 @@ import {
     RoomAudioRenderer,
     useChat,
 } from '@livekit/components-react';
-import { Mic, MicOff, LogOut, Users, Radio, X, ChevronDown, MessageSquare, Send } from 'lucide-react';
+import { Mic, MicOff, LogOut, Users, Radio, X, ChevronDown, ChevronUp, MessageSquare, Send } from 'lucide-react';
 import { supabase } from '../../supabaseClient';
 import { getNicknameClass } from '../../utils/user';
 import { getFrameStyle } from '../../utils/styles';
@@ -20,17 +20,15 @@ const leaveSound = new Audio('https://assets.mixkit.co/active_storage/sfx/2571/2
 joinSound.volume = 0.2;
 leaveSound.volume = 0.2;
 
-export default function VoiceRoomUI({ roomName, onLeave, onConnected, userAvatar, nicknameStyle, frameId, isOpen, onMinimize }) {
+export default function VoiceRoomUI({ roomName, onLeave, onConnected, userAvatar, nicknameStyle, frameId, isOpen, onMinimize, onExpand }) {
     const [token, setToken] = useState(null);
     const [connecting, setConnecting] = useState(true);
     const [error, setError] = useState(null);
     const [activeTab, setActiveTab] = useState('participants');
     const roomRef = useRef(roomName);
 
-    // Resetear solo si la sala REALMENTE cambia
     useEffect(() => {
         if (roomRef.current !== roomName) {
-            console.log(`[VoiceRoomUI] Sala cambiada de ${roomRef.current} a ${roomName}. Reiniciando...`);
             setToken(null);
             setConnecting(true);
             setError(null);
@@ -44,24 +42,14 @@ export default function VoiceRoomUI({ roomName, onLeave, onConnected, userAvatar
 
         const fetchToken = async () => {
             try {
-                // Obtenemos sesión solo para tener el ID de usuario, pero no enviamos Authorization
-                // ya que el endpoint /api/ no lo valida actualmente y podría causar 403 en algunos proxies.
                 const { data: { session } } = await supabase.auth.getSession();
                 const userId = session?.user?.id || 'anon-' + Math.random().toString(36).substring(7);
                 const participantName = session?.user?.user_metadata?.username || 'Explorador';
 
-                console.log(`[VoiceRoomUI] Fetching token for ${roomName}...`);
                 const response = await fetch(`/api/livekit-token?t=${Date.now()}`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        roomName,
-                        userId,
-                        participantName,
-                        userAvatar,
-                        nicknameStyle,
-                        frameId
-                    })
+                    body: JSON.stringify({ roomName, userId, participantName, userAvatar, nicknameStyle, frameId })
                 });
 
                 if (!response.ok) {
@@ -83,6 +71,7 @@ export default function VoiceRoomUI({ roomName, onLeave, onConnected, userAvatar
         fetchToken();
     }, [roomName, token, isOpen]);
 
+    // Loading / error state
     if (!token && (connecting || error)) {
         if (!isOpen) return null;
         return createPortal(
@@ -119,6 +108,11 @@ export default function VoiceRoomUI({ roomName, onLeave, onConnected, userAvatar
             className="voice-room-container"
         >
             <RoomAudioRenderer />
+
+            {/* Mini-barra persistente cuando el panel está minimizado */}
+            {!isOpen && <MinimizedBar roomName={roomName} onExpand={onExpand} onLeave={onLeave} />}
+
+            {/* Panel completo */}
             <AnimatePresence>
                 {isOpen && createPortal(
                     <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 overflow-hidden">
@@ -143,8 +137,12 @@ export default function VoiceRoomUI({ roomName, onLeave, onConnected, userAvatar
                                         </div>
                                     </div>
                                     <div className="flex items-center gap-2">
-                                        <button onClick={onMinimize} className="w-10 h-10 rounded-xl bg-white/5 text-white/40 border border-white/10 hover:bg-white/10 active:scale-95 transition-all flex items-center justify-center"><ChevronDown size={20} /></button>
-                                        <button onClick={onLeave} className="w-12 h-12 rounded-2xl bg-rose-500/10 text-rose-400 border border-rose-500/20 hover:bg-rose-500/20 active:scale-95 transition-all flex items-center justify-center"><LogOut size={20} /></button>
+                                        <button onClick={onMinimize} className="w-10 h-10 rounded-xl bg-white/5 text-white/40 border border-white/10 hover:bg-white/10 active:scale-95 transition-all flex items-center justify-center" title="Minimizar">
+                                            <ChevronDown size={20} />
+                                        </button>
+                                        <button onClick={onLeave} className="w-12 h-12 rounded-2xl bg-rose-500/10 text-rose-400 border border-rose-500/20 hover:bg-rose-500/20 active:scale-95 transition-all flex items-center justify-center" title="Salir de la sala">
+                                            <LogOut size={20} />
+                                        </button>
                                     </div>
                                 </div>
                                 <div className="flex gap-2 p-1 bg-black/20 rounded-2xl">
@@ -163,6 +161,49 @@ export default function VoiceRoomUI({ roomName, onLeave, onConnected, userAvatar
                 )}
             </AnimatePresence>
         </LiveKitRoom>
+    );
+}
+
+/* Mini-barra flotante cuando el panel está minimizado */
+function MinimizedBar({ roomName, onExpand, onLeave }) {
+    const { isMicrophoneEnabled, localParticipant } = useLocalParticipant();
+
+    return createPortal(
+        <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 20 }}
+            className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[9999] flex items-center gap-2 bg-[#050518]/95 backdrop-blur-xl border border-cyan-500/30 rounded-full px-4 py-2.5 shadow-[0_8px_40px_rgba(0,0,0,0.7)]"
+        >
+            <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse flex-shrink-0" />
+            <span className="text-[10px] font-black uppercase tracking-widest text-white/70 max-w-[110px] truncate">{roomName}</span>
+            <div className="w-px h-4 bg-white/10 mx-0.5" />
+            {/* Mute */}
+            <button
+                onClick={() => localParticipant.setMicrophoneEnabled(!isMicrophoneEnabled)}
+                className={`w-8 h-8 rounded-full flex items-center justify-center transition-all active:scale-90 ${isMicrophoneEnabled ? 'bg-white/10 text-white/70 hover:bg-white/20' : 'bg-rose-500/20 text-rose-400 border border-rose-500/40 hover:bg-rose-500/30'}`}
+                title={isMicrophoneEnabled ? 'Silenciar' : 'Activar mic'}
+            >
+                {isMicrophoneEnabled ? <Mic size={14} /> : <MicOff size={14} />}
+            </button>
+            {/* Expandir panel */}
+            <button
+                onClick={onExpand}
+                className="w-8 h-8 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-white/50 hover:bg-white/15 transition-all active:scale-90"
+                title="Abrir panel de voz"
+            >
+                <ChevronUp size={14} />
+            </button>
+            {/* Salir */}
+            <button
+                onClick={onLeave}
+                className="w-8 h-8 rounded-full bg-rose-500/10 border border-rose-500/20 flex items-center justify-center text-rose-400 hover:bg-rose-500/20 transition-all active:scale-90"
+                title="Salir de la sala"
+            >
+                <LogOut size={14} />
+            </button>
+        </motion.div>,
+        document.body
     );
 }
 
