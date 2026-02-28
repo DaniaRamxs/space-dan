@@ -22,53 +22,49 @@ export default async function handler(req, res) {
 
     try {
         // 3. Extraer y validar parámetros del body
-        const { roomName, userId, participantName } = req.body;
+        const { roomName, userId, participantName, userAvatar, nicknameStyle, frameId } = req.body;
 
-        // El usuario pidió roomName y userId, pero añadimos participantName por si acaso
         const identity = userId || 'user-' + Math.random().toString(36).substring(7);
-        const name = participantName || identity;
+        const name = participantName || 'Explorador';
 
         if (!roomName) {
-            return res.status(400).json({
-                error: 'Faltan parámetros obligatorios: roomName'
-            });
+            return res.status(400).json({ error: 'Faltan parámetros obligatorios: roomName' });
         }
 
-        // 4. Configurar credenciales (Desde variables de entorno de Vercel)
+        // 4. Configurar credenciales
         const apiKey = process.env.LIVEKIT_API_KEY;
         const apiSecret = process.env.LIVEKIT_API_SECRET;
 
         if (!apiKey || !apiSecret) {
-            console.error('[LiveKit] API Key o Secret no configurados en las variables de entorno');
-            return res.status(500).json({
-                error: 'Servidor no configurado para LiveKit. Revisa las Environment Variables.'
-            });
+            return res.status(500).json({ error: 'Servidor no configurado para LiveKit' });
         }
 
-        // 5. Generar el AccessToken
+        // 5. Generar el AccessToken con Metadata
         const at = new AccessToken(apiKey, apiSecret, {
             identity: identity,
             name: name,
+            metadata: JSON.stringify({
+                avatar: userAvatar,
+                nicknameStyle,
+                frameId
+            })
         });
 
-        // 6. Asignar permisos según el prompt del usuario
+        // 6. Asignar permisos
         at.addGrant({
             roomJoin: true,
             room: roomName,
             canPublish: true,
             canSubscribe: true,
-            canPublishData: true, // Útil para chat de datos
+            canPublishData: true,
+            videoJoin: false
         });
 
-        // 7. Generar JWT y responder
         const token = await at.toJwt();
         return res.status(200).json({ token });
 
     } catch (error) {
         console.error('[LiveKit API Error]:', error);
-        return res.status(500).json({
-            error: 'Error interno del servidor al generar el token',
-            details: error.message
-        });
+        return res.status(500).json({ error: error.message });
     }
 }

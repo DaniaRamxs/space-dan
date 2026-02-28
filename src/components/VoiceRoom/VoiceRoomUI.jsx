@@ -25,39 +25,49 @@ export default function VoiceRoomUI({ roomName, onLeave, onConnected, userAvatar
     const [connecting, setConnecting] = useState(true);
     const [error, setError] = useState(null);
     const [activeTab, setActiveTab] = useState('participants');
+    const roomRef = useRef(roomName);
 
+    // Resetear solo si la sala REALMENTE cambia
     useEffect(() => {
-        setToken(null);
-        setConnecting(true);
-        setError(null);
-        setActiveTab('participants');
+        if (roomRef.current !== roomName) {
+            console.log(`[VoiceRoomUI] Sala cambiada de ${roomRef.current} a ${roomName}. Reiniciando...`);
+            setToken(null);
+            setConnecting(true);
+            setError(null);
+            setActiveTab('participants');
+            roomRef.current = roomName;
+        }
     }, [roomName]);
 
     useEffect(() => {
-        if (!isOpen && !token) return;
-        if (token) return;
+        if (token || (!isOpen && !token)) return;
 
         const fetchToken = async () => {
             try {
+                // Obtenemos sesión solo para tener el ID de usuario, pero no enviamos Authorization
+                // ya que el endpoint /api/ no lo valida actualmente y podría causar 403 en algunos proxies.
                 const { data: { session } } = await supabase.auth.getSession();
-                if (!session) throw new Error("Debes iniciar sesión");
+                const userId = session?.user?.id || 'anon-' + Math.random().toString(36).substring(7);
+                const participantName = session?.user?.user_metadata?.username || 'Explorador';
 
                 console.log(`[VoiceRoomUI] Fetching token for ${roomName}...`);
                 const response = await fetch(`/api/livekit-token?t=${Date.now()}`, {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${session.access_token}`
-                    },
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         roomName,
-                        userId: session.user.id,
-                        participantName: session.user.user_metadata?.username || 'Explorador',
+                        userId,
+                        participantName,
                         userAvatar,
                         nicknameStyle,
                         frameId
                     })
                 });
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`Error API (${response.status}): ${errorText.substring(0, 100)}`);
+                }
 
                 const data = await response.json();
                 if (data.error) throw new Error(data.error);
@@ -106,7 +116,6 @@ export default function VoiceRoomUI({ roomName, onLeave, onConnected, userAvatar
             token={token}
             serverUrl={LIVEKIT_URL}
             onConnected={() => { if (onConnected) onConnected(); }}
-            onDisconnected={onLeave}
             className="voice-room-container"
         >
             <RoomAudioRenderer />
