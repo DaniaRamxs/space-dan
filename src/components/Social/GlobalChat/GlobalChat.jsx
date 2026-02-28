@@ -1,5 +1,6 @@
 
 import { useState, useEffect, useRef } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useAuthContext } from '../../../contexts/AuthContext';
 import { useEconomy } from '../../../contexts/EconomyContext';
 import { chatService } from '../../../services/chatService';
