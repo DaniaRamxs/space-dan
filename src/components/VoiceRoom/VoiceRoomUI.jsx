@@ -29,7 +29,7 @@ export default function VoiceRoomUI({ roomName, onLeave, onConnected }) {
                 const { data: { session } } = await supabase.auth.getSession();
                 if (!session) throw new Error("Debes iniciar sesión");
 
-                const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/livekit-token`, {
+                const response = await fetch('/api/livekit-token', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',

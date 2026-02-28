@@ -1,4 +1,5 @@
 
+// v2.6 - LiveKit Project Z Integration
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuthContext } from '../../../contexts/AuthContext';
@@ -212,8 +213,8 @@ export default function GlobalChat() {
             <AnimatePresence>
                 {showVoiceRoom && (
                     <motion.div
-                        initial={{ opacity: 0, y: 50 }}
-                        animate={{ opacity: 1, y: 0 }}
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, scale: 1 }}
                         exit={{ opacity: 0, scale: 0.95 }}
                         className="fixed inset-0 z-[1000] flex items-center justify-center p-4 bg-[#050510]/95 backdrop-blur-md"
                         onClick={() => setShowVoiceRoom(false)}
@@ -225,7 +226,7 @@ export default function GlobalChat() {
                                     setShowVoiceRoom(false);
                                     setInVoiceRoom(false);
                                 }}
-                                onConnected={() => setInVoiceRoom(true)} // Añadir esta prop al componente original
+                                onConnected={() => setInVoiceRoom(true)}
                             />
 
                             <button

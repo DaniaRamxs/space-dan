@@ -1,4 +1,4 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
+
 import { AccessToken } from "https://esm.sh/livekit-server-sdk@1.2.7"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
 
@@ -8,12 +8,13 @@ const LIVEKIT_API_SECRET = Deno.env.get("LIVEKIT_API_SECRET")
 const corsHeaders = {
     "Access-Control-Allow-Origin": "*",
     "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
 }
 
-serve(async (req) => {
+Deno.serve(async (req) => {
     // Manejar Pre-flight (CORS)
     if (req.method === "OPTIONS") {
-        return new Response("ok", { headers: corsHeaders })
+        return new Response("ok", { status: 200, headers: corsHeaders })
     }
 
     try {
@@ -36,7 +37,7 @@ serve(async (req) => {
 
         // 3. Crear Access Token de LiveKit
         const at = new AccessToken(LIVEKIT_API_KEY, LIVEKIT_API_SECRET, {
-            identity: user.id, // Usamos el ID real de Supabase
+            identity: user.id,
             name: participantName,
         })
 
@@ -47,7 +48,7 @@ serve(async (req) => {
             canPublish: true,
             canSubscribe: true,
             canPublishData: true,
-            videoJoin: false, // Bloqueado por seguridad MVP
+            videoJoin: false,
         })
 
         return new Response(JSON.stringify({ token: at.toJwt() }), {
