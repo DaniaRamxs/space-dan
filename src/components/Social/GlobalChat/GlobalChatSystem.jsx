@@ -42,6 +42,8 @@ export default function GlobalChat() {
     const [isVipMode, setIsVipMode] = useState(false);
     const [showVoiceRoom, setShowVoiceRoom] = useState(false);
     const [inVoiceRoom, setInVoiceRoom] = useState(false);
+    const [hasJoinedVoice, setHasJoinedVoice] = useState(false);
+    const [voiceRoomName, setVoiceRoomName] = useState('Sala Galáctica');
     const [selectedProfile, setSelectedProfile] = useState(null);
     const [replyingTo, setReplyingTo] = useState(null);
     const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -200,6 +202,18 @@ export default function GlobalChat() {
         let response = '';
 
         switch (cmd) {
+            case '/voice':
+                const room = args.join(' ');
+                if (!room) {
+                    response = '🔊 Uso: `/voice <nombre_de_sala>`.';
+                } else {
+                    setVoiceRoomName(room);
+                    setHasJoinedVoice(true);
+                    setShowVoiceRoom(true);
+                    response = `📡 **Sintonizando canal temporal:** \`${room}\`. ¡Todos invitados!`;
+                }
+                break;
+
             case '/help':
                 if (args[0] === 'economy') {
                     response = '💰 **Gestión Financiera Galáctica:**\n\n' +
@@ -228,6 +242,7 @@ export default function GlobalChat() {
                     response = '🤖 **Protocolos HyperBot:**\n\n' +
                         '💰 `/help economy`: Dinero y Juegos.\n' +
                         '🎭 `/help social`: Perfil y Amigos.\n' +
+                        '🔊 `/voice <sala>`: Crear sala de voz.\n' +
                         '⚔️ `/duel @user`: Combate 21.\n' +
                         '✨ `/joke`, `/quote`, `/pick`, `/roll`.';
                 }
@@ -700,7 +715,7 @@ export default function GlobalChat() {
                     {/* Voice Bar - Highly Visible */}
                     <VoicePartyBar
                         activeParticipants={Object.values(onlineUsers).filter(u => u.inVoice)}
-                        onJoin={() => setShowVoiceRoom(true)}
+                        onJoin={() => { setHasJoinedVoice(true); setShowVoiceRoom(true); }}
                         isActive={inVoiceRoom}
                     />
 
@@ -758,12 +773,16 @@ export default function GlobalChat() {
 
             <AnimatePresence>
                 {selectedProfile && <HoloCard profile={selectedProfile} onClose={() => setSelectedProfile(null)} />}
-                {showVoiceRoom && (
+                {hasJoinedVoice && (
                     <VoiceRoomUI
-                        roomName="Sala Galáctica"
-                        onLeave={() => setShowVoiceRoom(false)}
+                        roomName={voiceRoomName}
+                        isOpen={showVoiceRoom}
+                        onMinimize={() => setShowVoiceRoom(false)}
+                        onLeave={() => { setHasJoinedVoice(false); setShowVoiceRoom(false); setInVoiceRoom(false); setVoiceRoomName('Sala Galáctica'); }}
                         onConnected={() => setInVoiceRoom(true)}
                         userAvatar={userProfile?.avatar_url}
+                        nicknameStyle={userProfile?.equipped_nickname_style}
+                        frameId={userProfile?.frame_item_id}
                     />
                 )}
             </AnimatePresence>

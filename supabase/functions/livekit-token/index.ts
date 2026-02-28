@@ -32,13 +32,18 @@ Deno.serve(async (req) => {
         if (authError || !user) throw new Error("Usuario no autorizado")
 
         // 2. Extraer parámetros
-        const { roomName, participantName } = await req.json()
+        const { roomName, participantName, userAvatar, nicknameStyle, frameId } = await req.json()
         if (!roomName || !participantName) throw new Error("Faltan parámetros de sala")
 
         // 3. Crear Access Token de LiveKit
         const at = new AccessToken(LIVEKIT_API_KEY, LIVEKIT_API_SECRET, {
             identity: user.id,
             name: participantName,
+            metadata: JSON.stringify({
+                avatar: userAvatar,
+                nicknameStyle,
+                frameId
+            })
         })
 
         // Permisos específicos MVP (Solo audio)

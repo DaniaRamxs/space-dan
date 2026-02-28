@@ -30,7 +30,7 @@ export default defineConfig(({ mode }) => {
             req.on('data', chunk => { body += chunk; });
             req.on('end', async () => {
               try {
-                const { roomName, participantName, userAvatar } = JSON.parse(body);
+                const { roomName, participantName, userAvatar, nicknameStyle, frameId } = JSON.parse(body);
 
                 const at = new AccessToken(
                   env.LIVEKIT_API_KEY || 'APIjSWriRpvkSbS',
@@ -38,7 +38,11 @@ export default defineConfig(({ mode }) => {
                   {
                     identity: 'dev-' + Math.random().toString(36).substring(7),
                     name: participantName,
-                    metadata: JSON.stringify({ avatar: userAvatar })
+                    metadata: JSON.stringify({
+                      avatar: userAvatar,
+                      nicknameStyle,
+                      frameId
+                    })
                   }
                 );
 
