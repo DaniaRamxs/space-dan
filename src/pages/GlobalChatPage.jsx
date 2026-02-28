@@ -1,6 +1,6 @@
 
 import { motion } from 'framer-motion';
-import GlobalChat from '../components/Social/GlobalChat/GlobalChat';
+import GlobalChat from '../components/Social/GlobalChat/GlobalChatSystem';
 import { Link } from 'react-router-dom';
 
 export default function GlobalChatPage() {

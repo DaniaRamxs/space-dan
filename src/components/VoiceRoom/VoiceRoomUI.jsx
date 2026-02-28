@@ -29,7 +29,8 @@ export default function VoiceRoomUI({ roomName, onLeave, onConnected, userAvatar
                 const { data: { session } } = await supabase.auth.getSession();
                 if (!session) throw new Error("Debes iniciar sesión");
 
-                const response = await fetch('/api/livekit-token', {
+                console.log(`[VoiceRoomUI] Fetching token from: /api/livekit-token?t=${Date.now()}`);
+                const response = await fetch(`/api/livekit-token?t=${Date.now()}`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -37,6 +38,7 @@ export default function VoiceRoomUI({ roomName, onLeave, onConnected, userAvatar
                     },
                     body: JSON.stringify({
                         roomName,
+                        userId: session.user.id,
                         participantName: session.user.user_metadata?.username || 'Explorador',
                         userAvatar
                     })
