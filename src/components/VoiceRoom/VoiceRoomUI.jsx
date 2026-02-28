@@ -17,7 +17,7 @@ import { supabase } from '../../supabaseClient';
 
 const LIVEKIT_URL = "wss://danspace-76f5bceh.livekit.cloud";
 
-export default function VoiceRoomUI({ roomName, onLeave, onConnected }) {
+export default function VoiceRoomUI({ roomName, onLeave, onConnected, userAvatar }) {
     const [token, setToken] = useState(null);
     const [connecting, setConnecting] = useState(true);
     const [error, setError] = useState(null);
@@ -37,7 +37,8 @@ export default function VoiceRoomUI({ roomName, onLeave, onConnected }) {
                     },
                     body: JSON.stringify({
                         roomName,
-                        participantName: session.user.user_metadata?.username || 'Explorador'
+                        participantName: session.user.user_metadata?.username || 'Explorador',
+                        userAvatar
                     })
                 });
 
@@ -135,7 +136,18 @@ function ParticipantsList() {
                     <div className="flex items-center gap-3">
                         <div className="relative">
                             <div className="w-8 h-8 rounded-full overflow-hidden border border-white/10">
-                                <img src="/default_user_blank.png" alt="Avatar" className="w-full h-full object-cover" />
+                                {(() => {
+                                    try {
+                                        const meta = p.metadata ? JSON.parse(p.metadata) : {};
+                                        return <img
+                                            src={meta.avatar || "/default-avatar.png"}
+                                            alt="Avatar"
+                                            className="w-full h-full object-cover"
+                                        />;
+                                    } catch (e) {
+                                        return <img src="/default-avatar.png" alt="Avatar" className="w-full h-full object-cover" />;
+                                    }
+                                })()}
                             </div>
                             {p.isSpeaking && (
                                 <div className="absolute -inset-1 rounded-full border border-cyan-400 animate-ping opacity-50" />

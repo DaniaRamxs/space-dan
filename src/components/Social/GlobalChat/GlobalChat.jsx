@@ -222,6 +222,7 @@ export default function GlobalChat() {
                         <div className="w-full max-w-md" onClick={e => e.stopPropagation()}>
                             <VoiceRoomUI
                                 roomName="Chat Global - Voz"
+                                userAvatar={user?.user_metadata?.avatar_url}
                                 onLeave={() => {
                                     setShowVoiceRoom(false);
                                     setInVoiceRoom(false);

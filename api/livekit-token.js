@@ -31,13 +31,14 @@ export default async function handler(req, res) {
         if (authError || !user) throw new Error('Usuario no autorizado');
 
         // 3. Extraer parámetros
-        const { roomName, participantName } = req.body;
+        const { roomName, participantName, userAvatar } = req.body;
         if (!roomName || !participantName) throw new Error('Faltan parámetros de sala');
 
         // 4. Crear Access Token de LiveKit
         const at = new AccessToken(LIVEKIT_API_KEY, LIVEKIT_API_SECRET, {
             identity: user.id,
             name: participantName,
+            metadata: JSON.stringify({ avatar: userAvatar })
         });
 
         at.addGrant({
