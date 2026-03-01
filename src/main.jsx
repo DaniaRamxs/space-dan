@@ -19,44 +19,46 @@ async function initMobileAuth() {
     const { Browser } = await import('@capacitor/browser');
     let isExchanging = false;
 
-    CapacitorApp.addListener('appUrlOpen', async ({ url }) => {
-      console.log('[MobileAuth] Deep link detectado:', url);
+    const handleDeepLink = async (url) => {
+      console.log('[MobileAuth] Procesando URL:', url);
+      if (!url || !url.includes('code=') || isExchanging) return;
 
-      if (url.includes('code=') && !isExchanging) {
-        isExchanging = true;
-        console.log('[MobileAuth] Intercambiando código por sesión...');
-        try {
-          const parsedUrl = new URL(url);
-          const code = parsedUrl.searchParams.get('code');
-          if (code) {
-            const { error } = await supabase.auth.exchangeCodeForSession(code);
-            if (error) {
-              console.error('[MobileAuth] Error exchangeCodeForSession:', error);
-              alert(`Error de sesión: ${error.message}`);
-            } else {
-              console.log('[MobileAuth] Sesión establecida correctamente');
-            }
+      isExchanging = true;
+      console.log('[MobileAuth] Intercambiando código por sesión...');
+
+      try {
+        // Extraer código de forma segura (funciona incluso si no es un objeto URL válido)
+        const codeMatch = url.match(/[?&]code=([^&#]+)/);
+        const code = codeMatch ? codeMatch[1] : null;
+
+        if (code) {
+          const { error } = await supabase.auth.exchangeCodeForSession(code);
+          if (error) {
+            console.error('[MobileAuth] Error exchangeCodeForSession:', error);
+          } else {
+            console.log('[MobileAuth] Sesión establecida correctamente');
           }
-        } catch (err) {
-          console.error('[MobileAuth] Error procesando el deep link:', err);
-          alert(`Error en deep link: ${err.message}`);
-        } finally {
-          setTimeout(async () => {
-            await Browser.close();
-            isExchanging = false;
-          }, 500);
         }
+      } catch (err) {
+        console.error('[MobileAuth] Error procesando el deep link:', err);
+      } finally {
+        setTimeout(async () => {
+          await Browser.close();
+          isExchanging = false;
+        }, 800);
       }
+    };
+
+    // Escuchar links mientras la app está abierta
+    CapacitorApp.addListener('appUrlOpen', ({ url }) => {
+      handleDeepLink(url);
     });
 
-    // También manejar el caso donde la app se abre desde un link estando cerrada
-    CapacitorApp.getLaunchUrl().then((ret) => {
-      if (ret?.url) {
-        console.log('[MobileAuth] Launch URL detectada:', ret.url);
-        // El listener appUrlOpen debería disparar esto también en la mayoría de los casos,
-        // pero lo registramos por si acaso.
-      }
-    });
+    // Manejar caso donde la app se abre desde un link estando cerrada
+    const ret = await CapacitorApp.getLaunchUrl();
+    if (ret?.url) {
+      handleDeepLink(ret.url);
+    }
 
   } catch (err) {
     console.warn('No se pudo inicializar la autenticación móvil:', err);

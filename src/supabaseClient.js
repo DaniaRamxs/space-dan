@@ -30,11 +30,12 @@ if (!supabaseUrl || !supabaseAnonKey) {
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
-    // Usamos capacitorStorage solo si estamos en plataforma nativa
     storage: Capacitor.isNativePlatform() ? capacitorStorage : localStorage,
     autoRefreshToken: true,
     persistSession: true,
-    detectSessionInUrl: true,
+    // On native we exchange the code manually via appUrlOpen, don't scan the WebView URL
+    detectSessionInUrl: !Capacitor.isNativePlatform(),
+    flowType: 'pkce',
   },
 });
 
