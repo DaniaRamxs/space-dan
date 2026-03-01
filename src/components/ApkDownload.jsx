@@ -20,7 +20,7 @@ export default function ApkDownload() {
                     </div>
                 </div>
                 <a
-                    href="https://github.com/DaniaRamxs/space-dan/releases/download/v1.3/spacedan.v1.3.apk"
+                    href="https://github.com/DaniaRamxs/space-dan/releases/download/v1.3.1/space.dan.v1.3.1.apk"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="apkDownloadBtn"
