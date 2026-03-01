@@ -61,6 +61,15 @@ ALTER TABLE profile_themes ENABLE ROW LEVEL SECURITY;
 ALTER TABLE profile_blocks ENABLE ROW LEVEL SECURITY;
 ALTER TABLE spotify_connections ENABLE ROW LEVEL SECURITY;
 
+-- Limpiar políticas existentes para evitar errores al re-ejecutar
+DROP POLICY IF EXISTS "Public blog posts are viewable by everyone" ON blog_posts;
+DROP POLICY IF EXISTS "Users can manage their own blog posts" ON blog_posts;
+DROP POLICY IF EXISTS "Profile themes are viewable by everyone" ON profile_themes;
+DROP POLICY IF EXISTS "Users can manage their own profile theme" ON profile_themes;
+DROP POLICY IF EXISTS "Profile blocks are viewable by everyone" ON profile_blocks;
+DROP POLICY IF EXISTS "Users can manage their own profile blocks" ON profile_blocks;
+DROP POLICY IF EXISTS "Users can manage their own spotify connection" ON spotify_connections;
+
 -- Políticas para blog_posts
 CREATE POLICY "Public blog posts are viewable by everyone" ON blog_posts
   FOR SELECT USING (is_published = true);
@@ -91,7 +100,7 @@ CREATE INDEX IF NOT EXISTS idx_blog_posts_user_id ON blog_posts(user_id);
 CREATE INDEX IF NOT EXISTS idx_blog_posts_is_pinned ON blog_posts(is_pinned) WHERE is_pinned = true;
 CREATE INDEX IF NOT EXISTS idx_profile_blocks_user_id_order ON profile_blocks(user_id, order_index);
 
--- 7. TRIGGERS para updated_at (Opcional si se gestiona en backend)
+-- 7. TRIGGERS para updated_at
 CREATE OR REPLACE FUNCTION update_timestamp()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -100,6 +109,11 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+DROP TRIGGER IF EXISTS tr_blog_posts_updated_at ON blog_posts;
 CREATE TRIGGER tr_blog_posts_updated_at BEFORE UPDATE ON blog_posts FOR EACH ROW EXECUTE FUNCTION update_timestamp();
+
+DROP TRIGGER IF EXISTS tr_profile_themes_updated_at ON profile_themes;
 CREATE TRIGGER tr_profile_themes_updated_at BEFORE UPDATE ON profile_themes FOR EACH ROW EXECUTE FUNCTION update_timestamp();
+
+DROP TRIGGER IF EXISTS tr_spotify_connections_updated_at ON spotify_connections;
 CREATE TRIGGER tr_spotify_connections_updated_at BEFORE UPDATE ON spotify_connections FOR EACH ROW EXECUTE FUNCTION update_timestamp();

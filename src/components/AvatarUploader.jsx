@@ -3,9 +3,9 @@ import { supabase } from '../supabaseClient';
 import { useAuthContext } from '../contexts/AuthContext';
 import { getFrameStyle } from '../utils/styles';
 
-const MAX_SIZE_MB = 2;
+const MAX_SIZE_MB = 10; // Aumentado para soportar GIFs de alta calidad
 const MAX_SIZE_BYTES = MAX_SIZE_MB * 1024 * 1024;
-const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
 
 export default function AvatarUploader({ currentAvatar, frameStyle, onUploadSuccess, isLv5 = false }) {
     const { user } = useAuthContext();
@@ -24,7 +24,7 @@ export default function AvatarUploader({ currentAvatar, frameStyle, onUploadSucc
 
         // Validación lado cliente
         if (!ALLOWED_TYPES.includes(file.type)) {
-            setErrorMsg('Formato inválido. Solo JPG, PNG o WEBP.');
+            setErrorMsg('Formato inválido. Solo JPG, PNG, WEBP o GIF.');
             return;
         }
         if (file.size > MAX_SIZE_BYTES) {

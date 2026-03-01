@@ -8069,6 +8069,13 @@ textarea,
   overflow: hidden;
 }
 
+@media (min-width: 821px) {
+  .gardenPage--fixed .gardenMain--fixed {
+    height: auto !important;
+    min-height: 0 !important;
+  }
+}
+
 @media (max-width: 820px) {
   .gardenPage--fixed .gardenMobileNav {
     display: none !important;

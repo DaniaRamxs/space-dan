@@ -9,6 +9,7 @@ import { ProfileLayout } from '../../components/ProfileRedesign/ProfileLayout';
 import { ProfileHeader } from '../../components/ProfileRedesign/ProfileHeader';
 import { BlogSection } from '../../components/ProfileRedesign/BlogSection';
 import { BlocksRenderer } from '../../components/ProfileRedesign/BlocksRenderer';
+import { ThemeConfigModal } from '../../components/ProfileRedesign/ThemeConfigModal';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export default function ProfileRedesignPage() {
@@ -24,6 +25,7 @@ export default function ProfileRedesignPage() {
     const [posts, setPosts] = useState([]);
     const [isFollowing, setIsFollowing] = useState(false);
     const [activeTab, setActiveTab] = useState('identity'); // 'identity' | 'blog' | 'guestbook'
+    const [showConfig, setShowConfig] = useState(false);
 
     useEffect(() => {
         load();
@@ -48,19 +50,32 @@ export default function ProfileRedesignPage() {
             }
             setProfile(prof);
 
-            const [themeData, blocksData, postsData] = await Promise.all([
-                newProfileService.getProfileTheme(prof.id),
-                newProfileService.getProfileBlocks(prof.id),
-                newProfileService.getBlogPosts(prof.id)
-            ]);
+            // Carga resiliente de datos adicionales
+            // Si fallan (ej. SQL no ejecutado), usamos valores por defecto
+            try {
+                const themeData = await newProfileService.getProfileTheme(prof.id).catch(() => newProfileService.getDefaultTheme(prof.id));
+                setTheme(themeData);
+            } catch (e) { setTheme(newProfileService.getDefaultTheme(prof.id)); }
 
-            setTheme(themeData);
-            setBlocks(blocksData);
-            setPosts(postsData);
+            try {
+                const blocksData = await newProfileService.getProfileBlocks(prof.id).catch(() => [
+                    { block_type: 'stats', order_index: 0, is_active: true },
+                    { block_type: 'thought', order_index: 1, is_active: true },
+                    { block_type: 'spotify', order_index: 2, is_active: true }
+                ]);
+                setBlocks(blocksData);
+            } catch (e) { setBlocks([]); }
+
+            try {
+                const postsData = await newProfileService.getBlogPosts(prof.id).catch(() => []);
+                setPosts(postsData);
+            } catch (e) { setPosts([]); }
 
             if (user && user.id !== prof.id) {
-                const following = await profileSocialService.isFollowing(prof.id);
-                setIsFollowing(following);
+                try {
+                    const following = await profileSocialService.isFollowing(prof.id);
+                    setIsFollowing(following);
+                } catch (e) { setIsFollowing(false); }
             }
 
         } catch (e) {
@@ -107,7 +122,17 @@ export default function ProfileRedesignPage() {
                     const { following } = await profileSocialService.toggleFollow(profile.id);
                     setIsFollowing(following);
                 }}
-                onEdit={() => {/* Logic to open theme/block config modal */ }}
+                onEdit={() => setShowConfig(true)}
+            />
+
+            <ThemeConfigModal
+                isOpen={showConfig}
+                onClose={() => setShowConfig(false)}
+                userId={profile.id}
+                currentTheme={theme}
+                currentBlocks={blocks}
+                currentProfile={profile}
+                onSave={load}
             />
 
             <div className="max-w-5xl mx-auto px-6 py-20 space-y-24">

@@ -98,7 +98,8 @@ export const newProfileService = {
         if (!data || data.length === 0) {
             return [
                 { block_type: 'stats', order_index: 0, is_active: true },
-                { block_type: 'thought', order_index: 1, is_active: true }
+                { block_type: 'thought', order_index: 1, is_active: true },
+                { block_type: 'spotify', order_index: 2, is_active: true }
             ];
         }
         return data;

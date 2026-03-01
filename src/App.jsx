@@ -219,7 +219,7 @@ function AnimatedRoutes() {
         />
         <Route path="/dan" element={<Layout><DanProfilePage /></Layout>} />
         <Route path="/profile" element={
-          loading ? <FallbackLoader /> : (user ? <Layout><ProfileOwn /></Layout> : <Layout><LoginGate message="Necesitas iniciar sesión para ver tu perfil estelar." /></Layout>)
+          loading ? <FallbackLoader /> : (user && profile ? <Navigate to={`/@${profile.username}`} replace /> : <Layout><LoginGate message="Necesitas iniciar sesión para ver tu perfil estelar." /></Layout>)
         } />
         <Route path="/bulletin" element={<Layout><BulletinPage /></Layout>} />
         <Route path="/posts" element={

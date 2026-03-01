@@ -164,7 +164,9 @@ export default function GlobalChat() {
         const isAtBottom = scrollHeight - scrollTop - clientHeight < 200;
         if (force || isAtBottom) {
             setTimeout(() => {
-                messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+                if (scrollRef.current) {
+                    scrollRef.current.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
+                }
             }, 100);
         }
     };
