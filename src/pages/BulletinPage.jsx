@@ -90,6 +90,8 @@ const bulletinPosts = [
   { id: 91, date: "2026-03-01", title: "Fixes de APK varios", text: "Tres correcciones en la app nativa: el teclado ya no tapa los inputs de /cartas, el botón físico de volver cierra la conversación activa en lugar de salir de la página, y se eliminó el autoFocus que abría el teclado solo al entrar.", tags: ["fix", "mobile"] },
   { id: 92, date: "2026-03-01", title: "Fix: @menciones sin notificación", text: "Las menciones en el chat global no generaban notificación por un doble bug: el tipo 'mention' no estaba en la restricción de la base de datos, y la política RLS bloqueaba inserciones cruzadas entre usuarios. Resuelto con una función SECURITY DEFINER y el constraint ampliado.", tags: ["fix", "comunidad"] },
   { id: 93, date: "2026-03-01", title: "Radio en segundo plano (APK)", text: "La radio ahora corre como servicio foreground de tipo mediaPlayback en Android. Al minimizar la app el streaming continúa sin interrupciones, con un WifiLock para mantener la conexión activa y una notificación que muestra la estación y el género en reproducción.", tags: ["update", "mobile", "música"] },
+  { id: 94, date: "2026-03-01", title: "Fix: Relaciones de Bitácora", text: "Corregido error 400 (Bad Request) al intentar cargar artículos de bitácora desde perfiles externos. Se optimizó el motor de consulta para ser resiliente a la falta de claves foráneas explícitas.", tags: ["fix", "blog"] },
+  { id: 95, date: "2026-03-01", title: "Sincronización de Identidad", text: "Establecidas nuevas restricciones de integridad en Supabase para asegurar que temas y bloques de perfil se mantengan sincronizados con la identidad del piloto.", tags: ["update", "identidad"] },
 ];
 
 const PAGE_SIZE = 10;

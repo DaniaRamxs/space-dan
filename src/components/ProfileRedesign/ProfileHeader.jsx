@@ -31,7 +31,17 @@ export const ProfileHeader = ({ profile, theme, isOwn, isFollowing, onFollow, on
                         className="absolute top-8 right-6 md:top-12 md:right-12 z-20"
                     >
                         <div className="flex items-center gap-4 px-6 py-4 bg-black/40 backdrop-blur-2xl border border-white/10 rounded-3xl shadow-2xl">
-                            <span className="text-3xl animate-bounce duration-[4000ms]">{profile.mood_emoji || '🪐'}</span>
+                            <div className="w-10 h-10 flex items-center justify-center shrink-0">
+                                {profile.mood_emoji?.startsWith('http') ? (
+                                    <img
+                                        src={profile.mood_emoji}
+                                        className="w-full h-full object-contain rounded-lg drop-shadow-[0_0_10px_rgba(34,211,238,0.5)]"
+                                        alt="Mood GIF"
+                                    />
+                                ) : (
+                                    <span className="text-3xl animate-bounce duration-[4000ms]">{profile.mood_emoji || '🪐'}</span>
+                                )}
+                            </div>
                             <div className="flex flex-col">
                                 <span className="text-[7px] font-black uppercase tracking-[0.3em] text-cyan-400 italic">Mood Actual</span>
                                 <span className="text-xs font-black text-white italic tracking-tight">{profile.mood_text || 'En órbita'}</span>
@@ -53,11 +63,11 @@ export const ProfileHeader = ({ profile, theme, isOwn, isFollowing, onFollow, on
                         className="relative z-10"
                     >
                         {/* Glow behind avatar */}
-                        <div className={`absolute -inset-4 rounded-[3.5rem] blur-3xl opacity-30 transition-all ${isOnline ? 'bg-cyan-500 animate-pulse' : 'bg-white/10'}`} />
+                        <div className={`absolute -inset-4 rounded-3xl md:rounded-[3.5rem] blur-3xl opacity-30 transition-all ${isOnline ? 'bg-cyan-500 animate-pulse' : 'bg-white/10'}`} />
 
                         {/* Frame / Avatar Container */}
                         <div
-                            className={`w-44 h-44 md:w-56 md:h-56 relative flex items-center justify-center p-2.5 transition-transform hover:scale-105 duration-500 ${frame.className || ''}`}
+                            className={`w-36 h-36 md:w-56 md:h-56 relative flex items-center justify-center p-2 md:p-2.5 transition-transform hover:scale-105 duration-500 ${frame.className || ''}`}
                             style={{ ...frame, borderRadius: frame.borderRadius || '50%' }}
                         >
                             <div className="w-full h-full rounded-full overflow-hidden border-[6px] border-[#0a0a0f] bg-[#0a0a0f] shadow-inner relative">
@@ -71,7 +81,7 @@ export const ProfileHeader = ({ profile, theme, isOwn, isFollowing, onFollow, on
                         </div>
 
                         {/* Connection Ring */}
-                        <div className={`absolute bottom-4 right-4 w-8 h-8 rounded-full border-[6px] border-[#0a0a0f] shadow-2xl z-20 transition-all ${isOnline ? 'bg-green-500 shadow-green-500/50' : 'bg-zinc-800'}`} />
+                        <div className={`absolute bottom-2 right-2 md:bottom-4 md:right-4 w-6 h-6 md:w-8 md:h-8 rounded-full border-4 md:border-[6px] border-[#0a0a0f] shadow-2xl z-20 transition-all ${isOnline ? 'bg-green-500 shadow-green-500/50' : 'bg-zinc-800'}`} />
                     </motion.div>
 
                     {profile.is_voice_active && (

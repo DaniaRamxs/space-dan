@@ -1,8 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { createPortal } from 'react-dom';
 import { newProfileService } from '../../services/newProfileService';
 import { supabase } from '../../supabaseClient';
+import { GiphyFetch } from '@giphy/js-fetch-api';
+import { Grid } from '@giphy/react-components';
+
+const gf = new GiphyFetch('3k4Fdn6D040IQvIq1KquLZzJgutP3dGp');
 
 export const ThemeConfigModal = ({ isOpen, onClose, userId, currentTheme, currentBlocks, currentProfile, onSave }) => {
     const [theme, setTheme] = useState(currentTheme || {});
@@ -10,26 +14,37 @@ export const ThemeConfigModal = ({ isOpen, onClose, userId, currentTheme, curren
     const [moodEmoji, setMoodEmoji] = useState(currentProfile?.mood_emoji || '✨');
     const [moodText, setMoodText] = useState(currentProfile?.mood_text || '');
     const [saving, setSaving] = useState(false);
+    const [uploadingGallery, setUploadingGallery] = useState(false);
+
+    // Giphy State
+    const [showGiphy, setShowGiphy] = useState(false);
+    const [gifSearchTerm, setGifSearchTerm] = useState('');
+    const [activeGifField, setActiveGifField] = useState(null); // { id, type: 'text'|'likes'|'dislikes'|'emoji' }
+
+    const fileInputRef = useRef(null);
 
     if (!isOpen) return null;
 
     const handleSave = async () => {
         setSaving(true);
         try {
+            // Log to debug
+            console.log('[MoodUpdate] Saving:', { moodText, moodEmoji });
+
             await Promise.all([
                 newProfileService.updateProfileTheme(theme),
                 newProfileService.updateProfileBlocks(blocks),
                 supabase.rpc('set_user_mood', {
                     p_text: moodText,
                     p_emoji: moodEmoji,
-                    p_duration_hours: 24 // Default 24h
+                    p_duration_hours: null // Permanent for now to avoid confusion
                 })
             ]);
             onSave?.();
             onClose();
         } catch (e) {
             console.error(e);
-            alert('Error al guardar la configuración');
+            alert('Error al guardar la configuración: ' + (e.message || 'Error desconocido'));
         } finally {
             setSaving(false);
         }
@@ -40,8 +55,93 @@ export const ThemeConfigModal = ({ isOpen, onClose, userId, currentTheme, curren
         if (exists) {
             setBlocks(blocks.map(b => b.block_type === type ? { ...b, is_active: !b.is_active } : b));
         } else {
-            setBlocks([...blocks, { block_type: type, is_active: true, order_index: blocks.length }]);
+            let defaultConfig = {};
+            if (type === 'gallery') defaultConfig = { images: [] };
+            if (type === 'interests') defaultConfig = { likes: '', dislikes: '' };
+
+            setBlocks([...blocks, {
+                block_type: type,
+                is_active: true,
+                order_index: blocks.length,
+                config: defaultConfig
+            }]);
         }
+    };
+
+    const handleGalleryUpload = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        setUploadingGallery(true);
+        try {
+            const fileExt = file.name.split('.').pop();
+            const fileName = `${userId}-gallery-${Math.random().toString(36).substring(2)}.${fileExt}`;
+            const filePath = `gallery/${fileName}`;
+
+            const { data: uploadData, error: uploadError } = await supabase.storage
+                .from('avatars')
+                .upload(filePath, file, { cacheControl: '3600', upsert: true });
+
+            if (uploadError) throw uploadError;
+
+            const { data: publicData } = supabase.storage
+                .from('avatars')
+                .getPublicUrl(filePath);
+
+            const publicUrl = publicData.publicUrl;
+
+            setBlocks(blocks.map(b => {
+                if (b.block_type === 'gallery') {
+                    const currentImages = b.config?.images || [];
+                    return { ...b, config: { ...b.config, images: [...currentImages, { url: publicUrl }] } };
+                }
+                return b;
+            }));
+
+        } catch (err) {
+            console.error('[GalleryUpload] Error:', err);
+            alert('No se pudo subir la imagen.');
+        } finally {
+            setUploadingGallery(false);
+            if (fileInputRef.current) fileInputRef.current.value = '';
+        }
+    };
+
+    const removeGalleryImage = (index) => {
+        setBlocks(blocks.map(b => {
+            if (b.block_type === 'gallery') {
+                const currentImages = b.config?.images || [];
+                return { ...b, config: { ...b.config, images: currentImages.filter((_, i) => i !== index) } };
+            }
+            return b;
+        }));
+    };
+
+    const insertGif = (gifUrl) => {
+        if (!activeGifField) return;
+        const { id, type } = activeGifField;
+        const gifMd = `\n![GIF](${gifUrl})\n`;
+
+        if (id === 'mood') {
+            if (type === 'emoji') {
+                setMoodEmoji(gifUrl);
+            } else {
+                setMoodText(prev => prev + gifMd);
+            }
+        } else {
+            setBlocks(blocks.map(bl => {
+                if (bl.block_type === id) {
+                    const newConfig = { ...bl.config };
+                    if (type === 'text') newConfig.text = (newConfig.text || '') + gifMd;
+                    if (type === 'likes') newConfig.likes = (newConfig.likes || '') + gifMd;
+                    if (type === 'dislikes') newConfig.dislikes = (newConfig.dislikes || '') + gifMd;
+                    return { ...bl, config: newConfig };
+                }
+                return bl;
+            }));
+        }
+        setShowGiphy(false);
+        setActiveGifField(null);
     };
 
     const emojis = ['✨', '🌌', '🚀', '🔭', '🛸', '🌑', '🔋', '💤', '🔥', '🎮', '💻', '🧪', '🧠', '🎧', '⚡', '🪐', '👾', '📡'];
@@ -51,14 +151,59 @@ export const ThemeConfigModal = ({ isOpen, onClose, userId, currentTheme, curren
             <motion.div
                 initial={{ opacity: 0, scale: 0.9, y: 20 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
-                className="w-full max-w-2xl bg-[#0a0a0f] border border-white/10 rounded-[2rem] sm:rounded-[2.5rem] overflow-hidden shadow-2xl flex flex-col max-h-[90vh]"
+                className="w-full max-w-2xl bg-[#0a0a0f] border border-white/10 rounded-[2rem] sm:rounded-[2.5rem] shadow-2xl flex flex-col max-h-[90vh] relative"
                 onClick={e => e.stopPropagation()}
             >
+                {/* GIPHY OVERLAY */}
+                <AnimatePresence>
+                    {showGiphy && (
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.95 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.95 }}
+                            className="absolute inset-0 z-[100] bg-[#090912] rounded-[2rem] sm:rounded-[2.5rem] overflow-hidden flex flex-col border border-white/20"
+                        >
+                            <div className="p-6 flex items-center justify-between border-b border-white/10">
+                                <div>
+                                    <h3 className="text-xl font-black text-white italic uppercase tracking-tighter">Reactor GIPHY</h3>
+                                    <p className="text-[8px] text-cyan-400 uppercase tracking-widest">Inserta visuales a tu realidad</p>
+                                </div>
+                                <button onClick={() => setShowGiphy(false)} className="p-2 text-white/40 hover:text-white transition-colors">✕</button>
+                            </div>
+                            <div className="p-4 bg-white/5 border-b border-white/10">
+                                <input
+                                    type="text"
+                                    placeholder="Buscar transmisiones visuales..."
+                                    value={gifSearchTerm}
+                                    onChange={(e) => setGifSearchTerm(e.target.value)}
+                                    className="w-full bg-black/40 border border-white/10 rounded-2xl px-5 py-3 text-sm text-white outline-none focus:border-cyan-500/50 transition-all shadow-inner"
+                                />
+                            </div>
+                            <div className="flex-1 overflow-y-auto p-4 custom-scrollbar">
+                                <Grid
+                                    key={gifSearchTerm}
+                                    width={window.innerWidth > 600 ? 560 : (window.innerWidth - 80)}
+                                    columns={window.innerWidth > 600 ? 3 : 2}
+                                    gutter={10}
+                                    fetchGifs={(offset) => gifSearchTerm.trim()
+                                        ? gf.search(gifSearchTerm, { offset, limit: 12 })
+                                        : gf.trending({ offset, limit: 12 })
+                                    }
+                                    onGifClick={(gif, e) => {
+                                        e.preventDefault();
+                                        insertGif(gif.images.fixed_height.url);
+                                    }}
+                                />
+                            </div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+
                 {/* Header */}
                 <div className="p-6 sm:p-8 border-b border-white/5 flex justify-between items-center bg-[#0a0a0f]">
                     <div>
-                        <h2 className="text-xl sm:text-2xl font-black text-white italic uppercase tracking-tighter">Personalizar Espacio</h2>
-                        <p className="text-[8px] sm:text-micro text-white/20 uppercase tracking-widest">Configuración de Identidad Visual</p>
+                        <h2 className="text-xl sm:text-2xl font-black text-white italic uppercase tracking-tighter">Arquitectura de Identidad</h2>
+                        <p className="text-[8px] sm:text-micro text-white/20 uppercase tracking-widest">Mood & Módulos Modulares</p>
                     </div>
                     <button onClick={onClose} className="p-3 hover:bg-white/10 rounded-full transition-colors text-white/40 hover:text-white">✕</button>
                 </div>
@@ -68,30 +213,50 @@ export const ThemeConfigModal = ({ isOpen, onClose, userId, currentTheme, curren
 
                     {/* Mood Section */}
                     <section className="space-y-6">
-                        <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-cyan-400 italic flex items-center gap-2">
-                            <span className="w-1.5 h-1.5 rounded-full bg-cyan-500 shadow-[0_0_10px_rgba(6,182,212,1)]" />
-                            Estado del Orbitador (Mood)
-                        </h3>
-                        <div className="flex flex-col sm:flex-row gap-4">
-                            <div className="grid grid-cols-6 gap-2 p-3 bg-white/5 rounded-2xl border border-white/5">
-                                {emojis.map(e => (
-                                    <button
-                                        key={e}
-                                        onClick={() => setMoodEmoji(e)}
-                                        className={`text-xl hover:scale-125 transition-transform p-1 rounded-lg ${moodEmoji === e ? 'bg-white/10 ring-1 ring-white/20' : ''}`}
-                                    >
-                                        {e}
-                                    </button>
-                                ))}
+                        <div className="flex items-center justify-between">
+                            <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-cyan-400 italic flex items-center gap-2">
+                                <span className="w-1.5 h-1.5 rounded-full bg-cyan-500 shadow-[0_0_10px_rgba(6,182,212,1)]" />
+                                Estado del Orbitador (Mood)
+                            </h3>
+                            <div className="bg-white/5 px-3 py-1 rounded-full border border-white/10 flex items-center gap-2">
+                                <span className="text-[8px] font-black text-white/20 uppercase tracking-widest italic">Mood Preview:</span>
+                                {moodEmoji?.startsWith('http') ? (
+                                    <img src={moodEmoji} className="w-5 h-5 rounded-md object-cover" alt="GIF" />
+                                ) : (
+                                    <span className="text-sm">{moodEmoji}</span>
+                                )}
                             </div>
-                            <div className="flex-1 space-y-2">
-                                <label className="text-[9px] font-bold text-white/20 uppercase ml-1">Mensaje de Onda</label>
+                        </div>
+
+                        <div className="flex flex-col sm:flex-row gap-4">
+                            <div className="space-y-3 shrink-0">
+                                <div className="grid grid-cols-6 gap-2 p-3 bg-white/5 rounded-2xl border border-white/5">
+                                    {emojis.map(e => (
+                                        <button
+                                            key={e}
+                                            onClick={() => setMoodEmoji(e)}
+                                            className={`text-xl hover:scale-125 transition-transform p-1 rounded-lg ${moodEmoji === e ? 'bg-white/10 ring-1 ring-white/20' : ''}`}
+                                        >
+                                            {e}
+                                        </button>
+                                    ))}
+                                </div>
+                                <button
+                                    onClick={() => { setShowGiphy(true); setActiveGifField({ id: 'mood', type: 'emoji' }); }}
+                                    className="w-full py-2 bg-gradient-to-r from-cyan-500/20 to-violet-500/20 border border-white/5 rounded-xl text-[9px] font-black uppercase tracking-widest text-cyan-400 hover:from-cyan-500/30 hover:to-violet-500/30 transition-all"
+                                >
+                                    ✨ Usar GIF como Emote
+                                </button>
+                            </div>
+                            <div className="flex-1 space-y-2 relative">
+                                <label className="text-[9px] font-bold text-white/20 uppercase ml-1 block">
+                                    Mensaje de Onda (Mood)
+                                </label>
                                 <textarea
                                     value={moodText}
                                     onChange={e => setMoodText(e.target.value)}
                                     placeholder="¿Qué energía emites al vacío?..."
-                                    maxLength={60}
-                                    className="w-full h-full min-h-[80px] bg-white/5 border border-white/10 rounded-2xl p-4 text-xs text-white outline-none focus:border-cyan-500 transition-all resize-none"
+                                    className="w-full h-full min-h-[100px] bg-white/5 border border-white/10 rounded-2xl p-4 text-xs text-white outline-none focus:border-cyan-500 transition-all resize-none shadow-inner"
                                 />
                             </div>
                         </div>
@@ -101,7 +266,7 @@ export const ThemeConfigModal = ({ isOpen, onClose, userId, currentTheme, curren
                     <section className="space-y-6">
                         <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-violet-400 italic flex items-center gap-2">
                             <span className="w-1.5 h-1.5 rounded-full bg-violet-500 shadow-[0_0_10px_rgba(139,92,246,1)]" />
-                            Paleta de Energía (Temas)
+                            Radiación Temática
                         </h3>
                         <div className="grid grid-cols-2 gap-6">
                             <div className="space-y-2">
@@ -127,43 +292,133 @@ export const ThemeConfigModal = ({ isOpen, onClose, userId, currentTheme, curren
                             <span className="w-1.5 h-1.5 rounded-full bg-amber-500 shadow-[0_0_10px_rgba(245,158,11,1)]" />
                             Módulos de Realidad
                         </h3>
-                        <div className="grid grid-cols-1 gap-4">
+                        <div className="grid grid-cols-1 gap-6">
                             {[
-                                { id: 'stats', label: 'Métricas Estelares', desc: 'Muestra tu nivel, dancoins y racha.' },
-                                { id: 'thought', label: 'Pensamientos rápidos', desc: 'Edita tu frase inspiradora del día.' },
-                                { id: 'spotify', label: 'Sincronización Spotify', desc: 'Muestra tu música en tiempo real.' },
+                                { id: 'stats', label: 'Eficacia Estelar', desc: 'Métricas de nivel, dancoins y racha.' },
+                                { id: 'thought', label: 'Pensamientos rápidos', desc: 'Tu frase inspiradora del día.' },
+                                { id: 'about', label: 'Sobre Mí / Bio', desc: 'Tu historia galáctica personalizada.' },
+                                { id: 'interests', label: 'Lo que me gusta / No me gusta', desc: 'Tus frecuencias de atracción y repulsión.' },
+                                { id: 'favorites', label: 'Mis Favoritos', desc: 'Libros, series y objetos de poder.' },
+                                { id: 'gallery', label: 'Galería Estelar', desc: 'Exhibe tus capturas visuales.' },
+                                { id: 'spotify', label: 'Frecuencia Spotify', desc: 'Sincronización musical en tiempo real.' },
                             ].map(b => {
                                 const currentBlock = blocks.find(bl => bl.block_type === b.id);
                                 const active = currentBlock?.is_active;
                                 return (
-                                    <div key={b.id} className="space-y-3">
+                                    <div key={b.id} className="space-y-4 p-2 rounded-[2rem] bg-white/[0.01] border border-white/5 transition-all">
                                         <button
                                             onClick={() => toggleBlock(b.id)}
-                                            className={`w-full flex items-center justify-between p-4 rounded-2xl border transition-all ${active ? 'bg-white/5 border-cyan-500/30 ring-1 ring-cyan-500/20' : 'bg-black/20 border-white/5 opacity-50'}`}
+                                            className={`w-full flex items-center justify-between p-4 rounded-[1.5rem] border transition-all ${active ? 'bg-white/5 border-cyan-500/30' : 'bg-black/20 border-white/5 opacity-50'}`}
                                         >
                                             <div className="text-left">
                                                 <div className="text-xs font-black uppercase italic text-white leading-tight">{b.label}</div>
                                                 <div className="text-[9px] text-white/30 uppercase tracking-widest leading-none mt-1">{b.desc}</div>
                                             </div>
-                                            <div className={`w-5 h-5 rounded-full border-4 ${active ? 'bg-cyan-500 border-white/20 shadow-[0_0_15px_rgba(6,182,212,0.5)]' : 'border-white/10'}`} />
+                                            <div className={`w-5 h-5 rounded-full border-4 transition-all duration-500 ${active ? 'bg-cyan-500 border-white/20 shadow-[0_0_15px_rgba(6,182,212,0.5)] scale-110' : 'border-white/10'}`} />
                                         </button>
 
-                                        {/* Thought Config Field */}
-                                        {b.id === 'thought' && active && (
+                                        {active && (
                                             <motion.div
                                                 initial={{ opacity: 0, scaleY: 0.8 }}
                                                 animate={{ opacity: 1, scaleY: 1 }}
-                                                className="px-4 pb-2"
+                                                className="px-4 pb-2 space-y-4"
                                             >
-                                                <textarea
-                                                    value={currentBlock?.config?.text || ''}
-                                                    onChange={e => {
-                                                        const newText = e.target.value;
-                                                        setBlocks(blocks.map(bl => bl.block_type === 'thought' ? { ...bl, config: { ...bl.config, text: newText } } : bl));
-                                                    }}
-                                                    placeholder="Escribe tu pensamiento estelar aquí..."
-                                                    className="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-[11px] text-white outline-none focus:border-cyan-500 transition-all resize-none h-20"
-                                                />
+                                                {(b.id === 'thought' || b.id === 'about' || b.id === 'favorites') && (
+                                                    <div className="space-y-2">
+                                                        <div className="flex justify-between items-center mb-1">
+                                                            <span className="text-[9px] font-black text-white/20 uppercase ml-1">Contenido Transmitido (Markdown active)</span>
+                                                            <button
+                                                                onClick={() => { setShowGiphy(true); setActiveGifField({ id: b.id, type: 'text' }); }}
+                                                                className="bg-white/5 text-white/40 text-[8px] px-2 py-1 rounded-md hover:bg-white/10 hover:text-white transition-all"
+                                                            >
+                                                                + GIF
+                                                            </button>
+                                                        </div>
+                                                        <textarea
+                                                            value={currentBlock?.config?.text || ''}
+                                                            onChange={e => {
+                                                                const newText = e.target.value;
+                                                                setBlocks(blocks.map(bl => bl.block_type === b.id ? { ...bl, config: { ...bl.config, text: newText } } : bl));
+                                                            }}
+                                                            placeholder={`Escribe aquí el contenido de ${b.label}...`}
+                                                            className="w-full bg-black/40 border border-white/10 rounded-2xl p-4 text-[11px] text-white/80 outline-none focus:border-cyan-500 transition-all resize-none min-h-[120px] shadow-inner"
+                                                        />
+                                                    </div>
+                                                )}
+
+                                                {b.id === 'interests' && (
+                                                    <div className="grid grid-cols-2 gap-4">
+                                                        <div className="space-y-2">
+                                                            <div className="flex justify-between items-center">
+                                                                <span className="text-[9px] font-black text-white/20 uppercase ml-1">Lo que me gusta</span>
+                                                                <button onClick={() => { setShowGiphy(true); setActiveGifField({ id: b.id, type: 'likes' }); }} className="text-[8px] text-pink-400 opacity-40 hover:opacity-100">+ GIF</button>
+                                                            </div>
+                                                            <textarea
+                                                                value={currentBlock?.config?.likes || ''}
+                                                                onChange={e => {
+                                                                    const val = e.target.value;
+                                                                    setBlocks(blocks.map(bl => bl.block_type === 'interests' ? { ...bl, config: { ...bl.config, likes: val } } : bl));
+                                                                }}
+                                                                placeholder="Pizza, Videogames..."
+                                                                className="w-full bg-black/40 border border-white/10 rounded-2xl p-3 text-[10px] text-white/80 outline-none focus:border-pink-500 transition-all resize-none h-24"
+                                                            />
+                                                        </div>
+                                                        <div className="space-y-2">
+                                                            <div className="flex justify-between items-center">
+                                                                <span className="text-[9px] font-black text-white/20 uppercase ml-1">Lo que repelo</span>
+                                                                <button onClick={() => { setShowGiphy(true); setActiveGifField({ id: b.id, type: 'dislikes' }); }} className="text-[8px] text-orange-400 opacity-40 hover:opacity-100">+ GIF</button>
+                                                            </div>
+                                                            <textarea
+                                                                value={currentBlock?.config?.dislikes || ''}
+                                                                onChange={e => {
+                                                                    const val = e.target.value;
+                                                                    setBlocks(blocks.map(bl => bl.block_type === 'interests' ? { ...bl, config: { ...bl.config, dislikes: val } } : bl));
+                                                                }}
+                                                                placeholder="Mentiras, Bugs..."
+                                                                className="w-full bg-black/40 border border-white/10 rounded-2xl p-3 text-[10px] text-white/80 outline-none focus:border-orange-500 transition-all resize-none h-24"
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                )}
+
+                                                {b.id === 'gallery' && (
+                                                    <div className="space-y-4">
+                                                        <div className="flex flex-wrap gap-2">
+                                                            {(currentBlock.config?.images || []).map((img, idx) => (
+                                                                <div key={idx} className="relative w-16 h-16 rounded-xl overflow-hidden border border-white/10 group/thumb shadow-lg">
+                                                                    <img src={img.url} className="w-full h-full object-cover" alt="" />
+                                                                    <button
+                                                                        onClick={() => removeGalleryImage(idx)}
+                                                                        className="absolute inset-0 bg-red-500/80 text-white flex items-center justify-center opacity-0 group-hover/thumb:opacity-100 transition-opacity"
+                                                                    >
+                                                                        ✕
+                                                                    </button>
+                                                                </div>
+                                                            ))}
+                                                            <button
+                                                                onClick={() => fileInputRef.current?.click()}
+                                                                disabled={uploadingGallery}
+                                                                className="w-16 h-16 rounded-xl border-2 border-dashed border-white/10 flex flex-col items-center justify-center text-white/20 hover:text-white/60 hover:border-white/40 hover:bg-white/5 transition-all"
+                                                            >
+                                                                {uploadingGallery ? (
+                                                                    <span className="text-[8px] animate-pulse">...</span>
+                                                                ) : (
+                                                                    <>
+                                                                        <span className="text-lg font-black">+</span>
+                                                                        <span className="text-[7px] font-black uppercase">Subir</span>
+                                                                    </>
+                                                                )}
+                                                            </button>
+                                                        </div>
+                                                        <input
+                                                            ref={fileInputRef}
+                                                            type="file"
+                                                            accept="image/*"
+                                                            className="hidden"
+                                                            onChange={handleGalleryUpload}
+                                                        />
+                                                    </div>
+                                                )}
                                             </motion.div>
                                         )}
                                     </div>
@@ -179,9 +434,9 @@ export const ThemeConfigModal = ({ isOpen, onClose, userId, currentTheme, curren
                     <button
                         onClick={handleSave}
                         disabled={saving}
-                        className="flex-[2] py-4 bg-white text-black text-[10px] font-black uppercase tracking-widest rounded-2xl hover:bg-cyan-400 hover:scale-[1.02] active:scale-95 transition-all shadow-xl disabled:opacity-50"
+                        className="flex-[2] py-4 bg-white text-black text-[10px] font-black uppercase tracking-widest rounded-[1.5rem] hover:bg-cyan-400 hover:scale-[1.02] active:scale-95 transition-all shadow-xl disabled:opacity-50"
                     >
-                        {saving ? 'Sincronizando...' : 'Sincronizar Identidad'}
+                        {saving ? 'Sincronizando...' : 'Actualizar Perfil Estelar'}
                     </button>
                 </div>
             </motion.div>

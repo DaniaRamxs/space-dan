@@ -6,7 +6,7 @@ import rehypeSanitize from 'rehype-sanitize';
 import { newProfileService } from '../../services/newProfileService';
 import { ProfileLayout } from './ProfileLayout';
 
-export const BlogPostPage = () => {
+const BlogPostPage = () => {
     const { username, slug } = useParams();
     const [post, setPost] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -17,11 +17,13 @@ export const BlogPostPage = () => {
 
     async function load() {
         setLoading(true);
+        console.log('Cargando Post:', { username, slug });
         try {
             const data = await newProfileService.getBlogPostBySlug(username, slug);
+            console.log('Post Cargado:', data);
             setPost(data);
         } catch (e) {
-            console.error(e);
+            console.error('Error cargando post:', e);
         } finally {
             setLoading(false);
         }
@@ -98,3 +100,4 @@ export const BlogPostPage = () => {
         </ProfileLayout>
     );
 };
+export default BlogPostPage;

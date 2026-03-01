@@ -3,6 +3,7 @@ import { supabase } from '../supabaseClient';
 export const newProfileService = {
     // --- BLOG ---
     async getBlogPosts(userId, includeDrafts = false) {
+        console.log('Obteniendo blogs para:', userId);
         let query = supabase
             .from('blog_posts')
             .select('*')
@@ -20,16 +21,27 @@ export const newProfileService = {
     },
 
     async getBlogPostBySlug(username, slug) {
-        // We might need to join with profiles to verify username
+        // 1. Get the author first with all needed info
+        const { data: prof, error: profError } = await supabase
+            .from('profiles')
+            .select('id, username, avatar_url')
+            .ilike('username', username.replace('@', ''))
+            .maybeSingle();
+
+        if (profError || !prof) throw new Error('Author not found');
+
+        // 2. Get the post for this specific author (WITHOUT JOIN to avoid missing FK errors)
         const { data, error } = await supabase
             .from('blog_posts')
-            .select('*, author:profiles!inner(username, avatar_url)')
+            .select('*')
             .eq('slug', slug)
-            .eq('author.username', username)
+            .eq('user_id', prof.id)
             .single();
 
         if (error) throw error;
-        return data;
+
+        // 3. Manually attach the author data to match the expected structure
+        return { ...data, author: prof };
     },
 
     async createBlogPost(postData) {
@@ -108,9 +120,17 @@ export const newProfileService = {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) throw new Error('Not authenticated');
 
+        const cleanBlocks = blocks.map(b => ({
+            user_id: user.id,
+            block_type: b.block_type,
+            is_active: b.is_active,
+            config: b.config,
+            order_index: b.order_index
+        }));
+
         const { data, error } = await supabase
             .from('profile_blocks')
-            .upsert(blocks.map(b => ({ ...b, user_id: user.id })))
+            .upsert(cleanBlocks, { onConflict: 'user_id,block_type' })
             .select();
 
         if (error) throw error;

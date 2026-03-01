@@ -10,6 +10,9 @@ import { ProfileHeader } from '../../components/ProfileRedesign/ProfileHeader';
 import { BlogSection } from '../../components/ProfileRedesign/BlogSection';
 import { BlocksRenderer } from '../../components/ProfileRedesign/BlocksRenderer';
 import { ThemeConfigModal } from '../../components/ProfileRedesign/ThemeConfigModal';
+import BlogComposer from '../../components/ProfileRedesign/BlogComposer';
+import PostComposer from '../../components/Social/PostComposer';
+import ActivityFeed from '../../components/Social/ActivityFeed';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export default function ProfileRedesignPage() {
@@ -24,8 +27,9 @@ export default function ProfileRedesignPage() {
     const [blocks, setBlocks] = useState([]);
     const [posts, setPosts] = useState([]);
     const [isFollowing, setIsFollowing] = useState(false);
-    const [activeTab, setActiveTab] = useState('identity'); // 'identity' | 'blog' | 'guestbook'
+    const [activeTab, setActiveTab] = useState('identity'); // 'identity' | 'activity' | 'blog' | 'guestbook'
     const [showConfig, setShowConfig] = useState(false);
+    const [showComposer, setShowComposer] = useState(false);
 
     useEffect(() => {
         load();
@@ -50,8 +54,6 @@ export default function ProfileRedesignPage() {
             }
             setProfile(prof);
 
-            // Carga resiliente de datos adicionales
-            // Si fallan (ej. SQL no ejecutado), usamos valores por defecto
             try {
                 const themeData = await newProfileService.getProfileTheme(prof.id).catch(() => newProfileService.getDefaultTheme(prof.id));
                 setTheme(themeData);
@@ -110,6 +112,13 @@ export default function ProfileRedesignPage() {
 
     const isOwn = user?.id === profile.id;
 
+    const tabs = [
+        { id: 'identity', label: 'Identidad', icon: '👤' },
+        { id: 'activity', label: 'Actividad', icon: '📡' },
+        { id: 'blog', label: 'Bitácora', icon: '✍️' },
+        { id: 'guestbook', label: 'Muro', icon: '💬' },
+    ];
+
     return (
         <ProfileLayout theme={theme}>
             <ProfileHeader
@@ -137,31 +146,21 @@ export default function ProfileRedesignPage() {
 
             <div className="max-w-5xl mx-auto px-6 py-20 space-y-24">
                 {/* Navigation Tabs */}
-                <nav className="flex items-center justify-center md:justify-start gap-12 border-b border-white/5 pb-6">
-                    <button
-                        onClick={() => setActiveTab('identity')}
-                        className={`text-[12px] font-black uppercase tracking-[0.3em] transition-all relative ${activeTab === 'identity' ? 'text-cyan-400' : 'text-white/30 hover:text-white'
-                            }`}
-                    >
-                        Identidad
-                        {activeTab === 'identity' && <motion.div layoutId="tab" className="absolute -bottom-6 left-0 right-0 h-1 bg-cyan-400" />}
-                    </button>
-                    <button
-                        onClick={() => setActiveTab('blog')}
-                        className={`text-[12px] font-black uppercase tracking-[0.3em] transition-all relative ${activeTab === 'blog' ? 'text-cyan-400' : 'text-white/30 hover:text-white'
-                            }`}
-                    >
-                        Bitácora
-                        {activeTab === 'blog' && <motion.div layoutId="tab" className="absolute -bottom-6 left-0 right-0 h-1 bg-cyan-400" />}
-                    </button>
-                    <button
-                        onClick={() => setActiveTab('guestbook')}
-                        className={`text-[12px] font-black uppercase tracking-[0.3em] transition-all relative ${activeTab === 'guestbook' ? 'text-cyan-400' : 'text-white/30 hover:text-white'
-                            }`}
-                    >
-                        Muro
-                        {activeTab === 'guestbook' && <motion.div layoutId="tab" className="absolute -bottom-6 left-0 right-0 h-1 bg-cyan-400" />}
-                    </button>
+                <nav className="flex items-center justify-start md:justify-start gap-6 md:gap-12 border-b border-white/5 pb-6 overflow-x-auto no-scrollbar scroll-smooth px-4">
+                    {tabs.map((tab, idx) => (
+                        <button
+                            key={tab.id}
+                            onClick={() => setActiveTab(tab.id)}
+                            className={`text-[10px] md:text-[12px] font-black uppercase tracking-[0.15em] md:tracking-[0.3em] transition-all relative whitespace-nowrap flex items-center gap-2 py-2 ${idx === 0 ? 'ml-0' : ''} ${activeTab === tab.id ? 'text-cyan-400' : 'text-white/30 hover:text-white'
+                                }`}
+                        >
+                            <span className="hidden md:inline">{tab.icon}</span>
+                            {tab.label}
+                            {activeTab === tab.id && (
+                                <motion.div layoutId="tab" className="absolute -bottom-[25px] left-0 right-0 h-1 bg-cyan-400 shadow-[0_0_15px_rgba(34,211,238,0.5)] z-10" />
+                            )}
+                        </button>
+                    ))}
                 </nav>
 
                 {/* Dynamic Content */}
@@ -182,6 +181,7 @@ export default function ProfileRedesignPage() {
                                         userId={profile.id}
                                         isOwn={isOwn}
                                         onEdit={() => setShowConfig(true)}
+                                        profileData={profile}
                                     />
                                 </div>
                                 <aside className="lg:col-span-4 space-y-12">
@@ -206,17 +206,63 @@ export default function ProfileRedesignPage() {
                             </div>
                         )}
 
+                        {activeTab === 'activity' && (
+                            <div className="max-w-2xl mx-auto space-y-12">
+                                {isOwn && (
+                                    <div className="space-y-4">
+                                        <div className="flex justify-between items-center px-4">
+                                            <span className="text-[10px] font-black uppercase tracking-[0.3em] text-white/20">Nueva Transmisión</span>
+                                        </div>
+                                        <PostComposer onPostCreated={load} />
+                                    </div>
+                                )}
+                                <ActivityFeed userId={profile.id} />
+                            </div>
+                        )}
+
                         {activeTab === 'blog' && (
-                            <BlogSection
-                                title={`${profile.username}'s Knowledge Base`}
-                                posts={posts}
-                                isOwn={isOwn}
-                            />
+                            <div className="space-y-12 max-w-4xl mx-auto">
+                                {isOwn && !showComposer && (
+                                    <div className="flex justify-center">
+                                        <button
+                                            onClick={() => setShowComposer(true)}
+                                            className="px-12 py-4 rounded-[1.5rem] bg-white text-black text-[11px] font-black uppercase tracking-[0.2em] hover:bg-cyan-400 transition-all shadow-xl hover:scale-105 active:scale-95"
+                                        >
+                                            ✍️ Escribir Nueva Entrada de Bitácora
+                                        </button>
+                                    </div>
+                                )}
+
+                                {showComposer && isOwn && (
+                                    <motion.div
+                                        initial={{ opacity: 0, y: 20 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        className="space-y-8"
+                                    >
+                                        <div className="flex justify-between items-center px-6">
+                                            <h3 className="text-lg font-black text-white uppercase italic tracking-tighter">Editor de Bitácora</h3>
+                                            <button onClick={() => setShowComposer(false)} className="text-[10px] font-black text-white/20 hover:text-white uppercase tracking-widest">Cerrar Editor</button>
+                                        </div>
+                                        <BlogComposer
+                                            onPostCreated={() => { load(); setShowComposer(false); }}
+                                            onCancel={() => setShowComposer(false)}
+                                        />
+                                    </motion.div>
+                                )}
+
+                                <BlogSection
+                                    title={`${profile.username}'s Knowledge Base`}
+                                    posts={posts}
+                                    isOwn={isOwn}
+                                    username={profile.username}
+                                />
+                            </div>
                         )}
 
                         {activeTab === 'guestbook' && (
-                            <div className="py-20 text-center opacity-20 uppercase tracking-[0.5em] text-[10px] font-black">
-                                Sección en construcción estelar... 📡
+                            <div className="py-20 text-center opacity-20 uppercase tracking-[0.5em] text-[10px] font-black flex flex-col items-center gap-4">
+                                <span className="text-6xl">📡</span>
+                                Muro de Comunicaciones en construcción Estelar...
                             </div>
                         )}
                     </motion.div>
