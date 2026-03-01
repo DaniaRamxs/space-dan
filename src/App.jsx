@@ -43,6 +43,10 @@ const ArquitecturaPage = lazy(() => import("./pages/ArquitecturaPage"));
 const ProjectsPage = lazy(() => import("./pages/ProjectsPage"));
 const AchievementsPage = lazy(() => import("./pages/AchievementsPage"));
 const ShopPage = lazy(() => import("./pages/ShopPage"));
+const ProfileRedesign = lazy(() => import("./pages/Profile/ProfileRedesign"));
+const BlogPostPage = lazy(() => import("./components/ProfileRedesign/BlogPostPage"));
+const SpotifyCallback = lazy(() => import("./pages/SpotifyCallback"));
+
 const ProfileOwn = lazy(() => import("./pages/Profile/ProfileOwn"));
 const ProfilePublic = lazy(() => import("./pages/Profile/ProfilePublic"));
 const SpaceCabinPage = lazy(() => import("./pages/SpaceCabinPage"));
@@ -54,11 +58,9 @@ const VinculosPage = lazy(() => import("./pages/VinculosPage"));
 const PostDetailPage = lazy(() => import("./pages/PostDetailPage"));
 const GlobalChatPage = lazy(() => import("./pages/GlobalChatPage"));
 
-
-
 const ALL_PAGES = ['/dan', '/bulletin', '/posts', '/music', '/games', '/galeria',
   '/watchlist', '/desktop', '/timecapsule', '/guestbook', '/proyectos', '/arquitectura',
-  '/kinnies', '/tests', '/universo', '/dreamscape', '/logros', '/tienda', '/profile', '/leaderboard', '/cabina', '/cartas', '/cofre', '/foco', '/chat'];
+  '/kinnies', '/tests', '/universo', '/dreamscape', '/logros', '/tienda', '/profile', '/leaderboard', '/cabina', '/cartas', '/cofre', '/foco', '/chat', '/blog'];
 
 function PageTracker() {
   const location = useLocation();
@@ -253,8 +255,11 @@ function AnimatedRoutes() {
         <Route path="/foco/:roomId" element={<Layout><FocusRoom /></Layout>} />
         <Route path="/profile/vinculos" element={<Layout><VinculosPage /></Layout>} />
         <Route path="/secret" element={<PageTransition><Secret /></PageTransition>} />
+        <Route path="/spotify-callback" element={<SpotifyCallback />} />
+        <Route path="/blog/:username/:slug" element={<BlogPostPage />} />
+
         {/* Dynamic Profile / 404 Catch-all */}
-        <Route path="/:username" element={<Layout><ProfilePublic /></Layout>} />
+        <Route path="/:username" element={<Layout><ProfileRedesign /></Layout>} />
       </Routes>
     </AnimatePresence>
   );

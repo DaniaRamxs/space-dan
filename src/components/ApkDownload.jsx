@@ -15,12 +15,12 @@ export default function ApkDownload() {
                             y notificaciones en tiempo real.
                         </p>
                         <p style={{ fontSize: "0.8rem", opacity: 0.7 }}>
-                            v1.2 • beta funcional ... finalmente• 570.0 MB
+                            v1.3 • radio en segundo plano · voz nativa · icono propio
                         </p>
                     </div>
                 </div>
                 <a
-                    href="https://github.com/DaniaRamxs/space-dan/releases/download/v1.2/spacedanbetav1.2.apk"
+                    href="https://github.com/DaniaRamxs/space-dan/releases/download/v1.3/spacedan.v1.3.apk"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="apkDownloadBtn"
