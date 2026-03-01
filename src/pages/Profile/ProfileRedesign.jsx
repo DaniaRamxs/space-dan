@@ -181,7 +181,7 @@ export default function ProfileRedesignPage() {
                                         blocks={blocks}
                                         userId={profile.id}
                                         isOwn={isOwn}
-                                        onEdit={() => {/* Modal blocks */ }}
+                                        onEdit={() => setShowConfig(true)}
                                     />
                                 </div>
                                 <aside className="lg:col-span-4 space-y-12">

@@ -89,7 +89,6 @@ export const newProfileService = {
             .from('profile_blocks')
             .select('*')
             .eq('user_id', userId)
-            .eq('is_active', true)
             .order('order_index', { ascending: true });
 
         if (error) throw error;

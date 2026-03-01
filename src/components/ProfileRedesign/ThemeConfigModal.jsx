@@ -127,25 +127,46 @@ export const ThemeConfigModal = ({ isOpen, onClose, userId, currentTheme, curren
                             <span className="w-1.5 h-1.5 rounded-full bg-amber-500 shadow-[0_0_10px_rgba(245,158,11,1)]" />
                             Módulos de Realidad
                         </h3>
-                        <div className="grid grid-cols-1 gap-3">
+                        <div className="grid grid-cols-1 gap-4">
                             {[
                                 { id: 'stats', label: 'Métricas Estelares', desc: 'Muestra tu nivel, dancoins y racha.' },
-                                { id: 'thought', label: 'Pensamientos rápidos', desc: 'Un espacio para micro-blogging.' },
+                                { id: 'thought', label: 'Pensamientos rápidos', desc: 'Edita tu frase inspiradora del día.' },
                                 { id: 'spotify', label: 'Sincronización Spotify', desc: 'Muestra tu música en tiempo real.' },
                             ].map(b => {
-                                const active = blocks.find(bl => bl.block_type === b.id)?.is_active;
+                                const currentBlock = blocks.find(bl => bl.block_type === b.id);
+                                const active = currentBlock?.is_active;
                                 return (
-                                    <button
-                                        key={b.id}
-                                        onClick={() => toggleBlock(b.id)}
-                                        className={`flex items-center justify-between p-4 rounded-2xl border transition-all ${active ? 'bg-white/5 border-cyan-500/30 ring-1 ring-cyan-500/20' : 'bg-black/20 border-white/5 opacity-50'}`}
-                                    >
-                                        <div className="text-left">
-                                            <div className="text-xs font-black uppercase italic text-white leading-tight">{b.label}</div>
-                                            <div className="text-[9px] text-white/30 uppercase tracking-widest leading-none mt-1">{b.desc}</div>
-                                        </div>
-                                        <div className={`w-5 h-5 rounded-full border-4 ${active ? 'bg-cyan-500 border-white/20 shadow-[0_0_15px_rgba(6,182,212,0.5)]' : 'border-white/10'}`} />
-                                    </button>
+                                    <div key={b.id} className="space-y-3">
+                                        <button
+                                            onClick={() => toggleBlock(b.id)}
+                                            className={`w-full flex items-center justify-between p-4 rounded-2xl border transition-all ${active ? 'bg-white/5 border-cyan-500/30 ring-1 ring-cyan-500/20' : 'bg-black/20 border-white/5 opacity-50'}`}
+                                        >
+                                            <div className="text-left">
+                                                <div className="text-xs font-black uppercase italic text-white leading-tight">{b.label}</div>
+                                                <div className="text-[9px] text-white/30 uppercase tracking-widest leading-none mt-1">{b.desc}</div>
+                                            </div>
+                                            <div className={`w-5 h-5 rounded-full border-4 ${active ? 'bg-cyan-500 border-white/20 shadow-[0_0_15px_rgba(6,182,212,0.5)]' : 'border-white/10'}`} />
+                                        </button>
+
+                                        {/* Thought Config Field */}
+                                        {b.id === 'thought' && active && (
+                                            <motion.div
+                                                initial={{ opacity: 0, scaleY: 0.8 }}
+                                                animate={{ opacity: 1, scaleY: 1 }}
+                                                className="px-4 pb-2"
+                                            >
+                                                <textarea
+                                                    value={currentBlock?.config?.text || ''}
+                                                    onChange={e => {
+                                                        const newText = e.target.value;
+                                                        setBlocks(blocks.map(bl => bl.block_type === 'thought' ? { ...bl, config: { ...bl.config, text: newText } } : bl));
+                                                    }}
+                                                    placeholder="Escribe tu pensamiento estelar aquí..."
+                                                    className="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-[11px] text-white outline-none focus:border-cyan-500 transition-all resize-none h-20"
+                                                />
+                                            </motion.div>
+                                        )}
+                                    </div>
                                 );
                             })}
                         </div>

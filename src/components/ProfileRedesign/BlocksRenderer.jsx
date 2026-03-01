@@ -59,7 +59,7 @@ export const BlocksRenderer = ({ blocks, userId, isOwn, onEdit }) => {
             animate="show"
             className="space-y-12"
         >
-            {blocks.map((block) => (
+            {blocks.filter(b => b.is_active).map((block) => (
                 <motion.div key={block.id || block.block_type} variants={item}>
                     {renderBlock(block)}
                 </motion.div>
