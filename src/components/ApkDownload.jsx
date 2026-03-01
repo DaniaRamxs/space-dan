@@ -12,15 +12,15 @@ export default function ApkDownload() {
                         <h3>¡Lleva el Dan-Space a tu bolsillo!</h3>
                         <p>
                             Descarga la app oficial para una experiencia más fluida
-                            y notificaciones en tiempo real.
+                            y chat de voz en segundo plano.
                         </p>
                         <p style={{ fontSize: "0.8rem", opacity: 0.7 }}>
-                            v1.3 • radio en segundo plano · voz nativa · icono propio
+                            <v1 className="3 2"></v1> • fix bugs · chat de voz · icono propio
                         </p>
                     </div>
                 </div>
                 <a
-                    href="https://github.com/DaniaRamxs/space-dan/releases/download/v1.3.1/space.dan.v1.3.1.apk"
+                    href="https://github.com/DaniaRamxs/space-dan/releases/download/v1.3.2/spacedan.V1.3.2.apk"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="apkDownloadBtn"
