@@ -10746,3 +10746,13 @@ html.native .gardenPage--fixed .gardenMain {
 .animate-bounce-subtle {
   animation: bounce-subtle 3s ease-in-out infinite;
 }
+
+/* LiveKit: evitar que el contenedor de sala tape la página */
+.lk-room-container,
+.voice-room-container {
+  display: contents !important;
+  background: transparent !important;
+}
+.lk-theme-default {
+  --lk-bg: transparent !important;
+}

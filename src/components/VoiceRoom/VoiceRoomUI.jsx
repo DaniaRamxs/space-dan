@@ -62,6 +62,21 @@ export default function VoiceRoomUI({ roomName, onLeave, onConnected, userAvatar
         fetchToken();
     }, [roomName, token, isOpen]);
 
+    // ⚠️ Este hook DEBE ir antes del early return para respetar las Rules of Hooks
+    useEffect(() => {
+        if (!token) return;
+        if (Capacitor.isNativePlatform()) {
+            VoiceServicePlugin.start().catch(() => {});
+        }
+        window.dispatchEvent(new CustomEvent('voice:connect'));
+        return () => {
+            if (Capacitor.isNativePlatform()) {
+                VoiceServicePlugin.stop().catch(() => {});
+            }
+            window.dispatchEvent(new CustomEvent('voice:disconnect'));
+        };
+    }, [token]);
+
     // Estado de carga / error: solo muestra portal si isOpen
     if (!token && (connecting || error)) {
         if (!isOpen) return null;
@@ -89,20 +104,6 @@ export default function VoiceRoomUI({ roomName, onLeave, onConnected, userAvatar
         );
     }
 
-    useEffect(() => {
-        if (!token) return;
-        if (Capacitor.isNativePlatform()) {
-            VoiceServicePlugin.start().catch(() => {});
-        }
-        window.dispatchEvent(new CustomEvent('voice:connect'));
-        return () => {
-            if (Capacitor.isNativePlatform()) {
-                VoiceServicePlugin.stop().catch(() => {});
-            }
-            window.dispatchEvent(new CustomEvent('voice:disconnect'));
-        };
-    }, [token]);
-
     return (
         <LiveKitRoom
             audio={true}
@@ -111,6 +112,7 @@ export default function VoiceRoomUI({ roomName, onLeave, onConnected, userAvatar
             serverUrl={LIVEKIT_URL}
             onConnected={() => { if (onConnected) onConnected(); }}
             className="voice-room-container"
+            style={{ display: 'contents' }}
         >
             <RoomAudioRenderer />
 
