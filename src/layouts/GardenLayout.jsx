@@ -12,9 +12,11 @@ import NotificationBell from "../components/NotificationBell.jsx";
 import AmbientOrbs from "../components/AmbientOrbs.jsx";
 import useAuth from '../hooks/useAuth';
 import { useRef } from 'react';
+import { Capacitor } from '@capacitor/core';
 
 const PERSONAL_PATHS = ['/kinnies', '/tests', '/universo', '/dreamscape'];
-const FIXED_LAYOUT_PATHS = ['/cartas', '/cabina', '/desktop', '/chat'];
+const FIXED_LAYOUT_PATHS = ['/cartas', '/desktop', '/chat'];
+const isNative = Capacitor.isNativePlatform();
 
 export default function GardenLayout({ children }) {
   const { user, profile: ownProfile } = useAuth();
@@ -205,9 +207,9 @@ export default function GardenLayout({ children }) {
                   { to: '/cabina', icon: '🚀', label: 'Cabina' },
                   { to: '/guestbook', icon: '📖', label: 'Libro' },
                   { to: '/arquitectura', icon: '🏗️', label: 'Arquitectura' },
-                  { to: '/desktop', icon: '💻', label: 'Desktop' },
+                  !isNative && { to: '/desktop', icon: '💻', label: 'Desktop' },
                   { to: '/dan', icon: '👤', label: 'Sobre Dan' },
-                ].map((item) => (
+                ].filter(Boolean).map((item) => (
                   <motion.div
                     key={item.to}
                     variants={{

@@ -8668,6 +8668,33 @@ textarea,
   transform: rotate(90deg);
 }
 
+.gameFullscreenBtn {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #fff;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+
+.gameFullscreenBtn:hover,
+.gameFullscreenBtn:active {
+  background: rgba(6, 182, 212, 0.25);
+  border-color: rgba(6, 182, 212, 0.5);
+}
+
+/* Sin safe-area cuando el overlay está en fullscreen nativo */
+.gameOverlay:fullscreen,
+.gameOverlay:-webkit-full-screen {
+  padding: 0 !important;
+}
+
 @keyframes gameOverlayFade {
   from {
     opacity: 0;
@@ -10704,6 +10731,16 @@ svg {
   50% {
     transform: translateY(-5px);
   }
+}
+
+/* ── Native APK: anular 100dvh en layouts fijos para que el teclado no tape el compositor ── */
+html.native .gardenPage--fixed {
+  height: 100% !important;
+  min-height: 0 !important;
+}
+html.native .gardenPage--fixed .gardenMain {
+  height: 100% !important;
+  min-height: 0 !important;
 }
 
 .animate-bounce-subtle {

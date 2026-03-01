@@ -93,7 +93,7 @@ export default function SpaceCabinPage() {
     if (!user) return null;
 
     return (
-        <div className="cabin-cockpit w-full bg-[#020205] text-white p-4 md:p-8 lg:p-12 select-none flex flex-col pb-64">
+        <div className="cabin-cockpit w-full bg-[#020205] text-white p-4 md:p-8 lg:p-12 flex flex-col pb-32">
 
 
 

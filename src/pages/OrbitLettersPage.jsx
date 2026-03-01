@@ -7,6 +7,7 @@ import { supabase } from '../supabaseClient';
 import { GiphyFetch } from '@giphy/js-fetch-api';
 import { Grid } from '@giphy/react-components';
 import { formatUsername, getNicknameClass } from '../utils/user';
+import { Capacitor } from '@capacitor/core';
 
 const gf = new GiphyFetch('3k4Fdn6D040IQvIq1KquLZzJgutP3dGp');
 
@@ -45,6 +46,22 @@ export default function OrbitLettersPage() {
     const [userResults, setUserResults] = useState([]);
     const [searchingUsers, setSearchingUsers] = useState(false);
     const [showUserSearch, setShowUserSearch] = useState(false);
+
+    // En APK: back button cierra la conversación activa en vez de salir de la página
+    useEffect(() => {
+        if (!Capacitor.isNativePlatform()) return;
+        if (!activeConv) return;
+
+        let listener;
+        (async () => {
+            const { App } = await import('@capacitor/app');
+            listener = await App.addListener('backButton', () => {
+                setActiveConv(null);
+            });
+        })();
+
+        return () => { listener?.remove(); };
+    }, [activeConv]);
 
     useEffect(() => {
         const query = searchUserQuery.trim();
@@ -319,7 +336,6 @@ export default function OrbitLettersPage() {
                                 fontSize: '13px',
                                 marginBottom: userResults.length > 0 || searchingUsers ? '10px' : 0
                             }}
-                            autoFocus
                         />
                         {searchingUsers && <div style={{ fontSize: '11px', opacity: 0.5, padding: '5px' }}>Buscando...</div>}
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>

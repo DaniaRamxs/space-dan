@@ -2,21 +2,26 @@ import { supabase } from '../supabaseClient';
 
 /**
  * Creates a notification for a user.
- * @param {string} userId - The ID of the user receiving the notification.
- * @param {string} type - 'achievement', 'record', or 'system'.
- * @param {string} message - The content of the notification.
+ * Usa la función RPC notify_user (SECURITY DEFINER) para poder notificar a otros usuarios
+ * sin que RLS bloquee el insert cruzado.
+ *
+ * @param {string} userId     - ID del usuario que recibe la notificación.
+ * @param {string} type       - Tipo: 'mention', 'follow', 'reaction', 'achievement', etc.
+ * @param {string} message    - Texto de la notificación.
+ * @param {string|null} referenceId - UUID de referencia opcional (mensaje, post, etc.).
  */
 export async function createNotification(userId, type, message, referenceId = null) {
     if (!userId) return;
     try {
-        await supabase.from('notifications').insert({
-            user_id: userId,
-            type,
-            message,
-            ...(referenceId && { reference_id: referenceId })
+        const { error } = await supabase.rpc('notify_user', {
+            p_user_id:      userId,
+            p_type:         type,
+            p_message:      message,
+            p_reference_id: referenceId ?? null,
         });
+        if (error) console.error('[Notification] RPC error:', error.message);
     } catch (err) {
-        console.error("Failed to create notification:", err);
+        console.error('[Notification] Failed:', err);
     }
 }
 

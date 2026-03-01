@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 1920" width="1080" height="1920">
+  <defs>
+    <filter id="glow" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="14" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1080" height="1920" fill="#050520"/>
+
+  <!-- Stars -->
+  <circle cx="120"  cy="140"  r="3"   fill="white" opacity="0.50"/>
+  <circle cx="960"  cy="200"  r="2"   fill="white" opacity="0.40"/>
+  <circle cx="800"  cy="80"   r="2.5" fill="white" opacity="0.55"/>
+  <circle cx="200"  cy="1750" r="2"   fill="white" opacity="0.45"/>
+  <circle cx="900"  cy="1700" r="2.5" fill="white" opacity="0.40"/>
+  <circle cx="60"   cy="900"  r="2"   fill="white" opacity="0.45"/>
+  <circle cx="1020" cy="800"  r="2"   fill="white" opacity="0.40"/>
+  <circle cx="540"  cy="50"   r="1.5" fill="white" opacity="0.40"/>
+  <circle cx="640"  cy="1870" r="2"   fill="white" opacity="0.40"/>
+  <circle cx="30"   cy="500"  r="2"   fill="white" opacity="0.45"/>
+  <circle cx="350"  cy="350"  r="1.5" fill="white" opacity="0.35"/>
+  <circle cx="780"  cy="1400" r="2"   fill="white" opacity="0.35"/>
+
+  <!-- SPACE text -->
+  <text
+    x="540" y="910"
+    font-family="Arial Black, Impact, Arial, sans-serif"
+    font-size="210"
+    font-weight="900"
+    text-anchor="middle"
+    fill="#FF00E5"
+    filter="url(#glow)"
+    letter-spacing="-4">SPACE</text>
+
+  <!-- DAN text -->
+  <text
+    x="540" y="1140"
+    font-family="Arial Black, Impact, Arial, sans-serif"
+    font-size="268"
+    font-weight="900"
+    text-anchor="middle"
+    fill="#FF00E5"
+    filter="url(#glow)"
+    letter-spacing="14">DAN</text>
+</svg>

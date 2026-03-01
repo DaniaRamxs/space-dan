@@ -1,5 +1,8 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { motion } from 'framer-motion';
+import { Capacitor, registerPlugin } from '@capacitor/core';
+
+const RadioServicePlugin = registerPlugin('RadioService');
 
 import { unlockAchievement } from '../hooks/useAchievements';
 import { getRadioAudio } from '../utils/radioAudio';
@@ -190,6 +193,45 @@ export default function RadioPlayer() {
   useEffect(() => {
     audio.volume = volume;
   }, [volume, audio]);
+
+  // Servicio foreground en Android para reproducción en segundo plano
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return;
+    if (playing && stations[current]) {
+      RadioServicePlugin.start({
+        name: stations[current].name,
+        genre: stations[current].genre,
+      }).catch(() => {});
+    } else {
+      RadioServicePlugin.stop().catch(() => {});
+    }
+  }, [playing, current, stations]);
+
+  // Pausar la radio al conectarse a una sala de voz; reanudar al salir
+  useEffect(() => {
+    const wasPlayingRef = { current: false };
+
+    const onVoiceConnect = () => {
+      if (!audio.paused) {
+        wasPlayingRef.current = true;
+        audio.pause();
+      }
+    };
+
+    const onVoiceDisconnect = () => {
+      if (wasPlayingRef.current) {
+        wasPlayingRef.current = false;
+        audio.play().catch(() => {});
+      }
+    };
+
+    window.addEventListener('voice:connect', onVoiceConnect);
+    window.addEventListener('voice:disconnect', onVoiceDisconnect);
+    return () => {
+      window.removeEventListener('voice:connect', onVoiceConnect);
+      window.removeEventListener('voice:disconnect', onVoiceDisconnect);
+    };
+  }, [audio]);
 
   const togglePlay = useCallback(async () => {
     if (playing) {

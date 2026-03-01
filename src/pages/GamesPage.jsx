@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef, Suspense, lazy, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Maximize2, Minimize2 } from 'lucide-react';
+import { Capacitor } from '@capacitor/core';
 import { awardCoins } from '../hooks/useDancoins';
 import { unlockAchievement } from '../hooks/useAchievements';
 import { useAuthContext } from '../contexts/AuthContext';
@@ -107,10 +109,60 @@ export default function GamesPage() {
     return rankNames[Math.min(Math.floor(level / 3), rankNames.length - 1)];
   }, [profile, userStats]);
 
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const gameOverlayRef = useRef(null);
   const toastTimer = useRef(null);
   const openIdRef = useRef(null);
 
   useEffect(() => { arcadeAudio.toggle(soundOn); }, [soundOn]);
+
+  // Fullscreen para Android
+  const toggleFullscreen = useCallback(async () => {
+    if (!isFullscreen) {
+      try {
+        await gameOverlayRef.current?.requestFullscreen?.();
+        if (Capacitor.isNativePlatform()) {
+          const { StatusBar } = await import('@capacitor/status-bar');
+          await StatusBar.hide();
+        }
+      } catch (e) {
+        console.warn('[Fullscreen] enter:', e);
+      }
+    } else {
+      try {
+        await document.exitFullscreen?.();
+        if (Capacitor.isNativePlatform()) {
+          const { StatusBar, Style } = await import('@capacitor/status-bar');
+          await StatusBar.show();
+          await StatusBar.setStyle({ style: Style.Dark });
+          await StatusBar.setBackgroundColor({ color: '#050510' });
+        }
+      } catch (e) {
+        console.warn('[Fullscreen] exit:', e);
+      }
+    }
+  }, [isFullscreen]);
+
+  // Sincronizar estado con el evento nativo de fullscreen
+  useEffect(() => {
+    const onFsChange = () => setIsFullscreen(!!document.fullscreenElement);
+    document.addEventListener('fullscreenchange', onFsChange);
+    return () => document.removeEventListener('fullscreenchange', onFsChange);
+  }, []);
+
+  // Salir de fullscreen automáticamente al cerrar el juego
+  useEffect(() => {
+    if (!openId && document.fullscreenElement) {
+      document.exitFullscreen?.().catch(() => {});
+      if (Capacitor.isNativePlatform()) {
+        import('@capacitor/status-bar').then(({ StatusBar, Style }) => {
+          StatusBar.show();
+          StatusBar.setStyle({ style: Style.Dark });
+          StatusBar.setBackgroundColor({ color: '#050510' });
+        }).catch(() => {});
+      }
+    }
+  }, [openId]);
 
   // Fetch individual game stats (levels)
   useEffect(() => {
@@ -510,6 +562,7 @@ export default function GamesPage() {
       <AnimatePresence>
         {openId && activeGame && (
           <motion.div
+            ref={gameOverlayRef}
             className="gameOverlay"
             initial={{ opacity: 0, scale: 1.1 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -525,16 +578,27 @@ export default function GamesPage() {
                   <div style={{ fontSize: '0.6rem', opacity: 0.6, letterSpacing: 1 }}>SISTEMA_ARCADE_V2.0</div>
                 </div>
               </div>
-              <button
-                className="gameCloseBtn"
-                onClick={() => {
-                  arcadeAudio.play('close');
-                  setOpenId(null);
-                }}
-                style={{ position: 'relative', zIndex: 5001, background: '#ff4444' }}
-              >
-                ESC
-              </button>
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                {Capacitor.isNativePlatform() && (
+                  <button
+                    className="gameFullscreenBtn"
+                    onClick={toggleFullscreen}
+                    title={isFullscreen ? 'Salir de pantalla completa' : 'Pantalla completa'}
+                  >
+                    {isFullscreen ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
+                  </button>
+                )}
+                <button
+                  className="gameCloseBtn"
+                  onClick={() => {
+                    arcadeAudio.play('close');
+                    setOpenId(null);
+                  }}
+                  style={{ position: 'relative', zIndex: 5001, background: '#ff4444' }}
+                >
+                  ESC
+                </button>
+              </div>
             </div>
 
             <div className="gameOverlayContent">

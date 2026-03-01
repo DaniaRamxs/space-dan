@@ -12,6 +12,9 @@ import { Mic, MicOff, LogOut, Users, Radio, X, ChevronDown, ChevronUp, MessageSq
 import { supabase } from '../../supabaseClient';
 import { getNicknameClass } from '../../utils/user';
 import { getFrameStyle } from '../../utils/styles';
+import { Capacitor, registerPlugin } from '@capacitor/core';
+
+const VoiceServicePlugin = registerPlugin('VoiceService');
 
 const LIVEKIT_URL = "wss://danspace-76f5bceh.livekit.cloud";
 
@@ -42,19 +45,12 @@ export default function VoiceRoomUI({ roomName, onLeave, onConnected, userAvatar
         const fetchToken = async () => {
             try {
                 const { data: { session } } = await supabase.auth.getSession();
-                const userId = session?.user?.id || 'anon-' + Math.random().toString(36).substring(7);
                 const participantName = session?.user?.user_metadata?.username || 'Explorador';
-                const response = await fetch(`/api/livekit-token?t=${Date.now()}`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ roomName, userId, participantName, userAvatar, nicknameStyle, frameId })
+                const { data, error: fnError } = await supabase.functions.invoke('livekit-token', {
+                    body: { roomName, participantName, userAvatar, nicknameStyle, frameId }
                 });
-                if (!response.ok) {
-                    const errorText = await response.text();
-                    throw new Error(`Error API (${response.status}): ${errorText.substring(0, 100)}`);
-                }
-                const data = await response.json();
-                if (data.error) throw new Error(data.error);
+                if (fnError) throw new Error(fnError.message);
+                if (data?.error) throw new Error(data.error);
                 setToken(data.token);
             } catch (err) {
                 console.error("Error obteniendo token:", err);
@@ -92,6 +88,20 @@ export default function VoiceRoomUI({ roomName, onLeave, onConnected, userAvatar
             </div>, document.body
         );
     }
+
+    useEffect(() => {
+        if (!token) return;
+        if (Capacitor.isNativePlatform()) {
+            VoiceServicePlugin.start().catch(() => {});
+        }
+        window.dispatchEvent(new CustomEvent('voice:connect'));
+        return () => {
+            if (Capacitor.isNativePlatform()) {
+                VoiceServicePlugin.stop().catch(() => {});
+            }
+            window.dispatchEvent(new CustomEvent('voice:disconnect'));
+        };
+    }, [token]);
 
     return (
         <LiveKitRoom

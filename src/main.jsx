@@ -101,10 +101,38 @@ async function initNative() {
   }
 }
 
+// --- Solicitar permisos de runtime (micrófono, cámara, notificaciones) ---
+async function requestPermissions() {
+  if (!Capacitor.isNativePlatform()) return;
+
+  // Micrófono + Cámara: getUserMedia activa el diálogo nativo de Android
+  // Capacitor's BridgeWebChromeClient forwarda onPermissionRequest al sistema
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: true });
+    stream.getTracks().forEach(t => t.stop());
+  } catch {
+    // Si rechazan cámara, intentar solo micrófono (esencial para voz)
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      stream.getTracks().forEach(t => t.stop());
+    } catch { /* usuario denegó */ }
+  }
+
+  // Notificaciones (Android 13+ / API 33+)
+  if ('Notification' in window && Notification.permission === 'default') {
+    await Notification.requestPermission().catch(() => {});
+  }
+}
+
 // Inicializar auth solo si estamos en nativo
 if (Capacitor.isNativePlatform()) {
+  // Marcar el documento para poder usar selectores CSS nativos
+  document.documentElement.classList.add('native');
   initMobileAuth();
-  initNative();
+  initNative().then(() => {
+    // Pedir permisos tras el splash screen (≈700ms) + margen
+    setTimeout(requestPermissions, 1200);
+  });
 }
 
 // Service Worker habilitado para caché de assets (mejora carga en móvil y PC)

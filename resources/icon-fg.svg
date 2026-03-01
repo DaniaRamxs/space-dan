@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 432 432" width="432" height="432">
+  <defs>
+    <filter id="glow" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="5" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Transparent background (adaptive icon foreground layer) -->
+
+  <!-- SPACE text — centred in safe zone (72dp = 288px out of 432) -->
+  <text
+    x="216" y="188"
+    font-family="Arial Black, Impact, Arial, sans-serif"
+    font-size="85"
+    font-weight="900"
+    text-anchor="middle"
+    fill="#FF00E5"
+    filter="url(#glow)"
+    letter-spacing="-2">SPACE</text>
+
+  <!-- DAN text -->
+  <text
+    x="216" y="288"
+    font-family="Arial Black, Impact, Arial, sans-serif"
+    font-size="110"
+    font-weight="900"
+    text-anchor="middle"
+    fill="#FF00E5"
+    filter="url(#glow)"
+    letter-spacing="6">DAN</text>
+</svg>
