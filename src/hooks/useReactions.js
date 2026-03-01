@@ -1,9 +1,18 @@
 import { useState, useCallback } from 'react';
 import { activityService } from '../services/activityService';
 import { useAuthContext } from '../contexts/AuthContext';
+import { createNotification } from '../services/supabaseNotifications';
+
+const REACTION_EMOJI = {
+    connection: '💖',
+    impact:     '🔥',
+    represent:  '🌙',
+    think:      '🧠',
+    underrated: '🪐',
+};
 
 export function useReactions(post, onUpdate) {
-    const { user } = useAuthContext();
+    const { user, profile } = useAuthContext();
     const [processing, setProcessing] = useState(false);
 
     const toggleReaction = useCallback(async (reactionType) => {
@@ -54,6 +63,23 @@ export function useReactions(post, onUpdate) {
         // ==========================================
         try {
             await activityService.toggleReaction(post.id, user.id, reactionType);
+
+            // Notificar al autor solo al AÑADIR reacción (no al quitar)
+            // y nunca si es tu propio post
+            if (!isRemoving && post.author_id && post.author_id !== user.id) {
+                const reactorName = profile?.username || 'Alguien';
+                const emoji = REACTION_EMOJI[reactionType] || '✨';
+                const postRef = post.title
+                    ? `"${post.title.slice(0, 40)}"`
+                    : 'tu transmisión';
+                // fire-and-forget para no bloquear la UI
+                createNotification(
+                    post.author_id,
+                    'reaction',
+                    `@${reactorName} reaccionó con ${emoji} a ${postRef}`,
+                    post.id
+                );
+            }
         } catch (err) {
             console.error('[useReactions] Error toggling reaction:', err);
             // Rollback (Regresar al estado original)

@@ -11,9 +11,18 @@ export default function OnboardingPage() {
     const [error, setError] = useState(null);
     const [isAvailable, setIsAvailable] = useState(null);
     const [checking, setChecking] = useState(false);
-    const { profile } = useAuthContext();
+    const { profile, profileLoading } = useAuthContext();
     const navigate = useNavigate();
     const isNewUser = !profile?.username;
+
+    // Si el perfil ya tiene username y terminó de cargar, no debería estar aquí
+    // (la redirección en App.jsx debería haber evitado esto, pero como seguridad extra)
+    useEffect(() => {
+        if (!profileLoading && profile?.username) {
+            // El usuario ya tiene username, mandarlo a su perfil
+            navigate('/profile', { replace: true });
+        }
+    }, [profileLoading, profile?.username, navigate]);
 
 
     useEffect(() => {
@@ -51,17 +60,28 @@ export default function OnboardingPage() {
 
             if (rpcError) throw rpcError;
 
-            if (data.success) {
-                // Redirigir al perfil o home
+            if (data?.success) {
                 navigate('/posts');
-                // Forzar recarga de perfil si es necesario (el hook useAuth ya tiene suscripción)
+            } else {
+                // El RPC devolvió success: false — mostrar el motivo
+                setError(data?.error || data?.message || 'No se pudo reclamar el nombre. Intenta con otro.');
             }
         } catch (err) {
-            setError(err.message);
+            setError(err.message || 'Error inesperado. Inténtalo de nuevo.');
         } finally {
             setLoading(false);
         }
     };
+
+    // Esperar a que el perfil cargue antes de mostrar el formulario
+    // (evita que el usuario vea el onboarding un instante si ya tiene username)
+    if (profileLoading) {
+        return (
+            <div style={{ height: '60vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <span className="blinkText" style={{ color: 'var(--accent)' }}>cargando_datos...</span>
+            </div>
+        );
+    }
 
     return (
         <div className="onboardingPage">

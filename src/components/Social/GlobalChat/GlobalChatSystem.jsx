@@ -6,6 +6,7 @@ import { useAuthContext } from '../../../contexts/AuthContext';
 import { useEconomy } from '../../../contexts/EconomyContext';
 import * as economyService from '../../../services/economy';
 import { chatService } from '../../../services/chatService';
+import { createNotification } from '../../../services/supabaseNotifications';
 import { supabase } from '../../../supabaseClient';
 import ChatMessage, { parseMentions } from './ChatMessage';
 import ChatInput from './ChatInput';
@@ -432,12 +433,12 @@ export default function GlobalChat() {
             case '/dance':
                 const target = args[0] || 'al vacío';
                 const socialActions = {
-                    '/hug':   [`🤗 **@${senderName}** envuelve a **${target}** en un abrazo estelar.`, `🤗 Un abrazo galáctico de **@${senderName}** llega a **${target}**. ✨`],
-                    '/kiss':  [`💋 **@${senderName}** besa a **${target}** bajo la luz de las estrellas.`, `💋 **${target}** recibe un beso de **@${senderName}**. 🌙`],
-                    '/slap':  [`👋 **@${senderName}** abofetea a **${target}** con la fuerza de un pulsar.`, `💥 ¡**${target}** recibió una bofetada de **@${senderName}**!`],
+                    '/hug': [`🤗 **@${senderName}** envuelve a **${target}** en un abrazo estelar.`, `🤗 Un abrazo galáctico de **@${senderName}** llega a **${target}**. ✨`],
+                    '/kiss': [`💋 **@${senderName}** besa a **${target}** bajo la luz de las estrellas.`, `💋 **${target}** recibe un beso de **@${senderName}**. 🌙`],
+                    '/slap': [`👋 **@${senderName}** abofetea a **${target}** con la fuerza de un pulsar.`, `💥 ¡**${target}** recibió una bofetada de **@${senderName}**!`],
                     '/punch': [`👊 **@${senderName}** golpea a **${target}** con energía de quásar.`, `💥 **${target}** fue golpeado por **@${senderName}**. ¡Au!`],
-                    '/bite':  [`😬 **@${senderName}** muerde a **${target}**. ¡Cuidado con los dientes cósmicos!`, `🦷 **${target}** fue mordido por **@${senderName}**. 🌌`],
-                    '/pat':   [`🫶 **@${senderName}** acaricia a **${target}** con ternura galáctica.`, `✨ Qué bonito gesto de **@${senderName}** hacia **${target}**.`],
+                    '/bite': [`😬 **@${senderName}** muerde a **${target}**. ¡Cuidado con los dientes cósmicos!`, `🦷 **${target}** fue mordido por **@${senderName}**. 🌌`],
+                    '/pat': [`🫶 **@${senderName}** acaricia a **${target}** con ternura galáctica.`, `✨ Qué bonito gesto de **@${senderName}** hacia **${target}**.`],
                     '/dance': [`💃 **@${senderName}** baila con **${target}** al ritmo del universo. 🎶`, `🕺 **@${senderName}** y **${target}** se mueven al compás estelar. ✨`],
                 };
                 const pool = socialActions[cmd] || [`✨ **@${senderName}** hace algo con **${target}**.`];
@@ -756,10 +757,35 @@ export default function GlobalChat() {
         }
         if (isVip && balance < 50) return alert('Dancoins insuficientes.');
         try {
-            await chatService.sendMessage(content, isVip, replyToId, activeChannel);
+            const sentMsg = await chatService.sendMessage(content, isVip, replyToId, activeChannel);
             if (isVip) await transfer(HYPERBOT.id, 50, 'VIP Message Cost');
             setReplyingTo(null);
             setIsVipMode(false);
+
+            // Detectar @menciones y crear notificaciones
+            const mentionMatches = [...content.matchAll(/@([\w]+)/g)];
+            if (mentionMatches.length > 0) {
+                const handles = [...new Set(mentionMatches.map(m => m[1].toLowerCase()))];
+                const { data: mentionedUsers } = await supabase
+                    .from('profiles')
+                    .select('id, username')
+                    .in('username_normalized', handles);
+
+                if (mentionedUsers?.length) {
+                    const senderName = userProfile?.username || 'Alguien';
+                    const channelLabel = activeChannel === 'global' ? '#general' : `#${activeChannel}`;
+                    const preview = content.length > 80 ? content.slice(0, 80) + '…' : content;
+                    for (const target of mentionedUsers) {
+                        if (target.id === user.id) continue; // no auto-notificarse
+                        createNotification(
+                            target.id,
+                            'mention',
+                            `@${senderName} te mencionó en ${channelLabel}: "${preview}"`,
+                            sentMsg?.id || null
+                        );
+                    }
+                }
+            }
         } catch (err) { console.error('[GlobalChat] Send Error:', err); }
     }, [user, userProfile, balance, awardCoins, transfer, handleBotCommand, replyingTo, activeChannel]);
 
@@ -852,11 +878,11 @@ export default function GlobalChat() {
                 </div>
             </aside>
 
-            <div className="flex-1 flex flex-col relative min-w-0">
+            <div className="flex-1 flex flex-col relative min-w-0 min-h-0">
                 {/* Channel Header */}
-                <header className="h-14 sm:h-16 flex items-center justify-between px-4 sm:px-6 border-b border-white/5 bg-[#050510]/40 backdrop-blur-md z-50">
+                <header className="h-14 sm:h-16 shrink-0 flex items-center justify-between px-4 sm:px-6 border-b border-white/5 bg-[#050510]/40 backdrop-blur-md z-50">
                     <div className="flex items-center gap-3 sm:gap-4">
-                        <button onClick={() => setSidebarOpen(!sidebarOpen)} className="md:hidden text-white/50 hover:text-white p-2 -ml-2">
+                        <button onClick={() => setSidebarOpen(!sidebarOpen)} className="hidden text-white/50 hover:text-white p-2 -ml-2">
                             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>
                         </button>
                         <div className="flex items-center gap-1.5 sm:gap-2">
@@ -870,6 +896,32 @@ export default function GlobalChat() {
                         <span className="xs:hidden">Live</span>
                     </div>
                 </header>
+
+                {/* Mobile Channel Tabs — replaces hamburger UX */}
+                <div className="md:hidden flex border-b border-white/5 bg-[#050510]/60 backdrop-blur-md shrink-0">
+                    {CHANNELS.map(chan => (
+                        <button
+                            key={chan.id}
+                            onClick={() => setActiveChannel(chan.id)}
+                            className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 text-[11px] font-black uppercase tracking-wide transition-all ${activeChannel === chan.id ? 'text-cyan-400 border-b-2 border-cyan-400' : 'text-white/30 border-b-2 border-transparent'}`}
+                        >
+                            <span>{chan.icon}</span>
+                            <span>{chan.name}</span>
+                        </button>
+                    ))}
+                    {tempVoiceChannel && (
+                        <button
+                            onClick={() => setShowVoiceRoom(true)}
+                            className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 text-[11px] font-black uppercase tracking-wide transition-all ${inVoiceRoom ? 'text-emerald-400 border-b-2 border-emerald-400' : 'text-white/30 border-b-2 border-transparent'}`}
+                        >
+                            <span className="relative">
+                                {tempVoiceChannel.icon}
+                                {inVoiceRoom && <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />}
+                            </span>
+                            <span>Voz</span>
+                        </button>
+                    )}
+                </div>
 
                 <div className="chat-messages-container flex-1 min-h-0 relative">
                     {/* Voice Bar - Highly Visible */}
@@ -903,7 +955,7 @@ export default function GlobalChat() {
                     </AnimatePresence>
 
                     <div className="chat-fade-top" />
-                    <div ref={scrollRef} className="chat-messages-scroll no-scrollbar h-full pt-4 pb-40 touch-pan-y">
+                    <div ref={scrollRef} className="chat-messages-scroll no-scrollbar pt-4 pb-12 touch-pan-y">
                         {loading ? (
                             <div className="flex flex-col items-center justify-center h-full opacity-40">
                                 <div className="w-8 h-8 border-2 border-cyan-500/20 border-t-cyan-500 rounded-full animate-spin mb-4" />

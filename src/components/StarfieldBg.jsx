@@ -1,7 +1,9 @@
 import { useEffect, useRef } from 'react';
 
-const STAR_COUNT = 120; // Fewer stars for more elegance
-const NEBULA_COUNT = 3;
+const isMobile = () => window.innerWidth < 768 || ('ontouchstart' in window);
+const STAR_COUNT = isMobile() ? 60 : 120;
+const NEBULA_COUNT = isMobile() ? 1 : 3;
+const FRAME_INTERVAL = isMobile() ? 1000 / 30 : 0; // 30fps móvil, sin límite PC
 
 const STAR_THEMES = {
   default: { r: 255, g: 255, b: 255, nebula: 'rgba(139, 92, 246, 0.03)' },
@@ -54,35 +56,48 @@ export default function StarfieldBg() {
 
     let raf;
     let t = 0;
+    let lastFrameTime = 0;
     let mouse = { x: 0.5, y: 0.5 };
     let targetMouse = { x: 0.5, y: 0.5 };
+    // Cached dimensions para evitar layout thrashing en draw loop
+    let W = window.innerWidth;
+    let H = window.innerHeight;
+    const mobile = isMobile();
 
     const resize = () => {
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
-      // Dpr management for crispness
       const dpr = window.devicePixelRatio || 1;
-      canvas.width = window.innerWidth * dpr;
-      canvas.height = window.innerHeight * dpr;
+      W = window.innerWidth;
+      H = window.innerHeight;
+      canvas.width = W * dpr;
+      canvas.height = H * dpr;
       ctx.scale(dpr, dpr);
     };
 
     const onMouseMove = (e) => {
-      targetMouse.x = e.clientX / window.innerWidth;
-      targetMouse.y = e.clientY / window.innerHeight;
+      targetMouse.x = e.clientX / W;
+      targetMouse.y = e.clientY / H;
     };
 
-    const draw = () => {
-      t += 1;
-      mouse.x += (targetMouse.x - mouse.x) * 0.03; // Even smoother
-      mouse.y += (targetMouse.y - mouse.y) * 0.03;
+    const draw = (timestamp) => {
+      raf = requestAnimationFrame(draw);
 
-      ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
+      // Throttle FPS en móvil
+      if (FRAME_INTERVAL > 0 && timestamp - lastFrameTime < FRAME_INTERVAL) return;
+      lastFrameTime = timestamp;
+
+      t += 1;
+      // En móvil no hay mouse parallax, skip la interpolación
+      if (!mobile) {
+        mouse.x += (targetMouse.x - mouse.x) * 0.03;
+        mouse.y += (targetMouse.y - mouse.y) * 0.03;
+      }
+
+      ctx.clearRect(0, 0, W, H);
 
       // 1. Subtle Nebulas (Atmosphere)
       for (const n of nebulas) {
-        const nx = (n.x * window.innerWidth) + (mouse.x - 0.5) * 50;
-        const ny = (n.y * window.innerHeight) + (mouse.y - 0.5) * 50;
+        const nx = (n.x * W) + (mouse.x - 0.5) * 50;
+        const ny = (n.y * H) + (mouse.y - 0.5) * 50;
         const drift = Math.sin(n.phase + t * n.speed) * 20;
 
         const grad = ctx.createRadialGradient(nx + drift, ny + drift, 0, nx + drift, ny + drift, n.rad);
@@ -91,48 +106,39 @@ export default function StarfieldBg() {
         grad.addColorStop(1, 'transparent');
 
         ctx.fillStyle = grad;
-        ctx.fillRect(0, 0, window.innerWidth, window.innerHeight);
+        ctx.fillRect(0, 0, W, H);
       }
 
-      // 2. Elegant Stars
+      // 2. Elegant Stars — sin shadowBlur (muy costoso en GPU)
+      ctx.shadowBlur = 0;
       for (const s of stars) {
-        s.y -= s.speed; // Floating upwards feels more weightless
+        s.y -= s.speed;
         if (s.y < 0) { s.y = 1; s.x = Math.random(); }
 
         const alpha = s.opacity * (0.6 + 0.4 * Math.sin(s.phase + t * 0.012));
 
-        const offsetX = (mouse.x - 0.5) * s.size * 30;
-        const offsetY = (mouse.y - 0.5) * s.size * 30;
+        const offsetX = mobile ? 0 : (mouse.x - 0.5) * s.size * 30;
+        const offsetY = mobile ? 0 : (mouse.y - 0.5) * s.size * 30;
 
-        const px = s.x * window.innerWidth + offsetX;
-        const py = s.y * window.innerHeight + offsetY;
+        const px = s.x * W + offsetX;
+        const py = s.y * H + offsetY;
 
         ctx.beginPath();
         ctx.arc(px, py, s.size, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(${theme.r},${theme.g},${theme.b},${alpha.toFixed(3)})`;
+        ctx.fillStyle = `rgba(${theme.r},${theme.g},${theme.b},${alpha.toFixed(2)})`;
         ctx.fill();
-
-        // Anti-competition: ensure stars stay dim
-        if (s.size > 1.0) {
-          ctx.shadowBlur = 4;
-          ctx.shadowColor = `rgba(${theme.r},${theme.g},${theme.b},0.1)`;
-        } else {
-          ctx.shadowBlur = 0;
-        }
       }
-
-      raf = requestAnimationFrame(draw);
     };
 
     resize();
     window.addEventListener('resize', resize, { passive: true });
-    window.addEventListener('mousemove', onMouseMove, { passive: true });
-    draw();
+    if (!mobile) window.addEventListener('mousemove', onMouseMove, { passive: true });
+    raf = requestAnimationFrame(draw);
 
     return () => {
       cancelAnimationFrame(raf);
       window.removeEventListener('resize', resize);
-      window.removeEventListener('mousemove', onMouseMove);
+      if (!mobile) window.removeEventListener('mousemove', onMouseMove);
       window.removeEventListener('dan:item-equipped', onThemeChange);
     };
   }, []);

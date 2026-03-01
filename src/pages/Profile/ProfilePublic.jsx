@@ -3,6 +3,7 @@
  * Ruta: /profile/:userId
  */
 import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useParams, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -381,8 +382,28 @@ function ProfileContent({
   hasPendingRequest, requestLoading
 }) {
   const { user } = useAuthContext();
+  const navigate = useNavigate();
   const { nicknameStyle, primaryRole, secondaryRole, mood, ambientSound, isAmbientMuted, toggleAmbientMute } = useUniverse();
   const [isSharing, setIsSharing] = useState(false);
+  const [showFollowModal, setShowFollowModal] = useState(null); // 'followers' | 'following' | null
+  const [followList, setFollowList] = useState([]);
+  const [followListLoading, setFollowListLoading] = useState(false);
+
+  const openFollowList = async (type) => {
+    setShowFollowModal(type);
+    setFollowListLoading(true);
+    setFollowList([]);
+    try {
+      const list = type === 'followers'
+        ? await profileSocialService.getFollowers(userId)
+        : await profileSocialService.getFollowing(userId);
+      setFollowList(list);
+    } catch (err) {
+      console.error('[FollowList]', err);
+    } finally {
+      setFollowListLoading(false);
+    }
+  };
 
   const handleShare = () => {
     const url = window.location.href;
@@ -587,6 +608,18 @@ function ProfileContent({
                   <span className="text-micro opacity-40 uppercase tracking-widest">Racha Social</span>
                   <span className="text-xl font-bold font-mono text-white tracking-tighter">{profile?.streak || 0}D</span>
                 </div>
+                <div className="flex justify-between items-end">
+                  <span className="text-micro opacity-40 uppercase tracking-widest">Seguidores</span>
+                  <button onClick={() => openFollowList('followers')} className="text-xl font-bold font-mono tracking-tighter hover:text-cyan-400 transition-colors">
+                    {followCounts.followers}
+                  </button>
+                </div>
+                <div className="flex justify-between items-end">
+                  <span className="text-micro opacity-40 uppercase tracking-widest">Siguiendo</span>
+                  <button onClick={() => openFollowList('following')} className="text-xl font-bold font-mono tracking-tighter hover:text-cyan-400 transition-colors">
+                    {followCounts.following}
+                  </button>
+                </div>
                 {topGlobalRank !== 'N/A' && (
                   <div className="flex justify-between items-end">
                     <span className="text-micro opacity-40 uppercase tracking-widest">Posición Global</span>
@@ -764,6 +797,47 @@ function ProfileContent({
           </main>
         </div>
       </div>
+
+      {/* Follow List Modal */}
+      {showFollowModal && createPortal(
+        <div className="fixed inset-0 z-[500] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={() => { setShowFollowModal(null); setFollowList([]); }} />
+          <motion.div
+            initial={{ scale: 0.95, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0.95, opacity: 0 }}
+            className="relative w-full max-w-sm bg-[#080810] border border-white/10 rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[70vh]"
+          >
+            <div className="flex items-center justify-between px-5 pt-5 pb-4 border-b border-white/5">
+              <h3 className="text-xs font-black uppercase tracking-[0.3em] text-white/70">
+                {showFollowModal === 'followers' ? 'Seguidores' : 'Siguiendo'}
+              </h3>
+              <button onClick={() => { setShowFollowModal(null); setFollowList([]); }} className="w-7 h-7 flex items-center justify-center rounded-xl bg-white/5 hover:bg-white/10 text-white/40 hover:text-rose-400 transition-all text-sm">✕</button>
+            </div>
+            <div className="overflow-y-auto flex-1 p-3 space-y-1.5">
+              {followListLoading && (
+                <div className="py-8 text-center text-white/20 text-[10px] uppercase tracking-widest">Cargando...</div>
+              )}
+              {!followListLoading && followList.length === 0 && (
+                <div className="py-8 text-center text-white/20 text-[10px] uppercase tracking-widest">
+                  {showFollowModal === 'followers' ? 'Sin seguidores aún' : 'Sin conexiones aún'}
+                </div>
+              )}
+              {followList.map(u => (
+                <button
+                  key={u.id}
+                  onClick={() => { setShowFollowModal(null); setFollowList([]); navigate(`/@${u.username}`); }}
+                  className="w-full flex items-center gap-3 p-3 rounded-2xl bg-white/[0.02] hover:bg-white/[0.06] border border-white/5 transition-all text-left"
+                >
+                  <img src={u.avatar_url || '/default_user_blank.png'} alt={u.username} className="w-9 h-9 rounded-xl object-cover border border-white/10" />
+                  <span className="text-sm font-black text-white/70">@{u.username}</span>
+                </button>
+              ))}
+            </div>
+          </motion.div>
+        </div>,
+        document.body
+      )}
     </div>
   );
 }

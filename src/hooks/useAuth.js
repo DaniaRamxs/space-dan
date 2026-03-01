@@ -194,7 +194,10 @@ export default function useAuth() {
     session,
     user: session?.user ?? null,
     profile,
-    loading: loading || (session?.user ? profileLoading : false),
+    // Solo bloquea hasta saber si hay sesión (lee de localStorage, <5ms).
+    // El perfil llega después en background; las páginas manejan profile===null con skeleton.
+    loading,
+    profileLoading,
     loginWithGoogle,
     loginWithDiscord,
     logout,

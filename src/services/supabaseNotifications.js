@@ -6,13 +6,14 @@ import { supabase } from '../supabaseClient';
  * @param {string} type - 'achievement', 'record', or 'system'.
  * @param {string} message - The content of the notification.
  */
-export async function createNotification(userId, type, message) {
+export async function createNotification(userId, type, message, referenceId = null) {
     if (!userId) return;
     try {
         await supabase.from('notifications').insert({
             user_id: userId,
             type,
-            message
+            message,
+            ...(referenceId && { reference_id: referenceId })
         });
     } catch (err) {
         console.error("Failed to create notification:", err);
@@ -52,6 +53,21 @@ export async function markNotificationAsRead(notificationId) {
     await supabase
         .from('notifications')
         .update({ is_read: true })
+        .eq('id', notificationId)
+        .eq('user_id', session.user.id);
+}
+
+/**
+ * Deletes a notification permanently.
+ * @param {string} notificationId
+ */
+export async function deleteNotification(notificationId) {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.user?.id) return;
+
+    await supabase
+        .from('notifications')
+        .delete()
         .eq('id', notificationId)
         .eq('user_id', session.user.id);
 }

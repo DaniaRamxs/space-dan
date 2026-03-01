@@ -1,5 +1,6 @@
 import { supabase } from '../supabaseClient';
 import { streakService } from './streak';
+import { createNotification } from './supabaseNotifications';
 
 export const profileSocialService = {
     /**
@@ -33,6 +34,18 @@ export const profileSocialService = {
 
             // Racha Estelar al seguir a alguien
             streakService.trackActivity();
+
+            // Notify the followed user
+            supabase
+                .from('profiles')
+                .select('username')
+                .eq('id', user.id)
+                .single()
+                .then(({ data }) => {
+                    const actorName = data?.username || 'Alguien';
+                    createNotification(targetUserId, 'follow', `@${actorName} empezó a seguirte`, user.id);
+                })
+                .catch(() => {});
 
             return { following: true };
         }
@@ -70,6 +83,32 @@ export const profileSocialService = {
             .eq('follower_id', userId);
 
         return { followers: followers || 0, following: following || 0 };
+    },
+
+    /**
+     * Get list of followers for a user.
+     */
+    async getFollowers(userId) {
+        const { data, error } = await supabase
+            .from('follows')
+            .select('follower:profiles!follower_id (id, username, avatar_url)')
+            .eq('following_id', userId)
+            .order('created_at', { ascending: false });
+        if (error) throw error;
+        return (data || []).map(f => f.follower).filter(Boolean);
+    },
+
+    /**
+     * Get list of users a user is following.
+     */
+    async getFollowing(userId) {
+        const { data, error } = await supabase
+            .from('follows')
+            .select('following:profiles!following_id (id, username, avatar_url)')
+            .eq('follower_id', userId)
+            .order('created_at', { ascending: false });
+        if (error) throw error;
+        return (data || []).map(f => f.following).filter(Boolean);
     },
 
     /**

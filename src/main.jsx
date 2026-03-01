@@ -64,17 +64,55 @@ async function initMobileAuth() {
 }
 
 
+// --- Native platform init (status bar, keyboard, splash, back button) ---
+async function initNative() {
+  if (!Capacitor.isNativePlatform()) return;
+
+  try {
+    const { StatusBar, Style } = await import('@capacitor/status-bar');
+    const { Keyboard } = await import('@capacitor/keyboard');
+    const { SplashScreen } = await import('@capacitor/splash-screen');
+    const { App: CapacitorApp } = await import('@capacitor/app');
+
+    // Status bar: dark text/icons, match app background
+    await StatusBar.setStyle({ style: Style.Dark });
+    await StatusBar.setBackgroundColor({ color: '#050510' });
+    await StatusBar.setOverlaysWebView({ overlay: false });
+
+    // Keyboard: resize body so chat inputs aren't covered
+    Keyboard.setResizeMode({ mode: 'body' });
+
+    // Hide splash screen after short delay so app has time to paint
+    setTimeout(() => SplashScreen.hide({ fadeOutDuration: 300 }), 400);
+
+    // Android hardware back button: navigate back or minimize app
+    CapacitorApp.addListener('backButton', ({ canGoBack }) => {
+      if (canGoBack) {
+        window.history.back();
+      } else {
+        CapacitorApp.minimizeApp();
+      }
+    });
+
+  } catch (err) {
+    console.warn('[NativeInit] Error:', err);
+  }
+}
+
 // Inicializar auth solo si estamos en nativo
 if (Capacitor.isNativePlatform()) {
   initMobileAuth();
+  initNative();
 }
 
-// Disable old PWA caches while debugging mobile layout issues.
-if ('serviceWorker' in navigator && !Capacitor.isNativePlatform()) {
-  navigator.serviceWorker.getRegistrations().then((regs) => {
-    regs.forEach((reg) => reg.unregister());
-  });
-}
+// Service Worker habilitado para caché de assets (mejora carga en móvil y PC)
+// Nota: si necesitas depurar layout en móvil, puedes descommentar el bloque de abajo
+// temporalmente, pero NO dejarlo en producción.
+// if ('serviceWorker' in navigator && !Capacitor.isNativePlatform()) {
+//   navigator.serviceWorker.getRegistrations().then((regs) => {
+//     regs.forEach((reg) => reg.unregister());
+//   });
+// }
 
 // Render app
 createRoot(document.getElementById('root')).render(

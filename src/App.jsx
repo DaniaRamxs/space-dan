@@ -185,19 +185,23 @@ function Layout({ children }) {
 
 function AnimatedRoutes() {
   const location = useLocation();
-  const { user, profile, loading } = useAuthContext();
+  const { user, profile, loading, profileLoading } = useAuthContext();
 
-  // Redirección obligatoria a onboarding si no tiene username 
-  // Solo si estamos autenticados y NO estamos ya en la página de onboarding o landing
   const isOnboardingPath = location.pathname === '/onboarding';
   const isLandingPath = location.pathname === '/';
 
-  if (!loading && user && !profile?.username && !isOnboardingPath && !isLandingPath) {
+  // Solo redirigir al onboarding cuando sabemos con certeza que el usuario
+  // no tiene username — esperar a que el perfil termine de cargar para evitar
+  // redirecciones falsas durante el estado intermedio de carga.
+  const shouldRedirectToOnboarding =
+    !loading && !profileLoading && user && !profile?.username && !isOnboardingPath && !isLandingPath;
+
+  if (shouldRedirectToOnboarding) {
     return <Navigate to="/onboarding" replace />;
   }
 
   return (
-    <AnimatePresence mode="wait">
+    <AnimatePresence mode="sync">
       <Routes location={location} key={location.pathname}>
         {/* Onboarding Route */}
         <Route path="/onboarding" element={<Layout><OnboardingPage /></Layout>} />

@@ -13,22 +13,24 @@ export default function ActivityFeed({ userId, filter = 'all', category = null }
         setFeed(prev => prev.map(p => p.id === updatedPost.id ? updatedPost : p));
     }, [setFeed]);
 
-    // Precarga un nuevo post (repost/cita) al principio del feed
+    const isGlobalFeed = !userId;
+
+    // Precarga un nuevo post al principio del feed
     const handleNewPost = useCallback((newPost) => {
         if (!newPost) return;
+        // Los reposts estelares solo aparecen en el feed de perfil, nunca en el global
+        if (isGlobalFeed && newPost.type === 'repost') return;
         setFeed(prev => {
-            // Evitar duplicados si el RPC ya lo retornó
             if (prev.find(p => p.id === newPost.id)) return prev;
             return [newPost, ...prev];
         });
-    }, [setFeed]);
+    }, [setFeed, isGlobalFeed]);
 
     // Escucha posts nuevos emitidos desde el PostComposer (evento global)
     useEffect(() => {
         const onNewPost = (e) => {
             const newPost = e.detail;
             if (!newPost) return;
-            // Enriquecer con metadata vacía para que ReactionsBar no crashee
             const enriched = {
                 ...newPost,
                 reactions_metadata: newPost.reactions_metadata || { total_count: 0, top_reactions: [], user_reaction: null },

@@ -11,8 +11,13 @@ const CURSOR_PALETTES = {
   cursor_white: () => Math.random() > 0.4 ? '#f0f0f0' : '#c0c0c0',
 };
 
+const isTouch = typeof window !== 'undefined' && ('ontouchstart' in window || navigator.maxTouchPoints > 0);
+
 export default function CursorTrail() {
   const { profile, user } = useAuthContext();
+
+  // En móvil/touch no hay cursor, no tiene sentido el trail
+  if (isTouch) return null;
   const [equippedItem, setEquippedItem] = useState('default');
   const equippedRef = useRef('default');
 

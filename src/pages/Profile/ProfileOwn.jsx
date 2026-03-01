@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { useAuthContext } from '../../contexts/AuthContext';
 import { useEconomy } from '../../contexts/EconomyContext';
 import ActivityFeed from '../../components/Social/ActivityFeed';
@@ -771,6 +772,9 @@ export default function ProfileOwn() {
   const [activityFilter, setActivityFilter] = useState('all');
   const [posts, setPosts] = useState([]);
   const [followCounts, setFollowCounts] = useState({ followers: 0, following: 0 });
+  const [showFollowModal, setShowFollowModal] = useState(null); // 'followers' | 'following' | null
+  const [followList, setFollowList] = useState([]);
+  const [followListLoading, setFollowListLoading] = useState(false);
   const [comments, setComments] = useState([]);
   const [newComment, setNewComment] = useState('');
   const [submittingComment, setSubmittingComment] = useState(false);
@@ -891,6 +895,22 @@ export default function ProfileOwn() {
       setComments(prev => prev.filter(c => c.id !== commentId));
     } catch (err) {
       alert('Error al eliminar comentario');
+    }
+  };
+
+  const openFollowList = async (type) => {
+    setShowFollowModal(type);
+    setFollowListLoading(true);
+    setFollowList([]);
+    try {
+      const list = type === 'followers'
+        ? await profileSocialService.getFollowers(user.id)
+        : await profileSocialService.getFollowing(user.id);
+      setFollowList(list);
+    } catch (err) {
+      console.error('[FollowList]', err);
+    } finally {
+      setFollowListLoading(false);
     }
   };
 
@@ -1085,6 +1105,18 @@ export default function ProfileOwn() {
                   <span className="text-micro opacity-40 uppercase tracking-widest">Racha Social</span>
                   <span className="text-xl font-bold font-mono text-white tracking-tighter">{profile?.streak || 0}D</span>
                 </div>
+                <div className="flex justify-between items-end">
+                  <span className="text-micro opacity-40 uppercase tracking-widest">Seguidores</span>
+                  <button onClick={() => openFollowList('followers')} className="text-xl font-bold font-mono tracking-tighter hover:text-cyan-400 transition-colors">
+                    {followCounts.followers}
+                  </button>
+                </div>
+                <div className="flex justify-between items-end">
+                  <span className="text-micro opacity-40 uppercase tracking-widest">Siguiendo</span>
+                  <button onClick={() => openFollowList('following')} className="text-xl font-bold font-mono tracking-tighter hover:text-cyan-400 transition-colors">
+                    {followCounts.following}
+                  </button>
+                </div>
                 <div className="space-y-2 pt-2">
                   <div className="flex justify-between text-[9px] font-mono opacity-20 uppercase tracking-widest">
                     <span>Progreso</span>
@@ -1232,6 +1264,46 @@ export default function ProfileOwn() {
           </main>
         </div>
       </div>
+
+      {/* Follow List Modal */}
+      {showFollowModal && createPortal(
+        <div className="fixed inset-0 z-[500] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={() => { setShowFollowModal(null); setFollowList([]); }} />
+          <motion.div
+            initial={{ scale: 0.95, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            className="relative w-full max-w-sm bg-[#080810] border border-white/10 rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[70vh]"
+          >
+            <div className="flex items-center justify-between px-5 pt-5 pb-4 border-b border-white/5">
+              <h3 className="text-xs font-black uppercase tracking-[0.3em] text-white/70">
+                {showFollowModal === 'followers' ? 'Seguidores' : 'Siguiendo'}
+              </h3>
+              <button onClick={() => { setShowFollowModal(null); setFollowList([]); }} className="w-7 h-7 flex items-center justify-center rounded-xl bg-white/5 hover:bg-white/10 text-white/40 hover:text-rose-400 transition-all text-sm">✕</button>
+            </div>
+            <div className="overflow-y-auto flex-1 p-3 space-y-1.5">
+              {followListLoading && (
+                <div className="py-8 text-center text-white/20 text-[10px] uppercase tracking-widest">Cargando...</div>
+              )}
+              {!followListLoading && followList.length === 0 && (
+                <div className="py-8 text-center text-white/20 text-[10px] uppercase tracking-widest">
+                  {showFollowModal === 'followers' ? 'Sin seguidores aún' : 'Sin conexiones aún'}
+                </div>
+              )}
+              {followList.map(u => (
+                <button
+                  key={u.id}
+                  onClick={() => { setShowFollowModal(null); setFollowList([]); navigate(`/@${u.username}`); }}
+                  className="w-full flex items-center gap-3 p-3 rounded-2xl bg-white/[0.02] hover:bg-white/[0.06] border border-white/5 transition-all text-left"
+                >
+                  <img src={u.avatar_url || '/default_user_blank.png'} alt={u.username} className="w-9 h-9 rounded-xl object-cover border border-white/10" />
+                  <span className="text-sm font-black text-white/70">@{u.username}</span>
+                </button>
+              ))}
+            </div>
+          </motion.div>
+        </div>,
+        document.body
+      )}
     </div>
   );
 }

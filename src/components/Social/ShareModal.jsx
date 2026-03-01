@@ -2,6 +2,7 @@ import React, { useState, useEffect, memo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { activityService } from '../../services/activityService';
 import { useAuthContext } from '../../contexts/AuthContext';
+import { createNotification } from '../../services/supabaseNotifications';
 
 /**
  * ShareModal — permite Repostear (un clic) o Citar (con texto) un post de activity.
@@ -12,7 +13,7 @@ import { useAuthContext } from '../../contexts/AuthContext';
  *   onSuccess: (newPost) => void — callback cuando se crea el repost/quote
  */
 const ShareModal = memo(({ isOpen, onClose, post, onSuccess, initialMode = 'repost' }) => {
-    const { user } = useAuthContext();
+    const { user, profile } = useAuthContext();
     const [mode, setMode] = useState(initialMode); // 'repost' | 'quote'
 
     // Sync mode when modal opens with a different initialMode
@@ -63,6 +64,28 @@ const ShareModal = memo(({ isOpen, onClose, post, onSuccess, initialMode = 'repo
             };
 
             if (onSuccess) onSuccess(enrichedPost);
+
+            // Notificar al autor original (no a uno mismo)
+            if (post.author_id && post.author_id !== user.id) {
+                const actorName = profile?.username || 'Alguien';
+                const postRef = post.title ? `"${post.title.slice(0, 40)}"` : 'tu transmisión';
+                if (mode === 'repost') {
+                    createNotification(
+                        post.author_id,
+                        'repost',
+                        `@${actorName} hizo un Reposteo Estelar de ${postRef}`,
+                        post.id
+                    );
+                } else if (mode === 'quote') {
+                    createNotification(
+                        post.author_id,
+                        'quote',
+                        `@${actorName} citó ${postRef}: "${quoteText.slice(0, 60)}${quoteText.length > 60 ? '…' : ''}"`,
+                        post.id
+                    );
+                }
+            }
+
             handleClose();
         } catch (err) {
             console.error('[ShareModal] Error:', err);
@@ -177,7 +200,7 @@ const ShareModal = memo(({ isOpen, onClose, post, onSuccess, initialMode = 'repo
                         {/* Mensaje modo repost */}
                         {mode === 'repost' && (
                             <p className="text-[10px] text-white/30 text-center uppercase tracking-widest">
-                                Esta transmisión aparecerá en tu perfil y en el feed global
+                                Aparecerá en tu actividad de perfil · no en el feed global
                             </p>
                         )}
 

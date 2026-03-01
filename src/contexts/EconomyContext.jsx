@@ -59,7 +59,8 @@ export function EconomyProvider({ children }) {
 
     async function init() {
       setLoading(true);
-      await economyService.migrateLegacyCoins(user.id).catch(() => { });
+      // Migración en background: no bloquea la carga del balance
+      economyService.migrateLegacyCoins(user.id).catch(() => { });
       await refreshEconomy();
       setLoading(false);
     }

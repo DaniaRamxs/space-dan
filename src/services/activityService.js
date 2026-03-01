@@ -42,8 +42,12 @@ export const activityService = {
         if (targetUserId) {
             query = query.eq('author_id', targetUserId);
             if (filter === 'all') {
+                // En el perfil sí se ven reposts, quotes y posts propios
                 query = query.in('type', ['post', 'repost', 'quote']);
             }
+        } else {
+            // Feed global: los reposts estelares solo se ven en el perfil del autor, nunca aquí
+            query = query.neq('type', 'repost');
         }
 
         // Filtrar por tipo (si no es 'all' o si no estamos en feed de perfil)

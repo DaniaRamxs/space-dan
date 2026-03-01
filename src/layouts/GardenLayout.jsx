@@ -14,7 +14,7 @@ import useAuth from '../hooks/useAuth';
 import { useRef } from 'react';
 
 const PERSONAL_PATHS = ['/kinnies', '/tests', '/universo', '/dreamscape'];
-const FIXED_LAYOUT_PATHS = ['/cartas', '/cabina', '/desktop'];
+const FIXED_LAYOUT_PATHS = ['/cartas', '/cabina', '/desktop', '/chat'];
 
 export default function GardenLayout({ children }) {
   const { user, profile: ownProfile } = useAuth();

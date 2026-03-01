@@ -7,6 +7,23 @@ export default defineConfig(({ mode }) => {
 
   return {
     plugins: [react()],
+    build: {
+      // Reducir warnings de chunk size
+      chunkSizeWarningLimit: 800,
+      rollupOptions: {
+        output: {
+          // Separar vendors grandes en chunks propios para mejor caché
+          manualChunks: {
+            'react-core':    ['react', 'react-dom', 'react-router-dom'],
+            'framer':        ['framer-motion'],
+            'supabase':      ['@supabase/supabase-js'],
+            'livekit':       ['livekit-client', '@livekit/components-react'],
+            'giphy':         ['@giphy/js-fetch-api', '@giphy/react-components'],
+            'markdown':      ['react-markdown', 'remark-gfm', 'rehype-raw', 'rehype-sanitize'],
+          },
+        },
+      },
+    },
     server: {
       port: 5173,
       strictPort: true,

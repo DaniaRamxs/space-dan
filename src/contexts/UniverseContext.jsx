@@ -1,11 +1,11 @@
 import React, { createContext, useContext, useState, useEffect } from 'react'; // System identity system v3.0
 import { supabase } from '../supabaseClient';
-import useAuth from '../hooks/useAuth';
+import { useAuthContext } from './AuthContext';
 
 const UniverseContext = createContext();
 
 export const UniverseProvider = ({ children, overrideProfile = null }) => {
-    const { user, profile: authProfile } = useAuth();
+    const { user, profile: authProfile } = useAuthContext();
     const profile = overrideProfile || authProfile;
     const [themeConfig, setThemeConfig] = useState(null);
     const [isAmbientMuted, setIsAmbientMuted] = useState(() => {
