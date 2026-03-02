@@ -109,7 +109,7 @@ export default function GardenLayout({ children }) {
 
       {dailyFlash && (
         <div className="dailyBonusToast">
-          🎁 ¡+30 Dancoins! Bonus diario
+          🎁 ¡+30 Starlys! Bonus diario
         </div>
       )}
 
@@ -129,7 +129,7 @@ export default function GardenLayout({ children }) {
         </NavLink>
         <NavLink to="/profile" className={({ isActive }) => `mobileNavLink ${isActive ? 'active' : ''}`}>
           <span className="mobileNavIcon">👤</span>
-          <span className="mobileNavLabel">DreamSpace</span>
+          <span className="mobileNavLabel">Perfil</span>
         </NavLink>
         <button
           onClick={() => setMobileMenuOpen(true)}
@@ -184,7 +184,7 @@ export default function GardenLayout({ children }) {
                 className="hubStats"
               >
                 <div className="hubStatItem">
-                  <span className="hubStatLabel">Dancoins</span>
+                  <span className="hubStatLabel">Starlys</span>
                   <span className="hubStatValue text-amber-400">◈ {balance}</span>
                 </div>
               </motion.div>
@@ -207,7 +207,6 @@ export default function GardenLayout({ children }) {
                   { to: '/guestbook', icon: '📖', label: 'Libro' },
                   { to: '/arquitectura', icon: '🏗️', label: 'Arquitectura' },
                   !isNative && { to: '/desktop', icon: '💻', label: 'Desktop' },
-                  { to: '/dan', icon: '👤', label: 'Sobre Dan' },
                 ].filter(Boolean).map((item) => (
                   <motion.div
                     key={item.to}

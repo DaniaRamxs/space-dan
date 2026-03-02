@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import useAchievements, { ACHIEVEMENTS, unlockAchievement } from '../hooks/useAchievements';
-import { trackPageVisit } from '../hooks/useDancoins';
+import { trackPageVisit } from '../hooks/useStarlys';
 import { useEconomy } from '../contexts/EconomyContext';
 
 export default function AchievementsPage() {

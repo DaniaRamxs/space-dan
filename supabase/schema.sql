@@ -102,7 +102,7 @@ INSERT INTO public.achievements (id, icon, title, description, coins) VALUES
   ('capsule_opener',    '⏳', 'Viajero del Tiempo', 'Visita la cápsula del tiempo',                 30),
   ('secret_finder',     '🔮', 'Secreto Desvelado',  'Encuentra la página secreta',                  100),
   ('shopper',           '🛍️', 'De Compras',         'Compra algo en la tienda',                     25),
-  ('rich',              '💰', 'Dan-Rico/a',         'Acumula 500 Dancoins',                         0),
+  ('rich',              '💰', 'Dan-Rico/a',         'Acumula 500 Starlys',                         0),
   ('os_user',           '🖥️', 'Usuario del OS',     'Abre una ventana en el OS Desktop',            20),
   ('os_hacker',         '💀', 'Hacker',             'Escribe un comando en la terminal del OS',     30),
   ('os_multitask',      '🪟', 'Multitarea',         'Abre 5 ventanas a la vez en el OS',            50),

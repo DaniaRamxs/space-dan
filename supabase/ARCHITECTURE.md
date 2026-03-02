@@ -122,10 +122,10 @@ Cuando el usuario inicia sesión por primera vez con el nuevo sistema,
 
 El servidor tiene una salvaguarda: solo se puede llamar una vez por usuario.
 
-### Fase 3: Actualizar componentes que usan useDancoins
+### Fase 3: Actualizar componentes que usan useStarlys
 Búsqueda y reemplazo gradual:
 ```
-useDancoins()      →  useEconomy()
+useStarlys()      →  useEconomy()
 awardCoins(amt)    →  economy.awardCoins(amt, 'game_reward')
 spend(amt)         →  purchaseItem() via store service
 ```
@@ -145,7 +145,7 @@ const items = await getStoreItems();  // desde services/store.js
 src/
 ├── contexts/
 │   ├── AuthContext.jsx          ✅ existente
-│   └── EconomyContext.jsx       🆕 NUEVO — reemplaza useDancoins localStorage
+│   └── EconomyContext.jsx       🆕 NUEVO — reemplaza useStarlys localStorage
 │
 ├── services/                   🆕 NUEVO (capa de datos)
 │   ├── supabaseNotifications.js ✅ existente
@@ -389,8 +389,8 @@ Implementación: una función `distribute_fund_rewards()` que se ejecuta al comp
 
 ### Largo plazo
 - [ ] Multi-tenant si el proyecto crece a otros usuarios/comunidades
-- [ ] API pública de Dancoins (con rate limiting por API key)
-- [ ] Integración con webhooks externos (Twitch bits → Dancoins, etc.)
+- [ ] API pública de Starlys (con rate limiting por API key)
+- [ ] Integración con webhooks externos (Twitch bits → Starlys, etc.)
 
 ---
 

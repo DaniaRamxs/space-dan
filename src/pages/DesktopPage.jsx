@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useCallback, useMemo, lazy, Suspense } fro
 import { Link, useNavigate } from 'react-router-dom';
 import { MUSIC_PLAYLIST } from '../data/musicPlaylist';
 import { unlockAchievement } from '../hooks/useAchievements';
-import { awardCoins } from '../hooks/useDancoins';
+import { awardCoins } from '../hooks/useStarlys';
 
 // ─── OS ARCADE — lazy game components ──────────────────────────
 const OSSnake = lazy(() => import('../components/SnakeGame'));
@@ -834,7 +834,6 @@ function DraggableWindow({ type, title, icon, initialPos, isActive, isMinimized,
 
 // ─── START MENU ──────────────────────────────────────────────
 const START_LINKS = [
-    { icon: '👤', label: 'Sobre Dan', to: '/dan' },
     { icon: '📰', label: 'Noticias', to: '/bulletin' },
     { icon: '✍️', label: 'Posts', to: '/posts' },
     { icon: '🎧', label: 'Música', to: '/music' },

@@ -11,7 +11,7 @@ export default function GlobalChatPage() {
         <main className={`w-full max-w-4xl mx-auto text-white font-sans flex flex-col overflow-hidden
             ${isNative
                 ? 'h-full pt-0 px-0'
-                : 'h-full pt-4 md:pt-8 px-0 md:px-4'
+                : 'h-[calc(100vh-120px)] pt-4 md:pt-8 px-0 md:px-4'
             }`}
         >
             {/* Botón de vuelta — solo en web */}

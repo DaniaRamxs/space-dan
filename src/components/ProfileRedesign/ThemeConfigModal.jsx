@@ -18,6 +18,7 @@ export const ThemeConfigModal = ({ isOpen, onClose, userId, currentTheme, curren
     const [bio, setBio] = useState(currentProfile?.bio || '');
     const [saving, setSaving] = useState(false);
     const [uploadingGallery, setUploadingGallery] = useState(false);
+    const [uploadingBanner, setUploadingBanner] = useState(false);
 
     // Giphy State
     const [showGiphy, setShowGiphy] = useState(false);
@@ -108,6 +109,44 @@ export const ThemeConfigModal = ({ isOpen, onClose, userId, currentTheme, curren
         } finally {
             setUploadingGallery(false);
             if (fileInputRef.current) fileInputRef.current.value = '';
+        }
+    };
+
+    const handleBannerUpload = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        // Limite basico de tamaño (ej. 5MB)
+        if (file.size > 5 * 1024 * 1024) {
+            alert('El archivo es demasiado grande. El máximo es 5MB.');
+            return;
+        }
+
+        setUploadingBanner(true);
+        try {
+            const fileExt = file.name.split('.').pop();
+            const fileName = `${userId}-banner-${Math.random().toString(36).substring(2)}.${fileExt}`;
+            const filePath = `banners/${fileName}`;
+
+            const { data: uploadData, error: uploadError } = await supabase.storage
+                .from('avatars')
+                .upload(filePath, file, { cacheControl: '3600', upsert: true });
+
+            if (uploadError) throw uploadError;
+
+            const { data: publicData } = supabase.storage
+                .from('avatars')
+                .getPublicUrl(filePath);
+
+            const publicUrl = publicData.publicUrl;
+
+            setTheme({ ...theme, background_url: publicUrl });
+        } catch (err) {
+            console.error('[BannerUpload] Error:', err);
+            alert('No se pudo subir el banner.');
+        } finally {
+            setUploadingBanner(false);
+            e.target.value = '';
         }
     };
 
@@ -317,27 +356,63 @@ export const ThemeConfigModal = ({ isOpen, onClose, userId, currentTheme, curren
                         </div>
                     </section>
 
-                    {/* Colors */}
+                    {/* Page Background */}
                     <section className="space-y-6">
                         <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-violet-400 italic flex items-center gap-2">
                             <span className="w-1.5 h-1.5 rounded-full bg-violet-500 shadow-[0_0_10px_rgba(139,92,246,1)]" />
-                            Radiación Temática
+                            Fondo de la Página
                         </h3>
-                        <div className="grid grid-cols-2 gap-6">
-                            <div className="space-y-2">
-                                <label className="text-[9px] font-bold text-white/20 uppercase">Aura Primaria</label>
-                                <div className="flex gap-3 items-center">
-                                    <input type="color" value={theme.primary_color || '#06b6d4'} onChange={e => setTheme({ ...theme, primary_color: e.target.value })} className="w-12 h-12 bg-transparent border-none cursor-pointer rounded-lg" />
-                                    <span className="text-[10px] font-mono text-white/40">{theme.primary_color || '#06b6d4'}</span>
-                                </div>
+                        <div className="space-y-2">
+                            <label className="text-[9px] font-bold text-white/20 uppercase">Color de Fondo (RGB Palette)</label>
+                            <div className="flex gap-3 items-center">
+                                <input type="color" value={theme.primary_color || '#0a0a0f'} onChange={e => setTheme({ ...theme, primary_color: e.target.value })} className="w-12 h-12 bg-transparent border-none cursor-pointer rounded-lg" />
+                                <span className="text-[10px] font-mono text-white/40">{theme.primary_color || '#0a0a0f'}</span>
                             </div>
-                            <div className="space-y-2">
-                                <label className="text-[9px] font-bold text-white/20 uppercase">Aura Secundaria</label>
-                                <div className="flex gap-3 items-center">
-                                    <input type="color" value={theme.secondary_color || '#8b5cf6'} onChange={e => setTheme({ ...theme, secondary_color: e.target.value })} className="w-12 h-12 bg-transparent border-none cursor-pointer rounded-lg" />
-                                    <span className="text-[10px] font-mono text-white/40">{theme.secondary_color || '#8b5cf6'}</span>
+                        </div>
+                    </section>
+
+                    {/* Banner Upload */}
+                    <section className="space-y-6">
+                        <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-violet-400 italic flex items-center gap-2">
+                            <span className="w-1.5 h-1.5 rounded-full bg-violet-500 shadow-[0_0_10px_rgba(139,92,246,1)]" />
+                            Banner de Cabecera
+                        </h3>
+                        <div className="space-y-4">
+                            {theme.background_url ? (
+                                <div className="relative w-full h-32 sm:h-40 rounded-[2rem] overflow-hidden border border-white/10 group shadow-lg">
+                                    <img src={theme.background_url} className="w-full h-full object-cover" alt="Banner" />
+                                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-all flex items-center justify-center backdrop-blur-sm">
+                                        <button
+                                            onClick={() => setTheme({ ...theme, background_url: null })}
+                                            className="px-6 py-3 bg-red-500/20 border border-red-500/40 text-red-400 rounded-xl font-black uppercase tracking-widest text-[10px] hover:bg-red-500/40 hover:text-white transition-colors"
+                                        >
+                                            ✕ Eliminar Banner
+                                        </button>
+                                    </div>
                                 </div>
-                            </div>
+                            ) : (
+                                <label className="w-full h-32 sm:h-40 rounded-[2rem] border-2 border-dashed border-white/10 flex flex-col items-center justify-center text-white/20 hover:text-white/60 hover:border-violet-500/40 hover:bg-violet-500/5 transition-all cursor-pointer group">
+                                    {uploadingBanner ? (
+                                        <div className="flex flex-col items-center gap-2">
+                                            <span className="w-6 h-6 border-2 border-violet-500 border-t-transparent rounded-full animate-spin"></span>
+                                            <span className="text-[9px] font-black uppercase tracking-widest text-violet-400">Subiendo...</span>
+                                        </div>
+                                    ) : (
+                                        <>
+                                            <span className="text-3xl font-black mb-2 group-hover:scale-110 transition-transform group-hover:text-violet-400">+</span>
+                                            <span className="text-[9px] font-black uppercase tracking-[0.2em]">Subir Imagen o GIF</span>
+                                            <span className="text-[7px] text-white/30 uppercase tracking-widest mt-1">Sugerido: 1200x400 (Max 5MB)</span>
+                                        </>
+                                    )}
+                                    <input
+                                        type="file"
+                                        accept="image/png, image/jpeg, image/gif, image/webp"
+                                        className="hidden"
+                                        onChange={handleBannerUpload}
+                                        disabled={uploadingBanner}
+                                    />
+                                </label>
+                            )}
                         </div>
                     </section>
 
@@ -349,7 +424,7 @@ export const ThemeConfigModal = ({ isOpen, onClose, userId, currentTheme, curren
                         </h3>
                         <div className="grid grid-cols-1 gap-6">
                             {[
-                                { id: 'stats', label: 'Eficacia Estelar', desc: 'Métricas de nivel, dancoins y racha.' },
+                                { id: 'stats', label: 'Eficacia Estelar', desc: 'Métricas de nivel, starlys y racha.' },
                                 { id: 'thought', label: 'Pensamientos rápidos', desc: 'Tu frase inspiradora del día.' },
                                 { id: 'about', label: 'Sobre Mí / Bio', desc: 'Tu historia galáctica personalizada.' },
                                 { id: 'interests', label: 'Lo que me gusta / No me gusta', desc: 'Tus frecuencias de atracción y repulsión.' },
@@ -491,7 +566,7 @@ export const ThemeConfigModal = ({ isOpen, onClose, userId, currentTheme, curren
                         disabled={saving}
                         className="flex-[2] py-4 bg-white text-black text-[10px] font-black uppercase tracking-widest rounded-[1.5rem] hover:bg-cyan-400 hover:scale-[1.02] active:scale-95 transition-all shadow-xl disabled:opacity-50"
                     >
-                        {saving ? 'Sincronizando...' : 'Actualizar DreamSpace'}
+                        {saving ? 'Sincronizando...' : 'Actualizar Perfil Estelar'}
                     </button>
                 </div>
             </motion.div>

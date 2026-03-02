@@ -61,7 +61,14 @@ export const SpotifyBlock = ({ userId, isOwn }) => {
                     Conecta tu cuenta para mostrar tu música favorita y lo que escuchas ahora.
                 </p>
                 <button
-                    onClick={async () => window.location.href = await spotifyService.getAuthUrl()}
+                    onClick={async () => {
+                        try {
+                            const url = await spotifyService.getAuthUrl();
+                            window.location.href = url;
+                        } catch (err) {
+                            alert(err.message || 'Error al conectar con Spotify.');
+                        }
+                    }}
                     className="px-8 py-3 rounded-2xl bg-[#1DB954] text-black text-[12px] font-black uppercase tracking-widest hover:scale-105 transition-all shadow-xl"
                 >
                     Conectar Spotify

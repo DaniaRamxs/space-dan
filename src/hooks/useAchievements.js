@@ -17,7 +17,7 @@ export const ACHIEVEMENTS = [
   { id: 'capsule_opener', icon: '⏳', title: 'Viajero del Tiempo', desc: 'Visita la cápsula del tiempo', coins: 30 },
   { id: 'secret_finder', icon: '🔮', title: 'Secreto Desvelado', desc: 'Encuentra la página secreta', coins: 100 },
   { id: 'shopper', icon: '🛍️', title: 'De Compras', desc: 'Compra algo en la tienda', coins: 25 },
-  { id: 'rich', icon: '💰', title: 'Dan-Rico/a', desc: 'Acumula 500 Dancoins', coins: 0 },
+  { id: 'rich', icon: '💰', title: 'Dan-Rico/a', desc: 'Acumula 500 Starlys', coins: 0 },
   { id: 'os_user', icon: '🖥️', title: 'Usuario del OS', desc: 'Abre una ventana en el OS Desktop', coins: 20 },
   { id: 'os_hacker', icon: '💀', title: 'Hacker', desc: 'Escribe un comando en la terminal del OS', coins: 30 },
   { id: 'os_multitask', icon: '🪟', title: 'Multitarea', desc: 'Abre 5 ventanas a la vez en el OS', coins: 50 },

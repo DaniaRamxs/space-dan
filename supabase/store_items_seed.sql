@@ -144,7 +144,7 @@ VALUES
 ('pet_cape_hero',    'pet_accessory', 'Capa Héroe',     'Con gran poder, etc.',                200, 'epic',      '🦸',
  '{"slot": "body", "svg_id": "cape_hero"}', 85),
 
-('pet_wand',         'pet_accessory', 'Varita Mágica',  'Hace POOF y aparecen Dancoins',       120, 'rare',      '🪄',
+('pet_wand',         'pet_accessory', 'Varita Mágica',  'Hace POOF y aparecen Starlys',       120, 'rare',      '🪄',
  '{"slot": "hand", "svg_id": "wand"}', 86),
 
 ('pet_laptop',       'pet_accessory', 'Laptop',         'La mascota también trabaja',           150, 'rare',      '💻',
@@ -172,7 +172,7 @@ VALUES (
   'El primer fondo comunitario de space-dan. ¡Colabora para desbloquear una recompensa global para todos!',
   5000,
   'proportional',   -- Más justo: quien más dona, más recibe
-  200,              -- Cada contribuidor recibe hasta 200 Dancoins proporcional a su donación
+  200,              -- Cada contribuidor recibe hasta 200 Starlys proporcional a su donación
   'active'
 )
 ON CONFLICT DO NOTHING;

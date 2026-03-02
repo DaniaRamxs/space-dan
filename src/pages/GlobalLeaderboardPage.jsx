@@ -12,7 +12,7 @@ import '../styles/NicknameStyles.css';
 
 const TABS = [
   { id: 'competitive', label: 'Temporada', icon: <Trophy size={14} />, desc: 'Clasificación de riqueza en la temporada actual' },
-  { id: 'wealth', label: 'Riqueza', icon: <Coins size={14} />, desc: 'Balance actual de Dancoins en circulación' },
+  { id: 'wealth', label: 'Riqueza', icon: <Coins size={14} />, desc: 'Balance actual de Starlys en circulación' },
   { id: 'games', label: 'Juegos', icon: <Zap size={14} />, desc: 'Suma de mejores puntajes en todos los sectores' },
   { id: 'streaks', label: 'Racha', icon: <BarChart3 size={14} />, desc: 'Días consecutivos de actividad sincronizada' },
   { id: 'focus', label: 'Enfoque', icon: <Target size={14} />, desc: 'Tiempo de concentración en la cabina espacial' },

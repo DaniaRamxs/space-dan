@@ -1,6 +1,6 @@
 -- ============================================================
 -- space-dan :: Economy System
--- Dancoins, Wallet, Transactions, Transfers, Store,
+-- Starlys, Wallet, Transactions, Transfers, Store,
 -- Pet Loadouts, Community Fund, Leaderboard Extensions
 -- ============================================================
 -- ORDEN DE EJECUCIÓN: Ejecutar después de schema.sql
@@ -401,11 +401,11 @@ BEGIN
   END IF;
 
   IF p_amount < v_MIN_TRANSFER THEN
-    RAISE EXCEPTION 'Monto mínimo de transferencia: % Dancoins', v_MIN_TRANSFER;
+    RAISE EXCEPTION 'Monto mínimo de transferencia: % Starlys', v_MIN_TRANSFER;
   END IF;
 
   IF p_amount > v_MAX_TRANSFER THEN
-    RAISE EXCEPTION 'Monto máximo de transferencia: % Dancoins', v_MAX_TRANSFER;
+    RAISE EXCEPTION 'Monto máximo de transferencia: % Starlys', v_MAX_TRANSFER;
   END IF;
 
   IF p_message IS NOT NULL AND char_length(p_message) > 120 THEN

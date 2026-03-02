@@ -1,6 +1,6 @@
 /**
  * economy.js
- * Capa de servicio para todas las operaciones económicas de Dancoins.
+ * Capa de servicio para todas las operaciones económicas de Starlys.
  * TODO el acceso al balance pasa por aquí — NUNCA modificar profiles.balance directamente.
  */
 import { supabase } from '../supabaseClient';
@@ -81,7 +81,7 @@ export async function claimDailyBonus(userId) {
 // ─────────────────────────────────────────────────────────────
 
 /**
- * Transfiere Dancoins a otro usuario.
+ * Transfiere Starlys a otro usuario.
  * El servidor aplica comisión (5%), rate limiting y validaciones.
  * @param {string} fromUserId
  * @param {string} toUserId

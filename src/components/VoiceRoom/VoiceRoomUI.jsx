@@ -23,7 +23,7 @@ const leaveSound = new Audio('https://assets.mixkit.co/active_storage/sfx/2571/2
 joinSound.volume = 0.2;
 leaveSound.volume = 0.2;
 
-export default function VoiceRoomUI({ roomName, onLeave, onConnected, userAvatar, nicknameStyle, frameId, isOpen, onMinimize, onExpand }) {
+export default function VoiceRoomUI({ roomName, onLeave, onConnected, userAvatar, nicknameStyle, frameId, isOpen, onMinimize, onExpand, userName }) {
     const [token, setToken] = useState(null);
     const [connecting, setConnecting] = useState(true);
     const [error, setError] = useState(null);
@@ -45,7 +45,7 @@ export default function VoiceRoomUI({ roomName, onLeave, onConnected, userAvatar
         const fetchToken = async () => {
             try {
                 const { data: { session } } = await supabase.auth.getSession();
-                const participantName = session?.user?.user_metadata?.username || 'Explorador';
+                const participantName = userName || session?.user?.user_metadata?.username || 'Anónimo';
                 const { data, error: fnError } = await supabase.functions.invoke('livekit-token', {
                     body: { roomName, participantName, userAvatar, nicknameStyle, frameId }
                 });
@@ -66,12 +66,12 @@ export default function VoiceRoomUI({ roomName, onLeave, onConnected, userAvatar
     useEffect(() => {
         if (!token) return;
         if (Capacitor.isNativePlatform()) {
-            VoiceServicePlugin.start().catch(() => {});
+            VoiceServicePlugin.start().catch(() => { });
         }
         window.dispatchEvent(new CustomEvent('voice:connect'));
         return () => {
             if (Capacitor.isNativePlatform()) {
-                VoiceServicePlugin.stop().catch(() => {});
+                VoiceServicePlugin.stop().catch(() => { });
             }
             window.dispatchEvent(new CustomEvent('voice:disconnect'));
         };

@@ -157,17 +157,25 @@ p {
   line-height: 1.7;
 }
 
-/* ---------- Cursor personalizado ---------- */
-body,
+/* ---------- Cursor personalizado (temática espacial) ---------- */
+body {
+  cursor: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='18' height='22' viewBox='0 0 18 22'><path d='M2 1L2 17L6 12L9 20L12 19L9 11L15 11Z' fill='%2300e5ff' stroke='%23002233' stroke-width='1' stroke-linejoin='round'/></svg>") 2 1, default;
+}
+
 a,
 button,
 [role="button"] {
-  cursor: url("/mc-cursor.png") 0 0, auto;
+  cursor: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'><circle cx='12' cy='12' r='7' stroke='%2300e5ff' stroke-width='1.5' fill='none'/><circle cx='12' cy='12' r='1.5' fill='%2300e5ff'/><line x1='12' y1='0' x2='12' y2='4' stroke='%2300e5ff' stroke-width='1.5' stroke-linecap='round'/><line x1='12' y1='20' x2='12' y2='24' stroke='%2300e5ff' stroke-width='1.5' stroke-linecap='round'/><line x1='0' y1='12' x2='4' y2='12' stroke='%2300e5ff' stroke-width='1.5' stroke-linecap='round'/><line x1='20' y1='12' x2='24' y2='12' stroke='%2300e5ff' stroke-width='1.5' stroke-linecap='round'/></svg>") 12 12, pointer;
 }
 
 a,
 button {
-  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: color 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+              background-color 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+              border-color 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+              opacity 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+              transform 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+              box-shadow 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 input[type="password"],
@@ -5915,11 +5923,11 @@ textarea,
 }
 
 /* =============================================
-   GAME SYSTEM — Dancoins, Logros, Tienda, Radio, Screensaver, LastFM
+   GAME SYSTEM — Starlys, Logros, Tienda, Radio, Screensaver, LastFM
    ============================================= */
 
-/* ── Dancoins widget (sidebar) ─────────────────────────────────── */
-.dancoinsWidget {
+/* ── Starlys widget (sidebar) ─────────────────────────────────── */
+.starlysWidget {
   display: flex;
   align-items: center;
   gap: 6px;
@@ -5932,11 +5940,11 @@ textarea,
   transition: all 0.3s ease;
 }
 
-.dancoinsWidget.flash {
-  animation: dancoinsFlash 0.5s ease 3;
+.starlysWidget.flash {
+  animation: starlysFlash 0.5s ease 3;
 }
 
-@keyframes dancoinsFlash {
+@keyframes starlysFlash {
 
   0%,
   100% {
@@ -5949,18 +5957,18 @@ textarea,
   }
 }
 
-.dancoinsIcon {
+.starlysIcon {
   font-size: 14px;
   color: var(--accent);
 }
 
-.dancoinsAmount {
+.starlysAmount {
   font-weight: 700;
   color: var(--accent);
   font-size: 13px;
 }
 
-.dancoinsLabel {
+.starlysLabel {
   color: var(--text-muted);
   font-size: 11px;
 }
@@ -7518,8 +7526,8 @@ textarea,
     margin-left: auto;
   }
 
-  /* Hide sidebar dancoins on mobile (shown in topbar instead) */
-  .dancoinsWidget {
+  /* Hide sidebar starlys on mobile (shown in topbar instead) */
+  .starlysWidget {
     display: none;
   }
 

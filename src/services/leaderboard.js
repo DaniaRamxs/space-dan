@@ -11,7 +11,7 @@ async function enrichProfiles(rows) {
     const ids = rows.map(r => r.user_id || r.id).filter(Boolean);
     const { data: profiles, error } = await supabase
       .from('profiles')
-      .select('id, username, avatar_url, user_level, equipped_nickname_style')
+      .select('id, username, avatar_url, equipped_nickname_style')
       .in('id', ids);
 
     if (error || !profiles) {
@@ -30,7 +30,7 @@ async function enrichProfiles(rows) {
         ...r, // Keep original rank/score data on top
         nicknameStyle: style,
         nickname_style: style,
-        user_level: p.user_level || r.user_level || 1,
+        user_level: r.user_level || 1,
         avatar_url: p.avatar_url || r.avatar_url
       };
     });

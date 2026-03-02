@@ -251,7 +251,7 @@ export default function GlobalChat() {
                 } else {
                     response = '🤖 **Protocolos HyperBot:**\n\n' +
                         '💰 `/help economy`: Dinero y Juegos.\n' +
-                        '🎭 `/help social`: DreamSpace y Amigos.\n' +
+                        '🎭 `/help social`: Perfil y Amigos.\n' +
                         '🔊 `/voice <sala>`: Crear sala de voz.\n' +
                         '⚔️ `/duel @user`: Combate 21.\n' +
                         '✨ `/joke`, `/quote`, `/pick`, `/roll`.';
@@ -259,7 +259,7 @@ export default function GlobalChat() {
                 break;
 
             case '/bal':
-                response = `<div class="bot-card">\n<div class="bot-card-label">💰 Balance · @${senderName}</div>\n<div class="bot-card-answer bot-answer-maybe bot-text-xl bot-text-center"><strong>${balance.toLocaleString()}</strong></div>\n<div class="bot-card-footer">◈ Dancoins disponibles</div>\n</div>`;
+                response = `<div class="bot-card">\n<div class="bot-card-label">💰 Balance · @${senderName}</div>\n<div class="bot-card-answer bot-answer-maybe bot-text-xl bot-text-center"><strong>${balance.toLocaleString()}</strong></div>\n<div class="bot-card-footer">◈ Starlys disponibles</div>\n</div>`;
                 break;
 
             case '/daily':
@@ -562,8 +562,8 @@ export default function GlobalChat() {
                 if (!profTarget) response = '👤 Uso: `/profile @usuario`.';
                 else {
                     const p = await chatService.getProfileByUsername(profTarget);
-                    if (!p) response = `❌ DreamSpace de **@${profTarget}** fuera de línea.`;
-                    else response = `👤 **DreamSpace de @${p.username}:**\n💰 Balance: **${p.balance} ◈**\n🎭 Mood: *${p.mood || 'Explorando...'}*\n📅 Llegada: ${new Date(p.created_at).toLocaleDateString()}`;
+                    if (!p) response = `❌ Perfil de **@${profTarget}** fuera de línea.`;
+                    else response = `👤 **Perfil de @${p.username}:**\n💰 Balance: **${p.balance} ◈**\n🎭 Mood: *${p.mood || 'Explorando...'}*\n📅 Llegada: ${new Date(p.created_at).toLocaleDateString()}`;
                 }
                 break;
 
@@ -757,7 +757,7 @@ export default function GlobalChat() {
             handleBotCommand(content);
             if (['/help', '/bal'].includes(cmd)) return;
         }
-        if (isVip && balance < 50) return alert('Dancoins insuficientes.');
+        if (isVip && balance < 50) return alert('Starlys insuficientes.');
         try {
             const sentMsg = await chatService.sendMessage(content, isVip, replyToId, activeChannel);
             if (isVip) await transfer(HYPERBOT.id, 50, 'VIP Message Cost');
@@ -874,7 +874,7 @@ export default function GlobalChat() {
                         </div>
                         <div className="flex-1 min-w-0">
                             <p className="text-[11px] font-bold truncate">@{userProfile?.username || 'Anónimo'}</p>
-                            <p className="text-[9px] text-white/30 truncate">{balance} ◈ Dancoins</p>
+                            <p className="text-[9px] text-white/30 truncate">{balance} ◈ Starlys</p>
                         </div>
                     </div>
                 </div>
@@ -1005,6 +1005,7 @@ export default function GlobalChat() {
                     userAvatar={userProfile?.avatar_url}
                     nicknameStyle={userProfile?.equipped_nickname_style}
                     frameId={userProfile?.frame_item_id}
+                    userName={userProfile?.username}
                 />
             )}
         </div>

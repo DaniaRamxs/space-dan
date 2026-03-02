@@ -22,18 +22,18 @@ export default function AmbientOrbs() {
                     50%     { transform: translate(60px,40px); }
                 }
             `}</style>
-            <div className="fixed inset-0 overflow-hidden pointer-events-none -z-10 select-none">
+            <div className="fixed inset-0 overflow-hidden pointer-events-none -z-10 select-none" style={{ contain: 'layout paint' }}>
                 <div
                     style={{ ...orbStyle, animation: 'orbFloat1 25s ease-in-out infinite' }}
-                    className="absolute top-[-10%] left-[-10%] w-[50vw] h-[50vw] rounded-full bg-accent/5 blur-[80px]"
+                    className="absolute top-[-10%] left-[-10%] w-[45vw] h-[45vw] rounded-full bg-accent/5 blur-[50px]"
                 />
                 <div
                     style={{ ...orbStyle, animation: 'orbFloat2 35s ease-in-out infinite 2s' }}
-                    className="absolute bottom-[-10%] right-[-10%] w-[55vw] h-[55vw] rounded-full bg-purple-500/5 blur-[90px]"
+                    className="absolute bottom-[-10%] right-[-10%] w-[50vw] h-[50vw] rounded-full bg-purple-500/5 blur-[60px]"
                 />
                 <div
                     style={{ ...orbStyle, animation: 'orbFloat3 40s ease-in-out infinite 5s' }}
-                    className="absolute top-[30%] right-[20%] w-[30vw] h-[30vw] rounded-full bg-cyan-400/5 blur-[70px]"
+                    className="absolute top-[30%] right-[20%] w-[28vw] h-[28vw] rounded-full bg-cyan-400/5 blur-[40px]"
                 />
             </div>
         </>

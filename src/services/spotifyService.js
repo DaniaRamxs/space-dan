@@ -10,6 +10,8 @@ export const spotifyService = {
         if (!user) throw new Error('Not authenticated');
 
         const clientId = import.meta.env.VITE_SPOTIFY_CLIENT_ID;
+        if (!clientId) throw new Error('Client ID de Spotify no configurado. Falta VITE_SPOTIFY_CLIENT_ID en el archivo .env');
+
         const redirectUri = `${window.location.origin}/spotify-callback`; // React route
         const scope = 'user-read-currently-playing user-top-read';
         const state = user.id;

@@ -1,95 +1,131 @@
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import { useAuthContext } from '../contexts/AuthContext';
 
 const CURSOR_PALETTES = {
-  default: () => Math.random() > 0.5 ? '#00e5ff' : '#ff00ff',
-  cursor_cyan: () => Math.random() > 0.4 ? '#00e5ff' : '#00bcd4',
-  cursor_green: () => Math.random() > 0.4 ? '#39ff14' : '#00ff88',
-  cursor_gold: () => Math.random() > 0.4 ? '#ffd700' : '#ffaa00',
-  cursor_rainbow: () => `hsl(${Math.random() * 360},100%,60%)`,
-  cursor_pink: () => Math.random() > 0.4 ? '#ff69b4' : '#ff1493',
-  cursor_white: () => Math.random() > 0.4 ? '#f0f0f0' : '#c0c0c0',
+  default:        () => Math.random() > 0.5 ? [0,229,255]   : [255,0,255],
+  cursor_cyan:    () => Math.random() > 0.4 ? [0,229,255]   : [0,188,212],
+  cursor_green:   () => Math.random() > 0.4 ? [57,255,20]   : [0,255,136],
+  cursor_gold:    () => Math.random() > 0.4 ? [255,215,0]   : [255,170,0],
+  cursor_rainbow: () => hslToRgb(Math.random() * 360, 100, 60),
+  cursor_pink:    () => Math.random() > 0.4 ? [255,105,180] : [255,20,147],
+  cursor_white:   () => Math.random() > 0.4 ? [240,240,240] : [192,192,192],
 };
 
-const isTouch = typeof window !== 'undefined' && ('ontouchstart' in window || navigator.maxTouchPoints > 0);
+function hslToRgb(h, s, l) {
+  s /= 100; l /= 100;
+  const k = n => (n + h / 30) % 12;
+  const a = s * Math.min(l, 1 - l);
+  const f = n => l - a * Math.max(-1, Math.min(k(n) - 3, Math.min(9 - k(n), 1)));
+  return [Math.round(f(0) * 255), Math.round(f(8) * 255), Math.round(f(4) * 255)];
+}
+
+const isTouch = typeof window !== 'undefined' &&
+  ('ontouchstart' in window || navigator.maxTouchPoints > 0);
 
 export default function CursorTrail() {
   const { profile, user } = useAuthContext();
 
-  // En móvil/touch no hay cursor, no tiene sentido el trail
   if (isTouch) return null;
-  const [equippedItem, setEquippedItem] = useState('default');
+
+  const canvasRef   = useRef(null);
   const equippedRef = useRef('default');
 
-  // Función para obtener el color actual basado en el item equipado
-  const getParticleColor = useCallback(() => {
-    const theme = equippedRef.current;
-    if (theme && CURSOR_PALETTES[theme]) {
-      return CURSOR_PALETTES[theme]();
-    }
-    return CURSOR_PALETTES.default();
-  }, []);
-
-  // Sincronizar item equipado (DB o LocalStorage)
+  // Sincronizar paleta equipada (sin re-render)
   useEffect(() => {
-    const syncCursor = () => {
+    const sync = () => {
       const dbCursor = profile?.equipped_items?.cursor;
-      const localEquipped = JSON.parse(localStorage.getItem('space-dan-shop-equipped') || '{}');
-      const finalId = dbCursor || localEquipped.cursor || 'default';
-      setEquippedItem(finalId);
-      equippedRef.current = finalId;
+      const local    = JSON.parse(localStorage.getItem('space-dan-shop-equipped') || '{}');
+      equippedRef.current = dbCursor || local.cursor || 'default';
     };
-
-    syncCursor();
-
-    // Escuchar cambios manuales desde la tienda
-    window.addEventListener('dan:item-equipped', syncCursor);
-    return () => window.removeEventListener('dan:item-equipped', syncCursor);
+    sync();
+    window.addEventListener('dan:item-equipped', sync);
+    return () => window.removeEventListener('dan:item-equipped', sync);
   }, [profile, user]);
 
+  // Canvas: un único RAF loop, sin DOM por partícula
   useEffect(() => {
-    let last = 0;
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+
+    let raf;
+    let lastSpawn = 0;
+    const particles = []; // { x,y,r,g,b,size,alpha,tx,ty,life,maxLife }
+
+    const resize = () => {
+      canvas.width  = window.innerWidth;
+      canvas.height = window.innerHeight;
+    };
+    resize();
+    window.addEventListener('resize', resize, { passive: true });
 
     const onMove = (e) => {
       const now = Date.now();
-      if (now - last < 25) return; // ~40 particles/sec max
-      last = now;
+      if (now - lastSpawn < 40) return; // ~25/seg
+      lastSpawn = now;
 
-      const size = 5 + Math.random() * 7;
-      const color = getParticleColor();
-      const tx = (Math.random() - 0.5) * 20;
-      const ty = -(8 + Math.random() * 14);
-
-      const el = document.createElement('span');
-      Object.assign(el.style, {
-        position: 'fixed',
-        pointerEvents: 'none',
-        zIndex: '9997',
-        width: `${size}px`,
-        height: `${size}px`,
-        borderRadius: '50%',
-        background: color,
-        boxShadow: `0 0 ${size + 5}px ${color}`,
-        left: `${e.clientX - size / 2}px`,
-        top: `${e.clientY - size / 2}px`,
-        opacity: '0.9',
-        transition: 'opacity 0.5s ease, transform 0.5s ease',
-        transform: 'scale(1) translate(0,0)',
+      const palette  = CURSOR_PALETTES[equippedRef.current] ?? CURSOR_PALETTES.default;
+      const [r, g, b] = palette();
+      const maxLife  = 450;
+      particles.push({
+        x: e.clientX,
+        y: e.clientY,
+        r, g, b,
+        size:    4 + Math.random() * 5,
+        alpha:   0.85,
+        tx:      (Math.random() - 0.5) * 20,
+        ty:      -(8 + Math.random() * 14),
+        life:    maxLife,
+        maxLife,
       });
+    };
 
-      document.body.appendChild(el);
+    const draw = () => {
+      raf = requestAnimationFrame(draw);
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      requestAnimationFrame(() => {
-        el.style.opacity = '0';
-        el.style.transform = `scale(0.1) translate(${tx}px, ${ty}px)`;
-      });
+      for (let i = particles.length - 1; i >= 0; i--) {
+        const p = particles[i];
+        p.life -= 16;
+        if (p.life <= 0) { particles.splice(i, 1); continue; }
 
-      setTimeout(() => el.remove(), 520);
+        const t     = 1 - p.life / p.maxLife;   // 0→1
+        const alpha = p.alpha * (1 - t);
+        const x     = p.x + p.tx * t;
+        const y     = p.y + p.ty * t;
+        const size  = Math.max(p.size * (1 - t * 0.9), 0.5);
+
+        ctx.beginPath();
+        ctx.arc(x, y, size / 2, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(${p.r},${p.g},${p.b},${alpha.toFixed(2)})`;
+        ctx.fill();
+      }
     };
 
     window.addEventListener('mousemove', onMove, { passive: true });
-    return () => window.removeEventListener('mousemove', onMove);
-  }, [getParticleColor]);
+    raf = requestAnimationFrame(draw);
 
-  return null;
+    return () => {
+      cancelAnimationFrame(raf);
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('resize', resize);
+      particles.length = 0;
+    };
+  }, []);
+
+  return (
+    <canvas
+      ref={canvasRef}
+      aria-hidden="true"
+      style={{
+        position:      'fixed',
+        top:           0,
+        left:          0,
+        width:         '100%',
+        height:        '100%',
+        pointerEvents: 'none',
+        zIndex:        9997,
+      }}
+    />
+  );
 }

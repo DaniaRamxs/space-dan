@@ -93,7 +93,7 @@ const DECISIONS = [
   {
     title: "Gamificación Profunda",
     icon: "◈",
-    desc: "Economía de Dancoins integrada en chat (mensajes VIP: 50 DNC) y cabina (sesiones de estudio: +5 DNC), sincronizada vía hooks custom.",
+    desc: "Economía de Starlys integrada en chat (mensajes VIP: 50 DNC) y cabina (sesiones de estudio: +5 DNC), sincronizada vía hooks custom.",
   },
 ];
 
@@ -105,7 +105,7 @@ const TIMELINE = [
   { phase: "05", label: "Interactividad", desc: "OS Desktop draggable, Dreamscape, Time Capsule, easter eggs y terminal de comandos." },
   { phase: "06", label: "Social Sync", desc: "Chat Global Realtime + Giphy. Feed de actividad unificado con soporte para imágenes y GIFs." },
   { phase: "07", label: "Biometría", desc: "Cabina Espacial v2 con Focus Guard: IA para detección de fatiga y monitoreo de productividad estelar." },
-  { phase: "08", label: "Gamificación", desc: "Economía de Dancoins cross-app, tienda de temas/radio y sistema de 20 logros dinámicos." },
+  { phase: "08", label: "Gamificación", desc: "Economía de Starlys cross-app, tienda de temas/radio y sistema de 20 logros dinámicos." },
 ];
 
 const STATS = [
@@ -133,7 +133,7 @@ const TREE = {
         { label: "KonamiEasterEgg", sub: "↑↑↓↓←→←→BA" },
         { label: "RadioPlayer", sub: "Radio en vivo" },
         { label: "LastFmWidget", sub: "Sidebar now-playing" },
-        { label: "Sidebar", sub: "Nav + visitas + Dancoins" },
+        { label: "Sidebar", sub: "Nav + visitas + Starlys" },
         { label: "Topbar", sub: "Header + hamburger" },
         {
           label: "Pages (lazy)",
@@ -143,7 +143,7 @@ const TREE = {
             { label: "GamesPage", sub: "24 juegos" },
             { label: "GlobalChatPage", sub: "RT + VIP Messages" },
             { label: "SpaceCabinPage", sub: "Focus Guard AI" },
-            { label: "ShopPage", sub: "Tienda Dancoins" },
+            { label: "ShopPage", sub: "Tienda Starlys" },
             { label: "GuestbookPage", sub: "→ Supabase RT" },
             { label: "DesktopPage", sub: "OS draggable" },
             { label: "+ 20 páginas más", sub: "" },

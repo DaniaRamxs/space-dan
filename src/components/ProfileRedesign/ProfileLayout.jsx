@@ -11,7 +11,8 @@ export const ProfileLayout = ({ children, theme }) => {
         }
     };
 
-    const getBackgroundStyle = (bg) => {
+    const getBackgroundStyle = (bg, customColor) => {
+        if (customColor) return '';
         switch (bg) {
             case 'dark': return 'bg-[#04040a]';
             case 'light': return 'bg-[#f4f4f9] text-black';
@@ -22,10 +23,11 @@ export const ProfileLayout = ({ children, theme }) => {
 
     return (
         <div
-            className={`min-h-screen text-white relative transition-all duration-1000 ${getFontStyle(theme.font_style)} ${getBackgroundStyle(theme.background_style)}`}
+            className={`min-h-screen text-white relative transition-all duration-1000 ${getFontStyle(theme.font_style)} ${getBackgroundStyle(theme.background_style, theme.primary_color)}`}
             style={{
                 '--primary': theme.primary_color,
                 '--secondary': theme.secondary_color,
+                ...(theme.primary_color && { backgroundColor: theme.primary_color }),
             }}
         >
             {/* Dynamic Mesh Background Layers */}

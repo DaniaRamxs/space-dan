@@ -90,7 +90,7 @@ CREATE TABLE IF NOT EXISTS public.cabin_stats (
   total_sessions       integer DEFAULT 0,
   current_streak       integer DEFAULT 0,
   last_session_date    date,
-  dancoins_earned      bigint DEFAULT 0,
+  starlys_earned      bigint DEFAULT 0,
   updated_at           timestamptz DEFAULT now()
 );
 
@@ -131,7 +131,7 @@ CREATE POLICY "Stats: owner update" ON public.cabin_stats
 
 -- ── FUNCTIONS ────────────────────────────────────────────────
 
--- Function to finish a focus session, update stats and award Dancoins
+-- Function to finish a focus session, update stats and award Starlys
 CREATE OR REPLACE FUNCTION public.complete_focus_session(p_user_id uuid, p_minutes integer)
 RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER AS $$
 DECLARE
@@ -146,17 +146,17 @@ BEGIN
   INSERT INTO public.cabin_sessions (user_id, duration_minutes, session_type)
   VALUES (p_user_id, p_minutes, 'focus');
 
-  -- 2. Award Dancoins (using existing award_coins logic if available, or manual increment)
+  -- 2. Award Starlys (using existing award_coins logic if available, or manual increment)
   -- Note: We assuming 'award_coins' exists from previous work
   PERFORM public.award_coins(p_user_id, v_coins_awarded, 'productivity', NULL, 'Sesión de Cabina completada');
 
   -- 3. Update Stats & Streak
-  INSERT INTO public.cabin_stats (user_id, total_focus_minutes, total_sessions, current_streak, last_session_date, dancoins_earned)
+  INSERT INTO public.cabin_stats (user_id, total_focus_minutes, total_sessions, current_streak, last_session_date, starlys_earned)
   VALUES (p_user_id, p_minutes, 1, 1, v_today, v_coins_awarded)
   ON CONFLICT (user_id) DO UPDATE SET
     total_focus_minutes = cabin_stats.total_focus_minutes + p_minutes,
     total_sessions = cabin_stats.total_sessions + 1,
-    dancoins_earned = cabin_stats.dancoins_earned + v_coins_awarded,
+    starlys_earned = cabin_stats.starlys_earned + v_coins_awarded,
     current_streak = CASE
       WHEN cabin_stats.last_session_date = v_today THEN cabin_stats.current_streak
       WHEN cabin_stats.last_session_date = v_today - interval '1 day' THEN cabin_stats.current_streak + 1

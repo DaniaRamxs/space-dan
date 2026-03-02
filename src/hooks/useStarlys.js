@@ -13,7 +13,7 @@ function saveCoins(n) {
   try { localStorage.setItem(COINS_KEY, String(n)); } catch {}
 }
 
-/** Earn coins from anywhere (fires event so all useDancoins instances sync) */
+/** Earn coins from anywhere (fires event so all useStarlys instances sync) */
 export function awardCoins(amount) {
   // Persist directly
   try {
@@ -41,7 +41,7 @@ export function getVisitedPages() {
   catch { return []; }
 }
 
-export default function useDancoins() {
+export default function useStarlys() {
   const [coins, setCoins] = useState(loadCoins);
 
   // Sync state when coins change from any source

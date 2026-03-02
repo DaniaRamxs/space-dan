@@ -42,7 +42,7 @@ export async function getLeaderboard(gameId, limit = 10) {
 
 /**
  * Sincroniza un logro desbloqueado al DB, premia coins y envía notificación.
- * coins: cantidad de Dancoins a otorgar (0 si el logro no tiene recompensa)
+ * coins: cantidad de Starlys a otorgar (0 si el logro no tiene recompensa)
  */
 export async function syncAchievementToDb(achievementId, achievementTitle = '', coins = 0) {
     const { data: { session } } = await supabase.auth.getSession();

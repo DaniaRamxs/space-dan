@@ -199,7 +199,7 @@ export default function ProfileRedesignPage() {
                                                 <span className="text-2xl font-black text-white italic">{profile.level || 1}</span>
                                             </div>
                                             <div className="flex justify-between items-end">
-                                                <span className="text-[10px] font-black text-white/40 uppercase">Dancoins</span>
+                                                <span className="text-[10px] font-black text-white/40 uppercase">Starlys</span>
                                                 <span className="text-2xl font-black text-cyan-400 italic">◈ {profile.balance?.toLocaleString() || 0}</span>
                                             </div>
                                             <div className="flex justify-between items-end">

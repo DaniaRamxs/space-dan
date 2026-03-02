@@ -80,7 +80,7 @@ export default function SpaceCabinPage() {
                 total_focus_minutes: newStats.minutes,
                 total_sessions: newStats.sessions,
                 current_streak: newStats.streak,
-                dancoins_earned: (prev?.dancoins_earned || 0) + newStats.coins_awarded
+                starlys_earned: (prev?.starlys_earned || 0) + newStats.coins_awarded
             }));
             const baseCoins = newStats.coins_awarded > 0 ? newStats.coins_awarded : 10;
             await claimSeasonReward(baseCoins);

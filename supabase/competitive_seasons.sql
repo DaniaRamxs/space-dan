@@ -72,7 +72,7 @@ DECLARE
   v_needs_comeback boolean := false;
   
   v_final_coins int;
-  v_daily_cap int := 3000; -- Protección estricta: Cap máximo de Dancoins por día
+  v_daily_cap int := 3000; -- Protección estricta: Cap máximo de Starlys por día
   v_available_cap int;
   v_result jsonb;
 

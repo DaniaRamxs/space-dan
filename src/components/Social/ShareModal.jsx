@@ -200,7 +200,7 @@ const ShareModal = memo(({ isOpen, onClose, post, onSuccess, initialMode = 'repo
                         {/* Mensaje modo repost */}
                         {mode === 'repost' && (
                             <p className="text-[10px] text-white/30 text-center uppercase tracking-widest">
-                                Aparecerá en tu actividad de DreamSpace · no en el feed global
+                                Aparecerá en tu actividad de perfil · no en el feed global
                             </p>
                         )}
 

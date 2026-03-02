@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { SHOP_ITEMS } from '../hooks/useShopItems';
 import useShopItems from '../hooks/useShopItems';
-import useDancoins from '../hooks/useDancoins';
+import useStarlys from '../hooks/useStarlys';
 import { useEconomy } from '../contexts/EconomyContext';
 import { useAuthContext } from '../contexts/AuthContext';
 import * as storeService from '../services/store';
@@ -36,7 +36,7 @@ const CAT_ORDER = ['profile_theme', 'nickname_style', 'role', 'ambient_sound', '
 export default function ShopPage() {
   const { user, profile } = useAuthContext();
   const { balance, claimDaily, canClaimDaily } = useEconomy();
-  const dancoins = useDancoins();   // guest fallback
+  const starlys = useStarlys();   // guest fallback
   const localShop = useShopItems();  // equip + guest purchases
 
   const [activeCategory, setActiveCategory] = useState('all');
@@ -83,7 +83,7 @@ export default function ShopPage() {
   }, [reloadDbItems]);
 
   // Achievement: rich (500+ coins)
-  const currentCoins = user ? balance : dancoins.coins;
+  const currentCoins = user ? balance : starlys.coins;
   useEffect(() => {
     if (currentCoins >= 500) unlockAchievement('rich');
   }, [currentCoins]);
@@ -179,7 +179,7 @@ export default function ShopPage() {
         showFlash(`¡${item.title} comprado y equipado!`, true);
         unlockAchievement('shopper');
       } catch (err) {
-        const msg = /insufficient/i.test(err.message) ? 'Dancoins insuficientes'
+        const msg = /insufficient/i.test(err.message) ? 'Starlys insuficientes'
           : /already/i.test(err.message) ? 'Ya tienes este item'
             : err.message || 'Error al comprar';
         showFlash(msg, false);
@@ -193,7 +193,7 @@ export default function ShopPage() {
           localShop.equip(item.category, item.id);
           showFlash(`¡${item.title} comprado y equipado!`, true);
         } else {
-          showFlash('Dancoins insuficientes o item ya obtenido', false);
+          showFlash('Starlys insuficientes o item ya obtenido', false);
         }
       } else {
         showFlash('Debes registrarte para comprar este tipo de items.', false);
@@ -226,11 +226,11 @@ export default function ShopPage() {
       // Para guests
       localStorage.setItem('space-dan-coins', '999999');
       window.dispatchEvent(new CustomEvent('dan:coins-changed'));
-      showFlash('MODO TESTER: 999,999 Dancoins obtenidas (Local)', true);
+      showFlash('MODO TESTER: 999,999 Starlys obtenidas (Local)', true);
     } else {
       try {
         await storeService.awardCoins(user.id, 1000000, 'tester_bonus', null, 'Acceso Tester');
-        showFlash('MODO TESTER: 1,000,000 Dancoins otorgadas', true);
+        showFlash('MODO TESTER: 1,000,000 Starlys otorgadas', true);
       } catch (err) {
         showFlash('Error al otorgar coins de tester', false);
       }
@@ -243,7 +243,7 @@ export default function ShopPage() {
         const result = await claimDaily();
         showFlash(
           result?.success
-            ? `¡+${result.amount ?? 30} Dancoins! Bonus diario reclamado`
+            ? `¡+${result.amount ?? 30} Starlys! Bonus diario reclamado`
             : (result?.message || 'Ya reclamaste el bonus de hoy'),
           !!result?.success
         );
@@ -251,12 +251,12 @@ export default function ShopPage() {
         showFlash(err.message || 'Ya reclamaste el bonus de hoy', false);
       }
     } else {
-      const claimed = dancoins.claimDailyBonus();
-      showFlash(claimed ? '¡+30 Dancoins! Bonus diario reclamado' : 'Ya reclamaste el bonus de hoy', claimed);
+      const claimed = starlys.claimDailyBonus();
+      showFlash(claimed ? '¡+30 Starlys! Bonus diario reclamado' : 'Ya reclamaste el bonus de hoy', claimed);
     }
   };
 
-  const canClaimDailyNow = user ? canClaimDaily() : dancoins.canClaimDaily();
+  const canClaimDailyNow = user ? canClaimDaily() : starlys.canClaimDaily();
 
   const filteredBySearch = useMemo(() => {
     let result = fullCatalog;

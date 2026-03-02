@@ -84,7 +84,7 @@ function EconomySection({ user }) {
     try {
       const result = await claimDaily();
       setDailyMsg(result?.success
-        ? `¡+${result.bonus ?? result.amount ?? 30} Dancoins! Bonus reclamado`
+        ? `¡+${result.bonus ?? result.amount ?? 30} Starlys! Bonus reclamado`
         : 'Ya reclamaste el bonus de hoy');
     } catch {
       setDailyMsg('Ya reclamaste el bonus de hoy');
@@ -123,7 +123,7 @@ function EconomySection({ user }) {
   const handleTransfer = async () => {
     if (!tfTarget || !tfAmount) return;
     const amount = parseInt(tfAmount, 10);
-    if (isNaN(amount) || amount < 10) { setTfStatus({ ok: false, msg: 'Mínimo 10 Dancoins' }); return; }
+    if (isNaN(amount) || amount < 10) { setTfStatus({ ok: false, msg: 'Mínimo 10 Starlys' }); return; }
     try {
       const result = await transferCoins(user.id, tfTarget.id, amount, tfMsg || null);
       setTfStatus({ ok: true, msg: `✓ Enviados ${result.net_received} ◈ a ${tfTarget.username} (fee: ${result.fee} ◈)` });
@@ -139,7 +139,7 @@ function EconomySection({ user }) {
     <section className="space-y-10">
       <div className="space-y-2">
         <h2 className="text-white opacity-90">Economía Personal</h2>
-        <p className="text-micro opacity-40">Gestión de Dancoins y recursos digitales.</p>
+        <p className="text-micro opacity-40">Gestión de Starlys y recursos digitales.</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -217,7 +217,7 @@ function EconomySection({ user }) {
         <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/10 blur-[60px] rounded-full"></div>
 
         <h3 className="text-xs font-black uppercase tracking-[0.3em] text-indigo-400 mb-6 flex items-center gap-2">
-          <span className="w-1.5 h-1.5 rounded-full bg-indigo-500"></span> Transferir Dancoins
+          <span className="w-1.5 h-1.5 rounded-full bg-indigo-500"></span> Transferir Starlys
         </h3>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -328,7 +328,7 @@ function FundSection({ user }) {
 
   const handleDonate = async () => {
     const n = parseInt(amount, 10);
-    if (!fund || isNaN(n) || n < 10) { setStatus({ ok: false, msg: 'Mínimo 10 Dancoins' }); return; }
+    if (!fund || isNaN(n) || n < 10) { setStatus({ ok: false, msg: 'Mínimo 10 Starlys' }); return; }
     try {
       const result = await donateToFund(user.id, fund.id, n);
       setFund(prev => ({ ...prev, current_amount: result.fund_total }));
@@ -646,7 +646,7 @@ function MoodManager({ profile, user, bgColor, setBgColor }) {
 
           <div className="space-y-4">
             <div className="flex items-center justify-between ml-1">
-              <label className="text-[9px] font-black text-white/20 uppercase ml-1">Fondo de DreamSpace</label>
+              <label className="text-[9px] font-black text-white/20 uppercase">Fondo de Perfil</label>
               <div className="flex items-center gap-3">
                 <span className="text-[8px] font-bold text-white/30 uppercase tracking-tighter">Color Custom:</span>
                 <input
@@ -800,7 +800,7 @@ export default function ProfileOwn() {
       setBannerItem(null);
     }
     if (profile) {
-      document.title = "Mi DreamSpace | Spacely";
+      document.title = "Mi Perfil | Spacely";
     }
   }, [profile]);
 
@@ -839,14 +839,14 @@ export default function ProfileOwn() {
   }, [user]);
 
   if (loading || (!profile && user)) {
-    return <div className="card"><h2 className="cardTitle blinkText">Cargando DreamSpace...</h2></div>;
+    return <div className="card"><h2 className="cardTitle blinkText">Cargando perfil...</h2></div>;
   }
 
   if (!user) {
     return (
       <main className="card">
-        <h1 className="cardTitle">MI DREAMSPACE</h1>
-        <p>Inicia sesión para ver tu DreamSpace, tus logros y récords en los juegos.</p>
+        <h1 className="cardTitle">MI PERFIL</h1>
+        <p>Inicia sesión para ver tu perfil, tus logros y récords en los juegos.</p>
         <div style={{ display: 'flex', gap: 10, marginTop: 20, flexWrap: 'wrap' }}>
           <button className="winButton" onClick={loginWithGoogle}>Entrar con Google</button>
           <button className="winButton" onClick={loginWithDiscord}>Entrar con Discord</button>
@@ -1098,7 +1098,7 @@ export default function ProfileOwn() {
 
               <div className="space-y-6 pt-12 border-t border-white/5">
                 <div className="flex justify-between items-end">
-                  <span className="text-micro opacity-40 uppercase tracking-widest">Dancoins</span>
+                  <span className="text-micro opacity-40 uppercase tracking-widest">Starlys</span>
                   <span className="text-xl font-bold font-mono tracking-tighter">◈ {balance.toLocaleString()}</span>
                 </div>
                 <div className="flex justify-between items-end">
@@ -1255,7 +1255,7 @@ export default function ProfileOwn() {
                       <StatCard title="Horas Totales de Foco" value={`${Math.round((cabinStats?.total_focus_minutes || 0) / 60)}h`} />
                       <StatCard title="Sesiones Iniciadas" value={cabinStats?.total_sessions || 0} />
                       <StatCard title="Racha en Cabina" value={`${cabinStats?.current_streak || 0}D`} />
-                      <StatCard title="Dancoins Ganadas" value={`◈ ${cabinStats?.dancoins_earned || 0}`} />
+                      <StatCard title="Starlys Ganadas" value={`◈ ${cabinStats?.starlys_earned || 0}`} />
                     </div>
                   )}
                 </motion.div>

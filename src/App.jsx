@@ -10,7 +10,7 @@ import Screensaver from "./components/Screensaver";
 import PageTransition from "./components/PageTransition";
 import ScrollToTop from "./components/ScrollToTop";
 import { unlockAchievement } from "./hooks/useAchievements";
-import { trackPageVisit } from "./hooks/useDancoins";
+import { trackPageVisit } from "./hooks/useStarlys";
 import { applyTheme } from "./hooks/useTheme";
 import { AuthProvider, useAuthContext } from "./contexts/AuthContext";
 import { EconomyProvider, useEconomy } from "./contexts/EconomyContext";
@@ -26,7 +26,7 @@ const GamesPage = lazy(() => import("./pages/GamesPage"));
 const GlobalLeaderboardPage = lazy(() => import("./pages/GlobalLeaderboardPage"));
 // const Wpage = lazy(() => import("./pages/Wpage"));
 const GardenLayout = lazy(() => import("./layouts/GardenLayout"));
-const DanProfilePage = lazy(() => import("./pages/DanProfilePage"));
+// const GardenLayout = lazy(() => import("./layouts/GardenLayout")); // (Keeping GardenLayout, just matching context)
 // const ProfilePage represents ProfileRouter already
 const BulletinPage = lazy(() => import("./pages/BulletinPage"));
 const Secret = lazy(() => import("./pages/Secret"));
@@ -58,7 +58,7 @@ const VinculosPage = lazy(() => import("./pages/VinculosPage"));
 const PostDetailPage = lazy(() => import("./pages/PostDetailPage"));
 const GlobalChatPage = lazy(() => import("./pages/GlobalChatPage"));
 
-const ALL_PAGES = ['/dan', '/bulletin', '/posts', '/music', '/games', '/galeria',
+const ALL_PAGES = ['/bulletin', '/posts', '/music', '/games', '/galeria',
   '/watchlist', '/desktop', '/timecapsule', '/guestbook', '/proyectos', '/arquitectura',
   '/kinnies', '/tests', '/universo', '/dreamscape', '/logros', '/tienda', '/profile', '/leaderboard', '/cabina', '/cartas', '/cofre', '/foco', '/chat', '/blog'];
 
@@ -111,7 +111,7 @@ function PresenceTracker() {
       if (path === '/posts') return 'EXPLORANDO EL FEED 🌌';
       if (path === '/leaderboard') return 'VIENDO EL RANKING 🌍';
       if (path.startsWith('/profile/')) return 'MIRANDO LOGROS 🏆';
-      if (path.startsWith('/@') || (path.startsWith('/profile') && path.length > 8)) return 'MIRANDO UN DREAMSPACE 👤';
+      if (path.startsWith('/@') || (path.startsWith('/profile') && path.length > 8)) return 'MIRANDO UN PERFIL 👤';
       return 'EXPLORANDO EL SISTEMA';
     };
 
@@ -168,7 +168,7 @@ function LoginGate({ message = "Necesitas iniciar sesión para ver esta sección
               Iniciar con Discord
             </button>
           </div>
-          <p className="text-[10px] text-white/20 mt-5 tracking-wider uppercase">Spacely · DreamSpace</p>
+          <p className="text-[10px] text-white/20 mt-5 tracking-wider uppercase">Spacely · Perfil Estelar</p>
         </div>
       </div>
     </div>
@@ -217,9 +217,8 @@ function AnimatedRoutes() {
               : <Navigate to="/posts" replace />
           }
         />
-        <Route path="/dan" element={<Layout><DanProfilePage /></Layout>} />
         <Route path="/profile" element={
-          loading ? <FallbackLoader /> : (user && profile ? <Navigate to={`/@${profile.username}`} replace /> : <Layout><LoginGate message="Necesitas iniciar sesión para ver tu DreamSpace." /></Layout>)
+          loading ? <FallbackLoader /> : (user && profile ? <Navigate to={`/@${profile.username}`} replace /> : <Layout><LoginGate message="Necesitas iniciar sesión para ver tu Perfil Estelar." /></Layout>)
         } />
         <Route path="/bulletin" element={<Layout><BulletinPage /></Layout>} />
         <Route path="/posts" element={

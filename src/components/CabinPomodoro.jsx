@@ -146,7 +146,7 @@ export default function CabinPomodoro({ onFinish }) {
                         exit={{ opacity: 0, scale: 0.9 }}
                         className="absolute -bottom-12 whitespace-nowrap text-sm font-bold text-accent italic"
                     >
-                        ✦ +5 Dancoins añadidos a tu órbita
+                        ✦ +5 Starlys añadidos a tu órbita
                     </motion.div>
                 )}
             </AnimatePresence>

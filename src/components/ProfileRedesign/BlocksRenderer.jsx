@@ -60,7 +60,7 @@ export const BlocksRenderer = ({ blocks, userId, isOwn, onEdit, profileData }) =
                                 <div className="text-xl md:text-3xl font-black text-white italic truncate">LVL {level}</div>
                             </div>
                             <div className="space-y-1">
-                                <div className="text-[9px] uppercase font-black text-white/30">Dancoins</div>
+                                <div className="text-[9px] uppercase font-black text-white/30">Starlys</div>
                                 <div className="text-xl md:text-3xl font-black text-cyan-400 italic truncate">◈ {balance.toLocaleString()}</div>
                             </div>
                             <div className="space-y-1 col-span-2 lg:col-span-1">
@@ -163,7 +163,7 @@ export const BlocksRenderer = ({ blocks, userId, isOwn, onEdit, profileData }) =
                     className="w-full py-6 md:py-8 border-2 border-dashed border-white/5 rounded-[2rem] md:rounded-[2.5rem] flex flex-col items-center justify-center gap-4 text-white/20 hover:text-white/60 hover:border-white/20 hover:bg-white/[0.01] transition-all group"
                 >
                     <span className="text-3xl md:text-4xl group-hover:rotate-180 transition-transform duration-700">+</span>
-                    <span className="text-[9px] md:text-[10px] font-black uppercase tracking-[0.3em] md:tracking-[0.4em] text-center px-4">Expandir Arquitectura del DreamSpace</span>
+                    <span className="text-[9px] md:text-[10px] font-black uppercase tracking-[0.3em] md:tracking-[0.4em] text-center px-4">Expandir Arquitectura del Perfil</span>
                 </motion.button>
             )}
         </motion.div>

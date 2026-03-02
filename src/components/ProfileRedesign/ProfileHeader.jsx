@@ -129,7 +129,7 @@ export const ProfileHeader = ({ profile, theme, isOwn, isFollowing, onFollow, on
                                     }}
                                     className="group relative px-10 py-4 overflow-hidden rounded-2xl bg-white text-black text-[11px] font-black uppercase tracking-[0.2em] transition-all hover:pr-12 active:scale-95 shadow-[0_0_30px_rgba(255,255,255,0.2)]"
                                 >
-                                    <span className="relative z-10">Configurar DreamSpace</span>
+                                    <span className="relative z-10">Configurar Perfil</span>
                                     <span className="absolute right-4 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-all">⚙️</span>
                                 </button>
                             ) : (

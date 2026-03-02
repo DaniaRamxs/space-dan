@@ -54,7 +54,7 @@ function StarfieldSaver({ canvas }) {
       ctx.font = 'bold 18px monospace';
       ctx.fillStyle = 'rgba(255,110,180,0.5)';
       ctx.textAlign = 'center';
-      ctx.fillText('· space-dan ·', c.width / 2, c.height - 30);
+      ctx.fillText('· SPACELY ·', c.width / 2, c.height - 30);
 
       raf = requestAnimationFrame(draw);
     };
@@ -111,7 +111,7 @@ function DvdSaver({ canvas }) {
       ctx.fillStyle = colors[ci];
       ctx.shadowColor = colors[ci];
       ctx.shadowBlur = 20;
-      ctx.fillText('space-dan', x, y + H);
+      ctx.fillText('SPACELY', x, y + H);
       ctx.shadowBlur = 0;
       raf = requestAnimationFrame(draw);
     };

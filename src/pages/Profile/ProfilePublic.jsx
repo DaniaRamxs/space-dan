@@ -601,7 +601,7 @@ function ProfileContent({
               {/* Server Metrics Sidebar */}
               <div className="space-y-6 pt-12 border-t border-white/5">
                 <div className="flex justify-between items-end">
-                  <span className="text-micro opacity-40 uppercase tracking-widest">Dancoins</span>
+                  <span className="text-micro opacity-40 uppercase tracking-widest">Starlys</span>
                   <span className="text-xl font-bold font-mono tracking-tighter">◈ {profile?.balance?.toLocaleString() || 0}</span>
                 </div>
                 <div className="flex justify-between items-end">

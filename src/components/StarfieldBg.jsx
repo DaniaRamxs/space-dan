@@ -1,9 +1,9 @@
 import { useEffect, useRef } from 'react';
 
 const isMobile = () => window.innerWidth < 768 || ('ontouchstart' in window);
-const STAR_COUNT = isMobile() ? 60 : 120;
-const NEBULA_COUNT = isMobile() ? 1 : 3;
-const FRAME_INTERVAL = isMobile() ? 1000 / 30 : 0; // 30fps móvil, sin límite PC
+const STAR_COUNT = isMobile() ? 60 : 100;
+const NEBULA_COUNT = isMobile() ? 1 : 2;
+const FRAME_INTERVAL = isMobile() ? 1000 / 30 : 1000 / 60; // 30fps móvil, 60fps PC
 
 const STAR_THEMES = {
   default: { r: 255, g: 255, b: 255, nebula: 'rgba(139, 92, 246, 0.03)' },
@@ -125,7 +125,7 @@ export default function StarfieldBg() {
 
         ctx.beginPath();
         ctx.arc(px, py, s.size, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(${theme.r},${theme.g},${theme.b},${alpha.toFixed(2)})`;
+        ctx.fillStyle = `rgba(${theme.r},${theme.g},${theme.b},${alpha < 0.1 ? '0.10' : alpha.toFixed(2)})`;
         ctx.fill();
       }
     };

@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, Suspense, lazy, useMemo, useCallback } fro
 import { motion, AnimatePresence } from 'framer-motion';
 import { Maximize2, Minimize2 } from 'lucide-react';
 import { Capacitor } from '@capacitor/core';
-import { awardCoins } from '../hooks/useDancoins';
+import { awardCoins } from '../hooks/useStarlys';
 import { unlockAchievement } from '../hooks/useAchievements';
 import { useAuthContext } from '../contexts/AuthContext';
 import { saveScore } from '../services/supabaseScores';

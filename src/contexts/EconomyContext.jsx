@@ -1,6 +1,6 @@
 /**
  * EconomyContext.jsx
- * Reemplaza useDancoins.js (localStorage).
+ * Reemplaza useStarlys.js (localStorage).
  * Fuente de verdad: Supabase. El balance siempre viene del servidor.
  *
  * Uso:
@@ -158,7 +158,7 @@ export function EconomyProvider({ children }) {
     claimDaily,
     canClaimDaily,
     transfer,
-    // Alias para compatibilidad con código existente que usa useDancoins
+    // Alias para compatibilidad con código existente que usa useStarlys
     coins: balance,
   };
 
