@@ -119,7 +119,7 @@ CREATE OR REPLACE FUNCTION public.sync_user_sound_state(
     p_emotional_label TEXT,
     p_is_playing BOOLEAN,
     p_track_image_url TEXT DEFAULT NULL
-) RETURNS void AS $$
+) RETURNS void AS $func$
 DECLARE
     v_user_id UUID := auth.uid();
     v_share_music BOOLEAN;
@@ -198,7 +198,7 @@ BEGIN
         END IF;
     END IF;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$func$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- 7. RPC para borrar overlaps e históricos viejos
 CREATE OR REPLACE FUNCTION public.cleanup_music_overlaps() RETURNS void AS $$

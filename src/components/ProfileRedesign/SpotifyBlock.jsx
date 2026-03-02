@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { spotifyService } from '../../services/spotifyService';
 import { useAuthContext } from '../../contexts/AuthContext';
@@ -148,7 +148,7 @@ export const SpotifyBlock = ({ userId, isOwn }) => {
                             ) : topTracks.length > 0 ? (
                                 <div className="space-y-3">
                                     <h4 className="flex items-center gap-2 text-[10px] font-black text-white/40 uppercase tracking-widest">
-                                        <span className="text-emerald-400">🎵</span> Top Canciones
+                                        <span className="text-emerald-400">🎵</span> Top 3
                                     </h4>
                                     <div className="space-y-2">
                                         {topTracks.slice(0, 3).map((t, i) => (
