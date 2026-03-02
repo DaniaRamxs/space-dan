@@ -25,6 +25,7 @@ import * as storeService from '../../services/store';
 import { useNavigate } from 'react-router-dom';
 import { getUserDisplayName, getNicknameClass } from '../../utils/user';
 import { UniverseProvider, useUniverse } from '../../contexts/UniverseContext.jsx';
+import SafeAvatar from '../../components/SafeAvatar';
 import '../../banner-effects.css';
 import '../../styles/NicknameStyles.css';
 
@@ -490,7 +491,7 @@ function ProfileContent({
                       style={frameObj}
                     >
                       <div className={isLv5 ? 'marco-evolutivo-lv5-img-wrapper' : `w-full h-full rounded-[inherit] overflow-hidden`}>
-                        <img src={profile?.avatar_url || '/default_user_blank.png'} alt="Avatar" className="w-full h-full object-cover" />
+                        <SafeAvatar src={profile?.avatar_url} provider={profile?.provider} fallback="/default_user_blank.png" className="w-full h-full object-cover" />
                       </div>
                     </div>
                   );

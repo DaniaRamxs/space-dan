@@ -24,6 +24,7 @@ import { universeService } from '../../services/universe';
 import { motion, AnimatePresence } from 'framer-motion';
 import '../../banner-effects.css';
 import '../../styles/NicknameStyles.css';
+import SafeAvatar from '../../components/SafeAvatar';
 
 const GAME_NAMES = {
   asteroids: 'Asteroids', tetris: 'Tetris', snake: 'Snake', pong: 'Pong',
@@ -981,6 +982,7 @@ export default function ProfileOwn() {
               <div className="relative w-40 h-40">
                 <AvatarUploader
                   currentAvatar={profile?.avatar_url}
+                  provider={profile?.provider}
                   frameStyle={getFrameStyle(frameItemId || profile?.frame_item_id)}
                   isLv5={(frameItemId || profile?.frame_item_id) === 'frame_link_lv5'}
                   onUploadSuccess={() => { }}
@@ -1240,7 +1242,7 @@ export default function ProfileOwn() {
                       <div className="space-y-6">
                         {comments.map(c => (
                           <div key={c.id} className="p-8 rounded-3xl bg-white/[0.01] border border-white/5 flex gap-6 hover:bg-white/[0.02] transition-colors">
-                            <img src={c.author?.avatar_url || '/default_user_blank.png'} className="w-12 h-12 rounded-2xl object-cover opacity-60" />
+                            <SafeAvatar src={c.author?.avatar_url} fallback="/default_user_blank.png" className="w-12 h-12 rounded-2xl object-cover opacity-60" />
                             <div className="space-y-1">
                               <div className="text-micro font-black uppercase tracking-widest opacity-40">{c.author?.username}</div>
                               <p className="text-sm text-white/50 leading-relaxed">{c.content}</p>
@@ -1310,7 +1312,7 @@ export default function ProfileOwn() {
                   onClick={() => { setShowFollowModal(null); setFollowList([]); navigate(`/@${u.username}`); }}
                   className="w-full flex items-center gap-3 p-3 rounded-2xl bg-white/[0.02] hover:bg-white/[0.06] border border-white/5 transition-all text-left"
                 >
-                  <img src={u.avatar_url || '/default_user_blank.png'} alt={u.username} className="w-9 h-9 rounded-xl object-cover border border-white/10" />
+                  <SafeAvatar src={u.avatar_url} fallback="/default_user_blank.png" alt={u.username} className="w-9 h-9 rounded-xl object-cover border border-white/10" />
                   <span className="text-sm font-black text-white/70">@{u.username}</span>
                 </button>
               ))}

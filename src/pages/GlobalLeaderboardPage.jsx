@@ -8,6 +8,7 @@ import SeasonWidget from '../components/SeasonWidget';
 import { getUserDisplayName, getNicknameClass } from '../utils/user';
 import StreakLeaderboard from '../components/Social/StreakLeaderboard';
 import { Trophy, Coins, Target, Award, Users, BarChart3, Heart, Zap, Infinity as InfinityIcon } from 'lucide-react';
+import SafeAvatar from '../components/SafeAvatar';
 import '../styles/NicknameStyles.css';
 
 const TABS = [
@@ -84,7 +85,7 @@ function CompetitiveRow({ row, i, isMe, onClick }) {
       <div className="flex items-center flex-1 gap-4 min-w-0">
         <div className="relative">
           <div className={`w-10 h-10 md:w-12 md:h-12 rounded-full overflow-hidden border border-white/10 p-[2px]`}>
-            <img src={row.avatar_url || '/default_user_blank.png'} alt="" className="w-full h-full object-cover rounded-full group-hover:scale-110 transition-transform duration-500" />
+            <SafeAvatar src={row.avatar_url} fallback="/default_user_blank.png" className="w-full h-full object-cover rounded-full group-hover:scale-110 transition-transform duration-500" />
           </div>
           {isTop3 && (
             <div className={`absolute -top-1 -right-1 w-4 h-4 rounded-full flex items-center justify-center text-[8px] bg-white text-black font-black shadow-xl ring-2 ring-black`}>
@@ -277,7 +278,9 @@ export default function GlobalLeaderboardPage() {
                     </div>
 
                     <div className="flex items-center flex-1 gap-4 overflow-hidden">
-                      <img src={row.avatar_url || '/default_user_blank.png'} className="w-10 h-10 rounded-full object-cover border border-white/5" alt="" />
+                      <div className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0 border border-white/5">
+                        <SafeAvatar src={row.avatar_url} fallback="/default_user_blank.png" className="w-full h-full object-cover" />
+                      </div>
                       <div className="flex flex-col min-w-0">
                         <span className={`font-bold text-sm md:text-base truncate ${getNicknameClass(row) || (isMe ? 'text-white' : 'text-white/60 group-hover:text-white')}`}>
                           {getUserDisplayName(row)}

@@ -2,12 +2,13 @@ import { useState, useRef, useEffect } from 'react';
 import { supabase } from '../supabaseClient';
 import { useAuthContext } from '../contexts/AuthContext';
 import { getFrameStyle } from '../utils/styles';
+import SafeAvatar from './SafeAvatar';
 
 const MAX_SIZE_MB = 10; // Aumentado para soportar GIFs de alta calidad
 const MAX_SIZE_BYTES = MAX_SIZE_MB * 1024 * 1024;
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
 
-export default function AvatarUploader({ currentAvatar, frameStyle, onUploadSuccess, isLv5 = false }) {
+export default function AvatarUploader({ currentAvatar, provider, frameStyle, onUploadSuccess, isLv5 = false }) {
     const { user } = useAuthContext();
     const fileInputRef = useRef(null);
     const [uploading, setUploading] = useState(false);
@@ -97,8 +98,9 @@ export default function AvatarUploader({ currentAvatar, frameStyle, onUploadSucc
             >
                 {/* Special wrapper for level 5 or complex animations */}
                 <div className={finalIsLv5 ? 'marco-evolutivo-lv5-img-wrapper' : `w-full h-full ${isEvolutivo ? 'rounded-full' : 'rounded-[inherit]'} overflow-hidden`}>
-                    <img
+                    <SafeAvatar
                         src={previewUrl}
+                        provider={provider}
                         alt="Avatar"
                         className={`w-full h-full object-cover transition-opacity duration-300 ${uploading ? 'opacity-30 blur-sm' : 'opacity-100 group-hover:opacity-60'}`}
                     />

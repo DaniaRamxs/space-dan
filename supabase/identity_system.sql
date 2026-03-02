@@ -58,6 +58,9 @@ CREATE INDEX IF NOT EXISTS idx_profiles_username_normalized ON public.profiles (
 
 -- 3. UNIFIED FLOW FOR NEW USERS (Triggers)
 
+-- Asegurar columna provider en profiles
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS provider text;
+
 CREATE OR REPLACE FUNCTION public.handle_new_auth_user()
 RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER AS $$
 DECLARE
@@ -65,29 +68,44 @@ DECLARE
     v_provider_id text;
     v_avatar text;
 BEGIN
-    -- Capturar avatar del proveedor
-    v_avatar := COALESCE(
-        NEW.raw_user_meta_data->>'avatar_url',
-        NEW.raw_user_meta_data->>'avatar',
-        '/default-avatar.png'
-    );
-
-    -- Insertar perfil inicial SIN username (esto forzará el onboarding)
-    -- On conflict update para sincronizar avatar si el perfil ya existía por algún motivo
-    INSERT INTO public.profiles (id, username, avatar_url)
-    VALUES (
-        NEW.id,
-        NULL, -- IMPORTANTE: NULL para disparar /onboarding en el frontend
-        v_avatar
-    )
-    ON CONFLICT (id) DO UPDATE SET
-        avatar_url = COALESCE(EXCLUDED.avatar_url, profiles.avatar_url),
-        updated_at = now();
-
-    -- Guardar proveedor inicial
+    -- Capturar proveedor inicial
     v_provider := NEW.raw_app_meta_data->>'provider';
     v_provider_id := NEW.raw_user_meta_data->>'sub';
 
+    -- Capturar avatar del proveedor con más precisión
+    v_avatar := COALESCE(
+        NEW.raw_user_meta_data->>'avatar_url', -- General / Discord
+        NEW.raw_user_meta_data->>'picture',    -- Google
+        NEW.raw_user_meta_data->>'avatar',     -- Discord hash
+        '/default-avatar.png'
+    );
+
+    -- Insertar o actualizar perfil
+    -- Si ya existe, SOLO actualizamos el avatar_url si:
+    -- 1. Es NULL
+    -- 2. Es el default '/default-avatar.png'
+    -- 3. Ya era una URL de proveedor (no es nuestra storage)
+    -- ESTO EVITA SOBREESCRIBIR AVATARES PERSONALIZADOS SUBIDOS POR EL USUARIO.
+    INSERT INTO public.profiles (id, username, avatar_url, provider)
+    VALUES (
+        NEW.id,
+        NULL, -- El onboarding se encargará si es la primera vez
+        v_avatar,
+        v_provider
+    )
+    ON CONFLICT (id) DO UPDATE SET
+        provider = EXCLUDED.provider,
+        avatar_url = CASE 
+            WHEN profiles.avatar_url IS NULL 
+                 OR profiles.avatar_url = '/default-avatar.png' 
+                 OR profiles.avatar_url = '/default_user.png'
+                 OR profiles.avatar_url NOT LIKE '%supabase.co/storage%' -- Si no es del storage, actualizamos (freshen up provider photo)
+            THEN EXCLUDED.avatar_url 
+            ELSE profiles.avatar_url 
+        END,
+        updated_at = now();
+
+    -- Guardar proveedor histórico
     IF v_provider IS NOT NULL AND v_provider_id IS NOT NULL THEN
         INSERT INTO public.user_providers (user_id, provider, provider_user_id)
         VALUES (NEW.id, v_provider, v_provider_id)
