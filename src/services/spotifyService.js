@@ -168,10 +168,10 @@ export const spotifyService = {
             .from('user_sound_state')
             .select('*')
             .eq('user_id', userId)
-            .maybeSingle();
+            .limit(1);
 
         if (error) return null;
-        return data; // Puede ser null si el RLS lo bloquea porque share_music_state es false
+        return data && data.length > 0 ? data[0] : null; // Avoids 406 network console error when 0 rows (RLS or empty)
     },
 
     async getUserSoundAverage(userId) {
