@@ -37,7 +37,7 @@ export class ErrorBoundary extends React.Component {
                     <h2 style={{ color: 'var(--accent)', textShadow: '0 0 10px var(--accent-glow)' }}>Error en el Sistema del Juego</h2>
                     <p style={{ opacity: 0.8, fontSize: '0.9rem', marginBottom: '24px', lineHeight: '1.6' }}>
                         Los datos guardados parecen ser incompatibles con la nueva versión, o el juego encontró un error inesperado.<br />
-                        El resto de Dan-Space sigue funcionando con normalidad.
+                        El resto de Spacely sigue funcionando con normalidad.
                     </p>
                     <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
                         <button

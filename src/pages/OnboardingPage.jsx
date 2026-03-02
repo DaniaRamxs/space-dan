@@ -99,7 +99,7 @@ export default function OnboardingPage() {
                     </h1>
                     <p className="tinyText" style={{ fontSize: 13, marginTop: 10 }}>
                         {isNewUser
-                            ? 'bienvenido al dan-space. elige tu nombre único de explorador para continuar tu viaje.'
+                            ? 'Bienvenido a Spacely. Elige tu nombre único de explorador para continuar tu viaje.'
                             : 'puedes cambiar tu nombre de explorador aquí. recuerda el cooldown de 30 días.'}
                     </p>
 

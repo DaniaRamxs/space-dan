@@ -152,7 +152,7 @@ const HoloCard = memo(function HoloCard({ profile, onClose }) {
                             opacity: 0.7, fontSize: '11px', marginBottom: '15px',
                             maxHeight: '40px', overflow: 'hidden', fontStyle: profile.bio ? 'normal' : 'italic'
                         }}>
-                            {profile.bio || 'Explorador del Dan-Space'}
+                            {profile.bio || 'Explorador del Spacely'}
                         </p>
 
                         <div style={{ display: 'flex', gap: '20px', justifyContent: 'center', marginBottom: '20px' }}>
