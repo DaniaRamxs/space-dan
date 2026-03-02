@@ -84,6 +84,28 @@ export const affinityService = {
     },
 
     /**
+     * Calcula la afinidad total mezclando Test (80%) y Música (20%).
+     * Si no hay datos musicales, el baseScore (Test) vale 100%.
+     */
+    calculateTotalAffinity(baseScore, soundStateA, soundStateB) {
+        if (!soundStateA || !soundStateB ||
+            soundStateA.valence == null || soundStateB.valence == null ||
+            soundStateA.energy == null || soundStateB.energy == null) {
+            return baseScore;
+        }
+
+        // Similitud Musical (0 a 1)
+        const valenceDiff = Math.abs(soundStateA.valence - soundStateB.valence);
+        const energyDiff = Math.abs(soundStateA.energy - soundStateB.energy);
+        const musicScore = ((1 - valenceDiff) + (1 - energyDiff)) / 2;
+        const musicScorePct = Math.round(musicScore * 100);
+
+        // Pesos: 80% Test, 20% Música (como "comportamiento" aún no está full implementado)
+        const total = (baseScore * 0.8) + (musicScorePct * 0.2);
+        return Math.round(total);
+    },
+
+    /**
      * Extrae puntos de conexión (communalities) donde ambos puntuaron alto (4 o 5).
      */
     getAffinityCommunalities(answersA, answersB, questions) {

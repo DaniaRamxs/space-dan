@@ -109,6 +109,18 @@ serve(async (req) => {
         if (spotifyRes.status === 204) return new Response(JSON.stringify({}), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
 
         const spotifyData = await spotifyRes.json()
+
+        // Fetch Audio Features si es reproduciendo actualmente
+        if (action === 'current-playing' && spotifyData.item && spotifyData.item.id) {
+            const featuresRes = await fetch(`https://api.spotify.com/v1/audio-features/${spotifyData.item.id}`, {
+                headers: { 'Authorization': `Bearer ${accessToken}` }
+            })
+            if (featuresRes.ok) {
+                const featuresData = await featuresRes.json()
+                spotifyData.audio_features = featuresData
+            }
+        }
+
         return new Response(JSON.stringify(spotifyData), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
 
     } catch (err) {

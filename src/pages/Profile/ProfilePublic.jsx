@@ -16,6 +16,7 @@ import { activityService } from '../../services/activityService';
 import { PostSkeleton } from '../../components/Skeletons/Skeleton';
 import BlogPostCard from '../../components/Social/BlogPostCard';
 import { profileSocialService } from '../../services/profile_social';
+import { spotifyService } from '../../services/spotifyService';
 import { socialService } from '../../services/social';
 import { getProductivityStats } from '../../services/productivity';
 import { blogService } from '../../services/blogService';
@@ -70,6 +71,8 @@ export default function PublicProfilePage() {
   const [affinityScore, setAffinityScore] = useState(null);
   const [affinityCommunalities, setAffinityCommunalities] = useState([]);
   const [affinityCategories, setAffinityCategories] = useState({});
+  const [soundState, setSoundState] = useState(null);
+  const [musicOverlap, setMusicOverlap] = useState(null);
 
   // Determine if it's the current user's profile based on username
   const isOwnProfile = user && profile && user.id === profile.id;
@@ -154,21 +157,37 @@ export default function PublicProfilePage() {
         Promise.all([
           affinityService.getUserAnswers(user.id),
           affinityService.getUserAnswers(targetUserId),
-          affinityService.getQuestions()
-        ]).then(([myAns, targetAns, questions]) => {
-          const score = affinityService.calculateAffinity(myAns, targetAns, questions);
+          affinityService.getQuestions(),
+          spotifyService.getUserSoundState(user.id),
+          spotifyService.getUserSoundState(targetUserId),
+          spotifyService.getMusicOverlap(user.id, targetUserId)
+        ]).then(([myAns, targetAns, questions, mySound, targetSound, overlap]) => {
+          const baseScore = affinityService.calculateAffinity(myAns, targetAns, questions);
+          const score = affinityService.calculateTotalAffinity(baseScore, mySound, targetSound);
           const comms = affinityService.getAffinityCommunalities(myAns, targetAns, questions);
           const cats = affinityService.calculateAffinityByCategory(myAns, targetAns, questions);
+
           if (isMountedLocal) {
             setAffinityScore(score);
             setAffinityCommunalities(comms);
             setAffinityCategories(cats);
+            setSoundState(targetSound);
+            setMusicOverlap(overlap);
           }
-        }).catch(err => console.error('[Affinity] Calculation error:', err));
+        }).catch(err => console.error('[Affinity/Music] Calculation error:', err));
       } else {
         setAffinityScore(null);
         setAffinityCommunalities([]);
         setAffinityCategories({});
+        // Aunque no haya test de afinidad, intentemos buscar su estado sonoro
+        spotifyService.getUserSoundState(targetUserId).then(s => {
+          if (isMountedLocal) setSoundState(s);
+        }).catch(() => { });
+        if (user && user.id !== targetUserId) {
+          spotifyService.getMusicOverlap(user.id, targetUserId).then(o => {
+            if (isMountedLocal) setMusicOverlap(o);
+          }).catch(() => { });
+        }
       }
 
       if (prof.banner_item) {
@@ -388,6 +407,8 @@ export default function PublicProfilePage() {
           affinityScore={affinityScore}
           affinityCommunalities={affinityCommunalities}
           affinityCategories={affinityCategories}
+          soundState={soundState}
+          musicOverlap={musicOverlap}
         />
       </UniverseProvider>
     );
@@ -410,7 +431,8 @@ function ProfileContent({
   handleSendRequest, newComment, setNewComment, submittingComment,
   progressPercent, totalXp, nextLevelXp, level, rankName, topGlobalRank, bestRecord, userId,
   hasPendingRequest, requestLoading,
-  affinityScore, affinityCommunalities, affinityCategories
+  affinityScore, affinityCommunalities, affinityCategories,
+  soundState, musicOverlap
 }) {
   const { user } = useAuthContext();
   const navigate = useNavigate();
@@ -597,6 +619,14 @@ function ProfileContent({
                     <div className="absolute -bottom-4 left-3 h-1.5 w-1.5 rounded-full border border-white/10 bg-black/50 shadow-xl" />
                   </div>
                 </div>
+
+                {/* Sound State Badge */}
+                {soundState && soundState.is_playing && (
+                  <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 px-4 py-1.5 rounded-full bg-black/80 backdrop-blur-xl border border-emerald-500/30 text-[9px] font-black uppercase tracking-widest shadow-xl z-[60] flex items-center gap-2 whitespace-nowrap overflow-hidden max-w-[90%]">
+                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_10px_rgba(52,211,153,0.5)]"></span>
+                    <span className="text-emerald-400/90 truncate flex-1">{soundState.emotional_label || 'Sintonizando'}</span>
+                  </div>
+                )}
               </div>
 
               <div className="space-y-4">
@@ -767,6 +797,57 @@ function ProfileContent({
 
           {/* MAIN: Navigation & Views */}
           <main className="lg:col-span-8 space-y-12">
+
+            {/* Bridge Prompt (Puentes) */}
+            {user && !isOwnProfile && !isFollowing && affinityScore >= 80 && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="p-6 rounded-[32px] bg-gradient-to-br from-cyan-500/10 to-purple-500/10 border border-white/10 backdrop-blur-xl relative overflow-hidden group mb-8"
+              >
+                <div className="flex flex-col gap-4 relative z-10">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-full bg-cyan-500/20 flex items-center justify-center text-xs">🌉</div>
+                    <span className="text-[10px] font-black text-cyan-400 uppercase tracking-widest">Puente de Resonancia detectado</span>
+                  </div>
+                  <p className="text-sm font-medium text-white/80 leading-relaxed italic">
+                    "Tienen una sintonía excepcional ({affinityScore}%), pero sus órbitas aún no se han cruzado."
+                  </p>
+                  <button
+                    onClick={handleToggleFollow}
+                    className="w-full sm:w-auto self-start px-8 py-4 bg-white text-black rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] transition-all hover:scale-[1.02] hover:shadow-[0_10px_30px_rgba(255,255,255,0.2)] active:scale-[0.98]"
+                  >
+                    Establecer Vínculo ✨
+                  </button>
+                </div>
+                {/* Animated background lines */}
+                <div className="absolute inset-0 opacity-20 pointer-events-none">
+                  <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-cyan-500 to-transparent animate-[shimmer_3s_infinite]" />
+                  <div className="absolute bottom-0 right-0 w-full h-[1px] bg-gradient-to-r from-transparent via-purple-500 to-transparent animate-[shimmer_3s_infinite_reverse]" />
+                </div>
+              </motion.div>
+            )}
+
+            {/* Music Overlap (Coincidencia Sonora Reciente) */}
+            {musicOverlap && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="p-6 rounded-[32px] bg-white/[0.02] border border-white/10 backdrop-blur-xl relative overflow-hidden group mb-8 flex items-center gap-6"
+              >
+                <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-xl shrink-0">
+                  🎧
+                </div>
+                <div className="flex-1">
+                  <h4 className="text-[10px] font-black text-emerald-400 uppercase tracking-widest mb-1">Coincidencia Sonora Reciente</h4>
+                  <p className="text-sm text-white/70">
+                    Ambos sintonizaron {musicOverlap.overlap_type === 'track' ? 'esta pieza' : 'a este artista'}: <span className="text-white font-medium">{musicOverlap.reference_name}</span>.
+                  </p>
+                </div>
+              </motion.div>
+            )}
+
+
             <nav className="flex gap-8 border-b border-white/5 overflow-x-auto no-scrollbar">
               <TabButton
                 active={activeTab === 'activity'}
