@@ -21,7 +21,9 @@
       "Skill(commit-commands:commit-push-pr)",
       "Skill(commit-commands:commit-push-pr:*)",
       "Bash(winget list:*)",
-      "Bash(npx vite build)"
+      "Bash(npx vite build)",
+      "Bash(npx supabase functions logs:*)",
+      "Bash(npx cap sync:*)"
     ]
   }
 }

@@ -101,6 +101,7 @@ const bulletinPosts = [
   { id: 102, date: "2026-03-01", title: "VoiceRoom integrado con Android", text: "Las salas de voz ahora invocan el plugin nativo de Android al conectarse y desconectarse. El servicio de voz en segundo plano arranca y se detiene en sincronía con la sala.", tags: ["update", "mobile", "tecnología"] },
   { id: 103, date: "2026-03-01", title: "Spotify: Fix de configuración", text: "Conectar Spotify desde el perfil ahora muestra un mensaje de error claro si falta la variable de entorno VITE_SPOTIFY_CLIENT_ID, en lugar de fallar silenciosamente.", tags: ["fix", "música"] },
   { id: 104, date: "2026-03-01", title: "Shop: guest mode mejorado", text: "La tienda ahora usa useStarlys como fallback para visitantes sin sesión. Los usuarios no logueados pueden gastar su balance local y reclamar el bonus diario.", tags: ["update", "gamificación"] },
+  { id: 105, date: "2026-03-02", title: "Operación: Blindaje Estelar 🛡️", text: "Implementamos una actualización masiva de seguridad. Tu economía, perfil y mensajes ahora están respaldados por nuevas políticas de privacidad incorruptibles. Hemos fortalecido el núcleo de nuestra base de datos para prevenir spam, manipulación de Starlys y asegurar que solo tú tengas el mando de tus propios datos dentro de Spacely.", tags: ["update", "seguridad", "tecnología"] },
 ];
 
 const PAGE_SIZE = 10;
