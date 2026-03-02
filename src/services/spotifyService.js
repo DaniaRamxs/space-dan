@@ -96,11 +96,11 @@ export const spotifyService = {
     translateAudioFeatures(valence, energy) {
         if (valence == null || energy == null) return 'Sintonizando Estrellas';
 
+        if (energy > 0.8) return 'Sobrecarga de Energía';
         if (valence > 0.6 && energy > 0.6) return 'Euforia Activa';
         if (valence > 0.6 && energy <= 0.6) return 'Calma Luminosa';
         if (valence <= 0.4 && energy > 0.6) return 'Intensidad Melancólica';
         if (valence <= 0.4 && energy <= 0.4) return 'Introspección Profunda';
-        if (energy > 0.8) return 'Sobrecarga de Energía';
 
         return 'Frecuencia Estable';
     },
@@ -172,6 +172,15 @@ export const spotifyService = {
 
         if (error) return null;
         return data; // Puede ser null si el RLS lo bloquea porque share_music_state es false
+    },
+
+    async getUserSoundAverage(userId) {
+        const { data, error } = await supabase.rpc('get_user_sound_average', {
+            p_user_id: userId
+        });
+
+        if (error) return null;
+        return data; // Returns { valence, energy }
     },
 
     async getMusicOverlap(userA, userB) {

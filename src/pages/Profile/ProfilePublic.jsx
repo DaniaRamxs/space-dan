@@ -72,6 +72,7 @@ export default function PublicProfilePage() {
   const [affinityCommunalities, setAffinityCommunalities] = useState([]);
   const [affinityCategories, setAffinityCategories] = useState({});
   const [soundState, setSoundState] = useState(null);
+  const [soundAverage, setSoundAverage] = useState(null);
   const [musicOverlap, setMusicOverlap] = useState(null);
 
   // Determine if it's the current user's profile based on username
@@ -160,10 +161,12 @@ export default function PublicProfilePage() {
           affinityService.getQuestions(),
           spotifyService.getUserSoundState(user.id),
           spotifyService.getUserSoundState(targetUserId),
+          spotifyService.getUserSoundAverage(user.id),
+          spotifyService.getUserSoundAverage(targetUserId),
           spotifyService.getMusicOverlap(user.id, targetUserId)
-        ]).then(([myAns, targetAns, questions, mySound, targetSound, overlap]) => {
+        ]).then(([myAns, targetAns, questions, mySound, targetSound, mySoundAvg, targetSoundAvg, overlap]) => {
           const baseScore = affinityService.calculateAffinity(myAns, targetAns, questions);
-          const score = affinityService.calculateTotalAffinity(baseScore, mySound, targetSound);
+          const score = affinityService.calculateTotalAffinity(baseScore, mySoundAvg, targetSoundAvg);
           const comms = affinityService.getAffinityCommunalities(myAns, targetAns, questions);
           const cats = affinityService.calculateAffinityByCategory(myAns, targetAns, questions);
 
@@ -172,6 +175,7 @@ export default function PublicProfilePage() {
             setAffinityCommunalities(comms);
             setAffinityCategories(cats);
             setSoundState(targetSound);
+            setSoundAverage(targetSoundAvg);
             setMusicOverlap(overlap);
           }
         }).catch(err => console.error('[Affinity/Music] Calculation error:', err));
@@ -182,6 +186,9 @@ export default function PublicProfilePage() {
         // Aunque no haya test de afinidad, intentemos buscar su estado sonoro
         spotifyService.getUserSoundState(targetUserId).then(s => {
           if (isMountedLocal) setSoundState(s);
+        }).catch(() => { });
+        spotifyService.getUserSoundAverage(targetUserId).then(a => {
+          if (isMountedLocal) setSoundAverage(a);
         }).catch(() => { });
         if (user && user.id !== targetUserId) {
           spotifyService.getMusicOverlap(user.id, targetUserId).then(o => {
@@ -408,6 +415,7 @@ export default function PublicProfilePage() {
           affinityCommunalities={affinityCommunalities}
           affinityCategories={affinityCategories}
           soundState={soundState}
+          soundAverage={soundAverage}
           musicOverlap={musicOverlap}
         />
       </UniverseProvider>
@@ -432,7 +440,7 @@ function ProfileContent({
   progressPercent, totalXp, nextLevelXp, level, rankName, topGlobalRank, bestRecord, userId,
   hasPendingRequest, requestLoading,
   affinityScore, affinityCommunalities, affinityCategories,
-  soundState, musicOverlap
+  soundState, soundAverage, musicOverlap
 }) {
   const { user } = useAuthContext();
   const navigate = useNavigate();
@@ -828,22 +836,88 @@ function ProfileContent({
               </motion.div>
             )}
 
-            {/* Music Overlap (Coincidencia Sonora Reciente) */}
-            {musicOverlap && (
+            {/* Radar Emocional v1.2 */}
+            {(soundState || soundAverage || musicOverlap) && (
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="p-6 rounded-[32px] bg-white/[0.02] border border-white/10 backdrop-blur-xl relative overflow-hidden group mb-8 flex items-center gap-6"
+                className="p-8 rounded-[32px] bg-black/40 border border-emerald-500/20 backdrop-blur-xl relative overflow-hidden group mb-8"
               >
-                <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-xl shrink-0">
-                  🎧
+                <div className="absolute top-0 right-0 px-4 py-1.5 bg-emerald-500/10 border-b border-l border-emerald-500/20 rounded-bl-2xl z-20">
+                  <span className="text-[8px] font-black text-emerald-400 uppercase tracking-[0.2em]">Radar Emocional API v1.2</span>
                 </div>
-                <div className="flex-1">
-                  <h4 className="text-[10px] font-black text-emerald-400 uppercase tracking-widest mb-1">Coincidencia Sonora Reciente</h4>
-                  <p className="text-sm text-white/70">
-                    Ambos sintonizaron {musicOverlap.overlap_type === 'track' ? 'esta pieza' : 'a este artista'}: <span className="text-white font-medium">{musicOverlap.reference_name}</span>.
-                  </p>
+
+                <div className="flex flex-col gap-8 relative z-10">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    {/* Frecuencia Histórica (Left Side) */}
+                    <div className="space-y-4 border-b md:border-b-0 md:border-r border-white/5 pb-6 md:pb-0 md:pr-6">
+                      {soundAverage ? (
+                        <div className="space-y-2">
+                          <h4 className="flex items-center gap-2 text-[10px] font-black text-white/40 uppercase tracking-widest">
+                            <span className="text-emerald-400">⚡</span> Frecuencia Resonante (3 Días)
+                          </h4>
+                          <div className="flex flex-col justify-center min-h-[60px]">
+                            <span className="text-2xl font-black italic tracking-tighter text-white">
+                              {spotifyService.translateAudioFeatures(soundAverage.valence, soundAverage.energy)}
+                            </span>
+                            <span className="text-[10px] font-mono text-emerald-400/50 mt-1">
+                              VALENCE: {Math.round(soundAverage.valence * 100)}% | ENERGY: {Math.round(soundAverage.energy * 100)}%
+                            </span>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="space-y-2">
+                          <h4 className="flex items-center gap-2 text-[10px] font-black text-white/40 uppercase tracking-widest">
+                            <span className="text-white/20">📡</span> Frecuencia Resonante
+                          </h4>
+                          <div className="flex flex-col justify-center min-h-[60px]">
+                            <span className="text-sm italic font-medium text-white/30">Sin historial suficiente para patrón.</span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Señal en vivo & Overlaps (Right Side) */}
+                    <div className="space-y-6">
+                      {/* Estado de Reproducción Actual */}
+                      {soundState && soundState.is_playing && (
+                        <div className="space-y-2">
+                          <h4 className="flex items-center gap-2 text-[10px] font-black text-white/40 uppercase tracking-widest">
+                            <span className="text-cyan-400 animate-pulse">▶</span> Señal de Audio Actual
+                          </h4>
+                          <div className="p-3.5 rounded-2xl bg-white/[0.02] border border-white/5 flex gap-4 items-center group/track hover:bg-white/[0.04] transition-colors">
+                            <div className="w-10 h-10 rounded-xl bg-cyan-500/10 flex items-center justify-center shrink-0">
+                              <span className="text-cyan-400/50 group-hover/track:animate-pulse">🎵</span>
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="text-[13px] font-bold text-white truncate">{soundState.track_name}</div>
+                              <div className="text-[10px] text-white/50 uppercase tracking-widest truncate">{soundState.artist_name}</div>
+                            </div>
+                            <div className="hidden sm:block text-right shrink-0">
+                              <div className="text-[9px] text-cyan-400 font-black uppercase tracking-widest px-2 py-1 bg-cyan-500/10 rounded-md">{soundState.emotional_label}</div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Overlap */}
+                      {musicOverlap && (
+                        <div className="space-y-2">
+                          <h4 className="flex items-center gap-2 text-[10px] font-black text-white/40 uppercase tracking-widest">
+                            <span className="text-purple-400">🔗</span> Puente Musical
+                          </h4>
+                          <div className="p-3.5 rounded-2xl bg-purple-500/10 border border-purple-500/20 text-sm text-purple-200/80 mt-1">
+                            Sintonizaron {musicOverlap.overlap_type === 'track' ? 'esta pieza' : 'a este artista'}: <span className="text-purple-100 font-bold ml-1">{musicOverlap.reference_name}</span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 </div>
+
+                {/* Animated background layers */}
+                <div className="absolute inset-0 opacity-[0.03] pointer-events-none bg-[radial-gradient(circle_at_bottom_right,_var(--tw-gradient-stops))] from-emerald-500 via-transparent to-transparent"></div>
+                <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-emerald-500/50 to-transparent"></div>
               </motion.div>
             )}
 

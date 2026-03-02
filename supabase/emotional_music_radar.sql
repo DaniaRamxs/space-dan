@@ -60,16 +60,28 @@ CREATE POLICY "Users can read their own overlaps"
     ON public.music_overlap FOR SELECT
     USING (auth.uid() = user_a OR auth.uid() = user_b);
 
--- 4. Función Analítica: Interpretar Audios Features
--- (Esta lógica suele calcularse en el cliente/módulo Edge, pero la dejamos
--- documentada e implementada como helper si se necesita puramente en SQL).
+-- 4. Historial Sonoro para Radar Emocional en el Tiempo
+CREATE TABLE IF NOT EXISTS public.user_sound_history (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
+    valence NUMERIC,
+    energy NUMERIC,
+    tempo NUMERIC,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_user_sound_history_user_time ON public.user_sound_history(user_id, created_at);
+
+-- 5. Función Analítica: Interpretar Audios Features
 CREATE OR REPLACE FUNCTION public.get_emotional_label(p_valence NUMERIC, p_energy NUMERIC) RETURNS TEXT AS $$
 BEGIN
     IF p_valence IS NULL OR p_energy IS NULL THEN
         RETURN 'Sintonizando';
     END IF;
 
-    IF p_valence > 0.6 AND p_energy > 0.6 THEN
+    IF p_energy > 0.8 THEN
+        RETURN 'Sobrecarga de Energía';
+    ELSIF p_valence > 0.6 AND p_energy > 0.6 THEN
         RETURN 'Euforia Activa';
     ELSIF p_valence > 0.6 AND p_energy <= 0.6 THEN
         RETURN 'Calma Luminosa';
@@ -77,15 +89,13 @@ BEGIN
         RETURN 'Intensidad Melancólica';
     ELSIF p_valence <= 0.4 AND p_energy <= 0.4 THEN
         RETURN 'Introspección Profunda';
-    ELSIF p_energy > 0.8 THEN
-        RETURN 'Sobrecarga de Energía';
     ELSE
         RETURN 'Frecuencia Estable';
     END IF;
 END;
 $$ LANGUAGE plpgsql IMMUTABLE;
 
--- 5. RPC para sincronizar estado musical y calcular overlaps
+-- 6. RPC para sincronizar estado musical y calcular overlaps
 CREATE OR REPLACE FUNCTION public.sync_user_sound_state(
     p_track_id TEXT,
     p_track_name TEXT,
@@ -100,6 +110,7 @@ CREATE OR REPLACE FUNCTION public.sync_user_sound_state(
 DECLARE
     v_user_id UUID := auth.uid();
     v_share_music BOOLEAN;
+    v_inserted_track BOOLEAN := false;
 BEGIN
     IF v_user_id IS NULL THEN
         RAISE EXCEPTION 'No autenticado';
@@ -109,7 +120,15 @@ BEGIN
     SELECT share_music_state INTO v_share_music FROM public.profiles WHERE id = v_user_id;
     IF v_share_music = false THEN
         UPDATE public.user_sound_state SET is_playing = false, updated_at = NOW() WHERE user_id = v_user_id;
+        -- Limpiar overlaps si desactiva
+        DELETE FROM public.music_overlap WHERE user_a = v_user_id OR user_b = v_user_id;
         RETURN;
+    END IF;
+
+    -- Guardar en historial
+    IF p_is_playing = true AND p_valence IS NOT NULL THEN
+        INSERT INTO public.user_sound_history (user_id, valence, energy, tempo)
+        VALUES (v_user_id, p_valence, p_energy, p_tempo);
     END IF;
 
     -- Actualizar estado sonoro actual
@@ -130,40 +149,72 @@ BEGIN
         updated_at = NOW(),
         is_playing = EXCLUDED.is_playing;
 
-    -- Lógica de Overlap (Puentes): buscar usuarios que hayan escuchado esto en las últimas 24h
+    -- Lógica de Overlap (Puentes)
     IF p_is_playing = true THEN
         -- Overlap por Track
-        INSERT INTO public.music_overlap (user_a, user_b, overlap_type, reference_id, reference_name)
-        SELECT v_user_id, other.user_id, 'track', p_track_id, p_track_name
-        FROM public.user_sound_state other
-        WHERE other.user_id != v_user_id
-          AND other.track_id = p_track_id
-          AND other.updated_at >= NOW() - INTERVAL '24 hours'
-          AND NOT EXISTS (
-              SELECT 1 FROM public.music_overlap mo 
-              WHERE (mo.user_a = v_user_id AND mo.user_b = other.user_id AND mo.overlap_type = 'track' AND mo.reference_id = p_track_id)
-                 OR (mo.user_b = v_user_id AND mo.user_a = other.user_id AND mo.overlap_type = 'track' AND mo.reference_id = p_track_id)
-          );
+        WITH new_tracks AS (
+            INSERT INTO public.music_overlap (user_a, user_b, overlap_type, reference_id, reference_name)
+            SELECT LEAST(v_user_id, other.user_id), GREATEST(v_user_id, other.user_id), 'track', p_track_id, p_track_name
+            FROM public.user_sound_state other
+            WHERE other.user_id != v_user_id
+              AND other.track_id = p_track_id
+              AND other.updated_at >= NOW() - INTERVAL '24 hours'
+            ON CONFLICT DO NOTHING
+            RETURNING 1
+        )
+        SELECT EXISTS (SELECT 1 FROM new_tracks) INTO v_inserted_track;
 
-        -- Overlap por Artist (para no flood, se hace uno u otro o ambos)
-        INSERT INTO public.music_overlap (user_a, user_b, overlap_type, reference_id, reference_name)
-        SELECT v_user_id, other.user_id, 'artist', p_artist_id, p_artist_name
-        FROM public.user_sound_state other
-        WHERE other.user_id != v_user_id
-          AND other.artist_id = p_artist_id
-          AND other.updated_at >= NOW() - INTERVAL '24 hours'
-          AND NOT EXISTS (
-              SELECT 1 FROM public.music_overlap mo 
-              WHERE (mo.user_a = v_user_id AND mo.user_b = other.user_id AND mo.overlap_type = 'artist' AND mo.reference_id = p_artist_id)
-                 OR (mo.user_b = v_user_id AND mo.user_a = other.user_id AND mo.overlap_type = 'artist' AND mo.reference_id = p_artist_id)
-          );
+        -- Overlap por Artist (Solo si no hubo overlap por track recién)
+        IF v_inserted_track = false THEN
+            INSERT INTO public.music_overlap (user_a, user_b, overlap_type, reference_id, reference_name)
+            SELECT LEAST(v_user_id, other.user_id), GREATEST(v_user_id, other.user_id), 'artist', p_artist_id, p_artist_name
+            FROM public.user_sound_state other
+            WHERE other.user_id != v_user_id
+              AND other.artist_id = p_artist_id
+              AND other.updated_at >= NOW() - INTERVAL '24 hours'
+              AND NOT EXISTS (
+                  -- Verificar que no haya overlap reciente por track entre ellos
+                  SELECT 1 FROM public.music_overlap mo 
+                  WHERE mo.user_a = LEAST(v_user_id, other.user_id) 
+                    AND mo.user_b = GREATEST(v_user_id, other.user_id) 
+                    AND mo.overlap_type = 'track'
+                    AND mo.created_at >= NOW() - INTERVAL '24 hours'
+              )
+            ON CONFLICT DO NOTHING;
+        END IF;
     END IF;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- 6. RPC para borrar overlaps viejos (cleanup task a implementar o llamada manual ocasional)
+-- 7. RPC para borrar overlaps e históricos viejos
 CREATE OR REPLACE FUNCTION public.cleanup_music_overlaps() RETURNS void AS $$
 BEGIN
     DELETE FROM public.music_overlap WHERE created_at < NOW() - INTERVAL '7 days';
+    DELETE FROM public.user_sound_history WHERE created_at < NOW() - INTERVAL '30 days';
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- 8. RPC para promedio histórico (Afinidad profunda)
+CREATE OR REPLACE FUNCTION public.get_user_sound_average(p_user_id UUID)
+RETURNS JSONB AS $$
+DECLARE
+    v_avg_valence NUMERIC;
+    v_avg_energy NUMERIC;
+BEGIN
+    SELECT AVG(valence), AVG(energy)
+    INTO v_avg_valence, v_avg_energy
+    FROM (
+        SELECT valence, energy
+        FROM public.user_sound_history
+        WHERE user_id = p_user_id AND created_at >= NOW() - INTERVAL '3 days'
+        ORDER BY created_at DESC
+        LIMIT 20
+    ) sub;
+
+    IF v_avg_valence IS NULL THEN
+        RETURN NULL;
+    END IF;
+
+    RETURN jsonb_build_object('valence', v_avg_valence, 'energy', v_avg_energy);
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
