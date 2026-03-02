@@ -9,18 +9,18 @@ export default function ApkDownload() {
                 <div className="apkContent">
                     <div className="apkIcon">🤖</div>
                     <div className="apkText">
-                        <h3>¡Lleva el Dan-Space a tu bolsillo!</h3>
+                        <h3>¡Lleva el espacio a tu bolsillo!</h3>
                         <p>
                             Descarga la app oficial para una experiencia más fluida
                             y nueva integracion con spotify.
                         </p>
                         <p style={{ fontSize: "0.8rem", opacity: 0.7 }}>
-                            <v1 className="3 3"></v1> • fix bugs · chat de voz · icono propio
+                            <v1 className="3 4"></v1> • cambio de nombre · chat de voz · icono propio
                         </p>
                     </div>
                 </div>
                 <a
-                    href="https://github.com/DaniaRamxs/space-dan/releases/download/v1.3.3/space.dan.v1.3.3.apk"
+                    href="https://github.com/DaniaRamxs/space-dan/releases/download/v1.3.4/spacely1.3.4.apk"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="apkDownloadBtn"
