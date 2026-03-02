@@ -429,7 +429,7 @@ function FundSection({ user }) {
   );
 }
 
-function MoodManager({ profile, user, bgColor, setBgColor }) {
+function MoodManager({ profile, user, bgColor, setBgColor, logout }) {
   const [moodText, setMoodText] = useState(profile?.mood_text || '');
   const [moodEmoji, setMoodEmoji] = useState(profile?.mood_emoji || '✨');
   const [duration, setDuration] = useState(24);
@@ -724,6 +724,21 @@ function MoodManager({ profile, user, bgColor, setBgColor }) {
           >
             SINCRONIZAR FIRMA
           </button>
+
+          <div className="pt-8 border-t border-white/5">
+            <button
+              onClick={() => {
+                if (window.confirm('¿Estás seguro de que quieres cerrar sesión?')) {
+                  logout();
+                }
+              }}
+              className="w-full py-4 bg-rose-500/10 border border-rose-500/20 text-rose-500 font-black text-[10px] uppercase rounded-2xl hover:bg-rose-500/20 transition-all flex items-center justify-center gap-2 group"
+            >
+              <span>🚪</span>
+              <span className="tracking-[0.2em] group-hover:tracking-[0.3em] transition-all">Cerrar Sesión</span>
+            </button>
+            <p className="text-center text-[8px] font-black text-white/10 uppercase tracking-widest mt-4">Desconexión segura del sistema</p>
+          </div>
         </div>
       </div>
     </div>
@@ -1247,7 +1262,7 @@ export default function ProfileOwn() {
                   )}
 
                   {activeTab === 'identity' && (
-                    <MoodManager profile={profile} user={user} bgColor={bgColor} setBgColor={setBgColor} />
+                    <MoodManager profile={profile} user={user} bgColor={bgColor} setBgColor={setBgColor} logout={logout} />
                   )}
 
                   {activeTab === 'cabina' && (
