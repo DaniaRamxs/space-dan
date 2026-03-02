@@ -15,8 +15,7 @@ import { applyTheme } from "./hooks/useTheme";
 import { AuthProvider, useAuthContext } from "./contexts/AuthContext";
 import { EconomyProvider, useEconomy } from "./contexts/EconomyContext";
 import { UniverseProvider, useUniverse } from "./contexts/UniverseContext.jsx";
-
-
+import { spotifyService } from "./services/spotifyService";
 
 const PostsPage = lazy(() => import("./pages/PostsPage"));
 const CreatePostPage = lazy(() => import("./pages/CreatePostPage"));
@@ -129,6 +128,36 @@ function PresenceTracker() {
       });
     }
   }, [location.pathname, profile?.id, updatePresence, activeStation, isPresenceReady]);
+
+  return null;
+}
+
+function MusicSyncTracker() {
+  const { user } = useAuthContext();
+
+  useEffect(() => {
+    if (!user) return;
+
+    let isMounted = true;
+
+    const syncMusic = async () => {
+      if (isMounted) {
+        try {
+          await spotifyService.syncCurrentSoundState(user);
+        } catch (e) {
+          console.warn('[MusicSyncTracker] Error:', e);
+        }
+      }
+    };
+
+    syncMusic();
+    const interval = setInterval(syncMusic, 45000); // 45 seconds polling
+
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
+  }, [user]);
 
   return null;
 }
@@ -343,6 +372,7 @@ export default function App() {
             <PageTracker />
             <ScrollToTop />
             <PresenceTracker />
+            <MusicSyncTracker />
             <Suspense fallback={<FallbackLoader />}>
               <AnimatedRoutes />
             </Suspense>

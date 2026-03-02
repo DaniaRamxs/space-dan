@@ -143,7 +143,8 @@ export const spotifyService = {
                 p_energy: features.energy ?? null,
                 p_tempo: features.tempo ?? null,
                 p_emotional_label: emotionalLabel,
-                p_is_playing: isPlaying
+                p_is_playing: isPlaying,
+                p_track_image_url: track.album?.images?.[0]?.url || null
             });
 
             if (error) {

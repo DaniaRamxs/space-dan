@@ -17,12 +17,16 @@ CREATE TABLE IF NOT EXISTS public.user_sound_state (
     energy NUMERIC,
     tempo NUMERIC,
     emotional_label TEXT,
+    track_image_url TEXT,
     updated_at TIMESTAMPTZ DEFAULT NOW(),
     is_playing BOOLEAN DEFAULT true
 );
 
 ALTER TABLE public.user_sound_state ENABLE ROW LEVEL SECURITY;
 
+ALTER TABLE public.user_sound_state ADD COLUMN IF NOT EXISTS track_image_url TEXT;
+
+DROP POLICY IF EXISTS "Public profiles can read sound state if privacy allowed" ON public.user_sound_state;
 CREATE POLICY "Public profiles can read sound state if privacy allowed"
     ON public.user_sound_state FOR SELECT
     USING (
@@ -33,6 +37,7 @@ CREATE POLICY "Public profiles can read sound state if privacy allowed"
         OR auth.uid() = user_id
     );
 
+DROP POLICY IF EXISTS "Users can update their own sound state" ON public.user_sound_state;
 CREATE POLICY "Users can update their own sound state"
     ON public.user_sound_state FOR ALL
     USING (auth.uid() = user_id)
@@ -56,6 +61,7 @@ CREATE INDEX IF NOT EXISTS idx_music_overlap_time ON public.music_overlap(create
 
 ALTER TABLE public.music_overlap ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Users can read their own overlaps" ON public.music_overlap;
 CREATE POLICY "Users can read their own overlaps"
     ON public.music_overlap FOR SELECT
     USING (auth.uid() = user_a OR auth.uid() = user_b);
@@ -71,6 +77,12 @@ CREATE TABLE IF NOT EXISTS public.user_sound_history (
 );
 
 CREATE INDEX IF NOT EXISTS idx_user_sound_history_user_time ON public.user_sound_history(user_id, created_at);
+
+ALTER TABLE public.user_sound_history ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Users can read their own sound history" ON public.user_sound_history;
+CREATE POLICY "Users can read their own sound history"
+    ON public.user_sound_history FOR SELECT
+    USING (auth.uid() = user_id);
 
 -- 5. Función Analítica: Interpretar Audios Features
 CREATE OR REPLACE FUNCTION public.get_emotional_label(p_valence NUMERIC, p_energy NUMERIC) RETURNS TEXT AS $$
@@ -105,7 +117,8 @@ CREATE OR REPLACE FUNCTION public.sync_user_sound_state(
     p_energy NUMERIC,
     p_tempo NUMERIC,
     p_emotional_label TEXT,
-    p_is_playing BOOLEAN
+    p_is_playing BOOLEAN,
+    p_track_image_url TEXT DEFAULT NULL
 ) RETURNS void AS $$
 DECLARE
     v_user_id UUID := auth.uid();
@@ -133,9 +146,9 @@ BEGIN
 
     -- Actualizar estado sonoro actual
     INSERT INTO public.user_sound_state (
-        user_id, track_id, track_name, artist_id, artist_name, valence, energy, tempo, emotional_label, updated_at, is_playing
+        user_id, track_id, track_name, artist_id, artist_name, valence, energy, tempo, emotional_label, track_image_url, updated_at, is_playing
     ) VALUES (
-        v_user_id, p_track_id, p_track_name, p_artist_id, p_artist_name, p_valence, p_energy, p_tempo, p_emotional_label, NOW(), p_is_playing
+        v_user_id, p_track_id, p_track_name, p_artist_id, p_artist_name, p_valence, p_energy, p_tempo, p_emotional_label, p_track_image_url, NOW(), p_is_playing
     )
     ON CONFLICT (user_id) DO UPDATE SET
         track_id = EXCLUDED.track_id,
@@ -146,6 +159,7 @@ BEGIN
         energy = EXCLUDED.energy,
         tempo = EXCLUDED.tempo,
         emotional_label = EXCLUDED.emotional_label,
+        track_image_url = COALESCE(EXCLUDED.track_image_url, user_sound_state.track_image_url),
         updated_at = NOW(),
         is_playing = EXCLUDED.is_playing;
 
