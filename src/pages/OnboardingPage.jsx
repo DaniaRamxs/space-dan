@@ -11,7 +11,7 @@ export default function OnboardingPage() {
     const [error, setError] = useState(null);
     const [isAvailable, setIsAvailable] = useState(null);
     const [checking, setChecking] = useState(false);
-    const { profile, profileLoading } = useAuthContext();
+    const { profile, profileLoading, refreshProfile } = useAuthContext();
     const navigate = useNavigate();
     const isNewUser = !profile?.username;
 
@@ -61,6 +61,8 @@ export default function OnboardingPage() {
             if (rpcError) throw rpcError;
 
             if (data?.success) {
+                // Sincronizar el perfil localmente antes de navegar para evitar el loop de redirección
+                await refreshProfile();
                 navigate('/posts');
             } else {
                 // El RPC devolvió success: false — mostrar el motivo

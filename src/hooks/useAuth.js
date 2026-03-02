@@ -81,24 +81,24 @@ export default function useAuth() {
 
 
 
+    const user = session.user;
+    ensureProfile(user);
+
+    // Initial fetch
     fetchProfile();
 
     // Subscribe to profile changes
     const profileSubscription = supabase
       .channel(`profile:${session.user.id}`)
       .on('postgres_changes', {
-        event: 'UPDATE',
+        event: '*',
         schema: 'public',
         table: 'profiles',
         filter: `id=eq.${session.user.id}`
       }, (payload) => {
-        // En lugar de solo usar payload.new, re-obtenemos para tener los joins actualizados
         fetchProfile();
       })
       .subscribe();
-
-    const user = session.user;
-    ensureProfile(user);
 
     const localAchs = (() => {
       try { return JSON.parse(localStorage.getItem(ACH_KEY) || '[]'); }
@@ -196,8 +196,8 @@ export default function useAuth() {
     profile,
     // Solo bloquea hasta saber si hay sesión (lee de localStorage, <5ms).
     // El perfil llega después en background; las páginas manejan profile===null con skeleton.
-    loading,
     profileLoading,
+    refreshProfile: fetchProfile,
     loginWithGoogle,
     loginWithDiscord,
     logout,

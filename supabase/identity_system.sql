@@ -1,21 +1,25 @@
 -- ============================================================
--- identity_system.sql :: Professional Identity Architecture
--- Author: Senior Backend Architect
+-- identity_system.sql :: Professional Identity Architecture (Refactored)
 -- ============================================================
 
 -- 1. CLEANUP OLD LOGIC (IF EXISTS)
+-- Eliminamos los triggers conflictivos (Schema V1 y Identity V2)
 DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
 DROP TRIGGER IF EXISTS on_auth_user_created_v2 ON auth.users;
 DROP FUNCTION IF EXISTS public.handle_new_user();
 
 -- 2. CORE TABLES & ALTERATIONS
 -- Asegurar que la tabla existe
--- NOTA: Se eliminó la referencia estricta a auth.users(id) para permitir usuarios virtuales (bots)
 CREATE TABLE IF NOT EXISTS public.profiles (
-    id uuid PRIMARY KEY
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    username text,
+    avatar_url text,
+    bio text,
+    created_at timestamptz DEFAULT now(),
+    updated_at timestamptz DEFAULT now()
 );
 
--- Añadir columnas faltantes a profiles (si ya existía)
+-- Añadir columnas y constraints de identidad si no existen
 DO $$ 
 BEGIN 
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='profiles' AND column_name='username_normalized') THEN
@@ -27,23 +31,21 @@ BEGIN
         ALTER TABLE public.profiles ADD COLUMN username_changed_at timestamptz;
     END IF;
 
-    -- Ajustar constraints de username si es necesario
     ALTER TABLE public.profiles DROP CONSTRAINT IF EXISTS username_length;
     ALTER TABLE public.profiles ADD CONSTRAINT username_length CHECK (char_length(username) >= 3 AND char_length(username) <= 20);
 END $$;
-
 
 -- Mapeo de proveedores OAuth
 CREATE TABLE IF NOT EXISTS public.user_providers (
     id                uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id           uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-    provider          text NOT NULL, -- 'google', 'discord', etc.
+    provider          text NOT NULL,
     provider_user_id  text NOT NULL,
     created_at        timestamptz DEFAULT now(),
     UNIQUE(provider, provider_user_id)
 );
 
--- Historial de cambios de identidad
+-- Historial de nombres
 CREATE TABLE IF NOT EXISTS public.username_history (
     id           uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id      uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
@@ -52,30 +54,39 @@ CREATE TABLE IF NOT EXISTS public.username_history (
     changed_at   timestamptz DEFAULT now()
 );
 
--- Indexación para búsquedas rápidas (Case Insensitive)
 CREATE INDEX IF NOT EXISTS idx_profiles_username_normalized ON public.profiles (username_normalized);
 
--- 3. AUTOMATIC FLOWS (TRIGGERS)
+-- 3. UNIFIED FLOW FOR NEW USERS (Triggers)
 
--- Función disparada al crearse un usuario en auth.users
 CREATE OR REPLACE FUNCTION public.handle_new_auth_user()
 RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER AS $$
 DECLARE
     v_provider text;
     v_provider_id text;
+    v_avatar text;
 BEGIN
-    -- 1. Crear el perfil inicial SIN username (esto forzará el onboarding)
-    INSERT INTO public.profiles (id, avatar_url)
+    -- Capturar avatar del proveedor
+    v_avatar := COALESCE(
+        NEW.raw_user_meta_data->>'avatar_url',
+        NEW.raw_user_meta_data->>'avatar',
+        '/default-avatar.png'
+    );
+
+    -- Insertar perfil inicial SIN username (esto forzará el onboarding)
+    -- On conflict update para sincronizar avatar si el perfil ya existía por algún motivo
+    INSERT INTO public.profiles (id, username, avatar_url)
     VALUES (
         NEW.id,
-        NEW.raw_user_meta_data->>'avatar_url'
+        NULL, -- IMPORTANTE: NULL para disparar /onboarding en el frontend
+        v_avatar
     )
-    ON CONFLICT (id) DO NOTHING;
+    ON CONFLICT (id) DO UPDATE SET
+        avatar_url = COALESCE(EXCLUDED.avatar_url, profiles.avatar_url),
+        updated_at = now();
 
-    -- 2. Extraer y guardar el proveedor inicial
-    -- Supabase guarda info del provider en raw_app_meta_data o raw_user_meta_data dependiendo de la versión
+    -- Guardar proveedor inicial
     v_provider := NEW.raw_app_meta_data->>'provider';
-    v_provider_id := NEW.raw_user_meta_data->>'sub'; -- Google/Discord sub ID
+    v_provider_id := NEW.raw_user_meta_data->>'sub';
 
     IF v_provider IS NOT NULL AND v_provider_id IS NOT NULL THEN
         INSERT INTO public.user_providers (user_id, provider, provider_user_id)
@@ -87,7 +98,8 @@ BEGIN
 END;
 $$;
 
-CREATE TRIGGER on_auth_user_created_v2
+DROP TRIGGER IF EXISTS on_auth_user_created_unified ON auth.users;
+CREATE TRIGGER on_auth_user_created_unified
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE FUNCTION public.handle_new_auth_user();
 
@@ -159,15 +171,20 @@ ALTER TABLE public.user_providers ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.username_history ENABLE ROW LEVEL SECURITY;
 
 -- Profiles: Lectura pública, escritura privada
+DROP POLICY IF EXISTS "Profiles: Read access is public" ON public.profiles;
 CREATE POLICY "Profiles: Read access is public" ON public.profiles FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Profiles: Users can update their own profile" ON public.profiles;
 CREATE POLICY "Profiles: Users can update their own profile" ON public.profiles 
     FOR UPDATE USING (auth.uid() = id) WITH CHECK (auth.uid() = id);
 
 -- User Providers: Solo el dueño puede ver su vinculación
+DROP POLICY IF EXISTS "Providers: Users can see their own links" ON public.user_providers;
 CREATE POLICY "Providers: Users can see their own links" ON public.user_providers
     FOR SELECT USING (auth.uid() = user_id);
 
 -- Username History: Solo el dueño puede ver su rastro
+DROP POLICY IF EXISTS "History: Users can see their own history" ON public.username_history;
 CREATE POLICY "History: Users can see their own history" ON public.username_history
     FOR SELECT USING (auth.uid() = user_id);
 
@@ -181,6 +198,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+DROP TRIGGER IF EXISTS tr_profiles_updated_at ON public.profiles;
 CREATE TRIGGER tr_profiles_updated_at
 BEFORE UPDATE ON public.profiles
 FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();

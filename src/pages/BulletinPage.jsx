@@ -102,6 +102,7 @@ const bulletinPosts = [
   { id: 103, date: "2026-03-01", title: "Spotify: Fix de configuración", text: "Conectar Spotify desde el perfil ahora muestra un mensaje de error claro si falta la variable de entorno VITE_SPOTIFY_CLIENT_ID, en lugar de fallar silenciosamente.", tags: ["fix", "música"] },
   { id: 104, date: "2026-03-01", title: "Shop: guest mode mejorado", text: "La tienda ahora usa useStarlys como fallback para visitantes sin sesión. Los usuarios no logueados pueden gastar su balance local y reclamar el bonus diario.", tags: ["update", "gamificación"] },
   { id: 105, date: "2026-03-02", title: "Operación: Blindaje Estelar 🛡️", text: "Implementamos una actualización masiva de seguridad. Tu economía, perfil y mensajes ahora están respaldados por nuevas políticas de privacidad incorruptibles. Hemos fortalecido el núcleo de nuestra base de datos para prevenir spam, manipulación de Starlys y asegurar que solo tú tengas el mando de tus propios datos dentro de Spacely.", tags: ["update", "seguridad", "tecnología"] },
+  { id: 106, date: "2026-03-02", title: "Refinería de Identidad 🚀", text: "Corregimos un error crítico en el proceso de bienvenida que causaba bucles de redirección al registrarse. Ahora la creación de identidad está unificada, asegurando que todos los nuevos exploradores pasen por el onboarding correctamente y sus fotos de perfil se carguen al instante sin errores.", tags: ["fix", "identidad", "performance"] },
 ];
 
 const PAGE_SIZE = 10;

@@ -85,7 +85,7 @@ const BlogPostPage = () => {
 
                 <footer className="mt-32 pt-12 border-t border-white/5 flex flex-col items-center gap-12">
                     <div className="flex flex-col items-center gap-4 group cursor-pointer">
-                        <img src={post.author.avatar_url || '/default_user.png'} className="w-20 h-20 rounded-[1.5rem] border-2 border-white/10 group-hover:border-cyan-500/50 transition-all p-1" alt="" />
+                        <img src={post.author.avatar_url || '/default-avatar.png'} className="w-20 h-20 rounded-[1.5rem] border-2 border-white/10 group-hover:border-cyan-500/50 transition-all p-1" alt="" />
                         <div className="text-center">
                             <span className="text-[10px] font-black text-white/20 uppercase tracking-widest">Escritor Espacial</span>
                             <h4 className="text-xl font-black text-white italic uppercase tracking-tighter">@{post.author.username}</h4>
