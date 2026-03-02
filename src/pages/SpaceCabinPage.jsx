@@ -232,7 +232,7 @@ export default function SpaceCabinPage() {
 
             {/* Background Atmosphere */}
             <div className="fixed inset-0 pointer-events-none -z-50 overflow-hidden">
-                <div className="absolute inset-0 bg-[url('/grid-pattern.png')] opacity-[0.05] scale-[2]"></div>
+                <div className="absolute inset-0 bg-none opacity-[0.05] scale-[2]"></div>
                 <div className="absolute top-0 left-0 w-full h-[50vh] bg-gradient-to-b from-cyan-500/10 to-transparent"></div>
                 <div className="absolute bottom-0 left-0 w-full h-[30vh] bg-gradient-to-t from-red-500/5 to-transparent"></div>
             </div>
@@ -669,7 +669,7 @@ function OverlayGraphics({ active }) {
             <div className="absolute bottom-8 left-8 w-24 h-24 border-l border-b border-cyan-500/20"></div>
             <div className="absolute top-1/2 left-0 right-0 h-[1px] bg-cyan-500/[0.03]"></div>
             <div className="absolute top-0 bottom-0 left-1/2 w-[1px] bg-cyan-500/[0.03]"></div>
-            <div className="absolute inset-0 bg-[url('/grid-pattern.png')] opacity-[0.02] mix-blend-overlay"></div>
+            <div className="absolute inset-0 bg-none opacity-[0.02] mix-blend-overlay"></div>
             <div className="absolute inset-0 bg-gradient-to-t from-[#020205] via-transparent to-transparent opacity-40"></div>
             {/* Scan animation */}
             <div className="absolute top-0 left-0 w-full h-[2px] bg-cyan-500/20 animate-[scan_5s_linear_infinite]"></div>

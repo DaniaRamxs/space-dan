@@ -35,12 +35,12 @@ export const ProfileLayout = ({ children, theme }) => {
                 <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
                     <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-cyan-500/10 rounded-full blur-[120px] animate-pulse" />
                     <div className="absolute bottom-[10%] right-[-10%] w-[40%] h-[40%] bg-violet-500/10 rounded-full blur-[120px] animate-pulse duration-[5s]" />
-                    <div className="absolute inset-0 bg-[url('/noise.png')] opacity-[0.03] z-10" />
+                    <div className="absolute inset-0 opacity-[0.03] z-10" style={{backgroundImage:"url(\"data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E\")"}} />
                 </div>
             )}
 
             {/* Grid Pattern */}
-            <div className="fixed inset-0 bg-[url('/grid-pattern.png')] opacity-[0.02] pointer-events-none z-[1]" />
+            <div className="fixed inset-0 opacity-[0.02] pointer-events-none z-[1]" style={{backgroundImage:"linear-gradient(rgba(255,255,255,0.15) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.15) 1px,transparent 1px)",backgroundSize:"40px 40px"}} />
 
             <main className="relative z-10">
                 {children}
