@@ -15,14 +15,7 @@ export default function OnboardingPage() {
     const navigate = useNavigate();
     const isNewUser = !profile?.username;
 
-    // Si el perfil ya tiene username y terminó de cargar, no debería estar aquí
-    // (la redirección en App.jsx debería haber evitado esto, pero como seguridad extra)
-    useEffect(() => {
-        if (!profileLoading && profile?.username) {
-            // El usuario ya tiene username, mandarlo a su perfil
-            navigate('/profile', { replace: true });
-        }
-    }, [profileLoading, profile?.username, navigate]);
+    // Eliminamos la redirección automática que impedía a usuarios con nombre cambiarlo
 
 
     useEffect(() => {
@@ -156,7 +149,7 @@ export default function OnboardingPage() {
                 </p>
             </motion.div>
 
-            <style jsx>{`
+            <style>{`
         .onboardingPage {
           min-height: 80vh;
           display: flex;

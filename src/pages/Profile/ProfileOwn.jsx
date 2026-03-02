@@ -605,10 +605,18 @@ function MoodManager({ profile, user, bgColor, setBgColor, logout }) {
 
         {/* Vital Info Editor */}
         <div className="space-y-6">
-          <h3 className="text-sm font-black text-purple-400 uppercase tracking-widest flex items-center gap-2">
-            <span className="w-1.5 h-1.5 rounded-full bg-purple-500"></span>
-            Firma de Identidad
-          </h3>
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-black text-purple-400 uppercase tracking-widest flex items-center gap-2">
+              <span className="w-1.5 h-1.5 rounded-full bg-purple-500"></span>
+              Firma de Identidad
+            </h3>
+            <Link
+              to="/onboarding"
+              className="px-3 py-1.5 bg-white/5 border border-white/10 rounded-xl text-[8px] font-black text-white/40 hover:text-purple-400 hover:border-purple-500/50 transition-all uppercase tracking-widest"
+            >
+              Cambiar Nombre
+            </Link>
+          </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
               <label className="text-[9px] font-black text-white/20 uppercase ml-1">Tipo MBTI</label>
