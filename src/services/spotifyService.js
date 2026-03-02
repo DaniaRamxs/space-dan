@@ -168,7 +168,7 @@ export const spotifyService = {
             .from('user_sound_state')
             .select('*')
             .eq('user_id', userId)
-            .single();
+            .maybeSingle();
 
         if (error) return null;
         return data; // Puede ser null si el RLS lo bloquea porque share_music_state es false
