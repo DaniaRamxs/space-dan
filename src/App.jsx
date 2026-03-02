@@ -57,6 +57,7 @@ const OnboardingPage = lazy(() => import("./pages/OnboardingPage"));
 const VinculosPage = lazy(() => import("./pages/VinculosPage"));
 const PostDetailPage = lazy(() => import("./pages/PostDetailPage"));
 const GlobalChatPage = lazy(() => import("./pages/GlobalChatPage"));
+const AffinityPage = lazy(() => import("./pages/AffinityPage"));
 
 const ALL_PAGES = ['/bulletin', '/posts', '/music', '/games', '/galeria',
   '/watchlist', '/desktop', '/timecapsule', '/guestbook', '/proyectos', '/arquitectura',
@@ -198,8 +199,16 @@ function AnimatedRoutes() {
   const shouldRedirectToOnboarding =
     !loading && !profileLoading && user && !profile?.username && !isOnboardingPath && !isLandingPath;
 
+  const isAffinityPath = location.pathname === '/afinidad';
+  const shouldRedirectToAffinity =
+    !loading && !profileLoading && user && profile?.username && !profile?.affinity_completed && !isAffinityPath && !isLandingPath;
+
   if (shouldRedirectToOnboarding) {
     return <Navigate to="/onboarding" replace />;
+  }
+
+  if (shouldRedirectToAffinity) {
+    return <Navigate to="/afinidad" replace />;
   }
 
   return (
@@ -207,6 +216,7 @@ function AnimatedRoutes() {
       <Routes location={location} key={location.pathname}>
         {/* Onboarding Route */}
         <Route path="/onboarding" element={<Layout><OnboardingPage /></Layout>} />
+        <Route path="/afinidad" element={<Layout><AffinityPage /></Layout>} />
 
 
         <Route

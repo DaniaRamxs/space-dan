@@ -139,3 +139,53 @@ export async function getMembers(limit = 100) {
   return data || [];
 }
 
+/** 
+ * Tab 10: Exploración por Afinidad (Deep Connection Engine) 
+ * Implementa un algoritmo 70/20/10 (Alta/Media/Baja afinidad)
+ */
+export async function getDiscoveryByAffinity(userId, limit = 50) {
+  try {
+    const { affinityService } = await import('./affinityService');
+
+    // 1. Obtener datos necesarios en paralelo
+    const [myAnswers, allOtherUsers, questions] = await Promise.all([
+      affinityService.getUserAnswers(userId),
+      supabase.from('profiles').select('*').eq('affinity_completed', true).neq('id', userId).limit(200),
+      affinityService.getQuestions()
+    ]);
+
+    if (!myAnswers || myAnswers.length === 0 || !allOtherUsers.data) return [];
+
+    // 2. Calcular scores para todos
+    const usersWithScores = await Promise.all(allOtherUsers.data.map(async (u) => {
+      const uAnswers = await affinityService.getUserAnswers(u.id);
+      const score = affinityService.calculateAffinity(myAnswers, uAnswers, questions);
+      const narrative = affinityService.getAffinityNarrative(score);
+      return { ...u, affinity_score: score, affinity_narrative: narrative };
+    }));
+
+    // 3. Segmentar
+    const high = usersWithScores.filter(u => u.affinity_score >= 66).sort(() => Math.random() - 0.5);
+    const mid = usersWithScores.filter(u => u.affinity_score >= 41 && u.affinity_score < 66).sort(() => Math.random() - 0.5);
+    const low = usersWithScores.filter(u => u.affinity_score < 41).sort(() => Math.random() - 0.5);
+
+    // 4. Aplicar distribución 70/20/10
+    const countHigh = Math.ceil(limit * 0.7);
+    const countMid = Math.ceil(limit * 0.2);
+    const countLow = limit - countHigh - countMid;
+
+    const finalSet = [
+      ...high.slice(0, countHigh),
+      ...mid.slice(0, countMid),
+      ...low.slice(0, Math.max(0, countLow))
+    ];
+
+    // Shuffle final para que no sea estrictamente descendente pero sí balanceado
+    return finalSet.sort(() => Math.random() - 0.5);
+
+  } catch (err) {
+    console.error('[Leaderboard] Discovery error:', err);
+    return [];
+  }
+}
+

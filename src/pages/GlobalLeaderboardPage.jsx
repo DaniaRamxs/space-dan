@@ -20,6 +20,7 @@ const TABS = [
   { id: 'growth', label: 'Crecimiento', icon: <Target size={14} />, desc: 'Mayor incremento de capital esta semana' },
   { id: 'generosity', label: 'Generosidad', icon: <Heart size={14} />, desc: 'Aportaciones al fondo comunitario' },
   { id: 'achievements', label: 'Logros', icon: <Award size={14} />, desc: 'Hitos desbloqueados en el multiverso' },
+  { id: 'discovery', label: 'Explorar', icon: <Zap size={14} />, desc: 'Exploradores sugeridos por sintonía estelar' },
   { id: 'members', label: 'Miembros', icon: <Users size={14} />, desc: 'Exploradores que se han unido a la tripulación' },
 ];
 
@@ -43,6 +44,12 @@ function formatMetric(tab, row) {
     case 'achievements': return (row.achievement_count ?? 0) + ' / ' + (row.total_possible ?? '∞');
     case 'focus': return Math.round((row.total_minutes ?? 0) / 60) + 'h';
     case 'competitive': return '◈ ' + (row.season_balance ?? row.metric ?? 0).toLocaleString();
+    case 'discovery': return (
+      <div className="flex flex-col items-end">
+        <span className="text-cyan-400 font-black italic">{row.affinity_score}%</span>
+        <span className="text-[7px] opacity-40 uppercase tracking-tighter">{row.affinity_narrative || 'Sintonía'}</span>
+      </div>
+    );
     default: return '—';
   }
 }
@@ -143,6 +150,7 @@ export default function GlobalLeaderboardPage() {
         case 'achievements': rows = await lb.getAchievementLeaderboard(50); break;
         case 'focus': rows = await lb.getFocusLeaderboard(50); break;
         case 'competitive': rows = await lb.getCompetitiveLeaderboard(50); break;
+        case 'discovery': rows = await lb.getDiscoveryByAffinity(user?.id); break;
         case 'streaks': rows = await lb.getStreakLeaderboard(50); break;
         case 'members': rows = await lb.getMembers(100); break;
         default: rows = [];

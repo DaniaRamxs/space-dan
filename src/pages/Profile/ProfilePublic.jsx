@@ -26,6 +26,7 @@ import { useNavigate } from 'react-router-dom';
 import { getUserDisplayName, getNicknameClass } from '../../utils/user';
 import { UniverseProvider, useUniverse } from '../../contexts/UniverseContext.jsx';
 import SafeAvatar from '../../components/SafeAvatar';
+import { affinityService } from '../../services/affinityService';
 import '../../banner-effects.css';
 import '../../styles/NicknameStyles.css';
 
@@ -66,6 +67,8 @@ export default function PublicProfilePage() {
   const [bannerItem, setBannerItem] = useState(null);
   const [hasPendingRequest, setHasPendingRequest] = useState(false);
   const [requestLoading, setRequestLoading] = useState(false);
+  const [affinityScore, setAffinityScore] = useState(null);
+  const [affinityCommunalities, setAffinityCommunalities] = useState([]);
 
   // Determine if it's the current user's profile based on username
   const isOwnProfile = user && profile && user.id === profile.id;
@@ -144,6 +147,25 @@ export default function PublicProfilePage() {
       setComments(profileComments);
       setPosts(userPosts);
       setPartnership(pData);
+
+      // Calcular afinidad
+      if (user && user.id !== targetUserId && prof.affinity_completed && profile?.affinity_completed) {
+        Promise.all([
+          affinityService.getUserAnswers(user.id),
+          affinityService.getUserAnswers(targetUserId),
+          affinityService.getQuestions()
+        ]).then(([myAns, targetAns, questions]) => {
+          const score = affinityService.calculateAffinity(myAns, targetAns, questions);
+          const comms = affinityService.getAffinityCommunalities(myAns, targetAns, questions);
+          if (isMountedLocal) {
+            setAffinityScore(score);
+            setAffinityCommunalities(comms);
+          }
+        }).catch(err => console.error('[Affinity] Calculation error:', err));
+      } else {
+        setAffinityScore(null);
+        setAffinityCommunalities([]);
+      }
 
       if (prof.banner_item) {
         setBannerItem(prof.banner_item);
@@ -359,6 +381,8 @@ export default function PublicProfilePage() {
           userId={profile?.id}
           hasPendingRequest={hasPendingRequest}
           requestLoading={requestLoading}
+          affinityScore={affinityScore}
+          affinityCommunalities={affinityCommunalities}
         />
       </UniverseProvider>
     );
@@ -380,7 +404,8 @@ function ProfileContent({
   setActiveTab, handleToggleFollow, handleAddComment, handleDeleteComment,
   handleSendRequest, newComment, setNewComment, submittingComment,
   progressPercent, totalXp, nextLevelXp, level, rankName, topGlobalRank, bestRecord, userId,
-  hasPendingRequest, requestLoading
+  hasPendingRequest, requestLoading,
+  affinityScore, affinityCommunalities
 }) {
   const { user } = useAuthContext();
   const navigate = useNavigate();
@@ -474,6 +499,39 @@ function ProfileContent({
       {/* Profile Container */}
       <div className="max-w-7xl mx-auto px-6 -mt-16 md:-mt-20 relative z-10 pb-20">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-16 items-start">
+
+          {/* Affinity Indicator Overlay (if applicable) */}
+          {affinityScore !== null && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="absolute -top-32 right-8 hidden xl:flex flex-col items-end gap-3"
+            >
+              <div className="p-1 rounded-3xl bg-white/[0.03] backdrop-blur-xl border border-white/10 flex items-center gap-4 pr-6">
+                <div className="w-12 h-12 rounded-[24px] bg-gradient-to-br from-purple-500 to-cyan-500 flex items-center justify-center text-xl shadow-[0_0_20px_rgba(139,92,246,0.3)]">
+                  ⚡
+                </div>
+                <div>
+                  <div className="text-[9px] font-black text-white/40 uppercase tracking-[0.2em]">
+                    {affinityService.getAffinityNarrative(affinityScore)}
+                  </div>
+                  <div className="text-2xl font-black italic tracking-tighter text-white">{affinityScore}%</div>
+                </div>
+              </div>
+
+              {affinityCommunalities.length > 0 && (
+                <div className="flex flex-col items-end gap-1.5 px-4 animate-in fade-in slide-in-from-right-4 duration-1000">
+                  <span className="text-[8px] font-black text-white/20 uppercase tracking-widest mb-1">Coinciden en:</span>
+                  {affinityCommunalities.map((trait, i) => (
+                    <div key={i} className="flex items-center gap-2">
+                      <span className="text-[10px] text-white/60 font-medium italic text-right mb-0.5">{trait}</span>
+                      <div className="w-1 h-1 rounded-full bg-cyan-500/50" />
+                    </div>
+                  ))}
+                </div>
+              )}
+            </motion.div>
+          )}
 
           {/* ASIDE: Identity Sidebar */}
           <aside className="lg:col-span-4 lg:sticky lg:top-12 space-y-12">
