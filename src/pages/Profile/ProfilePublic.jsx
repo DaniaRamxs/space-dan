@@ -69,6 +69,7 @@ export default function PublicProfilePage() {
   const [requestLoading, setRequestLoading] = useState(false);
   const [affinityScore, setAffinityScore] = useState(null);
   const [affinityCommunalities, setAffinityCommunalities] = useState([]);
+  const [affinityCategories, setAffinityCategories] = useState({});
 
   // Determine if it's the current user's profile based on username
   const isOwnProfile = user && profile && user.id === profile.id;
@@ -157,14 +158,17 @@ export default function PublicProfilePage() {
         ]).then(([myAns, targetAns, questions]) => {
           const score = affinityService.calculateAffinity(myAns, targetAns, questions);
           const comms = affinityService.getAffinityCommunalities(myAns, targetAns, questions);
+          const cats = affinityService.calculateAffinityByCategory(myAns, targetAns, questions);
           if (isMountedLocal) {
             setAffinityScore(score);
             setAffinityCommunalities(comms);
+            setAffinityCategories(cats);
           }
         }).catch(err => console.error('[Affinity] Calculation error:', err));
       } else {
         setAffinityScore(null);
         setAffinityCommunalities([]);
+        setAffinityCategories({});
       }
 
       if (prof.banner_item) {
@@ -383,6 +387,7 @@ export default function PublicProfilePage() {
           requestLoading={requestLoading}
           affinityScore={affinityScore}
           affinityCommunalities={affinityCommunalities}
+          affinityCategories={affinityCategories}
         />
       </UniverseProvider>
     );
@@ -405,7 +410,7 @@ function ProfileContent({
   handleSendRequest, newComment, setNewComment, submittingComment,
   progressPercent, totalXp, nextLevelXp, level, rankName, topGlobalRank, bestRecord, userId,
   hasPendingRequest, requestLoading,
-  affinityScore, affinityCommunalities
+  affinityScore, affinityCommunalities, affinityCategories
 }) {
   const { user } = useAuthContext();
   const navigate = useNavigate();
@@ -528,6 +533,27 @@ function ProfileContent({
                       <div className="w-1 h-1 rounded-full bg-cyan-500/50" />
                     </div>
                   ))}
+                </div>
+              )}
+
+              {/* Micro-affinities (Categorized) */}
+              {Object.keys(affinityCategories || {}).length > 0 && (
+                <div className="mt-4 flex flex-wrap justify-end gap-2 max-w-[280px]">
+                  {Object.entries(affinityCategories).map(([cat, val]) => {
+                    const labels = {
+                      social: 'Social',
+                      personality: 'Vitalidad',
+                      emotional: 'Emoción',
+                      outlook: 'Perspectiva',
+                      work: 'Estilo'
+                    };
+                    return (
+                      <div key={cat} className="px-3 py-1 rounded-full bg-white/[0.03] border border-white/5 flex items-center gap-2">
+                        <span className="text-[7px] font-black uppercase tracking-widest text-white/30">{labels[cat] || cat}</span>
+                        <span className="text-[10px] font-mono font-black text-cyan-400/80">{val}%</span>
+                      </div>
+                    );
+                  })}
                 </div>
               )}
             </motion.div>

@@ -16,6 +16,7 @@ import { blogService } from '../../services/blogService';
 import { Link } from 'react-router-dom';
 import AvatarUploader from '../../components/AvatarUploader';
 import { profileSocialService } from '../../services/profile_social';
+import { newProfileService } from '../../services/newProfileService';
 import { PrivateUniverse } from '../../components/PrivateUniverse';
 import { useNavigate } from 'react-router-dom';
 import { getUserDisplayName, getNicknameClass } from '../../utils/user';
@@ -825,6 +826,11 @@ export default function ProfileOwn() {
     }
     if (profile) {
       document.title = "Mi Perfil | Spacely";
+
+      // Intentar "espejar" el avatar si es externo para evitar que caduque
+      if (user && profile.avatar_url && !profile.avatar_url.includes('supabase.co/storage')) {
+        newProfileService.mirrorProviderAvatar(user.id, profile.avatar_url);
+      }
     }
   }, [profile]);
 

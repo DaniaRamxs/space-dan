@@ -167,5 +167,54 @@ export const newProfileService = {
         const { data, error } = await supabase.rpc('claim_username', { p_username: username });
         if (error) throw error;
         return data;
+    },
+
+    /**
+     * Intenta descargar un avatar externo y guardarlo localmente en Supabase Storage.
+     * Esto evita que el perfil se quede sin foto cuando Google liquida las URLs.
+     */
+    async mirrorProviderAvatar(userId, externalUrl) {
+        if (!externalUrl || externalUrl.includes('supabase.co/storage') || externalUrl.startsWith('data:')) {
+            return null;
+        }
+
+        try {
+            console.log('[Mirroring] Capturando avatar externo para permanencia...');
+
+            // Intentar fetch (puede fallar por CORS en algunos navegadores)
+            const response = await fetch(externalUrl);
+            if (!response.ok) throw new Error('Fetch failed');
+
+            const blob = await response.blob();
+            const fileExt = externalUrl.includes('.gif') ? 'gif' : 'jpg';
+            const fileName = `${userId}/provider_mirror_${Date.now()}.${fileExt}`;
+
+            // Subir a nuestro bucket
+            const { error: uploadError } = await supabase.storage
+                .from('avatars')
+                .upload(fileName, blob, {
+                    contentType: `image/${fileExt}`,
+                    upsert: true
+                });
+
+            if (uploadError) throw uploadError;
+
+            // Obtener URL final
+            const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(fileName);
+
+            // Actualizar el perfil con la nueva URL local
+            const { error: updateError } = await supabase
+                .from('profiles')
+                .update({ avatar_url: publicUrl })
+                .eq('id', userId);
+
+            if (updateError) throw updateError;
+
+            console.log('[Mirroring] Éxito. Avatar respaldado en Spacely Storage.');
+            return publicUrl;
+        } catch (e) {
+            console.log('[Mirroring] Ignorado por políticas de CORS o red. No crítico.');
+            return null;
+        }
     }
 };

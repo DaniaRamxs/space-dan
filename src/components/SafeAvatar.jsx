@@ -29,7 +29,7 @@ export default function SafeAvatar({ src, provider, fallback = '/default_user_bl
 
     const handleError = () => {
         if (!hasError) {
-            console.warn(`[SafeAvatar] Falló carga de: ${imgSrc}. Aplicando fallback de identidad.`);
+            console.log(`[SafeAvatar] Aplicando fallback para URL externa: ${imgSrc}`);
             setImgSrc(providerFallback);
             setHasError(true);
         }

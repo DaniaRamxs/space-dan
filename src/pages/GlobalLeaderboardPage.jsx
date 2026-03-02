@@ -249,8 +249,18 @@ export default function GlobalLeaderboardPage() {
               <button onClick={() => fetchTab(activeTab)} className="mt-4 text-[10px] font-bold underline opacity-40 hover:opacity-100 uppercase tracking-widest transition-opacity">Reintentar Protocolo</button>
             </div>
           ) : rows.length === 0 ? (
-            <div className="p-20 text-center rounded-[32px] bg-white/[0.02] border border-white/5 italic text-white/20 text-sm uppercase tracking-widest">
-              Sector vacío. Sin actividad detectada.
+            <div className="p-20 text-center rounded-[32px] bg-white/[0.02] border border-white/5 space-y-4">
+              <div className="text-3xl opacity-20">📡</div>
+              <p className="italic text-white/20 text-sm uppercase tracking-[0.2em]">
+                {activeTab === 'discovery'
+                  ? 'Sin señales de sintonía. El multiverso necesita más exploradores sincronizados.'
+                  : 'Sector vacío. Sin actividad detectada.'}
+              </p>
+              {activeTab === 'discovery' && (
+                <p className="text-[10px] text-white/10 uppercase tracking-widest max-w-xs mx-auto leading-relaxed">
+                  Para que aparezcan conexiones, otros miembros de la tripulación deben completar el Protocolo de Afinidad.
+                </p>
+              )}
             </div>
           ) : activeTab === 'streaks' ? (
             <StreakLeaderboard users={rows} onProfileClick={setSelectedProfile} isMeId={user?.id} />

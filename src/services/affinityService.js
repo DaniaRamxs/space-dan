@@ -103,5 +103,40 @@ export const affinityService = {
         });
 
         return matches.slice(0, 3);
+    },
+
+    /**
+     * Calcula afinidad desglosada por categorías (Micro-afinidades).
+     */
+    calculateAffinityByCategory(answersA, answersB, questions = []) {
+        if (!answersA || !answersB || answersA.length === 0 || answersB.length === 0) return {};
+
+        const mapB = new Map(answersB.map(a => [a.question_id, a.answer_value]));
+        const categories = [...new Set(questions.map(q => q.category))];
+        const results = {};
+
+        categories.forEach(cat => {
+            const catQuestions = questions.filter(q => q.category === cat);
+            let totalWeighted = 0;
+            let maxWeighted = 0;
+            let count = 0;
+
+            catQuestions.forEach(q => {
+                const valA = answersA.find(a => a.question_id === q.id)?.answer_value;
+                const valB = mapB.get(q.id);
+                if (valA !== undefined && valB !== undefined) {
+                    const weight = q.weight || 1;
+                    totalWeighted += (weight * (4 - Math.abs(valA - valB)));
+                    maxWeighted += (weight * 4);
+                    count++;
+                }
+            });
+
+            if (count > 0 && maxWeighted > 0) {
+                results[cat] = Math.round((totalWeighted / maxWeighted) * 100);
+            }
+        });
+
+        return results;
     }
 };
