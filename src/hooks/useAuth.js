@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { supabase } from '../supabaseClient';
 import { ensureProfile, syncAchievementToDb } from '../services/supabaseScores';
 import { Capacitor } from '@capacitor/core';
@@ -45,41 +45,39 @@ export default function useAuth() {
   }, []);
 
   // Fetch Profile & Real-time Subscription
+  const fetchProfile = useCallback(async () => {
+    if (!session?.user?.id) return;
+    setProfileLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select(`
+          *,
+          theme_item:equipped_theme(id, metadata),
+          nick_style_item:equipped_nickname_style(id, metadata),
+          primary_role_item:equipped_primary_role(id, title, metadata),
+          secondary_role_item:equipped_secondary_role(id, title, metadata),
+          ambient_sound_item:equipped_ambient_sound(id, title, metadata),
+          banner_item:banner_item_id(id, title, metadata, preview_url),
+          frame_item:frame_item_id(id, title, metadata, preview_url)
+        `)
+        .eq('id', session.user.id)
+        .maybeSingle();
+
+      if (error) console.error('[useAuth] Fetch profile error:', error);
+      setProfile(data);
+    } catch (err) {
+      console.error('[useAuth] Fetch profile critical error:', err);
+    } finally {
+      setProfileLoading(false);
+    }
+  }, [session?.user?.id]);
+
   useEffect(() => {
     if (!session?.user) {
       setProfile(null);
       return;
     }
-
-    const fetchProfile = async () => {
-      setProfileLoading(true);
-      try {
-        const { data, error } = await supabase
-          .from('profiles')
-          .select(`
-            *,
-            theme_item:equipped_theme(id, metadata),
-            nick_style_item:equipped_nickname_style(id, metadata),
-            primary_role_item:equipped_primary_role(id, title, metadata),
-            secondary_role_item:equipped_secondary_role(id, title, metadata),
-            ambient_sound_item:equipped_ambient_sound(id, title, metadata),
-            banner_item:banner_item_id(id, title, metadata, preview_url),
-            frame_item:frame_item_id(id, title, metadata, preview_url)
-          `)
-          .eq('id', session.user.id)
-          .maybeSingle();
-
-        if (error) console.error('[useAuth] Fetch profile error:', error);
-        setProfile(data);
-      } catch (err) {
-        console.error('[useAuth] Fetch profile critical error:', err);
-      } finally {
-        setProfileLoading(false);
-      }
-    };
-
-
-
 
     const user = session.user;
     ensureProfile(user);
@@ -108,18 +106,18 @@ export default function useAuth() {
 
     // Update last_seen_at
     const ping = async () => {
-      try { await supabase.rpc('ping_activity'); }
-      catch (e) { console.warn('Ping activity failed:', e); }
+      if (session?.user?.id) {
+        await supabase.from('profiles').update({ last_seen_at: new Date().toISOString() }).eq('id', session.user.id);
+      }
     };
-
     ping();
-    const pingInterval = setInterval(ping, 5 * 60 * 1000);
+    const interval = setInterval(ping, 60000 * 5); // 5 min
 
     return () => {
-      clearInterval(pingInterval);
-      supabase.removeChannel(profileSubscription);
+      profileSubscription.unsubscribe();
+      clearInterval(interval);
     };
-  }, [session?.user?.id]);
+  }, [session, fetchProfile]);
 
 
   const getRedirectUrl = () => {
