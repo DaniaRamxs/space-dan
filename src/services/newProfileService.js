@@ -73,11 +73,11 @@ export const newProfileService = {
     getDefaultTheme(userId) {
         return {
             user_id: userId,
-            primary_color: '#06b6d4',
+            primary_color: '#0c0c16',
             secondary_color: '#8b5cf6',
             font_style: 'sans',
             layout_style: 'default',
-            background_style: 'mesh'
+            background_style: 'dark'
         };
     },
 

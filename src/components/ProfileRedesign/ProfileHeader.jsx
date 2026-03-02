@@ -4,7 +4,7 @@ import { getUserDisplayName, getNicknameClass } from '../../utils/user';
 
 export const ProfileHeader = ({ profile, theme, isOwn, isFollowing, onFollow, onEdit }) => {
     const bannerStyle = {
-        backgroundColor: theme?.primary_color || '#1a0a2e',
+        backgroundColor: theme?.primary_color || '#0c0c16',
         backgroundImage: theme?.background_url ? `url(${theme.background_url})` : 'none',
         backgroundSize: 'cover',
         backgroundPosition: 'center',
@@ -59,7 +59,7 @@ export const ProfileHeader = ({ profile, theme, isOwn, isFollowing, onFollow, on
 
             {/* Avatar + Identity */}
             <div className="max-w-5xl mx-auto px-4 md:px-6">
-                <div className="flex flex-col md:flex-row md:items-end gap-0 md:gap-6 -mt-12 md:-mt-16">
+                <div className="flex flex-col md:flex-row md:items-end gap-0 md:gap-6 -mt-8 md:-mt-14">
 
                     {/* Avatar */}
                     <motion.div
@@ -73,7 +73,7 @@ export const ProfileHeader = ({ profile, theme, isOwn, isFollowing, onFollow, on
                         )}
 
                         <div
-                            className={`w-24 h-24 md:w-32 md:h-32 relative flex items-center justify-center p-1 md:p-1.5 ${frame.className || ''}`}
+                            className={`w-16 h-16 md:w-28 md:h-28 relative flex items-center justify-center p-1 md:p-1.5 ${frame.className || ''}`}
                             style={{ ...frame, borderRadius: frame.borderRadius || '50%' }}
                         >
                             <div className="w-full h-full rounded-full overflow-hidden border-[4px] border-[#04040a] bg-[#04040a] shadow-inner">
@@ -86,7 +86,7 @@ export const ProfileHeader = ({ profile, theme, isOwn, isFollowing, onFollow, on
                         </div>
 
                         {/* Online indicator */}
-                        <div className={`absolute bottom-0.5 right-0.5 md:bottom-1 md:right-1 w-4 h-4 md:w-5 md:h-5 rounded-full border-[3px] border-[#04040a] z-10 transition-all ${
+                        <div className={`absolute bottom-0 right-0 md:bottom-0.5 md:right-0.5 w-3 h-3 md:w-4 md:h-4 rounded-full border-2 border-[#04040a] z-10 transition-all ${
                             isOnline ? 'bg-green-500 shadow-green-500/40 shadow-md' : 'bg-zinc-700'
                         }`} />
 

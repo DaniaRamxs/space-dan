@@ -136,7 +136,7 @@ export const SpotifyBlock = ({ userId, isOwn }) => {
                 initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.4 }}
-                className="rounded-2xl bg-white/[0.02] border border-white/5 overflow-hidden"
+                className="relative rounded-2xl bg-white/[0.02] border border-white/5 overflow-hidden"
             >
                 {/* Top bar label */}
                 <div className="px-5 pt-4 pb-2 flex items-center justify-between">

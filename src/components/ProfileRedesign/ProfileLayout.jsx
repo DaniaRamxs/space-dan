@@ -1,5 +1,3 @@
-import React from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 
 export const ProfileLayout = ({ children, theme }) => {
     const getFontStyle = (font) => {
@@ -27,7 +25,9 @@ export const ProfileLayout = ({ children, theme }) => {
             style={{
                 '--primary': theme.primary_color,
                 '--secondary': theme.secondary_color,
-                ...(theme.primary_color && { backgroundColor: theme.primary_color }),
+                // Solo aplica color de fondo sólido si el usuario eligió uno explícitamente
+                // (distinguimos colores muy oscuros/neutrales del default para no pintar toda la página)
+                ...(theme.primary_color && theme.background_url && { backgroundColor: theme.primary_color }),
             }}
         >
             {/* Dynamic Mesh Background Layers */}
