@@ -1,12 +1,11 @@
-import React from 'react';
 import { motion } from 'framer-motion';
 import { getFrameStyle } from '../../utils/styles';
 import { getUserDisplayName, getNicknameClass } from '../../utils/user';
 
 export const ProfileHeader = ({ profile, theme, isOwn, isFollowing, onFollow, onEdit }) => {
     const bannerStyle = {
-        backgroundColor: theme.primary_color,
-        backgroundImage: theme.background_url ? `url(${theme.background_url})` : 'none',
+        backgroundColor: theme?.primary_color || '#1a0a2e',
+        backgroundImage: theme?.background_url ? `url(${theme.background_url})` : 'none',
         backgroundSize: 'cover',
         backgroundPosition: 'center',
     };
@@ -18,137 +17,138 @@ export const ProfileHeader = ({ profile, theme, isOwn, isFollowing, onFollow, on
 
     return (
         <header className="relative w-full">
-            {/* Banner Section */}
+            {/* Banner */}
             <div
-                className="h-56 md:h-80 w-full rounded-b-[2.5rem] md:rounded-b-[5rem] overflow-hidden shadow-2xl transition-all duration-1000 relative group"
+                className="h-44 md:h-64 w-full overflow-hidden relative"
                 style={bannerStyle}
             >
-                <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-[#0a0a0f]" />
+                <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-[#04040a]" />
 
-                {/* Mood Floating Bubble */}
+                {/* Mood bubble */}
                 {(profile.mood_emoji || profile.mood_text) && (
                     <motion.div
-                        initial={{ opacity: 0, x: 20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        className="absolute top-8 right-6 md:top-12 md:right-12 z-20"
+                        initial={{ opacity: 0, y: -8 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.3, duration: 0.4 }}
+                        className="absolute top-4 right-4 md:top-6 md:right-6 z-20"
                     >
-                        <div className="flex items-center gap-4 px-6 py-4 bg-black/40 backdrop-blur-2xl border border-white/10 rounded-3xl shadow-2xl">
-                            <div className="w-10 h-10 flex items-center justify-center shrink-0">
+                        <div className="flex items-center gap-2.5 px-3.5 py-2.5 bg-black/50 backdrop-blur-xl border border-white/10 rounded-2xl shadow-xl">
+                            <div className="w-7 h-7 flex items-center justify-center shrink-0">
                                 {profile.mood_emoji?.startsWith('http') ? (
                                     <img
                                         src={profile.mood_emoji}
-                                        className="w-full h-full object-contain rounded-lg drop-shadow-[0_0_10px_rgba(34,211,238,0.5)]"
-                                        alt="Mood GIF"
+                                        className="w-full h-full object-contain rounded"
+                                        alt="Mood"
                                     />
                                 ) : (
-                                    <span className="text-3xl animate-bounce duration-[4000ms]">{profile.mood_emoji || '🪐'}</span>
+                                    <span className="text-xl">{profile.mood_emoji || '🪐'}</span>
                                 )}
                             </div>
-                            <div className="flex flex-col">
-                                <span className="text-[7px] font-black uppercase tracking-[0.3em] text-cyan-400 italic">Mood Actual</span>
-                                <span className="text-xs font-black text-white italic tracking-tight">{profile.mood_text || 'En órbita'}</span>
+                            <div>
+                                <p className="text-[8px] font-bold uppercase tracking-widest text-white/40 leading-none mb-0.5">
+                                    Mood
+                                </p>
+                                <p className="text-[11px] font-bold text-white leading-none">
+                                    {profile.mood_text || 'En órbita'}
+                                </p>
                             </div>
                         </div>
                     </motion.div>
                 )}
             </div>
 
-            {/* Main Identity Info */}
-            <div className="max-w-6xl mx-auto px-6 -mt-24 md:-mt-32 relative z-30 flex flex-col items-center md:items-end md:flex-row gap-8 md:gap-12 pb-8">
+            {/* Avatar + Identity */}
+            <div className="max-w-5xl mx-auto px-4 md:px-6">
+                <div className="flex flex-col md:flex-row md:items-end gap-0 md:gap-6 -mt-12 md:-mt-16">
 
-                {/* Avatar with Framework and Status */}
-                <div className="relative shrink-0">
+                    {/* Avatar */}
                     <motion.div
-                        initial={{ scale: 0.8, opacity: 0, rotate: -10 }}
-                        animate={{ scale: 1, opacity: 1, rotate: 0 }}
-                        transition={{ type: 'spring', damping: 12 }}
-                        className="relative z-10"
+                        initial={{ scale: 0.85, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        transition={{ type: 'spring', damping: 14, stiffness: 120 }}
+                        className="relative shrink-0 self-center md:self-auto"
                     >
-                        {/* Glow behind avatar */}
-                        <div className={`absolute -inset-4 rounded-3xl md:rounded-[3.5rem] blur-3xl opacity-30 transition-all ${isOnline ? 'bg-cyan-500 animate-pulse' : 'bg-white/10'}`} />
+                        {isOnline && (
+                            <div className="absolute -inset-2 rounded-full blur-xl opacity-25 bg-cyan-400 animate-pulse" />
+                        )}
 
-                        {/* Frame / Avatar Container */}
                         <div
-                            className={`w-36 h-36 md:w-56 md:h-56 relative flex items-center justify-center p-2 md:p-2.5 transition-transform hover:scale-105 duration-500 ${frame.className || ''}`}
+                            className={`w-24 h-24 md:w-32 md:h-32 relative flex items-center justify-center p-1 md:p-1.5 ${frame.className || ''}`}
                             style={{ ...frame, borderRadius: frame.borderRadius || '50%' }}
                         >
-                            <div className="w-full h-full rounded-full overflow-hidden border-[6px] border-[#0a0a0f] bg-[#0a0a0f] shadow-inner relative">
+                            <div className="w-full h-full rounded-full overflow-hidden border-[4px] border-[#04040a] bg-[#04040a] shadow-inner">
                                 <img
                                     src={profile.avatar_url || '/default_user_blank.png'}
                                     className="w-full h-full object-cover"
                                     alt={profile.username}
                                 />
-                                <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-60 pointer-events-none" />
                             </div>
                         </div>
 
-                        {/* Connection Ring */}
-                        <div className={`absolute bottom-2 right-2 md:bottom-4 md:right-4 w-6 h-6 md:w-8 md:h-8 rounded-full border-4 md:border-[6px] border-[#0a0a0f] shadow-2xl z-20 transition-all ${isOnline ? 'bg-green-500 shadow-green-500/50' : 'bg-zinc-800'}`} />
+                        {/* Online indicator */}
+                        <div className={`absolute bottom-0.5 right-0.5 md:bottom-1 md:right-1 w-4 h-4 md:w-5 md:h-5 rounded-full border-[3px] border-[#04040a] z-10 transition-all ${
+                            isOnline ? 'bg-green-500 shadow-green-500/40 shadow-md' : 'bg-zinc-700'
+                        }`} />
+
+                        {/* Voice active badge */}
+                        {profile.is_voice_active && (
+                            <div className="absolute -top-2 left-1/2 -translate-x-1/2 bg-cyan-500 px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wide text-white shadow-lg shadow-cyan-500/40 whitespace-nowrap">
+                                🎙️ En cabina
+                            </div>
+                        )}
                     </motion.div>
 
-                    {profile.is_voice_active && (
-                        <div className="absolute -top-6 -left-6 bg-cyan-500 border-4 border-[#0a0a0f] px-5 py-2 rounded-full text-[11px] font-black uppercase tracking-tighter text-white animate-bounce shadow-2xl shadow-cyan-500/50 z-20">
-                            En cabina 🎙️
-                        </div>
-                    )}
-                </div>
-
-                {/* Textual Identity and Social Actions */}
-                <div className="flex-1 text-center md:text-left pt-4 md:pt-16 space-y-6">
-                    <div className="flex flex-col md:flex-row items-center md:items-end justify-between gap-8">
-                        <div className="space-y-2">
-                            <div className="flex flex-wrap items-center justify-center md:justify-start gap-4">
-                                <h1 className={`text-5xl md:text-7xl font-black tracking-tighter uppercase italic leading-none drop-shadow-2xl ${getNicknameClass(profile)}`}>
+                    {/* Name + status + actions */}
+                    <div className="flex-1 pt-3 md:pt-0 md:pb-2 text-center md:text-left space-y-3">
+                        <div className="space-y-1.5">
+                            {/* Name row */}
+                            <div className="flex flex-wrap items-center justify-center md:justify-start gap-2">
+                                <h1 className={`text-2xl md:text-4xl font-black tracking-tighter uppercase italic leading-none drop-shadow-lg ${getNicknameClass(profile)}`}>
                                     {getUserDisplayName(profile)}
                                 </h1>
                                 {profile.is_vip && (
-                                    <div className="bg-gradient-to-tr from-amber-400 to-yellow-600 p-[1px] rounded-lg shadow-lg">
-                                        <div className="bg-black/80 px-3 py-1 rounded-[7px] flex items-center gap-1.5">
-                                            <span className="text-amber-400 text-[10px] font-black uppercase tracking-widest italic">V.I.P</span>
-                                        </div>
-                                    </div>
+                                    <span className="text-[9px] font-black uppercase tracking-widest text-amber-400 bg-amber-400/10 border border-amber-400/20 px-2 py-0.5 rounded-md">
+                                        VIP
+                                    </span>
                                 )}
                             </div>
 
-                            {/* Orbital Status (Profile Status Message) */}
-                            <div className="bg-white/5 border border-white/10 px-4 py-1.5 rounded-full inline-flex items-center gap-2">
-                                <div className={`w-1.5 h-1.5 rounded-full ${isOnline ? 'bg-green-500 animate-pulse' : 'bg-white/20'}`} />
-                                <span className="text-[10px] font-bold text-white/40 uppercase tracking-widest italic leading-none">
-                                    {profile.profile_status || (isOnline ? 'Transmisión Activa' : 'Fuera de Órbita')}
-                                </span>
+                            {/* Status pill */}
+                            <div className="flex justify-center md:justify-start">
+                                <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-white/[0.04] border border-white/8 rounded-full">
+                                    <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${
+                                        isOnline ? 'bg-green-500 animate-pulse' : 'bg-white/15'
+                                    }`} />
+                                    <span className="text-[10px] font-bold text-white/35 uppercase tracking-wider leading-none">
+                                        {profile.profile_status || (isOnline ? 'Activo' : 'Fuera de órbita')}
+                                    </span>
+                                </div>
                             </div>
                         </div>
 
-                        <div className="flex items-center gap-4 shrink-0 pb-2">
+                        {/* Action button */}
+                        <div className="flex justify-center md:justify-start">
                             {isOwn ? (
                                 <button
-                                    onClick={(e) => {
-                                        e.preventDefault();
-                                        e.stopPropagation();
-                                        onEdit();
-                                    }}
-                                    className="group relative px-10 py-4 overflow-hidden rounded-2xl bg-white text-black text-[11px] font-black uppercase tracking-[0.2em] transition-all hover:pr-12 active:scale-95 shadow-[0_0_30px_rgba(255,255,255,0.2)]"
+                                    onClick={onEdit}
+                                    className="px-6 py-2.5 rounded-xl bg-white/[0.06] border border-white/10 text-white text-[11px] font-bold uppercase tracking-widest hover:bg-white/10 transition-all active:scale-95"
                                 >
-                                    <span className="relative z-10">Configurar Perfil</span>
-                                    <span className="absolute right-4 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-all">⚙️</span>
+                                    Editar perfil
                                 </button>
                             ) : (
                                 <button
                                     onClick={onFollow}
-                                    className={`px-10 py-4 rounded-2xl text-[11px] font-black uppercase tracking-[0.2em] transition-all shadow-xl hover:scale-105 active:scale-95 ${isFollowing
-                                        ? 'bg-white/5 text-white/40 border border-white/10'
-                                        : 'bg-gradient-to-r from-cyan-500 to-violet-500 text-white border border-white/20'
-                                        }`}
+                                    className={`px-6 py-2.5 rounded-xl text-[11px] font-bold uppercase tracking-widest transition-all active:scale-95 shadow-lg ${
+                                        isFollowing
+                                            ? 'bg-white/[0.05] text-white/40 border border-white/8'
+                                            : 'bg-gradient-to-r from-cyan-500 to-violet-600 text-white shadow-cyan-500/20'
+                                    }`}
                                 >
-                                    {isFollowing ? '✓ Siguiendo' : '+ Seguir Estela'}
+                                    {isFollowing ? '✓ Siguiendo' : '+ Seguir'}
                                 </button>
                             )}
                         </div>
                     </div>
-
-                    <p className="text-white/40 text-sm md:text-xl max-w-2xl font-medium tracking-tight leading-relaxed italic border-l-4 border-cyan-500/20 pl-6 py-1">
-                        {profile.bio || "Este orbitador aún no ha transmitido su biografía estelar al cosmos Dan..."}
-                    </p>
                 </div>
             </div>
         </header>

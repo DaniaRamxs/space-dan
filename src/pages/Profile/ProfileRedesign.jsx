@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { supabase } from '../../supabaseClient';
 import { useAuthContext } from '../../contexts/AuthContext';
@@ -7,29 +7,116 @@ import { profileSocialService } from '../../services/profile_social';
 
 import { ProfileLayout } from '../../components/ProfileRedesign/ProfileLayout';
 import { ProfileHeader } from '../../components/ProfileRedesign/ProfileHeader';
-import { BlogSection } from '../../components/ProfileRedesign/BlogSection';
 import { BlocksRenderer } from '../../components/ProfileRedesign/BlocksRenderer';
 import { ThemeConfigModal } from '../../components/ProfileRedesign/ThemeConfigModal';
+import { SpotifyBlock } from '../../components/ProfileRedesign/SpotifyBlock';
+import { ResonanciaBlock } from '../../components/ProfileRedesign/ResonanciaBlock';
 import BlogComposer from '../../components/ProfileRedesign/BlogComposer';
+import { BlogSection } from '../../components/ProfileRedesign/BlogSection';
 import PostComposer from '../../components/Social/PostComposer';
 import ActivityFeed from '../../components/Social/ActivityFeed';
 import { motion, AnimatePresence } from 'framer-motion';
 
+// ─── Connections block ──────────────────────────────────────────────────────
+function ConnectionsBlock({ userId }) {
+    const [connections, setConnections] = useState([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        profileSocialService.getFollowing(userId)
+            .then(data => setConnections(data.slice(0, 8)))
+            .catch(() => setConnections([]))
+            .finally(() => setLoading(false));
+    }, [userId]);
+
+    if (loading) return <div className="rounded-2xl bg-white/[0.02] border border-white/5 h-20 animate-pulse" />;
+    if (connections.length === 0) return null;
+
+    return (
+        <div className="rounded-2xl bg-white/[0.02] border border-white/5 p-5 space-y-4">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-white/25">Conexiones</p>
+            <div className="flex flex-wrap gap-3">
+                {connections.map(c => (
+                    <Link
+                        key={c.id}
+                        to={`/u/${c.username}`}
+                        className="flex items-center gap-2 px-2.5 py-1.5 rounded-xl bg-white/[0.03] border border-white/8 hover:bg-white/[0.06] transition-colors group"
+                    >
+                        <img
+                            src={c.avatar_url || '/default_user_blank.png'}
+                            alt={c.username}
+                            className="w-5 h-5 rounded-full object-cover opacity-80 group-hover:opacity-100 transition-opacity"
+                        />
+                        <span className="text-[11px] text-white/40 group-hover:text-white/70 transition-colors font-medium">
+                            {c.username}
+                        </span>
+                    </Link>
+                ))}
+            </div>
+        </div>
+    );
+}
+
+// ─── Recent activity (3 items max) ─────────────────────────────────────────
+function RecentActivityBlock({ userId, onViewAll }) {
+    return (
+        <div className="rounded-2xl bg-white/[0.02] border border-white/5 overflow-hidden">
+            <div className="px-5 pt-4 pb-3 flex items-center justify-between">
+                <p className="text-[10px] font-bold uppercase tracking-widest text-white/25">Actividad reciente</p>
+                <button
+                    onClick={onViewAll}
+                    className="text-[10px] font-bold text-white/25 hover:text-white/50 uppercase tracking-widest transition-colors"
+                >
+                    Ver todo →
+                </button>
+            </div>
+            <div className="px-2 pb-2">
+                <ActivityFeed userId={userId} limit={3} compact />
+            </div>
+        </div>
+    );
+}
+
+// ─── Skeleton loader ────────────────────────────────────────────────────────
+function ProfileSkeleton() {
+    return (
+        <div className="min-h-screen bg-[#04040a] animate-pulse">
+            <div className="h-44 md:h-64 bg-white/[0.03]" />
+            <div className="max-w-5xl mx-auto px-4 md:px-6 pt-4 space-y-4">
+                <div className="flex gap-4 items-end">
+                    <div className="w-24 h-24 rounded-full bg-white/[0.05] -mt-12" />
+                    <div className="space-y-2 pb-2">
+                        <div className="h-6 w-40 bg-white/[0.05] rounded-lg" />
+                        <div className="h-3 w-24 bg-white/[0.03] rounded-lg" />
+                    </div>
+                </div>
+                <div className="h-28 bg-white/[0.02] rounded-2xl" />
+                <div className="h-20 bg-white/[0.02] rounded-2xl" />
+                <div className="h-32 bg-white/[0.02] rounded-2xl" />
+            </div>
+        </div>
+    );
+}
+
+// ─── Main page ──────────────────────────────────────────────────────────────
 export default function ProfileRedesignPage() {
     const { username } = useParams();
     const { user } = useAuthContext();
 
     const [loading, setLoading] = useState(true);
     const [notFound, setNotFound] = useState(false);
-
     const [profile, setProfile] = useState(null);
     const [theme, setTheme] = useState(null);
     const [blocks, setBlocks] = useState([]);
     const [posts, setPosts] = useState([]);
     const [isFollowing, setIsFollowing] = useState(false);
-    const [activeTab, setActiveTab] = useState('identity'); // 'identity' | 'activity' | 'blog' | 'guestbook'
+    const [activeTab, setActiveTab] = useState('identity');
     const [showConfig, setShowConfig] = useState(false);
     const [showComposer, setShowComposer] = useState(false);
+
+    // Blocks that are NOT the spotify block — spotify is handled separately
+    const contentBlocks = blocks.filter(b => b.is_active && b.block_type !== 'spotify');
+    const hasSpotifyBlock = blocks.some(b => b.is_active && b.block_type === 'spotify');
 
     useEffect(() => {
         load();
@@ -54,64 +141,54 @@ export default function ProfileRedesignPage() {
             }
             setProfile(prof);
 
-            // Fetch real Level data
-            try {
-                const { level } = await newProfileService.getLevelData(prof.id);
-                setProfile(prev => ({ ...prev, level: level }));
-            } catch (e) { console.warn('Level sync error'); }
-
-            try {
-                const themeData = await newProfileService.getProfileTheme(prof.id).catch(() => newProfileService.getDefaultTheme(prof.id));
-                setTheme(themeData);
-            } catch (e) { setTheme(newProfileService.getDefaultTheme(prof.id)); }
-
-            try {
-                const blocksData = await newProfileService.getProfileBlocks(prof.id).catch(() => [
+            const [levelData, themeData, blocksData, postsData] = await Promise.allSettled([
+                newProfileService.getLevelData(prof.id),
+                newProfileService.getProfileTheme(prof.id).catch(() => newProfileService.getDefaultTheme(prof.id)),
+                newProfileService.getProfileBlocks(prof.id).catch(() => [
                     { block_type: 'stats', order_index: 0, is_active: true },
                     { block_type: 'thought', order_index: 1, is_active: true },
-                    { block_type: 'spotify', order_index: 2, is_active: true }
-                ]);
-                setBlocks(blocksData);
-            } catch (e) { setBlocks([]); }
+                    { block_type: 'spotify', order_index: 2, is_active: true },
+                ]),
+                newProfileService.getBlogPosts(prof.id).catch(() => []),
+            ]);
 
-            try {
-                const postsData = await newProfileService.getBlogPosts(prof.id).catch(() => []);
-                setPosts(postsData);
-            } catch (e) { setPosts([]); }
+            if (levelData.status === 'fulfilled') {
+                setProfile(prev => ({ ...prev, level: levelData.value.level }));
+            }
+            setTheme(themeData.status === 'fulfilled' ? themeData.value : newProfileService.getDefaultTheme(prof.id));
+            setBlocks(blocksData.status === 'fulfilled' ? blocksData.value : []);
+            setPosts(postsData.status === 'fulfilled' ? postsData.value : []);
 
             if (user && user.id !== prof.id) {
-                try {
-                    const following = await profileSocialService.isFollowing(prof.id);
-                    setIsFollowing(following);
-                } catch (e) { setIsFollowing(false); }
+                const following = await profileSocialService.isFollowing(prof.id).catch(() => false);
+                setIsFollowing(following);
             }
-
         } catch (e) {
-            console.error('Profile Redesign Load Error:', e);
+            console.error('Profile load error:', e);
             setNotFound(true);
         } finally {
             setLoading(false);
         }
     }
 
-    if (loading) return (
-        <div className="min-h-screen bg-black flex flex-col items-center justify-center gap-6">
-            <div className="w-20 h-20 border-t-4 border-cyan-500 rounded-full animate-spin shadow-[0_0_50px_rgba(6,182,212,0.5)]" />
-            <span className="text-[10px] uppercase font-black tracking-[0.5em] text-cyan-400 animate-pulse italic">
-                Sincronizando Realidad... 🛰️
-            </span>
-        </div>
-    );
+    if (loading) return <ProfileSkeleton />;
 
     if (notFound) return (
-        <div className="min-h-screen bg-black flex flex-col items-center justify-center p-12 text-center text-white space-y-8">
-            <div className="text-8xl opacity-10 font-black italic select-none">404</div>
+        <div className="min-h-screen bg-[#04040a] flex flex-col items-center justify-center p-10 text-center space-y-6">
+            <div className="text-7xl font-black opacity-[0.06] select-none">404</div>
             <div className="space-y-2">
-                <h2 className="text-4xl font-black uppercase italic tracking-tighter">Explorador fuera de alcance</h2>
-                <p className="text-white/40 text-sm max-w-xs mx-auto italic">El sector "@{username}" no responde a nuestras señales estelares...</p>
+                <h2 className="text-2xl font-black uppercase italic tracking-tighter text-white">
+                    Perfil fuera de alcance
+                </h2>
+                <p className="text-white/30 text-sm max-w-xs mx-auto">
+                    "@{username}" no responde a nuestras señales.
+                </p>
             </div>
-            <Link to="/" className="px-12 py-3 bg-white text-black text-[12px] font-black uppercase tracking-widest rounded-2xl hover:bg-cyan-400 transition-all hover:scale-105">
-                Regresar a Base
+            <Link
+                to="/"
+                className="px-8 py-2.5 bg-white text-black text-[11px] font-black uppercase tracking-widest rounded-xl hover:bg-cyan-400 transition-all"
+            >
+                Volver al inicio
             </Link>
         </div>
     );
@@ -119,21 +196,22 @@ export default function ProfileRedesignPage() {
     const isOwn = user?.id === profile.id;
 
     const tabs = [
-        { id: 'identity', label: 'Identidad', icon: '👤' },
-        { id: 'activity', label: 'Actividad', icon: '📡' },
-        { id: 'blog', label: 'Bitácora', icon: '✍️' },
-        { id: 'guestbook', label: 'Muro', icon: '💬' },
+        { id: 'identity', label: 'Identidad' },
+        { id: 'activity', label: 'Actividad' },
+        { id: 'blog', label: 'Bitácora' },
+        { id: 'guestbook', label: 'Muro' },
     ];
 
     return (
         <ProfileLayout theme={theme}>
+            {/* Header */}
             <ProfileHeader
                 profile={profile}
                 theme={theme}
                 isOwn={isOwn}
                 isFollowing={isFollowing}
                 onFollow={async () => {
-                    if (!user) return alert('Debes iniciar sesión para seguir.');
+                    if (!user) return alert('Debes iniciar sesión.');
                     const { following } = await profileSocialService.toggleFollow(profile.id);
                     setIsFollowing(following);
                 }}
@@ -150,104 +228,164 @@ export default function ProfileRedesignPage() {
                 onSave={load}
             />
 
-            <div className="max-w-5xl mx-auto px-6 py-20 space-y-24">
-                {/* Navigation Tabs */}
-                <nav className="flex items-center justify-start md:justify-start gap-6 md:gap-12 border-b border-white/5 pb-6 overflow-x-auto no-scrollbar scroll-smooth px-4">
-                    {tabs.map((tab, idx) => (
+            {/* Main content */}
+            <div className="max-w-5xl mx-auto px-4 md:px-6 pt-6 pb-20 space-y-0">
+
+                {/* Tab nav */}
+                <nav className="flex items-center gap-6 overflow-x-auto no-scrollbar pb-0 mb-8">
+                    {tabs.map(tab => (
                         <button
                             key={tab.id}
                             onClick={() => setActiveTab(tab.id)}
-                            className={`text-[10px] md:text-[12px] font-black uppercase tracking-[0.15em] md:tracking-[0.3em] transition-all relative whitespace-nowrap flex items-center gap-2 py-2 ${idx === 0 ? 'ml-0' : ''} ${activeTab === tab.id ? 'text-cyan-400' : 'text-white/30 hover:text-white'
-                                }`}
+                            className={`relative text-[11px] font-bold uppercase tracking-widest whitespace-nowrap pb-3 transition-colors ${
+                                activeTab === tab.id ? 'text-white' : 'text-white/25 hover:text-white/50'
+                            }`}
                         >
-                            <span className="hidden md:inline">{tab.icon}</span>
                             {tab.label}
                             {activeTab === tab.id && (
-                                <motion.div layoutId="tab" className="absolute -bottom-[25px] left-0 right-0 h-1 bg-cyan-400 shadow-[0_0_15px_rgba(34,211,238,0.5)] z-10" />
+                                <motion.div
+                                    layoutId="tab-indicator"
+                                    className="absolute bottom-0 left-0 right-0 h-[2px] bg-cyan-400 rounded-full"
+                                />
                             )}
                         </button>
                     ))}
+                    <div className="flex-1 border-b border-white/[0.06] mb-0 self-end pb-3" />
                 </nav>
 
-                {/* Dynamic Content */}
+                {/* Tab content */}
                 <AnimatePresence mode="wait">
                     <motion.div
                         key={activeTab}
-                        initial={{ opacity: 0, x: 20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        exit={{ opacity: 0, x: -20 }}
-                        transition={{ duration: 0.3 }}
-                        className="space-y-20 min-h-[500px]"
+                        initial={{ opacity: 0, y: 12 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -8 }}
+                        transition={{ duration: 0.25, ease: 'easeOut' }}
                     >
+                        {/* ── IDENTIDAD ─────────────────────────────────── */}
                         {activeTab === 'identity' && (
-                            <div className="grid grid-cols-1 lg:grid-cols-12 gap-16 items-start">
-                                <div className="lg:col-span-8 flex flex-col gap-12">
-                                    <BlocksRenderer
-                                        blocks={blocks}
-                                        userId={profile.id}
-                                        isOwn={isOwn}
-                                        onEdit={() => setShowConfig(true)}
-                                        profileData={profile}
-                                    />
-                                </div>
-                                <aside className="lg:col-span-4 space-y-12">
-                                    <div className="p-8 rounded-[2rem] bg-white/[0.02] border border-white/5 space-y-6">
-                                        <h4 className="text-[10px] font-black uppercase tracking-widest text-white/20 italic">Métricas de Orbitador</h4>
-                                        <div className="space-y-4">
-                                            <div className="flex justify-between items-end">
-                                                <span className="text-[10px] font-black text-white/40 uppercase">Nivel Estelar</span>
-                                                <span className="text-2xl font-black text-white italic">{profile.level || 1}</span>
+                            <div className="grid grid-cols-1 lg:grid-cols-[1fr_1.5fr] gap-4">
+
+                                {/* LEFT COLUMN — Radar + Resonancia + Stats */}
+                                <div className="flex flex-col gap-4">
+
+                                    {/* Radar Sonoro */}
+                                    {(hasSpotifyBlock || isOwn) && (
+                                        <SpotifyBlock userId={profile.id} isOwn={isOwn} />
+                                    )}
+
+                                    {/* Resonancia — solo cuando viendo perfil ajeno y hay sesión */}
+                                    {!isOwn && user && (
+                                        <ResonanciaBlock
+                                            viewerId={user.id}
+                                            profileUserId={profile.id}
+                                        />
+                                    )}
+
+                                    {/* Stats card */}
+                                    <div className="rounded-2xl bg-white/[0.02] border border-white/5 p-5 space-y-4">
+                                        <p className="text-[10px] font-bold uppercase tracking-widest text-white/25">Métricas</p>
+                                        <div className="grid grid-cols-3 gap-4">
+                                            <div className="space-y-0.5">
+                                                <p className="text-[9px] font-bold uppercase text-white/20">Nivel</p>
+                                                <p className="text-lg font-black text-white italic">{profile.level || 1}</p>
                                             </div>
-                                            <div className="flex justify-between items-end">
-                                                <span className="text-[10px] font-black text-white/40 uppercase">Starlys</span>
-                                                <span className="text-2xl font-black text-cyan-400 italic">◈ {profile.balance?.toLocaleString() || 0}</span>
+                                            <div className="space-y-0.5">
+                                                <p className="text-[9px] font-bold uppercase text-white/20">Starlys</p>
+                                                <p className="text-lg font-black text-cyan-400 italic">◈ {(profile.balance || 0).toLocaleString()}</p>
                                             </div>
-                                            <div className="flex justify-between items-end">
-                                                <span className="text-[10px] font-black text-white/40 uppercase">Racha</span>
-                                                <span className="text-2xl font-black text-violet-500 italic">{profile.streak || 0}D</span>
+                                            <div className="space-y-0.5">
+                                                <p className="text-[9px] font-bold uppercase text-white/20">Racha</p>
+                                                <p className="text-lg font-black text-violet-400 italic">{profile.streak || 0}D</p>
                                             </div>
                                         </div>
                                     </div>
-                                </aside>
+
+                                    {/* Connections — visible on desktop left col */}
+                                    <div className="hidden lg:block">
+                                        <ConnectionsBlock userId={profile.id} />
+                                    </div>
+                                </div>
+
+                                {/* RIGHT COLUMN — Bio/blocks + Activity */}
+                                <div className="flex flex-col gap-4">
+
+                                    {/* Content blocks (bio, thought, gallery, interests, etc.) */}
+                                    {contentBlocks.length > 0 && (
+                                        <BlocksRenderer
+                                            blocks={contentBlocks}
+                                            userId={profile.id}
+                                            isOwn={isOwn}
+                                            onEdit={() => setShowConfig(true)}
+                                            profileData={profile}
+                                        />
+                                    )}
+
+                                    {/* Actividad reciente */}
+                                    <RecentActivityBlock
+                                        userId={profile.id}
+                                        onViewAll={() => setActiveTab('activity')}
+                                    />
+
+                                    {/* Connections — visible on mobile below activity */}
+                                    <div className="lg:hidden">
+                                        <ConnectionsBlock userId={profile.id} />
+                                    </div>
+
+                                    {/* Owner: add blocks CTA */}
+                                    {isOwn && (
+                                        <motion.button
+                                            whileHover={{ scale: 1.01 }}
+                                            onClick={() => setShowConfig(true)}
+                                            className="w-full py-5 border border-dashed border-white/[0.06] rounded-2xl flex items-center justify-center gap-3 text-white/20 hover:text-white/40 hover:border-white/[0.12] transition-all"
+                                        >
+                                            <span className="text-xl leading-none">+</span>
+                                            <span className="text-[10px] font-bold uppercase tracking-widest">Añadir bloque</span>
+                                        </motion.button>
+                                    )}
+                                </div>
                             </div>
                         )}
 
+                        {/* ── ACTIVIDAD ─────────────────────────────────── */}
                         {activeTab === 'activity' && (
-                            <div className="max-w-2xl mx-auto space-y-12">
+                            <div className="max-w-2xl mx-auto space-y-4">
                                 {isOwn && (
-                                    <div className="space-y-4">
-                                        <div className="flex justify-between items-center px-4">
-                                            <span className="text-[10px] font-black uppercase tracking-[0.3em] text-white/20">Nueva Transmisión</span>
-                                        </div>
-                                        <PostComposer onPostCreated={load} />
-                                    </div>
+                                    <PostComposer onPostCreated={load} />
                                 )}
                                 <ActivityFeed userId={profile.id} />
                             </div>
                         )}
 
+                        {/* ── BITÁCORA ──────────────────────────────────── */}
                         {activeTab === 'blog' && (
-                            <div className="space-y-12 max-w-4xl mx-auto">
+                            <div className="space-y-6 max-w-3xl mx-auto">
                                 {isOwn && !showComposer && (
                                     <div className="flex justify-center">
                                         <button
                                             onClick={() => setShowComposer(true)}
-                                            className="px-12 py-4 rounded-[1.5rem] bg-white text-black text-[11px] font-black uppercase tracking-[0.2em] hover:bg-cyan-400 transition-all shadow-xl hover:scale-105 active:scale-95"
+                                            className="px-8 py-3 rounded-xl bg-white text-black text-[11px] font-black uppercase tracking-widest hover:bg-cyan-400 transition-all shadow-lg active:scale-95"
                                         >
-                                            ✍️ Escribir Nueva Entrada de Bitácora
+                                            ✍️ Nueva entrada
                                         </button>
                                     </div>
                                 )}
-
                                 {showComposer && isOwn && (
                                     <motion.div
-                                        initial={{ opacity: 0, y: 20 }}
+                                        initial={{ opacity: 0, y: 12 }}
                                         animate={{ opacity: 1, y: 0 }}
-                                        className="space-y-8"
+                                        className="space-y-4"
                                     >
-                                        <div className="flex justify-between items-center px-6">
-                                            <h3 className="text-lg font-black text-white uppercase italic tracking-tighter">Editor de Bitácora</h3>
-                                            <button onClick={() => setShowComposer(false)} className="text-[10px] font-black text-white/20 hover:text-white uppercase tracking-widest">Cerrar Editor</button>
+                                        <div className="flex justify-between items-center">
+                                            <h3 className="text-base font-black text-white uppercase italic tracking-tight">
+                                                Editor de Bitácora
+                                            </h3>
+                                            <button
+                                                onClick={() => setShowComposer(false)}
+                                                className="text-[10px] font-bold text-white/25 hover:text-white/50 uppercase tracking-widest transition-colors"
+                                            >
+                                                Cerrar
+                                            </button>
                                         </div>
                                         <BlogComposer
                                             onPostCreated={() => { load(); setShowComposer(false); }}
@@ -255,9 +393,8 @@ export default function ProfileRedesignPage() {
                                         />
                                     </motion.div>
                                 )}
-
                                 <BlogSection
-                                    title={`${profile.username}'s Knowledge Base`}
+                                    title={`${profile.username}'s Bitácora`}
                                     posts={posts}
                                     isOwn={isOwn}
                                     username={profile.username}
@@ -265,10 +402,13 @@ export default function ProfileRedesignPage() {
                             </div>
                         )}
 
+                        {/* ── MURO ──────────────────────────────────────── */}
                         {activeTab === 'guestbook' && (
-                            <div className="py-20 text-center opacity-20 uppercase tracking-[0.5em] text-[10px] font-black flex flex-col items-center gap-4">
-                                <span className="text-6xl">📡</span>
-                                Muro de Comunicaciones en construcción Estelar...
+                            <div className="py-24 flex flex-col items-center gap-4 opacity-20">
+                                <span className="text-5xl">📡</span>
+                                <p className="text-[10px] font-bold uppercase tracking-[0.4em]">
+                                    Muro en construcción
+                                </p>
                             </div>
                         )}
                     </motion.div>
