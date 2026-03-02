@@ -37,16 +37,16 @@ export const SHOP_ITEMS = [
   // ── Banners Dinámicos ──────────────────────────────────────────
   { id: 'banner_galaxy', category: 'banner', title: 'Corazón de Galaxia', desc: 'Un gradiente profundo que evoca el centro de un sistema solar en colapso.', price: 150, icon: '🌌', rarity: 'rare', metadata: { gradient: ['#0d0221', '#240b36', '#c31432'], fx: 'stars' } },
   { id: 'banner_cyber', category: 'banner', title: 'Neon Overload', desc: 'Cian eléctrico y magenta neón fusionados en una explosión cyberpunk.', price: 120, icon: '🖼️', rarity: 'rare', metadata: { gradient: ['#00d2ff', '#3a7bd5', '#ff00ff'] } },
-  { id: 'banner_nebula', category: 'banner', title: 'Velo de Orión', desc: 'Púrpuras y azules místicos que envuelven tu perfil en un aura espacial.', price: 150, icon: '🌌', rarity: 'rare', metadata: { gradient: ['#6a11cb', '#2575fc'] } },
+  { id: 'banner_nebula', category: 'banner', title: 'Velo de Orión', desc: 'Púrpuras y azules místicos que envuelven tu DreamSpace en un aura espacial.', price: 150, icon: '🌌', rarity: 'rare', metadata: { gradient: ['#6a11cb', '#2575fc'] } },
   { id: 'banner_gold', category: 'banner', title: 'Prestigio Áureo', desc: 'El banner definitivo de la nobleza espacial. Oro puro líquido.', price: 200, icon: '✨', rarity: 'epic', metadata: { gradient: ['#bf953f', '#fcf6ba', '#b38728', '#fbf5b7', '#aa771c'] } },
   { id: 'banner_matrix', category: 'banner', title: 'Source Code', desc: 'Observa la realidad binaria con este fondo de código en cascada.', price: 200, icon: '💻', rarity: 'epic', metadata: { gradient: ['#000000', '#003300'], fx: 'matrix' } },
   { id: 'banner_aurora', category: 'banner', title: 'Aurora Boreal', desc: 'Fenómeno atmosférico legendario plasmado en tu cabecera.', price: 300, icon: '✨', rarity: 'legendary', metadata: { gradient: ['#12c2e9', '#c471ed', '#f64f59'], animated: true } },
   { id: 'banner_retro', category: 'banner', title: '8-Bit Nostalgia', desc: 'Vibras de sala arcade con scanlines y estética retro de los 80.', price: 180, icon: '👾', rarity: 'epic', metadata: { gradient: ['#23074d', '#cc5333'], fx: 'scanlines' } },
   { id: 'banner_void', category: 'banner', title: 'Vacío Absoluto', desc: 'Para los que no temen a la nada. Un negro tan profundo que devora la luz.', price: 400, icon: '🌑', rarity: 'legendary', metadata: { gradient: ['#000000', '#1a1a1a', '#000000'], fx: 'void' } },
-  { id: 'banner_pink_nebula', category: 'banner', title: 'Nebulosa Rosa', desc: 'Una explosión de polvo estelar rosa para los perfiles más brillantes.', price: 180, icon: '🌸', rarity: 'rare', metadata: { gradient: ['#ff00cc', '#333399'], fx: 'stars' } },
+  { id: 'banner_pink_nebula', category: 'banner', title: 'Nebulosa Rosa', desc: 'Una explosión de polvo estelar rosa para los DreamSpaces más brillantes.', price: 180, icon: '🌸', rarity: 'rare', metadata: { gradient: ['#ff00cc', '#333399'], fx: 'stars' } },
 
   // ── Marcos de Vínculo (Solo disponibles con vínculo) ─────────────
-  { id: 'frame_link_lv1', category: 'frame', title: 'Chispas de Vínculo', desc: 'Un inicio eléctrico para tu perfil', price: 0, icon: '✨', partnership_only: true },
+  { id: 'frame_link_lv1', category: 'frame', title: 'Chispas de Vínculo', desc: 'Un inicio eléctrico para tu DreamSpace', price: 0, icon: '✨', partnership_only: true },
   { id: 'frame_link_lv2', category: 'frame', title: 'Aura de Vínculo', desc: 'Borde pulsante de pura energía', price: 0, icon: '💫', partnership_only: true },
   { id: 'frame_link_lv3', category: 'frame', title: 'Resonancia Vínculo', desc: 'Gradiente rotativo de alta frecuencia', price: 0, icon: '🌀', partnership_only: true },
   { id: 'frame_link_lv4', category: 'frame', title: 'Fusión Estelar', desc: 'El poder de dos estrellas en tu avatar', price: 0, icon: '🔥', partnership_only: true },
@@ -68,13 +68,13 @@ export const SHOP_ITEMS = [
   { id: 'role_mod', category: 'role', title: 'Moderador Solar', desc: 'Obtén el emblema de Moderador y herramientas básicas de gestión de paz en la comunidad.', price: 400, icon: '🛡️', rarity: 'rare' },
   { id: 'role_scout', category: 'role', title: 'Explorador Estelar', desc: 'Obtén el emblema oficial de explorador y acceso a trasmisiones básicas del Dan-Space.', price: 100, icon: '🔭', rarity: 'common' },
   { id: 'role_warden', category: 'role', title: 'Vigilante del Cosmos', desc: 'Obtén el emblema de Vigilante y el poder de reportar publicaciones con prioridad de revisión.', price: 300, icon: '🛡️', rarity: 'rare' },
-  { id: 'role_nomad', category: 'role', title: 'Nómada Astral', desc: 'Obtén el emblema de Nómada y un aura de color neón exclusivo en tu avatar de perfil.', price: 450, icon: '🧗', rarity: 'rare' },
+  { id: 'role_nomad', category: 'role', title: 'Nómada Astral', desc: 'Obtén el emblema de Nómada y un aura de color neón exclusivo en tu avatar de DreamSpace.', price: 450, icon: '🧗', rarity: 'rare' },
   { id: 'role_wizard', category: 'role', title: 'Mago de los Datos', desc: 'Obtén el emblema de Mago y la capacidad de ver estadísticas avanzadas y vistas detalladas de tus posts.', price: 600, icon: '🧙', rarity: 'epic' },
-  { id: 'role_goth_lord', category: 'role', title: 'Señor de la Noche', desc: 'Obtén el emblema de Señor de la Noche y una sombra roja mística permanente en tu perfil.', price: 700, icon: '🦇', rarity: 'epic' },
+  { id: 'role_goth_lord', category: 'role', title: 'Señor de la Noche', desc: 'Obtén el emblema de Señor de la Noche y una sombra roja mística permanente en tu DreamSpace.', price: 700, icon: '🦇', rarity: 'epic' },
   { id: 'role_hacker', category: 'role', title: 'Cyber Hacker', desc: 'Obtén el emblema de Hacker y un efecto de glitch digital único en tu biografía técnica.', price: 750, icon: '💾', rarity: 'epic' },
   { id: 'role_deity', category: 'role', title: 'Deidad del Espacio', desc: 'El rango supremo. Obtén el emblema de Deidad, un aura dorada divina y acceso total a zonas restringidas.', price: 1500, icon: '👑', rarity: 'legendary' },
   { id: 'role_pioneer', category: 'role', title: 'Pionero Espacial', desc: 'Obtén el emblema de Pionero y acceso exclusivo a la sala "Alfa Central", reservada para los primeros exploradores.', price: 1000, icon: '🚩', rarity: 'rare' },
-  { id: 'role_void', category: 'role', title: 'Caminante del Vacío', desc: 'Obtén el emblema del Vacío y un aura de partículas oscuras que envuelve tu perfil en las profundidades del feed.', price: 2000, icon: '🌑', rarity: 'legendary' },
+  { id: 'role_void', category: 'role', title: 'Caminante del Vacío', desc: 'Obtén el emblema del Vacío y un aura de partículas oscuras que envuelve tu DreamSpace en las profundidades del feed.', price: 2000, icon: '🌑', rarity: 'legendary' },
   { id: 'role_architect', category: 'role', title: 'Arquitecto de Realidad', desc: 'Obtén el emblema de Arquitecto y el poder de desbloquear widgets de personalización avanzada en tu Universe Home.', price: 1200, icon: '📐', rarity: 'epic' },
 ];
 

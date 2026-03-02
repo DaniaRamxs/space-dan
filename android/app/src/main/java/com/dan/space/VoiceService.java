@@ -27,7 +27,7 @@ public class VoiceService extends Service {
         );
 
         Notification notification = new NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle("Space Dan — Sala de Voz")
+            .setContentTitle("Spacely — Sala de Voz")
             .setContentText("Micrófono activo en segundo plano")
             .setSmallIcon(R.drawable.ic_mic_notification)
             .setContentIntent(pendingIntent)

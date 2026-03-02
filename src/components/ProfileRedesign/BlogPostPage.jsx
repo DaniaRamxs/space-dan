@@ -93,7 +93,7 @@ const BlogPostPage = () => {
                     </div>
 
                     <Link to={`/@${username}`} className="px-12 py-4 bg-white/[0.03] border border-white/10 rounded-2xl text-[12px] font-black uppercase tracking-[0.3em] hover:bg-white/10 transition-all">
-                        Ver Perfil Completo de {username}
+                        Ver DreamSpace Completo de {username}
                     </Link>
                 </footer>
             </article>

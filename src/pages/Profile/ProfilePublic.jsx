@@ -85,9 +85,9 @@ export default function PublicProfilePage() {
   // Dynamic Metadata
   useEffect(() => {
     if (profile?.username) {
-      document.title = `${profile.username} (@${profile.username}) | Space Dan`;
+      document.title = `${profile.username} (@${profile.username}) | Spacely`;
     } else if (notFound) {
-      document.title = `Usuario no encontrado | Space Dan`;
+      document.title = `Usuario no encontrado | Spacely`;
     }
   }, [profile, notFound]);
 

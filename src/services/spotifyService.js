@@ -77,5 +77,15 @@ export const spotifyService = {
             .eq('user_id', user.id);
 
         if (error) throw error;
+    },
+
+    async getUsernameById(userId) {
+        const { data, error } = await supabase
+            .from('profiles')
+            .select('username')
+            .eq('id', userId)
+            .single();
+        if (error || !data) return userId; // Fallback to ID if not found
+        return data.username;
     }
 };

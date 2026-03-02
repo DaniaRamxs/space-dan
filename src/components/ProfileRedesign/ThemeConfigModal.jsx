@@ -5,6 +5,8 @@ import { newProfileService } from '../../services/newProfileService';
 import { supabase } from '../../supabaseClient';
 import { GiphyFetch } from '@giphy/js-fetch-api';
 import { Grid } from '@giphy/react-components';
+import AvatarUploader from '../AvatarUploader';
+import { getFrameStyle } from '../../utils/styles';
 
 const gf = new GiphyFetch('3k4Fdn6D040IQvIq1KquLZzJgutP3dGp');
 
@@ -13,6 +15,7 @@ export const ThemeConfigModal = ({ isOpen, onClose, userId, currentTheme, curren
     const [blocks, setBlocks] = useState(currentBlocks || []);
     const [moodEmoji, setMoodEmoji] = useState(currentProfile?.mood_emoji || '✨');
     const [moodText, setMoodText] = useState(currentProfile?.mood_text || '');
+    const [bio, setBio] = useState(currentProfile?.bio || '');
     const [saving, setSaving] = useState(false);
     const [uploadingGallery, setUploadingGallery] = useState(false);
 
@@ -34,6 +37,7 @@ export const ThemeConfigModal = ({ isOpen, onClose, userId, currentTheme, curren
             await Promise.all([
                 newProfileService.updateProfileTheme(theme),
                 newProfileService.updateProfileBlocks(blocks),
+                newProfileService.updateProfile({ bio }),
                 supabase.rpc('set_user_mood', {
                     p_text: moodText,
                     p_emoji: moodEmoji,
@@ -210,6 +214,57 @@ export const ThemeConfigModal = ({ isOpen, onClose, userId, currentTheme, curren
 
                 {/* Content */}
                 <div className="flex-1 overflow-y-auto p-6 sm:p-8 space-y-12 custom-scrollbar">
+
+                    {/* Identidad Base */}
+                    <section className="space-y-6">
+                        <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-cyan-400 italic flex items-center gap-2">
+                            <span className="w-1.5 h-1.5 rounded-full bg-cyan-500 shadow-[0_0_10px_rgba(6,182,212,1)]" />
+                            Identidad Digital
+                        </h3>
+
+                        <div className="flex flex-col md:flex-row gap-8 items-center bg-white/[0.02] p-8 rounded-[2rem] border border-white/5">
+                            <div className="shrink-0 scale-90">
+                                <AvatarUploader
+                                    currentAvatar={currentProfile?.avatar_url}
+                                    frameStyle={getFrameStyle(currentProfile?.equipped_frame || currentProfile?.frame_item_id)}
+                                    onUploadSuccess={() => onSave?.()}
+                                />
+                                <p className="text-[8px] text-white/20 uppercase tracking-widest text-center mt-4">Toca para cambiar</p>
+                            </div>
+
+                            <div className="flex-1 space-y-6 w-full">
+                                <div className="space-y-2">
+                                    <label className="text-[9px] font-bold text-white/20 uppercase ml-1">Firma (@)</label>
+                                    <div className="flex gap-2">
+                                        <div className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-xs text-white/40 italic font-mono">
+                                            @{currentProfile?.username}
+                                        </div>
+                                        <button
+                                            onClick={() => {
+                                                if (window.confirm('Serás redirigido al portal de identidad. ¿Deseas cambiar tu firma?')) {
+                                                    window.location.href = '/onboarding';
+                                                }
+                                            }}
+                                            className="px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-[9px] font-black uppercase text-white hover:bg-white/10 transition-all"
+                                        >
+                                            🚀 Cambiar
+                                        </button>
+                                    </div>
+                                    <p className="text-[7px] text-white/10 uppercase tracking-widest italic ml-1">* El cambio de nombre tiene 30 días de cooldown.</p>
+                                </div>
+
+                                <div className="space-y-2">
+                                    <label className="text-[9px] font-bold text-white/20 uppercase ml-1">Biografía Estelar</label>
+                                    <textarea
+                                        value={bio}
+                                        onChange={e => setBio(e.target.value)}
+                                        placeholder="Tu historia galáctica..."
+                                        className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-xs text-white outline-none focus:border-cyan-500 transition-all resize-none h-24 shadow-inner"
+                                    />
+                                </div>
+                            </div>
+                        </div>
+                    </section>
 
                     {/* Mood Section */}
                     <section className="space-y-6">
@@ -436,7 +491,7 @@ export const ThemeConfigModal = ({ isOpen, onClose, userId, currentTheme, curren
                         disabled={saving}
                         className="flex-[2] py-4 bg-white text-black text-[10px] font-black uppercase tracking-widest rounded-[1.5rem] hover:bg-cyan-400 hover:scale-[1.02] active:scale-95 transition-all shadow-xl disabled:opacity-50"
                     >
-                        {saving ? 'Sincronizando...' : 'Actualizar Perfil Estelar'}
+                        {saving ? 'Sincronizando...' : 'Actualizar DreamSpace'}
                     </button>
                 </div>
             </motion.div>

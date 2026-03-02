@@ -646,7 +646,7 @@ function MoodManager({ profile, user, bgColor, setBgColor }) {
 
           <div className="space-y-4">
             <div className="flex items-center justify-between ml-1">
-              <label className="text-[9px] font-black text-white/20 uppercase">Fondo de Perfil</label>
+              <label className="text-[9px] font-black text-white/20 uppercase ml-1">Fondo de DreamSpace</label>
               <div className="flex items-center gap-3">
                 <span className="text-[8px] font-bold text-white/30 uppercase tracking-tighter">Color Custom:</span>
                 <input
@@ -800,7 +800,7 @@ export default function ProfileOwn() {
       setBannerItem(null);
     }
     if (profile) {
-      document.title = "Mi Perfil | Space Dan";
+      document.title = "Mi DreamSpace | Spacely";
     }
   }, [profile]);
 
@@ -839,14 +839,14 @@ export default function ProfileOwn() {
   }, [user]);
 
   if (loading || (!profile && user)) {
-    return <div className="card"><h2 className="cardTitle blinkText">Cargando perfil...</h2></div>;
+    return <div className="card"><h2 className="cardTitle blinkText">Cargando DreamSpace...</h2></div>;
   }
 
   if (!user) {
     return (
       <main className="card">
-        <h1 className="cardTitle">MI PERFIL</h1>
-        <p>Inicia sesión para ver tu perfil, tus logros y récords en los juegos.</p>
+        <h1 className="cardTitle">MI DREAMSPACE</h1>
+        <p>Inicia sesión para ver tu DreamSpace, tus logros y récords en los juegos.</p>
         <div style={{ display: 'flex', gap: 10, marginTop: 20, flexWrap: 'wrap' }}>
           <button className="winButton" onClick={loginWithGoogle}>Entrar con Google</button>
           <button className="winButton" onClick={loginWithDiscord}>Entrar con Discord</button>

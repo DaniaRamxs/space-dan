@@ -54,6 +54,12 @@ export default function ProfileRedesignPage() {
             }
             setProfile(prof);
 
+            // Fetch real Level data
+            try {
+                const { level } = await newProfileService.getLevelData(prof.id);
+                setProfile(prev => ({ ...prev, level: level }));
+            } catch (e) { console.warn('Level sync error'); }
+
             try {
                 const themeData = await newProfileService.getProfileTheme(prof.id).catch(() => newProfileService.getDefaultTheme(prof.id));
                 setTheme(themeData);

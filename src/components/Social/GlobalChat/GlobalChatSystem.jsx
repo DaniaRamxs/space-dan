@@ -251,7 +251,7 @@ export default function GlobalChat() {
                 } else {
                     response = '🤖 **Protocolos HyperBot:**\n\n' +
                         '💰 `/help economy`: Dinero y Juegos.\n' +
-                        '🎭 `/help social`: Perfil y Amigos.\n' +
+                        '🎭 `/help social`: DreamSpace y Amigos.\n' +
                         '🔊 `/voice <sala>`: Crear sala de voz.\n' +
                         '⚔️ `/duel @user`: Combate 21.\n' +
                         '✨ `/joke`, `/quote`, `/pick`, `/roll`.';
@@ -562,8 +562,8 @@ export default function GlobalChat() {
                 if (!profTarget) response = '👤 Uso: `/profile @usuario`.';
                 else {
                     const p = await chatService.getProfileByUsername(profTarget);
-                    if (!p) response = `❌ Perfil de **@${profTarget}** fuera de línea.`;
-                    else response = `👤 **Perfil de @${p.username}:**\n💰 Balance: **${p.balance} ◈**\n🎭 Mood: *${p.mood || 'Explorando...'}*\n📅 Llegada: ${new Date(p.created_at).toLocaleDateString()}`;
+                    if (!p) response = `❌ DreamSpace de **@${profTarget}** fuera de línea.`;
+                    else response = `👤 **DreamSpace de @${p.username}:**\n💰 Balance: **${p.balance} ◈**\n🎭 Mood: *${p.mood || 'Explorando...'}*\n📅 Llegada: ${new Date(p.created_at).toLocaleDateString()}`;
                 }
                 break;
 

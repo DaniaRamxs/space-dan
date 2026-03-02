@@ -19,7 +19,7 @@ const sanitizeSchema = {
 const GUIDE_CONTENT = [
     "# 🚀 Guía de Energía Estelar y Markdown",
     "",
-    "Bienvenido al sistema de comunicación de **Space Dan**. Aquí puedes usar Markdown estándar potenciado con nuestras exclusivas **Energías Espaciales**.",
+    "Bienvenido al sistema de comunicación de **Spacely**. Aquí puedes usar Markdown estándar potenciado con nuestras exclusivas **Energías Espaciales**.",
     "",
     "---",
     "",
@@ -119,7 +119,7 @@ export default function MarkdownGuide({ onClose }) {
                 <div className="p-6 md:p-8 border-b border-white/5 flex items-center justify-between shrink-0">
                     <div>
                         <h2 className="text-xl font-black text-white uppercase tracking-tight">Manual de Energía Estelar</h2>
-                        <p className="text-[10px] text-white/30 uppercase tracking-widest mt-1">Aprende a dominar el Markdown de Space Dan</p>
+                        <p className="text-[10px] text-white/30 uppercase tracking-widest mt-1">Aprende a dominar el Markdown de Spacely</p>
                     </div>
                     <button
                         onClick={onClose}

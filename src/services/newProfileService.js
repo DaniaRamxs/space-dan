@@ -135,5 +135,37 @@ export const newProfileService = {
 
         if (error) throw error;
         return data;
+    },
+
+    async getLevelData(userId) {
+        // RPC defined in fix_ranks.sql
+        const { data: xp, error } = await supabase.rpc('get_user_xp', { p_user_id: userId });
+        if (error) {
+            console.warn('Error fetching XP, defaulting to level 1:', error);
+            return { level: 1, xp: 0 };
+        }
+        const level = Math.floor(0.1 * Math.sqrt(xp)) || 1;
+        return { level, xp };
+    },
+
+    async updateProfile(profileData) {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error('Not authenticated');
+
+        const { data, error } = await supabase
+            .from('profiles')
+            .update(profileData)
+            .eq('id', user.id)
+            .select()
+            .single();
+
+        if (error) throw error;
+        return data;
+    },
+
+    async claimUsername(username) {
+        const { data, error } = await supabase.rpc('claim_username', { p_username: username });
+        if (error) throw error;
+        return data;
     }
 };

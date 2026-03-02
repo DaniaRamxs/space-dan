@@ -1,6 +1,6 @@
 {
   "appId": "com.dan.space",
-  "appName": "Space Dan",
+  "appName": "Spacely",
   "webDir": "dist",
   "server": {
     "androidScheme": "https"

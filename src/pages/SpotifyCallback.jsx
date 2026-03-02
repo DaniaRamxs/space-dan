@@ -13,7 +13,11 @@ export default function SpotifyCallback() {
         if (code && state) {
             spotifyService.handleCallback(code, state)
                 .then(() => {
-                    navigate(`/@${state}`); // Redirect to profile
+                    // Convert UUID state back to username for proper redirection
+                    return spotifyService.getUsernameById(state);
+                })
+                .then(username => {
+                    navigate(`/@${username}`);
                 })
                 .catch(err => {
                     console.error('Spotify connection failed', err);

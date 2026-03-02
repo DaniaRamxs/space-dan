@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import CursorTrail from "../components/CursorTrail.jsx";
 import StarfieldBg from "../components/StarfieldBg.jsx";
 import KonamiEasterEgg from "../components/KonamiEasterEgg.jsx";
+import { SpacelyLogo } from "../components/SpacelyLogo.jsx";
 
 import RadioPlayer from "../components/RadioPlayer.jsx";
 import AuthWidget from "../components/AuthWidget.jsx";
@@ -72,9 +73,7 @@ export default function GardenLayout({ children }) {
         <main className={`gardenMain ${isFixedLayout ? 'gardenMain--fixed' : ''}`}>
           <header className="gardenTopbar">
             <div className="topbarLeft">
-              <div className="topbarLogo">
-                SPACE-DAN <span className="text-cyan-500">OS</span>
-              </div>
+              <SpacelyLogo />
 
               <nav className="desktopNav hidden md:flex">
                 <NavLink to="/posts" className="desktopNavLink" end>Social</NavLink>
@@ -130,7 +129,7 @@ export default function GardenLayout({ children }) {
         </NavLink>
         <NavLink to="/profile" className={({ isActive }) => `mobileNavLink ${isActive ? 'active' : ''}`}>
           <span className="mobileNavIcon">👤</span>
-          <span className="mobileNavLabel">Perfil</span>
+          <span className="mobileNavLabel">DreamSpace</span>
         </NavLink>
         <button
           onClick={() => setMobileMenuOpen(true)}

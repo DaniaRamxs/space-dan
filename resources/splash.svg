@@ -30,21 +30,21 @@
   <text
     x="540" y="910"
     font-family="Arial Black, Impact, Arial, sans-serif"
-    font-size="210"
+    font-size="180"
     font-weight="900"
     text-anchor="middle"
     fill="#FF00E5"
     filter="url(#glow)"
-    letter-spacing="-4">SPACE</text>
+    letter-spacing="2">SPACELY</text>
 
   <!-- DAN text -->
   <text
-    x="540" y="1140"
+    x="540" y="1120"
     font-family="Arial Black, Impact, Arial, sans-serif"
-    font-size="268"
+    font-size="140"
     font-weight="900"
     text-anchor="middle"
     fill="#FF00E5"
     filter="url(#glow)"
-    letter-spacing="14">DAN</text>
+    letter-spacing="10">DANDEV</text>
 </svg>

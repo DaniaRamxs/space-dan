@@ -111,7 +111,7 @@ function PresenceTracker() {
       if (path === '/posts') return 'EXPLORANDO EL FEED 🌌';
       if (path === '/leaderboard') return 'VIENDO EL RANKING 🌍';
       if (path.startsWith('/profile/')) return 'MIRANDO LOGROS 🏆';
-      if (path.startsWith('/@') || (path.startsWith('/profile') && path.length > 8)) return 'MIRANDO UN PERFIL 👤';
+      if (path.startsWith('/@') || (path.startsWith('/profile') && path.length > 8)) return 'MIRANDO UN DREAMSPACE 👤';
       return 'EXPLORANDO EL SISTEMA';
     };
 
@@ -168,7 +168,7 @@ function LoginGate({ message = "Necesitas iniciar sesión para ver esta sección
               Iniciar con Discord
             </button>
           </div>
-          <p className="text-[10px] text-white/20 mt-5 tracking-wider uppercase">Space Dan · Perfil Estelar</p>
+          <p className="text-[10px] text-white/20 mt-5 tracking-wider uppercase">Spacely · DreamSpace</p>
         </div>
       </div>
     </div>
@@ -219,7 +219,7 @@ function AnimatedRoutes() {
         />
         <Route path="/dan" element={<Layout><DanProfilePage /></Layout>} />
         <Route path="/profile" element={
-          loading ? <FallbackLoader /> : (user && profile ? <Navigate to={`/@${profile.username}`} replace /> : <Layout><LoginGate message="Necesitas iniciar sesión para ver tu perfil estelar." /></Layout>)
+          loading ? <FallbackLoader /> : (user && profile ? <Navigate to={`/@${profile.username}`} replace /> : <Layout><LoginGate message="Necesitas iniciar sesión para ver tu DreamSpace." /></Layout>)
         } />
         <Route path="/bulletin" element={<Layout><BulletinPage /></Layout>} />
         <Route path="/posts" element={

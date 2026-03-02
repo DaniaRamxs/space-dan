@@ -195,7 +195,7 @@ const HoloCard = memo(function HoloCard({ profile, onClose }) {
                                 style={{ padding: '12px' }}
                                 onClick={() => navigate(profile.username ? `/@${encodeURIComponent(profile.username)}` : `/profile/${profileId}`)}
                             >
-                                Ver Perfil 👤
+                                Ver DreamSpace 👤
                             </button>
                         </div>
                     </div>

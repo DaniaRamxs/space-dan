@@ -1,6 +1,19 @@
 {
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
+  "redirects": [
+    {
+      "source": "/(.*)",
+      "has": [
+        {
+          "type": "host",
+          "value": "space-dan.vercel.app"
+        }
+      ],
+      "destination": "https://joinspacely.com/$1",
+      "permanent": true
+    }
+  ],
   "rewrites": [
     {
       "source": "/((?!api/|assets/|icons/|gifs/|sounds/|.*\\.js|.*\\.css|.*\\.png|.*\\.jpg|.*\\.jpeg|.*\\.gif|.*\\.svg|.*\\.ico|.*\\.webp|.*\\.mp3|.*\\.woff2|.*\\.woff|.*\\.ttf|.*\\.json|.*\\.txt|.*\\.xml|.*\\.webmanifest).*)",
