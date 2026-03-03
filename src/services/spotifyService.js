@@ -26,19 +26,33 @@ export const spotifyService = {
     },
 
     async handleCallback(code, state) {
-        // Al intentar conectarse de nuevo, limpiamos proactivamente el flag de expiración
-        // para que el escudo no bloquee la llamada de intercambio (exchange)
-        this.setAuthValid();
-
+        // Usamos fetch directo con anon key para bypasear posibles problemas
+        // de JWT cuando Supabase PKCE intercepta el code de Spotify
         const redirectUri = this._getRedirectUri();
+        const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+        const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-        // Exchange code for token via Edge Function
-        const { data, error } = await supabase.functions.invoke('spotify-api', {
-            body: { action: 'exchange', code, userId: state, redirect_uri: redirectUri }
+        const response = await fetch(`${SUPABASE_URL}/functions/v1/spotify-api`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+                'apikey': SUPABASE_ANON_KEY
+            },
+            body: JSON.stringify({
+                action: 'exchange',
+                code,
+                userId: state,
+                redirect_uri: redirectUri
+            })
         });
 
-        if (error) throw error;
-        return data;
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.error || errorData.message || `Error ${response.status}`);
+        }
+
+        return response.json();
     },
 
     // --- DATA FETCH ---
