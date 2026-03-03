@@ -172,12 +172,12 @@ function SnakeGameInner() {
         display: 'grid',
         gridTemplateColumns: `repeat(${GRID_SIZE}, 1fr)`,
         gridTemplateRows: `repeat(${GRID_SIZE}, 1fr)`,
-        width: 'min(58vh, 82vw)',
-        height: 'min(58vh, 82vw)',
+        width: 'min(92vw, 500px)', // Aumentado para ancho casi completo
+        height: 'min(92vw, 500px)',
         background: 'rgba(6,6,12,0.7)',
         border: '1px solid rgba(255,255,255,0.06)',
         borderRadius: 20,
-        padding: 6,
+        padding: 4, // Padding reducido
         overflow: 'hidden',
         boxShadow: '0 20px 60px rgba(0,0,0,0.7), inset 0 0 30px rgba(0,0,0,0.4)',
         backdropFilter: 'blur(8px)',
@@ -194,16 +194,16 @@ function SnakeGameInner() {
             <div key={i} style={{
               background: isHead ? C_HEAD
                 : isSnake ? C_SNAKE
-                : isFood ? C_FOOD
-                : 'transparent',
+                  : isFood ? C_FOOD
+                    : 'transparent',
               borderRadius: isFood ? '50%' : isSnake ? 5 : 2,
               boxShadow: isHead
                 ? `0 0 14px ${C_HEAD}, 0 0 28px rgba(255,255,255,0.3)`
                 : isFood
-                ? `0 0 14px ${C_FOOD}, 0 0 6px ${C_FOOD}88`
-                : isSnake
-                ? `0 0 6px ${C_SNAKE}88`
-                : 'none',
+                  ? `0 0 14px ${C_FOOD}, 0 0 6px ${C_FOOD}88`
+                  : isSnake
+                    ? `0 0 6px ${C_SNAKE}88`
+                    : 'none',
               transform: isFood ? 'scale(0.82)' : 'scale(1)',
               opacity: isSnake || isFood ? 1 : 0,
               margin: 1,
@@ -214,7 +214,7 @@ function SnakeGameInner() {
       </div>
 
       {/* D-pad controls — mobile only */}
-      <div className="flex items-center md:hidden" style={{ marginTop: 24, gap: 12 }}>
+      <div className="flex items-center md:hidden" style={{ marginTop: 20, gap: 10 }}>
         <DPadBtn onClick={() => { if (dirRef.current.x !== 1) { nextDirRef.current = { x: -1, y: 0 }; triggerHaptic('light'); } }}>◀</DPadBtn>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           <DPadBtn onClick={() => { if (dirRef.current.y !== 1) { nextDirRef.current = { x: 0, y: -1 }; triggerHaptic('light'); } }}>▲</DPadBtn>

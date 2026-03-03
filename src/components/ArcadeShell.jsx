@@ -461,13 +461,14 @@ export function ArcadeShell({
                 transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
                 style={{
                     position: 'relative',
-                    width: '100%',
-                    height: '72vh',
+                    width: '100dvw',
+                    flex: 1,
                     display: 'flex',
+                    flexDirection: 'column',
                     alignItems: 'center',
                     justifyContent: 'center',
                     zIndex: 1,
-                    paddingTop: '10vh', // clear HUD
+                    padding: '12vh 0 2vh 0', // HUD clearance + Tight bottom margin for controls
                 }}
             >
                 {children}

@@ -274,8 +274,7 @@ function TetrisGameInner() {
       floatingTexts={floatingTexts}
       subTitle="Une los fragmentos para despejar líneas."
     >
-      <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start', justifyContent: 'center' }}>
-
+      <div className="flex flex-col md:flex-row gap-6 md:gap-12 items-center md:items-start justify-center">
         {/* Board */}
         <div style={{
           position: 'relative',
@@ -290,7 +289,7 @@ function TetrisGameInner() {
             display: 'grid',
             gridTemplateColumns: `repeat(${COLS}, 1fr)`,
             gap: 2,
-            width: 'min(42vw, 155px)',
+            width: 'min(65vw, 240px)', // Board más ancho en móvil
             aspectRatio: '10/20',
           }}>
             {displayBoard.flat().map((cell, i) => (
@@ -309,7 +308,7 @@ function TetrisGameInner() {
         </div>
 
         {/* Side Info */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10, width: 90 }}>
+        <div className="flex flex-row md:flex-col gap-4 md:gap-10 w-full md:w-[90px] justify-center md:justify-start">
           {/* Next Piece */}
           <div style={{
             padding: 16,
