@@ -1,7 +1,9 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import useHighScore from '../hooks/useHighScore';
 import { GameImmersiveLayout } from '../core/GameImmersiveLayout';
-import { GameShell } from '../core/GameShell';
+import { ArcadeShell } from './ArcadeShell';
+import { useArcadeSystems } from '../hooks/useArcadeSystems';
 
 const COLORS = [
   { name: 'rojo', hex: '#e53935' },
@@ -40,31 +42,37 @@ function buildRound() {
 }
 
 function ColorMatchInner() {
-  const [gameState, setGameState] = useState('idle'); // idle | playing | ended
+  const [status, setStatus] = useState('IDLE'); // IDLE | PLAYING | DEAD
   const [round, setRound] = useState(1);
   const [score, setScore] = useState(0);
   const [currentRound, setCurrentRound] = useState(null);
   const [feedback, setFeedback] = useState(null); // { chosenIndex, correct: bool }
   const [locked, setLocked] = useState(false);
   const advanceTimerRef = useRef(null);
-  const [, reportScore] = useHighScore('color');
+  const [best, saveScore] = useHighScore('color');
 
-  const nextRound = useCallback((roundNumber) => {
+  const {
+    particles, floatingTexts, scoreControls,
+    triggerHaptic, spawnParticles, triggerFloatingText, animateScore
+  } = useArcadeSystems();
+
+  const nextOrder = useCallback((roundNumber) => {
     setCurrentRound(buildRound());
     setRound(roundNumber);
     setFeedback(null);
     setLocked(false);
   }, []);
 
-  const startGame = useCallback(() => {
+  const start = useCallback(() => {
     clearTimeout(advanceTimerRef.current);
     setScore(0);
-    setGameState('playing');
-    nextRound(1);
-  }, [nextRound]);
+    setStatus('PLAYING');
+    nextOrder(1);
+    triggerHaptic('medium');
+  }, [nextOrder, triggerHaptic]);
 
   const handleChoice = useCallback((option, index) => {
-    if (locked || gameState !== 'playing') return;
+    if (locked || status !== 'PLAYING') return;
     setLocked(true);
 
     const isCorrect = option.name === currentRound.correct.name;
@@ -72,283 +80,137 @@ function ColorMatchInner() {
 
     if (isCorrect) {
       setScore((s) => s + 1);
+      animateScore();
+      triggerHaptic('light');
+      triggerFloatingText('CORRECTO', '50%', '40%', '#00e676');
+    } else {
+      triggerHaptic('medium');
+      triggerFloatingText('INCORRECTO', '50%', '40%', '#ff1744');
     }
 
     const delay = isCorrect ? ADVANCE_CORRECT_MS : ADVANCE_WRONG_MS;
     advanceTimerRef.current = setTimeout(() => {
       const nextRoundNum = round + 1;
       if (nextRoundNum > TOTAL_ROUNDS) {
-        setGameState('ended');
+        setStatus('DEAD');
+        saveScore(score * 10);
       } else {
-        nextRound(nextRoundNum);
+        nextOrder(nextRoundNum);
       }
     }, delay);
-  }, [locked, gameState, currentRound, round, nextRound]);
+  }, [locked, status, currentRound, round, nextOrder, triggerHaptic, animateScore, triggerFloatingText, saveScore, score]);
 
   useEffect(() => {
     return () => clearTimeout(advanceTimerRef.current);
   }, []);
 
-  useEffect(() => {
-    if (gameState === 'ended') reportScore(score * 10);
-  }, [gameState]);
-
-  const containerStyle = {
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    gap: '24px',
-    padding: '32px 24px',
-    background: 'var(--card)',
-    border: '1px solid var(--border)',
-    borderRadius: '12px',
-    maxWidth: '400px',
-    margin: '0 auto',
-    fontFamily: 'monospace',
-  };
-
-  const titleStyle = {
-    color: 'var(--accent)',
-    fontSize: '1.5rem',
-    fontWeight: '700',
-    letterSpacing: '0.1em',
-    textTransform: 'uppercase',
-    margin: 0,
-  };
-
-  const buttonStyle = {
-    padding: '12px 28px',
-    background: 'transparent',
-    border: '2px solid var(--accent)',
-    borderRadius: '8px',
-    color: 'var(--accent)',
-    fontSize: '0.95rem',
-    fontFamily: 'monospace',
-    fontWeight: '700',
-    letterSpacing: '0.1em',
-    textTransform: 'uppercase',
-    cursor: 'pointer',
-    transition: 'background 0.2s ease, color 0.2s ease',
-  };
-
-  const hudStyle = {
-    display: 'flex',
-    justifyContent: 'space-between',
-    width: '100%',
-  };
-
-  const statLabelStyle = {
-    color: 'var(--text-muted)',
-    textTransform: 'uppercase',
-    letterSpacing: '0.08em',
-    fontSize: '0.7rem',
-    marginBottom: '2px',
-  };
-
-  const statValueStyle = {
-    color: 'var(--cyan)',
-    fontSize: '1.2rem',
-    fontWeight: '700',
-  };
-
   const getOptionStyle = (index) => {
-    let borderColor = 'var(--border)';
-    let bgColor = 'rgba(0,0,0,0.35)';
-    let textColor = 'var(--text-soft)';
+    let borderColor = 'rgba(255,255,255,0.1)';
+    let bgColor = 'rgba(255,255,255,0.03)';
+    let textColor = 'rgba(255,255,255,0.6)';
     let boxShadow = 'none';
 
     if (feedback) {
       if (feedback.chosenIndex === index) {
         if (feedback.correct) {
           borderColor = '#00e676';
-          bgColor = 'rgba(0, 230, 118, 0.12)';
+          bgColor = 'rgba(0, 230, 118, 0.1)';
           textColor = '#00e676';
-          boxShadow = '0 0 12px rgba(0, 230, 118, 0.4)';
+          boxShadow = '0 0 15px rgba(0, 230, 118, 0.3)';
         } else {
           borderColor = '#ff1744';
-          bgColor = 'rgba(255, 23, 68, 0.12)';
+          bgColor = 'rgba(255, 23, 68, 0.1)';
           textColor = '#ff1744';
-          boxShadow = '0 0 12px rgba(255, 23, 68, 0.4)';
+          boxShadow = '0 0 15px rgba(255, 23, 68, 0.3)';
         }
       } else if (
-        feedback &&
         !feedback.correct &&
         currentRound &&
         currentRound.options[index].name === currentRound.correct.name
       ) {
         borderColor = '#00e676';
-        bgColor = 'rgba(0, 230, 118, 0.07)';
-        textColor = '#00e676';
+        bgColor = 'rgba(0, 230, 118, 0.05)';
       }
     }
 
     return {
-      flex: '1 1 calc(50% - 6px)',
-      padding: '12px 8px',
+      flex: '1 1 calc(50% - 8px)',
+      padding: '16px 8px',
       background: bgColor,
-      border: `2px solid ${borderColor}`,
-      borderRadius: '8px',
+      border: `1px solid ${borderColor}`,
+      borderRadius: '12px',
       color: textColor,
-      fontFamily: 'monospace',
-      fontSize: '0.9rem',
+      fontFamily: "'Inter', sans-serif",
+      fontSize: '0.85rem',
       fontWeight: '600',
       letterSpacing: '0.05em',
       cursor: locked ? 'default' : 'pointer',
-      transition: 'border-color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease, color 0.15s ease',
+      transition: 'all 0.2s ease',
       boxShadow,
-      textTransform: 'lowercase',
+      textTransform: 'uppercase',
     };
   };
 
-  if (gameState === 'idle') {
-    return (
-      <div style={containerStyle}>
-        <h2 style={titleStyle}>Color Match</h2>
-        <p style={{ color: 'var(--text-soft)', fontSize: '0.85rem', margin: 0, textAlign: 'center' }}>
-          Identifica el color correcto. 10 rondas, tan rapido como puedas.
-        </p>
-        <button
-          style={buttonStyle}
-          onClick={startGame}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.background = 'var(--accent)';
-            e.currentTarget.style.color = '#000';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.background = 'transparent';
-            e.currentTarget.style.color = 'var(--accent)';
-          }}
-        >
-          Jugar
-        </button>
-      </div>
-    );
-  }
-
-  if (gameState === 'ended') {
-    const percent = Math.round((score / TOTAL_ROUNDS) * 100);
-    return (
-      <div style={containerStyle}>
-        <h2 style={titleStyle}>Color Match</h2>
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
-          <div style={{ color: 'var(--text-muted)', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
-            Resultado final
-          </div>
-          <div style={{ color: 'var(--cyan)', fontSize: '3rem', fontWeight: '700', lineHeight: 1 }}>
-            {score}/{TOTAL_ROUNDS}
-          </div>
-          <div style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>
-            {percent}% de aciertos
-          </div>
-          <div style={{ color: 'var(--text-soft)', fontSize: '0.8rem', marginTop: '4px' }}>
-            {percent === 100 && 'Perfecto! Eres un experto en colores!'}
-            {percent >= 70 && percent < 100 && 'Muy bien! Buen ojo para los colores.'}
-            {percent >= 40 && percent < 70 && 'Nada mal. Sigue practicando.'}
-            {percent < 40 && 'Necesitas entrenar mas tu vision de colores.'}
-          </div>
-        </div>
-        <button
-          style={buttonStyle}
-          onClick={startGame}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.background = 'var(--accent)';
-            e.currentTarget.style.color = '#000';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.background = 'transparent';
-            e.currentTarget.style.color = 'var(--accent)';
-          }}
-        >
-          Reiniciar
-        </button>
-      </div>
-    );
-  }
-
-  if (!currentRound) return null;
-
-  const progressPercent = ((round - 1) / TOTAL_ROUNDS) * 100;
-
   return (
-    <div style={containerStyle}>
-      <h2 style={titleStyle}>Color Match</h2>
-
-      <div style={hudStyle}>
-        <div>
-          <div style={statLabelStyle}>Ronda</div>
-          <div style={statValueStyle}>{round}/{TOTAL_ROUNDS}</div>
-        </div>
-        <div style={{ textAlign: 'right' }}>
-          <div style={statLabelStyle}>Puntos</div>
-          <div style={statValueStyle}>{score}</div>
-        </div>
-      </div>
-
+    <ArcadeShell
+      title="Color Match"
+      score={score}
+      bestScore={best}
+      status={status}
+      onRetry={start}
+      timeLeft={status === 'PLAYING' ? round - 1 : null}
+      totalTime={TOTAL_ROUNDS}
+      scoreControls={scoreControls}
+      particles={particles}
+      floatingTexts={floatingTexts}
+      subTitle="Identifica el color correcto rápidamente."
+    >
       <div style={{
-        width: '100%',
-        height: '4px',
-        background: 'rgba(255,255,255,0.08)',
-        borderRadius: '2px',
-        overflow: 'hidden',
+        display: 'flex', flexDirection: 'column', gap: 24, width: '100%', maxWidth: 360, padding: 24,
+        background: 'rgba(255,255,255,0.02)', borderRadius: 24, border: '1px solid rgba(255,255,255,0.05)'
       }}>
-        <div style={{
-          height: '100%',
-          width: `${progressPercent}%`,
-          background: 'var(--accent)',
-          borderRadius: '2px',
-          transition: 'width 0.3s ease',
-        }} />
-      </div>
+        {currentRound && (
+          <>
+            {/* Color Display */}
+            <motion.div
+              key={round}
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              style={{
+                width: '100%',
+                aspectRatio: '16/9',
+                background: currentRound.correct.hex,
+                borderRadius: '16px',
+                border: '2px solid rgba(255,255,255,0.1)',
+                boxShadow: `0 10px 30px ${currentRound.correct.hex}33`,
+              }}
+            />
 
-      <div style={{
-        width: '100%',
-        aspectRatio: '16/9',
-        maxHeight: '140px',
-        background: currentRound.correct.hex,
-        borderRadius: '10px',
-        border: '2px solid rgba(255,255,255,0.1)',
-        boxShadow: `0 0 40px ${currentRound.correct.hex}44`,
-        transition: 'background 0.2s ease',
-      }} />
-
-      <div style={{
-        display: 'flex',
-        flexWrap: 'wrap',
-        gap: '12px',
-        width: '100%',
-      }}>
-        {currentRound.options.map((option, i) => (
-          <button
-            key={`${option.name}-${round}`}
-            style={getOptionStyle(i)}
-            onClick={() => handleChoice(option, i)}
-            onMouseEnter={(e) => {
-              if (!locked) {
-                e.currentTarget.style.borderColor = 'var(--cyan)';
-                e.currentTarget.style.color = 'var(--cyan)';
-              }
-            }}
-            onMouseLeave={(e) => {
-              if (!locked && !feedback) {
-                e.currentTarget.style.borderColor = 'var(--border)';
-                e.currentTarget.style.color = 'var(--text-soft)';
-              }
-            }}
-          >
-            {option.name}
-          </button>
-        ))}
+            {/* Options Grid */}
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, width: '100%' }}>
+              {currentRound.options.map((option, i) => (
+                <motion.button
+                  key={`${option.name}-${round}`}
+                  whileHover={!locked ? { scale: 1.02, background: 'rgba(255,255,255,0.05)' } : {}}
+                  whileTap={!locked ? { scale: 0.98 } : {}}
+                  style={getOptionStyle(i)}
+                  onPointerDown={() => handleChoice(option, i)}
+                >
+                  {option.name}
+                </motion.button>
+              ))}
+            </div>
+          </>
+        )}
       </div>
-    </div>
+    </ArcadeShell>
   );
 }
 
 export default function ColorMatch() {
   return (
     <GameImmersiveLayout>
-      <GameShell title="Color Match">
-        <ColorMatchInner />
-      </GameShell>
+      <ColorMatchInner />
     </GameImmersiveLayout>
   );
 }

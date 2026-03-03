@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import useHighScore from '../hooks/useHighScore';
 import { GameImmersiveLayout } from '../core/GameImmersiveLayout';
-import { GameShell } from '../core/GameShell';
+import { ArcadeShell } from './ArcadeShell';
+import { useArcadeSystems } from '../hooks/useArcadeSystems';
 
 const EMOJIS = ['🚀', '🪐', '👽', '☄️', '🌌', '🔭', '🛰️', '🛸'];
 const C_ACC = '#ff00ff';
@@ -16,9 +17,15 @@ function MemoryGameInner() {
   const [cards, setCards] = useState([]);
   const [selected, setSelected] = useState([]);
   const [moves, setMoves] = useState(0);
-  const [won, setWon] = useState(false);
+  const [status, setStatus] = useState('IDLE');
   const [locked, setLocked] = useState(false);
   const [best, saveScore] = useHighScore('memory');
+  const [score, setScore] = useState(0);
+
+  const {
+    particles, floatingTexts, scoreControls,
+    triggerHaptic, spawnParticles, triggerFloatingText, animateScore
+  } = useArcadeSystems();
 
   const init = useCallback(() => {
     const doubled = [...EMOJIS, ...EMOJIS];
@@ -28,18 +35,18 @@ function MemoryGameInner() {
     setCards(shuffled);
     setSelected([]);
     setMoves(0);
-    setWon(false);
+    setScore(0);
+    setStatus('PLAYING');
     setLocked(false);
   }, []);
 
-  useEffect(() => { init(); }, [init]);
-
   const handleFlip = (id) => {
-    if (locked) return;
+    if (locked || status !== 'PLAYING') return;
     const card = cards.find(c => c.id === id);
     if (!card || card.flipped || card.matched) return;
     if (selected.length === 1 && selected[0] === id) return;
 
+    triggerHaptic('light');
     setCards(prev => prev.map(c => c.id === id ? { ...c, flipped: true } : c));
     setSelected(prev => [...prev, id]);
   };
@@ -58,6 +65,15 @@ function MemoryGameInner() {
         setCards(prev => prev.map(c =>
           (c.id === a || c.id === b) ? { ...c, matched: true } : c
         ));
+
+        const pts = Math.max(10, 50 - moves);
+        setScore(s => s + pts);
+        animateScore();
+        triggerHaptic('medium');
+
+        spawnParticles('50%', '50%', C_CYN, 20);
+        triggerFloatingText('¡PAREJA!', '50%', '40%', C_CYN);
+
         setSelected([]);
         setLocked(false);
       }, 500);
@@ -70,62 +86,73 @@ function MemoryGameInner() {
         setLocked(false);
       }, 1000);
     }
-  }, [selected, cards]);
+  }, [selected, cards, moves, animateScore, triggerHaptic, spawnParticles, triggerFloatingText]);
 
   useEffect(() => {
     if (cards.length > 0 && cards.every(c => c.matched)) {
-      setWon(true);
-      const score = Math.max(10, 500 - moves * 8);
+      setStatus('WIN');
       saveScore(score);
+      triggerHaptic('heavy');
+      spawnParticles('50%', '50%', C_CYN, 50);
     }
-  }, [cards, moves, saveScore]);
+  }, [cards, score, saveScore, triggerHaptic, spawnParticles]);
 
-  const size = 'min(64px, 20vw)';
+  const cardSize = 'min(80px, 22vw)';
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
-      {/* Stats */}
+    <ArcadeShell
+      title="Memory Match"
+      score={score}
+      bestScore={best}
+      status={status}
+      onRetry={init}
+      scoreControls={scoreControls}
+      particles={particles}
+      floatingTexts={floatingTexts}
+      subTitle="Encuentra todas las parejas espaciales."
+    >
       <div style={{
-        display: 'flex', gap: 20, fontSize: 11, fontWeight: 900,
-        textTransform: 'uppercase', color: 'rgba(255,255,255,0.4)', letterSpacing: 1
-      }}>
-        <div>Moves: <span style={{ color: C_ACC }}>{moves}</span></div>
-        <div style={{ color: C_CYN }}>Record: {best}</div>
-      </div>
-
-      {/* Grid */}
-      <div style={{
-        display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10,
-        background: 'rgba(10,10,18,0.3)', padding: 12, borderRadius: 16
+        display: 'grid',
+        gridTemplateColumns: 'repeat(4, 1fr)',
+        gap: 12,
+        background: 'rgba(255, 255, 255, 0.03)',
+        padding: 16,
+        borderRadius: 24,
+        border: '1px solid rgba(255,255,255,0.05)',
+        boxShadow: 'inset 0 0 30px rgba(0,0,0,0.5)'
       }}>
         {cards.map(card => (
-          <div key={card.id} style={{ width: size, height: size, perspective: 500 }}>
+          <div key={card.id} style={{ width: cardSize, height: cardSize, perspective: 1000 }}>
             <motion.div
               style={{
                 width: '100%', height: '100%', position: 'relative',
                 transformStyle: 'preserve-3d', cursor: card.flipped || card.matched ? 'default' : 'pointer'
               }}
               animate={{ rotateY: (card.flipped || card.matched) ? 180 : 0 }}
-              transition={{ duration: 0.4 }}
+              transition={{ type: 'spring', stiffness: 260, damping: 20 }}
               onClick={() => handleFlip(card.id)}
             >
               {/* Front (Hidden) */}
               <div style={{
                 position: 'absolute', inset: 0, backfaceVisibility: 'hidden',
-                background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)',
-                borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: 20, color: 'rgba(255,255,255,0.2)'
+                background: 'rgba(255, 255, 255, 0.05)',
+                border: '1px solid rgba(255, 255, 255, 0.1)',
+                borderRadius: 14, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: 28, color: 'rgba(255, 255, 255, 0.2)',
+                boxShadow: '0 4px 15px rgba(0,0,0,0.2)',
+                backdropFilter: 'blur(10px)'
               }}>?</div>
 
               {/* Back (Emoji) */}
               <div style={{
                 position: 'absolute', inset: 0, backfaceVisibility: 'hidden',
                 transform: 'rotateY(180deg)',
-                background: card.matched ? 'rgba(0,229,255,0.1)' : 'rgba(255,0,255,0.1)',
-                border: `1px solid ${card.matched ? C_CYN : C_ACC}`,
-                boxShadow: `0 0 15px ${card.matched ? C_CYN : C_ACC}44`,
-                borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: 28
+                background: card.matched ? 'rgba(0, 229, 255, 0.1)' : 'rgba(255, 0, 255, 0.1)',
+                border: `2px solid ${card.matched ? C_CYN : C_ACC}`,
+                boxShadow: `0 0 20px ${card.matched ? C_CYN : C_ACC}44`,
+                borderRadius: 14, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: 'min(36px, 9vw)',
+                backdropFilter: 'blur(10px)'
               }}>
                 {card.emoji}
               </div>
@@ -134,35 +161,33 @@ function MemoryGameInner() {
         ))}
       </div>
 
-      <AnimatePresence>
-        {won && (
-          <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }} style={{ textAlign: 'center' }}>
-            <div style={{ fontSize: 20, fontWeight: 900, color: C_CYN, textShadow: `0 0 10px ${C_CYN}` }}>¡ENCONTRADOS!</div>
-            <button onClick={init} style={{
-              marginTop: 10, background: 'transparent', border: '1px solid rgba(0,229,255,0.4)',
-              color: C_CYN, padding: '6px 20px', borderRadius: 999, cursor: 'pointer',
-              fontWeight: 900, fontSize: 11, textTransform: 'uppercase'
-            }}>Jugar de nuevo</button>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {!won && (
-        <button onClick={init} style={{
-          marginTop: 4, background: 'transparent', border: '1px solid rgba(255,255,255,0.1)',
-          color: 'rgba(255,255,255,0.2)', padding: '4px 16px', borderRadius: 999, cursor: 'pointer', fontSize: 10
-        }}>Reiniciar</button>
-      )}
-    </div>
+      <div style={{
+        marginTop: 24,
+        display: 'flex',
+        gap: 32,
+        color: 'rgba(255, 255, 255, 0.3)',
+        fontSize: '0.75rem',
+        fontWeight: 700,
+        textTransform: 'uppercase',
+        letterSpacing: 2
+      }}>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+          <span style={{ fontSize: '0.6rem', opacity: 0.6, marginBottom: 4 }}>MOVIMIENTOS</span>
+          <span style={{ color: '#fff', fontSize: '1rem' }}>{moves}</span>
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+          <span style={{ fontSize: '0.6rem', opacity: 0.6, marginBottom: 4 }}>PROGRESO</span>
+          <span style={{ color: C_CYN, fontSize: '1rem' }}>{cards.filter(c => c.matched).length / 2} / 8</span>
+        </div>
+      </div>
+    </ArcadeShell>
   );
 }
 
 export default function MemoryGame() {
   return (
     <GameImmersiveLayout>
-      <GameShell title="Memoria Mágica">
-        <MemoryGameInner />
-      </GameShell>
+      <MemoryGameInner />
     </GameImmersiveLayout>
   );
 }

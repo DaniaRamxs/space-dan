@@ -1,17 +1,27 @@
 import { useState, useCallback, useEffect } from 'react';
 import useHighScore from '../hooks/useHighScore';
+import { GameImmersiveLayout } from '../core/GameImmersiveLayout';
+import { ArcadeShell } from './ArcadeShell';
+import { useArcadeSystems } from '../hooks/useArcadeSystems';
+import { motion, AnimatePresence } from 'framer-motion';
 
 // --- Constants ---
 const SUITS = ['♠', '♣', '♥', '♦'];
 const RANKS = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
-
 const RED_SUITS = new Set(['♥', '♦']);
+
+const COLORS = {
+  cyan: '#00e5ff',
+  magenta: '#ff00ff',
+  glass: 'rgba(255, 255, 255, 0.03)',
+  border: 'rgba(255, 255, 255, 0.1)',
+};
 
 function buildDeck() {
   const deck = [];
   for (const suit of SUITS) {
     for (const rank of RANKS) {
-      deck.push({ suit, rank });
+      deck.push({ suit, rank, id: Math.random() });
     }
   }
   return deck;
@@ -53,522 +63,330 @@ function isBlackjack(cards) {
 }
 
 // --- Sub-components ---
+function CardUI({ card, index }) {
+  const isRed = RED_SUITS.has(card.suit);
+  const accent = isRed ? COLORS.magenta : COLORS.cyan;
 
-function CardFace({ rank, suit }) {
-  const isRed = RED_SUITS.has(suit);
   return (
-    <div
+    <motion.div
+      initial={{ y: -50, opacity: 0, rotate: -10 }}
+      animate={{ y: 0, opacity: 1, rotate: 0 }}
+      transition={{ delay: index * 0.1, type: 'spring', damping: 15 }}
       style={{
-        width: 56,
-        height: 80,
-        backgroundColor: '#f8f8f0',
-        border: '1px solid #ccc',
-        borderRadius: 8,
-        boxShadow: '2px 2px 6px rgba(0,0,0,0.5)',
-        display: 'flex',
-        flexDirection: 'column',
-        justifyContent: 'space-between',
-        padding: '4px 5px',
-        color: isRed ? '#cc0000' : '#111',
-        fontFamily: 'Georgia, serif',
-        userSelect: 'none',
+        width: 75, height: 110,
+        background: card.hidden ? 'linear-gradient(135deg, #050508 0%, #1a0033 100%)' : 'rgba(255, 255, 255, 0.05)',
+        backdropFilter: 'blur(10px)',
+        border: `1px solid ${card.hidden ? '#ff00ff44' : 'rgba(255,255,255,0.1)'}`,
+        boxShadow: card.hidden ? `0 0 15px #ff00ff22` : `0 10px 20px rgba(0,0,0,0.3)`,
+        borderRadius: 12,
+        display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
+        padding: 8,
+        color: '#fff',
+        position: 'relative',
         flexShrink: 0,
+        overflow: 'hidden'
       }}
     >
-      <div style={{ fontSize: 13, fontWeight: 700, lineHeight: 1 }}>{rank}</div>
-      <div style={{ fontSize: 20, textAlign: 'center', lineHeight: 1 }}>{suit}</div>
-      <div style={{ fontSize: 13, fontWeight: 700, lineHeight: 1, alignSelf: 'flex-end', transform: 'rotate(180deg)' }}>{rank}</div>
-    </div>
+      {!card.hidden ? (
+        <>
+          <div style={{ fontSize: '1rem', fontWeight: 900, color: accent, lineHeight: 1 }}>{card.rank}</div>
+          <div style={{ fontSize: '2.2rem', textAlign: 'center', filter: `drop-shadow(0 0 8px ${accent}44)`, color: accent }}>{card.suit}</div>
+          <div style={{ fontSize: '1rem', fontWeight: 900, alignSelf: 'flex-end', transform: 'rotate(180deg)', color: accent }}>{card.rank}</div>
+
+          {/* Visual Polish */}
+          <div style={{ position: 'absolute', top: -10, left: -20, width: 50, height: 50, background: `${accent}11`, borderRadius: '50%', filter: 'blur(20px)' }} />
+        </>
+      ) : (
+        <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ width: '80%', height: '80%', border: '1px solid #ff00ff22', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <span style={{ fontSize: 24, fontWeight: 900, color: '#ff00ff', opacity: 0.3 }}>S</span>
+          </div>
+        </div>
+      )}
+    </motion.div>
   );
 }
 
-function CardBack() {
-  return (
-    <div
-      style={{
-        width: 56,
-        height: 80,
-        backgroundColor: '#1a0033',
-        border: '1px solid #ff00ff',
-        borderRadius: 8,
-        boxShadow: '2px 2px 6px rgba(0,0,0,0.5)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        flexShrink: 0,
-        background: 'repeating-linear-gradient(45deg, #1a0033, #1a0033 4px, #2a0044 4px, #2a0044 8px)',
-      }}
-    >
-      <span style={{ fontSize: 22, opacity: 0.6 }}>?</span>
-    </div>
-  );
-}
+const INITIAL_CHIPS = 500;
 
-function Hand({ cards, label, total, showTotal }) {
-  return (
-    <div style={{ marginBottom: 16 }}>
-      <div style={{ color: 'var(--text-muted, #888)', fontSize: 12, marginBottom: 6, letterSpacing: 1, textTransform: 'uppercase' }}>
-        {label}{showTotal && total > 0 ? ` — ${total}` : ''}
-      </div>
-      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-        {cards.map((card, i) =>
-          card.hidden
-            ? <CardBack key={i} />
-            : <CardFace key={i} rank={card.rank} suit={card.suit} />
-        )}
-      </div>
-    </div>
-  );
-}
-
-// --- Chip display ---
-function ChipButton({ value, onClick, disabled }) {
-  return (
-    <button
-      onClick={onClick}
-      disabled={disabled}
-      style={{
-        width: 48,
-        height: 48,
-        borderRadius: '50%',
-        border: '3px dashed #ff00ff',
-        backgroundColor: disabled ? '#1a1a2e' : '#0d0d1a',
-        color: disabled ? '#444' : '#ff00ff',
-        fontSize: 11,
-        fontWeight: 700,
-        cursor: disabled ? 'not-allowed' : 'pointer',
-        fontFamily: 'monospace',
-        transition: 'all 0.15s',
-        boxShadow: disabled ? 'none' : '0 0 8px rgba(255,0,255,0.3)',
-      }}
-    >
-      +{value}
-    </button>
-  );
-}
-
-// --- Main component ---
-const INITIAL_CHIPS = 100;
-
-export default function Blackjack() {
+function BlackjackInner() {
   const [deck, setDeck] = useState(() => shuffle(buildDeck()));
   const [playerHand, setPlayerHand] = useState([]);
   const [dealerHand, setDealerHand] = useState([]);
   const [chips, setChips] = useState(INITIAL_CHIPS);
   const [bet, setBet] = useState(0);
-  const [phase, setPhase] = useState('betting'); // betting | playing | dealer | result
-  const [result, setResult] = useState(null); // { message, delta }
-  const [gameOver, setGameOver] = useState(false);
-  const [, reportScore] = useHighScore('blackjack');
+  const [status, setStatus] = useState('BETTING'); // BETTING | PLAYING | DEALER | RESULT
+  const [best, saveScore] = useHighScore('blackjack');
 
-  useEffect(() => {
-    if (phase === 'result') reportScore(chips);
-  }, [phase]);
+  const {
+    particles, floatingTexts, scoreControls,
+    triggerHaptic, spawnParticles, triggerFloatingText, animateScore
+  } = useArcadeSystems();
 
   const drawFrom = useCallback((currentDeck, count = 1) => {
     const drawn = currentDeck.slice(0, count);
     const remaining = currentDeck.slice(count);
-    // Reshuffle if running low
     const nextDeck = remaining.length < 15 ? [...remaining, ...shuffle(buildDeck())] : remaining;
     return { drawn, nextDeck };
   }, []);
 
-  const addToBet = (amount) => {
-    if (phase !== 'betting') return;
-    const maxAdd = chips;
-    setBet(prev => Math.min(prev + amount, maxAdd));
-  };
-
-  const clearBet = () => {
-    if (phase !== 'betting') return;
-    setBet(0);
-  };
-
   const deal = () => {
-    if (bet === 0 || phase !== 'betting') return;
+    if (bet === 0) return;
+    triggerHaptic('medium');
 
     let currentDeck = deck;
-
     const { drawn: c1, nextDeck: d1 } = drawFrom(currentDeck, 4);
     currentDeck = d1;
 
-    // p1, dealer1(hidden), p2, dealer2
     const pHand = [c1[0], c1[2]];
     const dHand = [{ ...c1[1], hidden: true }, c1[3]];
 
     setDeck(currentDeck);
     setPlayerHand(pHand);
     setDealerHand(dHand);
-
-    const pTotal = handTotal(pHand);
-    const dVisibleTotal = handTotal([dHand[1]]); // only visible card
+    setChips(prev => prev - bet);
+    setStatus('PLAYING');
 
     if (isBlackjack(pHand)) {
-      // Reveal dealer
-      const revealedDealer = dHand.map(c => ({ ...c, hidden: false }));
-      setDealerHand(revealedDealer);
-      if (isBlackjack(revealedDealer)) {
-        endGame(0, 'PUSH — ambos tienen Blackjack', chips, bet);
-      } else {
-        const payout = Math.floor(bet * 1.5);
-        endGame(payout, `BLACKJACK! +${payout} fichas`, chips, bet);
-      }
-      return;
+      setTimeout(() => finishHand(pHand, dHand.map(c => ({ ...c, hidden: false })), true), 800);
     }
-
-    setChips(prev => prev - bet);
-    setPhase('playing');
-  };
-
-  const endGame = (delta, message, currentChips, currentBet) => {
-    const newChips = currentChips - currentBet + currentBet + delta;
-    setChips(newChips <= 0 ? 0 : newChips);
-    setResult({ message, delta });
-    setPhase('result');
-    if (newChips <= 0) setGameOver(true);
   };
 
   const hit = () => {
-    if (phase !== 'playing') return;
+    triggerHaptic('light');
     const { drawn, nextDeck } = drawFrom(deck);
     const newHand = [...playerHand, drawn[0]];
     setDeck(nextDeck);
     setPlayerHand(newHand);
-    const total = handTotal(newHand);
-    if (total > 21) {
-      setDealerHand(prev => prev.map(c => ({ ...c, hidden: false })));
-      endGame(0, `BUST — perdiste ${bet} fichas`, chips, bet);
-    } else if (total === 21) {
-      stand(newHand, nextDeck);
+
+    if (handTotal(newHand) > 21) {
+      setTimeout(() => finishHand(newHand, dealerHand.map(c => ({ ...c, hidden: false }))), 600);
     }
   };
 
-  const stand = (pHand = playerHand, currentDeck = deck) => {
-    if (phase !== 'playing') return;
-    setPhase('dealer');
+  const stand = () => {
+    triggerHaptic('medium');
+    setStatus('DEALER');
 
     let dHand = dealerHand.map(c => ({ ...c, hidden: false }));
-    let currentD = currentDeck;
+    let currentD = deck;
 
-    // Dealer draws until 17+
-    while (handTotal(dHand) < 17) {
-      const { drawn, nextDeck } = drawFrom(currentD);
-      dHand = [...dHand, drawn[0]];
-      currentD = nextDeck;
-    }
+    const dealerTurn = async () => {
+      let currentHand = [...dHand];
+      while (handTotal(currentHand) < 17) {
+        const { drawn, nextDeck } = drawFrom(currentD);
+        currentHand.push(drawn[0]);
+        currentD = nextDeck;
+        setDealerHand([...currentHand]);
+        triggerHaptic('light');
+        await new Promise(r => setTimeout(r, 600));
+      }
+      setDeck(currentD);
+      finishHand(playerHand, currentHand);
+    };
 
-    setDeck(currentD);
-    setDealerHand(dHand);
+    dealerTurn();
+  };
 
+  const finishHand = (pHand, dHand, bjInitial = false) => {
     const pTotal = handTotal(pHand);
     const dTotal = handTotal(dHand);
+    let winType = 'LOSS';
+    let payout = 0;
 
-    let message;
-    let delta;
+    if (pTotal > 21) {
+      winType = 'LOSS';
+    } else if (dTotal > 21 || pTotal > dTotal) {
+      winType = isBlackjack(pHand) ? 'BLACKJACK' : 'WIN';
+      payout = winType === 'BLACKJACK' ? Math.floor(bet * 3) : bet * 2;
+    } else if (pTotal === dTotal) {
+      winType = 'PUSH';
+      payout = bet;
+    }
 
-    if (dTotal > 21) {
-      delta = bet;
-      message = `Dealer bust! +${bet} fichas`;
-    } else if (pTotal > dTotal) {
-      delta = bet;
-      message = `GANAS! +${bet} fichas`;
-    } else if (dTotal > pTotal) {
-      delta = 0;
-      message = `Pierdes. -${bet} fichas`;
+    setChips(prev => prev + payout);
+    setStatus(winType === 'LOSS' ? 'DEAD' : (winType === 'PUSH' ? 'BETTING' : 'WIN'));
+
+    // Feedback
+    if (winType === 'WIN' || winType === 'BLACKJACK') {
+      animateScore();
+      triggerHaptic('heavy');
+      spawnParticles('50%', '50%', COLORS.cyan, 30);
+      triggerFloatingText(winType === 'BLACKJACK' ? '¡BLACKJACK!' : '¡GANASTE!', '50%', '40%', COLORS.cyan);
+      saveScore(chips + payout);
+    } else if (winType === 'LOSS') {
+      triggerHaptic('medium');
+      triggerFloatingText('TE PASASTE', '50%', '40%', COLORS.magenta);
     } else {
-      delta = bet;
-      message = 'PUSH — empate';
+      triggerFloatingText('PUSH (EMPATE)', '50%', '40%', '#ffffff');
     }
-
-    // chips was already deducted on deal
-    const newChips = chips + delta;
-    setChips(newChips <= 0 ? 0 : newChips);
-    setResult({ message, delta });
-    setPhase('result');
-    if (newChips <= 0) setGameOver(true);
-  };
-
-  const doubleDown = () => {
-    if (phase !== 'playing' || playerHand.length !== 2) return;
-    if (chips < bet) return; // not enough to double
-    setChips(prev => prev - bet);
-    const newBet = bet * 2;
-    setBet(newBet);
-
-    const { drawn, nextDeck } = drawFrom(deck);
-    const newHand = [...playerHand, drawn[0]];
-    setDeck(nextDeck);
-    setPlayerHand(newHand);
-    const total = handTotal(newHand);
-
-    if (total > 21) {
-      setDealerHand(prev => prev.map(c => ({ ...c, hidden: false })));
-      endGame(0, `BUST — perdiste ${newBet} fichas`, chips - bet, newBet);
-    } else {
-      // Force stand after double
-      standWithBet(newHand, nextDeck, newBet, chips - bet);
-    }
-  };
-
-  const standWithBet = (pHand, currentDeck, currentBet, currentChips) => {
-    setPhase('dealer');
-    let dHand = dealerHand.map(c => ({ ...c, hidden: false }));
-    let currentD = currentDeck;
-
-    while (handTotal(dHand) < 17) {
-      const { drawn, nextDeck } = drawFrom(currentD);
-      dHand = [...dHand, drawn[0]];
-      currentD = nextDeck;
-    }
-
-    setDeck(currentD);
-    setDealerHand(dHand);
-
-    const pTotal = handTotal(pHand);
-    const dTotal = handTotal(dHand);
-
-    let message;
-    let delta;
-
-    if (dTotal > 21) {
-      delta = currentBet;
-      message = `Dealer bust! +${currentBet} fichas`;
-    } else if (pTotal > dTotal) {
-      delta = currentBet;
-      message = `GANAS! +${currentBet} fichas`;
-    } else if (dTotal > pTotal) {
-      delta = 0;
-      message = `Pierdes. -${currentBet} fichas`;
-    } else {
-      delta = currentBet;
-      message = 'PUSH — empate';
-    }
-
-    const newChips = currentChips + delta;
-    setChips(newChips <= 0 ? 0 : newChips);
-    setResult({ message, delta });
-    setPhase('result');
-    if (newChips <= 0) setGameOver(true);
-  };
-
-  const newHand = () => {
-    setPlayerHand([]);
-    setDealerHand([]);
-    setBet(0);
-    setResult(null);
-    setPhase('betting');
   };
 
   const resetGame = () => {
-    setChips(INITIAL_CHIPS);
-    setDeck(shuffle(buildDeck()));
     setPlayerHand([]);
     setDealerHand([]);
     setBet(0);
-    setResult(null);
-    setPhase('betting');
-    setGameOver(false);
+    setStatus('BETTING');
+    triggerHaptic('light');
   };
 
-  const playerTotal = handTotal(playerHand);
-  const dealerVisible = handTotal(dealerHand.filter(c => !c.hidden));
-  const canDouble = phase === 'playing' && playerHand.length === 2 && chips >= bet;
-
-  // --- Styles ---
-  const containerStyle = {
-    backgroundColor: '#0a0a12',
-    border: '1px solid #ff00ff',
-    borderRadius: 12,
-    padding: 24,
-    maxWidth: 480,
-    margin: '0 auto',
-    fontFamily: "'Courier New', Courier, monospace",
-    color: '#e0e0e0',
-    boxShadow: '0 0 24px rgba(255,0,255,0.15)',
-  };
-
-  const titleStyle = {
-    textAlign: 'center',
-    fontSize: 22,
-    fontWeight: 700,
-    color: '#ff00ff',
-    textShadow: '0 0 12px #ff00ff',
-    letterSpacing: 4,
-    marginBottom: 20,
-    textTransform: 'uppercase',
-  };
-
-  const chipBarStyle = {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: '#0d0d1a',
-    border: '1px solid #333',
-    borderRadius: 8,
-    padding: '8px 14px',
-    marginBottom: 16,
-  };
-
-  const labelStyle = {
-    fontSize: 11,
-    color: 'var(--text-muted, #888)',
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-  };
-
-  const valueStyle = {
-    fontSize: 18,
-    fontWeight: 700,
-    color: '#00e5ff',
-  };
-
-  const actionBtnStyle = (active, color = '#ff00ff') => ({
-    padding: '10px 20px',
-    backgroundColor: active ? 'transparent' : '#111',
-    border: `2px solid ${active ? color : '#333'}`,
-    borderRadius: 6,
-    color: active ? color : '#555',
-    fontFamily: "'Courier New', monospace",
-    fontSize: 13,
-    fontWeight: 700,
-    cursor: active ? 'pointer' : 'not-allowed',
-    letterSpacing: 1,
-    textTransform: 'uppercase',
-    transition: 'all 0.15s',
-    boxShadow: active ? `0 0 10px ${color}44` : 'none',
-  });
-
-  const resultColor = result
-    ? result.delta > 0
-      ? '#00e5ff'
-      : result.delta === 0 && result.message.includes('PUSH')
-      ? '#ff00ff'
-      : '#ff4444'
-    : '#fff';
-
-  // --- Render ---
-  if (gameOver) {
-    return (
-      <div style={containerStyle}>
-        <div style={titleStyle}>Blackjack</div>
-        <div style={{ textAlign: 'center', padding: '40px 0' }}>
-          <div style={{ fontSize: 36, marginBottom: 12 }}>☠</div>
-          <div style={{ color: '#ff4444', fontSize: 18, fontWeight: 700, marginBottom: 8, letterSpacing: 2 }}>GAME OVER</div>
-          <div style={{ color: 'var(--text-muted, #888)', fontSize: 13, marginBottom: 24 }}>Te quedaste sin fichas.</div>
-          <button
-            onClick={resetGame}
-            style={{ ...actionBtnStyle(true), padding: '12px 32px', fontSize: 14 }}
-          >
-            Reiniciar (100 fichas)
-          </button>
-        </div>
-      </div>
-    );
-  }
+  const isBancrupt = chips <= 0 && bet === 0 && (status === 'DEAD' || status === 'BETTING');
 
   return (
-    <div style={containerStyle}>
-      <div style={titleStyle}>Blackjack</div>
-
-      {/* Chips & Bet */}
-      <div style={{ display: 'flex', gap: 10, marginBottom: 16 }}>
-        <div style={{ ...chipBarStyle, flex: 1 }}>
-          <div style={labelStyle}>Fichas</div>
-          <div style={valueStyle}>{chips}</div>
+    <ArcadeShell
+      title="Galaxy Blackjack"
+      score={chips}
+      bestScore={best}
+      status={(status === 'WIN' || status === 'DEAD') ? status : 'PLAYING'}
+      onRetry={() => {
+        if (isBancrupt) {
+          setChips(INITIAL_CHIPS);
+          resetGame();
+        } else {
+          resetGame();
+        }
+      }}
+      scoreControls={scoreControls}
+      particles={particles}
+      floatingTexts={floatingTexts}
+      subTitle="Vence a la banca en el rincón más oscuro de la galaxia."
+    >
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 40, width: 'min(95vw, 400px)', zIndex: 10 }}>
+        {/* Dealer Area */}
+        <div style={{ position: 'relative' }}>
+          <div style={{
+            fontSize: '0.65rem', color: 'rgba(255,255,255,0.3)', marginBottom: 12,
+            textTransform: 'uppercase', letterSpacing: 3, fontWeight: 900, textAlign: 'center'
+          }}>
+            Dealer — {status === 'DEALER' || status === 'WIN' || status === 'DEAD' ? handTotal(dealerHand) : '?'}
+          </div>
+          <div style={{ display: 'flex', gap: 12, minHeight: 110, justifyContent: 'center' }}>
+            {dealerHand.map((c, i) => <CardUI key={i} card={c} index={i} />)}
+            {dealerHand.length === 0 && <div style={{ width: 75, height: 110, border: '1px dashed rgba(255,255,255,0.05)', borderRadius: 12 }} />}
+          </div>
         </div>
-        <div style={{ ...chipBarStyle, flex: 1 }}>
-          <div style={labelStyle}>Apuesta</div>
-          <div style={{ ...valueStyle, color: '#ff00ff' }}>{bet}</div>
+
+        {/* Action Board (Glassmorphism) */}
+        <div style={{
+          background: 'rgba(255,255,255,0.02)',
+          padding: 24,
+          borderRadius: 32,
+          border: '1px solid rgba(255,255,255,0.05)',
+          boxShadow: '0 20px 40px rgba(0,0,0,0.4), inset 0 0 20px rgba(255,255,255,0.02)'
+        }}>
+          {/* Player Hand */}
+          <div style={{ marginBottom: 30 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+              <div style={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: 3, fontWeight: 800 }}>Tus Cartas</div>
+              {playerHand.length > 0 && (
+                <div style={{
+                  fontSize: '1rem', color: handTotal(playerHand) > 21 ? COLORS.magenta : COLORS.cyan,
+                  fontWeight: 900, textShadow: `0 0 10px ${handTotal(playerHand) > 21 ? COLORS.magenta : COLORS.cyan}44`
+                }}>
+                  {handTotal(playerHand)}
+                </div>
+              )}
+            </div>
+            <div style={{ display: 'flex', gap: 12, minHeight: 110, justifyContent: 'center' }}>
+              <AnimatePresence>
+                {playerHand.map((c, i) => <CardUI key={i} card={c} index={i} />)}
+                {playerHand.length === 0 && <div style={{ width: 75, height: 110, border: '1px dashed rgba(255,255,255,0.05)', borderRadius: 12 }} />}
+              </AnimatePresence>
+            </div>
+          </div>
+
+          {/* Controls */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+            {status === 'BETTING' ? (
+              <>
+                <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
+                  {[10, 50, 100].map(v => (
+                    <motion.button
+                      key={v}
+                      whileHover={{ scale: 1.1 }}
+                      whileTap={{ scale: 0.9 }}
+                      onClick={() => { setBet(prev => Math.min(chips, prev + v)); triggerHaptic('light'); }}
+                      disabled={chips < v}
+                      style={{
+                        width: 54, height: 54, borderRadius: '50%',
+                        border: `2px solid ${chips < v ? 'rgba(255,255,255,0.1)' : COLORS.magenta}`,
+                        background: chips < v ? 'transparent' : `${COLORS.magenta}11`,
+                        color: chips < v ? 'rgba(255,255,255,0.2)' : COLORS.magenta,
+                        fontSize: '0.8rem', fontWeight: 900, cursor: 'pointer',
+                        boxShadow: chips < v ? 'none' : `0 0 15px ${COLORS.magenta}33`
+                      }}
+                    >{v}</motion.button>
+                  ))}
+                </div>
+                <div style={{ display: 'flex', gap: 12 }}>
+                  <button
+                    onClick={() => setBet(0)}
+                    style={{
+                      flex: 1, padding: '14px', background: 'transparent',
+                      border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.4)',
+                      borderRadius: 12, fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase'
+                    }}
+                  >Reset</button>
+                  <motion.button
+                    whileHover={{ scale: 1.02, boxShadow: `0 0 20px ${COLORS.cyan}44` }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={deal}
+                    disabled={bet === 0}
+                    style={{
+                      flex: 2, padding: '14px',
+                      background: bet > 0 ? COLORS.cyan : 'rgba(255,255,255,0.05)',
+                      color: bet > 0 ? '#000' : 'rgba(255,255,255,0.2)',
+                      borderRadius: 12, fontWeight: 900, fontSize: '0.9rem',
+                      textTransform: 'uppercase', letterSpacing: 2, border: 'none'
+                    }}
+                  >
+                    Apostar {bet}
+                  </motion.button>
+                </div>
+              </>
+            ) : status === 'PLAYING' ? (
+              <div style={{ display: 'flex', gap: 12 }}>
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={hit}
+                  style={{
+                    flex: 1, padding: 18, background: `${COLORS.magenta}22`,
+                    border: `1px solid ${COLORS.magenta}`, color: COLORS.magenta,
+                    borderRadius: 16, fontWeight: 900, fontSize: '1rem', letterSpacing: 1
+                  }}
+                >PEDIR</motion.button>
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={stand}
+                  style={{
+                    flex: 1, padding: 18, background: `${COLORS.cyan}22`,
+                    border: `1px solid ${COLORS.cyan}`, color: COLORS.cyan,
+                    borderRadius: 16, fontWeight: 900, fontSize: '1rem', letterSpacing: 1
+                  }}
+                >PLANTAR</motion.button>
+              </div>
+            ) : (
+              <button
+                onClick={resetGame}
+                style={{
+                  padding: 16, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)',
+                  color: '#fff', borderRadius: 16, fontWeight: 800, textTransform: 'uppercase', letterSpacing: 2
+                }}
+              >Siguiente Mano</button>
+            )}
+          </div>
         </div>
       </div>
+    </ArcadeShell>
+  );
+}
 
-      {/* Betting controls */}
-      {phase === 'betting' && (
-        <div style={{ marginBottom: 20 }}>
-          <div style={{ ...labelStyle, marginBottom: 8 }}>Apuesta:</div>
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-            {[5, 10, 25, 50].map(v => (
-              <ChipButton key={v} value={v} onClick={() => addToBet(v)} disabled={chips - bet < v} />
-            ))}
-            <button
-              onClick={clearBet}
-              style={{ ...actionBtnStyle(bet > 0, '#ff4444'), padding: '8px 14px', fontSize: 11 }}
-            >
-              Limpiar
-            </button>
-          </div>
-          <div style={{ marginTop: 12 }}>
-            <button
-              onClick={deal}
-              disabled={bet === 0}
-              style={{ ...actionBtnStyle(bet > 0), width: '100%', padding: '12px 0', fontSize: 14 }}
-            >
-              Repartir
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Dealer hand */}
-      {(phase === 'playing' || phase === 'dealer' || phase === 'result') && (
-        <Hand
-          cards={dealerHand}
-          label="Dealer"
-          total={dealerVisible}
-          showTotal={phase === 'result' || phase === 'dealer'}
-        />
-      )}
-
-      {/* Divider */}
-      {playerHand.length > 0 && (
-        <div style={{ borderTop: '1px solid #222', margin: '12px 0' }} />
-      )}
-
-      {/* Player hand */}
-      {(phase === 'playing' || phase === 'dealer' || phase === 'result') && (
-        <Hand
-          cards={playerHand}
-          label="Tu mano"
-          total={playerTotal}
-          showTotal={true}
-        />
-      )}
-
-      {/* Action buttons */}
-      {phase === 'playing' && (
-        <div style={{ display: 'flex', gap: 8, marginTop: 16, flexWrap: 'wrap' }}>
-          <button onClick={hit} style={actionBtnStyle(true)}>Pedir</button>
-          <button onClick={() => stand()} style={actionBtnStyle(true, '#00e5ff')}>Plantarse</button>
-          <button onClick={doubleDown} disabled={!canDouble} style={actionBtnStyle(canDouble, '#ffcc00')}>
-            Doblar
-          </button>
-        </div>
-      )}
-
-      {/* Result */}
-      {phase === 'result' && result && (
-        <div
-          style={{
-            marginTop: 16,
-            padding: '14px 18px',
-            border: `1px solid ${resultColor}`,
-            borderRadius: 8,
-            textAlign: 'center',
-            backgroundColor: '#0d0d1a',
-            boxShadow: `0 0 16px ${resultColor}33`,
-          }}
-        >
-          <div style={{ fontSize: 17, fontWeight: 700, color: resultColor, letterSpacing: 2, marginBottom: 12 }}>
-            {result.message}
-          </div>
-          <button
-            onClick={newHand}
-            style={{ ...actionBtnStyle(true), padding: '10px 28px' }}
-          >
-            Nueva mano
-          </button>
-        </div>
-      )}
-    </div>
+export default function Blackjack() {
+  return (
+    <GameImmersiveLayout>
+      <BlackjackInner />
+    </GameImmersiveLayout>
   );
 }

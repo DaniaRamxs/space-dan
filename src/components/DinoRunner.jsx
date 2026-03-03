@@ -1,76 +1,54 @@
 import { useEffect, useRef, useCallback, useState } from 'react';
 import useHighScore from '../hooks/useHighScore';
 import { GameImmersiveLayout } from '../core/GameImmersiveLayout';
-import { GameShell } from '../core/GameShell';
+import { ArcadeShell } from './ArcadeShell';
+import { useArcadeSystems } from '../hooks/useArcadeSystems';
 
-// ---------------------------------------------------------------------------
-// Constants
-// ---------------------------------------------------------------------------
 const W = 380;
-const H = 160;
+const H = 200;
 
-const GROUND_Y = 120;           // y of the top of the ground line
-
+const GROUND_Y = 160;
 const DINO_W = 30;
 const DINO_H = 40;
-const DINO_X = 40;              // fixed horizontal position
-const DINO_GROUND_Y = GROUND_Y - DINO_H; // y of dino top when standing
+const DINO_X = 40;
+const DINO_GROUND_Y = GROUND_Y - DINO_H;
 
-const JUMP_VEL = -10;
-const GRAVITY = 0.45;
+const JUMP_VEL = -11;
+const GRAVITY = 0.5;
 
-const SPEED_INIT = 3;
-const SPEED_INC = 0.001;        // px/frame per frame
+const SPEED_INIT = 4.5;
+const SPEED_INC = 0.0015;
 
 const OBS_MIN_W = 20;
-const OBS_MAX_W = 30;
+const OBS_MAX_W = 35;
 const OBS_MIN_H = 30;
-const OBS_MAX_H = 50;
-const OBS_MIN_GAP = 60;        // minimum frames between obstacles
-const OBS_MAX_GAP = 140;
+const OBS_MAX_H = 55;
+const OBS_MIN_GAP = 55;
+const OBS_MAX_GAP = 110;
 
-const C_BG = '#111111';
-const C_DINO = '#ff6eb4';       // magenta
-const C_OBS = '#00e5ff';        // cyan
-const C_GROUND = '#444444';
-const C_TEXT = '#ffffff';
-const C_DIM = 'rgba(255,255,255,0.45)';
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
+const C_DINO = '#ff6eb4';
+const C_OBS = '#00e5ff';
+const C_GROUND = 'rgba(255,255,255,0.1)';
 
 function randInt(min, max) {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
-/**
- * Draw a T-Rex style dinosaur using canvas paths.
- * Bounding box: x, y, DINO_W × DINO_H (30 × 40 px), facing right.
- * @param {CanvasRenderingContext2D} ctx
- * @param {number} x
- * @param {number} y
- * @param {number} frame  — used for leg animation
- * @param {boolean} onGround
- */
 function drawDino(ctx, x, y, frame, onGround) {
   ctx.fillStyle = C_DINO;
   ctx.shadowColor = C_DINO;
-  ctx.shadowBlur = 10;
+  ctx.shadowBlur = 15;
 
   // Body
   ctx.fillRect(x + 1, y + 14, 19, 13);
-
   // Neck
   ctx.fillRect(x + 16, y + 8, 7, 10);
-
-  // Head (jutting right)
+  // Head
   ctx.fillRect(x + 14, y + 2, 16, 11);
-
-  // Lower jaw / snout
+  // Lower jaw
   ctx.fillRect(x + 22, y + 11, 8, 4);
 
-  // Tail (left side, tapers to a point)
+  // Tail
   ctx.beginPath();
   ctx.moveTo(x + 4, y + 15);
   ctx.lineTo(x, y + 22);
@@ -79,17 +57,17 @@ function drawDino(ctx, x, y, frame, onGround) {
   ctx.lineTo(x + 5, y + 15);
   ctx.fill();
 
-  // Tiny arm
+  // Arm
   ctx.fillRect(x + 19, y + 20, 5, 3);
 
-  // Legs — alternate position based on frame for running cycle
-  const step = onGround ? (Math.floor(frame / 7) % 2) : 0;
+  // Legs cycle
+  const step = onGround ? (Math.floor(frame / 5) % 2) : 0;
   if (step === 0) {
-    ctx.fillRect(x + 15, y + 27, 5, 13); // front leg extended down
-    ctx.fillRect(x + 8, y + 27, 4, 9); // back leg pulled up
+    ctx.fillRect(x + 15, y + 27, 5, 13);
+    ctx.fillRect(x + 8, y + 27, 4, 9);
   } else {
-    ctx.fillRect(x + 13, y + 27, 4, 9); // front leg pulled up
-    ctx.fillRect(x + 9, y + 27, 5, 13); // back leg extended down
+    ctx.fillRect(x + 13, y + 27, 4, 9);
+    ctx.fillRect(x + 9, y + 27, 5, 13);
   }
 
   // Eye
@@ -99,36 +77,19 @@ function drawDino(ctx, x, y, frame, onGround) {
   ctx.arc(x + 25, y + 6, 2.5, 0, Math.PI * 2);
   ctx.fill();
 
-  // Eye shine
-  ctx.fillStyle = 'rgba(255,255,255,0.65)';
-  ctx.beginPath();
-  ctx.arc(x + 26, y + 5, 1, 0, Math.PI * 2);
-  ctx.fill();
-
   ctx.shadowBlur = 0;
 }
 
-/**
- * Creates a new obstacle at the right edge.
- * @param {number} currentSpeed - current scroll speed (for proportional gap)
- * @returns {{ x: number, w: number, h: number }}
- */
 function makeObstacle() {
   const w = randInt(OBS_MIN_W, OBS_MAX_W);
   const h = randInt(OBS_MIN_H, OBS_MAX_H);
   return { x: W, w, h };
 }
 
-/**
- * AABB collision check between dino and an obstacle.
- * @param {number} dinoY - top of dino rect
- * @param {{ x: number, w: number, h: number }} obs
- * @returns {boolean}
- */
 function collides(dinoY, obs) {
-  const dinoLeft = DINO_X;
-  const dinoRight = DINO_X + DINO_W;
-  const dinoTop = dinoY;
+  const dinoLeft = DINO_X + 6;
+  const dinoRight = DINO_X + DINO_W - 6;
+  const dinoTop = dinoY + 6;
   const dinoBottom = dinoY + DINO_H;
 
   const obsLeft = obs.x;
@@ -144,28 +105,23 @@ function collides(dinoY, obs) {
   );
 }
 
-// ---------------------------------------------------------------------------
-// Component
-// ---------------------------------------------------------------------------
-
-/**
- * DinoRunner — endless side-scroller mini-game.
- * Press Space or click the canvas to jump / start / restart.
- */
 function DinoRunnerInner() {
   const canvasRef = useRef(null);
   const stateRef = useRef(null);
   const rafRef = useRef(null);
   const [best, saveScore] = useHighScore('dino');
-  const [displayBest, setDisplayBest] = useState(best);
+  const [score, setScore] = useState(0);
+  const [status, setStatus] = useState('IDLE');
 
-  // -------------------------------------------------------------------------
-  // State factory
-  // -------------------------------------------------------------------------
+  const {
+    particles, floatingTexts, scoreControls,
+    triggerHaptic, spawnParticles, triggerFloatingText, animateScore
+  } = useArcadeSystems();
+
   function makeState() {
     return {
-      phase: 'idle',          // 'idle' | 'playing' | 'dead'
-      dinoY: DINO_GROUND_Y,  // top-left y of dino
+      phase: 'IDLE',
+      dinoY: DINO_GROUND_Y,
       velY: 0,
       onGround: true,
       obstacles: [],
@@ -176,20 +132,15 @@ function DinoRunnerInner() {
     };
   }
 
-  // -------------------------------------------------------------------------
-  // Draw
-  // -------------------------------------------------------------------------
   const draw = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
     const s = stateRef.current;
 
-    // Background
-    ctx.fillStyle = C_BG;
-    ctx.fillRect(0, 0, W, H);
+    ctx.clearRect(0, 0, W, H);
 
-    // Ground
+    // Ground line with subtle glow
     ctx.strokeStyle = C_GROUND;
     ctx.lineWidth = 2;
     ctx.beginPath();
@@ -197,89 +148,75 @@ function DinoRunnerInner() {
     ctx.lineTo(W, GROUND_Y);
     ctx.stroke();
 
-    // Obstacles
+    // Obstacles with glow
     ctx.fillStyle = C_OBS;
+    ctx.shadowBlur = 10;
+    ctx.shadowColor = C_OBS;
     for (const obs of s.obstacles) {
-      ctx.fillRect(obs.x, GROUND_Y - obs.h, obs.w, obs.h);
+      ctx.beginPath();
+      if (ctx.roundRect) ctx.roundRect(obs.x, GROUND_Y - obs.h, obs.w, obs.h, 4);
+      else ctx.rect(obs.x, GROUND_Y - obs.h, obs.w, obs.h);
+      ctx.fill();
     }
 
     // Dino
     drawDino(ctx, DINO_X, s.dinoY, s.frame, s.onGround);
 
-    // Score (top-right)
-    ctx.fillStyle = C_TEXT;
-    ctx.font = 'bold 14px monospace';
-    ctx.textAlign = 'right';
-    ctx.fillText(String(s.score), W - 10, 22);
-
-    // Overlay text
-    if (s.phase === 'idle') {
-      ctx.fillStyle = C_DIM;
-      ctx.font = '13px monospace';
-      ctx.textAlign = 'center';
-      ctx.fillText('espacio para empezar', W / 2, H / 2);
-    }
-
-    if (s.phase === 'dead') {
-      ctx.fillStyle = C_DIM;
-      ctx.font = '13px monospace';
-      ctx.textAlign = 'center';
-      ctx.fillText('game over — espacio para reiniciar', W / 2, H / 2 - 12);
-      ctx.fillText(`puntuación: ${s.score}`, W / 2, H / 2 + 8);
-    }
+    ctx.shadowBlur = 0;
   }, []);
 
-  // -------------------------------------------------------------------------
-  // Game loop tick
-  // -------------------------------------------------------------------------
   const tick = useCallback(() => {
     const s = stateRef.current;
-    if (s.phase !== 'playing') {
+    if (s.phase !== 'PLAYING') {
       draw();
       return;
     }
 
     s.frame++;
     s.speed = SPEED_INIT + s.frame * SPEED_INC;
-    s.score = Math.floor(s.frame / 5);
+    const newScore = Math.floor(s.frame / 5);
 
-    // Dino physics
+    if (newScore > s.score) {
+      s.score = newScore;
+      setScore(s.score);
+      if (s.score % 100 === 0) {
+        animateScore();
+        triggerHaptic('medium');
+        triggerFloatingText('¡100 PTS!', DINO_X, s.dinoY - 20, C_DINO);
+      }
+    }
+
     if (!s.onGround) {
       s.velY += GRAVITY;
       s.dinoY += s.velY;
     }
 
-    // Land
     if (s.dinoY >= DINO_GROUND_Y) {
       s.dinoY = DINO_GROUND_Y;
       s.velY = 0;
       s.onGround = true;
     }
 
-    // Spawn obstacle
     s.nextObsIn--;
     if (s.nextObsIn <= 0) {
       s.obstacles.push(makeObstacle());
       s.nextObsIn = randInt(OBS_MIN_GAP, OBS_MAX_GAP);
     }
 
-    // Move obstacles
     for (const obs of s.obstacles) {
       obs.x -= s.speed;
     }
 
-    // Cull
-    s.obstacles = s.obstacles.filter((o) => o.x + o.w > 0);
+    s.obstacles = s.obstacles.filter((o) => o.x + o.w > -20);
 
-    // Collision
     for (const obs of s.obstacles) {
       if (collides(s.dinoY, obs)) {
-        s.phase = 'dead';
-        const isNew = saveScore(s.score);
-        if (isNew) setDisplayBest(s.score);
-        window.dispatchEvent(new CustomEvent('dan:game-score', {
-          detail: { gameId: 'dino', score: s.score, isHighScore: isNew }
-        }));
+        s.phase = 'DEAD';
+        setStatus('DEAD');
+        triggerHaptic('heavy');
+        spawnParticles(DINO_X + DINO_W / 2, s.dinoY + DINO_H / 2, C_DINO, 25);
+
+        saveScore(s.score);
         draw();
         return;
       }
@@ -287,37 +224,34 @@ function DinoRunnerInner() {
 
     draw();
     rafRef.current = requestAnimationFrame(tick);
-  }, [draw, saveScore]);
+  }, [draw, saveScore, animateScore, triggerHaptic, spawnParticles, triggerFloatingText]);
 
-  // -------------------------------------------------------------------------
-  // Jump / start / restart
-  // -------------------------------------------------------------------------
   const handleInteract = useCallback(() => {
     const s = stateRef.current;
 
-    if (s.phase === 'idle' || s.phase === 'dead') {
+    if (s.phase === 'IDLE' || s.phase === 'DEAD') {
       stateRef.current = makeState();
-      stateRef.current.phase = 'playing';
-      // Give immediate jump feel on start
+      stateRef.current.phase = 'PLAYING';
       stateRef.current.velY = JUMP_VEL;
       stateRef.current.onGround = false;
+      setScore(0);
+      setStatus('PLAYING');
+      triggerHaptic('medium');
       cancelAnimationFrame(rafRef.current);
       rafRef.current = requestAnimationFrame(tick);
       return;
     }
 
-    if (s.phase === 'playing' && s.onGround) {
+    if (s.phase === 'PLAYING' && s.onGround) {
       s.velY = JUMP_VEL;
       s.onGround = false;
+      triggerHaptic('light');
     }
-  }, [tick]);
+  }, [tick, triggerHaptic]);
 
-  // -------------------------------------------------------------------------
-  // Keyboard
-  // -------------------------------------------------------------------------
   useEffect(() => {
     const onKey = (e) => {
-      if (e.code === 'Space') {
+      if (e.code === 'Space' || e.code === 'ArrowUp') {
         e.preventDefault();
         handleInteract();
       }
@@ -326,79 +260,47 @@ function DinoRunnerInner() {
     return () => window.removeEventListener('keydown', onKey);
   }, [handleInteract]);
 
-  // -------------------------------------------------------------------------
-  // Mount
-  // -------------------------------------------------------------------------
   useEffect(() => {
     stateRef.current = makeState();
     draw();
     return () => cancelAnimationFrame(rafRef.current);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [draw]);
 
-  // Touch support
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const onTouch = (e) => { e.preventDefault(); handleInteract(); };
-    canvas.addEventListener('touchstart', onTouch, { passive: false });
-    return () => canvas.removeEventListener('touchstart', onTouch);
-  }, [handleInteract]);
-
-  useEffect(() => {
-    setDisplayBest(best);
-  }, [best]);
-
-  // -------------------------------------------------------------------------
-  // Render
-  // -------------------------------------------------------------------------
   return (
-    <div
-      style={{
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        maxWidth: 420,
-        margin: '0 auto',
-        fontFamily: 'monospace',
-        color: '#ffffff',
-      }}
+    <ArcadeShell
+      title="Dino Neon"
+      score={score}
+      bestScore={best}
+      status={status}
+      onRetry={handleInteract}
+      scoreControls={scoreControls}
+      particles={particles}
+      floatingTexts={floatingTexts}
+      subTitle="Salta sobre los obstáculos de neón."
     >
-      <canvas
-        ref={canvasRef}
-        width={W}
-        height={H}
-        onClick={handleInteract}
-        style={{
-          display: 'block',
-          maxWidth: '100%',
-          height: 'auto',
-          background: C_BG,
-          cursor: 'pointer',
-          border: '1px solid #ff6eb4',
-          borderRadius: 4,
-        }}
-      />
-      <p
-        style={{
-          marginTop: 10,
-          fontSize: 13,
-          color: '#ff6eb4',
-          letterSpacing: '0.05em',
-        }}
-      >
-        récord: {displayBest}
-      </p>
-    </div>
+      <div style={{ position: 'relative', width: W, height: H, background: 'rgba(255,255,255,0.02)', borderRadius: 24, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.05)' }}>
+        <canvas
+          ref={canvasRef}
+          width={W}
+          height={H}
+          onClick={handleInteract}
+          style={{
+            display: 'block',
+            cursor: 'pointer',
+            width: '100%',
+            height: '100%',
+            objectFit: 'contain',
+          }}
+        />
+      </div>
+    </ArcadeShell>
   );
 }
 
 export default function DinoRunner() {
   return (
     <GameImmersiveLayout>
-      <GameShell title="Dino Runner">
-        <DinoRunnerInner />
-      </GameShell>
+      <DinoRunnerInner />
     </GameImmersiveLayout>
   );
 }

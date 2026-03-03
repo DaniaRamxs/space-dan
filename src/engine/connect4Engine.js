@@ -93,7 +93,7 @@ export function applyMove(state, column) {
 /**
  * Verifica si hay un ganador o si el tablero está lleno.
  * @param {object} state 
- * @returns {'P1' | 'P2' | 'draw' | null}
+ * @returns {{winner: 'P1' | 'P2' | 'draw' | null, cells: Array<{r: number, c: number}> | null}}
  */
 export function checkWinner(state) {
     const board = state.board;
@@ -103,7 +103,7 @@ export function checkWinner(state) {
         for (let c = 0; c <= COLS - 4; c++) {
             const p = board[r][c];
             if (p && p === board[r][c + 1] && p === board[r][c + 2] && p === board[r][c + 3]) {
-                return p;
+                return { winner: p, cells: [{ r, c }, { r, c: c + 1 }, { r, c: c + 2 }, { r, c: c + 3 }] };
             }
         }
     }
@@ -113,7 +113,7 @@ export function checkWinner(state) {
         for (let r = 0; r <= ROWS - 4; r++) {
             const p = board[r][c];
             if (p && p === board[r + 1][c] && p === board[r + 2][c] && p === board[r + 3][c]) {
-                return p;
+                return { winner: p, cells: [{ r, c }, { r: r + 1, c }, { r: r + 2, c }, { r: r + 3, c }] };
             }
         }
     }
@@ -123,7 +123,7 @@ export function checkWinner(state) {
         for (let c = 0; c <= COLS - 4; c++) {
             const p = board[r][c];
             if (p && p === board[r + 1][c + 1] && p === board[r + 2][c + 2] && p === board[r + 3][c + 3]) {
-                return p;
+                return { winner: p, cells: [{ r, c }, { r: r + 1, c: c + 1 }, { r: r + 2, c: c + 2 }, { r: r + 3, c: c + 3 }] };
             }
         }
     }
@@ -133,17 +133,17 @@ export function checkWinner(state) {
         for (let c = 3; c < COLS; c++) {
             const p = board[r][c];
             if (p && p === board[r + 1][c - 1] && p === board[r + 2][c - 2] && p === board[r + 3][c - 3]) {
-                return p;
+                return { winner: p, cells: [{ r, c }, { r: r + 1, c: c - 1 }, { r: r + 2, c: c - 2 }, { r: r + 3, c: c - 3 }] };
             }
         }
     }
 
     // Empate garantizado si hemos jugado 42 turnos
     if (state.moveCount >= ROWS * COLS) {
-        return 'draw';
+        return { winner: 'draw', cells: null };
     }
 
-    return null;
+    return { winner: null, cells: null };
 }
 
 // Interfaz canónica para Spacely Framework GameEngine
@@ -156,10 +156,11 @@ export const connect4Engine = {
     checkWinner,
     // Wrapper para cumplir con interface especificada por Arquitecto (`IGameEngine`)
     checkStatus: (state) => {
-        const winner = checkWinner(state);
+        const result = checkWinner(state);
         return {
-            isFinished: winner !== null,
-            winner: winner
+            isFinished: result.winner !== null,
+            winner: result.winner,
+            winningCells: result.cells
         };
     }
 };

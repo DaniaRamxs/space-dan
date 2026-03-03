@@ -1,27 +1,26 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import useHighScore from '../hooks/useHighScore';
 import { GameImmersiveLayout } from '../core/GameImmersiveLayout';
-import { GameShell } from '../core/GameShell';
+import { ArcadeShell } from './ArcadeShell';
+import { useArcadeSystems } from '../hooks/useArcadeSystems';
 
 const CANVAS_W = 320;
 const CANVAS_H = 400;
 const BASKET_W = 60;
 const BASKET_H = 12;
-const BASKET_Y = CANVAS_H - 28;
-const BASKET_SPD = 5;
-const BALL_R = 8;
+const BASKET_Y = CANVAS_H - 40;
+const BASKET_SPD = 6;
+const BALL_R = 10;
 
-/** @returns {string} a random neon color */
 function randomNeon() {
   const colors = ['#ff6eb4', '#00e5ff', '#39ff14', '#bf5fff', '#ff9500', '#ff3131'];
   return colors[Math.floor(Math.random() * colors.length)];
 }
 
-/** @returns {{ x: number, y: number, vy: number, color: string, id: number }} */
 let uid = 0;
 function spawnBall(score) {
-  const baseSpeed = 1.5 + score * 0.08;
-  const speed = Math.min(baseSpeed, 6);
+  const baseSpeed = 1.8 + score * 0.1;
+  const speed = Math.min(baseSpeed, 6.5);
   return {
     x: BALL_R + Math.random() * (CANVAS_W - BALL_R * 2),
     y: -BALL_R,
@@ -31,88 +30,29 @@ function spawnBall(score) {
   };
 }
 
-const STYLES = {
-  wrapper: {
-    maxWidth: '420px',
-    margin: '0 auto',
-    background: '#111',
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    padding: '20px 16px',
-    fontFamily: 'monospace',
-    color: '#00e5ff',
-    boxSizing: 'border-box',
-  },
-  title: {
-    fontSize: '13px',
-    letterSpacing: '3px',
-    color: '#ff6eb4',
-    marginBottom: '12px',
-  },
-  canvas: {
-    display: 'block',
-    cursor: 'pointer',
-    border: '1px solid rgba(255,110,180,0.3)',
-  },
-  record: {
-    marginTop: '10px',
-    fontSize: '11px',
-    color: 'rgba(255,110,180,0.6)',
-    letterSpacing: '1px',
-  },
-};
-
-/**
- * CatchGame — catch falling balls with the basket.
- * @returns {JSX.Element}
- */
 function CatchGameInner() {
   const [best, saveScore] = useHighScore('catch');
+  const [status, setStatus] = useState('IDLE'); // IDLE | PLAYING | DEAD
+  const [score, setScore] = useState(0);
+  const [lives, setLives] = useState(3);
 
   const canvasRef = useRef(null);
   const stateRef = useRef({
-    phase: 'idle',   // 'idle' | 'playing' | 'over'
-    score: 0,
-    lives: 3,
     basketX: CANVAS_W / 2 - BASKET_W / 2,
     balls: [],
     keys: {},
     lastSpawn: 0,
-    spawnInterval: 1200, // ms between spawns
-    animId: null,
+    spawnInterval: 1200,
   });
 
-  // Expose for score display after game over
-  const [displayScore, setDisplayScore] = useState(0);
+  const {
+    particles, floatingTexts, scoreControls,
+    triggerHaptic, spawnParticles, triggerFloatingText, animateScore
+  } = useArcadeSystems();
 
-  // Draw everything on canvas
-  const draw = useCallback((ctx, s) => {
-    // Background
-    ctx.fillStyle = 'rgba(0,0,0,0.92)';
-    ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
-
-    if (s.phase === 'idle') {
-      ctx.fillStyle = '#00e5ff';
-      ctx.font = '14px monospace';
-      ctx.textAlign = 'center';
-      ctx.fillText('click para empezar', CANVAS_W / 2, CANVAS_H / 2);
-      return;
-    }
-
-    if (s.phase === 'over') {
-      ctx.fillStyle = '#ff6eb4';
-      ctx.font = '16px monospace';
-      ctx.textAlign = 'center';
-      ctx.fillText('game over', CANVAS_W / 2, CANVAS_H / 2 - 20);
-      ctx.fillStyle = '#00e5ff';
-      ctx.font = '13px monospace';
-      ctx.fillText(`puntos: ${s.score}`, CANVAS_W / 2, CANVAS_H / 2 + 8);
-      ctx.fillStyle = 'rgba(255,110,180,0.6)';
-      ctx.font = '11px monospace';
-      ctx.fillText('click para reiniciar', CANVAS_W / 2, CANVAS_H / 2 + 32);
-      return;
-    }
+  const draw = useCallback((ctx) => {
+    const s = stateRef.current;
+    ctx.clearRect(0, 0, CANVAS_W, CANVAS_H);
 
     // Balls
     s.balls.forEach(b => {
@@ -120,118 +60,97 @@ function CatchGameInner() {
       ctx.arc(b.x, b.y, BALL_R, 0, Math.PI * 2);
       ctx.fillStyle = b.color;
       ctx.shadowColor = b.color;
-      ctx.shadowBlur = 8;
+      ctx.shadowBlur = 10;
       ctx.fill();
       ctx.shadowBlur = 0;
     });
 
     // Basket
-    const bx = s.basketX;
     ctx.fillStyle = '#ff6eb4';
     ctx.shadowColor = '#ff6eb4';
-    ctx.shadowBlur = 10;
-    ctx.fillRect(bx, BASKET_Y, BASKET_W, BASKET_H);
+    ctx.shadowBlur = 15;
+    ctx.beginPath();
+    ctx.roundRect(s.basketX, BASKET_Y, BASKET_W, BASKET_H, 6);
+    ctx.fill();
     ctx.shadowBlur = 0;
-
-    // HUD — score
-    ctx.fillStyle = '#00e5ff';
-    ctx.font = '12px monospace';
-    ctx.textAlign = 'left';
-    ctx.fillText(`puntos: ${s.score}`, 10, 20);
-
-    // HUD — lives as hearts
-    ctx.textAlign = 'right';
-    const hearts = '❤️'.repeat(s.lives) || '';
-    ctx.font = '13px monospace';
-    ctx.fillText(hearts, CANVAS_W - 8, 20);
   }, []);
 
-  const startGame = useCallback(() => {
+  const start = useCallback(() => {
     const s = stateRef.current;
-    s.phase = 'playing';
-    s.score = 0;
-    s.lives = 3;
     s.basketX = CANVAS_W / 2 - BASKET_W / 2;
     s.balls = [];
     s.keys = {};
     s.lastSpawn = performance.now();
     s.spawnInterval = 1200;
-  }, []);
 
-  // Main game loop
+    setScore(0);
+    setLives(3);
+    setStatus('PLAYING');
+    triggerHaptic('medium');
+  }, [triggerHaptic]);
+
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
-    const s = stateRef.current;
-    let running = true;
+    let raf;
 
     const loop = (now) => {
-      if (!running) return;
-      const state = stateRef.current;
+      const s = stateRef.current;
+      if (status === 'PLAYING') {
+        if (s.keys['ArrowLeft'] || s.keys['a']) s.basketX = Math.max(0, s.basketX - BASKET_SPD);
+        if (s.keys['ArrowRight'] || s.keys['d']) s.basketX = Math.min(CANVAS_W - BASKET_W, s.basketX + BASKET_SPD);
 
-      if (state.phase === 'playing') {
-        // Move basket
-        if (state.keys['ArrowLeft'] || state.keys['a'] || state.keys['A']) {
-          state.basketX = Math.max(0, state.basketX - BASKET_SPD);
-        }
-        if (state.keys['ArrowRight'] || state.keys['d'] || state.keys['D']) {
-          state.basketX = Math.min(CANVAS_W - BASKET_W, state.basketX + BASKET_SPD);
-        }
-
-        // Spawn balls
-        if (now - state.lastSpawn > state.spawnInterval) {
-          state.balls.push(spawnBall(state.score));
-          state.lastSpawn = now;
-          // Increase difficulty
-          state.spawnInterval = Math.max(400, state.spawnInterval - 15);
+        if (now - s.lastSpawn > s.spawnInterval) {
+          s.balls.push(spawnBall(score));
+          s.lastSpawn = now;
+          s.spawnInterval = Math.max(350, s.spawnInterval - 12);
         }
 
-        // Move & check balls
         const remaining = [];
-        for (const b of state.balls) {
+        for (const b of s.balls) {
           b.y += b.vy;
           if (b.y - BALL_R > CANVAS_H) {
-            // Missed
-            state.lives -= 1;
-            if (state.lives <= 0) {
-              state.phase = 'over';
-              saveScore(state.score);
-              setDisplayScore(state.score);
-              break;
-            }
+            setLives(l => {
+              const next = l - 1;
+              if (next <= 0) {
+                setStatus('DEAD');
+                saveScore(score);
+                triggerHaptic('heavy');
+              } else {
+                triggerHaptic('medium');
+              }
+              return next;
+            });
           } else {
-            // Check catch
-            const caught =
-              b.y + BALL_R >= BASKET_Y &&
-              b.y - BALL_R <= BASKET_Y + BASKET_H &&
-              b.x + BALL_R >= state.basketX &&
-              b.x - BALL_R <= state.basketX + BASKET_W;
-            if (!caught) remaining.push(b);
-            else state.score += 1;
+            const caught = b.y + BALL_R >= BASKET_Y && b.y - BALL_R <= BASKET_Y + BASKET_H &&
+              b.x + BALL_R >= s.basketX && b.x - BALL_R <= s.basketX + BASKET_W;
+            if (caught) {
+              setScore(sc => {
+                const ns = sc + 1;
+                animateScore();
+                return ns;
+              });
+              triggerHaptic('light');
+              triggerFloatingText('+1', b.x, b.y, b.color);
+              spawnParticles(b.x, b.y, b.color, 8);
+            } else {
+              remaining.push(b);
+            }
           }
         }
-        if (state.phase === 'playing') state.balls = remaining;
+        s.balls = remaining;
       }
-
-      draw(ctx, state);
-      state.animId = requestAnimationFrame(loop);
+      draw(ctx);
+      raf = requestAnimationFrame(loop);
     };
 
-    s.animId = requestAnimationFrame(loop);
+    raf = requestAnimationFrame(loop);
+    return () => cancelAnimationFrame(raf);
+  }, [status, score, draw, saveScore, triggerHaptic, triggerFloatingText, spawnParticles, animateScore]);
 
-    return () => {
-      running = false;
-      if (s.animId) cancelAnimationFrame(s.animId);
-    };
-  }, [draw, saveScore]);
-
-  // Key listeners
   useEffect(() => {
-    const down = (e) => {
-      stateRef.current.keys[e.key] = true;
-      if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', ' '].includes(e.key)) e.preventDefault();
-    };
+    const down = (e) => { stateRef.current.keys[e.key] = true; };
     const up = (e) => { stateRef.current.keys[e.key] = false; };
     window.addEventListener('keydown', down);
     window.addEventListener('keyup', up);
@@ -245,63 +164,70 @@ function CatchGameInner() {
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    const getCanvasX = (clientX) => {
+    const move = (e) => {
+      if (status !== 'PLAYING') return;
+      e.preventDefault();
       const rect = canvas.getBoundingClientRect();
-      return (clientX - rect.left) * (CANVAS_W / rect.width);
+      const tx = (e.touches[0].clientX - rect.left) * (CANVAS_W / rect.width);
+      stateRef.current.basketX = Math.max(0, Math.min(CANVAS_W - BASKET_W, tx - BASKET_W / 2));
     };
-    const onTouchStart = (e) => {
-      e.preventDefault();
-      const s = stateRef.current;
-      if (s.phase === 'idle' || s.phase === 'over') { startGame(); return; }
-      const tx = getCanvasX(e.touches[0].clientX);
-      s.basketX = Math.max(0, Math.min(CANVAS_W - BASKET_W, tx - BASKET_W / 2));
-    };
-    const onTouchMove = (e) => {
-      e.preventDefault();
-      const s = stateRef.current;
-      if (s.phase !== 'playing') return;
-      const tx = getCanvasX(e.touches[0].clientX);
-      s.basketX = Math.max(0, Math.min(CANVAS_W - BASKET_W, tx - BASKET_W / 2));
-    };
-    canvas.addEventListener('touchstart', onTouchStart, { passive: false });
-    canvas.addEventListener('touchmove', onTouchMove, { passive: false });
+    canvas.addEventListener('touchstart', (e) => e.preventDefault(), { passive: false });
+    canvas.addEventListener('touchmove', move, { passive: false });
     return () => {
-      canvas.removeEventListener('touchstart', onTouchStart);
-      canvas.removeEventListener('touchmove', onTouchMove);
+      canvas.removeEventListener('touchstart', (e) => e.preventDefault());
+      canvas.removeEventListener('touchmove', move);
     };
-  }, [startGame]);
-
-  const handleCanvasClick = useCallback(() => {
-    const s = stateRef.current;
-    if (s.phase === 'idle' || s.phase === 'over') {
-      startGame();
-    }
-  }, [startGame]);
+  }, [status]);
 
   return (
-    <div style={STYLES.wrapper}>
-      <p style={STYLES.title}>atrapa</p>
-      <canvas
-        ref={canvasRef}
-        width={CANVAS_W}
-        height={CANVAS_H}
-        style={STYLES.canvas}
-        onClick={handleCanvasClick}
-        aria-label="juego de atrapar — haz click para empezar, usa flechas o A/D para mover la cesta"
-      />
-      {best > 0 && (
-        <p style={STYLES.record}>record: {best} puntos</p>
-      )}
-    </div>
+    <ArcadeShell
+      title="Neon Catch"
+      score={score}
+      bestScore={best}
+      status={status}
+      onRetry={start}
+      scoreControls={scoreControls}
+      particles={particles}
+      floatingTexts={floatingTexts}
+      subTitle="Atrapa todos los núcleos de energía."
+    >
+      <div style={{ position: 'relative' }}>
+        {status === 'PLAYING' && (
+          <div style={{ position: 'absolute', top: -40, left: 0, right: 0, display: 'flex', justifyContent: 'center', gap: 8 }}>
+            {Array.from({ length: 3 }).map((_, i) => (
+              <div key={i} style={{
+                color: i < lives ? '#ff6eb4' : 'rgba(255,255,255,0.1)',
+                filter: i < lives ? 'drop-shadow(0 0 5px #ff6eb4)' : 'none',
+                fontSize: 18
+              }}>
+                ♥
+              </div>
+            ))}
+          </div>
+        )}
+        <canvas
+          ref={canvasRef}
+          width={CANVAS_W}
+          height={CANVAS_H}
+          style={{
+            display: 'block',
+            background: 'rgba(255,255,255,0.02)',
+            borderRadius: 24,
+            border: '1px solid rgba(255,110,180,0.1)',
+            cursor: 'pointer',
+            touchAction: 'none'
+          }}
+          onClick={() => status !== 'PLAYING' && start()}
+        />
+      </div>
+    </ArcadeShell>
   );
 }
 
 export default function CatchGame() {
   return (
     <GameImmersiveLayout>
-      <GameShell title="Neon Catch">
-        <CatchGameInner />
-      </GameShell>
+      <CatchGameInner />
     </GameImmersiveLayout>
   );
 }

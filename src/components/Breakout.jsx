@@ -1,14 +1,22 @@
-import { useRef, useEffect, useCallback } from 'react';
+import { useRef, useEffect, useCallback, useState } from 'react';
 import { GameImmersiveLayout } from '../core/GameImmersiveLayout';
-import { GameShell } from '../core/GameShell';
+import { ArcadeShell } from './ArcadeShell';
+import { useArcadeSystems } from '../hooks/useArcadeSystems';
+import useHighScore from '../hooks/useHighScore';
 
 const W = 400;
 const H = 500;
-const COLORS = { bg: '#0b0b10', cyan: '#00e5ff', magenta: '#ff00ff', white: '#ffffff', dim: 'rgba(255,255,255,0.15)' };
+const COLORS = {
+  bg: 'transparent',
+  cyan: '#00e5ff',
+  magenta: '#ff00ff',
+  white: '#ffffff',
+  dim: 'rgba(255,255,255,0.1)'
+};
 
-const PADDLE_W = 70;
-const PADDLE_H = 10;
-const PADDLE_Y = H - 30;
+const PADDLE_W = 80;
+const PADDLE_H = 12;
+const PADDLE_Y = H - 40;
 const BALL_R = 7;
 const BRICK_ROWS = 5;
 const BRICK_COLS = 8;
@@ -17,7 +25,7 @@ const BRICK_H = 16;
 const BRICK_PAD = 4;
 const BRICK_TOP = 60;
 
-const ROW_COLORS = ['#ff00ff', '#ff44aa', '#ff8800', '#ffee00', '#00e5ff'];
+const ROW_COLORS = ['#ff00ff', '#ff00dd', '#ff00aa', '#00e5ff', '#00ffcc'];
 const ROW_POINTS = [50, 40, 30, 20, 10];
 
 function makeBricks() {
@@ -32,96 +40,93 @@ function makeBricks() {
   return bricks;
 }
 
-function makeState() {
-  return {
-    phase: 'idle',
-    paddleX: W / 2 - PADDLE_W / 2,
-    ball: { x: W / 2, y: PADDLE_Y - BALL_R - 2, vx: 0, vy: 0, attached: true },
-    bricks: makeBricks(),
-    particles: [],
-    lives: 3,
-    score: 0,
-    level: 1,
-    baseSpeed: 4.5,
-    speedTimer: 0,
-  };
-}
-
-function launchBall(s) {
-  const angle = -Math.PI / 2 + (Math.random() - 0.5) * (Math.PI / 3);
-  const sp = s.baseSpeed;
-  s.ball.vx = sp * Math.cos(angle);
-  s.ball.vy = sp * Math.sin(angle);
-  s.ball.attached = false;
-}
-
-function spawnParticles(particles, x, y, color) {
-  for (let i = 0; i < 10; i++) {
-    const angle = Math.random() * Math.PI * 2;
-    const speed = 1.5 + Math.random() * 3;
-    particles.push({
-      x, y,
-      vx: Math.cos(angle) * speed,
-      vy: Math.sin(angle) * speed,
-      life: 1,
-      decay: 0.04 + Math.random() * 0.04,
-      color,
-      r: 2 + Math.random() * 2,
-    });
-  }
-}
-
 function BreakoutInner() {
   const canvasRef = useRef(null);
-  const stateRef = useRef(makeState());
+  const stateRef = useRef(null);
   const rafRef = useRef(null);
-  const firedRef = useRef(false);
   const keysRef = useRef({});
   const mouseXRef = useRef(W / 2);
   const frameRef = useRef(0);
   const lastTimeRef = useRef(0);
+
+  const [best, saveScore] = useHighScore('breakout');
+  const [score, setScore] = useState(0);
+  const [status, setStatus] = useState('IDLE');
+
+  const {
+    particles, floatingTexts, scoreControls,
+    triggerHaptic, spawnParticles, triggerFloatingText, animateScore
+  } = useArcadeSystems();
+
+  function makeState() {
+    return {
+      phase: 'PLAYING',
+      paddleX: W / 2 - PADDLE_W / 2,
+      ball: { x: W / 2, y: PADDLE_Y - BALL_R - 2, vx: 0, vy: 0, attached: true },
+      bricks: makeBricks(),
+      particles: [],
+      lives: 3,
+      score: 0,
+      level: 1,
+      baseSpeed: 5,
+      speedTimer: 0,
+    };
+  }
+
+  const launchBall = useCallback((s) => {
+    const angle = -Math.PI / 2 + (Math.random() - 0.5) * (Math.PI / 3);
+    const sp = s.baseSpeed;
+    s.ball.vx = sp * Math.cos(angle);
+    s.ball.vy = sp * Math.sin(angle);
+    s.ball.attached = false;
+    triggerHaptic('medium');
+  }, [triggerHaptic]);
+
+  const internalParticles = useCallback((x, y, color) => {
+    const s = stateRef.current;
+    for (let i = 0; i < 8; i++) {
+      const angle = Math.random() * Math.PI * 2;
+      const speed = 1 + Math.random() * 2;
+      s.particles.push({
+        x, y,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed,
+        life: 1,
+        decay: 0.03 + Math.random() * 0.03,
+        color,
+        r: 1.5 + Math.random() * 1.5,
+      });
+    }
+  }, []);
 
   const draw = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
     const s = stateRef.current;
+    if (!s) return;
 
-    ctx.fillStyle = COLORS.bg;
-    ctx.fillRect(0, 0, W, H);
+    ctx.clearRect(0, 0, W, H);
 
-    // HUD
-    ctx.fillStyle = COLORS.cyan;
-    ctx.font = '13px monospace';
-    ctx.textAlign = 'left';
-    ctx.fillText(`SCORE: ${s.score}`, 10, 22);
-    ctx.textAlign = 'right';
-    ctx.fillText(`LEVEL: ${s.level}`, W - 10, 22);
-    ctx.textAlign = 'center';
-    // Lives as dots — no shadowBlur, use outer ring instead
-    for (let i = 0; i < s.lives; i++) {
-      const lx = W / 2 - 16 + i * 16;
-      const ly = 14;
-      ctx.fillStyle = 'rgba(255,0,255,0.2)';
-      ctx.beginPath();
-      ctx.arc(lx, ly, 8, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.fillStyle = COLORS.magenta;
-      ctx.beginPath();
-      ctx.arc(lx, ly, 5, 0, Math.PI * 2);
-      ctx.fill();
-    }
-
-    // Bricks — no shadowBlur, highlight strip is enough
+    // Bricks with improved glow and depth
     for (const b of s.bricks) {
       if (!b.alive) continue;
       ctx.fillStyle = b.color;
-      ctx.fillRect(b.x, b.y, BRICK_W, BRICK_H);
-      ctx.fillStyle = 'rgba(255,255,255,0.2)';
-      ctx.fillRect(b.x + 2, b.y + 2, BRICK_W - 4, 4);
+      ctx.shadowBlur = 12;
+      ctx.shadowColor = b.color;
+
+      ctx.beginPath();
+      if (ctx.roundRect) ctx.roundRect(b.x, b.y, BRICK_W, BRICK_H, 4);
+      else ctx.rect(b.x, b.y, BRICK_W, BRICK_H);
+      ctx.fill();
+
+      ctx.shadowBlur = 0;
+      ctx.fillStyle = 'rgba(255,255,255,0.25)';
+      ctx.fillRect(b.x + 2, b.y + 2, BRICK_W - 4, 3);
     }
 
-    // Particles
+    // Internal particles
+    ctx.globalCompositeOperation = 'lighter';
     for (const p of s.particles) {
       ctx.globalAlpha = p.life;
       ctx.fillStyle = p.color;
@@ -130,105 +135,58 @@ function BreakoutInner() {
       ctx.fill();
     }
     ctx.globalAlpha = 1;
+    ctx.globalCompositeOperation = 'source-over';
 
-    // Paddle — fake glow with outer transparent rect
-    ctx.fillStyle = 'rgba(0,229,255,0.15)';
-    ctx.beginPath();
-    ctx.roundRect(s.paddleX - 5, PADDLE_Y - 4, PADDLE_W + 10, PADDLE_H + 8, 6);
-    ctx.fill();
+    // Paddle
     ctx.fillStyle = COLORS.cyan;
+    ctx.shadowBlur = 20;
+    ctx.shadowColor = COLORS.cyan;
     ctx.beginPath();
-    ctx.roundRect(s.paddleX, PADDLE_Y, PADDLE_W, PADDLE_H, 4);
+    if (ctx.roundRect) ctx.roundRect(s.paddleX, PADDLE_Y, PADDLE_W, PADDLE_H, 6);
+    else ctx.rect(s.paddleX, PADDLE_Y, PADDLE_W, PADDLE_H);
     ctx.fill();
 
-    // Ball — fake glow with two outer circles
-    ctx.fillStyle = 'rgba(255,255,255,0.08)';
-    ctx.beginPath();
-    ctx.arc(s.ball.x, s.ball.y, BALL_R + 6, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = 'rgba(255,255,255,0.18)';
-    ctx.beginPath();
-    ctx.arc(s.ball.x, s.ball.y, BALL_R + 2, 0, Math.PI * 2);
-    ctx.fill();
+    // Paddle reflection
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = COLORS.white + '44';
+    ctx.fillRect(s.paddleX + 10, PADDLE_Y + 2, PADDLE_W - 20, 2);
+
+    // Ball
     ctx.fillStyle = COLORS.white;
+    ctx.shadowBlur = 20;
+    ctx.shadowColor = COLORS.white;
     ctx.beginPath();
     ctx.arc(s.ball.x, s.ball.y, BALL_R, 0, Math.PI * 2);
     ctx.fill();
+    ctx.shadowBlur = 0;
 
-    // Overlays
-    if (s.phase === 'idle') {
-      ctx.fillStyle = 'rgba(11,11,16,0.82)';
-      ctx.fillRect(0, 0, W, H);
-      ctx.fillStyle = COLORS.magenta;
-      ctx.shadowColor = COLORS.magenta;
-      ctx.shadowBlur = 16;
-      ctx.font = 'bold 26px monospace';
-      ctx.textAlign = 'center';
-      ctx.fillText('BREAKOUT', W / 2, H / 2 - 40);
-      ctx.shadowBlur = 0;
-      ctx.fillStyle = COLORS.white;
-      ctx.font = '14px monospace';
-      ctx.fillText('Click o Espacio para jugar', W / 2, H / 2);
-      ctx.fillStyle = COLORS.dim;
-      ctx.font = '11px monospace';
-      ctx.fillText('Mouse o Flechas para mover la paleta', W / 2, H / 2 + 24);
-    }
-
-    if (s.phase === 'over') {
-      ctx.fillStyle = 'rgba(11,11,16,0.85)';
-      ctx.fillRect(0, 0, W, H);
-      const color = s.lives > 0 ? COLORS.cyan : COLORS.magenta;
-      ctx.fillStyle = color;
-      ctx.shadowColor = color;
-      ctx.shadowBlur = 20;
-      ctx.font = 'bold 28px monospace';
-      ctx.textAlign = 'center';
-      ctx.fillText(s.lives > 0 ? '¡GANASTE!' : 'GAME OVER', W / 2, H / 2 - 30);
-      ctx.shadowBlur = 0;
-      ctx.fillStyle = COLORS.white;
-      ctx.font = '16px monospace';
-      ctx.fillText(`Score: ${s.score}`, W / 2, H / 2 + 4);
-      ctx.font = '13px monospace';
-      ctx.fillText('Click para reiniciar', W / 2, H / 2 + 30);
-    }
-
-    if (s.phase === 'levelup') {
-      ctx.fillStyle = 'rgba(11,11,16,0.8)';
-      ctx.fillRect(0, 0, W, H);
-      ctx.fillStyle = COLORS.cyan;
-      ctx.shadowColor = COLORS.cyan;
-      ctx.shadowBlur = 18;
-      ctx.font = 'bold 30px monospace';
-      ctx.textAlign = 'center';
-      ctx.fillText(`NIVEL ${s.level}`, W / 2, H / 2 - 20);
-      ctx.shadowBlur = 0;
-      ctx.fillStyle = COLORS.white;
-      ctx.font = '13px monospace';
-      ctx.fillText('Click o Espacio para continuar', W / 2, H / 2 + 14);
-    }
   }, []);
 
   const tick = useCallback((timestamp) => {
     const s = stateRef.current;
+    if (!s) return;
     frameRef.current++;
 
-    // Delta time: normalize to 60fps so speed is frame-rate independent
-    const dt = lastTimeRef.current ? Math.min((timestamp - lastTimeRef.current) / (1000 / 60), 3) : 1;
+    const dt = lastTimeRef.current ? Math.min((timestamp - lastTimeRef.current) / (16.67), 3) : 1;
     lastTimeRef.current = timestamp;
 
-    if (s.phase !== 'playing') { draw(); rafRef.current = requestAnimationFrame(tick); return; }
+    if (s.phase !== 'PLAYING') {
+      draw();
+      rafRef.current = requestAnimationFrame(tick);
+      return;
+    }
 
-    // Paddle control
-    if (keysRef.current['ArrowLeft']) s.paddleX = Math.max(0, s.paddleX - 6 * dt);
-    if (keysRef.current['ArrowRight']) s.paddleX = Math.min(W - PADDLE_W, s.paddleX + 6 * dt);
-    if (!keysRef.current['ArrowLeft'] && !keysRef.current['ArrowRight']) {
+    // Paddle movement
+    if (keysRef.current['ArrowLeft'] || keysRef.current['a']) s.paddleX = Math.max(0, s.paddleX - 7 * dt);
+    if (keysRef.current['ArrowRight'] || keysRef.current['d']) s.paddleX = Math.min(W - PADDLE_W, s.paddleX + 7 * dt);
+
+    if (!keysRef.current['ArrowLeft'] && !keysRef.current['ArrowRight'] && !keysRef.current['a'] && !keysRef.current['d']) {
       const target = mouseXRef.current - PADDLE_W / 2;
       const diff = target - s.paddleX;
-      s.paddleX += Math.sign(diff) * Math.min(Math.abs(diff), 9 * dt);
+      s.paddleX += Math.sign(diff) * Math.min(Math.abs(diff), 10 * dt);
       s.paddleX = Math.max(0, Math.min(W - PADDLE_W, s.paddleX));
     }
 
-    // Attached ball follows paddle
     if (s.ball.attached) {
       s.ball.x = s.paddleX + PADDLE_W / 2;
       s.ball.y = PADDLE_Y - BALL_R - 1;
@@ -241,133 +199,110 @@ function BreakoutInner() {
       return;
     }
 
-    // Speed increases over time (dt-adjusted)
     s.speedTimer += dt;
-    if (s.speedTimer >= 600) {
-      s.speedTimer -= 600;
-      const spd = Math.sqrt(s.ball.vx ** 2 + s.ball.vy ** 2);
-      const newSpd = Math.min(spd + 0.3, 12);
+    if (s.speedTimer >= 500) {
+      s.speedTimer = 0;
+      const spd = Math.hypot(s.ball.vx, s.ball.vy);
+      const newSpd = Math.min(spd + 0.1, 12);
       s.ball.vx = (s.ball.vx / spd) * newSpd;
       s.ball.vy = (s.ball.vy / spd) * newSpd;
     }
 
-    // Ball movement — dt-scaled so it's always the same real-world speed
     s.ball.x += s.ball.vx * dt;
     s.ball.y += s.ball.vy * dt;
 
-    // Wall bounces
-    if (s.ball.x - BALL_R <= 0) { s.ball.x = BALL_R; s.ball.vx = Math.abs(s.ball.vx); }
-    if (s.ball.x + BALL_R >= W) { s.ball.x = W - BALL_R; s.ball.vx = -Math.abs(s.ball.vx); }
-    if (s.ball.y - BALL_R <= 0) { s.ball.y = BALL_R; s.ball.vy = Math.abs(s.ball.vy); }
+    if (s.ball.x - BALL_R <= 0) { s.ball.x = BALL_R; s.ball.vx = Math.abs(s.ball.vx); triggerHaptic('light'); }
+    if (s.ball.x + BALL_R >= W) { s.ball.x = W - BALL_R; s.ball.vx = -Math.abs(s.ball.vx); triggerHaptic('light'); }
+    if (s.ball.y - BALL_R <= 0) { s.ball.y = BALL_R; s.ball.vy = Math.abs(s.ball.vy); triggerHaptic('light'); }
 
-    // Paddle bounce
-    if (
-      s.ball.vy > 0 &&
-      s.ball.y + BALL_R >= PADDLE_Y &&
-      s.ball.y + BALL_R <= PADDLE_Y + PADDLE_H + 4 &&
-      s.ball.x >= s.paddleX &&
-      s.ball.x <= s.paddleX + PADDLE_W
-    ) {
+    // Paddle collision
+    if (s.ball.vy > 0 && s.ball.y + BALL_R >= PADDLE_Y && s.ball.y < PADDLE_Y + PADDLE_H && s.ball.x >= s.paddleX && s.ball.x <= s.paddleX + PADDLE_W) {
       const rel = (s.ball.x - (s.paddleX + PADDLE_W / 2)) / (PADDLE_W / 2);
       const angle = rel * (Math.PI / 3);
-      const spd = Math.sqrt(s.ball.vx ** 2 + s.ball.vy ** 2);
+      const spd = Math.hypot(s.ball.vx, s.ball.vy);
       s.ball.vx = spd * Math.sin(angle);
       s.ball.vy = -spd * Math.cos(angle);
       s.ball.y = PADDLE_Y - BALL_R;
+      triggerHaptic('medium');
     }
 
-    // Ball lost
     if (s.ball.y - BALL_R > H) {
       s.lives--;
+      triggerHaptic('heavy');
+      triggerFloatingText('¡VIDA PERDIDA!', '50%', '40%', '#ff0000');
       if (s.lives <= 0) {
-        s.phase = 'over';
-        if (!firedRef.current) { firedRef.current = true; window.dispatchEvent(new CustomEvent('dan:game-score', { detail: { gameId: 'breakout', score: s.score, isHighScore: false } })); }
+        s.phase = 'DEAD';
+        setStatus('DEAD');
+        saveScore(s.score);
         draw();
         return;
       }
       s.ball.attached = true;
-      s.ball.x = s.paddleX + PADDLE_W / 2;
-      s.ball.y = PADDLE_Y - BALL_R - 1;
     }
 
     // Brick collisions
     for (const b of s.bricks) {
       if (!b.alive) continue;
-      const bx = b.x, by = b.y;
-      if (
-        s.ball.x + BALL_R > bx && s.ball.x - BALL_R < bx + BRICK_W &&
-        s.ball.y + BALL_R > by && s.ball.y - BALL_R < by + BRICK_H
-      ) {
+      if (s.ball.x + BALL_R > b.x && s.ball.x - BALL_R < b.x + BRICK_W && s.ball.y + BALL_R > b.y && s.ball.y - BALL_R < b.y + BRICK_H) {
         b.alive = false;
-        s.score += b.points;
-        spawnParticles(s.particles, b.x + BRICK_W / 2, b.y + BRICK_H / 2, b.color);
+        const pts = b.points;
+        s.score += pts;
+        setScore(s.score);
+        animateScore();
 
-        // Determine bounce direction
-        const overlapLeft = (s.ball.x + BALL_R) - bx;
-        const overlapRight = (bx + BRICK_W) - (s.ball.x - BALL_R);
-        const overlapTop = (s.ball.y + BALL_R) - by;
-        const overlapBottom = (by + BRICK_H) - (s.ball.y - BALL_R);
-        const minOverlap = Math.min(overlapLeft, overlapRight, overlapTop, overlapBottom);
-        if (minOverlap === overlapTop || minOverlap === overlapBottom) {
-          s.ball.vy *= -1;
-        } else {
+        internalParticles(b.x + BRICK_W / 2, b.y + BRICK_H / 2, b.color);
+        spawnParticles(`${(b.x / W) * 100}%`, `${(b.y / H) * 100}%`, b.color, 12);
+        triggerFloatingText(`+${pts}`, `${(b.x / W) * 100}%`, `${(b.y / H) * 100}%`, b.color);
+        triggerHaptic('light');
+
+        if (Math.abs(s.ball.x - (b.x + BRICK_W / 2)) / BRICK_W > Math.abs(s.ball.y - (b.y + BRICK_H / 2)) / BRICK_H) {
           s.ball.vx *= -1;
+        } else {
+          s.ball.vy *= -1;
         }
         break;
       }
     }
 
-    // Check all bricks cleared
-    const alive = s.bricks.filter(b => b.alive);
-    if (alive.length === 0) {
+    if (s.bricks.filter(b => b.alive).length === 0) {
       s.level++;
-      s.baseSpeed = Math.min(s.baseSpeed + 1, 11);
+      s.baseSpeed = Math.min(s.baseSpeed + 0.8, 10);
       s.bricks = makeBricks();
       s.ball.attached = true;
-      s.speedTimer = 0;
-      s.phase = 'levelup';
-      draw();
-      return;
+      triggerFloatingText(`SALA DESPEJADA - NIVEL ${s.level}`, '50%', '40%', COLORS.cyan);
+      animateScore();
+      triggerHaptic('medium');
     }
 
-    // Update particles — dt-scaled
     s.particles = s.particles.filter(p => {
-      p.x += p.vx * dt;
-      p.y += p.vy * dt;
-      p.vy += 0.08 * dt;
-      p.life -= p.decay * dt;
+      p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 0.05 * dt; p.life -= p.decay * dt;
       return p.life > 0;
     });
 
     draw();
     rafRef.current = requestAnimationFrame(tick);
-  }, [draw]);
+  }, [draw, launchBall, internalParticles, spawnParticles, triggerFloatingText, animateScore, triggerHaptic, saveScore]);
 
-  const startGame = useCallback((fromLevelUp = false) => {
-    if (fromLevelUp) {
-      const s = stateRef.current;
-      s.phase = 'playing';
-      s.ball.attached = true;
-    } else {
-      const fresh = makeState();
-      fresh.phase = 'playing';
-      launchBall(fresh);
-      stateRef.current = fresh;
-      firedRef.current = false;
-    }
+  const start = useCallback(() => {
+    stateRef.current = makeState();
+    setScore(0);
+    setStatus('PLAYING');
     frameRef.current = 0;
     lastTimeRef.current = 0;
-    if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    cancelAnimationFrame(rafRef.current);
     rafRef.current = requestAnimationFrame(tick);
-  }, [tick]);
+    triggerHaptic('medium');
+  }, [tick, triggerHaptic]);
 
   useEffect(() => {
+    stateRef.current = makeState();
+    setStatus('IDLE');
+    stateRef.current.phase = 'IDLE';
     draw();
-    rafRef.current = requestAnimationFrame(tick);
 
     const onKey = (e) => {
       keysRef.current[e.key] = e.type === 'keydown';
-      if ([' ', 'ArrowLeft', 'ArrowRight'].includes(e.key)) e.preventDefault();
+      if ([' ', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'w', 'a', 's', 'd'].includes(e.key)) e.preventDefault();
     };
     const onMouse = (e) => {
       const canvas = canvasRef.current;
@@ -375,74 +310,81 @@ function BreakoutInner() {
       const rect = canvas.getBoundingClientRect();
       mouseXRef.current = (e.clientX - rect.left) * (W / rect.width);
     };
-    const onClick = () => {
-      const s = stateRef.current;
-      if (s.phase === 'idle' || s.phase === 'over') { startGame(false); return; }
-      if (s.phase === 'levelup') { startGame(true); return; }
-      if (s.phase === 'playing') { keysRef.current['launch'] = true; }
-    };
 
     const canvas = canvasRef.current;
     window.addEventListener('keydown', onKey);
     window.addEventListener('keyup', onKey);
     canvas.addEventListener('mousemove', onMouse);
-    canvas.addEventListener('click', onClick);
-
     return () => {
       cancelAnimationFrame(rafRef.current);
       window.removeEventListener('keydown', onKey);
       window.removeEventListener('keyup', onKey);
       canvas.removeEventListener('mousemove', onMouse);
-      canvas.removeEventListener('click', onClick);
     };
-  }, [draw, tick, startGame]);
-
-  const handleTouchMove = useCallback((e) => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const rect = canvas.getBoundingClientRect();
-    const t = e.touches[0];
-    if (t) mouseXRef.current = (t.clientX - rect.left) * (W / rect.width);
-  }, []);
-
-  const handleTouchStart = useCallback((e) => {
-    const s = stateRef.current;
-    if (s.phase === 'idle' || s.phase === 'over') { startGame(false); return; }
-    if (s.phase === 'levelup') { startGame(true); return; }
-    keysRef.current['launch'] = true;
-    handleTouchMove(e);
-  }, [startGame, handleTouchMove]);
+  }, [draw]);
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', background: COLORS.bg, padding: '12px' }}>
-      <canvas
-        ref={canvasRef}
-        width={W}
-        height={H}
-        onTouchStart={handleTouchStart}
-        onTouchMove={handleTouchMove}
-        style={{
-          display: 'block',
-          maxWidth: '100%',
-          border: `1px solid ${COLORS.magenta}`,
-          boxShadow: `0 0 18px ${COLORS.magenta}44`,
-          cursor: 'none',
-          touchAction: 'none',
-        }}
-      />
-      <div style={{ marginTop: 8, color: COLORS.dim, fontFamily: 'monospace', fontSize: 11 }}>
-        Mouse o &larr;&rarr; para mover &nbsp;|&nbsp; Espacio o Click para lanzar
+    <ArcadeShell
+      title="Breakout"
+      score={score}
+      bestScore={best}
+      status={status}
+      onRetry={start}
+      scoreControls={scoreControls}
+      particles={particles}
+      floatingTexts={floatingTexts}
+      subTitle="Destruye el muro de energía."
+    >
+      <div style={{ position: 'relative', width: 'min(70vh, 90vw)', aspectRatio: `${W}/${H}`, background: 'rgba(255,255,255,0.02)', borderRadius: 24, padding: 8, border: '1px solid rgba(255,255,255,0.05)', boxShadow: 'inset 0 0 40px rgba(0,0,0,0.5)', overflow: 'hidden' }}>
+        <canvas
+          ref={canvasRef}
+          width={W}
+          height={H}
+          onPointerDown={(e) => {
+            if (status !== 'PLAYING') start();
+            else keysRef.current['launch'] = true;
+          }}
+          onPointerMove={(e) => {
+            const rect = e.currentTarget.getBoundingClientRect();
+            mouseXRef.current = (e.clientX - rect.left) * (W / rect.width);
+          }}
+          style={{
+            display: 'block',
+            width: '100%',
+            height: '100%',
+            cursor: 'none',
+            touchAction: 'none',
+          }}
+        />
       </div>
-    </div>
+
+      <div style={{
+        marginTop: 24,
+        display: 'flex',
+        gap: 32,
+        fontSize: '0.75rem',
+        fontWeight: 800,
+        color: 'rgba(255, 255, 255, 0.3)',
+        textTransform: 'uppercase',
+        letterSpacing: 2
+      }}>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+          <span style={{ fontSize: '0.6rem', opacity: 0.6, marginBottom: 4 }}>INTENTOS</span>
+          <span style={{ color: COLORS.cyan, fontSize: '1rem' }}>{stateRef.current?.lives || 0}</span>
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+          <span style={{ fontSize: '0.6rem', opacity: 0.6, marginBottom: 4 }}>NIVEL</span>
+          <span style={{ color: COLORS.magenta, fontSize: '1rem' }}>{stateRef.current?.level || 1}</span>
+        </div>
+      </div>
+    </ArcadeShell>
   );
 }
 
 export default function Breakout() {
   return (
     <GameImmersiveLayout>
-      <GameShell title="Breakout">
-        <BreakoutInner />
-      </GameShell>
+      <BreakoutInner />
     </GameImmersiveLayout>
   );
 }

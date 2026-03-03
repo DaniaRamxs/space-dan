@@ -95,7 +95,10 @@ export function useGameCore(engine, config) {
             if (result.isFinished) {
                 // Partida Finalizada
                 updateContext({
-                    metadata: { engineState: newState },
+                    metadata: {
+                        engineState: newState,
+                        winningCells: result.winningCells
+                    },
                     winner: result.winner
                 });
                 transitionTo('FINISHED');
@@ -180,6 +183,7 @@ export function useGameCore(engine, config) {
         resumeGame: resumeGame,
         isThinking: orchestrator.isCalculating || false,// Módulo 3 state
         timeLeft: hasTimer ? timerState.remainingHard : null, // Módulo 1 state
-        winner: context.winner || null                  // FSM metadata
+        winner: context.winner || null,                 // FSM metadata
+        winningCells: context.metadata.winningCells || null // Spacely Addition
     };
 }

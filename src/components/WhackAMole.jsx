@@ -2,7 +2,8 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import useHighScore from '../hooks/useHighScore';
 import { GameImmersiveLayout } from '../core/GameImmersiveLayout';
-import { GameShell } from '../core/GameShell';
+import { ArcadeShell } from './ArcadeShell';
+import { useArcadeSystems } from '../hooks/useArcadeSystems';
 
 const HOLES = 9;
 const GAME_TIME = 20;
@@ -13,9 +14,14 @@ function WhackAMoleInner() {
   const [score, setScore] = useState(0);
   const [timeLeft, setTimeLeft] = useState(GAME_TIME);
   const [active, setActive] = useState(null);
-  const [phase, setPhase] = useState('idle'); // idle | playing | over
+  const [status, setStatus] = useState('IDLE'); // IDLE | PLAYING | DEAD
   const [whacked, setWhacked] = useState(null);
   const [best, saveScore] = useHighScore('whack');
+
+  const {
+    particles, floatingTexts, scoreControls,
+    triggerHaptic, spawnParticles, triggerFloatingText, animateScore
+  } = useArcadeSystems();
 
   const timerRef = useRef(null);
   const moleRef = useRef(null);
@@ -25,8 +31,7 @@ function WhackAMoleInner() {
     do { next = Math.floor(Math.random() * HOLES); } while (next === active);
     setActive(next);
 
-    // Hide mole after random time
-    const duration = Math.max(400, 1000 - score * 20);
+    const duration = Math.max(400, 1000 - score * 15);
     if (moleRef.current) clearTimeout(moleRef.current);
     moleRef.current = setTimeout(() => {
       setActive(null);
@@ -34,26 +39,28 @@ function WhackAMoleInner() {
   }, [active, score]);
 
   const end = useCallback(() => {
-    setPhase('over');
+    setStatus('DEAD');
     setActive(null);
     saveScore(score * 25);
+    triggerHaptic('heavy');
     if (timerRef.current) clearInterval(timerRef.current);
     if (moleRef.current) clearTimeout(moleRef.current);
-  }, [score, saveScore]);
+  }, [score, saveScore, triggerHaptic]);
 
   useEffect(() => {
-    if (phase === 'playing' && active === null) {
-      const delay = Math.max(100, 500 - score * 10);
+    if (status === 'PLAYING' && active === null) {
+      const delay = Math.max(100, 400 - score * 10);
       const t = setTimeout(spawn, delay);
       return () => clearTimeout(t);
     }
-  }, [phase, active, spawn, score]);
+  }, [status, active, spawn, score]);
 
   const start = () => {
     setScore(0);
     setTimeLeft(GAME_TIME);
-    setPhase('playing');
+    setStatus('PLAYING');
     setActive(null);
+    triggerHaptic('medium');
     if (timerRef.current) clearInterval(timerRef.current);
     timerRef.current = setInterval(() => {
       setTimeLeft(t => {
@@ -64,41 +71,77 @@ function WhackAMoleInner() {
   };
 
   const whack = (i) => {
-    if (phase !== 'playing' || active !== i) return;
+    if (status !== 'PLAYING' || active !== i) return;
+
     setScore(s => s + 1);
+    animateScore();
     setActive(null);
     setWhacked(i);
+    triggerHaptic('light');
+    triggerFloatingText('+1', '50%', '40%', C_CYN);
+
+    // Spawn particles at mole position
+    const row = Math.floor(i / 3);
+    const col = i % 3;
+    spawnParticles(`${20 + col * 30}%`, `${40 + row * 15}%`, C_ACC, 8);
+
     setTimeout(() => setWhacked(null), 200);
   };
 
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16, userSelect: 'none' }}>
-      {/* Stats */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', maxWidth: 280, fontSize: 12, fontWeight: 900 }}>
-        <div style={{ color: C_CYN }}>TIME: {timeLeft}s</div>
-        <div style={{ color: C_ACC }}>SCORE: {score}</div>
-        <div style={{ color: 'rgba(255,255,255,0.3)' }}>BEST: {best}</div>
-      </div>
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+      if (moleRef.current) clearTimeout(moleRef.current);
+    };
+  }, []);
 
-      {/* Grid */}
+  return (
+    <ArcadeShell
+      title="Cyber Whack"
+      score={score}
+      bestScore={best}
+      status={status}
+      onRetry={start}
+      timeLeft={timeLeft}
+      totalTime={GAME_TIME}
+      scoreControls={scoreControls}
+      particles={particles}
+      floatingTexts={floatingTexts}
+      subTitle="Golpea a los intrusos del sistema."
+    >
       <div style={{
-        display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12,
-        background: 'rgba(10,10,18,0.4)', padding: 16, borderRadius: 24, border: '1px solid rgba(255,255,255,0.05)'
+        display: 'grid',
+        gridTemplateColumns: 'repeat(3, 1fr)',
+        gap: 20,
+        padding: 24,
+        background: 'rgba(255,255,255,0.02)',
+        borderRadius: 32,
+        border: '1px solid rgba(255,255,255,0.05)',
+        boxShadow: '0 20px 40px rgba(0,0,0,0.3)',
+        userSelect: 'none'
       }}>
         {Array.from({ length: HOLES }).map((_, i) => (
-          <div key={i} onClick={() => whack(i)} style={{
-            width: 'min(80px, 22vw)', aspectRatio: '1', borderRadius: '50%',
-            background: 'rgba(0,0,0,0.5)', border: '2px solid rgba(255,255,255,0.05)',
-            position: 'relative', overflow: 'hidden', cursor: phase === 'playing' ? 'pointer' : 'default',
-            boxShadow: whacked === i ? `inset 0 0 20px ${C_CYN}` : 'none'
+          <div key={i} onPointerDown={() => whack(i)} style={{
+            width: 'min(90px, 24vw)',
+            aspectRatio: '1',
+            borderRadius: '50%',
+            background: 'rgba(0,0,0,0.4)',
+            border: '2px solid rgba(255,255,255,0.05)',
+            position: 'relative',
+            overflow: 'hidden',
+            cursor: status === 'PLAYING' ? 'pointer' : 'default',
+            boxShadow: whacked === i ? `inset 0 0 30px ${C_CYN}` : 'none',
+            transition: 'all 0.1s ease',
           }}>
             <AnimatePresence>
               {active === i && (
                 <motion.div
-                  initial={{ y: 60 }} animate={{ y: 0 }} exit={{ y: 60 }}
+                  initial={{ y: 80, scale: 0.5 }}
+                  animate={{ y: 0, scale: 1 }}
+                  exit={{ y: 80, scale: 0.5 }}
                   style={{
                     position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontSize: 32, textShadow: `0 0 10px ${C_ACC}`
+                    fontSize: '2.5rem', filter: `drop-shadow(0 0 10px ${C_ACC})`
                   }}
                 >
                   👾
@@ -106,59 +149,34 @@ function WhackAMoleInner() {
               )}
               {whacked === i && (
                 <motion.div
-                  initial={{ scale: 0.5, opacity: 1 }} animate={{ scale: 1.5, opacity: 0 }}
+                  initial={{ scale: 0.5, opacity: 1 }}
+                  animate={{ scale: 1.5, opacity: 0 }}
                   style={{
                     position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontSize: 40, color: C_CYN, pointerEvents: 'none'
+                    fontSize: '3rem', color: C_CYN, pointerEvents: 'none', zIndex: 10
                   }}
                 >
                   💥
                 </motion.div>
               )}
             </AnimatePresence>
+
+            {/* Subtle Hole Shadow */}
+            <div style={{
+              position: 'absolute', bottom: 0, left: '15%', right: '15%', height: 4,
+              background: 'rgba(0,0,0,0.4)', borderRadius: '50%', filter: 'blur(2px)'
+            }} />
           </div>
         ))}
       </div>
-
-      {/* Overlays */}
-      <AnimatePresence>
-        {phase !== 'playing' && (
-          <motion.div
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            style={{
-              position: 'fixed', inset: 0, zIndex: 100, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(10px)',
-              display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 20
-            }}
-          >
-            <h2 style={{ fontSize: 32, fontWeight: 900, color: C_ACC, textShadow: `0 0 20px ${C_ACC}` }}>
-              {phase === 'idle' ? 'CYBER WHACK' : 'TIME OVER'}
-            </h2>
-            {phase === 'over' && (
-              <div style={{ textAlign: 'center' }}>
-                <div style={{ fontSize: 48, fontWeight: 900, color: C_CYN }}>{score}</div>
-                <div style={{ fontSize: 12, opacity: 0.5 }}>MOLES WHACKED</div>
-              </div>
-            )}
-            <button onClick={start} style={{
-              padding: '12px 40px', background: 'transparent', border: `2px solid ${C_CYN}`,
-              borderRadius: 999, color: C_CYN, fontWeight: 900, fontSize: 14, cursor: 'pointer',
-              textTransform: 'uppercase', letterSpacing: 2
-            }}>
-              {phase === 'idle' ? 'Empezar' : 'Reiniciar'}
-            </button>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
+    </ArcadeShell>
   );
 }
 
 export default function WhackAMole() {
   return (
     <GameImmersiveLayout>
-      <GameShell title="Golpea al Topo">
-        <WhackAMoleInner />
-      </GameShell>
+      <WhackAMoleInner />
     </GameImmersiveLayout>
   );
 }

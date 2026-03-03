@@ -1,57 +1,64 @@
-import { useRef, useEffect, useCallback } from 'react';
+import { useRef, useEffect, useCallback, useState } from 'react';
 import { GameImmersiveLayout } from '../core/GameImmersiveLayout';
-import { GameShell } from '../core/GameShell';
+import { ArcadeShell } from './ArcadeShell';
+import { useArcadeSystems } from '../hooks/useArcadeSystems';
+import useHighScore from '../hooks/useHighScore';
 
-const W = 400;
-const H = 300;
+const W = 600;
+const H = 400;
+const COLORS = {
+  bg: 'transparent',
+  cyan: '#00e5ff',
+  magenta: '#ff00ff',
+  white: '#ffffff',
+  dim: 'rgba(255, 255, 255, 0.05)',
+};
+
 const PADDLE_W = 10;
-const PADDLE_H = 60;
-const BALL_R = 6;
-const WIN_SCORE = 7;
-const COLORS = { bg: '#0b0b10', cyan: '#00e5ff', magenta: '#ff00ff', white: '#ffffff', dim: 'rgba(255,255,255,0.15)' };
-
-function makeState() {
-  return {
-    phase: 'idle', // idle | playing | over
-    playerY: H / 2 - PADDLE_H / 2,
-    aiY: H / 2 - PADDLE_H / 2,
-    ball: { x: W / 2, y: H / 2, vx: 0, vy: 0 },
-    pScore: 0,
-    aScore: 0,
-    winner: null,
-    speed: 4,
-  };
-}
-
-function launchBall(state) {
-  const angle = (Math.random() * Math.PI) / 4 - Math.PI / 8;
-  const dir = Math.random() < 0.5 ? 1 : -1;
-  state.ball.x = W / 2;
-  state.ball.y = H / 2;
-  state.ball.vx = dir * state.speed * Math.cos(angle);
-  state.ball.vy = state.speed * Math.sin(angle);
-}
+const PADDLE_H = 80;
+const BALL_SIZE = 8;
+const TRAIL_LENGTH = 12;
 
 function PongInner() {
   const canvasRef = useRef(null);
-  const stateRef = useRef(makeState());
+  const stateRef = useRef(null);
   const rafRef = useRef(null);
-  const mouseYRef = useRef(H / 2);
-  const keysRef = useRef({});
-  const touchRef = useRef(null);
-  const firedRef = useRef(false);
+  const mouseRef = useRef(H / 2);
+
+  const [best, saveScore] = useHighScore('pong');
+  const [score, setScore] = useState(0);
+  const [status, setStatus] = useState('IDLE');
+
+  const {
+    particles, floatingTexts, scoreControls,
+    triggerHaptic, spawnParticles, triggerFloatingText, animateScore
+  } = useArcadeSystems();
+
+  function makeState() {
+    return {
+      phase: 'PLAYING',
+      playerY: H / 2 - PADDLE_H / 2,
+      aiY: H / 2 - PADDLE_H / 2,
+      ball: { x: W / 2, y: H / 2, vx: 5, vy: 3, trail: [] },
+      score: 0,
+      aiScore: 0,
+      level: 1,
+    };
+  }
+
+  const BALL_R_VAL = BALL_SIZE / 2 + 2;
 
   const draw = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
     const s = stateRef.current;
+    if (!s) return;
 
-    ctx.fillStyle = COLORS.bg;
-    ctx.fillRect(0, 0, W, H);
+    ctx.clearRect(0, 0, W, H);
 
-    // Net
-    ctx.setLineDash([8, 8]);
+    // Center Line
+    ctx.setLineDash([10, 15]);
     ctx.strokeStyle = COLORS.dim;
     ctx.lineWidth = 2;
     ctx.beginPath();
@@ -60,237 +67,206 @@ function PongInner() {
     ctx.stroke();
     ctx.setLineDash([]);
 
-    // Player paddle
-    ctx.fillStyle = COLORS.cyan;
-    ctx.shadowColor = COLORS.cyan;
-    ctx.shadowBlur = 10;
-    ctx.fillRect(10, s.playerY, PADDLE_W, PADDLE_H);
-
-    // AI paddle
-    ctx.fillStyle = COLORS.magenta;
-    ctx.shadowColor = COLORS.magenta;
-    ctx.shadowBlur = 10;
-    ctx.fillRect(W - 10 - PADDLE_W, s.aiY, PADDLE_W, PADDLE_H);
+    // Ball Trail
+    ctx.globalCompositeOperation = 'lighter';
+    for (let i = 0; i < s.ball.trail.length; i++) {
+      const p = s.ball.trail[i];
+      const alpha = (i / s.ball.trail.length) * 0.4;
+      ctx.fillStyle = COLORS.cyan + Math.floor(alpha * 255).toString(16).padStart(2, '0');
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, BALL_SIZE * (i / s.ball.trail.length) / 2, 0, Math.PI * 2);
+      ctx.fill();
+    }
 
     // Ball
     ctx.fillStyle = COLORS.white;
+    ctx.shadowBlur = 20;
     ctx.shadowColor = COLORS.white;
-    ctx.shadowBlur = 12;
     ctx.beginPath();
-    ctx.arc(s.ball.x, s.ball.y, BALL_R, 0, Math.PI * 2);
+    ctx.arc(s.ball.x, s.ball.y, BALL_R_VAL, 0, Math.PI * 2);
     ctx.fill();
-
     ctx.shadowBlur = 0;
+    ctx.globalCompositeOperation = 'source-over';
 
-    // Score
-    ctx.fillStyle = COLORS.white;
-    ctx.font = 'bold 28px monospace';
-    ctx.textAlign = 'center';
-    ctx.fillText(s.pScore, W / 2 - 50, 36);
-    ctx.fillText(s.aScore, W / 2 + 50, 36);
+    // Player Paddle
+    ctx.fillStyle = COLORS.cyan;
+    ctx.shadowBlur = 15;
+    ctx.shadowColor = COLORS.cyan;
+    ctx.fillRect(10, s.playerY, PADDLE_W, PADDLE_H);
 
-    // Overlays
-    if (s.phase === 'idle') {
-      ctx.fillStyle = 'rgba(11,11,16,0.75)';
-      ctx.fillRect(0, 0, W, H);
-      ctx.fillStyle = COLORS.cyan;
-      ctx.font = 'bold 22px monospace';
-      ctx.textAlign = 'center';
-      ctx.fillText('PONG', W / 2, H / 2 - 30);
-      ctx.fillStyle = COLORS.white;
-      ctx.font = '14px monospace';
-      ctx.fillText('Click para jugar', W / 2, H / 2 + 4);
-      ctx.fillStyle = COLORS.dim;
-      ctx.font = '11px monospace';
-      ctx.fillText('Mouse / Flechas Arriba-Abajo', W / 2, H / 2 + 26);
-    }
-
-    if (s.phase === 'over') {
-      ctx.fillStyle = 'rgba(11,11,16,0.82)';
-      ctx.fillRect(0, 0, W, H);
-      const color = s.winner === 'player' ? COLORS.cyan : COLORS.magenta;
-      ctx.fillStyle = color;
-      ctx.shadowColor = color;
-      ctx.shadowBlur = 18;
-      ctx.font = 'bold 28px monospace';
-      ctx.textAlign = 'center';
-      ctx.fillText(s.winner === 'player' ? '¡GANASTE!' : 'PERDISTE', W / 2, H / 2 - 20);
-      ctx.shadowBlur = 0;
-      ctx.fillStyle = COLORS.white;
-      ctx.font = '13px monospace';
-      ctx.fillText('Click para reiniciar', W / 2, H / 2 + 16);
-    }
-  }, []);
+    // AI Paddle
+    ctx.fillStyle = COLORS.magenta;
+    ctx.shadowColor = COLORS.magenta;
+    ctx.fillRect(W - 10 - PADDLE_W, s.aiY, PADDLE_W, PADDLE_H);
+    ctx.shadowBlur = 0;
+  }, [BALL_R_VAL]);
 
   const tick = useCallback(() => {
     const s = stateRef.current;
-    if (s.phase !== 'playing') { draw(); return; }
+    if (!s) return;
 
-    // Player paddle movement
-    const keys = keysRef.current;
-    if (keys['ArrowUp']) s.playerY = Math.max(0, s.playerY - 6);
-    if (keys['ArrowDown']) s.playerY = Math.min(H - PADDLE_H, s.playerY + 6);
-
-    // If using mouse
-    const targetFromMouse = mouseYRef.current - PADDLE_H / 2;
-    const diff = targetFromMouse - s.playerY;
-    if (!keys['ArrowUp'] && !keys['ArrowDown']) {
-      s.playerY += Math.sign(diff) * Math.min(Math.abs(diff), 7);
-      s.playerY = Math.max(0, Math.min(H - PADDLE_H, s.playerY));
+    if (s.phase !== 'PLAYING') {
+      draw();
+      rafRef.current = requestAnimationFrame(tick);
+      return;
     }
 
-    // AI paddle
-    const ballMidY = s.ball.y - PADDLE_H / 2;
-    const aiDiff = ballMidY - s.aiY;
-    s.aiY += Math.sign(aiDiff) * Math.min(Math.abs(aiDiff), 3.5);
+    // Player Movement
+    const targetY = mouseRef.current - PADDLE_H / 2;
+    s.playerY += (targetY - s.playerY) * 0.2;
+    s.playerY = Math.max(0, Math.min(H - PADDLE_H, s.playerY));
+
+    // AI Movement
+    const aiTarget = s.ball.y - PADDLE_H / 2;
+    const aiSpeed = 3.5 + s.level * 0.5;
+    if (Math.abs(aiTarget - s.aiY) > 5) {
+      s.aiY += (aiTarget - s.aiY) * 0.08 * (1 + s.level * 0.1);
+    }
     s.aiY = Math.max(0, Math.min(H - PADDLE_H, s.aiY));
 
-    // Ball movement
+    // Ball Trail
+    s.ball.trail.push({ x: s.ball.x, y: s.ball.y });
+    if (s.ball.trail.length > TRAIL_LENGTH) s.ball.trail.shift();
+
+    // Ball Physics
     s.ball.x += s.ball.vx;
     s.ball.y += s.ball.vy;
 
-    // Top/bottom bounce
-    if (s.ball.y - BALL_R <= 0) { s.ball.y = BALL_R; s.ball.vy = Math.abs(s.ball.vy); }
-    if (s.ball.y + BALL_R >= H) { s.ball.y = H - BALL_R; s.ball.vy = -Math.abs(s.ball.vy); }
-
-    // Player paddle collision
-    if (
-      s.ball.vx < 0 &&
-      s.ball.x - BALL_R <= 10 + PADDLE_W &&
-      s.ball.x - BALL_R >= 10 &&
-      s.ball.y >= s.playerY &&
-      s.ball.y <= s.playerY + PADDLE_H
-    ) {
-      const rel = (s.ball.y - (s.playerY + PADDLE_H / 2)) / (PADDLE_H / 2);
-      const angle = rel * (Math.PI / 4);
-      s.speed = Math.min(s.speed + 0.3, 14);
-      s.ball.vx = s.speed * Math.cos(angle);
-      s.ball.vy = s.speed * Math.sin(angle);
-      s.ball.x = 10 + PADDLE_W + BALL_R + 1;
+    // Wall bounce
+    if (s.ball.y - BALL_R_VAL <= 0) {
+      s.ball.y = BALL_R_VAL;
+      s.ball.vy *= -1;
+      triggerHaptic('light');
+    } else if (s.ball.y + BALL_R_VAL >= H) {
+      s.ball.y = H - BALL_R_VAL;
+      s.ball.vy *= -1;
+      triggerHaptic('light');
     }
 
-    // AI paddle collision
-    const aiX = W - 10 - PADDLE_W;
-    if (
-      s.ball.vx > 0 &&
-      s.ball.x + BALL_R >= aiX &&
-      s.ball.x + BALL_R <= aiX + PADDLE_W + 2 &&
-      s.ball.y >= s.aiY &&
-      s.ball.y <= s.aiY + PADDLE_H
-    ) {
-      const rel = (s.ball.y - (s.aiY + PADDLE_H / 2)) / (PADDLE_H / 2);
-      const angle = rel * (Math.PI / 4);
-      s.speed = Math.min(s.speed + 0.3, 14);
-      s.ball.vx = -s.speed * Math.cos(angle);
-      s.ball.vy = s.speed * Math.sin(angle);
-      s.ball.x = aiX - BALL_R - 1;
+    // Paddle Collisions
+    // Player
+    if (s.ball.vx < 0 && s.ball.x - BALL_R_VAL <= 20 && s.ball.y >= s.playerY && s.ball.y <= s.playerY + PADDLE_H) {
+      s.ball.vx = Math.abs(s.ball.vx) + 0.2;
+      const relY = (s.ball.y - (s.playerY + PADDLE_H / 2)) / (PADDLE_H / 2);
+      s.ball.vy = relY * 5;
+      triggerHaptic('medium');
+      spawnParticles('20px', `${(s.ball.y / H) * 100}%`, COLORS.cyan, 8);
     }
 
-    // Score
+    // AI
+    if (s.ball.vx > 0 && s.ball.x + BALL_R_VAL >= W - 20 && s.ball.y >= s.aiY && s.ball.y <= s.aiY + PADDLE_H) {
+      s.ball.vx = -Math.abs(s.ball.vx) - 0.2;
+      const relY = (s.ball.y - (s.aiY + PADDLE_H / 2)) / (PADDLE_H / 2);
+      s.ball.vy = relY * 5;
+      triggerHaptic('medium');
+      spawnParticles(`${W - 20}px`, `${(s.ball.y / H) * 100}%`, COLORS.magenta, 8);
+    }
+
+    // Goals
     if (s.ball.x < 0) {
-      s.aScore++;
-      if (s.aScore >= WIN_SCORE) {
-        s.phase = 'over'; s.winner = 'ai';
-        if (!firedRef.current) { firedRef.current = true; window.dispatchEvent(new CustomEvent('dan:game-score', { detail: { gameId: 'pong', score: s.pScore, isHighScore: false } })); }
-      } else { s.speed = 4; launchBall(s); }
-    }
-    if (s.ball.x > W) {
-      s.pScore++;
-      if (s.pScore >= WIN_SCORE) {
-        s.phase = 'over'; s.winner = 'player';
-        if (!firedRef.current) { firedRef.current = true; window.dispatchEvent(new CustomEvent('dan:game-score', { detail: { gameId: 'pong', score: s.pScore, isHighScore: false } })); }
-      } else { s.speed = 4; launchBall(s); }
+      s.aiScore++;
+      triggerHaptic('heavy');
+      triggerFloatingText('IA ANOTA', '30%', '50%', COLORS.magenta);
+      resetBall(s, 1);
+    } else if (s.ball.x > W) {
+      s.score++;
+      setScore(s.score);
+      animateScore();
+      triggerHaptic('heavy');
+      triggerFloatingText('¡PUNTO!', '70%', '50%', COLORS.cyan);
+      resetBall(s, -1);
+      if (s.score % 5 === 0) s.level++;
     }
 
     draw();
     rafRef.current = requestAnimationFrame(tick);
-  }, [draw]);
+  }, [draw, triggerHaptic, spawnParticles, triggerFloatingText, animateScore, BALL_R_VAL]);
 
-  const startGame = useCallback(() => {
-    const s = stateRef.current;
-    if (s.phase === 'over' || s.phase === 'idle') {
-      const fresh = makeState();
-      fresh.phase = 'playing';
-      stateRef.current = fresh;
-      firedRef.current = false;
-      launchBall(stateRef.current);
-      if (rafRef.current) cancelAnimationFrame(rafRef.current);
-      rafRef.current = requestAnimationFrame(tick);
-    }
-  }, [tick]);
+  const resetBall = (s, dir) => {
+    s.ball.x = W / 2;
+    s.ball.y = H / 2;
+    const speed = 5 + s.level * 0.5;
+    s.ball.vx = speed * dir;
+    s.ball.vy = (Math.random() - 0.5) * 6;
+    s.ball.trail = [];
+  };
+
+  const start = useCallback(() => {
+    stateRef.current = makeState();
+    setScore(0);
+    setStatus('PLAYING');
+    if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    rafRef.current = requestAnimationFrame(tick);
+    triggerHaptic('medium');
+  }, [tick, triggerHaptic]);
 
   useEffect(() => {
+    stateRef.current = makeState();
+    setStatus('IDLE');
     draw();
-    rafRef.current = requestAnimationFrame(tick);
 
-    const onKey = (e) => {
-      keysRef.current[e.key] = e.type === 'keydown';
-      if (['ArrowUp', 'ArrowDown', ' '].includes(e.key)) e.preventDefault();
-    };
-    const onMouse = (e) => {
-      const canvas = canvasRef.current;
-      if (!canvas) return;
-      const rect = canvas.getBoundingClientRect();
-      const scaleY = H / rect.height;
-      mouseYRef.current = (e.clientY - rect.top) * scaleY;
-    };
-    const onTouch = (e) => {
-      const canvas = canvasRef.current;
-      if (!canvas) return;
-      const rect = canvas.getBoundingClientRect();
-      const scaleY = H / rect.height;
-      const t = e.touches[0];
-      if (t) mouseYRef.current = (t.clientY - rect.top) * scaleY;
-    };
-    const onClick = () => {
-      const s = stateRef.current;
-      if (s.phase === 'idle' || s.phase === 'over') startGame();
-    };
-
-    const canvas = canvasRef.current;
-    window.addEventListener('keydown', onKey);
-    window.addEventListener('keyup', onKey);
-    canvas.addEventListener('mousemove', onMouse);
-    canvas.addEventListener('touchmove', onTouch, { passive: true });
-    canvas.addEventListener('click', onClick);
-
-    return () => {
-      cancelAnimationFrame(rafRef.current);
-      window.removeEventListener('keydown', onKey);
-      window.removeEventListener('keyup', onKey);
-      canvas.removeEventListener('mousemove', onMouse);
-      canvas.removeEventListener('touchmove', onTouch);
-      canvas.removeEventListener('click', onClick);
-    };
-  }, [draw, tick, startGame]);
+    return () => cancelAnimationFrame(rafRef.current);
+  }, [draw]);
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', background: COLORS.bg, padding: '12px' }}>
-      <canvas
-        ref={canvasRef}
-        width={W}
-        height={H}
-        style={{
-          display: 'block',
-          maxWidth: '100%',
-          border: `1px solid ${COLORS.cyan}`,
-          boxShadow: `0 0 18px ${COLORS.cyan}44`,
-          cursor: 'crosshair',
-        }}
-      />
-      <div style={{ marginTop: 8, color: COLORS.dim, fontFamily: 'monospace', fontSize: 11 }}>
-        Mouse / Flechas &uarr;&darr; &nbsp;|&nbsp; Primero en 7 gana
+    <ArcadeShell
+      title="Pong Retro"
+      score={score}
+      bestScore={best}
+      status={status}
+      onRetry={start}
+      scoreControls={scoreControls}
+      particles={particles}
+      floatingTexts={floatingTexts}
+      subTitle="El duelo clásico de paletas y reflejos."
+    >
+      <div style={{ position: 'relative', width: 'min(70vh, 95vw)', aspectRatio: `${W}/${H}`, background: 'rgba(255,255,255,0.02)', borderRadius: 24, padding: 8, border: '1px solid rgba(255,255,255,0.05)', boxShadow: 'inset 0 0 40px rgba(0,0,0,0.5)', overflow: 'hidden' }}>
+        <canvas
+          ref={canvasRef}
+          width={W}
+          height={H}
+          onPointerMove={(e) => {
+            const rect = e.currentTarget.getBoundingClientRect();
+            mouseRef.current = (e.clientY - rect.top) * (H / rect.height);
+          }}
+          onClick={() => status !== 'PLAYING' && start()}
+          style={{
+            display: 'block',
+            width: '100%',
+            height: '100%',
+            cursor: 'none',
+            touchAction: 'none',
+          }}
+        />
       </div>
-    </div>
+
+      <div style={{
+        marginTop: 24,
+        display: 'flex',
+        gap: 32,
+        fontSize: '0.75rem',
+        fontWeight: 800,
+        color: 'rgba(255, 255, 255, 0.3)',
+        textTransform: 'uppercase',
+        letterSpacing: 2
+      }}>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+          <span style={{ fontSize: '0.6rem', opacity: 0.6, marginBottom: 4 }}>IA</span>
+          <span style={{ color: COLORS.magenta, fontSize: '1rem' }}>{stateRef.current?.aiScore || 0}</span>
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+          <span style={{ fontSize: '0.6rem', opacity: 0.6, marginBottom: 4 }}>NIVEL</span>
+          <span style={{ color: COLORS.white, fontSize: '1rem' }}>{stateRef.current?.level || 1}</span>
+        </div>
+      </div>
+    </ArcadeShell>
   );
 }
 
 export default function Pong() {
   return (
     <GameImmersiveLayout>
-      <GameShell title="Pong Retro">
-        <PongInner />
-      </GameShell>
+      <PongInner />
     </GameImmersiveLayout>
   );
 }

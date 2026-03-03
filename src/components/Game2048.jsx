@@ -1,26 +1,25 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import useHighScore from '../hooks/useHighScore';
 import { GameImmersiveLayout } from '../core/GameImmersiveLayout';
-import { GameShell } from '../core/GameShell';
+import { ArcadeShell } from './ArcadeShell';
+import { useArcadeSystems } from '../hooks/useArcadeSystems';
 
-// --- Tile color map ---
 const TILE_COLORS = {
-  2: { bg: '#1a1a2e', color: '#c0c0ff', border: '1px solid #333' },
-  4: { bg: '#16213e', color: '#c0c0ff', border: '1px solid #3a3a6e' },
-  8: { bg: '#ff6b35', color: '#fff', border: '1px solid #ff8c5a' },
-  16: { bg: '#ff4500', color: '#fff', border: '1px solid #ff6030' },
-  32: { bg: '#ff0080', color: '#fff', border: '1px solid #ff40a0' },
-  64: { bg: '#ff00ff', color: '#fff', border: '1px solid #ff60ff' },
-  128: { bg: '#00e5ff', color: '#000', border: '1px solid #40efff' },
-  256: { bg: '#00ff88', color: '#000', border: '1px solid #40ffaa' },
-  512: { bg: '#ffff00', color: '#000', border: '1px solid #ffff60' },
-  1024: { bg: '#ff9500', color: '#000', border: '1px solid #ffb030' },
-  2048: { bg: 'gold', color: '#000', border: '2px solid #ffd700', isGold: true },
+  2: { bg: 'rgba(255, 255, 255, 0.05)', color: '#fff', shadow: 'transparent', glow: 'none' },
+  4: { bg: 'rgba(0, 229, 255, 0.05)', color: '#00e5ff', shadow: '#00e5ff', glow: '0 0 10px rgba(0, 229, 255, 0.3)' },
+  8: { bg: 'rgba(255, 0, 255, 0.05)', color: '#ff00ff', shadow: '#ff00ff', glow: '0 0 10px rgba(255, 0, 255, 0.3)' },
+  16: { bg: 'rgba(255, 255, 0, 0.1)', color: '#ffee58', shadow: '#ffee58', glow: '0 0 15px rgba(255, 255, 0, 0.4)' },
+  32: { bg: 'rgba(255, 121, 198, 0.15)', color: '#ff79c6', shadow: '#ff79c6', glow: '0 0 20px rgba(255, 121, 198, 0.5)' },
+  64: { bg: 'rgba(189, 147, 249, 0.2)', color: '#bd93f9', shadow: '#bd93f9', glow: '0 0 25px rgba(189, 147, 249, 0.6)' },
+  128: { bg: 'rgba(80, 250, 123, 0.25)', color: '#50fa7b', shadow: '#50fa7b', glow: '0 0 30px rgba(80, 250, 123, 0.7)' },
+  256: { bg: 'rgba(255, 184, 108, 0.3)', color: '#ffb86c', shadow: '#ffb86c', glow: '0 0 35px rgba(255, 184, 108, 0.8)' },
+  512: { bg: 'rgba(139, 233, 253, 0.35)', color: '#8be9fd', shadow: '#8be9fd', glow: '0 0 40px rgba(139, 233, 253, 0.9)' },
+  1024: { bg: 'rgba(255, 85, 85, 0.4)', color: '#ff5555', shadow: '#ff5555', glow: '0 0 45px rgba(255, 85, 85, 1)' },
+  2048: { bg: 'linear-gradient(135deg, #f1fa8c, #ffb86c)', color: '#000', shadow: '#f1fa8c', glow: '0 0 50px #f1fa8c' },
 };
 
-const DEFAULT_COLOR = { bg: '#0d0d1a', color: '#888', border: '1px solid #222' };
+const DEFAULT_COLOR = { bg: 'rgba(255,255,255,0.02)', color: 'rgba(255,255,255,0.1)', shadow: 'transparent', glow: 'none' };
 
-// --- Game logic helpers ---
 function createEmptyGrid() {
   return Array(4).fill(null).map(() => Array(4).fill(0));
 }
@@ -40,7 +39,6 @@ function addRandomTile(grid) {
 }
 
 function slideRow(row) {
-  // Remove zeros
   const nums = row.filter(v => v !== 0);
   let score = 0;
   const merged = [];
@@ -127,65 +125,57 @@ function initGame() {
   return g;
 }
 
-// --- Component ---
 function Game2048Inner() {
-  // Responsive tile size: shrinks on narrow screens
-  const tileSize = typeof window !== 'undefined'
-    ? Math.min(80, Math.floor((window.innerWidth - 120) / 4))
-    : 80;
-
   const [grid, setGrid] = useState(() => initGame());
   const [score, setScore] = useState(0);
   const [best, saveScore] = useHighScore('2048');
-  const [gameOver, setGameOver] = useState(false);
-  const [won, setWon] = useState(false);
+  const [status, setStatus] = useState('IDLE');
   const [continueAfterWin, setContinueAfterWin] = useState(false);
-  const scoredRef = useRef(false);
 
-
-
-  // Touch tracking
-  const touchStart = useRef(null);
+  const {
+    particles, floatingTexts, scoreControls,
+    triggerHaptic, spawnParticles, triggerFloatingText, animateScore
+  } = useArcadeSystems();
 
   const applyMove = useCallback((moveFn) => {
     setGrid(prev => {
       const { grid: moved, score: gained } = moveFn(prev);
-      if (gridsEqual(prev, moved)) return prev; // no change
-      const next = addRandomTile(moved);
-      setScore(s => {
-        const newScore = s + gained;
-        // High score managed by saveScore call later
-        return newScore;
-      });
+      if (gridsEqual(prev, moved)) return prev;
 
-      if (!continueAfterWin && hasWon(next)) setWon(true);
-      if (!hasMovesLeft(next)) setGameOver(true);
+      const next = addRandomTile(moved);
+      if (gained > 0) {
+        setScore(s => s + gained);
+        animateScore();
+        triggerHaptic('medium');
+        spawnParticles('50%', '50%', '#ff00ff', 15);
+        triggerFloatingText(`+${gained}`, '50%', '40%', '#ff00ff');
+      } else {
+        triggerHaptic('light');
+      }
+
+      if (!continueAfterWin && hasWon(next)) {
+        setStatus('WIN');
+        saveScore(score + gained);
+      }
+      if (!hasMovesLeft(next)) {
+        setStatus('DEAD');
+        saveScore(score + gained);
+      }
       return next;
     });
-  }, [continueAfterWin]);
+  }, [continueAfterWin, score, saveScore, animateScore, triggerHaptic, spawnParticles, triggerFloatingText]);
 
-  useEffect(() => {
-    if ((gameOver || won) && !scoredRef.current) {
-      scoredRef.current = true;
-      saveScore(score);
-    }
-
-  }, [gameOver, won]);
-
-  const newGame = useCallback(() => {
+  const reset = useCallback(() => {
     setGrid(initGame());
     setScore(0);
-    setGameOver(false);
-    setWon(false);
+    setStatus('PLAYING');
     setContinueAfterWin(false);
-    scoredRef.current = false;
-  }, []);
+    triggerHaptic('medium');
+  }, [triggerHaptic]);
 
-  // Keyboard handler
   useEffect(() => {
     const handleKey = (e) => {
-      if (gameOver) return;
-      if (won && !continueAfterWin) return;
+      if (status !== 'PLAYING') return;
       switch (e.key) {
         case 'ArrowLeft': e.preventDefault(); applyMove(moveLeft); break;
         case 'ArrowRight': e.preventDefault(); applyMove(moveRight); break;
@@ -196,24 +186,20 @@ function Game2048Inner() {
     };
     window.addEventListener('keydown', handleKey);
     return () => window.removeEventListener('keydown', handleKey);
-  }, [applyMove, gameOver, won, continueAfterWin]);
+  }, [applyMove, status]);
 
-  // Touch handlers
+  const touchStart = useRef(null);
   const handleTouchStart = (e) => {
     const t = e.touches[0];
     touchStart.current = { x: t.clientX, y: t.clientY };
   };
-
   const handleTouchEnd = (e) => {
-    if (!touchStart.current) return;
-    if (gameOver || (won && !continueAfterWin)) return;
+    if (!touchStart.current || status !== 'PLAYING') return;
     const t = e.changedTouches[0];
     const dx = t.clientX - touchStart.current.x;
     const dy = t.clientY - touchStart.current.y;
-    const absDx = Math.abs(dx);
-    const absDy = Math.abs(dy);
-    if (Math.max(absDx, absDy) < 20) return;
-    if (absDx > absDy) {
+    if (Math.max(Math.abs(dx), Math.abs(dy)) < 30) return;
+    if (Math.abs(dx) > Math.abs(dy)) {
       dx > 0 ? applyMove(moveRight) : applyMove(moveLeft);
     } else {
       dy > 0 ? applyMove(moveDown) : applyMove(moveUp);
@@ -221,270 +207,86 @@ function Game2048Inner() {
     touchStart.current = null;
   };
 
-  // --- Styles ---
-  const containerStyle = {
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    fontFamily: "'Courier New', Courier, monospace",
-    padding: '24px 16px',
-    minHeight: 'auto',
-    background: 'transparent',
-    userSelect: 'none',
-  };
-
-  const headerStyle = {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    width: '100%',
-    maxWidth: `${tileSize * 4 + 24 + 20}px`,
-    marginBottom: '16px',
-  };
-
-  const titleStyle = {
-    fontSize: '2.2rem',
-    fontWeight: 'bold',
-    background: 'linear-gradient(90deg, #ff00ff, #00e5ff)',
-    WebkitBackgroundClip: 'text',
-    WebkitTextFillColor: 'transparent',
-    letterSpacing: '4px',
-    margin: 0,
-  };
-
-  const scoreBoxStyle = {
-    display: 'flex',
-    gap: '8px',
-  };
-
-  const scoreCardStyle = {
-    background: 'rgba(255,0,255,0.1)',
-    border: '1px solid rgba(255,0,255,0.3)',
-    borderRadius: '6px',
-    padding: '6px 14px',
-    textAlign: 'center',
-    minWidth: '70px',
-  };
-
-  const scoreLabelStyle = {
-    fontSize: '0.6rem',
-    color: 'rgba(255,255,255,0.5)',
-    textTransform: 'uppercase',
-    letterSpacing: '1px',
-    display: 'block',
-  };
-
-  const scoreValueStyle = {
-    fontSize: '1.1rem',
-    fontWeight: 'bold',
-    color: '#ff00ff',
-  };
-
-  const btnStyle = {
-    marginBottom: '16px',
-    padding: '8px 24px',
-    background: 'transparent',
-    border: '1px solid #ff00ff',
-    color: '#ff00ff',
-    fontFamily: "'Courier New', Courier, monospace",
-    fontSize: '0.85rem',
-    letterSpacing: '2px',
-    textTransform: 'uppercase',
-    cursor: 'pointer',
-    borderRadius: '4px',
-    transition: 'all 0.2s',
-  };
-
-  const gridWrapperStyle = {
-    position: 'relative',
-    background: 'rgba(255,0,255,0.06)',
-    border: '1px solid rgba(255,0,255,0.25)',
-    borderRadius: '10px',
-    padding: '10px',
-    touchAction: 'none',
-  };
-
-  const gridStyle = {
-    display: 'grid',
-    gridTemplateColumns: `repeat(4, ${tileSize}px)`,
-    gridTemplateRows: `repeat(4, ${tileSize}px)`,
-    gap: '8px',
-  };
-
-  const overlayStyle = {
-    position: 'absolute',
-    inset: 0,
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: '10px',
-    backdropFilter: 'blur(6px)',
-    zIndex: 10,
-  };
-
-  const overlayTitleStyle = (color) => ({
-    fontSize: '2rem',
-    fontWeight: 'bold',
-    color,
-    textShadow: `0 0 20px ${color}`,
-    letterSpacing: '4px',
-    marginBottom: '16px',
-    textTransform: 'uppercase',
-  });
-
-  const getTileStyle = (value) => {
-    const colors = TILE_COLORS[value] || DEFAULT_COLOR;
-    const isGold = colors.isGold;
-    return {
-      width: `${tileSize}px`,
-      height: `${tileSize}px`,
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      borderRadius: '6px',
-      fontSize: value >= 1000 ? '1.2rem' : value >= 100 ? '1.5rem' : '1.9rem',
-      fontWeight: 'bold',
-      background: isGold
-        ? 'linear-gradient(135deg, #ffd700, #ff9500, #ffd700)'
-        : colors.bg,
-      color: colors.color,
-      border: colors.border,
-      boxShadow: value >= 64
-        ? `0 0 12px ${colors.bg}, 0 0 24px ${colors.bg}44`
-        : 'none',
-      transition: 'background 0.15s, box-shadow 0.15s',
-      letterSpacing: value >= 1000 ? '0' : '1px',
-    };
-  };
-
-  const emptyTileStyle = {
-    width: `${tileSize}px`,
-    height: `${tileSize}px`,
-    borderRadius: '6px',
-    background: 'rgba(255,255,255,0.03)',
-    border: '1px solid rgba(255,255,255,0.05)',
-  };
+  const tileSize = 'min(75px, 20vw)';
 
   return (
-    <div style={containerStyle}>
-      {/* Header */}
-      <div style={headerStyle}>
-        <h1 style={titleStyle}>2048</h1>
-        <div style={scoreBoxStyle}>
-          <div style={scoreCardStyle}>
-            <span style={scoreLabelStyle}>score</span>
-            <span style={scoreValueStyle}>{score}</span>
-          </div>
-          <div style={scoreCardStyle}>
-            <span style={scoreLabelStyle}>récord</span>
-            <span style={scoreValueStyle}>{best}</span>
-          </div>
-
-        </div>
-      </div>
-
-      {/* New Game button */}
-      <button
-        style={btnStyle}
-        onClick={newGame}
-        onMouseEnter={e => {
-          e.target.style.background = 'rgba(255,0,255,0.15)';
-          e.target.style.boxShadow = '0 0 12px rgba(255,0,255,0.4)';
-        }}
-        onMouseLeave={e => {
-          e.target.style.background = 'transparent';
-          e.target.style.boxShadow = 'none';
-        }}
-      >
-        nuevo juego
-      </button>
-
-      {/* Grid */}
+    <ArcadeShell
+      title="2048 Neon"
+      score={score}
+      bestScore={best}
+      status={status}
+      onRetry={reset}
+      scoreControls={scoreControls}
+      particles={particles}
+      floatingTexts={floatingTexts}
+      subTitle="Une las fichas para llegar al 2048."
+    >
       <div
-        style={gridWrapperStyle}
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
+        style={{
+          background: 'rgba(255, 255, 255, 0.03)',
+          padding: 12,
+          borderRadius: 24,
+          border: '1px solid rgba(255,255,255,0.05)',
+          display: 'grid',
+          gridTemplateColumns: 'repeat(4, 1fr)',
+          gridTemplateRows: 'repeat(4, 1fr)',
+          gap: 12,
+          position: 'relative',
+          boxShadow: 'inset 0 0 30px rgba(0,0,0,0.5)'
+        }}
       >
-        <div style={gridStyle}>
-          {grid.map((row, r) =>
-            row.map((value, c) =>
-              value === 0 ? (
-                <div key={`${r}-${c}`} style={emptyTileStyle} />
-              ) : (
-                <div key={`${r}-${c}`} style={getTileStyle(value)}>
-                  {value}
-                </div>
-              )
-            )
-          )}
-        </div>
+        {grid.map((row, r) =>
+          row.map((value, c) => (
+            <Tile key={`${r}-${c}`} value={value} size={tileSize} />
+          ))
+        )}
 
-        {/* Game Over overlay */}
-        {gameOver && (
-          <div style={{ ...overlayStyle, background: 'rgba(10,0,20,0.85)' }}>
-            <div style={overlayTitleStyle('#ff00ff')}>game over</div>
+        {status === 'WIN' && !continueAfterWin && (
+          <div style={{
+            position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.85)',
+            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+            borderRadius: 24, zIndex: 10, backdropFilter: 'blur(8px)'
+          }}>
+            <h2 style={{ color: '#ffd700', fontSize: '2rem', marginBottom: 24, fontWeight: 900, textShadow: '0 0 20px #ffd700aa' }}>¡VICTORIA!</h2>
             <button
-              style={btnStyle}
-              onClick={newGame}
-              onMouseEnter={e => {
-                e.target.style.background = 'rgba(255,0,255,0.15)';
-              }}
-              onMouseLeave={e => {
-                e.target.style.background = 'transparent';
-              }}
+              onClick={() => { setContinueAfterWin(true); setStatus('PLAYING'); }}
+              style={{ padding: '12px 24px', background: 'rgba(255, 215, 0, 0.15)', border: '2px solid #ffd700', color: '#ffd700', borderRadius: 16, cursor: 'pointer', fontWeight: 700, letterSpacing: 1 }}
             >
-              nuevo juego
+              CONTINUAR
             </button>
           </div>
         )}
-
-        {/* Won overlay */}
-        {won && !continueAfterWin && (
-          <div style={{ ...overlayStyle, background: 'rgba(0,10,10,0.85)' }}>
-            <div style={overlayTitleStyle('#ffd700')}>ganaste!</div>
-            <div style={{ display: 'flex', gap: '10px' }}>
-              <button
-                style={{ ...btnStyle, borderColor: '#ffd700', color: '#ffd700' }}
-                onClick={() => setContinueAfterWin(true)}
-                onMouseEnter={e => {
-                  e.target.style.background = 'rgba(255,215,0,0.15)';
-                }}
-                onMouseLeave={e => {
-                  e.target.style.background = 'transparent';
-                }}
-              >
-                continuar
-              </button>
-              <button
-                style={btnStyle}
-                onClick={newGame}
-                onMouseEnter={e => {
-                  e.target.style.background = 'rgba(255,0,255,0.15)';
-                }}
-                onMouseLeave={e => {
-                  e.target.style.background = 'transparent';
-                }}
-              >
-                nuevo juego
-              </button>
-            </div>
-          </div>
-        )}
       </div>
 
-      {/* Instructions */}
-      <p style={{
-        marginTop: '20px',
-        fontSize: '0.72rem',
-        color: 'rgba(255,255,255,0.25)',
-        letterSpacing: '1px',
-        textAlign: 'center',
-        lineHeight: '1.6',
-      }}>
-        usa las flechas o desliza para mover<br />
-        une fichas iguales para llegar a 2048
-      </p>
+      <div style={{ marginTop: 24, color: 'rgba(255,255,255,0.25)', fontSize: '0.75rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 1.5 }}>
+        Desliza para mover las fichas
+      </div>
+    </ArcadeShell>
+  );
+}
+
+function Tile({ value, size }) {
+  const config = TILE_COLORS[value] || DEFAULT_COLOR;
+  return (
+    <div style={{
+      width: size, height: size,
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      borderRadius: 14,
+      background: config.bg,
+      color: config.color,
+      fontSize: value >= 1024 ? '0.8rem' : value >= 100 ? '1rem' : '1.4rem',
+      fontWeight: 900,
+      border: value === 0 ? '1px solid rgba(255,255,255,0.03)' : 'none',
+      boxShadow: value > 0 ? config.glow : 'none',
+      transition: 'all 0.15s cubic-bezier(0.4, 0, 0.2, 1)',
+      transform: value > 0 ? 'scale(1)' : 'scale(0.95)',
+      opacity: value > 0 ? 1 : 0.4,
+      textShadow: value > 8 ? `0 0 10px ${config.color}88` : 'none',
+      backdropFilter: value > 0 ? 'blur(10px)' : 'none'
+    }}>
+      {value > 0 ? value : ''}
     </div>
   );
 }
@@ -492,9 +294,7 @@ function Game2048Inner() {
 export default function Game2048() {
   return (
     <GameImmersiveLayout>
-      <GameShell title="2048">
-        <Game2048Inner />
-      </GameShell>
+      <Game2048Inner />
     </GameImmersiveLayout>
   );
 }

@@ -10,13 +10,15 @@ const styles = {
         top: 0, left: 0, right: 0, bottom: 0,
         width: '100vw',
         height: '100dvh', // Real móvil height (iOS friendly)
-        zIndex: 9999, // Cubre toda la UI heredada de Spacely
+        zIndex: 99999, // Cubre toda la UI heredada de Spacely
+        backgroundColor: '#050508', // Solid fallback for mobile
         background: 'radial-gradient(circle at 50% -20%, #1a1a2e 0%, #050508 80%)',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center', // Added for vertical centering in PC
         overflow: 'hidden',
+        overscrollBehavior: 'none', // Prevent mobile bounce revealing background
         touchAction: 'none',
         userSelect: 'none',
         WebkitUserSelect: 'none',

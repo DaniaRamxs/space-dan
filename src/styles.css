@@ -171,11 +171,11 @@ button,
 a,
 button {
   transition: color 0.25s cubic-bezier(0.4, 0, 0.2, 1),
-              background-color 0.25s cubic-bezier(0.4, 0, 0.2, 1),
-              border-color 0.25s cubic-bezier(0.4, 0, 0.2, 1),
-              opacity 0.25s cubic-bezier(0.4, 0, 0.2, 1),
-              transform 0.25s cubic-bezier(0.4, 0, 0.2, 1),
-              box-shadow 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    background-color 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+    border-color 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+    opacity 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+    transform 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+    box-shadow 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 input[type="password"],
@@ -8595,6 +8595,26 @@ textarea,
   animation: gameOverlayFade 0.15s ease;
 }
 
+.arcade-shell-container {
+  width: 100%;
+  max-width: 500px;
+  margin: 0 auto;
+}
+
+@media (min-width: 1024px) {
+  .arcade-shell-container {
+    max-width: none;
+    width: 100vw;
+  }
+}
+
+.gameOverlay.immersive {
+  background: #000;
+  /* Solid pitch black for immersion fallback */
+  padding: 0;
+  z-index: 99999;
+}
+
 .gameOverlayHeader {
   display: flex;
   align-items: center;
@@ -8612,6 +8632,12 @@ textarea,
   overflow-y: auto;
   padding: 12px 24px 24px;
   min-height: 0;
+}
+
+.gameOverlayContent.immersive {
+  padding: 0;
+  overflow: hidden;
+  justify-content: center;
 }
 
 @media (min-width: 768px) {
@@ -8644,6 +8670,21 @@ textarea,
   padding: 10px;
 }
 
+.gameScale.immersive {
+  background: transparent;
+  border: none;
+  padding: 0;
+  margin: 0;
+  min-height: 0;
+  width: auto;
+  /* Don't force full width */
+  max-width: 100%;
+  border-radius: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 @media (min-width: 768px) {
   .gameScale {
     flex: none;
@@ -8653,8 +8694,9 @@ textarea,
     align-items: center;
     width: fit-content;
   }
+
   .gameScale canvas,
-  .gameScale > div {
+  .gameScale>div {
     max-height: 100%;
   }
 }
@@ -10795,6 +10837,7 @@ html.native .gardenPage--fixed {
   height: 100% !important;
   min-height: 0 !important;
 }
+
 html.native .gardenPage--fixed .gardenMain {
   height: 100% !important;
   min-height: 0 !important;
@@ -10810,19 +10853,25 @@ html.native .gardenPage--fixed .gardenMain {
   display: contents !important;
   background: transparent !important;
 }
+
 .lk-theme-default {
   --lk-bg: transparent !important;
-}@layer utilities {
+}
+
+@layer utilities {
   .custom-scrollbar::-webkit-scrollbar {
     width: 6px;
   }
+
   .custom-scrollbar::-webkit-scrollbar-track {
     background: transparent;
   }
+
   .custom-scrollbar::-webkit-scrollbar-thumb {
     background: rgba(255, 255, 255, 0.1);
     border-radius: 10px;
   }
+
   .custom-scrollbar::-webkit-scrollbar-thumb:hover {
     background: rgba(255, 255, 255, 0.2);
   }

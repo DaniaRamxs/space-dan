@@ -1,30 +1,30 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import useHighScore from '../hooks/useHighScore';
-import { motion, AnimatePresence } from 'framer-motion';
+import { ArcadeShell } from './ArcadeShell';
+import { useArcadeSystems } from '../hooks/useArcadeSystems';
 import { GameImmersiveLayout } from '../core/GameImmersiveLayout';
-import { GameShell } from '../core/GameShell';
 
 const GRID_SIZE = 20;
 const INITIAL_SPEED = 140;
-const SPEED_INC = 2;
+const SPEED_INC = 2.5;
 
-// Colors
-const C_BG = 'rgba(10, 10, 18, 0.95)';
 const C_SNAKE = '#ff00ff';
-const C_HEAD = '#ffddff';
+const C_HEAD = '#ffffff';
 const C_FOOD = '#00e5ff';
 
 function SnakeGameInner() {
   const [best, saveScore] = useHighScore('snake');
   const [score, setScore] = useState(0);
-  const [phase, setPhase] = useState('idle'); // idle | playing | over
-  const [isHighScore, setIsHighScore] = useState(false);
-
+  const [status, setStatus] = useState('IDLE');
   const [snake, setSnake] = useState([[10, 10], [10, 11], [10, 12]]);
   const [food, setFood] = useState([5, 5]);
   const [speed, setSpeed] = useState(INITIAL_SPEED);
 
-  // Use refs for direction to handle input faster than the tick
+  const {
+    particles, floatingTexts, scoreControls,
+    triggerHaptic, spawnParticles, triggerFloatingText, animateScore
+  } = useArcadeSystems();
+
   const dirRef = useRef({ x: 0, y: -1 });
   const nextDirRef = useRef({ x: 0, y: -1 });
   const timerRef = useRef(null);
@@ -44,15 +44,18 @@ function SnakeGameInner() {
 
   const gameOver = useCallback((finalScoreCount) => {
     if (timerRef.current) clearInterval(timerRef.current);
-    const finalScore = finalScoreCount * 15;
-    const isNewRecord = saveScore(finalScore);
-    setIsHighScore(isNewRecord);
-    setPhase('over');
-  }, [saveScore]);
+    saveScore(finalScoreCount);
+    setStatus('DEAD');
+    triggerHaptic('heavy');
+    const head = snake[0];
+    const cellSize = 100 / GRID_SIZE;
+    spawnParticles(`${head[0] * cellSize}%`, `${head[1] * cellSize}%`, C_SNAKE, 25);
+    triggerFloatingText('GAME OVER', '50%', '40%', '#ff0000');
+  }, [saveScore, triggerHaptic, spawnParticles, snake, triggerFloatingText]);
 
   const move = useCallback(() => {
     let collision = false;
-    let finalScore = 0;
+    let currentScore = 0;
 
     setSnake(prevSnake => {
       if (collision) return prevSnake;
@@ -62,25 +65,29 @@ function SnakeGameInner() {
       const head = prevSnake[0];
       const newHead = [head[0] + d.x, head[1] + d.y];
 
-      // Wall collision
       if (newHead[0] < 0 || newHead[0] >= GRID_SIZE || newHead[1] < 0 || newHead[1] >= GRID_SIZE) {
         collision = true;
-        finalScore = score;
+        currentScore = score;
         return prevSnake;
       }
 
-      // Self collision
       if (prevSnake.some(seg => seg[0] === newHead[0] && seg[1] === newHead[1])) {
         collision = true;
-        finalScore = score;
+        currentScore = score;
         return prevSnake;
       }
 
       const newSnake = [newHead, ...prevSnake];
 
-      // Food collision
       if (newHead[0] === food[0] && newHead[1] === food[1]) {
-        setScore(s => s + 1);
+        const newScoreVal = score + 1;
+        setScore(newScoreVal);
+        animateScore();
+        triggerHaptic('medium');
+        triggerFloatingText('+1', '50%', '40%', C_FOOD);
+
+        const cellSize = 100 / GRID_SIZE;
+        spawnParticles(`${food[0] * cellSize}%`, `${food[1] * cellSize}%`, C_FOOD, 10);
         spawnFood(newSnake);
       } else {
         newSnake.pop();
@@ -90,21 +97,19 @@ function SnakeGameInner() {
     });
 
     if (collision) {
-      gameOver(finalScore);
+      gameOver(score);
     }
-  }, [food, score, gameOver, spawnFood]);
+  }, [food, score, gameOver, spawnFood, animateScore, triggerHaptic, triggerFloatingText, spawnParticles]);
 
-  // Adjust speed based on score
   useEffect(() => {
-    if (phase === 'playing') {
-      const newSpeed = Math.max(60, INITIAL_SPEED - score * SPEED_INC);
+    if (status === 'PLAYING') {
+      const newSpeed = Math.max(70, INITIAL_SPEED - score * SPEED_INC);
       setSpeed(newSpeed);
     }
-  }, [score, phase]);
+  }, [score, status]);
 
-  // Game loop
   useEffect(() => {
-    if (phase === 'playing') {
+    if (status === 'PLAYING') {
       timerRef.current = setInterval(move, speed);
     } else {
       if (timerRef.current) clearInterval(timerRef.current);
@@ -112,7 +117,7 @@ function SnakeGameInner() {
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
-  }, [phase, move, speed]);
+  }, [status, move, speed]);
 
   const start = () => {
     setSnake([[10, 10], [10, 11], [10, 12]]);
@@ -120,9 +125,9 @@ function SnakeGameInner() {
     nextDirRef.current = { x: 0, y: -1 };
     setScore(0);
     setSpeed(INITIAL_SPEED);
-    setPhase('playing');
-    setIsHighScore(false);
+    setStatus('PLAYING');
     spawnFood([[10, 10], [10, 11], [10, 12]]);
+    triggerHaptic('medium');
   };
 
   useEffect(() => {
@@ -131,6 +136,7 @@ function SnakeGameInner() {
       if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' '].includes(e.key)) {
         e.preventDefault();
       }
+      if (status !== 'PLAYING') return;
       if (e.key === 'ArrowUp' && d.y !== 1) nextDirRef.current = { x: 0, y: -1 };
       if (e.key === 'ArrowDown' && d.y !== -1) nextDirRef.current = { x: 0, y: 1 };
       if (e.key === 'ArrowLeft' && d.x !== 1) nextDirRef.current = { x: -1, y: 0 };
@@ -138,44 +144,33 @@ function SnakeGameInner() {
     };
     window.addEventListener('keydown', handleKey);
     return () => window.removeEventListener('keydown', handleKey);
-  }, []);
-
-  const isDesktop = typeof window !== 'undefined' && window.innerWidth >= 768;
-  // Derive cellPx from the exact CSS rules of .gameScale:
-  //   .gameScale height = min(100vh - 130px, 900px), padding = 10px each side
-  // Non-grid overhead inside snake component: outerPad(24) + HUD(20) + gaps(24) + hint(15) = 83px
-  // Grid constraint:  cellPx * GRID_SIZE <= gameScaleContentH - 83 - 8(gridPadding)  → floor((gameScaleH - 111) / GRID_SIZE)
-  // Width constraint: cellPx * GRID_SIZE <= window.innerWidth - 52               → floor((innerW - 52) / GRID_SIZE)
-  const cellPx = isDesktop ? Math.min(40, Math.floor(Math.min(
-    (Math.min(window.innerHeight - 130, 900) - 111) / GRID_SIZE,
-    (window.innerWidth - 52) / GRID_SIZE
-  ))) : 0;
-  const cellSize = cellPx ? `${cellPx}px` : 'min(14px, 4vw)';
-  const hudWidth = cellPx ? cellPx * GRID_SIZE + 16 : 320;
+  }, [status]);
 
   return (
-    <div style={{
-      display: 'flex', flexDirection: 'column', alignItems: 'center',
-      gap: 12, padding: 12, userSelect: 'none', touchAction: 'none'
-    }}>
-      <div style={{
-        display: 'flex', justifyContent: 'space-between', width: '100%', maxWidth: hudWidth,
-        fontSize: 12, color: 'rgba(255,255,255,0.4)', fontWeight: 900, textTransform: 'uppercase'
-      }}>
-        <div>Score: <span style={{ color: C_FOOD }}>{score}</span></div>
-        <div style={{ color: C_SNAKE }}>Best: {best}</div>
-      </div>
-
+    <ArcadeShell
+      title="Snake Neon"
+      score={score}
+      bestScore={best}
+      status={status}
+      onRetry={start}
+      scoreControls={scoreControls}
+      particles={particles}
+      floatingTexts={floatingTexts}
+      subTitle="Recopila datos de energía para crecer."
+    >
       <div style={{
         position: 'relative',
         display: 'grid',
-        gridTemplateColumns: `repeat(${GRID_SIZE}, ${cellSize})`,
-        gridTemplateRows: `repeat(${GRID_SIZE}, ${cellSize})`,
-        background: C_BG,
-        border: '2px solid rgba(255,255,255,0.05)',
-        borderRadius: 8,
-        padding: 4,
-        overflow: 'hidden'
+        gridTemplateColumns: `repeat(${GRID_SIZE}, 1fr)`,
+        gridTemplateRows: `repeat(${GRID_SIZE}, 1fr)`,
+        width: 'min(70vh, 85vw)',
+        height: 'min(70vh, 85vw)',
+        background: 'rgba(255,255,255,0.02)',
+        border: '1px solid rgba(255,255,255,0.05)',
+        borderRadius: 24,
+        padding: 8,
+        overflow: 'hidden',
+        boxShadow: 'inset 0 0 30px rgba(0,0,0,0.5)'
       }}>
         {Array.from({ length: GRID_SIZE * GRID_SIZE }).map((_, i) => {
           const x = i % GRID_SIZE;
@@ -187,80 +182,54 @@ function SnakeGameInner() {
 
           return (
             <div key={i} style={{
-              width: cellSize, height: cellSize,
               background: isHead ? C_HEAD : isSnake ? C_SNAKE : isFood ? C_FOOD : 'transparent',
-              borderRadius: isFood ? '50%' : isSnake ? 2 : 0,
-              boxShadow: isHead ? `0 0 10px ${C_HEAD}` : isFood ? `0 0 12px ${C_FOOD}` : 'none',
-              opacity: isSnake && !isHead ? 0.8 : 1
+              borderRadius: isFood ? '50%' : isSnake ? 6 : 0,
+              boxShadow: isHead ? `0 0 20px ${C_HEAD}` : isFood ? `0 0 20px ${C_FOOD}` : isSnake ? `0 0 8px ${C_SNAKE}aa` : 'none',
+              transform: isFood ? 'scale(0.85)' : 'scale(1)',
+              opacity: isSnake || isFood ? 1 : 0.1,
+              border: isSnake || isFood ? 'none' : '1px solid rgba(255,255,255,0.02)'
             }} />
           );
         })}
-
-        <AnimatePresence>
-          {phase !== 'playing' && (
-            <motion.div
-              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              style={{
-                position: 'absolute', inset: 0, zIndex: 10,
-                background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(4px)',
-                display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-                gap: 16
-              }}
-            >
-              <h2 style={{ margin: 0, fontSize: 32, fontWeight: 900, color: C_SNAKE, textShadow: `0 0 20px ${C_SNAKE}` }}>
-                {phase === 'idle' ? 'NEON SNAKE' : 'GAME OVER'}
-              </h2>
-              {phase === 'over' && (
-                <div style={{ textAlign: 'center' }}>
-                  <div style={{ fontSize: 18, color: '#fff' }}>Score: {score * 15}</div>
-                  {isHighScore && <div style={{ color: '#00e5ff', fontSize: 12, marginTop: 4 }}>¡NUEVO RÉCORD!</div>}
-                </div>
-              )}
-              <button onClick={start} style={{
-                padding: '10px 24px', borderRadius: 999, border: `1px solid ${C_FOOD}`,
-                background: 'rgba(0,229,255,0.1)', color: C_FOOD,
-                fontWeight: 900, fontSize: 14, cursor: 'pointer',
-                textTransform: 'uppercase', letterSpacing: 2
-              }}>
-                {phase === 'idle' ? 'Jugar' : 'Reiniciar'}
-              </button>
-            </motion.div>
-          )}
-        </AnimatePresence>
       </div>
 
-      {!isDesktop && (
-        <div style={{ marginTop: 8, display: 'grid', gridTemplateColumns: 'repeat(3, 48px)', gap: 8, justifyContent: 'center' }}>
-          <div />
-          <Btn onClick={() => { if (dirRef.current.y !== 1) nextDirRef.current = { x: 0, y: -1 } }}>▲</Btn>
-          <div />
-          <Btn onClick={() => { if (dirRef.current.x !== 1) nextDirRef.current = { x: -1, y: 0 } }}>◀</Btn>
-          <Btn onClick={() => { if (dirRef.current.y !== -1) nextDirRef.current = { x: 0, y: 1 } }}>▼</Btn>
-          <Btn onClick={() => { if (dirRef.current.x !== -1) nextDirRef.current = { x: 1, y: 0 } }}>▶</Btn>
+      <div style={{ marginTop: 32, display: 'flex', gap: 16, alignItems: 'center' }}>
+        <Btn onClick={() => { if (dirRef.current.x !== 1) { nextDirRef.current = { x: -1, y: 0 }; triggerHaptic('light'); } }}>◀</Btn>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <Btn onClick={() => { if (dirRef.current.y !== 1) { nextDirRef.current = { x: 0, y: -1 }; triggerHaptic('light'); } }}>▲</Btn>
+          <Btn onClick={() => { if (dirRef.current.y !== -1) { nextDirRef.current = { x: 0, y: 1 }; triggerHaptic('light'); } }}>▼</Btn>
         </div>
-      )}
-      <p style={{ fontSize: 9, opacity: 0.2, color: '#fff', textTransform: 'uppercase', letterSpacing: 2 }}>
-        {isDesktop ? 'usa las teclas de flecha' : 'usa las flechas o el d-pad táctil'}
-      </p>
-    </div>
+        <Btn onClick={() => { if (dirRef.current.x !== -1) { nextDirRef.current = { x: 1, y: 0 }; triggerHaptic('light'); } }}>▶</Btn>
+      </div>
+    </ArcadeShell>
+  );
+}
+
+function Btn({ children, onClick }) {
+  return (
+    <button
+      onPointerDown={e => { e.preventDefault(); onClick(); }}
+      style={{
+        width: 64, height: 64, borderRadius: 20,
+        border: '1px solid rgba(255,255,255,0.1)',
+        background: 'rgba(255,255,255,0.03)',
+        color: '#fff', fontSize: 24, cursor: 'pointer',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        boxShadow: '0 4px 15px rgba(0,0,0,0.2)',
+        backdropFilter: 'blur(10px)',
+        transition: 'all 0.15s'
+      }}
+      className="active:scale-95 active:bg-white/10 active:border-white/20"
+    >
+      {children}
+    </button>
   );
 }
 
 export default function SnakeGame() {
   return (
     <GameImmersiveLayout>
-      <GameShell title="Snake Neon">
-        <SnakeGameInner />
-      </GameShell>
+      <SnakeGameInner />
     </GameImmersiveLayout>
-  );
-}
-
-function Btn({ children, onClick }) {
-  return (
-    <button onPointerDown={e => { e.preventDefault(); onClick(); }} style={{
-      width: 48, height: 48, borderRadius: 12, border: '1px solid rgba(255,0,255,0.2)',
-      background: 'rgba(255,0,255,0.05)', color: '#ff00ff', fontSize: 18, cursor: 'pointer'
-    }}>{children}</button>
   );
 }

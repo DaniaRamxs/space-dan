@@ -1,75 +1,39 @@
 import { useEffect, useRef, useCallback, useState } from 'react';
 import useHighScore from '../hooks/useHighScore';
 import { GameImmersiveLayout } from '../core/GameImmersiveLayout';
-import { GameShell } from '../core/GameShell';
+import { ArcadeShell } from './ArcadeShell';
+import { useArcadeSystems } from '../hooks/useArcadeSystems';
 
-// ---------------------------------------------------------------------------
-// Constants
-// ---------------------------------------------------------------------------
 const W = 320;
 const H = 480;
 const BIRD_X = 60;
-const BIRD_R = 12;          // circle radius
+const BIRD_R = 14;
 const GRAVITY = 0.25;
-const FLAP_VEL = -5;
-const PIPE_W = 40;
-const PIPE_GAP = 120;
-const PIPE_SPEED = 2;        // px per frame
-const PIPE_MIN_INTERVAL = 80;
-const PIPE_MAX_INTERVAL = 100;
-const CEILING = 0;
-const FLOOR = H;
+const FLAP_VEL = -5.5;
+const PIPE_W = 50;
+const PIPE_GAP = 140;
+const PIPE_SPEED = 2.8;
+const PIPE_MIN_INTERVAL = 70;
+const PIPE_MAX_INTERVAL = 95;
 
-const C_BG = '#111111';
-const C_BIRD = '#ff6eb4';    // magenta
-const C_PIPE = '#00e5ff';    // cyan
-const C_TEXT = '#ffffff';
-const C_DIM = 'rgba(255,255,255,0.45)';
+const C_BIRD = '#ff6eb4';
+const C_PIPE = '#00e5ff';
 
-// ---------------------------------------------------------------------------
-// Pure helpers
-// ---------------------------------------------------------------------------
-
-/**
- * Returns a random integer in [min, max] (inclusive).
- * @param {number} min
- * @param {number} max
- * @returns {number}
- */
 function randInt(min, max) {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
-/**
- * Creates a new pipe object at the right edge of the canvas.
- * @returns {{ x: number, topH: number, passed: boolean }}
- */
 function makePipe() {
-  // topH = height of the top pipe section (gap starts below it)
-  const topH = randInt(40, H - PIPE_GAP - 40);
+  const topH = randInt(50, H - PIPE_GAP - 50);
   return { x: W, topH, passed: false };
 }
 
-/**
- * Checks whether the bird circle overlaps any pipe rectangle.
- * @param {number} birdY
- * @param {{ x: number, topH: number }[]} pipes
- * @returns {boolean}
- */
 function checkCollision(birdY, pipes) {
-  // floor / ceiling
-  if (birdY + BIRD_R >= FLOOR || birdY - BIRD_R <= CEILING) return true;
+  if (birdY + BIRD_R >= H || birdY - BIRD_R <= 0) return true;
 
   for (const pipe of pipes) {
-    const pipeLeft = pipe.x;
-    const pipeRight = pipe.x + PIPE_W;
-    const gapTop = pipe.topH;
-    const gapBottom = pipe.topH + PIPE_GAP;
-
-    // Broad-phase: is the bird horizontally near this pipe?
-    if (BIRD_X + BIRD_R > pipeLeft && BIRD_X - BIRD_R < pipeRight) {
-      // Bird must be within the gap vertically to be safe
-      if (birdY - BIRD_R < gapTop || birdY + BIRD_R > gapBottom) {
+    if (BIRD_X + BIRD_R > pipe.x && BIRD_X - BIRD_R < pipe.x + PIPE_W) {
+      if (birdY - BIRD_R < pipe.topH || birdY + BIRD_R > pipe.topH + PIPE_GAP) {
         return true;
       }
     }
@@ -77,28 +41,22 @@ function checkCollision(birdY, pipes) {
   return false;
 }
 
-// ---------------------------------------------------------------------------
-// Component
-// ---------------------------------------------------------------------------
-
-/**
- * FlappyBird — canvas-based mini-game.
- * Click the canvas or press Space to flap.
- */
 function FlappyBirdInner() {
   const canvasRef = useRef(null);
-  const stateRef = useRef(null); // mutable game state (avoids stale closures)
+  const stateRef = useRef(null);
   const rafRef = useRef(null);
   const [best, saveScore] = useHighScore('flappy');
-  // We keep a react-state copy of best so the label re-renders after saveScore
-  const [displayBest, setDisplayBest] = useState(best);
+  const [score, setScore] = useState(0);
+  const [status, setStatus] = useState('IDLE');
 
-  // -------------------------------------------------------------------------
-  // Game state factory
-  // -------------------------------------------------------------------------
+  const {
+    particles, floatingTexts, scoreControls,
+    triggerHaptic, spawnParticles, triggerFloatingText, animateScore
+  } = useArcadeSystems();
+
   function makeState() {
     return {
-      phase: 'idle',   // 'idle' | 'playing' | 'dead'
+      phase: 'IDLE',
       birdY: H / 2,
       velY: 0,
       pipes: [],
@@ -108,136 +66,121 @@ function FlappyBirdInner() {
     };
   }
 
-  // -------------------------------------------------------------------------
-  // Draw
-  // -------------------------------------------------------------------------
   const draw = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
     const s = stateRef.current;
 
-    // Background
-    ctx.fillStyle = C_BG;
-    ctx.fillRect(0, 0, W, H);
+    ctx.clearRect(0, 0, W, H);
 
-    // Pipes
+    // Pipes with premium glow
+    ctx.shadowBlur = 15;
+    ctx.shadowColor = C_PIPE;
     ctx.fillStyle = C_PIPE;
     for (const pipe of s.pipes) {
-      // top pipe
-      ctx.fillRect(pipe.x, 0, PIPE_W, pipe.topH);
-      // bottom pipe
+      // Top Pipe
+      ctx.beginPath();
+      if (ctx.roundRect) ctx.roundRect(pipe.x, -10, PIPE_W, pipe.topH + 10, 8);
+      else ctx.rect(pipe.x, -10, PIPE_W, pipe.topH + 10);
+      ctx.fill();
+
+      // Bottom Pipe
       const bottomY = pipe.topH + PIPE_GAP;
-      ctx.fillRect(pipe.x, bottomY, PIPE_W, H - bottomY);
+      ctx.beginPath();
+      if (ctx.roundRect) ctx.roundRect(pipe.x, bottomY, PIPE_W, H - bottomY + 10, 8);
+      else ctx.rect(pipe.x, bottomY, PIPE_W, H - bottomY + 10);
+      ctx.fill();
     }
 
-    // Bird
+    // Bird with vibrant glow
+    ctx.shadowBlur = 20;
+    ctx.shadowColor = C_BIRD;
+    ctx.fillStyle = C_BIRD;
     ctx.beginPath();
     ctx.arc(BIRD_X, s.birdY, BIRD_R, 0, Math.PI * 2);
-    ctx.fillStyle = C_BIRD;
     ctx.fill();
 
-    // Score (top-left)
-    ctx.fillStyle = C_TEXT;
-    ctx.font = 'bold 18px monospace';
-    ctx.textAlign = 'left';
-    ctx.fillText(String(s.score), 10, 28);
+    // Bird Eye
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = '#0b0b1a';
+    ctx.beginPath();
+    ctx.arc(BIRD_X + 6, s.birdY - 3, 3, 0, Math.PI * 2);
+    ctx.fill();
 
-    // Overlay text
-    if (s.phase === 'idle') {
-      ctx.fillStyle = C_DIM;
-      ctx.font = '16px monospace';
-      ctx.textAlign = 'center';
-      ctx.fillText('click para empezar', W / 2, H / 2);
-    }
-
-    if (s.phase === 'dead') {
-      ctx.fillStyle = C_DIM;
-      ctx.font = '16px monospace';
-      ctx.textAlign = 'center';
-      ctx.fillText('game over — click para reiniciar', W / 2, H / 2 - 16);
-      ctx.fillText(`puntuación: ${s.score}`, W / 2, H / 2 + 12);
-    }
+    ctx.shadowBlur = 0;
   }, []);
 
-  // -------------------------------------------------------------------------
-  // Game loop tick
-  // -------------------------------------------------------------------------
   const tick = useCallback(() => {
     const s = stateRef.current;
-    if (s.phase !== 'playing') {
+    if (s.phase !== 'PLAYING') {
       draw();
       return;
     }
 
-    // Physics
     s.velY += GRAVITY;
     s.birdY += s.velY;
     s.frame++;
 
-    // Spawn pipes
     s.nextPipeIn--;
     if (s.nextPipeIn <= 0) {
       s.pipes.push(makePipe());
       s.nextPipeIn = randInt(PIPE_MIN_INTERVAL, PIPE_MAX_INTERVAL);
     }
 
-    // Move pipes & score
     for (const pipe of s.pipes) {
       pipe.x -= PIPE_SPEED;
       if (!pipe.passed && pipe.x + PIPE_W < BIRD_X) {
         pipe.passed = true;
         s.score++;
+        setScore(s.score);
+        animateScore();
+        triggerFloatingText('+1', BIRD_X, s.birdY - 20, C_PIPE);
+        triggerHaptic('light');
       }
     }
 
-    // Cull off-screen pipes
-    s.pipes = s.pipes.filter((p) => p.x + PIPE_W > 0);
+    s.pipes = s.pipes.filter((p) => p.x + PIPE_W > -20);
 
-    // Collision
     if (checkCollision(s.birdY, s.pipes)) {
-      s.phase = 'dead';
-      const isNew = saveScore(s.score);
-      if (isNew) setDisplayBest(s.score);
-      window.dispatchEvent(new CustomEvent('dan:game-score', {
-        detail: { gameId: 'flappy', score: s.score, isHighScore: isNew }
-      }));
+      s.phase = 'DEAD';
+      setStatus('DEAD');
+      triggerHaptic('heavy');
+      spawnParticles(BIRD_X, s.birdY, C_BIRD, 20);
+
+      saveScore(s.score);
       draw();
       return;
     }
 
     draw();
-
     rafRef.current = requestAnimationFrame(tick);
-  }, [draw, saveScore]);
+  }, [draw, saveScore, animateScore, triggerFloatingText, triggerHaptic, spawnParticles]);
 
-  // -------------------------------------------------------------------------
-  // Start / flap handler
-  // -------------------------------------------------------------------------
   const handleInteract = useCallback(() => {
     const s = stateRef.current;
 
-    if (s.phase === 'idle' || s.phase === 'dead') {
-      // (Re)start
+    if (s.phase === 'IDLE' || s.phase === 'DEAD') {
       stateRef.current = makeState();
-      stateRef.current.phase = 'playing';
+      stateRef.current.phase = 'PLAYING';
       stateRef.current.velY = FLAP_VEL;
+      setScore(0);
+      setStatus('PLAYING');
       cancelAnimationFrame(rafRef.current);
       rafRef.current = requestAnimationFrame(tick);
+      triggerHaptic('medium');
       return;
     }
 
-    if (s.phase === 'playing') {
+    if (s.phase === 'PLAYING') {
       s.velY = FLAP_VEL;
+      triggerHaptic('light');
     }
-  }, [tick]);
+  }, [tick, triggerHaptic]);
 
-  // -------------------------------------------------------------------------
-  // Keyboard listener
-  // -------------------------------------------------------------------------
   useEffect(() => {
     const onKey = (e) => {
-      if (e.code === 'Space') {
+      if (e.code === 'Space' || e.code === 'ArrowUp') {
         e.preventDefault();
         handleInteract();
       }
@@ -246,78 +189,47 @@ function FlappyBirdInner() {
     return () => window.removeEventListener('keydown', onKey);
   }, [handleInteract]);
 
-  // -------------------------------------------------------------------------
-  // Mount: init state and draw idle screen
-  // -------------------------------------------------------------------------
   useEffect(() => {
     stateRef.current = makeState();
     draw();
     return () => cancelAnimationFrame(rafRef.current);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [draw]);
 
-  // Touch support — passive: false needed to prevent page scroll while playing
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const onTouch = (e) => { e.preventDefault(); handleInteract(); };
-    canvas.addEventListener('touchstart', onTouch, { passive: false });
-    return () => canvas.removeEventListener('touchstart', onTouch);
-  }, [handleInteract]);
-
-  // Keep displayBest in sync when the hook re-reads from localStorage
-  useEffect(() => {
-    setDisplayBest(best);
-  }, [best]);
-
-  // -------------------------------------------------------------------------
-  // Render
-  // -------------------------------------------------------------------------
   return (
-    <div
-      style={{
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        maxWidth: 420,
-        margin: '0 auto',
-        fontFamily: 'monospace',
-        color: '#ffffff',
-      }}
+    <ArcadeShell
+      title="Flappy Neon"
+      score={score}
+      bestScore={best}
+      status={status}
+      onRetry={handleInteract}
+      scoreControls={scoreControls}
+      particles={particles}
+      floatingTexts={floatingTexts}
+      subTitle="Vuela a través de los portales de energía."
     >
-      <canvas
-        ref={canvasRef}
-        width={W}
-        height={H}
-        onClick={handleInteract}
-        style={{
-          display: 'block',
-          background: C_BG,
-          cursor: 'pointer',
-          border: '1px solid #ff6eb4',
-          borderRadius: 4,
-        }}
-      />
-      <p
-        style={{
-          marginTop: 10,
-          fontSize: 13,
-          color: '#ff6eb4',
-          letterSpacing: '0.05em',
-        }}
-      >
-        récord: {displayBest}
-      </p>
-    </div>
+      <div style={{ position: 'relative', width: W, height: H, background: 'rgba(255,255,255,0.02)', borderRadius: 24, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.05)' }}>
+        <canvas
+          ref={canvasRef}
+          width={W}
+          height={H}
+          onClick={handleInteract}
+          style={{
+            display: 'block',
+            cursor: 'pointer',
+            width: '100%',
+            height: '100%',
+            objectFit: 'contain',
+          }}
+        />
+      </div>
+    </ArcadeShell>
   );
 }
 
 export default function FlappyBird() {
   return (
     <GameImmersiveLayout>
-      <GameShell title="Flappy">
-        <FlappyBirdInner />
-      </GameShell>
+      <FlappyBirdInner />
     </GameImmersiveLayout>
   );
 }

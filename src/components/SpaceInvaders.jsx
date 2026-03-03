@@ -1,100 +1,117 @@
-import { useRef, useEffect, useCallback } from 'react';
+import { useRef, useEffect, useCallback, useState } from 'react';
 import { GameImmersiveLayout } from '../core/GameImmersiveLayout';
-import { GameShell } from '../core/GameShell';
+import { ArcadeShell } from './ArcadeShell';
+import { useArcadeSystems } from '../hooks/useArcadeSystems';
+import useHighScore from '../hooks/useHighScore';
 
 const W = 400;
 const H = 500;
-const COLORS = { bg: '#0b0b10', cyan: '#00e5ff', magenta: '#ff00ff', white: '#ffffff', dim: 'rgba(255,255,255,0.15)' };
+const COLORS = {
+  bg: 'transparent',
+  cyan: '#00e5ff',
+  magenta: '#ff00ff',
+  white: '#ffffff',
+  shield: '#00ff88',
+  dim: 'rgba(255,255,255,0.05)'
+};
 
-const ROWS = 4;
-const COLS = 8;
-const INVADER_W = 36;
-const INVADER_H = 30;
-const INVADER_PAD_X = 8;
-const INVADER_PAD_Y = 10;
-const GRID_TOP = 60;
-const PLAYER_W = 36;
-const PLAYER_H = 24;
+const INVADER_ROWS = 5;
+const INVADER_COLS = 8;
+const INVADER_W = 28;
+const INVADER_H = 24;
+const INVADER_PAD = 12;
+
+const SHIP_W = 32;
+const SHIP_H = 18;
+const SHIP_Y = H - 40;
+
 const BULLET_W = 3;
 const BULLET_H = 12;
-const PLAYER_SPEED = 5;
-const PLAYER_BULLET_SPEED = 8;
-const INVADER_BULLET_SPEED = 3;
 
-function makeInvaders() {
-  const grid = [];
-  for (let r = 0; r < ROWS; r++) {
-    for (let c = 0; c < COLS; c++) {
-      grid.push({
+const SHIELDS = 4;
+const SHIELD_Y = H - 100;
+const SHIELD_W = 50;
+const SHIELD_H = 30;
+
+function makeInvaders(level) {
+  const invaders = [];
+  for (let r = 0; r < INVADER_ROWS; r++) {
+    for (let c = 0; c < INVADER_COLS; c++) {
+      invaders.push({
         r, c,
+        x: 40 + c * (INVADER_W + INVADER_PAD),
+        y: 60 + r * (INVADER_H + INVADER_PAD),
         alive: true,
-        x: 30 + c * (INVADER_W + INVADER_PAD_X),
-        y: GRID_TOP + r * (INVADER_H + INVADER_PAD_Y),
+        type: r === 0 ? '👾' : (r < 3 ? '🛸' : '👽')
       });
     }
   }
-  return grid;
+  return invaders;
 }
 
 function makeShields() {
-  const shields = [];
-  const positions = [70, 160, 250, 330];
-  for (const sx of positions) {
-    for (let bx = 0; bx < 4; bx++) {
-      for (let by = 0; by < 2; by++) {
-        shields.push({ x: sx + bx * 10, y: H - 90 + by * 10, hp: 3 });
-      }
-    }
+  const s = [];
+  const startX = (W - (SHIELDS * SHIELD_W + (SHIELDS - 1) * 30)) / 2;
+  for (let i = 0; i < SHIELDS; i++) {
+    s.push({
+      x: startX + i * (SHIELD_W + 30),
+      y: SHIELD_Y,
+      hp: 12
+    });
   }
-  return shields;
-}
-
-function makeState() {
-  return {
-    phase: 'idle',
-    playerX: W / 2 - PLAYER_W / 2,
-    lives: 3,
-    score: 0,
-    wave: 1,
-    invaders: makeInvaders(),
-    invDir: 1,
-    invSpeed: 1,
-    invTimer: 0,
-    invDrop: 0,
-    playerBullets: [],
-    invBullets: [],
-    shields: makeShields(),
-    lastShot: 0,
-    invFireTimer: 0,
-    invFireInterval: 120,
-    gameOver: false,
-    win: false,
-    playerInvincible: 0,
-  };
+  return s;
 }
 
 function SpaceInvadersInner() {
   const canvasRef = useRef(null);
-  const stateRef = useRef(makeState());
+  const stateRef = useRef(null);
   const rafRef = useRef(null);
-  const firedRef = useRef(false);
   const keysRef = useRef({});
   const frameRef = useRef(0);
 
-  const drawShip = useCallback((ctx, x, y, color) => {
-    ctx.fillStyle = color;
-    ctx.shadowColor = color;
-    ctx.shadowBlur = 10;
+  const [best, saveScore] = useHighScore('spaceinvaders');
+  const [score, setScore] = useState(0);
+  const [status, setStatus] = useState('IDLE');
+
+  const {
+    particles, floatingTexts, scoreControls,
+    triggerHaptic, spawnParticles, triggerFloatingText, animateScore
+  } = useArcadeSystems();
+
+  function makeState() {
+    return {
+      phase: 'PLAYING',
+      shipX: W / 2 - SHIP_W / 2,
+      invaders: makeInvaders(1),
+      shields: makeShields(),
+      bullets: [],
+      enemyBullets: [],
+      lives: 3,
+      score: 0,
+      level: 1,
+      invaderDir: 1,
+      invaderStep: 10,
+      invaderDown: false,
+      lastShot: 0,
+      lastEnemyShot: 0,
+    };
+  }
+
+  const drawShip = useCallback((ctx, x, y) => {
+    ctx.shadowBlur = 15;
+    ctx.shadowColor = COLORS.cyan;
+    ctx.fillStyle = COLORS.cyan;
     ctx.beginPath();
-    ctx.moveTo(x + PLAYER_W / 2, y);
-    ctx.lineTo(x + PLAYER_W, y + PLAYER_H);
-    ctx.lineTo(x + PLAYER_W * 0.7, y + PLAYER_H - 6);
-    ctx.lineTo(x + PLAYER_W / 2, y + PLAYER_H);
-    ctx.lineTo(x + PLAYER_W * 0.3, y + PLAYER_H - 6);
-    ctx.lineTo(x, y + PLAYER_H);
+    ctx.moveTo(x + SHIP_W / 2, y);
+    ctx.lineTo(x + SHIP_W, y + SHIP_H);
+    ctx.lineTo(x, y + SHIP_H);
     ctx.closePath();
     ctx.fill();
+
+    // Glowing cockpit
     ctx.shadowBlur = 0;
+    ctx.fillStyle = COLORS.white + '66';
+    ctx.fillRect(x + SHIP_W / 2 - 2, y + 4, 4, 6);
   }, []);
 
   const draw = useCallback(() => {
@@ -102,332 +119,290 @@ function SpaceInvadersInner() {
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
     const s = stateRef.current;
+    if (!s) return;
 
-    ctx.fillStyle = COLORS.bg;
-    ctx.fillRect(0, 0, W, H);
-
-    // HUD
-    ctx.fillStyle = COLORS.cyan;
-    ctx.font = '13px monospace';
-    ctx.textAlign = 'left';
-    ctx.fillText(`SCORE: ${s.score}`, 10, 22);
-    ctx.textAlign = 'right';
-    ctx.fillText(`WAVE: ${s.wave}`, W - 10, 22);
+    ctx.clearRect(0, 0, W, H);
     ctx.textAlign = 'center';
-    // Lives as small ships
-    for (let i = 0; i < s.lives; i++) {
-      drawShip(ctx, W / 2 - 30 + i * 26, 6, COLORS.cyan);
-    }
+    ctx.textBaseline = 'middle';
 
-    // Shields
+    // Shields (Glassmorphism look)
     for (const sh of s.shields) {
       if (sh.hp <= 0) continue;
-      const alpha = sh.hp / 3;
-      ctx.fillStyle = `rgba(0,229,255,${alpha * 0.8})`;
-      ctx.fillRect(sh.x, sh.y, 9, 9);
+      const alpha = sh.hp / 12;
+      ctx.fillStyle = COLORS.shield + Math.floor(alpha * 255).toString(16).padStart(2, '0');
+      ctx.shadowBlur = 10 * alpha;
+      ctx.shadowColor = COLORS.shield;
+      ctx.beginPath();
+      if (ctx.roundRect) ctx.roundRect(sh.x, sh.y, SHIELD_W, SHIELD_H, 6);
+      else ctx.rect(sh.x, sh.y, SHIELD_W, SHIELD_H);
+      ctx.fill();
+
+      // HP bar
+      ctx.shadowBlur = 0;
+      ctx.fillStyle = 'rgba(255,255,255,0.2)';
+      ctx.fillRect(sh.x, sh.y + SHIELD_H - 4, SHIELD_W * alpha, 4);
     }
 
-    // Invaders
-    ctx.font = `${INVADER_W - 4}px serif`;
-    ctx.textAlign = 'center';
+    // Invaders with premium glow
+    ctx.font = `${INVADER_W}px serif`;
+    ctx.shadowBlur = 12;
     for (const inv of s.invaders) {
       if (!inv.alive) continue;
-      ctx.globalAlpha = 1;
       ctx.fillStyle = COLORS.magenta;
       ctx.shadowColor = COLORS.magenta;
-      ctx.shadowBlur = 6;
-      ctx.fillText('👾', inv.x + INVADER_W / 2, inv.y + INVADER_H - 2);
+      ctx.fillText(inv.type, inv.x + INVADER_W / 2, inv.y + INVADER_H / 2);
     }
     ctx.shadowBlur = 0;
-    ctx.globalAlpha = 1;
 
-    // Player bullets
+    // Ship
+    drawShip(ctx, s.shipX, SHIP_Y);
+
+    // Bullets (Player)
     ctx.fillStyle = COLORS.cyan;
+    ctx.shadowBlur = 15;
     ctx.shadowColor = COLORS.cyan;
-    ctx.shadowBlur = 8;
-    for (const b of s.playerBullets) {
+    for (const b of s.bullets) {
       ctx.fillRect(b.x - BULLET_W / 2, b.y, BULLET_W, BULLET_H);
     }
 
-    // Invader bullets
+    // Bullets (Enemies)
     ctx.fillStyle = COLORS.magenta;
     ctx.shadowColor = COLORS.magenta;
-    for (const b of s.invBullets) {
-      ctx.fillRect(b.x - BULLET_W / 2, b.y, BULLET_W, BULLET_H);
+    for (const b of s.enemyBullets) {
+      ctx.beginPath();
+      ctx.arc(b.x, b.y, 4, 0, Math.PI * 2);
+      ctx.fill();
     }
     ctx.shadowBlur = 0;
-
-    // Player
-    if (s.playerInvincible <= 0 || frameRef.current % 6 < 3) {
-      drawShip(ctx, s.playerX, H - PLAYER_H - 18, COLORS.cyan);
-    }
-
-    // Bottom line
-    ctx.strokeStyle = COLORS.dim;
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.moveTo(0, H - 18);
-    ctx.lineTo(W, H - 18);
-    ctx.stroke();
-
-    // Overlays
-    if (s.phase === 'idle') {
-      ctx.fillStyle = 'rgba(11,11,16,0.8)';
-      ctx.fillRect(0, 0, W, H);
-      ctx.fillStyle = COLORS.magenta;
-      ctx.shadowColor = COLORS.magenta;
-      ctx.shadowBlur = 16;
-      ctx.font = 'bold 26px monospace';
-      ctx.textAlign = 'center';
-      ctx.fillText('SPACE INVADERS', W / 2, H / 2 - 40);
-      ctx.shadowBlur = 0;
-      ctx.fillStyle = COLORS.white;
-      ctx.font = '14px monospace';
-      ctx.fillText('Click para jugar', W / 2, H / 2);
-      ctx.fillStyle = COLORS.dim;
-      ctx.font = '11px monospace';
-      ctx.fillText('A/D o Flechas &larr;&rarr; | Espacio o Click para disparar', W / 2, H / 2 + 24);
-    }
-
-    if (s.phase === 'over') {
-      ctx.fillStyle = 'rgba(11,11,16,0.85)';
-      ctx.fillRect(0, 0, W, H);
-      const color = s.win ? COLORS.cyan : COLORS.magenta;
-      ctx.fillStyle = color;
-      ctx.shadowColor = color;
-      ctx.shadowBlur = 20;
-      ctx.font = 'bold 28px monospace';
-      ctx.textAlign = 'center';
-      ctx.fillText(s.win ? '¡VICTORIA!' : 'GAME OVER', W / 2, H / 2 - 30);
-      ctx.shadowBlur = 0;
-      ctx.fillStyle = COLORS.white;
-      ctx.font = '16px monospace';
-      ctx.fillText(`Score: ${s.score}`, W / 2, H / 2 + 4);
-      ctx.font = '13px monospace';
-      ctx.fillText('Click para reiniciar', W / 2, H / 2 + 30);
-    }
   }, [drawShip]);
 
   const tick = useCallback(() => {
     const s = stateRef.current;
+    if (!s) return;
     frameRef.current++;
-    if (s.phase !== 'playing') { draw(); rafRef.current = requestAnimationFrame(tick); return; }
 
-    // Player move
-    if (keysRef.current['ArrowLeft'] || keysRef.current['a'] || keysRef.current['A']) {
-      s.playerX = Math.max(0, s.playerX - PLAYER_SPEED);
-    }
-    if (keysRef.current['ArrowRight'] || keysRef.current['d'] || keysRef.current['D']) {
-      s.playerX = Math.min(W - PLAYER_W, s.playerX + PLAYER_SPEED);
+    if (s.phase !== 'PLAYING') {
+      draw();
+      rafRef.current = requestAnimationFrame(tick);
+      return;
     }
 
-    // Player shoot
-    if ((keysRef.current[' '] || keysRef.current['shoot']) && frameRef.current - s.lastShot > 20) {
-      s.playerBullets.push({ x: s.playerX + PLAYER_W / 2, y: H - PLAYER_H - 20 });
+    // Movement
+    if (keysRef.current['ArrowLeft'] || keysRef.current['a']) s.shipX = Math.max(0, s.shipX - 5);
+    if (keysRef.current['ArrowRight'] || keysRef.current['d']) s.shipX = Math.min(W - SHIP_W, s.shipX + 5);
+
+    // Shooting
+    if ((keysRef.current[' '] || keysRef.current['Shoot']) && frameRef.current - s.lastShot > 30) {
+      s.bullets.push({ x: s.shipX + SHIP_W / 2, y: SHIP_Y - BULLET_H });
       s.lastShot = frameRef.current;
-      keysRef.current['shoot'] = false;
+      keysRef.current['Shoot'] = false;
+      triggerHaptic('light');
     }
 
-    // Player bullets
-    s.playerBullets = s.playerBullets.filter(b => {
-      b.y -= PLAYER_BULLET_SPEED;
-      if (b.y < 0) return false;
-      // Hit shields
+    // Bullets (Player)
+    s.bullets = s.bullets.filter(b => {
+      b.y -= 8;
+      // Shield hit
       for (const sh of s.shields) {
-        if (sh.hp > 0 && b.x >= sh.x && b.x <= sh.x + 9 && b.y >= sh.y && b.y <= sh.y + 9) {
+        if (sh.hp > 0 && b.x > sh.x && b.x < sh.x + SHIELD_W && b.y > sh.y && b.y < sh.y + SHIELD_H) {
           sh.hp--;
+          triggerHaptic('light');
+          spawnParticles(`${(b.x / W) * 100}%`, `${(b.y / H) * 100}%`, COLORS.shield, 6);
           return false;
         }
       }
-      // Hit invaders
+      // Invader hit
       for (const inv of s.invaders) {
-        if (!inv.alive) continue;
-        if (b.x >= inv.x && b.x <= inv.x + INVADER_W && b.y >= inv.y && b.y <= inv.y + INVADER_H) {
+        if (inv.alive && b.x > inv.x && b.x < inv.x + INVADER_W && b.y > inv.y && b.y < inv.y + INVADER_H) {
           inv.alive = false;
-          s.score += (ROWS - inv.r) * 10;
+          s.score += 20 * (5 - inv.r);
+          setScore(s.score);
+          animateScore();
+          triggerHaptic('medium');
+          spawnParticles(`${(inv.x / W) * 100}%`, `${(inv.y / H) * 100}%`, COLORS.magenta, 12);
+          triggerFloatingText(`+${20 * (5 - inv.r)}`, `${(inv.x / W) * 100}%`, `${(inv.y / H) * 100}%`, COLORS.magenta);
           return false;
         }
       }
-      return true;
+      return b.y > 0;
     });
 
     // Invader movement
-    s.invTimer++;
-    const aliveInvaders = s.invaders.filter(i => i.alive);
-    const moveInterval = Math.max(8, 50 - aliveInvaders.length * 2 - (s.wave - 1) * 5);
-    if (s.invTimer >= moveInterval) {
-      s.invTimer = 0;
-      let needDrop = false;
-      for (const inv of aliveInvaders) {
-        inv.x += s.invDir * (4 + s.wave * 0.5);
+    const aliveCount = s.invaders.filter(v => v.alive).length;
+    const speed = Math.max(2, Math.floor(aliveCount / 4));
+    if (frameRef.current % speed === 0) {
+      let hitSide = false;
+      for (const inv of s.invaders) {
+        if (!inv.alive) continue;
+        if (s.invaderDir === 1 && inv.x + INVADER_W + 10 >= W) hitSide = true;
+        if (s.invaderDir === -1 && inv.x - 10 <= 0) hitSide = true;
       }
-      const leftmost = Math.min(...aliveInvaders.map(i => i.x));
-      const rightmost = Math.max(...aliveInvaders.map(i => i.x + INVADER_W));
-      if (rightmost >= W - 10 || leftmost <= 10) {
-        needDrop = true;
-        s.invDir *= -1;
-      }
-      if (needDrop) {
-        for (const inv of aliveInvaders) inv.y += 16;
+
+      if (hitSide) {
+        s.invaderDir *= -1;
+        for (const inv of s.invaders) inv.y += 12;
+      } else {
+        for (const inv of s.invaders) inv.x += 10 * s.invaderDir;
       }
     }
 
-    // Check invader reaching bottom
-    for (const inv of aliveInvaders) {
-      if (inv.y + INVADER_H >= H - 18) {
-        s.phase = 'over';
-        s.win = false;
-        if (!firedRef.current) { firedRef.current = true; window.dispatchEvent(new CustomEvent('dan:game-score', { detail: { gameId: 'invaders', score: s.score, isHighScore: false } })); }
-        draw();
+    // Enemy shooting
+    if (frameRef.current - s.lastEnemyShot > Math.max(20, 100 - s.level * 10)) {
+      const aliveOnes = s.invaders.filter(v => v.alive);
+      if (aliveOnes.length > 0) {
+        const shooter = aliveOnes[Math.floor(Math.random() * aliveOnes.length)];
+        s.enemyBullets.push({ x: shooter.x + INVADER_W / 2, y: shooter.y + INVADER_H });
+        s.lastEnemyShot = frameRef.current;
+      }
+    }
+
+    // Enemy bullets
+    s.enemyBullets = s.enemyBullets.filter(b => {
+      b.y += 3 + s.level * 0.5;
+      // Shield hit
+      for (const sh of s.shields) {
+        if (sh.hp > 0 && b.x > sh.x && b.x < sh.x + SHIELD_W && b.y > sh.y && b.y < sh.y + SHIELD_H) {
+          sh.hp--;
+          triggerHaptic('light');
+          spawnParticles(`${(b.x / W) * 100}%`, `${(b.y / H) * 100}%`, COLORS.shield, 6);
+          return false;
+        }
+      }
+      // Ship hit
+      if (b.x > s.shipX && b.x < s.shipX + SHIP_W && b.y > SHIP_Y && b.y < SHIP_Y + SHIP_H) {
+        s.lives--;
+        triggerHaptic('heavy');
+        spawnParticles(`${(b.x / W) * 100}%`, `${(b.y / H) * 100}%`, COLORS.cyan, 20);
+        triggerFloatingText('¡IMPACTO!', '50%', '40%', COLORS.cyan);
+        if (s.lives <= 0) {
+          s.phase = 'DEAD';
+          setStatus('DEAD');
+          saveScore(s.score);
+          draw();
+          return;
+        }
+        return false;
+      }
+      return b.y < H;
+    });
+
+    // Check Win
+    if (aliveCount === 0) {
+      s.level++;
+      s.invaders = makeInvaders(s.level);
+      s.shields = makeShields();
+      s.bullets = [];
+      s.enemyBullets = [];
+      triggerFloatingText(`SISTEMA DESPEJADO - NIVEL ${s.level}`, '50%', '40%', COLORS.cyan);
+      animateScore();
+      triggerHaptic('medium');
+    }
+
+    // Check Loss (invasion)
+    for (const inv of s.invaders) {
+      if (inv.alive && inv.y + INVADER_H >= SHIP_Y) {
+        s.phase = 'DEAD';
+        setStatus('DEAD');
+        saveScore(s.score);
         return;
       }
     }
 
-    // Invaders cleared
-    if (aliveInvaders.length === 0) {
-      s.wave++;
-      s.invaders = makeInvaders().map(inv => {
-        inv.y += 10;
-        return inv;
-      });
-      s.invSpeed = Math.min(s.invSpeed + 0.5, 4);
-      s.invFireInterval = Math.max(40, s.invFireInterval - 15);
-      s.playerBullets = [];
-      s.invBullets = [];
-    }
-
-    // Invader fire
-    s.invFireTimer++;
-    if (s.invFireTimer >= s.invFireInterval && aliveInvaders.length > 0) {
-      s.invFireTimer = 0;
-      const shooter = aliveInvaders[Math.floor(Math.random() * aliveInvaders.length)];
-      s.invBullets.push({ x: shooter.x + INVADER_W / 2, y: shooter.y + INVADER_H });
-    }
-
-    // Invader bullets
-    s.invBullets = s.invBullets.filter(b => {
-      b.y += INVADER_BULLET_SPEED;
-      if (b.y > H) return false;
-      // Hit shields
-      for (const sh of s.shields) {
-        if (sh.hp > 0 && b.x >= sh.x && b.x <= sh.x + 9 && b.y >= sh.y && b.y <= sh.y + 9) {
-          sh.hp--;
-          return false;
-        }
-      }
-      // Hit player
-      if (
-        s.playerInvincible <= 0 &&
-        b.x >= s.playerX && b.x <= s.playerX + PLAYER_W &&
-        b.y >= H - PLAYER_H - 18 && b.y <= H - 18
-      ) {
-        s.lives--;
-        s.playerInvincible = 120;
-        if (s.lives <= 0) {
-          s.phase = 'over';
-          s.win = false;
-          if (!firedRef.current) { firedRef.current = true; window.dispatchEvent(new CustomEvent('dan:game-score', { detail: { gameId: 'invaders', score: s.score, isHighScore: false } })); }
-        }
-        return false;
-      }
-      return true;
-    });
-
-    if (s.playerInvincible > 0) s.playerInvincible--;
-
     draw();
     rafRef.current = requestAnimationFrame(tick);
-  }, [draw]);
+  }, [draw, spawnParticles, triggerFloatingText, animateScore, triggerHaptic, saveScore]);
 
-  const startGame = useCallback(() => {
-    const fresh = makeState();
-    fresh.phase = 'playing';
-    stateRef.current = fresh;
+  const start = useCallback(() => {
+    stateRef.current = makeState();
+    setScore(0);
+    setStatus('PLAYING');
     frameRef.current = 0;
-    firedRef.current = false;
-    if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    cancelAnimationFrame(rafRef.current);
     rafRef.current = requestAnimationFrame(tick);
-  }, [tick]);
+    triggerHaptic('medium');
+  }, [tick, triggerHaptic]);
 
   useEffect(() => {
+    stateRef.current = makeState();
+    setStatus('IDLE');
+    stateRef.current.phase = 'IDLE';
     draw();
-    rafRef.current = requestAnimationFrame(tick);
 
     const onKey = (e) => {
       keysRef.current[e.key] = e.type === 'keydown';
-      if ([' ', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(e.key)) e.preventDefault();
+      if ([' ', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'w', 'a', 's', 'd'].includes(e.key)) e.preventDefault();
     };
-    const onClick = (e) => {
-      const s = stateRef.current;
-      if (s.phase === 'idle' || s.phase === 'over') { startGame(); return; }
-      if (s.phase === 'playing') {
-        keysRef.current['shoot'] = true;
-      }
-    };
-
-    const canvas = canvasRef.current;
     window.addEventListener('keydown', onKey);
     window.addEventListener('keyup', onKey);
-    canvas.addEventListener('click', onClick);
-
     return () => {
       cancelAnimationFrame(rafRef.current);
       window.removeEventListener('keydown', onKey);
       window.removeEventListener('keyup', onKey);
-      canvas.removeEventListener('click', onClick);
     };
-  }, [draw, tick, startGame]);
-
-  // Mobile touch controls
-  const handleTouchMove = useCallback((e) => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const rect = canvas.getBoundingClientRect();
-    const scaleX = W / rect.width;
-    const t = e.touches[0];
-    if (t) {
-      const tx = (t.clientX - rect.left) * scaleX;
-      stateRef.current.playerX = Math.max(0, Math.min(W - PLAYER_W, tx - PLAYER_W / 2));
-    }
-  }, []);
-
-  const handleTouchStart = useCallback((e) => {
-    const s = stateRef.current;
-    if (s.phase === 'idle' || s.phase === 'over') { startGame(); return; }
-    keysRef.current['shoot'] = true;
-    handleTouchMove(e);
-  }, [startGame, handleTouchMove]);
+  }, [draw]);
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', background: COLORS.bg, padding: '12px' }}>
-      <canvas
-        ref={canvasRef}
-        width={W}
-        height={H}
-        onTouchStart={handleTouchStart}
-        onTouchMove={handleTouchMove}
-        style={{
-          display: 'block',
-          maxWidth: '100%',
-          border: `1px solid ${COLORS.magenta}`,
-          boxShadow: `0 0 18px ${COLORS.magenta}44`,
-          cursor: 'crosshair',
-          touchAction: 'none',
-        }}
-      />
-      <div style={{ marginTop: 8, color: COLORS.dim, fontFamily: 'monospace', fontSize: 11 }}>
-        A/D o &larr;&rarr; para mover &nbsp;|&nbsp; Espacio o Click para disparar
+    <ArcadeShell
+      title="Space Invaders"
+      score={score}
+      bestScore={best}
+      status={status}
+      onRetry={start}
+      scoreControls={scoreControls}
+      particles={particles}
+      floatingTexts={floatingTexts}
+      subTitle="Repele la invasión alienígena."
+    >
+      <div style={{ position: 'relative', width: 'min(70vh, 95vw)', aspectRatio: `${W}/${H}`, background: 'rgba(255,255,255,0.02)', borderRadius: 24, padding: 8, border: '1px solid rgba(255,255,255,0.05)', boxShadow: 'inset 0 0 40px rgba(0,0,0,0.5)', overflow: 'hidden' }}>
+        <canvas
+          ref={canvasRef}
+          width={W}
+          height={H}
+          onClick={() => status !== 'PLAYING' && start()}
+          style={{
+            display: 'block',
+            width: '100%',
+            height: '100%',
+            touchAction: 'none',
+          }}
+        />
       </div>
-    </div>
+
+      <div style={{ marginTop: 24, display: 'flex', gap: 16, alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: 12 }}>
+          <ControlBtn icon="◀" onDown={() => keysRef.current['ArrowLeft'] = true} onUp={() => keysRef.current['ArrowLeft'] = false} />
+          <ControlBtn icon="▶" onDown={() => keysRef.current['ArrowRight'] = true} onUp={() => keysRef.current['ArrowRight'] = false} />
+        </div>
+        <ControlBtn icon="SHOOT" color={COLORS.magenta} onDown={() => keysRef.current['Shoot'] = true} onUp={() => keysRef.current['Shoot'] = false} />
+      </div>
+
+      <div style={{
+        marginTop: 20,
+        display: 'flex',
+        gap: 32,
+        fontSize: '0.75rem',
+        fontWeight: 800,
+        color: 'rgba(255, 255, 255, 0.3)',
+        textTransform: 'uppercase',
+        letterSpacing: 2
+      }}>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+          <span style={{ fontSize: '0.6rem', opacity: 0.6, marginBottom: 4 }}>VIDAS</span>
+          <span style={{ color: COLORS.cyan, fontSize: '1rem' }}>{stateRef.current?.lives || 0}</span>
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+          <span style={{ fontSize: '0.6rem', opacity: 0.6, marginBottom: 4 }}>NIVEL</span>
+          <span style={{ color: COLORS.magenta, fontSize: '1rem' }}>{stateRef.current?.level || 1}</span>
+        </div>
+      </div>
+    </ArcadeShell>
   );
 }
 
 export default function SpaceInvaders() {
   return (
     <GameImmersiveLayout>
-      <GameShell title="Invaders">
-        <SpaceInvadersInner />
-      </GameShell>
+      <SpaceInvadersInner />
     </GameImmersiveLayout>
   );
 }

@@ -1,39 +1,25 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { GameImmersiveLayout } from '../core/GameImmersiveLayout';
-import { GameShell } from '../core/GameShell';
+import { ArcadeShell } from './ArcadeShell';
+import { useArcadeSystems } from '../hooks/useArcadeSystems';
 import useHighScore from '../hooks/useHighScore';
-import Confetti from 'react-confetti';
 import { useSpacelyGame } from '../hooks/useSpacelyGame';
 import { tictactoeEngine } from '../engine/tictactoeEngine';
 
-// --- Assets and Config ---
 const C_X = '#00e5ff';
 const C_O = '#ff00ff';
-const C_BG = 'rgba(10, 10, 18, 0.4)';
-
-const playTone = (freq, type = 'sine', duration = 0.1) => {
-  try {
-    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    const osc = audioCtx.createOscillator();
-    const gain = audioCtx.createGain();
-    osc.type = type;
-    osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
-    gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration);
-    osc.connect(gain);
-    gain.connect(audioCtx.destination);
-    osc.start();
-    osc.stop(audioCtx.currentTime + duration);
-  } catch (e) { /* silent fail */ }
-};
 
 function TicTacToeInner() {
-  const [difficulty, setDifficulty] = useState('hard'); // easy | hard
+  const [difficulty, setDifficulty] = useState('hard');
   const [streak, setStreak] = useState(0);
   const [best, saveScore] = useHighScore('ttt');
 
-  // Game Configuration for Framework Hook
+  const {
+    particles, floatingTexts, scoreControls,
+    triggerHaptic, spawnParticles, triggerFloatingText, animateScore
+  } = useArcadeSystems();
+
   const gameConfig = useMemo(() => ({
     gameId: 'tictactoe-match',
     gameType: 'tictactoe',
@@ -44,42 +30,46 @@ function TicTacToeInner() {
     timerConfig: { softLimit: 5000, hardLimit: 15000, tickInterval: 100, autoStart: true }
   }), []);
 
-  // Consumimos el orquestador global
   const {
-    status,
+    status: gameStatus,
     context,
     engineState,
-    timerState,
     makeMove,
     resetGame
   } = useSpacelyGame(tictactoeEngine, gameConfig);
 
-  const { board, turn } = engineState;
+  const { board } = engineState;
   const winner = context.winner;
-  const isFinished = status === 'FINISHED';
+  const isFinished = gameStatus === 'FINISHED';
 
-  // Handling Win Event locally for Audio/Confetti since GameEngine doesn't do side effects
-  const [prevFinished, setPrevFinished] = useState(false);
-  const [showConfetti, setShowConfetti] = useState(false);
+  const [prevGameStatus, setPrevGameStatus] = useState('IDLE');
 
-  if (isFinished && !prevFinished) {
-    setPrevFinished(true);
-    if (winner === 'X') {
-      const newStreak = streak + 1;
-      setStreak(newStreak);
-      saveScore((difficulty === 'hard' ? 100 : 20) + (newStreak * 10));
-      setShowConfetti(true);
-      playTone(600, 'sine', 0.3);
-    } else if (winner === 'O') {
-      setStreak(0);
-      playTone(150, 'sawtooth', 0.4);
+  useEffect(() => {
+    if (isFinished && prevGameStatus !== 'FINISHED') {
+      setPrevGameStatus('FINISHED');
+      if (winner === 'X') {
+        const newStreak = streak + 1;
+        setStreak(newStreak);
+        const pts = (difficulty === 'hard' ? 100 : 20) + (newStreak * 10);
+        animateScore();
+        saveScore(pts);
+        triggerHaptic('heavy');
+        spawnParticles('50%', '50%', C_X, 40);
+        triggerFloatingText('¡VICTORIA!', '50%', '40%', C_X);
+      } else if (winner === 'O') {
+        setStreak(0);
+        triggerHaptic('medium');
+        triggerFloatingText('DERROTA', '50%', '40%', C_O);
+      } else if (winner === 'draw') {
+        triggerHaptic('light');
+        triggerFloatingText('EMPATE', '50%', '40%', '#fff');
+      }
+    } else if (!isFinished && prevGameStatus === 'FINISHED') {
+      setPrevGameStatus('PLAYING');
     }
-  }
+  }, [isFinished, winner, streak, difficulty, saveScore, animateScore, triggerHaptic, spawnParticles, triggerFloatingText, prevGameStatus]);
 
-  // Handle Local Restart
   const onRestart = () => {
-    setPrevFinished(false);
-    setShowConfetti(false);
     resetGame();
   };
 
@@ -90,73 +80,98 @@ function TicTacToeInner() {
   };
 
   const onCellClick = (idx) => {
-    // Orquestador ya valida si status === 'PLAYING' y tictactoeEngine valida huecos, pero doble check
     if (board[idx] !== null || isFinished) return;
-
-    // Play sound and delegate to core
-    playTone(440, 'sine');
+    triggerHaptic('light');
     makeMove(idx);
+
+    const row = Math.floor(idx / 3);
+    const col = idx % 3;
+    spawnParticles(`${(col * 33 + 16.5)}%`, `${(row * 33 + 16.5)}%`, C_X, 8);
   };
 
-  const cellSize = 'min(85px, 24vw)';
+  const cellSize = 'min(100px, 26vw)';
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16, padding: 10, position: 'relative' }}>
-      {showConfetti && <Confetti numberOfPieces={150} recycle={false} style={{ pointerEvents: 'none' }} />}
+    <ArcadeShell
+      title="Tic Tac Toe"
+      score={streak * 100}
+      scoreLabel="Puntos Racha"
+      bestScore={best}
+      status={isFinished ? 'FINISHED' : 'PLAYING'}
+      onRetry={onRestart}
+      scoreControls={scoreControls}
+      particles={particles}
+      floatingTexts={floatingTexts}
+      subTitle="Vence a la IA en este duelo clásico."
+    >
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 24 }}>
+        <div style={{ display: 'flex', gap: 12, background: 'rgba(255,255,255,0.03)', padding: 6, borderRadius: 16, border: '1px solid rgba(255,255,255,0.05)' }}>
+          {['easy', 'hard'].map(d => (
+            <button
+              key={d}
+              onClick={() => handleDifficultyChange(d)}
+              style={{
+                padding: '8px 18px', borderRadius: 12, border: 'none', fontSize: 11, fontWeight: 900,
+                textTransform: 'uppercase', cursor: 'pointer', letterSpacing: 1.5,
+                background: difficulty === d ? (d === 'hard' ? C_O : C_X) : 'transparent',
+                color: difficulty === d ? '#fff' : 'rgba(255,255,255,0.3)',
+                transition: 'all 0.2s',
+                boxShadow: difficulty === d ? `0 0 15px ${d === 'hard' ? C_O : C_X}66` : 'none'
+              }}
+            >
+              {d === 'easy' ? 'Noob' : 'Pro'}
+            </button>
+          ))}
+        </div>
 
-      {/* Difficulty Switcher */}
-      <div style={{ display: 'flex', gap: 8, background: 'rgba(255,255,255,0.05)', padding: 4, borderRadius: 12 }}>
-        {['easy', 'hard'].map(d => (
-          <button
-            key={d}
-            onClick={() => handleDifficultyChange(d)}
-            style={{
-              padding: '4px 12px', borderRadius: 8, border: 'none', fontSize: 10, fontWeight: 900,
-              textTransform: 'uppercase', cursor: 'pointer', letterSpacing: 1,
-              background: difficulty === d ? (d === 'hard' ? C_O : C_X) : 'transparent',
-              color: difficulty === d ? '#fff' : 'rgba(255,255,255,0.3)',
-              transition: 'all 0.2s'
-            }}
-          >
-            {d === 'easy' ? 'Noob' : 'Pro'}
-          </button>
-        ))}
-      </div>
+        <div style={{ display: 'flex', gap: 32, fontSize: '0.75rem', fontWeight: 800, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: 1.5 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+            <span style={{ opacity: 0.5, marginBottom: 4 }}>RACHA</span>
+            <span style={{ color: C_X }}>{streak}</span>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+            <span style={{ opacity: 0.5, marginBottom: 4 }}>MODO</span>
+            <span style={{ color: difficulty === 'hard' ? C_O : C_X }}>{difficulty}</span>
+          </div>
+        </div>
 
-      {/* Stats HUD */}
-      <div style={{ display: 'flex', gap: 20, fontSize: 10, fontWeight: 900, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase' }}>
-        <div>Streak: <span style={{ color: C_X }}>{streak}</span></div>
-        <div style={{ color: C_O }}>Record: {best}</div>
-      </div>
-
-      {/* Central Board */}
-      <div>
         <div style={{
-          display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8,
-          background: C_BG, padding: 10, borderRadius: 16, border: '1px solid rgba(255,255,255,0.05)'
+          display: 'grid',
+          gridTemplateColumns: 'repeat(3, 1fr)',
+          gap: 16,
+          background: 'rgba(255, 255, 255, 0.03)',
+          padding: 20,
+          borderRadius: 28,
+          border: '1px solid rgba(255,255,255,0.05)',
+          boxShadow: 'inset 0 0 40px rgba(0,0,0,0.5)'
         }}>
           {board.map((val, i) => {
-            const isClickable = !isFinished && status === 'PLAYING' && context.currentTurn.id === 'X' && val === null;
+            const isClickable = !isFinished && gameStatus === 'PLAYING' && context.currentTurn.id === 'X' && val === null;
             return (
               <motion.div
                 key={i}
-                whileHover={{ scale: isClickable ? 1.05 : 1 }}
-                whileTap={{ scale: isClickable ? 0.95 : 1 }}
+                whileHover={isClickable ? { scale: 1.05, y: -2 } : {}}
+                whileTap={isClickable ? { scale: 0.95 } : {}}
                 onClick={() => isClickable && onCellClick(i)}
                 style={{
                   width: cellSize, height: cellSize, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  background: 'rgba(255,255,255,0.02)',
-                  border: `2px solid rgba(255,255,255,0.03)`,
-                  borderRadius: 14, cursor: isClickable ? 'pointer' : 'default',
-                  fontSize: 40, fontWeight: 900, transition: 'all 0.2s'
+                  background: 'rgba(255,255,255,0.03)',
+                  border: `1px solid rgba(255,255,255,${val ? 0.1 : 0.05})`,
+                  borderRadius: 18, cursor: isClickable ? 'pointer' : 'default',
+                  fontSize: 'min(48px, 12vw)', fontWeight: 900, transition: 'all 0.2s',
+                  backdropFilter: 'blur(10px)',
+                  boxShadow: val ? `0 0 20px ${val === 'X' ? C_X : C_O}33` : 'none'
                 }}
               >
                 <AnimatePresence>
                   {val && (
                     <motion.span
-                      initial={{ scale: 0, opacity: 0, rotate: -90 }}
+                      initial={{ scale: 0.5, opacity: 0, rotate: -45 }}
                       animate={{ scale: 1, opacity: 1, rotate: 0 }}
-                      style={{ color: val === 'X' ? C_X : C_O, textShadow: `0 0 15px ${val === 'X' ? C_X : C_O}aa` }}
+                      style={{
+                        color: val === 'X' ? C_X : C_O,
+                        textShadow: `0 0 20px ${val === 'X' ? C_X : C_O}aa`
+                      }}
                     >
                       {val}
                     </motion.span>
@@ -166,50 +181,29 @@ function TicTacToeInner() {
             );
           })}
         </div>
-      </div>
 
-      {/* Status Footer */}
-      <div style={{ height: 60, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        {status === 'FINISHED' ? (
-          <motion.div initial={{ y: 10, opacity: 0 }} animate={{ y: 0, opacity: 1 }} style={{ textAlign: 'center' }}>
-            <div style={{
-              fontSize: 20, fontWeight: 900, letterSpacing: 1,
-              color: winner === 'X' ? C_X : winner === 'O' ? C_O : '#fff',
-              textShadow: winner === 'draw' ? 'none' : `0 0 10px ${winner === 'X' ? C_X : C_O}aa`
-            }}>
-              {winner === 'draw' ? '¡CASI!' : winner === 'X' ? '¡VICTORIA!' : '¡DERROTA!'}
-            </div>
-            <button onClick={onRestart} style={{
-              marginTop: 8, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)',
-              color: '#fff', padding: '6px 24px', borderRadius: 999, cursor: 'pointer', fontSize: 10,
-              fontWeight: 900, textTransform: 'uppercase', letterSpacing: 1
-            }}>REVANCHA</button>
-          </motion.div>
-        ) : (
-          <div style={{ fontSize: 11, color: context.currentTurn?.id === 'X' ? C_X : C_O, fontWeight: 900, letterSpacing: 2 }}>
-            {status !== 'PLAYING'
-              ? '...'
-              : context.currentTurn?.id === 'X'
-                ? 'TU TURNO (X)'
-                : 'IA PENSANDO...'
-            }
+        {!isFinished && (
+          <div style={{
+            height: 30,
+            fontSize: '0.8rem',
+            color: context.currentTurn?.id === 'X' ? C_X : C_O,
+            fontWeight: 800,
+            letterSpacing: 3,
+            textTransform: 'uppercase',
+            opacity: 0.8
+          }}>
+            {context.currentTurn?.id === 'X' ? 'Tu Turno' : 'Hyperbot Pensando...'}
           </div>
         )}
       </div>
-
-      {status === 'PLAYING' && timerState.isRunning && (
-        <div style={{ fontSize: 9, opacity: 0.15, color: '#fff' }}>Tiempo: {Math.ceil(timerState.remainingHard / 1000)}s</div>
-      )}
-    </div>
+    </ArcadeShell>
   );
 }
 
 export default function TicTacToe() {
   return (
     <GameImmersiveLayout>
-      <GameShell title="Tic Tac Toe">
-        <TicTacToeInner />
-      </GameShell>
+      <TicTacToeInner />
     </GameImmersiveLayout>
   );
 }

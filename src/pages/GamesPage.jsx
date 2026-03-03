@@ -43,23 +43,23 @@ const LightsOut = lazy(() => import('../components/LightsOut'));
 
 
 const GAMES = [
-  { id: 'snake', icon: '🐍', title: 'snake', component: SnakeGame, category: 'Arcade' },
-  { id: 'memory', icon: '🃏', title: 'memory', component: MemoryGame, category: 'Puzzle' },
-  { id: 'ttt', icon: '❌', title: 'tic tac toe', component: TicTacToe, category: 'Table' },
+  { id: 'snake', icon: '🐍', title: 'snake', component: SnakeGame, category: 'Arcade', isImmersive: true },
+  { id: 'memory', icon: '🃏', title: 'memory', component: MemoryGame, category: 'Puzzle', isImmersive: true },
+  { id: 'ttt', icon: '❌', title: 'tic tac toe', component: TicTacToe, category: 'Table', isImmersive: true },
   { id: 'whack', icon: '🐭', title: 'whack-a-mole', component: WhackAMole, category: 'Skill' },
   { id: 'color', icon: '🎨', title: 'color match', component: ColorMatch, category: 'Puzzle' },
   { id: 'reaction', icon: '⚡', title: 'reaction time', component: ReactionTime, category: 'Skill' },
-  { id: '2048', icon: '🔢', title: '2048', component: Game2048, category: 'Puzzle' },
-  { id: 'blackjack', icon: '🃠', title: 'blackjack', component: Blackjack, category: 'Table' },
+  { id: '2048', icon: '🔢', title: '2048', component: Game2048, category: 'Puzzle', isImmersive: true },
+  { id: 'blackjack', icon: '🃠', title: 'blackjack', component: Blackjack, category: 'Table', isImmersive: true },
   { id: 'puzzle', icon: '🧩', title: 'sliding puzzle', component: SlidingPuzzle, category: 'Puzzle' },
   { id: 'pong', icon: '🏓', title: 'pong', component: Pong, category: 'Arcade' },
-  { id: 'invaders', icon: '👾', title: 'space invaders', component: SpaceInvaders, category: 'Arcade' },
-  { id: 'breakout', icon: '🧱', title: 'breakout', component: Breakout, category: 'Arcade' },
-  { id: 'asteroids', icon: '🚀', title: 'asteroids', component: Asteroids, category: 'Arcade' },
+  { id: 'invaders', icon: '👾', title: 'space invaders', component: SpaceInvaders, category: 'Arcade', isImmersive: true },
+  { id: 'breakout', icon: '🧱', title: 'breakout', component: Breakout, category: 'Arcade', isImmersive: true },
+  { id: 'asteroids', icon: '🚀', title: 'asteroids', component: Asteroids, category: 'Arcade', isImmersive: true },
   { id: 'tetris', icon: '🟦', title: 'tetris', component: TetrisGame, category: 'Arcade' },
-  { id: 'flappy', icon: '🐦', title: 'flappy bird', component: FlappyBird, category: 'Skill' },
-  { id: 'mines', icon: '💣', title: 'buscaminas', component: Minesweeper, category: 'Puzzle' },
-  { id: 'dino', icon: '🦕', title: 'dino runner', component: DinoRunner, category: 'Skill' },
+  { id: 'flappy', icon: '🐦', title: 'flappy bird', component: FlappyBird, category: 'Skill', isImmersive: true },
+  { id: 'mines', icon: '💣', title: 'buscaminas', component: Minesweeper, category: 'Puzzle', isImmersive: true },
+  { id: 'dino', icon: '🦕', title: 'dino runner', component: DinoRunner, category: 'Skill', isImmersive: true },
   { id: 'connect4', icon: '🔴', title: 'connect four', component: ConnectFour, category: 'Table' },
   { id: 'simon', icon: '🔵', title: 'simon says', component: SimonSays, category: 'Skill' },
   { id: 'cookie', icon: '🍪', title: 'cookie clicker', component: CookieClicker, category: 'Arcade' },
@@ -67,7 +67,7 @@ const GAMES = [
   { id: 'catch', icon: '🧳', title: 'catch game', component: CatchGame, category: 'Skill' },
   { id: 'dodge', icon: '💨', title: 'dodge game', component: DodgeGame, category: 'Skill' },
   { id: 'typeblitz', icon: '⌨️', title: 'type blitz', component: TypeBlitz, category: 'Skill' },
-  { id: 'tron', icon: '📹', title: 'tron cycles', component: TronGame, category: 'Arcade' },
+  { id: 'tron', icon: '📹', title: 'tron cycles', component: TronGame, category: 'Arcade', isImmersive: true },
   { id: 'lightsout', icon: '💡', title: 'lights out', component: LightsOut, category: 'Puzzle' },
 ];
 
@@ -543,43 +543,45 @@ export default function GamesPage() {
         {openId && activeGame && (
           <motion.div
             ref={gameOverlayRef}
-            className="gameOverlay"
+            className={`gameOverlay ${activeGame.isImmersive ? 'immersive' : ''}`}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.12 }}
           >
-            <div className={`gameOverlayHeader ${window.innerWidth >= 1024 ? 'hidden' : ''}`} style={{ background: 'rgba(5,5,20,0.95)', display: window.innerWidth >= 1024 ? 'none' : 'flex' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 15 }}>
-                <div style={{ fontSize: '2rem' }}>{activeGame.icon}</div>
-                <div>
-                  <div style={{ fontWeight: '900', textTransform: 'uppercase', letterSpacing: 2, fontSize: '1.2rem' }}>{activeGame.title}</div>
-                  <div style={{ fontSize: '0.6rem', opacity: 0.6, letterSpacing: 1 }}>SISTEMA_ARCADE_V2.0</div>
+            {!activeGame.isImmersive && (
+              <div className={`gameOverlayHeader ${window.innerWidth >= 1024 ? 'hidden' : ''}`} style={{ background: 'rgba(5,5,20,0.95)', display: window.innerWidth >= 1024 ? 'none' : 'flex' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 15 }}>
+                  <div style={{ fontSize: '2rem' }}>{activeGame.icon}</div>
+                  <div>
+                    <div style={{ fontWeight: '900', textTransform: 'uppercase', letterSpacing: 2, fontSize: '1.2rem' }}>{activeGame.title}</div>
+                    <div style={{ fontSize: '0.6rem', opacity: 0.6, letterSpacing: 1 }}>SISTEMA_ARCADE_V2.0</div>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                  <button
+                    className="gameFullscreenBtn"
+                    onClick={toggleFullscreen}
+                    title={isFullscreen ? 'Salir de pantalla completa' : 'Pantalla completa'}
+                  >
+                    {isFullscreen ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
+                  </button>
+                  <button
+                    className="gameCloseBtn"
+                    onClick={() => {
+                      arcadeAudio.play('close');
+                      navigate('/games');
+                    }}
+                    style={{ position: 'relative', zIndex: 5001, background: '#ff4444' }}
+                  >
+                    ESC
+                  </button>
                 </div>
               </div>
-              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                <button
-                  className="gameFullscreenBtn"
-                  onClick={toggleFullscreen}
-                  title={isFullscreen ? 'Salir de pantalla completa' : 'Pantalla completa'}
-                >
-                  {isFullscreen ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
-                </button>
-                <button
-                  className="gameCloseBtn"
-                  onClick={() => {
-                    arcadeAudio.play('close');
-                    navigate('/games');
-                  }}
-                  style={{ position: 'relative', zIndex: 5001, background: '#ff4444' }}
-                >
-                  ESC
-                </button>
-              </div>
-            </div>
+            )}
 
-            <div className="gameOverlayContent">
-              <div className="gameScale" style={{ '--game-scale': scale }}>
+            <div className={`gameOverlayContent ${activeGame.isImmersive ? 'immersive' : ''}`}>
+              <div className={`gameScale ${activeGame.isImmersive ? 'immersive' : ''}`} style={{ '--game-scale': scale }}>
                 <ErrorBoundary>
                   <Suspense fallback={<div style={{ color: 'var(--accent)', fontSize: 14, fontFamily: 'monospace' }}>CARGANDO_ASSETS...</div>}>
                     {GameComponent && <GameComponent />}
@@ -587,35 +589,37 @@ export default function GamesPage() {
                 </ErrorBoundary>
               </div>
 
-              <div className="gameSidebar">
-                {/* Game Stats Bar */}
-                <div style={{
-                  display: 'flex', gap: 15, background: 'rgba(255,110,180,0.05)', padding: '15px 25px', borderRadius: '20px',
-                  border: '1px solid rgba(255,110,180,0.2)', width: '100%',
-                  justifyContent: 'space-around', fontSize: '0.75rem', fontWeight: 'bold', position: 'relative', zIndex: 1
-                }}>
-                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                    <span style={{ opacity: 0.5, fontSize: '0.55rem', textTransform: 'uppercase', marginBottom: 3 }}>Daily Capacity</span>
-                    <span style={{ color: (season?.daily_reward_earned || 0) >= (season?.daily_reward_cap || 1) ? '#ff5555' : 'var(--accent)' }}>
-                      ◈ {season?.daily_reward_earned || 0} / {season?.daily_reward_cap || 0}
-                    </span>
-                  </div>
-                  {season?.boost_multiplier > 1 && (
+              {!activeGame.isImmersive && (
+                <div className="gameSidebar">
+                  {/* Game Stats Bar */}
+                  <div style={{
+                    display: 'flex', gap: 15, background: 'rgba(255,110,180,0.05)', padding: '15px 25px', borderRadius: '20px',
+                    border: '1px solid rgba(255,110,180,0.2)', width: '100%',
+                    justifyContent: 'space-around', fontSize: '0.75rem', fontWeight: 'bold', position: 'relative', zIndex: 1
+                  }}>
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                      <span style={{ opacity: 0.5, fontSize: '0.55rem', textTransform: 'uppercase', marginBottom: 3 }}>Multiplier</span>
-                      <span style={{ color: '#ffea00' }}>x{season.boost_multiplier} active</span>
+                      <span style={{ opacity: 0.5, fontSize: '0.55rem', textTransform: 'uppercase', marginBottom: 3 }}>Daily Capacity</span>
+                      <span style={{ color: (season?.daily_reward_earned || 0) >= (season?.daily_reward_cap || 1) ? '#ff5555' : 'var(--accent)' }}>
+                        ◈ {season?.daily_reward_earned || 0} / {season?.daily_reward_cap || 0}
+                      </span>
                     </div>
-                  )}
-                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                    <span style={{ opacity: 0.5, fontSize: '0.55rem', textTransform: 'uppercase', marginBottom: 3 }}>User Rank</span>
-                    <span style={{ color: '#00e5ff' }}>#{season?.rank || '—'}</span>
+                    {season?.boost_multiplier > 1 && (
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                        <span style={{ opacity: 0.5, fontSize: '0.55rem', textTransform: 'uppercase', marginBottom: 3 }}>Multiplier</span>
+                        <span style={{ color: '#ffea00' }}>x{season.boost_multiplier} active</span>
+                      </div>
+                    )}
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                      <span style={{ opacity: 0.5, fontSize: '0.55rem', textTransform: 'uppercase', marginBottom: 3 }}>User Rank</span>
+                      <span style={{ color: '#00e5ff' }}>#{season?.rank || '—'}</span>
+                    </div>
+                  </div>
+
+                  <div style={{ width: '100%', position: 'relative', zIndex: 1 }}>
+                    <Leaderboard gameId={activeGame.id} refreshKey={lbKey} />
                   </div>
                 </div>
-
-                <div style={{ width: '100%', position: 'relative', zIndex: 1 }}>
-                  <Leaderboard gameId={activeGame.id} refreshKey={lbKey} />
-                </div>
-              </div>
+              )}
             </div>
           </motion.div>
         )}
