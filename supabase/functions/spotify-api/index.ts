@@ -128,9 +128,9 @@ serve(async (req) => {
         // Realizar la acción solicitada
         let endpoint = ''
         if (action === 'current-playing') endpoint = 'https://api.spotify.com/v1/me/player/currently-playing'
-        else if (action === 'top-tracks') endpoint = `https://api.spotify.com/v1/me/top/tracks?limit=${limit}&time_range=short_term`
+        else if (action === 'top-tracks') endpoint = `https://api.spotify.com/v1/me/top/tracks?limit=${limit}&time_range=short_term&market=US`
         else if (action === 'top-artists') endpoint = `https://api.spotify.com/v1/me/top/artists?limit=${limit}&time_range=short_term`
-        else if (action === 'search') endpoint = `https://api.spotify.com/v1/search?q=${encodeURIComponent(query)}&type=track&limit=${limit}&market=from_token`
+        else if (action === 'search') endpoint = `https://api.spotify.com/v1/search?q=${encodeURIComponent(query)}&type=track&limit=${limit}&market=US`
 
         console.log(`Action: ${action}, Endpoint: ${endpoint}`)
         const spotifyRes = await fetch(endpoint, {
@@ -162,24 +162,34 @@ serve(async (req) => {
         let spotifyData = await spotifyRes.json()
 
         // --- SISTEMA DE RECUPERACIÓN DE PREVIEWS (BEST EFFORT) ---
+        const recoverPreviewsForTracks = async (tracks: any[]) => {
+            const recovered = await Promise.all(tracks.map(async (track: any) => {
+                if (track.preview_url) return track;
+                // Buscar versión con preview en mercado US
+                const q = `${track.name} ${track.artists?.[0]?.name || ''}`;
+                const searchUrl = `https://api.spotify.com/v1/search?q=${encodeURIComponent(q)}&type=track&limit=5&market=US`;
+                const searchRes = await fetch(searchUrl, { headers: { 'Authorization': `Bearer ${accessToken}` } });
+                if (!searchRes.ok) return track;
+                const searchData = await searchRes.json();
+                const match = searchData?.tracks?.items?.find((t: any) => t.preview_url);
+                return match ? { ...track, preview_url: match.preview_url } : track;
+            }));
+            return recovered;
+        };
+
+        if (action === 'top-tracks' && spotifyData?.items) {
+            const hasMissingPreviews = spotifyData.items.some((t: any) => !t.preview_url);
+            if (hasMissingPreviews) {
+                console.log('[Preview Recovery] Recovering previews for top-tracks...');
+                spotifyData.items = await recoverPreviewsForTracks(spotifyData.items);
+            }
+        }
+
         if (action === 'search' && spotifyData?.tracks?.items) {
-            const hasPreviews = spotifyData.tracks.items.some((t: any) => t.preview_url);
-            if (!hasPreviews && query) {
-                console.log('No previews found in primary market, trying US market fallback...');
-                const fallbackUrl = `https://api.spotify.com/v1/search?q=${encodeURIComponent(query)}&type=track&limit=${limit}&market=US`;
-                const fallbackRes = await fetch(fallbackUrl, {
-                    headers: { 'Authorization': `Bearer ${accessToken}` }
-                });
-                if (fallbackRes.ok) {
-                    const fallbackData = await fallbackRes.json();
-                    if (fallbackData?.tracks?.items) {
-                        const fallbackWithPreviews = fallbackData.tracks.items.filter((t: any) => t.preview_url);
-                        if (fallbackWithPreviews.length > 0) {
-                            spotifyData.tracks.items = [...fallbackWithPreviews, ...spotifyData.tracks.items].slice(0, limit);
-                            console.log(`Recovered ${fallbackWithPreviews.length} tracks with previews.`);
-                        }
-                    }
-                }
+            const hasMissingPreviews = spotifyData.tracks.items.some((t: any) => !t.preview_url);
+            if (hasMissingPreviews) {
+                console.log('[Preview Recovery] Recovering previews for search results...');
+                spotifyData.tracks.items = await recoverPreviewsForTracks(spotifyData.tracks.items);
             }
         }
 
