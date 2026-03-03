@@ -31,6 +31,43 @@ function PlayingBars() {
     );
 }
 
+function buildSpotifyUrl(track) {
+    if (!track) return null;
+    return track.external_urls?.spotify
+        || track.spotify_url
+        || (track.track_id ? `https://open.spotify.com/track/${track.track_id}` : null)
+        || (track.id ? `https://open.spotify.com/track/${track.id}` : null)
+        || (track.track_name
+            ? `https://open.spotify.com/search/${encodeURIComponent(`${track.track_name} ${track.artist_name || ''}`)}`
+            : null)
+        || (track.name
+            ? `https://open.spotify.com/search/${encodeURIComponent(`${track.name} ${track.artists?.[0]?.name || ''}`)}`
+            : null);
+}
+
+const SpotifyIcon = () => (
+    <svg viewBox="0 0 24 24" className="w-3 h-3 fill-[#1DB954] shrink-0" xmlns="http://www.w3.org/2000/svg">
+        <path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z" />
+    </svg>
+);
+
+function SpotifyLinkBtn({ url, className = '' }) {
+    if (!url) return null;
+    return (
+        <a
+            href={url}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={(e) => e.stopPropagation()}
+            title="Abrir en Spotify"
+            className={`shrink-0 flex items-center gap-1 px-2 py-1 rounded-lg bg-[#1DB954]/15 hover:bg-[#1DB954]/30 border border-[#1DB954]/20 transition-all ${className}`}
+        >
+            <SpotifyIcon />
+            <span className="text-[#1DB954] text-[8px] font-black uppercase tracking-wider">Abrir</span>
+        </a>
+    );
+}
+
 export const SpotifyBlock = ({ userId, isOwn }) => {
     const { user } = useAuthContext();
     const [soundState, setSoundState] = useState(null);
@@ -39,7 +76,7 @@ export const SpotifyBlock = ({ userId, isOwn }) => {
     const [topTracks, setTopTracks] = useState([]);
     const [loading, setLoading] = useState(true);
     const [isAuthExpired, setIsAuthExpired] = useState(false);
-    const [isConnected, setIsConnected] = useState(false); // Added this line, it was missing in the original code but used.
+    const [isConnected, setIsConnected] = useState(false);
 
     const timeoutRef = useRef(null);
 
@@ -77,7 +114,6 @@ export const SpotifyBlock = ({ userId, isOwn }) => {
                         if (isMounted) setMusicOverlap(overlap);
                     }
 
-                    // Programar siguiente refresco solo si todo OK
                     if (isMounted && !spotifyService.getAuthExpired()) {
                         timeoutRef.current = setTimeout(load, 30000);
                     }
@@ -189,7 +225,7 @@ export const SpotifyBlock = ({ userId, isOwn }) => {
                 transition={{ duration: 0.4 }}
                 className="relative rounded-2xl bg-white/[0.02] border border-white/5 overflow-hidden"
             >
-                {/* Top bar label */}
+                {/* Top bar */}
                 <div className="px-5 pt-4 pb-2 flex items-center justify-between">
                     <span className="text-[10px] font-bold uppercase tracking-widest text-white/25">
                         Radar Sonoro
@@ -210,9 +246,7 @@ export const SpotifyBlock = ({ userId, isOwn }) => {
                                 {emotionalLabel}
                             </p>
                             {energyLabel && (
-                                <p className="text-[11px] text-white/35">
-                                    Energía: {energyLabel}
-                                </p>
+                                <p className="text-[11px] text-white/35">Energía: {energyLabel}</p>
                             )}
                         </div>
                     ) : topTracks.length > 0 ? null : (
@@ -232,8 +266,7 @@ export const SpotifyBlock = ({ userId, isOwn }) => {
                                         <img
                                             src={soundState.track_image_url}
                                             alt="Cover"
-                                            className={`w-full h-full object-cover transition-all duration-500 ${isPlaying ? '' : 'opacity-40 grayscale'
-                                                }`}
+                                            className={`w-full h-full object-cover transition-all duration-500 ${isPlaying ? '' : 'opacity-40 grayscale'}`}
                                         />
                                         {!isPlaying && (
                                             <div className="absolute inset-0 flex items-center justify-center">
@@ -255,7 +288,7 @@ export const SpotifyBlock = ({ userId, isOwn }) => {
                                 )}
                             </div>
 
-                            {/* Track info */}
+                            {/* Track info + progress bar */}
                             <div className="flex-1 min-w-0">
                                 <p className="text-sm font-bold text-white truncate leading-tight">
                                     {soundState.track_name}
@@ -263,11 +296,26 @@ export const SpotifyBlock = ({ userId, isOwn }) => {
                                 <p className="text-[11px] text-white/40 truncate">
                                     {soundState.artist_name}
                                 </p>
+                                {/* Progress bar — always visible */}
+                                <div className="mt-1.5 w-full h-[2px] bg-white/5 rounded-full overflow-hidden">
+                                    {isPlaying ? (
+                                        <motion.div
+                                            animate={{ width: ['20%', '80%', '45%', '90%', '30%'] }}
+                                            transition={{ duration: 8, repeat: Infinity, ease: 'linear' }}
+                                            className="h-full bg-cyan-400/60 rounded-full"
+                                        />
+                                    ) : (
+                                        <div className="h-full w-full bg-white/10 rounded-full" />
+                                    )}
+                                </div>
                             </div>
+
+                            {/* Spotify link */}
+                            <SpotifyLinkBtn url={buildSpotifyUrl(soundState)} />
                         </div>
                     )}
 
-                    {/* Top tracks (no current track or no average stats) */}
+                    {/* Top tracks */}
                     {!soundState && topTracks.length > 0 && (
                         <div className="space-y-2">
                             {topTracks.slice(0, 3).map((t, i) => (
@@ -279,7 +327,6 @@ export const SpotifyBlock = ({ userId, isOwn }) => {
                                         <p className="text-[12px] font-bold text-white/60 truncate">{t.name}</p>
                                         <p className="text-[10px] text-white/25 truncate">{t.artists?.[0]?.name}</p>
                                     </div>
-                                    {/* Preview o link a Spotify */}
                                     {t.preview_url ? (
                                         <button
                                             onClick={() => {
@@ -292,24 +339,13 @@ export const SpotifyBlock = ({ userId, isOwn }) => {
                                         >
                                             ▶
                                         </button>
-                                    ) : t.external_urls?.spotify ? (
-                                        <a
-                                            href={t.external_urls.spotify}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            title="Abrir en Spotify"
-                                            className="shrink-0 w-6 h-6 rounded-full bg-white/5 hover:bg-[#1DB954]/20 flex items-center justify-center transition-all opacity-0 group-hover:opacity-100"
-                                        >
-                                            <svg viewBox="0 0 24 24" className="w-3 h-3 fill-[#1DB954]" xmlns="http://www.w3.org/2000/svg">
-                                                <path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z" />
-                                            </svg>
-                                        </a>
-                                    ) : null}
+                                    ) : (
+                                        <SpotifyLinkBtn url={buildSpotifyUrl(t)} />
+                                    )}
                                 </div>
                             ))}
                         </div>
                     )}
-
 
                     {/* Music overlap bridge */}
                     {musicOverlap && (
