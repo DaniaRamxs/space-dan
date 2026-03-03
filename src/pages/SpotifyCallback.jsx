@@ -34,8 +34,23 @@ export default function SpotifyCallback() {
                     navigate(`/@${username}`);
                 } catch (err) {
                     console.error('[Spotify Callback] Fallo detallado:', err);
-                    // Intentar extraer mensaje útil del error de Supabase
-                    const msg = err.message || (typeof err === 'string' ? err : 'Error desconocido');
+
+                    // Extraer el mensaje más profundo posible
+                    let msg = 'Error desconocido';
+                    if (err.context?.status) {
+                        // Intentar leer el body si es un FunctionsHttpError
+                        try {
+                            const body = await err.context.json();
+                            msg = body.error || body.message || msg;
+                            if (body.hint) msg += `\n💡 Hint: ${body.hint}`;
+                            if (body.detail) console.log('[Spotify Error Detail]', body.detail);
+                        } catch (e) {
+                            msg = err.message || msg;
+                        }
+                    } else {
+                        msg = err.message || (typeof err === 'string' ? err : msg);
+                    }
+
                     alert(`Error al conectar: ${msg}`);
                     navigate('/');
                 }
