@@ -14,7 +14,11 @@ export default function SoundCard({ track }) {
             onClick={(e) => {
                 e.stopPropagation();
                 if (!track.preview_url) {
-                    alert('Vista previa no disponible para esta canción en Spotify.');
+                    // Sin preview: abrir directamente en Spotify
+                    const spotifyUrl = track.external_urls?.spotify || track.spotify_url;
+                    if (spotifyUrl) {
+                        window.open(spotifyUrl, '_blank', 'noopener,noreferrer');
+                    }
                     return;
                 }
                 togglePlay();
