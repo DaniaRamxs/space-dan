@@ -129,7 +129,8 @@ export default function useAuth() {
       return 'com.dan.space://auth';
     }
     const hostname = window.location.hostname;
-    if (hostname.includes('joinspacely.com')) {
+    // Si no estamos en desarrollo local, forzar el dominio principal
+    if (hostname !== 'localhost' && hostname !== '127.0.0.1') {
       return 'https://joinspacely.com';
     }
     return window.location.origin;
