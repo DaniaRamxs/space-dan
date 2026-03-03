@@ -64,17 +64,33 @@ export const spotifyService = {
             throw error;
         }
 
-        const { data, error } = await supabase.functions.invoke('spotify-api', {
-            body: payload
+        // Usamos fetch directo con anon key para evitar conflictos de JWT
+        // causados por el flujo PKCE de Supabase al interceptar callbacks de Spotify
+        const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+        const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+        const response = await fetch(`${SUPABASE_URL}/functions/v1/spotify-api`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+                'apikey': SUPABASE_ANON_KEY
+            },
+            body: JSON.stringify(payload)
         });
 
-        if (error) {
-            // Evaluamos si el error recibido es un fallo de auth para marcar el flag global
-            this.isAuthError(error);
+        if (!response.ok) {
+            const data = await response.json().catch(() => ({}));
+            const err = { status: response.status, message: data.error || data.message || `Error ${response.status}` };
+            this.isAuthError(err);
+            const error = new Error(err.message);
+            error.status = response.status;
             throw error;
         }
 
-        // Si la respuesta de Spotify viene dentro de data con error (formato de nuestra Edge Function)
+        const data = await response.json();
+
+        // Si la respuesta de Spotify viene dentro de data con error
         if (data?.error && this.isAuthError(data)) {
             throw data;
         }
