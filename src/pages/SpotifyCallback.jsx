@@ -9,6 +9,14 @@ export default function SpotifyCallback() {
     useEffect(() => {
         const code = searchParams.get('code');
         const state = searchParams.get('state');
+        const urlError = searchParams.get('error');
+
+        if (urlError) {
+            console.error('[Spotify Callback] Error en URL:', urlError);
+            alert(`Spotify dice: ${urlError}. Verifica tu configuración en el Dashboard.`);
+            navigate('/');
+            return;
+        }
 
         // Función asíncrona interna para manejar la lógica
         const processCallback = async () => {
@@ -25,8 +33,10 @@ export default function SpotifyCallback() {
                     const username = await spotifyService.getUsernameById(state);
                     navigate(`/@${username}`);
                 } catch (err) {
-                    console.error('Spotify connection failed', err);
-                    alert('Error al conectar con Spotify. Intenta de nuevo.');
+                    console.error('[Spotify Callback] Fallo detallado:', err);
+                    // Intentar extraer mensaje útil del error de Supabase
+                    const msg = err.message || (typeof err === 'string' ? err : 'Error desconocido');
+                    alert(`Error al conectar: ${msg}`);
                     navigate('/');
                 }
             }
