@@ -115,11 +115,13 @@ function LightsOutInner() {
                 <div style={{
                     display: 'grid',
                     gridTemplateColumns: `repeat(${GRID_SIZE}, 1fr)`,
-                    gap: 12,
-                    padding: 24,
-                    background: 'rgba(255,255,255,0.02)',
-                    borderRadius: 32,
-                    border: '1px solid rgba(255,255,255,0.05)',
+                    gap: 10,
+                    padding: 20,
+                    background: 'rgba(4,4,10,0.75)',
+                    borderRadius: 24,
+                    border: '1px solid rgba(255,255,255,0.07)',
+                    boxShadow: '0 20px 60px rgba(0,0,0,0.6), inset 0 0 30px rgba(0,0,0,0.4)',
+                    backdropFilter: 'blur(10px)',
                     boxShadow: '0 20px 50px rgba(0,0,0,0.5), inset 0 0 20px rgba(255,255,255,0.02)',
                     width: 'min(340px, 90vw)',
                     position: 'relative'

@@ -1,4 +1,5 @@
 import { useRef, useEffect, useCallback, useState } from 'react';
+import { motion } from 'framer-motion';
 import { GameImmersiveLayout } from '../core/GameImmersiveLayout';
 import { ArcadeShell } from './ArcadeShell';
 import { useArcadeSystems } from '../hooks/useArcadeSystems';
@@ -353,7 +354,7 @@ function SpaceInvadersInner() {
       floatingTexts={floatingTexts}
       subTitle="Repele la invasión alienígena."
     >
-      <div style={{ position: 'relative', width: 'min(70vh, 95vw)', aspectRatio: `${W}/${H}`, background: 'rgba(255,255,255,0.02)', borderRadius: 24, padding: 8, border: '1px solid rgba(255,255,255,0.05)', boxShadow: 'inset 0 0 40px rgba(0,0,0,0.5)', overflow: 'hidden' }}>
+      <div style={{ position: 'relative', width: 'min(50vh, 84vw)', aspectRatio: `${W}/${H}`, background: 'rgba(4,4,10,0.8)', borderRadius: 20, padding: 6, border: '1px solid rgba(255,255,255,0.07)', boxShadow: '0 24px 60px rgba(0,0,0,0.7), inset 0 0 30px rgba(0,0,0,0.4)', overflow: 'hidden', backdropFilter: 'blur(8px)' }}>
         <canvas
           ref={canvasRef}
           width={W}
@@ -396,6 +397,30 @@ function SpaceInvadersInner() {
         </div>
       </div>
     </ArcadeShell>
+  );
+}
+
+function ControlBtn({ icon, onDown, onUp, color = '#00e5ff' }) {
+  return (
+    <motion.button
+      onPointerDown={e => { e.preventDefault(); onDown(); }}
+      onPointerUp={e => { e.preventDefault(); onUp(); }}
+      onPointerLeave={() => onUp()}
+      whileTap={{ scale: 0.87, backgroundColor: 'rgba(255,255,255,0.08)' }}
+      style={{
+        width: 60, height: 60, borderRadius: 18,
+        border: '1px solid rgba(255,255,255,0.1)',
+        background: 'rgba(255,255,255,0.04)',
+        color, fontSize: icon === 'SHOOT' ? 11 : 22,
+        fontWeight: 900, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+        boxShadow: '0 4px 16px rgba(0,0,0,0.3)',
+        backdropFilter: 'blur(10px)',
+        WebkitBackdropFilter: 'blur(10px)',
+        userSelect: 'none', touchAction: 'none',
+      }}
+    >
+      {icon}
+    </motion.button>
   );
 }
 

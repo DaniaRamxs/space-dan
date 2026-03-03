@@ -264,11 +264,12 @@ function TronGameInner() {
             <div ref={containerRef} style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 24 }}>
                 <div style={{
                     position: 'relative',
-                    borderRadius: 20,
+                    borderRadius: 18,
                     overflow: 'hidden',
-                    background: 'rgba(255,255,255,0.02)',
-                    border: '1px solid rgba(255,110,180,0.05)',
-                    boxShadow: '0 20px 50px rgba(0,0,0,0.5)'
+                    background: 'rgba(4,4,10,0.8)',
+                    border: '1px solid rgba(255,110,180,0.08)',
+                    boxShadow: '0 24px 60px rgba(0,0,0,0.7), inset 0 0 30px rgba(0,0,0,0.4)',
+                    backdropFilter: 'blur(8px)',
                 }}>
                     <canvas ref={canvasRef} style={{ display: 'block' }} />
                 </div>

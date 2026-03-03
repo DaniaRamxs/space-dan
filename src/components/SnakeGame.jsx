@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { motion } from 'framer-motion';
 import useHighScore from '../hooks/useHighScore';
 import { ArcadeShell } from './ArcadeShell';
 import { useArcadeSystems } from '../hooks/useArcadeSystems';
@@ -28,88 +29,91 @@ function SnakeGameInner() {
   const dirRef = useRef({ x: 0, y: -1 });
   const nextDirRef = useRef({ x: 0, y: -1 });
   const timerRef = useRef(null);
+  // Refs for game logic — avoids stale closures in setInterval callbacks
+  const snakeRef = useRef([[10, 10], [10, 11], [10, 12]]);
+  const foodRef = useRef([5, 5]);
+  const scoreRef = useRef(0);
+  const statusRef = useRef('IDLE');
 
   const spawnFood = useCallback((currentSnake) => {
     let newFood;
-    while (true) {
+    do {
       newFood = [
         Math.floor(Math.random() * GRID_SIZE),
         Math.floor(Math.random() * GRID_SIZE)
       ];
-      const collision = currentSnake.some(seg => seg[0] === newFood[0] && seg[1] === newFood[1]);
-      if (!collision) break;
-    }
+    } while (currentSnake.some(seg => seg[0] === newFood[0] && seg[1] === newFood[1]));
+    foodRef.current = newFood;
     setFood(newFood);
   }, []);
 
-  const gameOver = useCallback((finalScoreCount) => {
+  const gameOver = useCallback(() => {
     if (timerRef.current) clearInterval(timerRef.current);
-    saveScore(finalScoreCount);
+    const finalScore = scoreRef.current;
+    saveScore(finalScore);
+    statusRef.current = 'DEAD';
     setStatus('DEAD');
     triggerHaptic('heavy');
-    const head = snake[0];
-    const cellSize = 100 / GRID_SIZE;
-    spawnParticles(`${head[0] * cellSize}%`, `${head[1] * cellSize}%`, C_SNAKE, 25);
-    triggerFloatingText('GAME OVER', '50%', '40%', '#ff0000');
-  }, [saveScore, triggerHaptic, spawnParticles, snake, triggerFloatingText]);
+    const head = snakeRef.current[0];
+    if (head) {
+      const cellSize = 100 / GRID_SIZE;
+      spawnParticles(`${head[0] * cellSize}%`, `${head[1] * cellSize}%`, C_SNAKE, 25);
+    }
+    triggerFloatingText('GAME OVER', '50%', '40%', '#ff4444');
+  }, [saveScore, triggerHaptic, spawnParticles, triggerFloatingText]);
 
   const move = useCallback(() => {
-    let collision = false;
-    let currentScore = 0;
+    if (statusRef.current !== 'PLAYING') return;
 
-    setSnake(prevSnake => {
-      if (collision) return prevSnake;
-      const d = nextDirRef.current;
-      dirRef.current = d;
+    const d = nextDirRef.current;
+    dirRef.current = d;
+    const currentSnake = snakeRef.current;
+    const head = currentSnake[0];
 
-      const head = prevSnake[0];
-      const newHead = [head[0] + d.x, head[1] + d.y];
+    if (!head) return;
 
-      if (newHead[0] < 0 || newHead[0] >= GRID_SIZE || newHead[1] < 0 || newHead[1] >= GRID_SIZE) {
-        collision = true;
-        currentScore = score;
-        return prevSnake;
-      }
+    const newHead = [head[0] + d.x, head[1] + d.y];
 
-      if (prevSnake.some(seg => seg[0] === newHead[0] && seg[1] === newHead[1])) {
-        collision = true;
-        currentScore = score;
-        return prevSnake;
-      }
-
-      const newSnake = [newHead, ...prevSnake];
-
-      if (newHead[0] === food[0] && newHead[1] === food[1]) {
-        const newScoreVal = score + 1;
-        setScore(newScoreVal);
-        animateScore();
-        triggerHaptic('medium');
-        triggerFloatingText('+1', '50%', '40%', C_FOOD);
-
-        const cellSize = 100 / GRID_SIZE;
-        spawnParticles(`${food[0] * cellSize}%`, `${food[1] * cellSize}%`, C_FOOD, 10);
-        spawnFood(newSnake);
-      } else {
-        newSnake.pop();
-      }
-
-      return newSnake;
-    });
-
-    if (collision) {
-      gameOver(score);
+    // Wall collision
+    if (newHead[0] < 0 || newHead[0] >= GRID_SIZE || newHead[1] < 0 || newHead[1] >= GRID_SIZE) {
+      gameOver();
+      return;
     }
-  }, [food, score, gameOver, spawnFood, animateScore, triggerHaptic, triggerFloatingText, spawnParticles]);
 
-  useEffect(() => {
-    if (status === 'PLAYING') {
-      const newSpeed = Math.max(70, INITIAL_SPEED - score * SPEED_INC);
+    // Self collision
+    if (currentSnake.some(seg => seg[0] === newHead[0] && seg[1] === newHead[1])) {
+      gameOver();
+      return;
+    }
+
+    const currentFood = foodRef.current;
+    const ate = newHead[0] === currentFood[0] && newHead[1] === currentFood[1];
+    const newSnake = ate
+      ? [newHead, ...currentSnake]
+      : [newHead, ...currentSnake.slice(0, -1)];
+
+    snakeRef.current = newSnake;
+    setSnake(newSnake);
+
+    if (ate) {
+      const newScore = scoreRef.current + 10;
+      scoreRef.current = newScore;
+      setScore(newScore);
+      animateScore();
+      triggerHaptic('medium');
+      const cellSize = 100 / GRID_SIZE;
+      spawnParticles(`${newHead[0] * cellSize}%`, `${newHead[1] * cellSize}%`, C_FOOD, 12);
+      triggerFloatingText('+10', `${newHead[0] * cellSize}%`, `${newHead[1] * cellSize}%`, C_FOOD);
+      spawnFood(newSnake);
+      // Accelerate
+      const newSpeed = Math.max(70, INITIAL_SPEED - newScore * SPEED_INC);
       setSpeed(newSpeed);
     }
-  }, [score, status]);
+  }, [gameOver, spawnFood, animateScore, triggerHaptic, triggerFloatingText, spawnParticles]);
 
   useEffect(() => {
     if (status === 'PLAYING') {
+      if (timerRef.current) clearInterval(timerRef.current);
       timerRef.current = setInterval(move, speed);
     } else {
       if (timerRef.current) clearInterval(timerRef.current);
@@ -120,13 +124,17 @@ function SnakeGameInner() {
   }, [status, move, speed]);
 
   const start = () => {
-    setSnake([[10, 10], [10, 11], [10, 12]]);
+    const initSnake = [[10, 10], [10, 11], [10, 12]];
+    snakeRef.current = initSnake;
+    scoreRef.current = 0;
+    statusRef.current = 'PLAYING';
     dirRef.current = { x: 0, y: -1 };
     nextDirRef.current = { x: 0, y: -1 };
+    setSnake(initSnake);
     setScore(0);
     setSpeed(INITIAL_SPEED);
     setStatus('PLAYING');
-    spawnFood([[10, 10], [10, 11], [10, 12]]);
+    spawnFood(initSnake);
     triggerHaptic('medium');
   };
 
@@ -136,7 +144,7 @@ function SnakeGameInner() {
       if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' '].includes(e.key)) {
         e.preventDefault();
       }
-      if (status !== 'PLAYING') return;
+      if (statusRef.current !== 'PLAYING') return;
       if (e.key === 'ArrowUp' && d.y !== 1) nextDirRef.current = { x: 0, y: -1 };
       if (e.key === 'ArrowDown' && d.y !== -1) nextDirRef.current = { x: 0, y: 1 };
       if (e.key === 'ArrowLeft' && d.x !== 1) nextDirRef.current = { x: -1, y: 0 };
@@ -144,7 +152,7 @@ function SnakeGameInner() {
     };
     window.addEventListener('keydown', handleKey);
     return () => window.removeEventListener('keydown', handleKey);
-  }, [status]);
+  }, []);
 
   return (
     <ArcadeShell
@@ -158,19 +166,21 @@ function SnakeGameInner() {
       floatingTexts={floatingTexts}
       subTitle="Recopila datos de energía para crecer."
     >
+      {/* Game Board */}
       <div style={{
         position: 'relative',
         display: 'grid',
         gridTemplateColumns: `repeat(${GRID_SIZE}, 1fr)`,
         gridTemplateRows: `repeat(${GRID_SIZE}, 1fr)`,
-        width: 'min(70vh, 85vw)',
-        height: 'min(70vh, 85vw)',
-        background: 'rgba(255,255,255,0.02)',
-        border: '1px solid rgba(255,255,255,0.05)',
-        borderRadius: 24,
-        padding: 8,
+        width: 'min(58vh, 82vw)',
+        height: 'min(58vh, 82vw)',
+        background: 'rgba(6,6,12,0.7)',
+        border: '1px solid rgba(255,255,255,0.06)',
+        borderRadius: 20,
+        padding: 6,
         overflow: 'hidden',
-        boxShadow: 'inset 0 0 30px rgba(0,0,0,0.5)'
+        boxShadow: '0 20px 60px rgba(0,0,0,0.7), inset 0 0 30px rgba(0,0,0,0.4)',
+        backdropFilter: 'blur(8px)',
       }}>
         {Array.from({ length: GRID_SIZE * GRID_SIZE }).map((_, i) => {
           const x = i % GRID_SIZE;
@@ -182,47 +192,62 @@ function SnakeGameInner() {
 
           return (
             <div key={i} style={{
-              background: isHead ? C_HEAD : isSnake ? C_SNAKE : isFood ? C_FOOD : 'transparent',
-              borderRadius: isFood ? '50%' : isSnake ? 6 : 0,
-              boxShadow: isHead ? `0 0 20px ${C_HEAD}` : isFood ? `0 0 20px ${C_FOOD}` : isSnake ? `0 0 8px ${C_SNAKE}aa` : 'none',
-              transform: isFood ? 'scale(0.85)' : 'scale(1)',
-              opacity: isSnake || isFood ? 1 : 0.1,
-              border: isSnake || isFood ? 'none' : '1px solid rgba(255,255,255,0.02)'
+              background: isHead ? C_HEAD
+                : isSnake ? C_SNAKE
+                : isFood ? C_FOOD
+                : 'transparent',
+              borderRadius: isFood ? '50%' : isSnake ? 5 : 2,
+              boxShadow: isHead
+                ? `0 0 14px ${C_HEAD}, 0 0 28px rgba(255,255,255,0.3)`
+                : isFood
+                ? `0 0 14px ${C_FOOD}, 0 0 6px ${C_FOOD}88`
+                : isSnake
+                ? `0 0 6px ${C_SNAKE}88`
+                : 'none',
+              transform: isFood ? 'scale(0.82)' : 'scale(1)',
+              opacity: isSnake || isFood ? 1 : 0,
+              margin: 1,
+              transition: 'background 0.05s, transform 0.05s',
             }} />
           );
         })}
       </div>
 
-      <div style={{ marginTop: 32, display: 'flex', gap: 16, alignItems: 'center' }}>
-        <Btn onClick={() => { if (dirRef.current.x !== 1) { nextDirRef.current = { x: -1, y: 0 }; triggerHaptic('light'); } }}>◀</Btn>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-          <Btn onClick={() => { if (dirRef.current.y !== 1) { nextDirRef.current = { x: 0, y: -1 }; triggerHaptic('light'); } }}>▲</Btn>
-          <Btn onClick={() => { if (dirRef.current.y !== -1) { nextDirRef.current = { x: 0, y: 1 }; triggerHaptic('light'); } }}>▼</Btn>
+      {/* D-pad controls */}
+      <div style={{ marginTop: 24, display: 'flex', gap: 12, alignItems: 'center' }}>
+        <DPadBtn onClick={() => { if (dirRef.current.x !== 1) { nextDirRef.current = { x: -1, y: 0 }; triggerHaptic('light'); } }}>◀</DPadBtn>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <DPadBtn onClick={() => { if (dirRef.current.y !== 1) { nextDirRef.current = { x: 0, y: -1 }; triggerHaptic('light'); } }}>▲</DPadBtn>
+          <DPadBtn onClick={() => { if (dirRef.current.y !== -1) { nextDirRef.current = { x: 0, y: 1 }; triggerHaptic('light'); } }}>▼</DPadBtn>
         </div>
-        <Btn onClick={() => { if (dirRef.current.x !== -1) { nextDirRef.current = { x: 1, y: 0 }; triggerHaptic('light'); } }}>▶</Btn>
+        <DPadBtn onClick={() => { if (dirRef.current.x !== -1) { nextDirRef.current = { x: 1, y: 0 }; triggerHaptic('light'); } }}>▶</DPadBtn>
       </div>
     </ArcadeShell>
   );
 }
 
-function Btn({ children, onClick }) {
+function DPadBtn({ children, onClick }) {
   return (
-    <button
+    <motion.button
       onPointerDown={e => { e.preventDefault(); onClick(); }}
+      whileTap={{ scale: 0.88, backgroundColor: 'rgba(255,255,255,0.08)' }}
       style={{
-        width: 64, height: 64, borderRadius: 20,
+        width: 58, height: 58, borderRadius: 18,
         border: '1px solid rgba(255,255,255,0.1)',
-        background: 'rgba(255,255,255,0.03)',
-        color: '#fff', fontSize: 24, cursor: 'pointer',
+        background: 'rgba(255,255,255,0.04)',
+        color: 'rgba(255,255,255,0.8)',
+        fontSize: 20,
+        cursor: 'pointer',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        boxShadow: '0 4px 15px rgba(0,0,0,0.2)',
+        boxShadow: '0 4px 16px rgba(0,0,0,0.3)',
         backdropFilter: 'blur(10px)',
-        transition: 'all 0.15s'
+        WebkitBackdropFilter: 'blur(10px)',
+        userSelect: 'none',
+        touchAction: 'none',
       }}
-      className="active:scale-95 active:bg-white/10 active:border-white/20"
     >
       {children}
-    </button>
+    </motion.button>
   );
 }
 

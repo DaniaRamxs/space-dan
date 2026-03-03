@@ -271,7 +271,7 @@ function AnimatedRoutes() {
         <Route
           path="/"
           element={
-            window.location.hash || window.location.search.includes('code=')
+            (loading && (window.location.hash || window.location.search.includes('code=')))
               ? <FallbackLoader />
               : <Navigate to="/posts" replace />
           }

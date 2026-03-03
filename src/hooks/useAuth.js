@@ -29,6 +29,10 @@ export default function useAuth() {
       setSession(session);
       if (!session) setProfileLoading(false);
       setLoading(false);
+    }).catch(err => {
+      console.error('[useAuth] getSession error:', err);
+      setProfileLoading(false);
+      setLoading(false);
     });
 
 
@@ -194,6 +198,7 @@ export default function useAuth() {
     profile,
     // Solo bloquea hasta saber si hay sesión (lee de localStorage, <5ms).
     // El perfil llega después en background; las páginas manejan profile===null con skeleton.
+    loading,
     profileLoading,
     refreshProfile: fetchProfile,
     loginWithGoogle,

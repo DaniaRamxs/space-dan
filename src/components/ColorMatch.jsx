@@ -166,8 +166,11 @@ function ColorMatchInner() {
       subTitle="Identifica el color correcto rápidamente."
     >
       <div style={{
-        display: 'flex', flexDirection: 'column', gap: 24, width: '100%', maxWidth: 360, padding: 24,
-        background: 'rgba(255,255,255,0.02)', borderRadius: 24, border: '1px solid rgba(255,255,255,0.05)'
+        display: 'flex', flexDirection: 'column', gap: 22, width: '100%', maxWidth: 360, padding: 22,
+        background: 'rgba(4,4,10,0.75)', borderRadius: 22,
+        border: '1px solid rgba(255,255,255,0.07)',
+        boxShadow: '0 20px 60px rgba(0,0,0,0.6), inset 0 0 30px rgba(0,0,0,0.3)',
+        backdropFilter: 'blur(10px)',
       }}>
         {currentRound && (
           <>

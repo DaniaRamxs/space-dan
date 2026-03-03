@@ -695,6 +695,144 @@ textarea,
   }
 }
 
+/* =============================================
+   SPACELY GAME SYSTEM — Global Utilities
+   Shared visual tokens for all 26 games.
+   Do NOT override FSM / Engine / AI layers.
+   ============================================= */
+
+/* Game board — shared dark glass container */
+.spacely-board {
+  background: rgba(4, 4, 10, 0.78);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 20px;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.65),
+              inset 0 0 30px rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+/* Game stat label */
+.spacely-stat-label {
+  font-size: 0.58rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  color: rgba(255, 255, 255, 0.35);
+  margin-bottom: 4px;
+}
+
+/* Game stat value */
+.spacely-stat-value {
+  font-family: var(--font-mono);
+  font-size: 1rem;
+  font-weight: 900;
+  line-height: 1;
+}
+
+/* D-pad / control button — shared across games */
+.spacely-ctrl-btn {
+  width: 58px;
+  height: 58px;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 20px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(10px);
+  user-select: none;
+  touch-action: none;
+  transition: background 0.12s, transform 0.1s;
+}
+
+.spacely-ctrl-btn:active {
+  transform: scale(0.88);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+/* ── Blitz mode accent ── */
+/* Add class `blitz-mode` to ArcadeShell container when mode === 'blitz' */
+.blitz-mode {
+  --accent: #ff3fa4;
+  --cyan: #00f5ff;
+}
+
+.blitz-mode .spacely-board {
+  border-color: rgba(255, 63, 164, 0.12);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.65),
+              inset 0 0 30px rgba(0, 0, 0, 0.4),
+              0 0 40px rgba(255, 63, 164, 0.05);
+}
+
+/* ── Game entrance keyframes ── */
+@keyframes gameSlideIn {
+  from { opacity: 0; transform: translateY(12px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes timerPulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.65; }
+}
+
+/* Timer pulse when critical (< 25%) — applied via JS className */
+.timer-critical {
+  animation: timerPulse 0.7s ease-in-out infinite;
+}
+
+/* ── Score pop animation ── */
+@keyframes scorePop {
+  0%   { transform: scale(1); }
+  35%  { transform: scale(1.18); }
+  100% { transform: scale(1); }
+}
+
+.score-pop {
+  animation: scorePop 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* ── Turn change highlight ── */
+@keyframes turnFlash {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.4; }
+}
+
+/* ── Star twinkle (for starfield bg) ── */
+@keyframes starTwinkle {
+  0%, 100% { opacity: 0.8; }
+  50%       { opacity: 0.2; }
+}
+
+/* ── Arcade immersive layout utility ── */
+/* Ensure game layouts never scroll on mobile */
+.arcade-shell-container {
+  touch-action: none;
+  overscroll-behavior: none;
+}
+
+/* ── Mobile: ensure canvas games fill width cleanly ── */
+@media (max-width: 480px) {
+  .spacely-board {
+    border-radius: 16px;
+  }
+
+  .spacely-ctrl-btn {
+    width: 52px;
+    height: 52px;
+    border-radius: 16px;
+    font-size: 18px;
+  }
+}
+
+/* =============================================
+   END SPACELY GAME SYSTEM
+   ============================================= */
+
 /* ---------- Animations ---------- */
 @keyframes snowflakes-fall {
   0% {

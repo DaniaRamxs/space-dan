@@ -207,7 +207,7 @@ function FlappyBirdInner() {
       floatingTexts={floatingTexts}
       subTitle="Vuela a través de los portales de energía."
     >
-      <div style={{ position: 'relative', width: W, height: H, background: 'rgba(255,255,255,0.02)', borderRadius: 24, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.05)' }}>
+      <div style={{ position: 'relative', width: 'min(86vw, 300px)', aspectRatio: `${W}/${H}`, background: 'rgba(4,4,10,0.8)', borderRadius: 20, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.07)', boxShadow: '0 24px 60px rgba(0,0,0,0.7), inset 0 0 30px rgba(0,0,0,0.4)', backdropFilter: 'blur(8px)' }}>
         <canvas
           ref={canvasRef}
           width={W}

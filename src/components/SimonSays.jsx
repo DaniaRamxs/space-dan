@@ -136,8 +136,11 @@ function SimonSaysInner() {
       subTitle="Memoriza y repite la secuencia de luces."
     >
       <div style={{
-        display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 16, padding: 24,
-        background: 'rgba(255,255,255,0.02)', borderRadius: 32, border: '1px solid rgba(255,255,255,0.05)'
+        display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 16, padding: 22,
+        background: 'rgba(4,4,10,0.75)', borderRadius: 28,
+        border: '1px solid rgba(255,255,255,0.07)',
+        boxShadow: '0 24px 60px rgba(0,0,0,0.6), inset 0 0 30px rgba(0,0,0,0.3)',
+        backdropFilter: 'blur(10px)',
       }}>
         {BUTTONS.map((id) => {
           const isLit = litBtn === id;

@@ -112,13 +112,14 @@ function WhackAMoleInner() {
       <div style={{
         display: 'grid',
         gridTemplateColumns: 'repeat(3, 1fr)',
-        gap: 20,
-        padding: 24,
-        background: 'rgba(255,255,255,0.02)',
-        borderRadius: 32,
-        border: '1px solid rgba(255,255,255,0.05)',
-        boxShadow: '0 20px 40px rgba(0,0,0,0.3)',
-        userSelect: 'none'
+        gap: 18,
+        padding: 22,
+        background: 'rgba(4,4,10,0.75)',
+        borderRadius: 28,
+        border: '1px solid rgba(255,255,255,0.07)',
+        boxShadow: '0 24px 60px rgba(0,0,0,0.6), inset 0 0 30px rgba(0,0,0,0.3)',
+        backdropFilter: 'blur(10px)',
+        userSelect: 'none',
       }}>
         {Array.from({ length: HOLES }).map((_, i) => (
           <div key={i} onPointerDown={() => whack(i)} style={{

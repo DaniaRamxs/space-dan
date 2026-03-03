@@ -186,11 +186,12 @@ function DodgeGameInner() {
       <div style={{ display: 'flex', flexDirection: 'column', gap: 30, alignItems: 'center' }}>
         <div style={{
           position: 'relative',
-          borderRadius: 24,
+          borderRadius: 18,
           overflow: 'hidden',
-          border: '1px solid rgba(255,255,255,0.05)',
-          boxShadow: '0 20px 50px rgba(0,0,0,0.5)',
-          background: '#050508'
+          border: '1px solid rgba(255,255,255,0.07)',
+          boxShadow: '0 24px 60px rgba(0,0,0,0.7), inset 0 0 30px rgba(0,0,0,0.4)',
+          background: 'rgba(4,4,10,0.9)',
+          backdropFilter: 'blur(8px)',
         }}>
           <canvas ref={canvasRef} width={CANVAS_W} height={CANVAS_H} style={{ display: 'block' }} />
         </div>

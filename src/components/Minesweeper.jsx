@@ -214,12 +214,13 @@ function MinesweeperInner() {
       <div style={{
         display: 'grid',
         gridTemplateColumns: `repeat(${COLS}, min(35px, 10vw))`,
-        gap: 6,
-        background: 'rgba(255, 255, 255, 0.03)',
-        padding: 16,
-        borderRadius: 24,
-        border: '1px solid rgba(255,255,255,0.05)',
-        boxShadow: 'inset 0 0 30px rgba(0,0,0,0.5)'
+        gap: 5,
+        background: 'rgba(4,4,10,0.75)',
+        padding: 14,
+        borderRadius: 20,
+        border: '1px solid rgba(255,255,255,0.07)',
+        boxShadow: '0 20px 60px rgba(0,0,0,0.6), inset 0 0 30px rgba(0,0,0,0.4)',
+        backdropFilter: 'blur(10px)',
       }}>
         {board.map((row, r) =>
           row.map((cell, c) => (

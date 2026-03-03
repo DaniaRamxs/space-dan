@@ -211,11 +211,12 @@ function CatchGameInner() {
           height={CANVAS_H}
           style={{
             display: 'block',
-            background: 'rgba(255,255,255,0.02)',
-            borderRadius: 24,
+            background: 'rgba(4,4,10,0.8)',
+            borderRadius: 18,
             border: '1px solid rgba(255,110,180,0.1)',
             cursor: 'pointer',
-            touchAction: 'none'
+            touchAction: 'none',
+            boxShadow: '0 20px 60px rgba(0,0,0,0.7)',
           }}
           onClick={() => status !== 'PLAYING' && start()}
         />

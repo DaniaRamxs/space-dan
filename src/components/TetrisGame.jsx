@@ -279,11 +279,12 @@ function TetrisGameInner() {
         {/* Board */}
         <div style={{
           position: 'relative',
-          padding: 12,
-          background: 'rgba(255,255,255,0.02)',
-          borderRadius: 24,
-          border: '1px solid rgba(255,255,255,0.05)',
-          boxShadow: 'inset 0 0 40px rgba(0,0,0,0.5)'
+          padding: 10,
+          background: 'rgba(4,4,10,0.8)',
+          borderRadius: 20,
+          border: '1px solid rgba(255,255,255,0.07)',
+          boxShadow: '0 24px 60px rgba(0,0,0,0.7), inset 0 0 30px rgba(0,0,0,0.4)',
+          backdropFilter: 'blur(8px)',
         }}>
           <div style={{
             display: 'grid',

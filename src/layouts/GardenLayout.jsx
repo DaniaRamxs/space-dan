@@ -11,7 +11,7 @@ import AuthWidget from "../components/AuthWidget.jsx";
 import { useEconomy } from '../contexts/EconomyContext';
 import NotificationBell from "../components/NotificationBell.jsx";
 import AmbientOrbs from "../components/AmbientOrbs.jsx";
-import useAuth from '../hooks/useAuth';
+import { useAuthContext } from "../contexts/AuthContext";
 import { useRef } from 'react';
 import { Capacitor } from '@capacitor/core';
 
@@ -20,7 +20,7 @@ const FIXED_LAYOUT_PATHS = ['/cartas', '/desktop', '/chat'];
 const isNative = Capacitor.isNativePlatform();
 
 export default function GardenLayout({ children }) {
-  const { user, profile: ownProfile } = useAuth();
+  const { user, profile: ownProfile } = useAuthContext();
   const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 

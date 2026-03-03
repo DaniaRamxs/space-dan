@@ -198,9 +198,10 @@ function TypeBlitzInner() {
                         display: 'block',
                         width: '100%',
                         height: 'auto',
-                        background: 'rgba(255,255,255,0.02)',
-                        borderRadius: 24,
-                        border: '1px solid rgba(255,255,255,0.05)',
+                        background: 'rgba(4,4,10,0.8)',
+                        borderRadius: 18,
+                        border: '1px solid rgba(255,255,255,0.07)',
+                        boxShadow: '0 20px 60px rgba(0,0,0,0.7)',
                     }}
                 />
 

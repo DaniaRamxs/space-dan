@@ -1,4 +1,5 @@
 import { useRef, useEffect, useCallback, useState } from 'react';
+import { motion } from 'framer-motion';
 import { GameImmersiveLayout } from '../core/GameImmersiveLayout';
 import { ArcadeShell } from './ArcadeShell';
 import { useArcadeSystems } from '../hooks/useArcadeSystems';
@@ -400,7 +401,7 @@ function AsteroidsInner() {
       floatingTexts={floatingTexts}
       subTitle="Destruye los fragmentos en órbita."
     >
-      <div style={{ position: 'relative', width: 'min(70vh, 90vw)', aspectRatio: '1/1', background: 'rgba(255,255,255,0.02)', borderRadius: 24, padding: 8, border: '1px solid rgba(255,255,255,0.05)', boxShadow: 'inset 0 0 40px rgba(0,0,0,0.5)', overflow: 'hidden' }}>
+      <div style={{ position: 'relative', width: 'min(52vh, 84vw)', aspectRatio: '1/1', background: 'rgba(4,4,10,0.8)', borderRadius: 20, padding: 6, border: '1px solid rgba(255,255,255,0.07)', boxShadow: '0 24px 60px rgba(0,0,0,0.7), inset 0 0 30px rgba(0,0,0,0.4)', overflow: 'hidden', backdropFilter: 'blur(8px)' }}>
         <canvas
           ref={canvasRef}
           width={W}
@@ -450,24 +451,25 @@ function AsteroidsInner() {
 
 function ControlBtn({ icon, onDown, onUp, color = '#00e5ff' }) {
   return (
-    <button
+    <motion.button
       onPointerDown={e => { e.preventDefault(); onDown(); }}
       onPointerUp={e => { e.preventDefault(); onUp(); }}
       onPointerLeave={() => onUp()}
+      whileTap={{ scale: 0.87, backgroundColor: 'rgba(255,255,255,0.08)' }}
       style={{
-        width: 64, height: 64, borderRadius: 20,
+        width: 60, height: 60, borderRadius: 18,
         border: '1px solid rgba(255,255,255,0.1)',
-        background: 'rgba(255,255,255,0.03)',
-        color, fontSize: icon === 'FIRE' ? 12 : 24,
+        background: 'rgba(255,255,255,0.04)',
+        color, fontSize: icon === 'FIRE' ? 11 : 22,
         fontWeight: 900, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-        boxShadow: '0 4px 15px rgba(0,0,0,0.2)',
+        boxShadow: '0 4px 16px rgba(0,0,0,0.3)',
         backdropFilter: 'blur(10px)',
-        transition: 'all 0.15s'
+        WebkitBackdropFilter: 'blur(10px)',
+        userSelect: 'none', touchAction: 'none',
       }}
-      className="active:scale-95 active:bg-white/10 active:border-white/20"
     >
       {icon}
-    </button>
+    </motion.button>
   );
 }
 
