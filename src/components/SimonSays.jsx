@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import useHighScore from '../hooks/useHighScore';
+import { GameImmersiveLayout } from '../core/GameImmersiveLayout';
+import { GameShell } from '../core/GameShell';
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -60,7 +62,7 @@ function playTone(btnId, audioCtx) {
  * SimonSays — memory pattern game with 4 coloured buttons.
  * No canvas — pure CSS and React state.
  */
-export default function SimonSays() {
+function SimonSaysInner() {
   // game phase: 'idle' | 'showing' | 'input' | 'dead'
   const [phase, setPhase] = useState('idle');
   const [sequence, setSequence] = useState([]);
@@ -302,5 +304,15 @@ export default function SimonSays() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function SimonSays() {
+  return (
+    <GameImmersiveLayout>
+      <GameShell title="Simon Dice">
+        <SimonSaysInner />
+      </GameShell>
+    </GameImmersiveLayout>
   );
 }

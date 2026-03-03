@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import useHighScore from '../hooks/useHighScore';
+import { GameImmersiveLayout } from '../core/GameImmersiveLayout';
+import { GameShell } from '../core/GameShell';
 
 const CANVAS_W = 320;
 const CANVAS_H = 400;
@@ -65,7 +67,7 @@ const STYLES = {
  * CatchGame — catch falling balls with the basket.
  * @returns {JSX.Element}
  */
-export default function CatchGame() {
+function CatchGameInner() {
   const [best, saveScore] = useHighScore('catch');
 
   const canvasRef = useRef(null);
@@ -291,5 +293,15 @@ export default function CatchGame() {
         <p style={STYLES.record}>record: {best} puntos</p>
       )}
     </div>
+  );
+}
+
+export default function CatchGame() {
+  return (
+    <GameImmersiveLayout>
+      <GameShell title="Neon Catch">
+        <CatchGameInner />
+      </GameShell>
+    </GameImmersiveLayout>
   );
 }

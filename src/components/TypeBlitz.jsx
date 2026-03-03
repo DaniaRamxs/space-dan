@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import useHighScore from '../hooks/useHighScore';
+import { GameImmersiveLayout } from '../core/GameImmersiveLayout';
+import { GameShell } from '../core/GameShell';
 
 // ── Dimensiones responsive ───────────────────────────────────────────────────
 const LOGIC_W = 380;
@@ -29,7 +31,7 @@ function makeState() {
     return { phase: 'idle', words: [], score: 0, lives: 3, combo: 0, frame: 0, nextIn: 80, typed: '' };
 }
 
-export default function TypeBlitz() {
+function TypeBlitzInner() {
     const canvasRef = useRef(null);
     const stateRef = useRef(makeState());
     const rafRef = useRef(null);
@@ -258,5 +260,15 @@ export default function TypeBlitz() {
                 tap canvas · tipea la palabra · enter / match completo
             </p>
         </div>
+    );
+}
+
+export default function TypeBlitz() {
+    return (
+        <GameImmersiveLayout>
+            <GameShell title="Type Blitz">
+                <TypeBlitzInner />
+            </GameShell>
+        </GameImmersiveLayout>
     );
 }

@@ -1,4 +1,4 @@
-﻿import { memo, useState } from 'react';
+﻿import { memo, useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Link, useNavigate } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
@@ -8,10 +8,12 @@ import rehypeSanitize, { defaultSchema } from 'rehype-sanitize';
 import { parseSpaceEnergies } from '../../utils/markdownUtils';
 import ReactionsBar from './ReactionsBar';
 import ShareModal from './ShareModal';
+import SoundCard from './SoundCard';
+import SoundIndicator from './SoundIndicator';
 import { formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useAuthContext } from '../../contexts/AuthContext';
-import { CATEGORIES } from './PostComposer';
+import { CATEGORIES } from '../../constants/categories';
 import { getUserDisplayName, getNicknameClass } from '../../utils/user';
 import { Eye, Repeat2, MessageSquare, ChevronRight } from 'lucide-react';
 
@@ -56,12 +58,21 @@ function safeTimeAgo(dateValue, withSuffix = true) {
     }
 }
 
-const ActivityCard = memo(({ post, onUpdate, onNewPost }) => {
+const ActivityCard = memo(({ post, onUpdate, onNewPost, onHeightChange }) => {
     const { user } = useAuthContext();
     const navigate = useNavigate();
 
+    const [isExpanded, setIsExpanded] = useState(false);
     const [showShareModal, setShowShareModal] = useState(false);
     const [shareMode, setShareMode] = useState('repost');
+
+    // Notify parent of height change
+    useEffect(() => {
+        if (onHeightChange) {
+            // Wait for expansion animation/render
+            setTimeout(onHeightChange, 50);
+        }
+    }, [isExpanded, onHeightChange]);
 
     const openShare = (mode, e) => {
         e.stopPropagation();
@@ -69,186 +80,138 @@ const ActivityCard = memo(({ post, onUpdate, onNewPost }) => {
         setShowShareModal(true);
     };
 
-    const previewRaw = cleanMarkdownForPreview(post.content || '');
-    const preview = previewRaw.length > 500
-        ? previewRaw.slice(0, 500).trimEnd() + '…'
-        : previewRaw;
-
-    const postUrl = `/transmission/${post.id}`;
+    const hasLongContent = (post.content || '').split('\n').length > 6 || (post.content || '').length > 400;
     const catMeta = getCategoryMeta(post.category);
 
     return (
         <>
             <motion.div
-                initial={{ opacity: 0, y: 12 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.25 }}
-                className="group relative bg-[#070710] border-y border-transparent md:border md:border-white/[0.06] md:rounded-3xl overflow-hidden cursor-pointer
-                           hover:bg-[#09090f] transition-all duration-300 shadow-none md:shadow-lg hover:shadow-xl"
-                onClick={() => navigate(postUrl)}
+                initial={{ opacity: 0, scale: 0.98 }}
+                animate={{ opacity: 1, scale: 1 }}
+                layout
+                className="group relative bg-[#070710]/40 border-b border-white/[0.03] p-4 md:p-5 hover:bg-[#0a0a15]/80 transition-all duration-300"
+                onClick={() => {
+                    if (post.isOptimistic) return;
+                    if (!isExpanded && hasLongContent) {
+                        setIsExpanded(true);
+                    } else {
+                        navigate(`/transmission/${post.id}`);
+                    }
+                }}
                 role="article"
-                aria-label={post.title || 'Post'}
             >
-                {/* Línea acento top (Reduced 50%) */}
-                <div className="absolute top-0 left-8 right-8 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent
-                                group-hover:via-white/20 transition-all duration-500" />
-
-                <div className="p-5 md:p-6">
-                    {/* Repost Header */}
-                    {post.type === 'repost' && post.original_post && (
-                        <div className="flex items-center gap-2 mb-3 px-1">
-                            <Repeat2 size={12} className="text-purple-400" />
-                            <span className="text-[10px] font-black text-purple-400 uppercase tracking-widest">Reposteo Estelar</span>
+                <div className="flex gap-4">
+                    {/* AVATAR */}
+                    <Link
+                        to={post.author?.username ? `/@${encodeURIComponent(post.author.username)}` : `/profile/${post.author_id}`}
+                        onClick={e => e.stopPropagation()}
+                        className="shrink-0"
+                    >
+                        <div className="w-10 h-10 rounded-full overflow-hidden border border-white/10 bg-black hover:border-cyan-500/40 transition-all">
+                            <img
+                                src={post.author?.avatar_url || '/default_user_blank.png'}
+                                className="w-full h-full object-cover"
+                                alt={post.author?.username}
+                                loading="lazy"
+                            />
                         </div>
-                    )}
+                    </Link>
 
-                    {/* Fila: Avatar + Meta */}
-                    <div className="flex items-start gap-3 mb-3">
-                        <Link
-                            to={post.author?.username ? `/@${encodeURIComponent(post.author.username)}` : `/profile/${post.author_id}`}
-                            onClick={e => e.stopPropagation()}
-                            className="shrink-0"
-                        >
-                            <div className="w-10 h-10 rounded-xl overflow-hidden border border-white/10 bg-black
-                                           hover:border-cyan-500/40 hover:scale-105 transition-all">
-                                <img
-                                    src={post.author?.avatar_url || '/default_user_blank.png'}
-                                    className="w-full h-full object-cover"
-                                    alt={post.author?.username}
-                                    loading="lazy"
-                                />
-                            </div>
-                        </Link>
+                    {/* CONTENT AREA */}
+                    <div className="flex-1 min-w-0">
+                        {/* Header Row */}
+                        <div className="flex items-center gap-1.5 mb-1 flex-wrap">
+                            <Link
+                                to={post.author?.username ? `/@${encodeURIComponent(post.author.username)}` : `/profile/${post.author_id}`}
+                                onClick={e => e.stopPropagation()}
+                                className="text-[13px] font-black text-white/90 hover:underline flex items-center gap-1.5"
+                            >
+                                <span className={getNicknameClass(post.author)}>
+                                    {getUserDisplayName(post.author)}
+                                </span>
+                                {post.metadata?.spotify_track && (
+                                    <SoundIndicator
+                                        trackId={post.metadata.spotify_track.track_id}
+                                        previewUrl={post.metadata.spotify_track.preview_url}
+                                    />
+                                )}
+                            </Link>
+                            <span className="text-[10px] text-white/20 font-bold">·</span>
+                            <span className="text-[10px] text-white/30 font-mono">
+                                {safeTimeAgo(post.created_at, false)}
+                            </span>
+                            <span className="ml-auto text-[9px] font-black text-white/10 uppercase tracking-widest flex items-center gap-1">
+                                {catMeta.icon} {catMeta.label}
+                            </span>
+                        </div>
 
-                        <div className="flex-1 min-w-0 pt-0.5">
-                            <div className="flex items-center justify-between gap-2 mb-0.5">
-                                <Link
-                                    to={post.author?.username ? `/@${encodeURIComponent(post.author.username)}` : `/profile/${post.author_id}`}
-                                    onClick={e => e.stopPropagation()}
-                                    className="text-micro hover:text-white transition-colors"
+                        {/* Title (Only if specifically present and significant, usually we'll hide it for a pulse feel) */}
+                        {post.title && post.title !== 'null' && (
+                            <h3 className="text-sm font-black text-white mb-2 leading-tight tracking-tight">
+                                {post.title}
+                            </h3>
+                        )}
+
+                        {/* Content with Expansion */}
+                        <div className="relative">
+                            <div className={`text-[14px] leading-relaxed text-white/70 whitespace-pre-wrap break-words transition-all duration-500 overflow-hidden ${!isExpanded && hasLongContent ? 'max-h-[160px]' : 'max-h-[5000px]'}`}>
+                                <ReactMarkdown
+                                    remarkPlugins={[remarkGfm]}
+                                    rehypePlugins={[rehypeRaw, [rehypeSanitize, sanitizeSchema]]}
                                 >
-                                    <span className={`text-[11px] font-bold uppercase tracking-[0.15em] transition-colors ${getNicknameClass(post.author)}`}>
-                                        {getUserDisplayName(post.author)}
-                                    </span>
-                                </Link>
-                                <div className="flex items-center gap-2 shrink-0">
-                                    {/* Vistas */}
-                                    {post.views_count > 0 && (
-                                        <span className="text-[9px] font-mono text-white/30 flex items-center gap-1">
-                                            <Eye size={10} strokeWidth={1.5} /> {formatViews(post.views_count)}
-                                        </span>
-                                    )}
-                                    <span className="text-[9px] font-mono text-white/50">
-                                        {safeTimeAgo(post.created_at, true)}
-                                    </span>
-                                </div>
-                            </div>
+                                    {parseSpaceEnergies(post.content || '')}
+                                </ReactMarkdown>
 
-                            {/* Categoría y Señales de Vida */}
-                            <div className="flex items-center gap-3">
-                                <div className="flex items-center gap-1.5 text-[8px] font-semibold uppercase tracking-[0.2em] font-mono">
-                                    <span className="text-cyan-500/25 group-hover:text-cyan-400/50 transition-colors">
-                                        {catMeta.icon} {catMeta.label}
-                                    </span>
-                                    {post.updated_at > post.created_at && (
-                                        <span className="text-white/10">· editado</span>
-                                    )}
-                                </div>
-
-                                {new Date() - new Date(post.created_at) < 60000 && (
-                                    <div className="flex items-center gap-1.5 px-1.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20">
-                                        <div className="w-1 h-1 rounded-full bg-emerald-500 animate-pulse" />
-                                        <span className="text-[7px] font-semibold text-emerald-500/80 uppercase tracking-[0.2em] font-mono">_Señal_Nueva</span>
-                                    </div>
+                                {!isExpanded && hasLongContent && (
+                                    <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-[#070710] to-transparent pointer-events-none" />
                                 )}
                             </div>
+
+                            {hasLongContent && (
+                                <button
+                                    onClick={(e) => { e.stopPropagation(); setIsExpanded(!isExpanded); }}
+                                    className="mt-2 text-[10px] font-black text-cyan-400/60 hover:text-cyan-400 uppercase tracking-widest transition-all"
+                                >
+                                    {isExpanded ? 'Ver menos ↑' : 'Ver más...'}
+                                </button>
+                            )}
                         </div>
-                    </div>
 
-                    {/* Título (Using Typography Scale) */}
-                    {post.title && (
-                        <h2 className="text-xl md:text-2xl font-bold text-white/90 tracking-tight leading-none mb-3 group-hover:text-white transition-colors">
-                            {post.title}
-                        </h2>
-                    )}
+                        {/* Sound Card Integration */}
+                        {post.metadata?.spotify_track && (
+                            <SoundCard track={post.metadata.spotify_track} />
+                        )}
 
-                    {/* Preview con soporte de Energías */}
-                    {preview && (
-                        <div className="text-[15px] font-medium leading-relaxed text-white/70 mb-4 line-clamp-4 pointer-events-none select-none prose-preview">
-                            <ReactMarkdown
-                                remarkPlugins={[remarkGfm]}
-                                rehypePlugins={[rehypeRaw, [rehypeSanitize, sanitizeSchema]]}
-                            >
-                                {parseSpaceEnergies(preview)}
-                            </ReactMarkdown>
-                        </div>
-                    )}
-
-                    {/* Original Post Embed (For reposts and quotes) */}
-                    {post.original_post && post.original_post.id && post.original_post.author && post.original_post.created_at && (
-                        <div className="mt-2 mb-4 p-4 rounded-3xl bg-white/[0.03] border border-white/10 hover:border-white/20 transition-all">
-                            <div className="flex items-center gap-2 mb-2">
-                                <div className="w-5 h-5 rounded-lg overflow-hidden border border-white/10 shrink-0">
-                                    <img
-                                        src={post.original_post.author?.avatar_url || '/default_user_blank.png'}
-                                        className="w-full h-full object-cover"
-                                        alt={post.original_post.author?.username}
-                                    />
+                        {/* Original Post Embed for Reposts */}
+                        {post.type === 'repost' && post.original_post && (
+                            <div className="mt-3 p-3 rounded-2xl bg-white/[0.02] border border-white/5 hover:border-white/10 transition-all text-xs text-white/40">
+                                <div className="flex items-center gap-2 mb-1">
+                                    <span className="text-[9px] font-black uppercase text-purple-400/60">Reposteo Estelar</span>
+                                    <span className="text-[10px] font-bold">@{post.original_post.author?.username}</span>
                                 </div>
-                                <span className="text-[10px] font-black text-white/50 uppercase tracking-widest">
-                                    @{getUserDisplayName(post.original_post.author)}
-                                </span>
-                                <span className="text-[9px] font-mono text-white/20 ml-auto">
-                                    {safeTimeAgo(post.original_post?.created_at, false)}
-                                </span>
+                                <p className="line-clamp-2">{cleanMarkdownForPreview(post.original_post.content || '')}</p>
+                            </div>
+                        )}
+
+                        {/* Interactions Footer */}
+                        <div className="flex items-center justify-between mt-4">
+                            <div onClick={e => e.stopPropagation()}>
+                                <ReactionsBar post={post} onUpdate={onUpdate} />
                             </div>
 
-                            {post.original_post.title && (
-                                <h4 className="text-xs font-black text-white/80 uppercase mb-1">{post.original_post.title}</h4>
-                            )}
-
-                            <p className="text-[13px] text-white/40 leading-relaxed line-clamp-2">
-                                {cleanMarkdownForPreview(post.original_post.content || '')}
-                            </p>
-                        </div>
-                    )}
-
-                    {/* Separador */}
-                    <div className="w-full h-px bg-white/[0.04] mb-3" />
-
-                    {/* Footer */}
-                    <div className="flex items-center justify-between">
-                        <div onClick={e => e.stopPropagation()}>
-                            <ReactionsBar post={post} onUpdate={onUpdate} />
-                        </div>
-
-                        <div className="flex items-center gap-1.5">
-                            <span className="text-[9px] font-black text-cyan-500/25 group-hover:text-cyan-400/50 uppercase tracking-widest transition-colors mr-1 flex items-center gap-1">
-                                Leer <ChevronRight size={10} strokeWidth={2} />
-                            </span>
-                            <div className="flex items-center gap-1.5" onClick={e => e.stopPropagation()}>
-                                <motion.button
-                                    whileHover={{ scale: 1.1 }}
-                                    whileTap={{ scale: 0.88 }}
+                            <div className="flex items-center gap-3" onClick={e => e.stopPropagation()}>
+                                <button
                                     onClick={e => openShare('repost', e)}
-                                    title="Repostear"
-                                    className="w-7 h-7 rounded-xl bg-white/[0.03] border border-white/5
-                                           flex items-center justify-center text-white/25
-                                           hover:text-purple-400 hover:bg-purple-400/10 hover:border-purple-400/20 transition-all"
+                                    className="text-white/20 hover:text-purple-400 transition-colors"
                                 >
-                                    <Repeat2 size={14} strokeWidth={1.5} />
-                                </motion.button>
-                                <motion.button
-                                    whileHover={{ scale: 1.1 }}
-                                    whileTap={{ scale: 0.88 }}
+                                    <Repeat2 size={16} />
+                                </button>
+                                <button
                                     onClick={e => openShare('quote', e)}
-                                    title="Citar"
-                                    className="w-7 h-7 rounded-xl bg-white/[0.03] border border-white/5
-                                           flex items-center justify-center text-white/25
-                                           hover:text-cyan-400 hover:bg-cyan-400/10 hover:border-cyan-400/20 transition-all font-bold"
+                                    className="text-white/20 hover:text-cyan-400 transition-colors"
                                 >
-                                    <MessageSquare size={14} strokeWidth={1.5} />
-                                </motion.button>
+                                    <MessageSquare size={16} />
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -268,5 +231,4 @@ const ActivityCard = memo(({ post, onUpdate, onNewPost }) => {
         </>
     );
 });
-
 export default ActivityCard;

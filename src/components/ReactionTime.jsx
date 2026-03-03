@@ -1,13 +1,15 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import useHighScore from '../hooks/useHighScore';
+import { GameImmersiveLayout } from '../core/GameImmersiveLayout';
+import { GameShell } from '../core/GameShell';
 
 const C_ACC = '#ff00ff';
 const C_CYN = '#00e5ff';
 const C_RED = '#ff3333';
 const C_GRN = '#00e676';
 
-export default function ReactionTime() {
+function ReactionTimeInner() {
   const [phase, setPhase] = useState('waiting'); // waiting | ready | go | result | toosoon
   const [ms, setMs] = useState(null);
   const [best, saveScore] = useHighScore('reaction');
@@ -95,5 +97,15 @@ export default function ReactionTime() {
         mide tus reflejos · el score se basa en la velocidad
       </p>
     </div>
+  );
+}
+
+export default function ReactionTime() {
+  return (
+    <GameImmersiveLayout>
+      <GameShell title="Reflejos">
+        <ReactionTimeInner />
+      </GameShell>
+    </GameImmersiveLayout>
   );
 }

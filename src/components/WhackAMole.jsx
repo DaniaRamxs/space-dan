@@ -1,13 +1,15 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import useHighScore from '../hooks/useHighScore';
+import { GameImmersiveLayout } from '../core/GameImmersiveLayout';
+import { GameShell } from '../core/GameShell';
 
 const HOLES = 9;
 const GAME_TIME = 20;
 const C_ACC = '#ff00ff';
 const C_CYN = '#00e5ff';
 
-export default function WhackAMole() {
+function WhackAMoleInner() {
   const [score, setScore] = useState(0);
   const [timeLeft, setTimeLeft] = useState(GAME_TIME);
   const [active, setActive] = useState(null);
@@ -148,5 +150,15 @@ export default function WhackAMole() {
         )}
       </AnimatePresence>
     </div>
+  );
+}
+
+export default function WhackAMole() {
+  return (
+    <GameImmersiveLayout>
+      <GameShell title="Golpea al Topo">
+        <WhackAMoleInner />
+      </GameShell>
+    </GameImmersiveLayout>
   );
 }

@@ -18,10 +18,21 @@ serve(async (req) => {
             Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
         )
 
-        const { action, userId, code, limit = 5 } = await req.json()
+        const { action, userId, code, query, redirect_uri, limit = 5 } = await req.json()
         const SPOTIFY_CLIENT_ID = Deno.env.get('SPOTIFY_CLIENT_ID')
         const SPOTIFY_CLIENT_SECRET = Deno.env.get('SPOTIFY_CLIENT_SECRET')
         const SPOTIFY_REDIRECT_URI = Deno.env.get('SPOTIFY_REDIRECT_URI')
+
+        if (!SPOTIFY_CLIENT_ID || !SPOTIFY_CLIENT_SECRET) {
+            console.error('Missing Spotify Secrets in Supabase Project')
+            return new Response(JSON.stringify({
+                error: 'Spotify service is not properly configured in Supabase (missing secrets).',
+                hint: 'Set SPOTIFY_CLIENT_ID and SPOTIFY_CLIENT_SECRET in yours Supabase Project Secrets.'
+            }), {
+                status: 500,
+                headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+            })
+        }
 
         if (action === 'exchange') {
             const response = await fetch('https://accounts.spotify.com/api/token', {
@@ -32,7 +43,7 @@ serve(async (req) => {
                 },
                 body: new URLSearchParams({
                     code,
-                    redirect_uri: SPOTIFY_REDIRECT_URI ?? '',
+                    redirect_uri: redirect_uri || SPOTIFY_REDIRECT_URI || '',
                     grant_type: 'authorization_code'
                 })
             })
@@ -68,7 +79,7 @@ serve(async (req) => {
 
         let accessToken = connection.access_token
         if (new Date(connection.expires_at) <= new Date()) {
-            // Refresh token
+            console.log('Refreshing Spotify token...')
             const refreshResponse = await fetch('https://accounts.spotify.com/api/token', {
                 method: 'POST',
                 headers: {
@@ -81,10 +92,23 @@ serve(async (req) => {
                 })
             })
 
+            if (!refreshResponse.ok) {
+                const refreshError = await refreshResponse.json().catch(() => ({}))
+                console.error('Spotify Refresh Failed:', refreshError)
+                return new Response(JSON.stringify({
+                    error: 'Tu conexión con Spotify ha caducado.',
+                    hint: 'Por favor, desconecta y vuelve a vincular Spotify en tu perfil para renovar el acceso.',
+                    detail: refreshError
+                }), {
+                    status: 401,
+                    headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+                })
+            }
+
             const refreshData = await refreshResponse.json()
             accessToken = refreshData.access_token
             const expires_at = new Date()
-            expires_at.setSeconds(expires_at.getSeconds() + refreshData.expires_in)
+            expires_at.setSeconds(expires_at.getSeconds() + (refreshData.expires_in || 3600))
 
             await supabaseClient
                 .from('spotify_connections')
@@ -101,17 +125,60 @@ serve(async (req) => {
         if (action === 'current-playing') endpoint = 'https://api.spotify.com/v1/me/player/currently-playing'
         else if (action === 'top-tracks') endpoint = `https://api.spotify.com/v1/me/top/tracks?limit=${limit}&time_range=short_term`
         else if (action === 'top-artists') endpoint = `https://api.spotify.com/v1/me/top/artists?limit=${limit}&time_range=short_term`
+        else if (action === 'search') endpoint = `https://api.spotify.com/v1/search?q=${encodeURIComponent(query)}&type=track&limit=${limit}&market=from_token`
 
+        console.log(`Action: ${action}, Endpoint: ${endpoint}`)
         const spotifyRes = await fetch(endpoint, {
             headers: { 'Authorization': `Bearer ${accessToken}` }
         })
 
-        if (spotifyRes.status === 204) return new Response(JSON.stringify({}), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+        if (!spotifyRes.ok) {
+            const errorData = await spotifyRes.json().catch(() => ({ error: { message: 'Unknown error from Spotify' } }))
+            console.error('Spotify API Error:', errorData)
 
-        const spotifyData = await spotifyRes.json()
+            // Si Spotify devuelve 401 directamente, es que el token que acabamos de usar (o refrescar) fue rechazado
+            const isAuthError = spotifyRes.status === 401 || spotifyRes.status === 403;
+
+            return new Response(JSON.stringify({
+                error: isAuthError ? 'Error de autorización con Spotify' : (errorData.error?.message || `Spotify API error: ${spotifyRes.status}`),
+                hint: isAuthError ? 'Intenta desconectar y volver a vincular Spotify en tu perfil.' : undefined,
+                status: spotifyRes.status
+            }), {
+                status: spotifyRes.status,
+                headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+            })
+        }
+
+        if (spotifyRes.status === 204) {
+            return new Response(JSON.stringify({}), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+        }
+
+        let spotifyData = await spotifyRes.json()
+
+        // --- SISTEMA DE RECUPERACIÓN DE PREVIEWS (BEST EFFORT) ---
+        if (action === 'search' && spotifyData?.tracks?.items) {
+            const hasPreviews = spotifyData.tracks.items.some((t: any) => t.preview_url);
+            if (!hasPreviews && query) {
+                console.log('No previews found in primary market, trying US market fallback...');
+                const fallbackUrl = `https://api.spotify.com/v1/search?q=${encodeURIComponent(query)}&type=track&limit=${limit}&market=US`;
+                const fallbackRes = await fetch(fallbackUrl, {
+                    headers: { 'Authorization': `Bearer ${accessToken}` }
+                });
+                if (fallbackRes.ok) {
+                    const fallbackData = await fallbackRes.json();
+                    if (fallbackData?.tracks?.items) {
+                        const fallbackWithPreviews = fallbackData.tracks.items.filter((t: any) => t.preview_url);
+                        if (fallbackWithPreviews.length > 0) {
+                            spotifyData.tracks.items = [...fallbackWithPreviews, ...spotifyData.tracks.items].slice(0, limit);
+                            console.log(`Recovered ${fallbackWithPreviews.length} tracks with previews.`);
+                        }
+                    }
+                }
+            }
+        }
 
         // Fetch Audio Features si es reproduciendo actualmente
-        if (action === 'current-playing' && spotifyData.item && spotifyData.item.id) {
+        if (action === 'current-playing' && spotifyData?.item?.id) {
             const featuresRes = await fetch(`https://api.spotify.com/v1/audio-features/${spotifyData.item.id}`, {
                 headers: { 'Authorization': `Bearer ${accessToken}` }
             })
@@ -121,7 +188,9 @@ serve(async (req) => {
             }
         }
 
-        return new Response(JSON.stringify(spotifyData), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+        return new Response(JSON.stringify(spotifyData), {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        })
 
     } catch (err) {
         return new Response(JSON.stringify({ error: err.message }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })

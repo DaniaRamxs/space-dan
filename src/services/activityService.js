@@ -28,10 +28,10 @@ export const activityService = {
         let query = supabase
             .from('activity_posts')
             .select(`
-                id, title, content, type, category, views_count, created_at, updated_at, author_id, original_post_id,
+                id, title, content, type, category, metadata, views_count, created_at, updated_at, author_id, original_post_id,
                 author:profiles!author_id(username, avatar_url, frame_item_id, nick_style_item:equipped_nickname_style(id)),
                 original_post:activity_posts!original_post_id(
-                    id, title, content, type, category, created_at, author_id,
+                    id, title, content, type, category, metadata, created_at, author_id,
                     author:profiles!author_id(username, avatar_url, frame_item_id)
                 )
             `)
@@ -78,10 +78,10 @@ export const activityService = {
         const { data, error } = await supabase
             .from('activity_posts')
             .select(`
-                id, title, content, type, category, views_count, created_at, updated_at, author_id, original_post_id,
+                id, title, content, type, category, metadata, views_count, created_at, updated_at, author_id, original_post_id,
                 author:profiles!author_id(username, avatar_url, frame_item_id, nick_style_item:equipped_nickname_style(id)),
                 original_post:activity_posts!original_post_id(
-                    id, title, content, type, category, created_at, author_id,
+                    id, title, content, type, category, metadata, created_at, author_id,
                     author:profiles!author_id(username, avatar_url, frame_item_id)
                 )
             `)
@@ -195,12 +195,13 @@ export const activityService = {
     /**
      * Edita título, contenido y/o categoría de un post propio
      */
-    async updatePost(postId, { title, content, category }) {
+    async updatePost(postId, { title, content, category, metadata }) {
         const { data, error } = await supabase.rpc('update_activity_post', {
             p_post_id: postId,
             p_title: title ?? null,
             p_content: content ?? null,
             p_category: category ?? null,
+            p_metadata: metadata ?? null
         });
         if (error) throw error;
 

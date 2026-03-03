@@ -1,5 +1,7 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import useHighScore from '../hooks/useHighScore';
+import { GameImmersiveLayout } from '../core/GameImmersiveLayout';
+import { GameShell } from '../core/GameShell';
 
 /**
  * Generate a random solvable 15×15 maze using recursive-backtracking DFS.
@@ -133,7 +135,7 @@ const styles = {
  * MazeGame — navigate the maze from top-left to bottom-right.
  * @returns {JSX.Element}
  */
-export default function MazeGame() {
+function MazeGameInner() {
   const [best, saveScore] = useHighScore('maze');
 
   const [maze, setMaze] = useState(generateMaze);
@@ -287,5 +289,15 @@ export default function MazeGame() {
         <p style={styles.record}>record: {best} puntos</p>
       )}
     </div>
+  );
+}
+
+export default function MazeGame() {
+  return (
+    <GameImmersiveLayout>
+      <GameShell title="Laberinto">
+        <MazeGameInner />
+      </GameShell>
+    </GameImmersiveLayout>
   );
 }

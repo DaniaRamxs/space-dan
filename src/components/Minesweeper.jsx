@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import useHighScore from '../hooks/useHighScore';
+import { GameImmersiveLayout } from '../core/GameImmersiveLayout';
+import { GameShell } from '../core/GameShell';
 
 // --- Constants ---
 
@@ -222,7 +224,7 @@ const styles = {
  *
  * @returns {JSX.Element}
  */
-export default function Minesweeper() {
+function MinesweeperInner() {
   const [best, saveScore] = useHighScore('minesweeper');
 
   const [board, setBoard] = useState(emptyBoard());
@@ -422,7 +424,7 @@ export default function Minesweeper() {
             <div
               key={`${r}-${c}`}
               style={getCellStyle(cell)}
-              onClick={() => flagMode ? handleRightClick({ preventDefault: () => {} }, r, c) : handleClick(r, c)}
+              onClick={() => flagMode ? handleRightClick({ preventDefault: () => { } }, r, c) : handleClick(r, c)}
               onContextMenu={(e) => handleRightClick(e, r, c)}
             >
               {getCellContent(cell)}
@@ -457,5 +459,15 @@ export default function Minesweeper() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function Minesweeper() {
+  return (
+    <GameImmersiveLayout>
+      <GameShell title="Buscaminas">
+        <MinesweeperInner />
+      </GameShell>
+    </GameImmersiveLayout>
   );
 }

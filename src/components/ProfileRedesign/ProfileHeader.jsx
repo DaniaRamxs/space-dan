@@ -59,7 +59,7 @@ export const ProfileHeader = ({ profile, theme, isOwn, isFollowing, onFollow, on
 
             {/* Avatar + Identity */}
             <div className="max-w-5xl mx-auto px-4 md:px-6">
-                <div className="flex flex-col md:flex-row md:items-end gap-0 md:gap-6 -mt-8 md:-mt-14">
+                <div className="flex flex-col md:flex-row md:items-end gap-0 md:gap-8 -mt-8 md:-mt-10">
 
                     {/* Avatar */}
                     <motion.div
@@ -86,9 +86,8 @@ export const ProfileHeader = ({ profile, theme, isOwn, isFollowing, onFollow, on
                         </div>
 
                         {/* Online indicator */}
-                        <div className={`absolute bottom-0 right-0 md:bottom-0.5 md:right-0.5 w-3 h-3 md:w-4 md:h-4 rounded-full border-2 border-[#04040a] z-10 transition-all ${
-                            isOnline ? 'bg-green-500 shadow-green-500/40 shadow-md' : 'bg-zinc-700'
-                        }`} />
+                        <div className={`absolute bottom-0 right-0 md:bottom-0.5 md:right-0.5 w-3 h-3 md:w-4 md:h-4 rounded-full border-2 border-[#04040a] z-10 transition-all ${isOnline ? 'bg-green-500 shadow-green-500/40 shadow-md' : 'bg-zinc-700'
+                            }`} />
 
                         {/* Voice active badge */}
                         {profile.is_voice_active && (
@@ -99,50 +98,55 @@ export const ProfileHeader = ({ profile, theme, isOwn, isFollowing, onFollow, on
                     </motion.div>
 
                     {/* Name + status + actions */}
-                    <div className="flex-1 pt-3 md:pt-0 md:pb-2 text-center md:text-left space-y-3">
-                        <div className="space-y-1.5">
+                    <div className="flex-1 pt-4 md:pt-0 md:pb-1.5 text-center md:text-left space-y-4 md:space-y-3">
+                        <div className="space-y-1.5 md:space-y-1">
                             {/* Name row */}
-                            <div className="flex flex-wrap items-center justify-center md:justify-start gap-2">
-                                <h1 className={`text-2xl md:text-4xl font-black tracking-tighter uppercase italic leading-none drop-shadow-lg ${getNicknameClass(profile)}`}>
+                            <div className="flex flex-wrap items-center justify-center md:justify-start gap-2.5">
+                                <h1 className={`text-2xl md:text-4.5xl font-black tracking-tighter uppercase italic leading-tight drop-shadow-2xl ${getNicknameClass(profile)}`}>
                                     {getUserDisplayName(profile)}
                                 </h1>
                                 {profile.is_vip && (
-                                    <span className="text-[9px] font-black uppercase tracking-widest text-amber-400 bg-amber-400/10 border border-amber-400/20 px-2 py-0.5 rounded-md">
+                                    <span className="text-[9px] font-black uppercase tracking-widest text-amber-400 bg-amber-400/10 border border-amber-400/20 px-2.5 py-1 rounded-md mb-1">
                                         VIP
                                     </span>
                                 )}
                             </div>
 
-                            {/* Status pill */}
-                            <div className="flex justify-center md:justify-start">
-                                <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-white/[0.04] border border-white/8 rounded-full">
-                                    <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${
-                                        isOnline ? 'bg-green-500 animate-pulse' : 'bg-white/15'
-                                    }`} />
-                                    <span className="text-[10px] font-bold text-white/35 uppercase tracking-wider leading-none">
-                                        {profile.profile_status || (isOnline ? 'Activo' : 'Fuera de órbita')}
+                            {/* Status text (if exists) */}
+                            {profile.profile_status && (
+                                <div className="flex justify-center md:justify-start">
+                                    <span className="text-[11px] font-medium text-white/25 italic truncate max-w-[280px]">
+                                        "{profile.profile_status}"
                                     </span>
                                 </div>
-                            </div>
+                            )}
                         </div>
 
-                        {/* Action button */}
-                        <div className="flex justify-center md:justify-start">
+                        {/* Status pill + Action buttons */}
+                        <div className="flex flex-wrap items-center justify-center md:justify-start gap-3 pt-1">
+                            {/* Status indicator pill moved here */}
+                            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 bg-white/[0.04] border border-white/10 rounded-full shadow-inner h-[34px]">
+                                <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${isOnline ? 'bg-green-500 animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.6)]' : 'bg-white/20'
+                                    }`} />
+                                <span className="text-[10px] font-bold text-white/40 uppercase tracking-widest leading-none">
+                                    {isOnline ? 'En línea' : 'Desconectado'}
+                                </span>
+                            </div>
+
                             {isOwn ? (
                                 <button
                                     onClick={onEdit}
-                                    className="px-6 py-2.5 rounded-xl bg-white/[0.06] border border-white/10 text-white text-[11px] font-bold uppercase tracking-widest hover:bg-white/10 transition-all active:scale-95"
+                                    className="px-8 py-2.5 rounded-xl bg-white text-black text-[11px] font-black uppercase tracking-widest hover:bg-cyan-400 transition-all shadow-lg active:scale-95"
                                 >
                                     Editar perfil
                                 </button>
                             ) : (
                                 <button
                                     onClick={onFollow}
-                                    className={`px-6 py-2.5 rounded-xl text-[11px] font-bold uppercase tracking-widest transition-all active:scale-95 shadow-lg ${
-                                        isFollowing
-                                            ? 'bg-white/[0.05] text-white/40 border border-white/8'
-                                            : 'bg-gradient-to-r from-cyan-500 to-violet-600 text-white shadow-cyan-500/20'
-                                    }`}
+                                    className={`px-8 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all active:scale-95 shadow-xl ${isFollowing
+                                            ? 'bg-white/[0.05] text-white/40 border border-white/10'
+                                            : 'bg-gradient-to-r from-cyan-500 to-violet-600 text-white shadow-cyan-500/25 hover:scale-105'
+                                        }`}
                                 >
                                     {isFollowing ? '✓ Siguiendo' : '+ Seguir'}
                                 </button>

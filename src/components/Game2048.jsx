@@ -1,5 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import useHighScore from '../hooks/useHighScore';
+import { GameImmersiveLayout } from '../core/GameImmersiveLayout';
+import { GameShell } from '../core/GameShell';
 
 // --- Tile color map ---
 const TILE_COLORS = {
@@ -126,7 +128,7 @@ function initGame() {
 }
 
 // --- Component ---
-export default function Game2048() {
+function Game2048Inner() {
   // Responsive tile size: shrinks on narrow screens
   const tileSize = typeof window !== 'undefined'
     ? Math.min(80, Math.floor((window.innerWidth - 120) / 4))
@@ -484,5 +486,15 @@ export default function Game2048() {
         une fichas iguales para llegar a 2048
       </p>
     </div>
+  );
+}
+
+export default function Game2048() {
+  return (
+    <GameImmersiveLayout>
+      <GameShell title="2048">
+        <Game2048Inner />
+      </GameShell>
+    </GameImmersiveLayout>
   );
 }

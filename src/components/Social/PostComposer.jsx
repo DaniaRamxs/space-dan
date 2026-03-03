@@ -9,6 +9,9 @@ import { useAuthContext } from '../../contexts/AuthContext';
 import { parseSpaceEnergies } from '../../utils/markdownUtils';
 import { GiphyFetch } from '@giphy/js-fetch-api';
 import { Grid } from '@giphy/react-components';
+import SongSearchModal from './SongSearchModal';
+import { Music, X } from 'lucide-react';
+import { CATEGORIES } from '../../constants/categories';
 
 const gf = new GiphyFetch('3k4Fdn6D040IQvIq1KquLZzJgutP3dGp');
 
@@ -24,16 +27,7 @@ const sanitizeSchema = {
     }
 };
 
-export const CATEGORIES = [
-    { id: 'general', label: 'General', icon: '🌐' },
-    { id: 'blog', label: 'Blog', icon: '✍️' },
-    { id: 'reflexion', label: 'Reflexión', icon: '🧠' },
-    { id: 'musica', label: 'Música', icon: '🎵' },
-    { id: 'anime', label: 'Anime / Manga', icon: '🌸' },
-    { id: 'tecnologia', label: 'Tecnología', icon: '💻' },
-    { id: 'arte', label: 'Arte', icon: '🎨' },
-    { id: 'vida', label: 'Vida', icon: '🌱' },
-];
+// CATEGORIES moved to src/constants/categories.js
 
 export default function PostComposer({
     onPostCreated,
@@ -44,25 +38,26 @@ export default function PostComposer({
     const { user, profile } = useAuthContext();
     const isEditing = !!editPost;
 
-    const [title, setTitle] = useState(isEditing ? (editPost.title || '') : '');
     const [content, setContent] = useState(isEditing ? (editPost.content || '') : '');
     const [category, setCategory] = useState(isEditing ? (editPost.category || 'general') : 'general');
-    const [tab, setTab] = useState('write');
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState(null);
     const [catOpen, setCatOpen] = useState(false);
     const [showGiphy, setShowGiphy] = useState(false);
     const [gifSearchTerm, setGifSearchTerm] = useState('');
     const [gifGridWidth, setGifGridWidth] = useState(320);
-    const editorRef = useRef(null);
+    const [isFocused, setIsFocused] = useState(false);
+    const [showSongSearch, setShowSongSearch] = useState(false);
+    const [selectedTrack, setSelectedTrack] = useState(isEditing ? (editPost.metadata?.spotify_track || null) : null);
+    const textareaRef = useRef(null);
 
-    const canSubmit = title.trim().length > 0 && !submitting;
+    const canSubmit = content.trim().length > 0 && !submitting;
     const selectedCat = CATEGORIES.find(c => c.id === category) || CATEGORIES[0];
 
     useEffect(() => {
         const recalcGifGridWidth = () => {
             const viewportWidth = window.innerWidth || 360;
-            const containerWidth = editorRef.current?.clientWidth || (viewportWidth - 24);
+            const containerWidth = textareaRef.current?.parentElement?.clientWidth || (viewportWidth - 24);
             const next = Math.max(220, Math.min(containerWidth - 16, viewportWidth - 24, 760));
             setGifGridWidth(Math.floor(next));
         };
@@ -72,8 +67,16 @@ export default function PostComposer({
         return () => window.removeEventListener('resize', recalcGifGridWidth);
     }, []);
 
+    // Auto-expand textarea
+    useEffect(() => {
+        if (textareaRef.current) {
+            textareaRef.current.style.height = 'auto';
+            textareaRef.current.style.height = textareaRef.current.scrollHeight + 'px';
+        }
+    }, [content]);
+
     const handleSubmit = async (e) => {
-        e.preventDefault();
+        if (e) e.preventDefault();
         if (!canSubmit || !user) return;
         setSubmitting(true);
         setError(null);
@@ -81,29 +84,29 @@ export default function PostComposer({
         try {
             if (isEditing) {
                 await activityService.updatePost(editPost.id, {
-                    title: title.trim(),
+                    title: null,
                     content: content.trim() || null,
                     category,
                 });
                 if (onPostUpdated) onPostUpdated({
                     ...editPost,
-                    title: title.trim(),
+                    title: null,
                     content: content.trim() || null,
                     category,
                     updated_at: new Date().toISOString(),
                 });
             } else {
-                // 1. OPTIMISTIC UI: Emite el post inmediatamente
                 const tempId = `temp-${Date.now()}`;
                 const optimisticPost = {
                     id: tempId,
                     author_id: user.id,
-                    title: title.trim(),
+                    title: null,
                     content: content.trim() || null,
                     category,
                     type: 'post',
+                    metadata: selectedTrack ? { spotify_track: selectedTrack } : null,
                     created_at: new Date().toISOString(),
-                    isOptimistic: true, // Flag para feedback visual si se desea
+                    isOptimistic: true,
                     author: {
                         username: profile?.username || user.user_metadata?.username || 'tú',
                         avatar_url: profile?.avatar_url || user.user_metadata?.avatar_url || '/default_user_blank.png',
@@ -113,253 +116,215 @@ export default function PostComposer({
 
                 if (onPostCreated) onPostCreated(optimisticPost);
 
-                // Limpiar campos inmediatamente para sensación de velocidad
-                setTitle('');
                 setContent('');
                 setCategory('general');
-                setTab('write');
+                setIsFocused(false);
 
                 const newPost = await activityService.createPost({
                     author_id: user.id,
-                    title: optimisticPost.title,
+                    title: null,
                     content: optimisticPost.content,
                     category,
                     type: 'post',
+                    metadata: selectedTrack ? { spotify_track: selectedTrack } : null
                 });
 
-                // 2. SYNC: El feed recibirá el post real y reemplazará el temporal por ID si se maneja en ActivityFeed
-                // O simplemente emitimos el real para que el feed lo procese
                 const enriched = {
                     ...newPost,
                     author: optimisticPost.author,
                     reactions_metadata: optimisticPost.reactions_metadata,
+                    metadata: newPost.metadata || (selectedTrack ? { spotify_track: selectedTrack } : null)
                 };
 
-                if (onPostCreated) onPostCreated(enriched);
+                setSelectedTrack(null);
+                if (onPostCreated) onPostCreated(enriched, tempId);
             }
         } catch (err) {
             console.error('[PostComposer]', err);
             setError(err.message || 'Error al publicar');
-            // Nota: En una implementación completa, aquí dispararíamos un evento de rollback para remover el optimisticPost
         } finally {
             setSubmitting(false);
         }
     };
 
     const handleCancel = () => {
-        setTitle(editPost?.title || '');
         setContent(editPost?.content || '');
         setCategory(editPost?.category || 'general');
-        setTab('write');
+        setIsFocused(false);
         setError(null);
         if (onCancelEdit) onCancelEdit();
     };
 
     return (
-        <div className={`group relative bg-[#0a0a14] md:rounded-3xl shadow-none md:shadow-xl overflow-visible relative border-y border-transparent md:border md:border-white/5 p-4 md:p-6 transition-all duration-500`}>
+        <div className="relative bg-[#0a0a14]/60 md:rounded-3xl border border-white/5 p-4 transition-all duration-300 hover:border-white/10 group">
             <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/5 to-transparent pointer-events-none" />
 
             {isEditing && (
-                <div className="flex items-center justify-between px-5 pt-4 pb-0">
-                    <span className="text-[10px] font-semibold text-cyan-400/80 uppercase tracking-[0.2em] font-mono">:: Editando_Transmisión</span>
-                    <button onClick={handleCancel} className="text-[9px] font-black text-white/25 hover:text-white/60 uppercase tracking-widest transition-colors">
-                        Cancelar
-                    </button>
+                <div className="flex items-center justify-between mb-4">
+                    <span className="text-[10px] font-black text-cyan-400 uppercase tracking-widest">:: Editando_Pulso</span>
+                    <button onClick={handleCancel} className="text-[9px] font-black text-white/20 hover:text-white/60 uppercase transition-colors">Cancelar</button>
                 </div>
             )}
 
-            <form onSubmit={handleSubmit} className="relative z-10 flex flex-col gap-0 p-5">
-
-                {/* Fila: Avatar + Título */}
-                <div className="flex gap-3 items-start mb-3">
-                    <div className="w-9 h-9 rounded-xl overflow-hidden border border-white/10 shrink-0 bg-black mt-0.5">
-                        <img
-                            src={profile?.avatar_url || user?.user_metadata?.avatar_url || '/default_user_blank.png'}
-                            className="w-full h-full object-cover" alt="Avatar"
-                        />
-                    </div>
-                    <input
-                        type="text"
-                        value={title}
-                        onChange={e => setTitle(e.target.value)}
-                        placeholder="Título de la transmisión..."
-                        maxLength={120}
-                        required
-                        className="w-full bg-transparent border-none text-base md:text-lg font-black text-white placeholder:text-white/15 outline-none pt-1"
+            <div className="flex gap-4 items-start">
+                <div className="w-10 h-10 rounded-xl overflow-hidden border border-white/10 shrink-0 bg-black">
+                    <img
+                        src={profile?.avatar_url || user?.user_metadata?.avatar_url || '/default_user_blank.png'}
+                        className="w-full h-full object-cover" alt="Avatar"
                     />
                 </div>
 
-                {/* Selector de categoría */}
-                <div className="md:ml-12 mb-3 relative">
-                    <button
-                        type="button"
-                        onClick={() => setCatOpen(v => !v)}
-                        className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/[0.04] border border-white/[0.08] 
-                       text-[10px] font-black text-white/50 hover:text-white/80 uppercase tracking-widest transition-all"
-                    >
-                        <span>{selectedCat.icon}</span>
-                        <span>{selectedCat.label}</span>
-                        <span className="text-white/20">▾</span>
-                    </button>
+                <div className="flex-1 flex flex-col pt-1">
+                    <textarea
+                        ref={textareaRef}
+                        value={content}
+                        onChange={e => setContent(e.target.value)}
+                        onFocus={() => setIsFocused(true)}
+                        placeholder="¿Qué pasa por tu universo?"
+                        rows={1}
+                        className="w-full bg-transparent border-none text-base text-white/90 placeholder:text-white/20 resize-none outline-none leading-relaxed transition-all"
+                    />
 
                     <AnimatePresence>
-                        {catOpen && (
-                            <>
-                                <div className="fixed inset-0 z-[90]" onClick={() => setCatOpen(false)} />
-                                <motion.div
-                                    initial={{ opacity: 0, y: -4, scale: 0.97 }}
-                                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                                    exit={{ opacity: 0, y: -4, scale: 0.97 }}
-                                    className="absolute top-full left-0 mt-1 z-[91] bg-[#090912] border border-white/10 rounded-2xl p-2 shadow-2xl
-                             grid grid-cols-2 gap-1 w-52"
-                                >
-                                    {CATEGORIES.map(cat => (
-                                        <button
-                                            key={cat.id}
-                                            type="button"
-                                            onClick={() => { setCategory(cat.id); setCatOpen(false); }}
-                                            className={`flex items-center gap-2 px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all text-left ${category === cat.id
-                                                ? 'bg-white/10 text-white border border-white/20'
-                                                : 'text-white/40 hover:bg-white/5 hover:text-white/70'
-                                                }`}
-                                        >
-                                            <span>{cat.icon}</span> {cat.label}
-                                        </button>
-                                    ))}
-                                </motion.div>
-                            </>
-                        )}
-                    </AnimatePresence>
-                </div>
-
-                {/* Tabs write/preview */}
-                <div className="flex gap-1 mb-2 md:ml-12">
-                    {['write', 'preview'].map(t => (
-                        <button
-                            key={t}
-                            type="button"
-                            onClick={() => setTab(t)}
-                            className={`px-3 py-1 rounded-lg text-[9px] font-semibold uppercase tracking-[0.2em] font-mono transition-all ${tab === t ? 'bg-white/10 text-white' : 'text-white/20 hover:text-white/50'
-                                }`}
-                        >
-                            {t === 'write' ? '✍️ Escribir_Modo' : '👁 Preview_Signal'}
-                        </button>
-                    ))}
-                </div>
-
-                {/* Editor / Preview */}
-                <div ref={editorRef} className="md:ml-12 min-h-[140px] md:min-h-[100px] relative">
-                    {/* GIPHY PANEL (Relative to editor for better UX in posts) */}
-                    <AnimatePresence>
-                        {showGiphy && (
+                        {selectedTrack && (
                             <motion.div
                                 initial={{ opacity: 0, scale: 0.95 }}
                                 animate={{ opacity: 1, scale: 1 }}
                                 exit={{ opacity: 0, scale: 0.95 }}
-                                className="absolute top-0 left-0 w-full z-[100] h-[70vh] max-h-[560px] min-h-[320px] overflow-hidden flex flex-col shadow-2xl bg-[#090912] border border-white/10 rounded-2xl"
+                                className="mt-3 relative p-2 bg-white/5 border border-white/5 rounded-2xl flex items-center gap-3 w-fit pr-8"
                             >
-                                <div className="flex items-center justify-between p-4 bg-white/[0.02]">
-                                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-cyan-400">Dimensión GIPHY ✨</span>
-                                    <button type="button" onClick={() => setShowGiphy(false)} className="text-white/40 hover:text-white">✕</button>
+                                <img src={selectedTrack.album_cover} className="w-8 h-8 rounded-lg object-cover" alt="" />
+                                <div className="flex flex-col">
+                                    <span className="text-[10px] font-bold text-white line-clamp-1">{selectedTrack.track_name}</span>
+                                    <span className="text-[8px] text-white/40 uppercase tracking-widest">{selectedTrack.artist_name}</span>
                                 </div>
-                                <div className="px-4 pb-2">
-                                    <input
-                                        type="text"
-                                        placeholder="Buscar GIFs estelares..."
-                                        value={gifSearchTerm}
-                                        onChange={(e) => setGifSearchTerm(e.target.value)}
-                                        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-sm text-white outline-none focus:border-cyan-500/50 transition-all"
-                                    />
-                                </div>
-                                <div className="flex-1 overflow-y-auto px-2 no-scrollbar">
-                                    <Grid
-                                        key={gifSearchTerm}
-                                        width={gifGridWidth}
-                                        columns={gifGridWidth >= 560 ? 3 : 2}
-                                        gutter={8}
-                                        fetchGifs={(offset) => gifSearchTerm.trim()
-                                            ? gf.search(gifSearchTerm, { offset, limit: 18 })
-                                            : gf.trending({ offset, limit: 18 })
-                                        }
-                                        onGifClick={(gif, e) => {
-                                            e.preventDefault();
-                                            const gifMarkdown = `\n![GIF](${gif.images.fixed_height.url})\n`;
-                                            setContent(prev => prev + gifMarkdown);
-                                            setShowGiphy(false);
-                                        }}
-                                    />
-                                </div>
+                                <button
+                                    onClick={() => setSelectedTrack(null)}
+                                    className="absolute -top-1 -right-1 p-1 bg-rose-500 rounded-full text-white shadow-lg"
+                                >
+                                    <X size={10} />
+                                </button>
                             </motion.div>
                         )}
                     </AnimatePresence>
-                    <AnimatePresence mode="wait">
-                        {tab === 'write' ? (
-                            <motion.textarea
-                                key="editor"
-                                initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                                value={content}
-                                onChange={e => setContent(e.target.value)}
-                                placeholder={"Contenido en Markdown (opcional)\n\n**negrita**, _itálica_, # Encabezado, - Lista..."}
-                                className="w-full bg-transparent border-none text-[16px] md:text-sm text-white/80 placeholder:text-white/15 resize-none outline-none min-h-[180px] md:min-h-[100px] max-h-[44vh] overflow-y-auto font-mono leading-relaxed"
-                                maxLength={5000}
-                            />
-                        ) : (
-                            <motion.div key="preview" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-                                {content ? (
-                                    <div className="prose prose-invert prose-sm max-w-none
-                    prose-p:text-white/75 prose-p:leading-relaxed prose-p:my-1
-                    prose-headings:text-white prose-headings:font-black
-                    prose-strong:text-white prose-em:text-white/60
-                    prose-a:text-cyan-400
-                    prose-code:text-cyan-300 prose-code:bg-white/5 prose-code:px-1 prose-code:rounded prose-code:text-xs prose-code:font-mono prose-code:before:content-none prose-code:after:content-none
-                    prose-pre:bg-white/5 prose-pre:border prose-pre:border-white/10 prose-pre:rounded-2xl
-                    prose-blockquote:border-l-cyan-500/40 prose-blockquote:text-white/50
-                    prose-ul:text-white/75 prose-ol:text-white/75
-                    prose-hr:border-white/10 break-words"
-                                    >
-                                        <ReactMarkdown
-                                            remarkPlugins={[remarkGfm]}
-                                            rehypePlugins={[rehypeRaw, [rehypeSanitize, sanitizeSchema]]}
+
+                    <AnimatePresence>
+                        {(isFocused || content.length > 0) && (
+                            <motion.div
+                                initial={{ height: 0, opacity: 0 }}
+                                animate={{ height: 'auto', opacity: 1 }}
+                                exit={{ height: 0, opacity: 0 }}
+                                className="overflow-hidden"
+                            >
+                                <div className="flex flex-col sm:flex-row sm:items-center gap-4 mt-4 pt-4 border-t border-white/5">
+                                    <div className="flex items-center gap-2 flex-wrap">
+                                        <div className="relative">
+                                            <button
+                                                type="button"
+                                                onClick={() => setCatOpen(v => !v)}
+                                                className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/5 border border-white/10 text-[9px] font-black text-white/40 hover:text-white/80 uppercase tracking-widest transition-all"
+                                            >
+                                                <span>{selectedCat.icon}</span>
+                                                <span className="hidden xs:inline">{selectedCat.label}</span>
+                                            </button>
+
+                                            {catOpen && (
+                                                <>
+                                                    <div className="fixed inset-0 z-[90]" onClick={() => setCatOpen(false)} />
+                                                    <motion.div
+                                                        initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }}
+                                                        className="absolute top-full left-0 mt-2 z-[91] bg-[#0c0c1a] border border-white/10 rounded-2xl p-2 shadow-2xl grid grid-cols-2 gap-1 w-52"
+                                                    >
+                                                        {CATEGORIES.map(cat => (
+                                                            <button
+                                                                key={cat.id}
+                                                                type="button"
+                                                                onClick={() => { setCategory(cat.id); setCatOpen(false); }}
+                                                                className={`flex items-center gap-2 px-3 py-2 rounded-xl text-[9px] font-black uppercase transition-all ${category === cat.id ? 'bg-white/10 text-white' : 'text-white/30 hover:bg-white/5 hover:text-white/60'}`}
+                                                            >
+                                                                <span>{cat.icon}</span> {cat.label}
+                                                            </button>
+                                                        ))}
+                                                    </motion.div>
+                                                </>
+                                            )}
+                                        </div>
+
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowGiphy(!showGiphy)}
+                                            className={`px-3 py-1.5 rounded-xl border text-[9px] font-black uppercase tracking-widest transition-all ${showGiphy ? 'bg-cyan-500/20 border-cyan-500/40 text-cyan-400' : 'bg-white/5 border-white/10 text-white/40 hover:text-white/60'}`}
                                         >
-                                            {parseSpaceEnergies(content)}
-                                        </ReactMarkdown>
+                                            🎞️ GIF
+                                        </button>
+
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowSongSearch(true)}
+                                            className={`px-3 py-1.5 rounded-xl border text-[9px] font-black uppercase tracking-widest transition-all ${selectedTrack ? 'bg-green-500/10 border-green-500/30 text-green-400' : 'bg-white/5 border-white/10 text-white/40 hover:text-white/60'}`}
+                                        >
+                                            🎵 Música
+                                        </button>
                                     </div>
-                                ) : (
-                                    <p className="text-[10px] text-white/10 font-semibold uppercase tracking-[0.2em] font-mono italic">:: _Esperando_Señal...</p>
+
+                                    <div className="sm:ml-auto flex items-center justify-end gap-3 w-full sm:w-auto">
+                                        {error && <span className="text-[9px] text-rose-400 font-bold tracking-tighter">⚠️ {error}</span>}
+                                        <button
+                                            onClick={handleSubmit}
+                                            disabled={!canSubmit}
+                                            className="px-6 py-2 bg-white text-black rounded-xl font-black text-[10px] uppercase tracking-widest hover:scale-105 active:scale-95 transition-all disabled:opacity-30 disabled:scale-100 shadow-[0_0_20px_rgba(255,255,255,0.1)] min-w-[120px]"
+                                        >
+                                            {submitting ? '...' : (isEditing ? 'Guardar' : 'Transmitir')}
+                                        </button>
+                                    </div>
+                                </div>
+
+                                {showGiphy && (
+                                    <motion.div
+                                        initial={{ opacity: 0, y: 10 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        className="mt-4 h-64 overflow-hidden flex flex-col bg-black/40 rounded-2xl border border-white/5"
+                                    >
+                                        <div className="px-4 py-3">
+                                            <input
+                                                type="text"
+                                                placeholder="Buscar GIFs..."
+                                                value={gifSearchTerm}
+                                                onChange={(e) => setGifSearchTerm(e.target.value)}
+                                                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-xs text-white/80 outline-none focus:border-cyan-500/30 transition-all"
+                                            />
+                                        </div>
+                                        <div className="flex-1 overflow-y-auto px-2 no-scrollbar">
+                                            <Grid
+                                                key={gifSearchTerm}
+                                                width={gifGridWidth}
+                                                columns={window.innerWidth > 500 ? 3 : 2}
+                                                gutter={8}
+                                                fetchGifs={(offset) => gifSearchTerm.trim()
+                                                    ? gf.search(gifSearchTerm, { offset, limit: 12 })
+                                                    : gf.trending({ offset, limit: 12 })
+                                                }
+                                                onGifClick={(gif, e) => {
+                                                    e.preventDefault();
+                                                    const gifMarkdown = `\n![GIF](${gif.images.fixed_height.url})\n`;
+                                                    setContent(prev => prev + gifMarkdown);
+                                                    setShowGiphy(false);
+                                                }}
+                                            />
+                                        </div>
+                                    </motion.div>
                                 )}
                             </motion.div>
                         )}
                     </AnimatePresence>
                 </div>
+            </div>
 
-                {/* Footer */}
-                <div className="flex items-center justify-between border-t border-white/[0.05] pt-3 mt-4">
-                    <div className="flex items-center gap-3 md:ml-12">
-                        <button
-                            type="button"
-                            onClick={() => setShowGiphy(!showGiphy)}
-                            className={`p-2 rounded-xl border transition-all flex items-center gap-2 group ${showGiphy ? 'bg-cyan-400/20 border-cyan-400/50 text-cyan-400' : 'bg-white/5 border-white/10 text-white/40 hover:border-white/20 hover:text-white/60'}`}
-                        >
-                            <span className="text-sm">🎞️</span>
-                            <span className="text-[9px] font-black uppercase tracking-widest hidden sm:inline">GIF Giphy</span>
-                        </button>
-                    </div>
-                    <div className="flex items-center gap-3">
-                        {error && <p className="text-[10px] text-rose-400 font-bold">⚠️ {error}</p>}
-                        <button
-                            type="submit"
-                            disabled={!canSubmit}
-                            className="px-6 py-2.5 bg-white/90 text-black rounded-2xl font-black text-[10px] uppercase tracking-widest
-                         hover:bg-white hover:scale-105 active:scale-95 transition-all
-                         shadow-lg disabled:opacity-40 disabled:hover:scale-100"
-                        >
-                            {submitting
-                                ? (isEditing ? 'Guardando...' : 'Transmitiendo...')
-                                : (isEditing ? '💾 Guardar' : '📡 Transmitir')}
-                        </button>
-                    </div>
-                </div>
-            </form>
+            <SongSearchModal
+                isOpen={showSongSearch}
+                onClose={() => setShowSongSearch(false)}
+                onSelect={(track) => setSelectedTrack(track)}
+            />
         </div>
     );
 }

@@ -1,4 +1,6 @@
 import { useRef, useEffect, useCallback } from 'react';
+import { GameImmersiveLayout } from '../core/GameImmersiveLayout';
+import { GameShell } from '../core/GameShell';
 
 const W = 400;
 const H = 500;
@@ -69,7 +71,7 @@ function spawnParticles(particles, x, y, color) {
   }
 }
 
-export default function Breakout() {
+function BreakoutInner() {
   const canvasRef = useRef(null);
   const stateRef = useRef(makeState());
   const rafRef = useRef(null);
@@ -77,6 +79,7 @@ export default function Breakout() {
   const keysRef = useRef({});
   const mouseXRef = useRef(W / 2);
   const frameRef = useRef(0);
+  const lastTimeRef = useRef(0);
 
   const draw = useCallback(() => {
     const canvas = canvasRef.current;
@@ -95,29 +98,28 @@ export default function Breakout() {
     ctx.textAlign = 'right';
     ctx.fillText(`LEVEL: ${s.level}`, W - 10, 22);
     ctx.textAlign = 'center';
-    // Lives as dots
-    ctx.fillStyle = COLORS.magenta;
-    ctx.shadowColor = COLORS.magenta;
-    ctx.shadowBlur = 6;
+    // Lives as dots — no shadowBlur, use outer ring instead
     for (let i = 0; i < s.lives; i++) {
+      const lx = W / 2 - 16 + i * 16;
+      const ly = 14;
+      ctx.fillStyle = 'rgba(255,0,255,0.2)';
       ctx.beginPath();
-      ctx.arc(W / 2 - 16 + i * 16, 14, 5, 0, Math.PI * 2);
+      ctx.arc(lx, ly, 8, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = COLORS.magenta;
+      ctx.beginPath();
+      ctx.arc(lx, ly, 5, 0, Math.PI * 2);
       ctx.fill();
     }
-    ctx.shadowBlur = 0;
 
-    // Bricks
+    // Bricks — no shadowBlur, highlight strip is enough
     for (const b of s.bricks) {
       if (!b.alive) continue;
       ctx.fillStyle = b.color;
-      ctx.shadowColor = b.color;
-      ctx.shadowBlur = 8;
       ctx.fillRect(b.x, b.y, BRICK_W, BRICK_H);
-      // Highlight
-      ctx.fillStyle = 'rgba(255,255,255,0.18)';
+      ctx.fillStyle = 'rgba(255,255,255,0.2)';
       ctx.fillRect(b.x + 2, b.y + 2, BRICK_W - 4, 4);
     }
-    ctx.shadowBlur = 0;
 
     // Particles
     for (const p of s.particles) {
@@ -129,23 +131,29 @@ export default function Breakout() {
     }
     ctx.globalAlpha = 1;
 
-    // Paddle
+    // Paddle — fake glow with outer transparent rect
+    ctx.fillStyle = 'rgba(0,229,255,0.15)';
+    ctx.beginPath();
+    ctx.roundRect(s.paddleX - 5, PADDLE_Y - 4, PADDLE_W + 10, PADDLE_H + 8, 6);
+    ctx.fill();
     ctx.fillStyle = COLORS.cyan;
-    ctx.shadowColor = COLORS.cyan;
-    ctx.shadowBlur = 12;
     ctx.beginPath();
     ctx.roundRect(s.paddleX, PADDLE_Y, PADDLE_W, PADDLE_H, 4);
     ctx.fill();
-    ctx.shadowBlur = 0;
 
-    // Ball
+    // Ball — fake glow with two outer circles
+    ctx.fillStyle = 'rgba(255,255,255,0.08)';
+    ctx.beginPath();
+    ctx.arc(s.ball.x, s.ball.y, BALL_R + 6, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = 'rgba(255,255,255,0.18)';
+    ctx.beginPath();
+    ctx.arc(s.ball.x, s.ball.y, BALL_R + 2, 0, Math.PI * 2);
+    ctx.fill();
     ctx.fillStyle = COLORS.white;
-    ctx.shadowColor = COLORS.white;
-    ctx.shadowBlur = 10;
     ctx.beginPath();
     ctx.arc(s.ball.x, s.ball.y, BALL_R, 0, Math.PI * 2);
     ctx.fill();
-    ctx.shadowBlur = 0;
 
     // Overlays
     if (s.phase === 'idle') {
@@ -200,19 +208,23 @@ export default function Breakout() {
     }
   }, []);
 
-  const tick = useCallback(() => {
+  const tick = useCallback((timestamp) => {
     const s = stateRef.current;
     frameRef.current++;
+
+    // Delta time: normalize to 60fps so speed is frame-rate independent
+    const dt = lastTimeRef.current ? Math.min((timestamp - lastTimeRef.current) / (1000 / 60), 3) : 1;
+    lastTimeRef.current = timestamp;
 
     if (s.phase !== 'playing') { draw(); rafRef.current = requestAnimationFrame(tick); return; }
 
     // Paddle control
-    if (keysRef.current['ArrowLeft']) s.paddleX = Math.max(0, s.paddleX - 6);
-    if (keysRef.current['ArrowRight']) s.paddleX = Math.min(W - PADDLE_W, s.paddleX + 6);
+    if (keysRef.current['ArrowLeft']) s.paddleX = Math.max(0, s.paddleX - 6 * dt);
+    if (keysRef.current['ArrowRight']) s.paddleX = Math.min(W - PADDLE_W, s.paddleX + 6 * dt);
     if (!keysRef.current['ArrowLeft'] && !keysRef.current['ArrowRight']) {
       const target = mouseXRef.current - PADDLE_W / 2;
       const diff = target - s.paddleX;
-      s.paddleX += Math.sign(diff) * Math.min(Math.abs(diff), 9);
+      s.paddleX += Math.sign(diff) * Math.min(Math.abs(diff), 9 * dt);
       s.paddleX = Math.max(0, Math.min(W - PADDLE_W, s.paddleX));
     }
 
@@ -229,18 +241,19 @@ export default function Breakout() {
       return;
     }
 
-    // Speed increases over time
-    s.speedTimer++;
-    if (s.speedTimer % 600 === 0) {
+    // Speed increases over time (dt-adjusted)
+    s.speedTimer += dt;
+    if (s.speedTimer >= 600) {
+      s.speedTimer -= 600;
       const spd = Math.sqrt(s.ball.vx ** 2 + s.ball.vy ** 2);
       const newSpd = Math.min(spd + 0.3, 12);
       s.ball.vx = (s.ball.vx / spd) * newSpd;
       s.ball.vy = (s.ball.vy / spd) * newSpd;
     }
 
-    // Ball movement
-    s.ball.x += s.ball.vx;
-    s.ball.y += s.ball.vy;
+    // Ball movement — dt-scaled so it's always the same real-world speed
+    s.ball.x += s.ball.vx * dt;
+    s.ball.y += s.ball.vy * dt;
 
     // Wall bounces
     if (s.ball.x - BALL_R <= 0) { s.ball.x = BALL_R; s.ball.vx = Math.abs(s.ball.vx); }
@@ -317,12 +330,12 @@ export default function Breakout() {
       return;
     }
 
-    // Update particles
+    // Update particles — dt-scaled
     s.particles = s.particles.filter(p => {
-      p.x += p.vx;
-      p.y += p.vy;
-      p.vy += 0.08;
-      p.life -= p.decay;
+      p.x += p.vx * dt;
+      p.y += p.vy * dt;
+      p.vy += 0.08 * dt;
+      p.life -= p.decay * dt;
       return p.life > 0;
     });
 
@@ -338,10 +351,12 @@ export default function Breakout() {
     } else {
       const fresh = makeState();
       fresh.phase = 'playing';
+      launchBall(fresh);
       stateRef.current = fresh;
       firedRef.current = false;
     }
     frameRef.current = 0;
+    lastTimeRef.current = 0;
     if (rafRef.current) cancelAnimationFrame(rafRef.current);
     rafRef.current = requestAnimationFrame(tick);
   }, [tick]);
@@ -419,5 +434,15 @@ export default function Breakout() {
         Mouse o &larr;&rarr; para mover &nbsp;|&nbsp; Espacio o Click para lanzar
       </div>
     </div>
+  );
+}
+
+export default function Breakout() {
+  return (
+    <GameImmersiveLayout>
+      <GameShell title="Breakout">
+        <BreakoutInner />
+      </GameShell>
+    </GameImmersiveLayout>
   );
 }

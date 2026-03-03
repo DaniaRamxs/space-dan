@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import useHighScore from '../hooks/useHighScore';
+import { GameImmersiveLayout } from '../core/GameImmersiveLayout';
+import { GameShell } from '../core/GameShell';
 
 const EMOJIS = ['🚀', '🪐', '👽', '☄️', '🌌', '🔭', '🛰️', '🛸'];
 const C_ACC = '#ff00ff';
@@ -10,7 +12,7 @@ function shuffle(arr) {
   return [...arr].sort(() => Math.random() - 0.5);
 }
 
-export default function MemoryGame() {
+function MemoryGameInner() {
   const [cards, setCards] = useState([]);
   const [selected, setSelected] = useState([]);
   const [moves, setMoves] = useState(0);
@@ -152,5 +154,15 @@ export default function MemoryGame() {
         }}>Reiniciar</button>
       )}
     </div>
+  );
+}
+
+export default function MemoryGame() {
+  return (
+    <GameImmersiveLayout>
+      <GameShell title="Memoria Mágica">
+        <MemoryGameInner />
+      </GameShell>
+    </GameImmersiveLayout>
   );
 }

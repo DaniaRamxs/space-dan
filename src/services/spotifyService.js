@@ -1,28 +1,34 @@
 import { supabase } from '../supabaseClient';
 
 export const spotifyService = {
+    // --- HELPERS ---
+    _getRedirectUri() {
+        const uri = import.meta.env.VITE_SPOTIFY_REDIRECT_URI || `${window.location.origin}/spotify-callback`;
+        console.log('[Spotify Debug] Redirect URI detectada:', uri);
+        return uri;
+    },
+
     // --- AUTH ---
     async getAuthUrl() {
-        // Generate auth URL using Spotify API
-        // Redirect to: https://accounts.spotify.com/authorize
-        // callback handled by Edge Function: supabase/functions/spotify-auth
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) throw new Error('Not authenticated');
 
         const clientId = import.meta.env.VITE_SPOTIFY_CLIENT_ID;
         if (!clientId) throw new Error('Client ID de Spotify no configurado. Falta VITE_SPOTIFY_CLIENT_ID en el archivo .env');
 
-        const redirectUri = `${window.location.origin}/spotify-callback`; // React route
-        const scope = 'user-read-currently-playing user-top-read';
+        const redirectUri = this._getRedirectUri();
+        const scope = 'user-read-currently-playing user-top-read user-read-private';
         const state = user.id;
 
         return `https://accounts.spotify.com/authorize?response_type=code&client_id=${clientId}&scope=${encodeURIComponent(scope)}&redirect_uri=${encodeURIComponent(redirectUri)}&state=${state}`;
     },
 
     async handleCallback(code, state) {
+        const redirectUri = this._getRedirectUri();
+
         // Exchange code for token via Edge Function
         const { data, error } = await supabase.functions.invoke('spotify-api', {
-            body: { action: 'exchange', code, userId: state }
+            body: { action: 'exchange', code, userId: state, redirect_uri: redirectUri }
         });
 
         if (error) throw error;
@@ -30,32 +36,44 @@ export const spotifyService = {
     },
 
     // --- DATA FETCH ---
-    async getCurrentPlaying(userId) {
-        // Proxy request via Edge Function to handle refresh tokens securely
+    async _spotifyInvoke(payload) {
+        // Bloqueo preventivo si ya sabemos que la sesión expiró
+        if (this._isAuthExpired) {
+            const error = new Error('Spotify Session Expired (Shield Block)');
+            error.status = 401;
+            throw error;
+        }
+
         const { data, error } = await supabase.functions.invoke('spotify-api', {
-            body: { action: 'current-playing', userId }
+            body: payload
         });
 
-        if (error) return null; // Likely not connected or not playing
+        if (error) {
+            // Evaluamos si el error recibido es un fallo de auth para marcar el flag global
+            this.isAuthError(error);
+            throw error;
+        }
+
+        // Si la respuesta de Spotify viene dentro de data con error (formato de nuestra Edge Function)
+        if (data?.error && this.isAuthError(data)) {
+            throw data;
+        }
+
         return data;
     },
 
-    async getTopTracks(userId, limit = 5) {
-        const { data, error } = await supabase.functions.invoke('spotify-api', {
-            body: { action: 'top-tracks', userId, limit }
-        });
+    async getCurrentPlaying(userId) {
+        return await this._spotifyInvoke({ action: 'current-playing', userId });
+    },
 
-        if (error) throw error;
-        return data.items || [];
+    async getTopTracks(userId, limit = 5) {
+        const data = await this._spotifyInvoke({ action: 'top-tracks', userId, limit });
+        return data?.items || [];
     },
 
     async getTopArtists(userId, limit = 3) {
-        const { data, error } = await supabase.functions.invoke('spotify-api', {
-            body: { action: 'top-artists', userId, limit }
-        });
-
-        if (error) throw error;
-        return data.items || [];
+        const data = await this._spotifyInvoke({ action: 'top-artists', userId, limit });
+        return data?.items || [];
     },
 
     async isConnected(userId) {
@@ -103,6 +121,34 @@ export const spotifyService = {
         if (valence <= 0.4 && energy <= 0.4) return 'Introspección Profunda';
 
         return 'Frecuencia Estable';
+    },
+
+    // --- STATE ---
+    _isAuthExpired: false,
+
+    isAuthError(e) {
+        if (!e) return false;
+        // Normalizamos el status de diferentes fuentes (Supabase error, Response data, etc)
+        const status = e.status || e.context?.status || e.error?.status;
+        const message = String(e.message || e.error?.message || '').toLowerCase();
+
+        const isAuth = status === 401 || status === 403 ||
+            message.includes('401') || message.includes('403') ||
+            message.includes('unauthorized') || message.includes('expired');
+
+        if (isAuth) {
+            console.log('[Spotify Shield] Marcando sesión como expirada.');
+            this._isAuthExpired = true;
+        }
+        return isAuth;
+    },
+
+    setAuthValid() {
+        this._isAuthExpired = false;
+    },
+
+    getAuthExpired() {
+        return this._isAuthExpired;
     },
 
     async syncCurrentSoundState() {
@@ -159,6 +205,11 @@ export const spotifyService = {
             };
 
         } catch (e) {
+            // Propagamos el error si es un fallo de autorización (401/403)
+            // para que el MusicSyncTracker pueda detener el polling.
+            if (this.isAuthError(e)) {
+                throw e;
+            }
             console.error('[Spotify] Fallo en syncCurrentSoundState:', e);
             return null;
         }
@@ -196,5 +247,10 @@ export const spotifyService = {
 
         if (error) return null;
         return data;
+    },
+
+    async searchTracks(query, userId, limit = 8) {
+        const data = await this._spotifyInvoke({ action: 'search', query, limit, userId });
+        return data?.tracks?.items || [];
     }
 };

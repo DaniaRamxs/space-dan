@@ -1,5 +1,7 @@
 import { useEffect, useRef, useCallback, useState } from 'react';
 import useHighScore from '../hooks/useHighScore';
+import { GameImmersiveLayout } from '../core/GameImmersiveLayout';
+import { GameShell } from '../core/GameShell';
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -83,7 +85,7 @@ function checkCollision(birdY, pipes) {
  * FlappyBird — canvas-based mini-game.
  * Click the canvas or press Space to flap.
  */
-export default function FlappyBird() {
+function FlappyBirdInner() {
   const canvasRef = useRef(null);
   const stateRef = useRef(null); // mutable game state (avoids stale closures)
   const rafRef = useRef(null);
@@ -307,5 +309,15 @@ export default function FlappyBird() {
         récord: {displayBest}
       </p>
     </div>
+  );
+}
+
+export default function FlappyBird() {
+  return (
+    <GameImmersiveLayout>
+      <GameShell title="Flappy">
+        <FlappyBirdInner />
+      </GameShell>
+    </GameImmersiveLayout>
   );
 }

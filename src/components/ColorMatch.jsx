@@ -1,18 +1,20 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import useHighScore from '../hooks/useHighScore';
+import { GameImmersiveLayout } from '../core/GameImmersiveLayout';
+import { GameShell } from '../core/GameShell';
 
 const COLORS = [
-  { name: 'rojo',     hex: '#e53935' },
-  { name: 'azul',     hex: '#1e88e5' },
-  { name: 'verde',    hex: '#43a047' },
+  { name: 'rojo', hex: '#e53935' },
+  { name: 'azul', hex: '#1e88e5' },
+  { name: 'verde', hex: '#43a047' },
   { name: 'amarillo', hex: '#fdd835' },
-  { name: 'naranja',  hex: '#fb8c00' },
-  { name: 'morado',   hex: '#8e24aa' },
-  { name: 'rosa',     hex: '#e91e8c' },
-  { name: 'celeste',  hex: '#29b6f6' },
-  { name: 'blanco',   hex: '#f0f0f0' },
-  { name: 'negro',    hex: '#1a1a1a' },
-  { name: 'gris',     hex: '#78909c' },
+  { name: 'naranja', hex: '#fb8c00' },
+  { name: 'morado', hex: '#8e24aa' },
+  { name: 'rosa', hex: '#e91e8c' },
+  { name: 'celeste', hex: '#29b6f6' },
+  { name: 'blanco', hex: '#f0f0f0' },
+  { name: 'negro', hex: '#1a1a1a' },
+  { name: 'gris', hex: '#78909c' },
   { name: 'turquesa', hex: '#00bfa5' },
 ];
 
@@ -37,7 +39,7 @@ function buildRound() {
   return { correct, options };
 }
 
-export default function ColorMatch() {
+function ColorMatchInner() {
   const [gameState, setGameState] = useState('idle'); // idle | playing | ended
   const [round, setRound] = useState(1);
   const [score, setScore] = useState(0);
@@ -338,5 +340,15 @@ export default function ColorMatch() {
         ))}
       </div>
     </div>
+  );
+}
+
+export default function ColorMatch() {
+  return (
+    <GameImmersiveLayout>
+      <GameShell title="Color Match">
+        <ColorMatchInner />
+      </GameShell>
+    </GameImmersiveLayout>
   );
 }

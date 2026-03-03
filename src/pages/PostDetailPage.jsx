@@ -14,7 +14,9 @@ import ReactionsBar from '../components/Social/ReactionsBar';
 import ShareModal from '../components/Social/ShareModal';
 import Comments from '../components/Comments';
 import PostComposer from '../components/Social/PostComposer';
-import { CATEGORIES } from '../components/Social/PostComposer';
+import SoundCard from '../components/Social/SoundCard';
+import SoundIndicator from '../components/Social/SoundIndicator';
+import { CATEGORIES } from '../constants/categories';
 import { getUserDisplayName, getNicknameClass } from '../utils/user';
 
 const sanitizeSchema = {
@@ -60,6 +62,11 @@ export default function PostDetailPage() {
     setLoading(true);
     setError(null);
     try {
+      // Basic UUID v4 validation (8-4-4-4-12 hex chars)
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+      if (!uuidRegex.test(postId)) {
+        throw new Error('UUID invalido');
+      }
       const data = await activityService.getPost(postId, user?.id);
       setPost(data);
     } catch (err) {
@@ -166,9 +173,15 @@ export default function PostDetailPage() {
                 <div>
                   <Link
                     to={post.author?.username ? `/@${encodeURIComponent(post.author.username)}` : `/profile/${post.author_id}`}
-                    className="text-sm font-black text-white hover:text-cyan-400 transition-colors uppercase tracking-tight"
+                    className="text-sm font-black text-white hover:text-cyan-400 transition-colors uppercase tracking-tight flex items-center gap-2"
                   >
                     <span className={getNicknameClass(post.author)}>{getUserDisplayName(post.author)}</span>
+                    {post.metadata?.spotify_track && (
+                      <SoundIndicator
+                        trackId={post.metadata.spotify_track.track_id}
+                        previewUrl={post.metadata.spotify_track.preview_url}
+                      />
+                    )}
                   </Link>
                   <p className="text-[9px] text-white/20 font-black uppercase tracking-[0.25em] mt-0.5">
                     {safeTimeAgo(post.created_at)}
@@ -221,6 +234,12 @@ export default function PostDetailPage() {
               <div className="w-8 h-0.5 bg-cyan-500/60 rounded-full" />
               <div className="w-2 h-2 bg-cyan-500/40 rounded-full" />
             </div>
+
+            {post.metadata?.spotify_track && (
+              <div className="mb-8">
+                <SoundCard track={post.metadata.spotify_track} />
+              </div>
+            )}
 
             {post.content ? (
               <div className="prose prose-invert prose-base max-w-none

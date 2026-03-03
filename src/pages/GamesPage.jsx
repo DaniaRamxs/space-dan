@@ -1,10 +1,11 @@
 import { useState, useEffect, useRef, Suspense, lazy, useMemo, useCallback } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Maximize2, Minimize2 } from 'lucide-react';
 import { Capacitor } from '@capacitor/core';
-import { awardCoins } from '../hooks/useStarlys';
 import { unlockAchievement } from '../hooks/useAchievements';
 import { useAuthContext } from '../contexts/AuthContext';
+import { useEconomy } from '../contexts/EconomyContext';
 import { saveScore } from '../services/supabaseScores';
 import Leaderboard from '../components/Leaderboard';
 import { ErrorBoundary } from '../components/ErrorBoundary';
@@ -86,18 +87,29 @@ function markGamePlayed(gameId) {
 }
 
 export default function GamesPage() {
+  const { gameId } = useParams();
+  const navigate = useNavigate();
+
   const { user, profile } = useAuthContext();
+  const { awardCoins } = useEconomy();
   const { claimSeasonReward, season, refreshSeason } = useSeason();
 
-  const [openId, setOpenId] = useState(null);
+  const [openId, setOpenId] = useState(gameId || null);
+
+  useEffect(() => {
+    setOpenId(gameId || null);
+  }, [gameId]);
   const [coinToast, setCoinToast] = useState(null);
   const [lbKey, setLbKey] = useState(0);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterCat, setFilterCat] = useState('All');
   const [userStats, setUserStats] = useState([]);
   const [soundOn, setSoundOn] = useState(true);
-  const [tickerItems, setTickerItems] = useState([
-    "Bienvenido al Games HUB", "Nuevos retos disponibles", "Cargando feeds de la comunidad..."
+  const [mockFeedItems, setMockFeedItems] = useState([
+    "Dan subió al #4 en Snake 🐍",
+    "Luna rompió récord en Asteroids 🚀",
+    "Alex ganó 3 partidas seguidas en Connect4 🔴",
+    "Max dominó el Puzzle 🧩"
   ]);
   const [scale, setScale] = useState(1);
 
@@ -153,13 +165,13 @@ export default function GamesPage() {
   // Salir de fullscreen automáticamente al cerrar el juego
   useEffect(() => {
     if (!openId && document.fullscreenElement) {
-      document.exitFullscreen?.().catch(() => {});
+      document.exitFullscreen?.().catch(() => { });
       if (Capacitor.isNativePlatform()) {
         import('@capacitor/status-bar').then(({ StatusBar, Style }) => {
           StatusBar.show();
           StatusBar.setStyle({ style: Style.Dark });
           StatusBar.setBackgroundColor({ color: '#050510' });
-        }).catch(() => {});
+        }).catch(() => { });
       }
     }
   }, [openId]);
@@ -207,7 +219,7 @@ export default function GamesPage() {
 
       if (data) {
         const events = data.map(s => `🎰 ${s.profiles?.username || 'Explorador'} marcó ${s.score} en ${s.game_id.toUpperCase()}`);
-        setTickerItems(prev => [...events, ...prev].slice(0, 10));
+        setMockFeedItems(prev => [...events, ...prev].slice(0, 10));
       }
     };
     fetchEvents();
@@ -287,16 +299,24 @@ export default function GamesPage() {
     return () => window.removeEventListener('dan:game-score', onScore);
   }, [user, claimSeasonReward, showCoinToast, refreshSeason]);
 
-  const handleToggle = (gameId) => {
+  const handleToggle = (gameIdParaMover) => {
     arcadeAudio.play('select');
-    setOpenId(gameId);
-    if (gameId) {
-      const isNew = markGamePlayed(gameId);
+    if (gameIdParaMover) {
+      navigate(`/game/${gameIdParaMover}`);
+      const isNew = markGamePlayed(gameIdParaMover);
       if (isNew) {
         awardCoins(5);
         showCoinToast('+5 ◈ juego nuevo!');
         if (loadPlayedGames().size >= 5) unlockAchievement('gamer');
       }
+      // Auto fullscreen on desktop
+      if (window.innerWidth >= 768 && !Capacitor.isNativePlatform()) {
+        setTimeout(() => {
+          gameOverlayRef.current?.requestFullscreen?.().catch(() => { });
+        }, 150);
+      }
+    } else {
+      navigate('/games');
     }
   };
 
@@ -314,249 +334,209 @@ export default function GamesPage() {
     return '';
   };
 
+  const renderGameCard = (game, i) => {
+    const isPlayed = playedSet.has(game.id);
+    const stats = userStats.find(s => s.game_id === game.id);
+    return (
+      <motion.div
+        key={game.id}
+        whileHover={{ y: -5, boxShadow: '0 10px 20px rgba(0,0,0,0.3)' }}
+        whileTap={{ scale: 0.95 }}
+        className={`gameCard ${getTierClass(stats?.game_level || 0)}`}
+        onClick={() => handleToggle(game.id)}
+        style={{ border: isPlayed ? '1px solid rgba(255,255,255,0.05)' : '1px dotted var(--accent)', transition: 'all 0.2s', padding: 16 }}
+      >
+        {!isPlayed && <span className="gameCardBadge">NUEVO</span>}
+        {stats?.game_level > 0 && (
+          <span className={`gameCardLevel ${stats.game_level >= 5 ? 'high-level' : ''}`} title="Nivel en este juego">Lv.{stats.game_level}</span>
+        )}
+        {stats?.user_position && (
+          <span className="gameCardRank" title="Tu posición en el ranking">#{stats.user_position}</span>
+        )}
+        <span className="gameCardIcon" style={{ filter: 'drop-shadow(0 4px 6px rgba(0,0,0,0.2))' }}>{game.icon}</span>
+        <span className="gameCardTitle">{game.title}</span>
+        <span style={{ fontSize: '0.6rem', opacity: 0.4, textTransform: 'uppercase', letterSpacing: 0.5 }}>{game.category} • 🟢 12 online</span>
+      </motion.div>
+    );
+  };
+
   return (
     <main className="w-full max-w-6xl mx-auto min-h-screen pb-32 text-white font-sans flex flex-col pt-4 md:pt-10 px-0 md:px-6 relative">
-      {/* HUD HEADER - Hidden on mobile for app look */}
-      <div className="pageHeader px-4 md:px-0 hidden md:flex" style={{
-        borderBottom: '1px solid rgba(255,255,255,0.05)',
-        paddingBottom: 15,
-        marginBottom: 20,
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        flexWrap: 'wrap',
-        gap: 15
-      }}>
-        <div style={{ flex: '1 1 auto' }}>
-          <h1 style={{ letterSpacing: '4px', margin: 0, fontSize: 'clamp(1.4rem, 5vw, 1.8rem)' }}>
-            GAMES<span style={{ color: 'var(--accent)' }}>.hub</span>
-          </h1>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 5 }}>
-            <span style={{ fontSize: '0.65rem', textTransform: 'uppercase', opacity: 0.5 }}>Arcade Status:</span>
-            <span style={{ height: 6, width: 6, borderRadius: '50%', background: '#00ff00', boxShadow: '0 0 8px #00ff00' }} />
-            <span style={{ fontSize: '0.65rem', color: '#00ff00', fontWeight: 'bold' }}>SYSTEM_NOMINAL</span>
-          </div>
-        </div>
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 5, flex: '0 0 auto' }}>
-          <SeasonMiniBadge />
-          {coinToast && <motion.span initial={{ y: 10, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="gamesCoinToast" style={{ fontSize: '0.7rem' }}>{coinToast}</motion.span>}
-        </div>
-      </div>
+      {/* Background content — unmounted while a game is running to free GPU */}
+      {!openId && (<>
 
-      {/* GUEST WARNING */}
-      {!user && (
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="bentoItem"
-          style={{
-            background: 'rgba(255,165,0,0.1)',
-            border: '1px solid rgba(255,165,0,0.3)',
-            padding: '12px 20px',
-            marginBottom: 20,
-            display: 'flex',
-            alignItems: 'center',
-            gap: 12,
-            borderRadius: '20px'
-          }}
-        >
-          <span style={{ fontSize: '1.2rem' }}>⚠️</span>
-          <div style={{ flex: 1 }}>
-            <div style={{ fontSize: '0.7rem', fontWeight: 900, color: '#ffa500', textTransform: 'uppercase', letterSpacing: 1 }}>Modo Invitado</div>
-            <div style={{ fontSize: '0.65rem', opacity: 0.8, color: '#fff' }}>
-              Inicia sesión para que tus puntajes se guarden en el ranking global y recibas recompensas.
-            </div>
-          </div>
-        </motion.div>
-      )}
-
-      {/* BENTO DASHBOARD */}
-      <div className="bentoGrid mx-4 md:mx-0">
-        <div className="bentoItem bentoLarge" style={{
-          background: 'linear-gradient(135deg, rgba(6,182,212,0.1), rgba(236,72,153,0.05))',
-          minHeight: '160px',
-          border: '1px solid rgba(255,255,255,0.08)',
-          position: 'relative',
-          overflow: 'hidden'
+        {/* SOCIAL HERO & GAMES HUB HEADER */}
+        <div style={{
+          display: 'flex', flexDirection: 'column', gap: 15, position: 'relative',
+          padding: '20px 16px', marginBottom: 20
         }}>
-          {/* Background scanline effect */}
-          <div className="absolute inset-0 opacity-10 pointer-events-none" style={{
-            backgroundImage: 'linear-gradient(0deg, transparent 50%, rgba(255,255,255,0.1) 50%)',
-            backgroundSize: '100% 4px'
-          }}></div>
-
-          <div style={{ position: 'absolute', top: 12, right: 12, zIndex: 2 }}>
-            <button
-              onClick={() => setSoundOn(!soundOn)}
-              style={{ background: 'rgba(255,255,255,0.05)', border: 'none', cursor: 'pointer', fontSize: '1rem', padding: '6px', borderRadius: '50%', display: 'flex' }}
-            >
-              {soundOn ? '🔊' : '🔈'}
-            </button>
-          </div>
-
-          <div className="relative z-[1]">
-            <span style={{ fontSize: '0.55rem', fontWeight: 900, color: 'var(--accent)', letterSpacing: 2, textTransform: 'uppercase' }}>
-              ID: {pilotRank}
-            </span>
-            <h3 style={{ margin: '2px 0 15px 0', fontSize: '1.4rem', fontWeight: 900, letterSpacing: -0.5, color: '#fff' }}>
-              {user?.user_metadata?.username || 'GUEST_PILOT'}
-            </h3>
-
-            <div style={{ display: 'flex', gap: '20px' }}>
-              <div style={{ flex: 1 }}>
-                <div style={{ opacity: 0.4, fontSize: '0.5rem', fontWeight: 900, marginBottom: 4 }}>COMPLETADO</div>
-                <div style={{ fontSize: '1.2rem', fontWeight: 900, fontFamily: 'monospace', color: '#fff' }}>
-                  {Math.floor(masteryProgress)}<span style={{ fontSize: '0.7rem', opacity: 0.5 }}>%</span>
-                </div>
-                <div style={{ marginTop: 6, height: 3, background: 'rgba(255,255,255,0.05)', borderRadius: 2, overflow: 'hidden' }}>
-                  <motion.div initial={{ width: 0 }} animate={{ width: `${masteryProgress}%` }} style={{ height: '100%', background: 'linear-gradient(to right, #00e5ff, #ff00ff)', borderRadius: 2 }} />
-                </div>
-              </div>
-
-              <div style={{ flex: 1 }}>
-                <div style={{ opacity: 0.4, fontSize: '0.5rem', fontWeight: 900, marginBottom: 4 }}>RANK_TEMPORADA</div>
-                <div style={{ fontSize: '1.2rem', fontWeight: 900, color: (season?.rank > 0 && season?.rank <= 3) ? '#ffea00' : 'var(--accent)', fontFamily: 'monospace' }}>
-                  #{season?.rank || '—'}
-                </div>
-                {season?.gap_to_next > 0 && (
-                  <div style={{ fontSize: '0.45rem', opacity: 0.6, marginTop: 1, color: '#00e5ff' }}>
-                    GAP: +{season.gap_to_next} ◈
-                  </div>
-                )}
-                <div style={{ fontSize: '0.45rem', opacity: 0.4, marginTop: 4, textTransform: 'uppercase', letterSpacing: 0.5 }}>
-                  {(season?.rank > 0 && season?.rank <= 3) ? 'ZONA_PODIO' : 'ESTADO_ACTIVO'}
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="bentoItem" onClick={handleSurpriseMe} style={{ cursor: 'pointer', border: '1px solid rgba(255,215,0,0.15)', padding: '15px 10px', background: 'rgba(255,215,0,0.02)' }}>
-          <span style={{ fontSize: '1.4rem', marginBottom: 5, display: 'block' }}>🎲</span>
-          <span style={{ fontSize: '0.6rem', fontWeight: 900, opacity: 0.9 }}>QUICK_PLAY</span>
-          <span style={{ fontSize: '0.45rem', opacity: 0.4, textTransform: 'uppercase' }}>Modo aleatorio</span>
-        </div>
-
-        <div className="bentoItem" style={{ border: '1px solid rgba(0,229,255,0.15)', padding: '15px 10px', background: 'rgba(0,229,255,0.02)' }}>
-          <span style={{ fontSize: '1.4rem', marginBottom: 5, display: 'block' }}>🔥</span>
-          <span style={{ fontSize: '0.6rem', fontWeight: 900, opacity: 0.9 }}>CAP_DIARIO</span>
-          <div style={{ fontSize: '0.7rem', color: '#00e5ff', fontWeight: 900, marginTop: 2 }}>
-            {season?.daily_reward_earned || 0} / {season?.daily_reward_cap || 3000}
-          </div>
-          <div style={{ marginTop: 6, height: 2, background: 'rgba(0,229,255,0.1)', borderRadius: 1 }}>
-            <div style={{
-              height: '100%',
-              background: '#00e5ff',
-              width: `${Math.min(100, ((season?.daily_reward_earned || 0) / (season?.daily_reward_cap || 3000)) * 100)}%`
-            }} />
-          </div>
-        </div>
-
-        <div className="bentoItem bentoWide" style={{ background: 'rgba(255,255,255,0.02)', padding: '12px 15px', border: '1px solid rgba(255,255,255,0.05)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div>
-              <span style={{ fontSize: '0.5rem', opacity: 0.4, fontWeight: 900, textTransform: 'uppercase' }}>Protocolo_Boost</span>
-              <div style={{ fontWeight: 900, fontSize: '0.8rem', color: season?.active_boosts?.night || season?.active_boosts?.weekend ? '#ffea00' : 'rgba(255,255,255,0.3)' }}>
-                {season?.active_boosts?.night || season?.active_boosts?.weekend ? 'MULTIPLIER_ACTIVE' : 'MULT_STANDBY'}
+              <h1 style={{ fontSize: '1.6rem', fontWeight: 900, textTransform: 'uppercase', margin: 0, color: '#fff', letterSpacing: -0.5 }}>
+                ¿A qué jugamos hoy?
+              </h1>
+              <div style={{ fontSize: '0.8rem', color: '#00e5ff', opacity: 0.9, marginTop: 4, fontWeight: 700, letterSpacing: 0.2 }}>
+                Nivel {Math.max(1, Math.floor(0.1 * Math.sqrt((profile?.balance || 0) + (userStats.length * 50))))} • #{season?.rank || '—'} Temporada {(season?.active_boosts?.night || season?.active_boosts?.weekend) && '• ⚡ Boost'}
               </div>
             </div>
-            <div style={{ fontSize: '1rem', opacity: season?.active_boosts?.night || season?.active_boosts?.weekend ? 1 : 0.2 }}>⚡</div>
+            <div style={{ display: 'flex', gap: 12 }}>
+              <button
+                onClick={() => setSoundOn(!soundOn)}
+                title="Efectos de Sonido"
+                style={{ background: 'rgba(255,255,255,0.05)', border: 'none', cursor: 'pointer', fontSize: '1.1rem', width: 42, height: 42, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+              >
+                {soundOn ? '🔊' : '🔈'}
+              </button>
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* FILTERS */}
-      <div className="px-4 md:px-0" style={{ marginBottom: 25 }}>
-        <div style={{ position: 'relative', marginBottom: 15 }}>
-          <span style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', opacity: 0.5 }}>🔍</span>
-          <input
-            type="text"
-            placeholder="Buscar por nombre..."
-            className="searchBar"
-            value={searchTerm}
-            onChange={(e) => {
-              setSearchTerm(e.target.value);
-              arcadeAudio.play('blip');
-            }}
+        {/* GUEST WARNING */}
+        {!user && (
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bentoItem"
             style={{
-              width: '100%', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.1)',
-              borderRadius: '16px', padding: '14px 14px 14px 44px', color: '#fff', fontSize: '1rem', outline: 'none'
+              background: 'rgba(255,165,0,0.1)',
+              border: '1px solid rgba(255,165,0,0.3)',
+              padding: '12px 20px',
+              marginBottom: 20,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 12,
+              borderRadius: '20px'
             }}
-          />
-        </div>
-        <div className="mobile-scroll-x" style={{ paddingBottom: 10 }}>
-          {categories.map(cat => (
-            <button
-              key={cat}
-              onClick={() => {
-                setFilterCat(cat);
-                arcadeAudio.play('blip');
-              }}
-              style={{
-                background: filterCat === cat ? 'linear-gradient(45deg, var(--accent-dim), var(--accent))' : 'rgba(255,255,255,0.05)',
-                color: filterCat === cat ? '#fff' : 'rgba(255,255,255,0.5)',
-                border: 'none', padding: '8px 18px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: '900',
-                whiteSpace: 'nowrap', cursor: 'pointer', transition: 'all 0.3s',
-                boxShadow: filterCat === cat ? '0 4px 15px var(--accent-dim)' : 'none'
-              }}
-            >
-              {cat.toUpperCase()}
-            </button>
-          ))}
-        </div>
-      </div>
+          >
+            <span style={{ fontSize: '1.2rem' }}>⚠️</span>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: '0.7rem', fontWeight: 900, color: '#ffa500', textTransform: 'uppercase', letterSpacing: 1 }}>Modo Invitado</div>
+              <div style={{ fontSize: '0.65rem', opacity: 0.8, color: '#fff' }}>
+                Inicia sesión para que tus puntajes se guarden en el ranking global y recibas recompensas.
+              </div>
+            </div>
+          </motion.div>
+        )}
 
-      {/* GRID */}
-      {filteredGames.length === 0 ? (
-        <div style={{ textAlign: 'center', padding: '60px 20px', opacity: 0.3 }}>
-          <div style={{ fontSize: '4rem', marginBottom: 15 }}>🛸</div>
-          <p style={{ fontWeight: 'bold' }}>No se detectaron señales de ese juego.</p>
-        </div>
-      ) : (
-        <div className="gamesGrid px-4 md:px-0" style={{ marginTop: 0 }}>
-          {filteredGames.map((game, i) => {
-            const isPlayed = playedSet.has(game.id);
-            const stats = userStats.find(s => s.game_id === game.id);
-            return (
-              <motion.div
-                key={game.id}
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: Math.min(i * 0.02, 0.3) }}
-                className={`gameCard ${getTierClass(stats?.game_level || 0)}`}
-                onClick={() => handleToggle(game.id)}
-                style={{ border: isPlayed ? undefined : '1px dotted var(--accent)' }}
+        {/* CENTRAL QUICK PLAY AREA */}
+        <div style={{ padding: '0 16px', marginBottom: 30, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+          <motion.button
+            whileHover={{ scale: 1.02, boxShadow: '0 10px 30px rgba(0,229,255,0.3)' }}
+            whileTap={{ scale: 0.95 }}
+            onClick={handleSurpriseMe}
+            style={{
+              width: '100%', maxWidth: 400, padding: '20px',
+              background: 'linear-gradient(135deg, rgba(0,229,255,0.1) 0%, rgba(236,72,153,0.05) 100%)',
+              border: '1px solid rgba(0,229,255,0.2)', borderRadius: 24, cursor: 'pointer',
+              display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8
+            }}
+          >
+            <span style={{ fontSize: '2.5rem', display: 'block', lineHeight: 1 }}>🎮</span>
+            <span style={{ fontSize: '1.3rem', fontWeight: 900, color: '#fff', letterSpacing: 1 }}>QUICK MATCH</span>
+          </motion.button>
+
+          <div style={{ display: 'flex', gap: 10, marginTop: 16, flexWrap: 'wrap', justifyContent: 'center' }}>
+            {['Arcade', 'Puzzle', 'Skill', 'Table'].map(cat => (
+              <button
+                key={cat} onClick={() => { setFilterCat(cat); arcadeAudio.play('blip'); }}
+                style={{ background: 'rgba(255,255,255,0.05)', border: 'none', padding: '8px 16px', borderRadius: 20, color: '#aaa', fontSize: '0.8rem', fontWeight: 800, cursor: 'pointer', textTransform: 'uppercase' }}
               >
-                {!isPlayed && <span className="gameCardBadge">NUEVO</span>}
-                {stats?.game_level > 0 && (
-                  <span className={`gameCardLevel ${stats.game_level >= 5 ? 'high-level' : ''}`} title="Nivel en este juego">
-                    Lv.{stats.game_level}
-                  </span>
-                )}
-                {stats?.user_position && (
-                  <span className="gameCardRank" title="Tu posición en el ranking">
-                    #{stats.user_position}
-                  </span>
-                )}
-                <span className="gameCardIcon">{game.icon}</span>
-                <span className="gameCardTitle">{game.title}</span>
-                <span style={{ fontSize: '0.6rem', opacity: 0.4, textTransform: 'uppercase', letterSpacing: 0.5 }}>{game.category}</span>
-              </motion.div>
-            );
-          })}
-        </div>
-      )}
-
-      {/* LIVE TICKER */}
-      {!openId && (
-        <div className="liveTickerContainer mx-4 md:mx-0">
-          <div className="liveTicker">
-            {[...tickerItems, ...tickerItems].map((text, i) => (
-              <span key={i} className="tickerItem">{text}</span>
+                {cat}
+              </button>
             ))}
           </div>
         </div>
-      )}
+
+        {/* SOCIAL TICKER / COMUNIDAD */}
+        <div className="mx-4 md:mx-0" style={{ marginBottom: 35, padding: '14px 16px', background: 'rgba(255,255,255,0.02)', borderRadius: 16, border: '1px solid rgba(255,255,255,0.05)' }}>
+          <div style={{ fontSize: '0.65rem', fontWeight: 900, textTransform: 'uppercase', color: 'var(--accent)', marginBottom: 10, letterSpacing: 1 }}>📡 Actividad Reciente</div>
+          <div className="liveTickerContainer" style={{ border: 'none', background: 'transparent', padding: 0 }}>
+            <div className="liveTicker">
+              {[...mockFeedItems, ...mockFeedItems].map((text, i) => (
+                <span key={i} className="tickerItem" style={{ display: 'flex', alignItems: 'center', gap: 6, opacity: 0.9, background: 'rgba(0,0,0,0.2)', padding: '4px 12px', borderRadius: 20 }}>
+                  <img src="/default-avatar.png" alt="av" style={{ width: 16, height: 16, borderRadius: '50%' }} />
+                  {text}
+                </span>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* TRENDING GAMES */}
+        {filterCat === 'All' && searchTerm === '' && filteredGames.length >= 4 && (
+          <div className="px-4 md:px-0" style={{ marginBottom: 35 }}>
+            <h3 style={{ fontSize: '1.2rem', fontWeight: 900, marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>🔥 Trending Ahora</h3>
+            <div className="gamesGrid">
+              {filteredGames.slice(0, 4).map(renderGameCard)}
+            </div>
+          </div>
+        )}
+
+        {/* RECOMMENDED GAMES */}
+        {filterCat === 'All' && searchTerm === '' && filteredGames.length >= 8 && (
+          <div className="px-4 md:px-0" style={{ marginBottom: 40 }}>
+            <h3 style={{ fontSize: '1.2rem', fontWeight: 900, marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>⭐ Recomendados para ti</h3>
+            <div className="gamesGrid">
+              {filteredGames.slice(4, 8).map(renderGameCard)}
+            </div>
+          </div>
+        )}
+
+        {/* FILTERS & ALL GAMES */}
+        <div className="px-4 md:px-0" style={{ marginBottom: 20 }}>
+          <h3 style={{ fontSize: '1.2rem', fontWeight: 900, marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>🎮 Explorar Arcade</h3>
+          <div style={{ position: 'relative', marginBottom: 15 }}>
+            <span style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', opacity: 0.5 }}>🔍</span>
+            <input
+              type="text"
+              placeholder="Buscar por nombre..."
+              className="searchBar"
+              value={searchTerm}
+              onChange={(e) => {
+                setSearchTerm(e.target.value);
+                arcadeAudio.play('blip');
+              }}
+              style={{
+                width: '100%', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.1)',
+                borderRadius: '16px', padding: '14px 14px 14px 44px', color: '#fff', fontSize: '1rem', outline: 'none'
+              }}
+            />
+          </div>
+          <div className="mobile-scroll-x" style={{ paddingBottom: 10 }}>
+            {categories.map(cat => (
+              <button
+                key={cat}
+                onClick={() => {
+                  setFilterCat(cat);
+                  arcadeAudio.play('blip');
+                }}
+                style={{
+                  background: filterCat === cat ? 'linear-gradient(45deg, var(--accent-dim), var(--accent))' : 'rgba(255,255,255,0.05)',
+                  color: filterCat === cat ? '#fff' : 'rgba(255,255,255,0.5)',
+                  border: 'none', padding: '8px 18px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: '900',
+                  whiteSpace: 'nowrap', cursor: 'pointer', transition: 'all 0.3s',
+                  boxShadow: filterCat === cat ? '0 4px 15px var(--accent-dim)' : 'none'
+                }}
+              >
+                {cat.toUpperCase()}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* GRID */}
+        {filteredGames.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '60px 20px', opacity: 0.3 }}>
+            <div style={{ fontSize: '4rem', marginBottom: 15 }}>🛸</div>
+            <p style={{ fontWeight: 'bold' }}>No se detectaron señales de ese juego.</p>
+          </div>
+        ) : (
+          <div className="gamesGrid px-4 md:px-0" style={{ marginTop: 0 }}>
+            {filteredGames.map(renderGameCard)}
+          </div>
+        )}
+
+      </>)}
 
       {/* FULLSCREEN GAME OVERLAY */}
       <AnimatePresence>
@@ -564,35 +544,32 @@ export default function GamesPage() {
           <motion.div
             ref={gameOverlayRef}
             className="gameOverlay"
-            initial={{ opacity: 0, scale: 1.1 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 1.1 }}
-            transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.12 }}
           >
-            <div className="crtEffect" />
-            <div className="gameOverlayHeader" style={{ background: 'rgba(5,5,20,0.8)', backdropFilter: 'blur(10px)' }}>
+            <div className={`gameOverlayHeader ${window.innerWidth >= 1024 ? 'hidden' : ''}`} style={{ background: 'rgba(5,5,20,0.95)', display: window.innerWidth >= 1024 ? 'none' : 'flex' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 15 }}>
-                <div style={{ fontSize: '2rem', animation: 'pulse 2s infinite' }}>{activeGame.icon}</div>
+                <div style={{ fontSize: '2rem' }}>{activeGame.icon}</div>
                 <div>
                   <div style={{ fontWeight: '900', textTransform: 'uppercase', letterSpacing: 2, fontSize: '1.2rem' }}>{activeGame.title}</div>
                   <div style={{ fontSize: '0.6rem', opacity: 0.6, letterSpacing: 1 }}>SISTEMA_ARCADE_V2.0</div>
                 </div>
               </div>
               <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                {Capacitor.isNativePlatform() && (
-                  <button
-                    className="gameFullscreenBtn"
-                    onClick={toggleFullscreen}
-                    title={isFullscreen ? 'Salir de pantalla completa' : 'Pantalla completa'}
-                  >
-                    {isFullscreen ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
-                  </button>
-                )}
+                <button
+                  className="gameFullscreenBtn"
+                  onClick={toggleFullscreen}
+                  title={isFullscreen ? 'Salir de pantalla completa' : 'Pantalla completa'}
+                >
+                  {isFullscreen ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
+                </button>
                 <button
                   className="gameCloseBtn"
                   onClick={() => {
                     arcadeAudio.play('close');
-                    setOpenId(null);
+                    navigate('/games');
                   }}
                   style={{ position: 'relative', zIndex: 5001, background: '#ff4444' }}
                 >
@@ -610,32 +587,34 @@ export default function GamesPage() {
                 </ErrorBoundary>
               </div>
 
-              {/* Game Stats Bar */}
-              <div style={{
-                display: 'flex', gap: 15, background: 'rgba(255,110,180,0.05)', padding: '15px 25px', borderRadius: '20px',
-                border: '1px solid rgba(255,110,180,0.2)', marginBottom: 25, width: '100%', maxWidth: '600px',
-                justifyContent: 'space-around', fontSize: '0.75rem', fontWeight: 'bold', position: 'relative', zIndex: 1
-              }}>
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                  <span style={{ opacity: 0.5, fontSize: '0.55rem', textTransform: 'uppercase', marginBottom: 3 }}>Daily Capacity</span>
-                  <span style={{ color: (season?.daily_reward_earned || 0) >= (season?.daily_reward_cap || 1) ? '#ff5555' : 'var(--accent)' }}>
-                    ◈ {season?.daily_reward_earned || 0} / {season?.daily_reward_cap || 0}
-                  </span>
-                </div>
-                {season?.boost_multiplier > 1 && (
+              <div className="gameSidebar">
+                {/* Game Stats Bar */}
+                <div style={{
+                  display: 'flex', gap: 15, background: 'rgba(255,110,180,0.05)', padding: '15px 25px', borderRadius: '20px',
+                  border: '1px solid rgba(255,110,180,0.2)', width: '100%',
+                  justifyContent: 'space-around', fontSize: '0.75rem', fontWeight: 'bold', position: 'relative', zIndex: 1
+                }}>
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                    <span style={{ opacity: 0.5, fontSize: '0.55rem', textTransform: 'uppercase', marginBottom: 3 }}>Multiplier</span>
-                    <span style={{ color: '#ffea00' }}>x{season.boost_multiplier} active</span>
+                    <span style={{ opacity: 0.5, fontSize: '0.55rem', textTransform: 'uppercase', marginBottom: 3 }}>Daily Capacity</span>
+                    <span style={{ color: (season?.daily_reward_earned || 0) >= (season?.daily_reward_cap || 1) ? '#ff5555' : 'var(--accent)' }}>
+                      ◈ {season?.daily_reward_earned || 0} / {season?.daily_reward_cap || 0}
+                    </span>
                   </div>
-                )}
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                  <span style={{ opacity: 0.5, fontSize: '0.55rem', textTransform: 'uppercase', marginBottom: 3 }}>User Rank</span>
-                  <span style={{ color: '#00e5ff' }}>#{season?.rank || '—'}</span>
+                  {season?.boost_multiplier > 1 && (
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                      <span style={{ opacity: 0.5, fontSize: '0.55rem', textTransform: 'uppercase', marginBottom: 3 }}>Multiplier</span>
+                      <span style={{ color: '#ffea00' }}>x{season.boost_multiplier} active</span>
+                    </div>
+                  )}
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                    <span style={{ opacity: 0.5, fontSize: '0.55rem', textTransform: 'uppercase', marginBottom: 3 }}>User Rank</span>
+                    <span style={{ color: '#00e5ff' }}>#{season?.rank || '—'}</span>
+                  </div>
                 </div>
-              </div>
 
-              <div style={{ width: '100%', maxWidth: '600px', position: 'relative', zIndex: 1 }}>
-                <Leaderboard gameId={activeGame.id} refreshKey={lbKey} />
+                <div style={{ width: '100%', position: 'relative', zIndex: 1 }}>
+                  <Leaderboard gameId={activeGame.id} refreshKey={lbKey} />
+                </div>
               </div>
             </div>
           </motion.div>

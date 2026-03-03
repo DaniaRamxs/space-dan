@@ -134,6 +134,7 @@ function PresenceTracker() {
 
 function MusicSyncTracker() {
   const { user } = useAuthContext();
+  const timeoutRef = useRef(null);
 
   useEffect(() => {
     if (!user) return;
@@ -141,21 +142,40 @@ function MusicSyncTracker() {
     let isMounted = true;
 
     const syncMusic = async () => {
-      if (isMounted) {
-        try {
-          await spotifyService.syncCurrentSoundState(user);
-        } catch (e) {
+      if (!isMounted || spotifyService.getAuthExpired()) return;
+
+      try {
+        await spotifyService.syncCurrentSoundState(user);
+
+        // Programar el siguiente solo si seguimos montados y no hay error de auth
+        if (isMounted && !spotifyService.getAuthExpired()) {
+          timeoutRef.current = setTimeout(syncMusic, 45000);
+        }
+      } catch (e) {
+        if (spotifyService.isAuthError(e)) {
+          console.log('[MusicSyncTracker] Auth expirada. Deteniendo sintonía.');
+          if (timeoutRef.current) {
+            clearTimeout(timeoutRef.current);
+            timeoutRef.current = null;
+          }
+        } else {
           console.warn('[MusicSyncTracker] Error:', e);
+          // Reintentar tras error no-crítico
+          if (isMounted) {
+            timeoutRef.current = setTimeout(syncMusic, 60000);
+          }
         }
       }
     };
 
     syncMusic();
-    const interval = setInterval(syncMusic, 45000); // 45 seconds polling
 
     return () => {
       isMounted = false;
-      clearInterval(interval);
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
+      }
     };
   }, [user]);
 
@@ -269,6 +289,7 @@ function AnimatedRoutes() {
         <Route path="/edit-post/:id" element={<Layout><CreatePostPage /></Layout>} />
         <Route path="/music" element={<Layout><MusicPage /></Layout>} />
         <Route path="/games" element={<Layout><GamesPage /></Layout>} />
+        <Route path="/game/:gameId" element={<Layout><GamesPage /></Layout>} />
         <Route path="/leaderboard" element={<Layout><GlobalLeaderboardPage /></Layout>} />
         <Route path="/chat" element={<Layout><GlobalChatPage /></Layout>} />
         <Route path="/kinnies" element={<Layout><KinniesPage /></Layout>} />

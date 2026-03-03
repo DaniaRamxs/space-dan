@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { spotifyService } from '../../services/spotifyService';
 import { useAuthContext } from '../../contexts/AuthContext';
@@ -38,36 +38,60 @@ export const SpotifyBlock = ({ userId, isOwn }) => {
     const [musicOverlap, setMusicOverlap] = useState(null);
     const [topTracks, setTopTracks] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [isConnected, setIsConnected] = useState(false);
+    const [isAuthExpired, setIsAuthExpired] = useState(false);
+    const [isConnected, setIsConnected] = useState(false); // Added this line, it was missing in the original code but used.
+
+    const timeoutRef = useRef(null);
 
     useEffect(() => {
         let isMounted = true;
 
         async function load() {
-            setLoading(true);
+            if (!isMounted || spotifyService.getAuthExpired()) return;
             try {
                 const connected = await spotifyService.isConnected(userId);
-                if (!isMounted) return;
+                if (!isMounted || spotifyService.getAuthExpired()) return;
                 setIsConnected(connected);
 
                 if (connected) {
                     const [sState, sAvg, tracks] = await Promise.all([
-                        spotifyService.getUserSoundState(userId).catch(() => null),
+                        spotifyService.getUserSoundState(userId).catch(err => {
+                            if (spotifyService.isAuthError(err)) throw err;
+                            return null;
+                        }),
                         spotifyService.getUserSoundAverage(userId).catch(() => null),
-                        spotifyService.getTopTracks(userId, 5).catch(() => []),
+                        spotifyService.getTopTracks(userId, 5).catch(err => {
+                            if (spotifyService.isAuthError(err)) throw err;
+                            return [];
+                        }),
                     ]);
 
                     if (!isMounted) return;
                     setSoundState(sState);
                     setSoundAverage(sAvg);
                     setTopTracks(tracks || []);
+                    setIsAuthExpired(false);
 
                     if (user && user.id !== userId) {
                         const overlap = await spotifyService.getMusicOverlap(user.id, userId).catch(() => null);
                         if (isMounted) setMusicOverlap(overlap);
                     }
+
+                    // Programar siguiente refresco solo si todo OK
+                    if (isMounted && !spotifyService.getAuthExpired()) {
+                        timeoutRef.current = setTimeout(load, 30000);
+                    }
                 }
             } catch (e) {
+                if (spotifyService.isAuthError(e)) {
+                    if (isMounted) {
+                        setIsAuthExpired(true);
+                        if (timeoutRef.current) {
+                            clearTimeout(timeoutRef.current);
+                            timeoutRef.current = null;
+                        }
+                    }
+                }
                 console.warn('Spotify Radar load error:', e);
             } finally {
                 if (isMounted) setLoading(false);
@@ -75,10 +99,12 @@ export const SpotifyBlock = ({ userId, isOwn }) => {
         }
 
         load();
-        const interval = setInterval(load, 30000);
         return () => {
             isMounted = false;
-            clearInterval(interval);
+            if (timeoutRef.current) {
+                clearTimeout(timeoutRef.current);
+                timeoutRef.current = null;
+            }
         };
     }, [userId, user]);
 
@@ -99,6 +125,31 @@ export const SpotifyBlock = ({ userId, isOwn }) => {
                 <span className="text-[10px] uppercase tracking-widest text-white/20 animate-pulse">
                     Sintonizando...
                 </span>
+            </div>
+        );
+    }
+
+    if (isAuthExpired) {
+        if (!isOwn) return null;
+        return (
+            <div className="rounded-2xl bg-rose-500/[0.04] border border-rose-500/15 p-5 space-y-3 text-center animate-in fade-in slide-in-from-bottom-2">
+                <p className="text-[10px] font-bold uppercase tracking-widest text-rose-400/50">Sesión Expirada</p>
+                <p className="text-sm text-white/35 italic max-w-xs mx-auto leading-relaxed">
+                    Tu conexión con Spotify ha caducado. Reconéctala para seguir sincronizando tu música.
+                </p>
+                <button
+                    onClick={async () => {
+                        try {
+                            const url = await spotifyService.getAuthUrl();
+                            window.location.href = url;
+                        } catch (err) {
+                            alert(err.message || 'Error al conectar con Spotify.');
+                        }
+                    }}
+                    className="px-6 py-2.5 rounded-xl bg-rose-500/20 text-rose-400 border border-rose-500/30 text-[11px] font-black uppercase tracking-widest hover:bg-rose-500/30 transition-all shadow-lg"
+                >
+                    Reconectar Spotify
+                </button>
             </div>
         );
     }
@@ -170,11 +221,10 @@ export const SpotifyBlock = ({ userId, isOwn }) => {
 
                     {/* Current track */}
                     {soundState && (
-                        <div className={`flex items-center gap-3 p-3 rounded-xl transition-colors ${
-                            isPlaying
-                                ? 'bg-cyan-500/[0.06] border border-cyan-500/10'
-                                : 'bg-white/[0.02] border border-white/5 opacity-60'
-                        }`}>
+                        <div className={`flex items-center gap-3 p-3 rounded-xl transition-colors ${isPlaying
+                            ? 'bg-cyan-500/[0.06] border border-cyan-500/10'
+                            : 'bg-white/[0.02] border border-white/5 opacity-60'
+                            }`}>
                             {/* Album art */}
                             <div className="w-10 h-10 rounded-lg overflow-hidden bg-white/5 shrink-0 relative">
                                 {soundState.track_image_url ? (
@@ -182,9 +232,8 @@ export const SpotifyBlock = ({ userId, isOwn }) => {
                                         <img
                                             src={soundState.track_image_url}
                                             alt="Cover"
-                                            className={`w-full h-full object-cover transition-all duration-500 ${
-                                                isPlaying ? '' : 'opacity-40 grayscale'
-                                            }`}
+                                            className={`w-full h-full object-cover transition-all duration-500 ${isPlaying ? '' : 'opacity-40 grayscale'
+                                                }`}
                                         />
                                         {!isPlaying && (
                                             <div className="absolute inset-0 flex items-center justify-center">

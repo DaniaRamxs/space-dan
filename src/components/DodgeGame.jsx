@@ -1,13 +1,15 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import useHighScore from '../hooks/useHighScore';
+import { GameImmersiveLayout } from '../core/GameImmersiveLayout';
+import { GameShell } from '../core/GameShell';
 
-const CANVAS_W   = 320;
-const CANVAS_H   = 400;
-const PLAYER_SZ  = 20;
+const CANVAS_W = 320;
+const CANVAS_H = 400;
+const PLAYER_SZ = 20;
 const PLAYER_SPD = 3;
-const ENEMY_R    = 8;
+const ENEMY_R = 8;
 const MAX_ENEMIES = 15;
-const SPAWN_MS   = 2000;
+const SPAWN_MS = 2000;
 
 /**
  * @param {number} score — current seconds survived, increases enemy speed
@@ -21,7 +23,7 @@ function spawnEnemy(px, py, score) {
   if (edge === 0) { x = Math.random() * CANVAS_W; y = -ENEMY_R; }
   else if (edge === 1) { x = CANVAS_W + ENEMY_R; y = Math.random() * CANVAS_H; }
   else if (edge === 2) { x = Math.random() * CANVAS_W; y = CANVAS_H + ENEMY_R; }
-  else                 { x = -ENEMY_R;             y = Math.random() * CANVAS_H; }
+  else { x = -ENEMY_R; y = Math.random() * CANVAS_H; }
 
   const speed = 0.8 + score * 0.06;
   const dx = px - x;
@@ -72,20 +74,20 @@ const STYLES = {
  * DodgeGame — survive as long as possible dodging cyan enemies.
  * @returns {JSX.Element}
  */
-export default function DodgeGame() {
+function DodgeGameInner() {
   const [best, saveScore] = useHighScore('dodge');
 
   const canvasRef = useRef(null);
-  const stateRef  = useRef({
-    phase:       'idle',  // 'idle' | 'playing' | 'over'
-    px:          CANVAS_W / 2 - PLAYER_SZ / 2,
-    py:          CANVAS_H / 2 - PLAYER_SZ / 2,
-    enemies:     [],
-    keys:        {},
-    score:       0,       // seconds survived
-    lastSpawn:   0,
-    lastTick:    0,
-    animId:      null,
+  const stateRef = useRef({
+    phase: 'idle',  // 'idle' | 'playing' | 'over'
+    px: CANVAS_W / 2 - PLAYER_SZ / 2,
+    py: CANVAS_H / 2 - PLAYER_SZ / 2,
+    enemies: [],
+    keys: {},
+    score: 0,       // seconds survived
+    lastSpawn: 0,
+    lastTick: 0,
+    animId: null,
   });
 
   // Expose for re-render on game over (record update)
@@ -148,14 +150,14 @@ export default function DodgeGame() {
 
   const startGame = useCallback(() => {
     const s = stateRef.current;
-    s.phase     = 'playing';
-    s.px        = CANVAS_W / 2 - PLAYER_SZ / 2;
-    s.py        = CANVAS_H / 2 - PLAYER_SZ / 2;
-    s.enemies   = [];
-    s.keys      = {};
-    s.score     = 0;
+    s.phase = 'playing';
+    s.px = CANVAS_W / 2 - PLAYER_SZ / 2;
+    s.py = CANVAS_H / 2 - PLAYER_SZ / 2;
+    s.enemies = [];
+    s.keys = {};
+    s.score = 0;
     s.lastSpawn = performance.now();
-    s.lastTick  = performance.now();
+    s.lastTick = performance.now();
   }, []);
 
   /**
@@ -185,9 +187,9 @@ export default function DodgeGame() {
 
       if (s.phase === 'playing') {
         // Move player
-        if (s.keys['ArrowUp']    || s.keys['w'] || s.keys['W']) s.py = Math.max(0, s.py - PLAYER_SPD);
-        if (s.keys['ArrowDown']  || s.keys['s'] || s.keys['S']) s.py = Math.min(CANVAS_H - PLAYER_SZ, s.py + PLAYER_SPD);
-        if (s.keys['ArrowLeft']  || s.keys['a'] || s.keys['A']) s.px = Math.max(0, s.px - PLAYER_SPD);
+        if (s.keys['ArrowUp'] || s.keys['w'] || s.keys['W']) s.py = Math.max(0, s.py - PLAYER_SPD);
+        if (s.keys['ArrowDown'] || s.keys['s'] || s.keys['S']) s.py = Math.min(CANVAS_H - PLAYER_SZ, s.py + PLAYER_SPD);
+        if (s.keys['ArrowLeft'] || s.keys['a'] || s.keys['A']) s.px = Math.max(0, s.px - PLAYER_SPD);
         if (s.keys['ArrowRight'] || s.keys['d'] || s.keys['D']) s.px = Math.min(CANVAS_W - PLAYER_SZ, s.px + PLAYER_SPD);
 
         // Score tick — once per second
@@ -242,17 +244,17 @@ export default function DodgeGame() {
 
   // Key listeners
   useEffect(() => {
-    const MOVE_KEYS = new Set(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','w','a','s','d','W','A','S','D']);
+    const MOVE_KEYS = new Set(['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'w', 'a', 's', 'd', 'W', 'A', 'S', 'D']);
     const down = (e) => {
       stateRef.current.keys[e.key] = true;
       if (MOVE_KEYS.has(e.key)) e.preventDefault();
     };
     const up = (e) => { stateRef.current.keys[e.key] = false; };
     window.addEventListener('keydown', down);
-    window.addEventListener('keyup',   up);
+    window.addEventListener('keyup', up);
     return () => {
       window.removeEventListener('keydown', down);
-      window.removeEventListener('keyup',   up);
+      window.removeEventListener('keyup', up);
     };
   }, []);
 
@@ -275,7 +277,7 @@ export default function DodgeGame() {
   }, [startGame]);
 
   // D-pad button helpers
-  const pressKey   = (k) => { stateRef.current.keys[k] = true; };
+  const pressKey = (k) => { stateRef.current.keys[k] = true; };
   const releaseKey = (k) => { stateRef.current.keys[k] = false; };
 
   const dpadBtn = {
@@ -311,16 +313,16 @@ export default function DodgeGame() {
       <div style={{ display: 'grid', gridTemplateColumns: '44px 44px 44px', gap: 6, marginTop: 14 }}>
         <div />
         <button style={dpadBtn}
-          onPointerDown={() => pressKey('ArrowUp')}   onPointerUp={() => releaseKey('ArrowUp')}
+          onPointerDown={() => pressKey('ArrowUp')} onPointerUp={() => releaseKey('ArrowUp')}
           onPointerLeave={() => releaseKey('ArrowUp')} onContextMenu={(e) => e.preventDefault()}
         >▲</button>
         <div />
         <button style={dpadBtn}
-          onPointerDown={() => pressKey('ArrowLeft')}  onPointerUp={() => releaseKey('ArrowLeft')}
+          onPointerDown={() => pressKey('ArrowLeft')} onPointerUp={() => releaseKey('ArrowLeft')}
           onPointerLeave={() => releaseKey('ArrowLeft')} onContextMenu={(e) => e.preventDefault()}
         >◀</button>
         <button style={dpadBtn}
-          onPointerDown={() => pressKey('ArrowDown')}  onPointerUp={() => releaseKey('ArrowDown')}
+          onPointerDown={() => pressKey('ArrowDown')} onPointerUp={() => releaseKey('ArrowDown')}
           onPointerLeave={() => releaseKey('ArrowDown')} onContextMenu={(e) => e.preventDefault()}
         >▼</button>
         <button style={dpadBtn}
@@ -329,5 +331,15 @@ export default function DodgeGame() {
         >▶</button>
       </div>
     </div>
+  );
+}
+
+export default function DodgeGame() {
+  return (
+    <GameImmersiveLayout>
+      <GameShell title="Esquivar">
+        <DodgeGameInner />
+      </GameShell>
+    </GameImmersiveLayout>
   );
 }

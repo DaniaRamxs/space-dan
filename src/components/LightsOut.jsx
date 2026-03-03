@@ -1,6 +1,8 @@
 import { useState, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import useHighScore from '../hooks/useHighScore';
+import { GameImmersiveLayout } from '../core/GameImmersiveLayout';
+import { GameShell } from '../core/GameShell';
 
 const GRID_SIZE = 5;
 
@@ -33,7 +35,7 @@ function generateBoard(numMoves) {
     return grid;
 }
 
-export default function LightsOut() {
+function LightsOutInner() {
     const [diff, setDiff] = useState('medium');
     const [grid, setGrid] = useState(() => generateBoard(DIFFS.medium.moves));
     const [moves, setMoves] = useState(0);
@@ -177,5 +179,15 @@ export default function LightsOut() {
                 }}>↺ Reiniciar</button>
             )}
         </div>
+    );
+}
+
+export default function LightsOut() {
+    return (
+        <GameImmersiveLayout>
+            <GameShell title="Lights Out">
+                <LightsOutInner />
+            </GameShell>
+        </GameImmersiveLayout>
     );
 }

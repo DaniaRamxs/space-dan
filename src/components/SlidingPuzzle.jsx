@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import useHighScore from '../hooks/useHighScore';
+import { GameImmersiveLayout } from '../core/GameImmersiveLayout';
+import { GameShell } from '../core/GameShell';
 
 // --- Puzzle logic ---
 const GRID = 3;
@@ -82,7 +84,7 @@ function formatTime(s) {
 
 const STORAGE_KEY = 'space-dan:puzzle-best';
 
-export default function SlidingPuzzle() {
+function SlidingPuzzleInner() {
   const [tiles, setTiles] = useState(() => generateSolvable());
   const [moves, setMoves] = useState(0);
   const [gameState, setGameState] = useState('idle'); // idle | playing | solved
@@ -348,5 +350,15 @@ export default function SlidingPuzzle() {
         META: 1–8 en orden, espacio abajo-derecha
       </div>
     </div>
+  );
+}
+
+export default function SlidingPuzzle() {
+  return (
+    <GameImmersiveLayout>
+      <GameShell title="Rompecabezas">
+        <SlidingPuzzleInner />
+      </GameShell>
+    </GameImmersiveLayout>
   );
 }

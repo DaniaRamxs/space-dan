@@ -5,37 +5,43 @@ import { getUserDisplayName, getNicknameClass } from '../utils/user';
 
 const MEDALS = ['🥇', '🥈', '🥉'];
 
-export default function Leaderboard({ gameId, refreshKey = 0 }) {
+export default function Leaderboard({ gameId, refreshKey = 0, prefetchedData, prefetchedRank, loading: parentLoading }) {
   const { user, profile } = useAuthContext();
-  const [scores, setScores] = useState([]);
-  const [userRank, setUserRank] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [localScores, setLocalScores] = useState([]);
+  const [localUserRank, setLocalUserRank] = useState(null);
+  const [localLoading, setLocalLoading] = useState(true);
+
+  const isManagedExternally = prefetchedData !== undefined;
+  const scores = isManagedExternally ? prefetchedData : localScores;
+  const userRank = isManagedExternally ? prefetchedRank : localUserRank;
+  const loading = isManagedExternally ? parentLoading : localLoading;
 
   useEffect(() => {
+    if (isManagedExternally) return;
     if (!gameId) return;
     let isMounted = true;
 
     const loadBoard = async () => {
-      setLoading(true);
+      setLocalLoading(true);
       try {
         const data = await getLeaderboard(gameId, 10);
         if (!isMounted) return;
-        setScores(data || []);
+        setLocalScores(data || []);
 
         if (user) {
           const rankData = await getUserRankInGame(user.id, gameId);
-          if (isMounted) setUserRank(rankData);
+          if (isMounted) setLocalUserRank(rankData);
         }
       } catch (err) {
         console.error('Error fetching leaderboard:', err);
       } finally {
-        if (isMounted) setLoading(false);
+        if (isMounted) setLocalLoading(false);
       }
     };
 
     loadBoard();
     return () => { isMounted = false; };
-  }, [gameId, refreshKey, user?.id]);
+  }, [gameId, refreshKey, user?.id, isManagedExternally]);
 
   const isMe = (entry) => {
     if (!user) return false;

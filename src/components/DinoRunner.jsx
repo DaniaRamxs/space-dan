@@ -1,5 +1,7 @@
 import { useEffect, useRef, useCallback, useState } from 'react';
 import useHighScore from '../hooks/useHighScore';
+import { GameImmersiveLayout } from '../core/GameImmersiveLayout';
+import { GameShell } from '../core/GameShell';
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -150,7 +152,7 @@ function collides(dinoY, obs) {
  * DinoRunner — endless side-scroller mini-game.
  * Press Space or click the canvas to jump / start / restart.
  */
-export default function DinoRunner() {
+function DinoRunnerInner() {
   const canvasRef = useRef(null);
   const stateRef = useRef(null);
   const rafRef = useRef(null);
@@ -388,5 +390,15 @@ export default function DinoRunner() {
         récord: {displayBest}
       </p>
     </div>
+  );
+}
+
+export default function DinoRunner() {
+  return (
+    <GameImmersiveLayout>
+      <GameShell title="Dino Runner">
+        <DinoRunnerInner />
+      </GameShell>
+    </GameImmersiveLayout>
   );
 }

@@ -1,4 +1,6 @@
 import { useRef, useEffect, useCallback } from 'react';
+import { GameImmersiveLayout } from '../core/GameImmersiveLayout';
+import { GameShell } from '../core/GameShell';
 
 const W = 400;
 const H = 300;
@@ -30,7 +32,7 @@ function launchBall(state) {
   state.ball.vy = state.speed * Math.sin(angle);
 }
 
-export default function Pong() {
+function PongInner() {
   const canvasRef = useRef(null);
   const stateRef = useRef(makeState());
   const rafRef = useRef(null);
@@ -280,5 +282,15 @@ export default function Pong() {
         Mouse / Flechas &uarr;&darr; &nbsp;|&nbsp; Primero en 7 gana
       </div>
     </div>
+  );
+}
+
+export default function Pong() {
+  return (
+    <GameImmersiveLayout>
+      <GameShell title="Pong Retro">
+        <PongInner />
+      </GameShell>
+    </GameImmersiveLayout>
   );
 }

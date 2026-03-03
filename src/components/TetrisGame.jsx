@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import useHighScore from '../hooks/useHighScore';
+import { GameImmersiveLayout } from '../core/GameImmersiveLayout';
+import { GameShell } from '../core/GameShell';
 
 // --- Constants ---
 
@@ -204,7 +206,7 @@ const styles = {
  *
  * @returns {JSX.Element}
  */
-export default function TetrisGame() {
+function TetrisGameInner() {
   const [best, saveScore] = useHighScore('tetris');
 
   const [board, setBoard] = useState(emptyBoard());
@@ -540,5 +542,15 @@ export default function TetrisGame() {
         ← → mover &nbsp; ↑ rotar &nbsp; ↓ bajar &nbsp; espacio caída
       </div>
     </div>
+  );
+}
+
+export default function TetrisGame() {
+  return (
+    <GameImmersiveLayout>
+      <GameShell title="Tetris">
+        <TetrisGameInner />
+      </GameShell>
+    </GameImmersiveLayout>
   );
 }

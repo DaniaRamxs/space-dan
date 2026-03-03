@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import useHighScore from '../hooks/useHighScore';
 import { motion, AnimatePresence } from 'framer-motion';
+import { GameImmersiveLayout } from '../core/GameImmersiveLayout';
+import { GameShell } from '../core/GameShell';
 
 const GRID_SIZE = 20;
 const INITIAL_SPEED = 140;
@@ -12,7 +14,7 @@ const C_SNAKE = '#ff00ff';
 const C_HEAD = '#ffddff';
 const C_FOOD = '#00e5ff';
 
-export default function SnakeGame() {
+function SnakeGameInner() {
   const [best, saveScore] = useHighScore('snake');
   const [score, setScore] = useState(0);
   const [phase, setPhase] = useState('idle'); // idle | playing | over
@@ -138,7 +140,18 @@ export default function SnakeGame() {
     return () => window.removeEventListener('keydown', handleKey);
   }, []);
 
-  const cellSize = 'min(14px, 4vw)';
+  const isDesktop = typeof window !== 'undefined' && window.innerWidth >= 768;
+  // Derive cellPx from the exact CSS rules of .gameScale:
+  //   .gameScale height = min(100vh - 130px, 900px), padding = 10px each side
+  // Non-grid overhead inside snake component: outerPad(24) + HUD(20) + gaps(24) + hint(15) = 83px
+  // Grid constraint:  cellPx * GRID_SIZE <= gameScaleContentH - 83 - 8(gridPadding)  → floor((gameScaleH - 111) / GRID_SIZE)
+  // Width constraint: cellPx * GRID_SIZE <= window.innerWidth - 52               → floor((innerW - 52) / GRID_SIZE)
+  const cellPx = isDesktop ? Math.min(40, Math.floor(Math.min(
+    (Math.min(window.innerHeight - 130, 900) - 111) / GRID_SIZE,
+    (window.innerWidth - 52) / GRID_SIZE
+  ))) : 0;
+  const cellSize = cellPx ? `${cellPx}px` : 'min(14px, 4vw)';
+  const hudWidth = cellPx ? cellPx * GRID_SIZE + 16 : 320;
 
   return (
     <div style={{
@@ -146,7 +159,7 @@ export default function SnakeGame() {
       gap: 12, padding: 12, userSelect: 'none', touchAction: 'none'
     }}>
       <div style={{
-        display: 'flex', justifyContent: 'space-between', width: '100%', maxWidth: 320,
+        display: 'flex', justifyContent: 'space-between', width: '100%', maxWidth: hudWidth,
         fontSize: 12, color: 'rgba(255,255,255,0.4)', fontWeight: 900, textTransform: 'uppercase'
       }}>
         <div>Score: <span style={{ color: C_FOOD }}>{score}</span></div>
@@ -216,18 +229,30 @@ export default function SnakeGame() {
         </AnimatePresence>
       </div>
 
-      <div style={{ marginTop: 8, display: 'grid', gridTemplateColumns: 'repeat(3, 48px)', gap: 8, justifyContent: 'center' }}>
-        <div />
-        <Btn onClick={() => { if (dirRef.current.y !== 1) nextDirRef.current = { x: 0, y: -1 } }}>▲</Btn>
-        <div />
-        <Btn onClick={() => { if (dirRef.current.x !== 1) nextDirRef.current = { x: -1, y: 0 } }}>◀</Btn>
-        <Btn onClick={() => { if (dirRef.current.y !== -1) nextDirRef.current = { x: 0, y: 1 } }}>▼</Btn>
-        <Btn onClick={() => { if (dirRef.current.x !== -1) nextDirRef.current = { x: 1, y: 0 } }}>▶</Btn>
-      </div>
+      {!isDesktop && (
+        <div style={{ marginTop: 8, display: 'grid', gridTemplateColumns: 'repeat(3, 48px)', gap: 8, justifyContent: 'center' }}>
+          <div />
+          <Btn onClick={() => { if (dirRef.current.y !== 1) nextDirRef.current = { x: 0, y: -1 } }}>▲</Btn>
+          <div />
+          <Btn onClick={() => { if (dirRef.current.x !== 1) nextDirRef.current = { x: -1, y: 0 } }}>◀</Btn>
+          <Btn onClick={() => { if (dirRef.current.y !== -1) nextDirRef.current = { x: 0, y: 1 } }}>▼</Btn>
+          <Btn onClick={() => { if (dirRef.current.x !== -1) nextDirRef.current = { x: 1, y: 0 } }}>▶</Btn>
+        </div>
+      )}
       <p style={{ fontSize: 9, opacity: 0.2, color: '#fff', textTransform: 'uppercase', letterSpacing: 2 }}>
-        usa las flechas o el d-pad táctil
+        {isDesktop ? 'usa las teclas de flecha' : 'usa las flechas o el d-pad táctil'}
       </p>
     </div>
+  );
+}
+
+export default function SnakeGame() {
+  return (
+    <GameImmersiveLayout>
+      <GameShell title="Snake Neon">
+        <SnakeGameInner />
+      </GameShell>
+    </GameImmersiveLayout>
   );
 }
 

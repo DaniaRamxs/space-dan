@@ -23,7 +23,9 @@
       "Bash(winget list:*)",
       "Bash(npx vite build)",
       "Bash(npx supabase functions logs:*)",
-      "Bash(npx cap sync:*)"
+      "Bash(npx cap sync:*)",
+      "Bash(node:*)",
+      "Bash(npx tsc:*)"
     ]
   }
 }

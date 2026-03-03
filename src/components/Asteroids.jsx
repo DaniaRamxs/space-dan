@@ -1,4 +1,6 @@
 import { useRef, useEffect, useCallback } from 'react';
+import { GameImmersiveLayout } from '../core/GameImmersiveLayout';
+import { GameShell } from '../core/GameShell';
 
 const W = 400;
 const H = 400;
@@ -67,7 +69,7 @@ function makeState() {
   };
 }
 
-export default function Asteroids() {
+function AsteroidsInner() {
   const canvasRef = useRef(null);
   const stateRef = useRef(makeState());
   const rafRef = useRef(null);
@@ -514,5 +516,15 @@ export default function Asteroids() {
         &larr;&rarr; rotar &nbsp;|&nbsp; &uarr; empujar &nbsp;|&nbsp; Espacio disparar
       </div>
     </div>
+  );
+}
+
+export default function Asteroids() {
+  return (
+    <GameImmersiveLayout>
+      <GameShell title="Asteroids">
+        <AsteroidsInner />
+      </GameShell>
+    </GameImmersiveLayout>
   );
 }

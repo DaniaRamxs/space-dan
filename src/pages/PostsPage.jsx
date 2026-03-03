@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useAuthContext } from '../contexts/AuthContext';
 import ActivityFeed from '../components/Social/ActivityFeed';
-import PostComposer, { CATEGORIES } from '../components/Social/PostComposer';
+import PostComposer from '../components/Social/PostComposer';
+import { CATEGORIES } from '../constants/categories';
 import { Globe } from 'lucide-react';
 
 export default function PostsPage() {
@@ -17,13 +18,17 @@ export default function PostsPage() {
   return (
     <main className="w-full max-w-2xl mx-auto min-h-screen pb-32 text-white font-sans flex flex-col pt-6 md:pt-10 px-0 md:px-4 relative">
 
-      {/* Header */}
-      <motion.div initial={{ opacity: 0, y: -12 }} animate={{ opacity: 1, y: 0 }} className="mb-8 hidden md:block">
-        <h1 className="text-4xl md:text-5xl font-black uppercase tracking-tighter text-transparent bg-clip-text bg-gradient-to-b from-white to-white/40 mb-1">
-          Global_Feed
+      {/* Header Minimalista */}
+      <motion.div
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="mb-6 px-4 md:px-0"
+      >
+        <h1 className="text-3xl md:text-4xl font-black uppercase tracking-tight text-white/90">
+          Global Feed
         </h1>
-        <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-white/20 font-mono">
-          :: Transmisiones_Estelares
+        <p className="text-[10px] font-bold uppercase tracking-widest text-cyan-400/40 mt-1">
+          El pulso social de Spacely
         </p>
       </motion.div>
 

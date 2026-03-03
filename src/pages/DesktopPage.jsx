@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useCallback, useMemo, lazy, Suspense } fro
 import { Link, useNavigate } from 'react-router-dom';
 import { MUSIC_PLAYLIST } from '../data/musicPlaylist';
 import { unlockAchievement } from '../hooks/useAchievements';
-import { awardCoins } from '../hooks/useStarlys';
+import { useEconomy } from '../contexts/EconomyContext';
 
 // ─── OS ARCADE — lazy game components ──────────────────────────
 const OSSnake = lazy(() => import('../components/SnakeGame'));
@@ -581,6 +581,7 @@ Build:   ✓ stable`}
 const PLAYED_KEY_OS = 'space-dan-played-games'; // shared with GamesPage
 
 function GamesWindow() {
+    const { awardCoins } = useEconomy();
     const [gameId, setGameId] = useState(null);
     const game = OS_GAME_LIST.find(g => g.id === gameId);
 

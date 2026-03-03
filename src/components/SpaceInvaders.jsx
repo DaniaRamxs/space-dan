@@ -1,4 +1,6 @@
 import { useRef, useEffect, useCallback } from 'react';
+import { GameImmersiveLayout } from '../core/GameImmersiveLayout';
+import { GameShell } from '../core/GameShell';
 
 const W = 400;
 const H = 500;
@@ -71,7 +73,7 @@ function makeState() {
   };
 }
 
-export default function SpaceInvaders() {
+function SpaceInvadersInner() {
   const canvasRef = useRef(null);
   const stateRef = useRef(makeState());
   const rafRef = useRef(null);
@@ -417,5 +419,15 @@ export default function SpaceInvaders() {
         A/D o &larr;&rarr; para mover &nbsp;|&nbsp; Espacio o Click para disparar
       </div>
     </div>
+  );
+}
+
+export default function SpaceInvaders() {
+  return (
+    <GameImmersiveLayout>
+      <GameShell title="Invaders">
+        <SpaceInvadersInner />
+      </GameShell>
+    </GameImmersiveLayout>
   );
 }

@@ -60,6 +60,19 @@ export default function GardenLayout({ children }) {
   }, [user?.id, claimDaily, canClaimDaily]);
 
   const isFixedLayout = FIXED_LAYOUT_PATHS.some(p => location.pathname.startsWith(p));
+  const isGameRoute = location.pathname.startsWith('/game/');
+
+  if (isGameRoute) {
+    return (
+      <div className="gardenPage w-screen h-screen overflow-hidden" style={{ backgroundColor: '#030305' }}>
+        <StarfieldBg />
+        <AmbientOrbs />
+        <CursorTrail />
+        <RadioPlayer />
+        {children}
+      </div>
+    );
+  }
 
   return (
     <div className={`gardenPage ${isFixedLayout ? 'gardenPage--fixed' : ''}`}>

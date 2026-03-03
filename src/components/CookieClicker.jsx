@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import useHighScore from '../hooks/useHighScore';
+import { GameImmersiveLayout } from '../core/GameImmersiveLayout';
+import { GameShell } from '../core/GameShell';
 
 // ── Edificios (producción automática, compras múltiples) ──────────────────
 const BUILDINGS = [
@@ -38,7 +40,7 @@ function fmt(n) {
 // Click pop animations
 let popId = 0;
 
-export default function CookieClicker() {
+function CookieClickerInner() {
   const [best, saveScore] = useHighScore('cookie');
   const [total, setTotal] = useState(0);     // acumulado histórico
   const [coins, setCoins] = useState(0);     // moneda actual
@@ -339,5 +341,15 @@ export default function CookieClicker() {
         COFFEE CLICKER · prestige at 1M · click = 1% CPS + mult
       </p>
     </div>
+  );
+}
+
+export default function CookieClicker() {
+  return (
+    <GameImmersiveLayout>
+      <GameShell title="Coffee Clicker">
+        <CookieClickerInner />
+      </GameShell>
+    </GameImmersiveLayout>
   );
 }

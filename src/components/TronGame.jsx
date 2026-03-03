@@ -1,5 +1,7 @@
 import { useRef, useEffect, useState, useCallback } from 'react';
 import useHighScore from '../hooks/useHighScore';
+import { GameImmersiveLayout } from '../core/GameImmersiveLayout';
+import { GameShell } from '../core/GameShell';
 
 const GRID = 14;
 const C_BG = '#090912';
@@ -42,7 +44,7 @@ function aiMove(p2, p1, grid) {
     return ranked[0]?.d ?? { dx: p2.dx, dy: p2.dy };
 }
 
-export default function TronGame() {
+function TronGameInner() {
     const containerRef = useRef(null);
     const canvasRef = useRef(null);
     const stateRef = useRef(makeState());
@@ -261,5 +263,15 @@ export default function TronGame() {
                 TRON CYCLES · flechas / wasd / d-pad
             </p>
         </div>
+    );
+}
+
+export default function TronGame() {
+    return (
+        <GameImmersiveLayout>
+            <GameShell title="Tron Cycles">
+                <TronGameInner />
+            </GameShell>
+        </GameImmersiveLayout>
     );
 }
