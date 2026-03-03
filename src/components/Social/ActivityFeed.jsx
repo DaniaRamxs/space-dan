@@ -2,89 +2,43 @@ import React, { useEffect, useCallback, useRef } from 'react';
 import { useActivityFeed } from '../../hooks/useActivityFeed';
 import ActivityCard from './ActivityCard';
 import { PostSkeleton } from '../Skeletons/Skeleton';
-import { motion, AnimatePresence } from 'framer-motion';
 import LivenessSignals from './LivenessSignals';
-import { List } from 'react-window';
 
 export default function ActivityFeed({ userId, filter = 'all', category = null }) {
     const { feed, setFeed, loading, loadingMore, hasMore, loadMore } = useActivityFeed(filter, 20, category, userId);
-    const listRef = useRef();
-    const sizeMap = useRef({});
-
-    const setSize = useCallback((index, size) => {
-        sizeMap.current = { ...sizeMap.current, [index]: size };
-        // resetAfterIndex is not available in v2.x ref
-    }, []);
-
-    const getItemSize = index => sizeMap.current[index] || 160;
+    const sentinelRef = useRef(null);
+    const isGlobalFeed = !userId;
 
     const handleUpdatePost = useCallback((updatedPost) => {
         setFeed(prev => prev.map(p => p.id === updatedPost.id ? updatedPost : p));
     }, [setFeed]);
 
-    const isGlobalFeed = !userId;
-
     const handleNewPost = useCallback((newPost, optimisticId = null) => {
         if (!newPost) return;
         if (isGlobalFeed && newPost.type === 'repost') return;
         setFeed(prev => {
-            // Si viene con un ID optimista, reemplazamos el temporal por el real
-            if (optimisticId) {
-                return prev.map(p => p.id === optimisticId ? newPost : p);
-            }
-            // Evitar duplicados por ID real
+            if (optimisticId) return prev.map(p => p.id === optimisticId ? newPost : p);
             if (prev.find(p => p.id === newPost.id)) return prev;
             return [newPost, ...prev];
         });
     }, [setFeed, isGlobalFeed]);
 
     useEffect(() => {
-        const onNewPost = (e) => {
-            const newPost = e.detail;
-            if (!newPost) return;
-            handleNewPost(newPost);
-        };
+        const onNewPost = (e) => handleNewPost(e.detail);
         window.addEventListener('activity:new-post', onNewPost);
         return () => window.removeEventListener('activity:new-post', onNewPost);
     }, [handleNewPost]);
 
-    // Row Renderer for Virtualization
-    const Row = ({ index, style }) => {
-        const rowRef = useRef();
-        const post = feed[index];
-
-        useEffect(() => {
-            if (rowRef.current) {
-                setSize(index, rowRef.current.getBoundingClientRect().height);
-            }
-        }, [index]); // Removed setSize from deps to avoid unnecessary loops
-
-        if (!post) return null;
-
-        // Intersection observer inside Row to trigger loadMore if near end
-        useEffect(() => {
-            if (index === feed.length - 3 && hasMore && !loadingMore && !loading) {
-                loadMore();
-            }
-        }, [index, hasMore, loadingMore, loading]);
-
-        return (
-            <div style={style}>
-                <div ref={rowRef}>
-                    <ActivityCard
-                        post={post}
-                        onUpdate={handleUpdatePost}
-                        onNewPost={handleNewPost}
-                        onHeightChange={() => {
-                            if (rowRef.current) {
-                                setSize(index, rowRef.current.getBoundingClientRect().height);
-                            }
-                        }}
-                    />
-                </div>
-            </div>
+    // IntersectionObserver para infinite scroll
+    useEffect(() => {
+        if (!sentinelRef.current || !hasMore || loadingMore) return;
+        const observer = new IntersectionObserver(
+            ([entry]) => { if (entry.isIntersecting) loadMore(); },
+            { rootMargin: '300px' }
         );
-    };
+        observer.observe(sentinelRef.current);
+        return () => observer.disconnect();
+    }, [hasMore, loadingMore, loadMore]);
 
     if (loading && feed.length === 0) {
         return (
@@ -100,24 +54,27 @@ export default function ActivityFeed({ userId, filter = 'all', category = null }
                 <LivenessSignals />
             </div>
 
-            <div className="w-full max-w-2xl h-[calc(100vh-200px)] mt-4">
+            <div className="w-full max-w-2xl mt-4">
                 {feed.length > 0 ? (
-                    <List
-                        ref={listRef}
-                        height={window.innerHeight - 200}
-                        rowCount={feed.length}
-                        rowHeight={getItemSize}
-                        rowComponent={Row}
-                        rowProps={{}}
-                        width="100%"
-                        className="no-scrollbar"
-                    />
+                    <div className="flex flex-col divide-y divide-white/[0.03]">
+                        {feed.map((post) => (
+                            <ActivityCard
+                                key={post.id}
+                                post={post}
+                                onUpdate={handleUpdatePost}
+                                onNewPost={handleNewPost}
+                            />
+                        ))}
+                    </div>
                 ) : (
                     <div className="text-center py-20 opacity-30">
                         <span className="text-4xl mb-4 block">🛰️</span>
                         <p className="text-[10px] uppercase tracking-[0.4em]">Silencio estelar</p>
                     </div>
                 )}
+
+                {/* Sentinel para infinite scroll */}
+                <div ref={sentinelRef} className="h-1" />
 
                 {loadingMore && (
                     <div className="py-8 flex justify-center">
