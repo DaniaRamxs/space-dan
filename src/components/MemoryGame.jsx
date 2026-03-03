@@ -97,7 +97,7 @@ function MemoryGameInner() {
     }
   }, [cards, score, saveScore, triggerHaptic, spawnParticles]);
 
-  const cardSize = 'min(80px, 22vw)';
+  const cardSize = 'min(70px, 19vw)';
 
   return (
     <ArcadeShell
@@ -114,9 +114,9 @@ function MemoryGameInner() {
       <div style={{
         display: 'grid',
         gridTemplateColumns: 'repeat(4, 1fr)',
-        gap: 10,
+        gap: 8,
         background: 'rgba(4,4,10,0.75)',
-        padding: 14,
+        padding: 10,
         borderRadius: 20,
         border: '1px solid rgba(255,255,255,0.07)',
         boxShadow: '0 20px 60px rgba(0,0,0,0.6), inset 0 0 30px rgba(0,0,0,0.4)',

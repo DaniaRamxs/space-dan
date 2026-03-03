@@ -17,19 +17,19 @@ export default function SpotifyCallback() {
         if (urlError) {
             console.error('[Spotify Callback] Error en URL de Spotify:', urlError);
             alert(`Spotify rechazó la conexión: ${urlError}`);
-            navigate('/');
+            navigate('/posts');
             return;
         }
 
         if (!code || !state) {
-            navigate('/');
+            navigate('/posts');
             return;
         }
 
         const processExchange = async (session) => {
             if (!session) {
                 setStatus('Sesión no disponible. Redirigiendo...');
-                navigate('/');
+                navigate('/posts');
                 return;
             }
 
@@ -54,7 +54,7 @@ export default function SpotifyCallback() {
                     msg = err.message || msg;
                 }
                 alert(`Error al conectar con Spotify: ${msg}`);
-                navigate('/');
+                navigate('/posts');
             }
         };
 
@@ -77,7 +77,7 @@ export default function SpotifyCallback() {
                 setTimeout(() => {
                     subscription.unsubscribe();
                     alert('La sesión tardó demasiado en cargarse. Inicia sesión de nuevo.');
-                    navigate('/');
+                    navigate('/posts');
                 }, 10000);
             }
         });

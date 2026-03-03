@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 
 export const SpacelyLogo = ({ className = "scale-100 origin-left" }) => {
     return (
-        <Link to="/" className={`group flex flex-col justify-center select-none ${className}`}>
+        <Link to="/posts" className={`group flex flex-col justify-center select-none ${className}`}>
             <div className="flex items-center gap-1.5 md:gap-3 transition-transform duration-500 group-hover:scale-105">
                 <h1 className="text-3xl md:text-4xl font-black uppercase tracking-[0.2em] md:tracking-[0.25em] text-white">
                     SPACELY
