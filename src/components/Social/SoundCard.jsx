@@ -7,10 +7,11 @@ export default function SoundCard({ track }) {
 
     const { isPlaying, togglePlay, progress } = useAudioController(track.track_id, track.preview_url);
 
-    // Construir URL de Spotify: primero datos del objeto, luego construir con ID
+    // Construir URL de Spotify con múltiples fallbacks
     const spotifyUrl = track.external_urls?.spotify
         || track.spotify_url
-        || (track.track_id ? `https://open.spotify.com/track/${track.track_id}` : null);
+        || (track.track_id ? `https://open.spotify.com/track/${track.track_id}` : null)
+        || (track.track_name ? `https://open.spotify.com/search/${encodeURIComponent(`${track.track_name} ${track.artist_name || ''}`)}` : null);
 
     return (
         <motion.div
@@ -70,20 +71,22 @@ export default function SoundCard({ track }) {
                     {track.artist_name}
                 </div>
 
-                {/* Barra de progreso minimalista */}
-                {isPlaying && (
-                    <div className="mt-2 w-full h-[2px] bg-white/5 rounded-full overflow-hidden">
+                {/* Barra de progreso — siempre visible */}
+                <div className="mt-2 w-full h-[2px] bg-white/5 rounded-full overflow-hidden">
+                    {isPlaying ? (
                         <motion.div
                             initial={{ width: 0 }}
                             animate={{ width: `${progress}%` }}
                             className="h-full bg-cyan-400/60"
                         />
-                    </div>
-                )}
+                    ) : (
+                        <div className="h-full w-full bg-white/10 rounded-full" />
+                    )}
+                </div>
             </div>
 
-            {/* Botón de Spotify cuando no hay preview */}
-            {!track.preview_url && spotifyUrl && (
+            {/* Botón de Spotify — siempre visible si hay URL */}
+            {spotifyUrl && (
                 <a
                     href={spotifyUrl}
                     target="_blank"

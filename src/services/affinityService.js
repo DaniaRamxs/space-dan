@@ -19,14 +19,33 @@ export const affinityService = {
 
     /**
      * Envía las respuestas del test de afinidad y marca el perfil como completado.
+     * Guarda directamente en user_affinity_answers además del RPC,
+     * porque el RPC solo actualiza affinity_completed pero no siempre persiste las respuestas.
      * @param {Array} answers Array de objetos { question_id, answer_value }
      */
     async submitTest(answers) {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error('No hay sesión activa');
+
+        // 1. Llamar al RPC (marca affinity_completed = true en el perfil)
         const { data, error } = await supabase.rpc('submit_affinity_test', {
             p_answers: answers
         });
-
         if (error) throw error;
+
+        // 2. Guardar respuestas directamente (el RPC no siempre las persiste)
+        const rows = answers.map(a => ({
+            user_id: user.id,
+            question_id: a.question_id,
+            answer_value: Number(a.answer_value)
+        }));
+        const { error: upsertError } = await supabase
+            .from('user_affinity_answers')
+            .upsert(rows, { onConflict: 'user_id,question_id' });
+        if (upsertError) {
+            console.warn('[AffinityService] Upsert directo falló:', upsertError.message);
+        }
+
         return data;
     },
 
@@ -61,7 +80,7 @@ export const affinityService = {
         if (!answersA || !answersB || answersA.length === 0 || answersB.length === 0) return 0;
 
         const weightsMap = new Map(questions.map(q => [q.id, q.weight || 1]));
-        const mapB = new Map(answersB.map(a => [a.question_id, a.answer_value]));
+        const mapB = new Map(answersB.map(a => [a.question_id, Number(a.answer_value)]));
 
         let totalWeightedScore = 0;
         let maxPossibleWeightedScore = 0;
@@ -70,10 +89,10 @@ export const affinityService = {
             const valB = mapB.get(ansA.question_id);
             const weight = weightsMap.get(ansA.question_id) || 1;
 
-            if (valB !== undefined) {
+            if (valB !== undefined && !isNaN(valB)) {
                 // La diferencia máxima es 4 (1 vs 5)
-                // Puntos por pregunta = 4 - abs(A - B)
-                const points = 4 - Math.abs(ansA.answer_value - valB);
+                const valA = Number(ansA.answer_value);
+                const points = 4 - Math.abs(valA - valB);
                 totalWeightedScore += (weight * points);
                 maxPossibleWeightedScore += (weight * 4);
             }
@@ -144,9 +163,9 @@ export const affinityService = {
             let count = 0;
 
             catQuestions.forEach(q => {
-                const valA = answersA.find(a => a.question_id === q.id)?.answer_value;
-                const valB = mapB.get(q.id);
-                if (valA !== undefined && valB !== undefined) {
+                const valA = Number(answersA.find(a => a.question_id === q.id)?.answer_value);
+                const valB = Number(mapB.get(q.id));
+                if (!isNaN(valA) && !isNaN(valB) && valA && valB) {
                     const weight = q.weight || 1;
                     totalWeighted += (weight * (4 - Math.abs(valA - valB)));
                     maxWeighted += (weight * 4);
