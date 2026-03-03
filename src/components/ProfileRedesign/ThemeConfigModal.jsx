@@ -7,6 +7,7 @@ import { GiphyFetch } from '@giphy/js-fetch-api';
 import { Grid } from '@giphy/react-components';
 import AvatarUploader from '../AvatarUploader';
 import { getFrameStyle } from '../../utils/styles';
+import { useAuthContext } from '../../contexts/AuthContext';
 
 const gf = new GiphyFetch('3k4Fdn6D040IQvIq1KquLZzJgutP3dGp');
 
@@ -19,6 +20,12 @@ export const ThemeConfigModal = ({ isOpen, onClose, userId, currentTheme, curren
     const [saving, setSaving] = useState(false);
     const [uploadingGallery, setUploadingGallery] = useState(false);
     const [uploadingBanner, setUploadingBanner] = useState(false);
+
+    // Logout and Delete logic
+    const { logout, deleteAccount } = useAuthContext();
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+    const [deleteInput, setDeleteInput] = useState('');
+    const [isDeleting, setIsDeleting] = useState(false);
 
     // Giphy State
     const [showGiphy, setShowGiphy] = useState(false);
@@ -555,6 +562,88 @@ export const ThemeConfigModal = ({ isOpen, onClose, userId, currentTheme, curren
                                 );
                             })}
                         </div>
+                    </section>
+
+                    {/* Dangerous Zone / Borrar Cuenta */}
+                    <section className="pt-8 border-t border-red-500/10 space-y-6">
+                        <div className="p-8 rounded-[2rem] border border-red-500/10 bg-red-500/[0.02] space-y-4">
+                            <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-red-500/60 italic flex items-center gap-2">
+                                <span className="w-1.5 h-1.5 rounded-full bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.5)]" />
+                                Zona Peligrosa (Sistema Central)
+                            </h3>
+                            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                                <div className="space-y-1">
+                                    <p className="text-xs font-bold text-white/50">Eliminación Permanente de Datos</p>
+                                    <p className="text-[10px] text-white/20 uppercase tracking-widest leading-loose">Se borrarán posts, perfil, economía y autenticación de forma irreversible.</p>
+                                </div>
+                                <button
+                                    onClick={() => setShowDeleteConfirm(true)}
+                                    className="px-6 py-3 bg-red-500/5 border border-red-500/20 text-red-500 hover:bg-red-500/10 transition-all rounded-xl text-[10px] font-black uppercase tracking-widest"
+                                >
+                                    Eliminar cuenta
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Confirmation Modal */}
+                        <AnimatePresence>
+                            {showDeleteConfirm && (
+                                <div className="fixed inset-0 z-[100000] flex items-center justify-center p-6 bg-black/90 backdrop-blur-xl">
+                                    <motion.div
+                                        initial={{ opacity: 0, scale: 0.9 }}
+                                        animate={{ opacity: 1, scale: 1 }}
+                                        exit={{ opacity: 0, scale: 0.9 }}
+                                        className="w-full max-w-sm bg-[#0d0d12] border border-red-500/30 rounded-[2.5rem] p-8 space-y-8 shadow-[0_0_100px_rgba(239,68,68,0.1)]"
+                                    >
+                                        <div className="text-center space-y-4">
+                                            <div className="w-16 h-16 bg-red-500/10 rounded-full flex items-center justify-center mx-auto border border-red-500/20">
+                                                <span className="text-3xl">⚠️</span>
+                                            </div>
+                                            <h4 className="text-xl font-black text-white italic uppercase tracking-tighter">Acción Crítica</h4>
+                                            <p className="text-[11px] text-white/40 leading-relaxed">Esta acción no se puede deshacer. Se purgarán todos tus registros del sistema Spacely de forma definitiva.</p>
+                                        </div>
+
+                                        <div className="space-y-4">
+                                            <label className="text-[9px] font-black text-red-500/60 uppercase tracking-widest block text-center">
+                                                Escribe <span className="text-white">BORRAR</span> para confirmar
+                                            </label>
+                                            <input
+                                                type="text"
+                                                value={deleteInput}
+                                                onChange={e => setDeleteInput(e.target.value)}
+                                                placeholder="Confirmación manual..."
+                                                className="w-full bg-red-500/5 border border-red-500/20 rounded-2xl px-6 py-4 text-sm text-white text-center outline-none focus:border-red-500 transition-all"
+                                            />
+                                        </div>
+
+                                        <div className="flex gap-4">
+                                            <button
+                                                onClick={() => { setShowDeleteConfirm(false); setDeleteInput(''); }}
+                                                className="flex-1 py-4 text-[10px] font-black uppercase text-white/20 hover:text-white transition-colors"
+                                            >
+                                                Cancelar
+                                            </button>
+                                            <button
+                                                disabled={deleteInput !== 'BORRAR' || isDeleting}
+                                                onClick={async () => {
+                                                    setIsDeleting(true);
+                                                    const res = await deleteAccount();
+                                                    if (res.success) {
+                                                        onClose();
+                                                    } else {
+                                                        alert('Fallo en el protocolo de purga: ' + res.error);
+                                                        setIsDeleting(false);
+                                                    }
+                                                }}
+                                                className={`flex-1 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${deleteInput === 'BORRAR' ? 'bg-red-600 text-white shadow-lg shadow-red-600/20' : 'bg-white/5 text-white/10'}`}
+                                            >
+                                                {isDeleting ? 'Purgando...' : 'Confirmar'}
+                                            </button>
+                                        </div>
+                                    </motion.div>
+                                </div>
+                            )}
+                        </AnimatePresence>
                     </section>
                 </div>
 

@@ -197,6 +197,18 @@ export default function useAuth() {
   const loginWithDiscord = () => loginWithProvider('discord');
   const logout = () => supabase.auth.signOut();
 
+  const deleteAccount = async () => {
+    try {
+      const { error } = await supabase.rpc('delete_user_account');
+      if (error) throw error;
+      await logout();
+      return { success: true };
+    } catch (err) {
+      console.error('[useAuth] Error deleting account:', err);
+      return { success: false, error: err.message };
+    }
+  };
+
   return {
     session,
     user: session?.user ?? null,
@@ -209,7 +221,6 @@ export default function useAuth() {
     loginWithGoogle,
     loginWithDiscord,
     logout,
+    deleteAccount,
   };
 }
-
-

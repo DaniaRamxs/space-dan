@@ -1192,7 +1192,6 @@ export default function ProfileOwn() {
               </div>
 
               <div className="flex flex-wrap gap-2">
-                <Link to="/onboarding" className="text-micro px-4 py-2 rounded-xl border border-white/5 hover:bg-white/5 transition-all uppercase tracking-widest">Configurar ID</Link>
                 <button onClick={handleShare} className="text-micro px-4 py-2 rounded-xl border border-white/5 hover:bg-white/5 transition-all uppercase tracking-widest">{isSharing ? 'Copiado' : 'Compartir Link'}</button>
               </div>
 

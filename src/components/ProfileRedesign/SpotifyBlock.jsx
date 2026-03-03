@@ -84,50 +84,52 @@ export const SpotifyBlock = ({ userId, isOwn }) => {
         let isMounted = true;
 
         async function load() {
-            if (!isMounted || spotifyService.getAuthExpired()) return;
+            if (!isMounted) return;
+            // No bloqueamos por getAuthExpired() al inicio para permitir que visitantes vean 
+            // datos cacheados en la DB (aunque el token del dueño haya expirado)
+
             try {
-                const connected = await spotifyService.isConnected(userId);
-                if (!isMounted || spotifyService.getAuthExpired()) return;
-                setIsConnected(connected);
+                // Intentamos cargar todo en paralelo
+                const [sState, sAvg, tracks, connected] = await Promise.allSettled([
+                    spotifyService.getUserSoundState(userId),
+                    spotifyService.getUserSoundAverage(userId),
+                    spotifyService.getTopTracks(userId, 5),
+                    spotifyService.isConnected(userId)
+                ]);
 
-                if (connected) {
-                    const [sState, sAvg, tracks] = await Promise.all([
-                        spotifyService.getUserSoundState(userId).catch(err => {
-                            if (spotifyService.isAuthError(err)) throw err;
-                            return null;
-                        }),
-                        spotifyService.getUserSoundAverage(userId).catch(() => null),
-                        spotifyService.getTopTracks(userId, 5).catch(err => {
-                            if (spotifyService.isAuthError(err)) throw err;
-                            return [];
-                        }),
-                    ]);
+                if (!isMounted) return;
 
-                    if (!isMounted) return;
-                    setSoundState(sState);
-                    setSoundAverage(sAvg);
-                    setTopTracks(tracks || []);
-                    setIsAuthExpired(false);
+                // Extraer valores con seguridad
+                const soundStateData = sState.status === 'fulfilled' ? sState.value : null;
+                const soundAvgData = sAvg.status === 'fulfilled' ? sAvg.value : null;
+                const tracksData = tracks.status === 'fulfilled' ? tracks.value : [];
+                const isConnectedData = connected.status === 'fulfilled' ? connected.value : false;
 
-                    if (user && user.id !== userId) {
-                        const overlap = await spotifyService.getMusicOverlap(user.id, userId).catch(() => null);
-                        if (isMounted) setMusicOverlap(overlap);
-                    }
+                // Consideramos conectado si el flag de la DB es true O si ya tiene datos de estado/promedio
+                const effectivelyConnected = isConnectedData || !!soundStateData || !!soundAvgData;
 
-                    if (isMounted && !spotifyService.getAuthExpired()) {
-                        timeoutRef.current = setTimeout(load, 30000);
-                    }
+                setIsConnected(effectivelyConnected);
+                setSoundState(soundStateData);
+                setSoundAverage(soundAvgData);
+                setTopTracks(tracksData || []);
+
+                // Manejo de error de auth (solo nos importa si falló getTopTracks que es la que usa la API de Spotify)
+                if (tracks.status === 'rejected' && spotifyService.isAuthError(tracks.reason)) {
+                    setIsAuthExpired(true);
+                } else {
+                    setIsAuthExpired(spotifyService.getAuthExpired());
+                }
+
+                if (effectivelyConnected && user && user.id !== userId) {
+                    const overlap = await spotifyService.getMusicOverlap(user.id, userId).catch(() => null);
+                    if (isMounted) setMusicOverlap(overlap);
+                }
+
+                // Polling solo si está conectado y no hay error crítico
+                if (isMounted && effectivelyConnected && !spotifyService.getAuthExpired()) {
+                    timeoutRef.current = setTimeout(load, 30000);
                 }
             } catch (e) {
-                if (spotifyService.isAuthError(e)) {
-                    if (isMounted) {
-                        setIsAuthExpired(true);
-                        if (timeoutRef.current) {
-                            clearTimeout(timeoutRef.current);
-                            timeoutRef.current = null;
-                        }
-                    }
-                }
                 console.warn('Spotify Radar load error:', e);
             } finally {
                 if (isMounted) setLoading(false);

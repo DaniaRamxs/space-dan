@@ -1,8 +1,10 @@
 import { motion } from 'framer-motion';
 import { getFrameStyle } from '../../utils/styles';
 import { getUserDisplayName, getNicknameClass } from '../../utils/user';
+import { useAuthContext } from '../../contexts/AuthContext';
 
 export const ProfileHeader = ({ profile, theme, isOwn, isFollowing, onFollow, onEdit }) => {
+    const { logout } = useAuthContext();
     const bannerStyle = {
         backgroundColor: theme?.primary_color || '#0c0c16',
         backgroundImage: theme?.background_url ? `url(${theme.background_url})` : 'none',
@@ -136,18 +138,26 @@ export const ProfileHeader = ({ profile, theme, isOwn, isFollowing, onFollow, on
                             </div>
 
                             {isOwn ? (
-                                <button
-                                    onClick={onEdit}
-                                    className="px-8 py-2.5 rounded-xl bg-white text-black text-[11px] font-black uppercase tracking-widest hover:bg-cyan-400 transition-all shadow-lg active:scale-95"
-                                >
-                                    Editar perfil
-                                </button>
+                                <div className="flex gap-2">
+                                    <button
+                                        onClick={onEdit}
+                                        className="px-8 py-2.5 rounded-xl bg-white text-black text-[11px] font-black uppercase tracking-widest hover:bg-cyan-400 transition-all shadow-lg active:scale-95"
+                                    >
+                                        Editar perfil
+                                    </button>
+                                    <button
+                                        onClick={() => { if (window.confirm('¿Seguro que deseas cerrar sesión?')) logout(); }}
+                                        className="px-6 py-2.5 rounded-xl border border-white/10 text-white/40 text-[10px] font-black uppercase tracking-widest hover:bg-white/5 hover:text-white transition-all active:scale-95"
+                                    >
+                                        Cerrar sesión
+                                    </button>
+                                </div>
                             ) : (
                                 <button
                                     onClick={onFollow}
                                     className={`px-8 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all active:scale-95 shadow-xl ${isFollowing
-                                            ? 'bg-white/[0.05] text-white/40 border border-white/10'
-                                            : 'bg-gradient-to-r from-cyan-500 to-violet-600 text-white shadow-cyan-500/25 hover:scale-105'
+                                        ? 'bg-white/[0.05] text-white/40 border border-white/10'
+                                        : 'bg-gradient-to-r from-cyan-500 to-violet-600 text-white shadow-cyan-500/25 hover:scale-105'
                                         }`}
                                 >
                                     {isFollowing ? '✓ Siguiendo' : '+ Seguir'}
