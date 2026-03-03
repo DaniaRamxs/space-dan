@@ -10,22 +10,30 @@ export default function SpotifyCallback() {
         const code = searchParams.get('code');
         const state = searchParams.get('state');
 
-        if (code && state) {
-            spotifyService.handleCallback(code, state)
-                .then(() => {
-                    // Convert UUID state back to username for proper redirection
-                    return spotifyService.getUsernameById(state);
-                })
-                .then(username => {
+        // Función asíncrona interna para manejar la lógica
+        const processCallback = async () => {
+            // 1. Esperar a que la sesión de Supabase esté lista
+            const { data: { user } } = await spotifyService.supabase.auth.getUser();
+            if (!user) {
+                console.warn('[Spotify Callback] Esperando usuario...');
+                return;
+            }
+
+            if (code && state) {
+                try {
+                    await spotifyService.handleCallback(code, state);
+                    const username = await spotifyService.getUsernameById(state);
                     navigate(`/@${username}`);
-                })
-                .catch(err => {
+                } catch (err) {
                     console.error('Spotify connection failed', err);
                     alert('Error al conectar con Spotify. Intenta de nuevo.');
                     navigate('/');
-                });
-        }
-    }, [searchParams]);
+                }
+            }
+        };
+
+        processCallback();
+    }, [searchParams, navigate]);
 
     return (
         <div className="min-h-screen bg-black flex flex-col items-center justify-center gap-6">

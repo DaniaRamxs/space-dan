@@ -19,6 +19,8 @@ serve(async (req) => {
         )
 
         const { action, userId, code, query, redirect_uri, limit = 5 } = await req.json()
+        console.log(`[Spotify Engine] Action: ${action}, User: ${userId}, RedirectURI: ${redirect_uri}`)
+
         const SPOTIFY_CLIENT_ID = Deno.env.get('SPOTIFY_CLIENT_ID')
         const SPOTIFY_CLIENT_SECRET = Deno.env.get('SPOTIFY_CLIENT_SECRET')
         const SPOTIFY_REDIRECT_URI = Deno.env.get('SPOTIFY_REDIRECT_URI')
@@ -49,7 +51,10 @@ serve(async (req) => {
             })
 
             const data = await response.json()
-            if (data.error) throw new Error(data.error_description || data.error)
+            if (data.error) {
+                console.error('[Spotify Exchange Error]', data)
+                throw new Error(`${data.error_description || data.error} (URI: ${redirect_uri || SPOTIFY_REDIRECT_URI})`)
+            }
 
             const expires_at = new Date()
             expires_at.setSeconds(expires_at.getSeconds() + data.expires_in)
@@ -134,7 +139,7 @@ serve(async (req) => {
 
         if (!spotifyRes.ok) {
             const errorData = await spotifyRes.json().catch(() => ({ error: { message: 'Unknown error from Spotify' } }))
-            console.error('Spotify API Error:', errorData)
+            console.error(`[Spotify API Error] Status: ${spotifyRes.status}`, errorData)
 
             // Si Spotify devuelve 401 directamente, es que el token que acabamos de usar (o refrescar) fue rechazado
             const isAuthError = spotifyRes.status === 401 || spotifyRes.status === 403;
@@ -142,7 +147,8 @@ serve(async (req) => {
             return new Response(JSON.stringify({
                 error: isAuthError ? 'Error de autorización con Spotify' : (errorData.error?.message || `Spotify API error: ${spotifyRes.status}`),
                 hint: isAuthError ? 'Intenta desconectar y volver a vincular Spotify en tu perfil.' : undefined,
-                status: spotifyRes.status
+                status: spotifyRes.status,
+                detail: errorData
             }), {
                 status: spotifyRes.status,
                 headers: { ...corsHeaders, 'Content-Type': 'application/json' }

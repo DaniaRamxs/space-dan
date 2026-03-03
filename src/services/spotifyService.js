@@ -1,6 +1,8 @@
 import { supabase } from '../supabaseClient';
 
 export const spotifyService = {
+    supabase, // Exponer para verificaciones externas
+
     // --- HELPERS ---
     _getRedirectUri() {
         const uri = import.meta.env.VITE_SPOTIFY_REDIRECT_URI || `${window.location.origin}/spotify-callback`;
@@ -24,6 +26,10 @@ export const spotifyService = {
     },
 
     async handleCallback(code, state) {
+        // Al intentar conectarse de nuevo, limpiamos proactivamente el flag de expiración
+        // para que el escudo no bloquee la llamada de intercambio (exchange)
+        this.setAuthValid();
+
         const redirectUri = this._getRedirectUri();
 
         // Exchange code for token via Edge Function

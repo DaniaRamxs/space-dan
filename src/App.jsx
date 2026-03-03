@@ -137,7 +137,7 @@ function MusicSyncTracker() {
   const timeoutRef = useRef(null);
 
   useEffect(() => {
-    if (!user) return;
+    if (!user || window.location.pathname === '/spotify-callback') return;
 
     let isMounted = true;
 
