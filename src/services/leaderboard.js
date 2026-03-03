@@ -139,49 +139,48 @@ export async function getMembers(limit = 100) {
   return data || [];
 }
 
-/** 
- * Tab 10: Exploración por Afinidad (Deep Connection Engine) 
- * Implementa un algoritmo 70/20/10 (Alta/Media/Baja afinidad)
+/**
+ * Tab 10: Exploración por Afinidad (Deep Connection Engine)
+ * Fetch masivo de respuestas para evitar N+1 queries. Ordena por score descendente.
  */
-export async function getDiscoveryByAffinity(userId, limit = 50) {
+export async function getDiscoveryByAffinity(userId, limit = 200) {
   try {
     const { affinityService } = await import('./affinityService');
 
-    // 1. Obtener datos necesarios en paralelo
+    // 1. Obtener mis respuestas, preguntas y todos los usuarios con test completado en paralelo
     const [myAnswers, allOtherUsers, questions] = await Promise.all([
       affinityService.getUserAnswers(userId),
-      supabase.from('profiles').select('*').eq('affinity_completed', true).neq('id', userId).limit(200),
+      supabase.from('profiles').select('*').eq('affinity_completed', true).neq('id', userId).limit(limit),
       affinityService.getQuestions()
     ]);
 
-    if (!myAnswers || myAnswers.length === 0 || !allOtherUsers.data) return [];
+    if (!myAnswers || myAnswers.length === 0 || !allOtherUsers.data || allOtherUsers.data.length === 0) return [];
 
-    // 2. Calcular scores para todos
-    const usersWithScores = await Promise.all(allOtherUsers.data.map(async (u) => {
-      const uAnswers = await affinityService.getUserAnswers(u.id);
-      const score = affinityService.calculateAffinity(myAnswers, uAnswers, questions);
-      const narrative = affinityService.getAffinityNarrative(score);
-      return { ...u, affinity_score: score, affinity_narrative: narrative };
-    }));
+    // 2. Fetch masivo de respuestas (una sola query en lugar de N queries)
+    const userIds = allOtherUsers.data.map(u => u.id);
+    const { data: allAnswersRaw } = await supabase
+      .from('user_affinity_answers')
+      .select('user_id, question_id, answer_value')
+      .in('user_id', userIds);
 
-    // 3. Segmentar
-    const high = usersWithScores.filter(u => u.affinity_score >= 66).sort(() => Math.random() - 0.5);
-    const mid = usersWithScores.filter(u => u.affinity_score >= 41 && u.affinity_score < 66).sort(() => Math.random() - 0.5);
-    const low = usersWithScores.filter(u => u.affinity_score < 41).sort(() => Math.random() - 0.5);
+    // 3. Agrupar respuestas por user_id
+    const answersByUser = {};
+    (allAnswersRaw || []).forEach(a => {
+      if (!answersByUser[a.user_id]) answersByUser[a.user_id] = [];
+      answersByUser[a.user_id].push(a);
+    });
 
-    // 4. Aplicar distribución 70/20/10
-    const countHigh = Math.ceil(limit * 0.7);
-    const countMid = Math.ceil(limit * 0.2);
-    const countLow = limit - countHigh - countMid;
+    // 4. Calcular afinidad para cada usuario y ordenar descendente
+    const usersWithScores = allOtherUsers.data
+      .map(u => {
+        const uAnswers = answersByUser[u.id] || [];
+        const score = affinityService.calculateAffinity(myAnswers, uAnswers, questions);
+        const narrative = affinityService.getAffinityNarrative(score);
+        return { ...u, affinity_score: score, affinity_narrative: narrative };
+      })
+      .sort((a, b) => b.affinity_score - a.affinity_score);
 
-    const finalSet = [
-      ...high.slice(0, countHigh),
-      ...mid.slice(0, countMid),
-      ...low.slice(0, Math.max(0, countLow))
-    ];
-
-    // Shuffle final para que no sea estrictamente descendente pero sí balanceado
-    return finalSet.sort(() => Math.random() - 0.5);
+    return usersWithScores;
 
   } catch (err) {
     console.error('[Leaderboard] Discovery error:', err);

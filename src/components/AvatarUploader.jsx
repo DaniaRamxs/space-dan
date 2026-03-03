@@ -89,7 +89,7 @@ export default function AvatarUploader({ currentAvatar, provider, frameStyle, on
     const hasFrame = !!(frameClass || (frameStyle && (frameStyle.border || frameStyle.backgroundImage || frameStyle.className || frameStyle.boxShadow)));
 
     return (
-        <div className="relative group cursor-pointer w-40 h-40 mx-auto">
+        <div className="relative group cursor-pointer w-full h-full">
             {/* Main Avatar Container */}
             <div
                 className={`relative w-full h-full transition-transform duration-300 group-hover:scale-105 flex items-center justify-center ${frameClass} ${!hasFrame ? 'rounded-[30%] overflow-hidden bg-black border border-white/20 shadow-2xl' : ''}`}

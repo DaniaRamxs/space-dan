@@ -72,16 +72,18 @@ export const ProfileHeader = ({ profile, theme, isOwn, isFollowing, onFollow, on
                             <div className="absolute -inset-2 rounded-full blur-xl opacity-25 bg-cyan-400 animate-pulse" />
                         )}
 
-                        <div
-                            className={`w-16 h-16 md:w-28 md:h-28 relative flex items-center justify-center p-1 md:p-1.5 ${frame.className || ''}`}
-                            style={{ ...frame, borderRadius: frame.borderRadius || '50%' }}
-                        >
-                            <div className="w-full h-full rounded-full overflow-hidden border-[4px] border-[#04040a] bg-[#04040a] shadow-inner">
-                                <img
-                                    src={profile.avatar_url || '/default_user_blank.png'}
-                                    className="w-full h-full object-cover"
-                                    alt={profile.username}
-                                />
+                        <div className="w-32 h-32 md:w-40 md:h-40 relative flex items-center justify-center">
+                            <div
+                                className={`w-full h-full flex items-center justify-center p-1 md:p-1.5 ${frame.className || ''}`}
+                                style={{ ...frame, borderRadius: frame.borderRadius || '50%' }}
+                            >
+                                <div className="w-full h-full rounded-full overflow-hidden border-[4px] border-[#04040a] bg-[#04040a] shadow-inner">
+                                    <img
+                                        src={profile.avatar_url || '/default_user_blank.png'}
+                                        className="w-full h-full object-cover"
+                                        alt={profile.username}
+                                    />
+                                </div>
                             </div>
                         </div>
 

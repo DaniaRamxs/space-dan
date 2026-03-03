@@ -432,10 +432,12 @@ function FundSection({ user }) {
 }
 
 function MoodManager({ profile, user, bgColor, setBgColor, logout }) {
+  const navigate = useNavigate();
   const [moodText, setMoodText] = useState(profile?.mood_text || '');
   const [moodEmoji, setMoodEmoji] = useState(profile?.mood_emoji || '✨');
   const [duration, setDuration] = useState(24);
   const [saving, setSaving] = useState(false);
+  const [resettingTest, setResettingTest] = useState(false);
   const [mbti, setMbti] = useState(profile?.mbti || '');
   const [zodiac, setZodiac] = useState(profile?.zodiac || '');
   const [pronouns, setPronouns] = useState(profile?.pronouns || '');
@@ -501,6 +503,20 @@ function MoodManager({ profile, user, bgColor, setBgColor, logout }) {
       alert('Fallo en sincronización');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleResetAffinity = async () => {
+    if (!window.confirm('¿Repetir el Test de Sintonía? Tus respuestas anteriores serán reemplazadas al completarlo.')) return;
+    setResettingTest(true);
+    try {
+      await supabase.from('profiles').update({ affinity_completed: false }).eq('id', user.id);
+      navigate('/afinidad');
+    } catch (err) {
+      console.error('[ResetAffinity]', err);
+      alert('Error al reiniciar el test.');
+    } finally {
+      setResettingTest(false);
     }
   };
 
@@ -735,7 +751,17 @@ function MoodManager({ profile, user, bgColor, setBgColor, logout }) {
             SINCRONIZAR FIRMA
           </button>
 
-          <div className="pt-8 border-t border-white/5">
+          <div className="pt-8 border-t border-white/5 space-y-3">
+            <button
+              onClick={handleResetAffinity}
+              disabled={resettingTest}
+              className="w-full py-3 bg-purple-500/10 border border-purple-500/20 text-purple-400 font-black text-[10px] uppercase rounded-2xl hover:bg-purple-500/20 transition-all flex items-center justify-center gap-2 group"
+            >
+              <span>⚡</span>
+              <span className="tracking-[0.2em] group-hover:tracking-[0.3em] transition-all">
+                {resettingTest ? 'Reiniciando...' : 'Repetir Test de Sintonía'}
+              </span>
+            </button>
             <button
               onClick={() => {
                 if (window.confirm('¿Estás seguro de que quieres cerrar sesión?')) {
@@ -993,14 +1019,16 @@ export default function ProfileOwn() {
           {/* Sidebar */}
           <aside className="lg:col-span-4 lg:sticky lg:top-12 space-y-12">
             <div className="space-y-8">
-              <div className="relative w-40 h-40">
-                <AvatarUploader
-                  currentAvatar={profile?.avatar_url}
-                  provider={profile?.provider}
-                  frameStyle={getFrameStyle(frameItemId || profile?.frame_item_id)}
-                  isLv5={(frameItemId || profile?.frame_item_id) === 'frame_link_lv5'}
-                  onUploadSuccess={() => { }}
-                />
+              <div className="relative w-24 h-24 md:w-40 md:h-40">
+                <div className="w-full h-full overflow-hidden">
+                  <AvatarUploader
+                    currentAvatar={profile?.avatar_url}
+                    provider={profile?.provider}
+                    frameStyle={getFrameStyle(frameItemId || profile?.frame_item_id)}
+                    isLv5={(frameItemId || profile?.frame_item_id) === 'frame_link_lv5'}
+                    onUploadSuccess={() => { }}
+                  />
+                </div>
                 <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 px-4 py-1.5 rounded-full bg-white text-black text-[10px] font-black uppercase tracking-widest shadow-xl z-50">
                   LVL {level}
                 </div>

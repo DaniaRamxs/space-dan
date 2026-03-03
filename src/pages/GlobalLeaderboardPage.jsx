@@ -129,6 +129,14 @@ function CompetitiveRow({ row, i, isMe, onClick }) {
   );
 }
 
+const AFFINITY_TIERS = [
+  { id: 'all', label: 'Todos', color: 'text-white/60', min: 0, max: 100 },
+  { id: 'alta', label: 'Alta Resonancia', color: 'text-purple-400', min: 86, max: 100 },
+  { id: 'buena', label: 'Buena Sintonía', color: 'text-cyan-400', min: 66, max: 85 },
+  { id: 'contraste', label: 'Contraste', color: 'text-yellow-400', min: 41, max: 65 },
+  { id: 'distintas', label: 'Perspectivas Distintas', color: 'text-white/30', min: 0, max: 40 },
+];
+
 export default function GlobalLeaderboardPage() {
   const { user } = useAuthContext();
   const [activeTab, setActiveTab] = useState('competitive');
@@ -136,6 +144,7 @@ export default function GlobalLeaderboardPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [selectedProfile, setSelectedProfile] = useState(null);
+  const [affinityFilter, setAffinityFilter] = useState('all');
 
   const fetchTab = useCallback(async (tabId) => {
     setLoading(true);
@@ -164,6 +173,7 @@ export default function GlobalLeaderboardPage() {
   }, []);
 
   useEffect(() => { fetchTab(activeTab); }, [activeTab, fetchTab]);
+  useEffect(() => { if (activeTab !== 'discovery') setAffinityFilter('all'); }, [activeTab]);
 
   const rows = data[activeTab] ?? [];
   const activeTabDetails = TABS.find(t => t.id === activeTab);
@@ -262,7 +272,90 @@ export default function GlobalLeaderboardPage() {
                 </p>
               )}
             </div>
-          ) : activeTab === 'streaks' ? (
+          ) : activeTab === 'discovery' ? (() => {
+            const activeTier = AFFINITY_TIERS.find(t => t.id === affinityFilter);
+            const filteredRows = affinityFilter === 'all'
+              ? rows
+              : rows.filter(r => r.affinity_score >= activeTier.min && r.affinity_score <= activeTier.max);
+            return (
+              <div className="space-y-6">
+                {/* Tier filter chips */}
+                <div className="flex flex-wrap gap-2">
+                  {AFFINITY_TIERS.map(tier => {
+                    const count = tier.id === 'all'
+                      ? rows.length
+                      : rows.filter(r => r.affinity_score >= tier.min && r.affinity_score <= tier.max).length;
+                    return (
+                      <button
+                        key={tier.id}
+                        onClick={() => setAffinityFilter(tier.id)}
+                        className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all flex items-center gap-2 ${
+                          affinityFilter === tier.id
+                            ? 'bg-white text-black border-white shadow-lg'
+                            : 'bg-white/[0.03] border-white/10 text-white/40 hover:text-white/70 hover:border-white/20'
+                        }`}
+                      >
+                        {tier.label}
+                        <span className={`text-[9px] font-mono tabular-nums ${affinityFilter === tier.id ? 'text-black/40' : 'text-white/20'}`}>
+                          {count}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Results */}
+                {filteredRows.length === 0 ? (
+                  <div className="p-16 text-center rounded-[32px] bg-white/[0.02] border border-white/5 space-y-2">
+                    <div className="text-3xl opacity-20">🔭</div>
+                    <p className="italic text-white/20 text-sm uppercase tracking-[0.2em]">Sin exploradores en este rango de sintonía.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {filteredRows.map((row, i) => {
+                      const rowTier = AFFINITY_TIERS.slice(1).find(t => row.affinity_score >= t.min && row.affinity_score <= t.max);
+                      const isMe = user && (row.user_id || row.id) === user.id;
+                      return (
+                        <motion.div
+                          key={row.user_id || row.id || i}
+                          initial={{ opacity: 0, scale: 0.98 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          transition={{ delay: i * 0.02 }}
+                          onClick={() => setSelectedProfile(row)}
+                          className={`flex items-center p-4 rounded-[24px] border transition-all cursor-pointer group ${
+                            isMe ? 'bg-white/[0.05] border-white/20' : 'bg-white/[0.02] border-white/5 hover:bg-white/[0.04]'
+                          }`}
+                        >
+                          <div className="w-12 text-center text-xs font-black text-white/10 group-hover:text-white/20 transition-colors tabular-nums">
+                            {(i + 1).toString().padStart(2, '0')}
+                          </div>
+                          <div className="flex items-center flex-1 gap-4 overflow-hidden">
+                            <div className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0 border border-white/5">
+                              <SafeAvatar src={row.avatar_url} fallback="/default_user_blank.png" className="w-full h-full object-cover" />
+                            </div>
+                            <div className="flex flex-col min-w-0">
+                              <span className={`font-bold text-sm truncate ${getNicknameClass(row) || (isMe ? 'text-white' : 'text-white/60 group-hover:text-white')}`}>
+                                {getUserDisplayName(row)}
+                              </span>
+                              {rowTier && (
+                                <span className={`text-[8px] font-black uppercase tracking-widest ${rowTier.color}`}>
+                                  {rowTier.label}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          <div className="text-right flex flex-col items-end gap-0.5">
+                            <span className="text-cyan-400 font-black italic text-xl tabular-nums">{row.affinity_score}%</span>
+                            <span className="text-[7px] opacity-30 uppercase tracking-tighter">Sintonía</span>
+                          </div>
+                        </motion.div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            );
+          })() : activeTab === 'streaks' ? (
             <StreakLeaderboard users={rows} onProfileClick={setSelectedProfile} isMeId={user?.id} />
           ) : activeTab === 'competitive' ? (
             <div className="space-y-3">

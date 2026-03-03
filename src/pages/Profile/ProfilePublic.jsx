@@ -45,7 +45,7 @@ const GAME_NAMES = {
 
 export default function PublicProfilePage() {
   const { username } = useParams();
-  const { user } = useAuthContext();
+  const { user, profile: myProfile } = useAuthContext();
   const navigate = useNavigate();
 
   const [profile, setProfile] = useState(null);
@@ -154,7 +154,7 @@ export default function PublicProfilePage() {
       setPartnership(pData);
 
       // Calcular afinidad
-      if (user && user.id !== targetUserId && prof.affinity_completed && profile?.affinity_completed) {
+      if (user && user.id !== targetUserId && prof.affinity_completed && myProfile?.affinity_completed) {
         Promise.all([
           affinityService.getUserAnswers(user.id),
           affinityService.getUserAnswers(targetUserId),
@@ -165,6 +165,7 @@ export default function PublicProfilePage() {
           spotifyService.getUserSoundAverage(targetUserId),
           spotifyService.getMusicOverlap(user.id, targetUserId)
         ]).then(([myAns, targetAns, questions, mySound, targetSound, mySoundAvg, targetSoundAvg, overlap]) => {
+          if (!myAns?.length || !targetAns?.length) return;
           const baseScore = affinityService.calculateAffinity(myAns, targetAns, questions);
           const score = affinityService.calculateTotalAffinity(baseScore, mySoundAvg, targetSoundAvg);
           const comms = affinityService.getAffinityCommunalities(myAns, targetAns, questions);
@@ -449,6 +450,21 @@ function ProfileContent({
   const [showFollowModal, setShowFollowModal] = useState(null); // 'followers' | 'following' | null
   const [followList, setFollowList] = useState([]);
   const [followListLoading, setFollowListLoading] = useState(false);
+  const [liveSoundState, setLiveSoundState] = useState(soundState);
+
+  useEffect(() => { setLiveSoundState(soundState); }, [soundState]);
+
+  // Poll every 30s for live sound state updates
+  useEffect(() => {
+    if (!userId) return;
+    const interval = setInterval(async () => {
+      try {
+        const state = await spotifyService.getUserSoundState(userId);
+        if (state) setLiveSoundState(state);
+      } catch { /* silent */ }
+    }, 30000);
+    return () => clearInterval(interval);
+  }, [userId]);
 
   const openFollowList = async (type) => {
     setShowFollowModal(type);
@@ -570,16 +586,101 @@ function ProfileContent({
               {Object.keys(affinityCategories || {}).length > 0 && (
                 <div className="mt-4 flex flex-wrap justify-end gap-2 max-w-[280px]">
                   {Object.entries(affinityCategories).map(([cat, val]) => {
-                    const labels = {
+                    const CATEGORY_LABELS = {
                       social: 'Social',
-                      personality: 'Vitalidad',
-                      emotional: 'Emoción',
+                      personality: 'Personalidad',
+                      personalidad: 'Personalidad',
+                      emotional: 'Emocional',
+                      emocional: 'Emocional',
+                      emotions: 'Emocional',
                       outlook: 'Perspectiva',
-                      work: 'Estilo'
+                      perspective: 'Perspectiva',
+                      perspectiva: 'Perspectiva',
+                      work: 'Trabajo',
+                      trabajo: 'Trabajo',
+                      work_style: 'Trabajo',
+                      lifestyle: 'Estilo de Vida',
+                      life: 'Estilo de Vida',
+                      life_style: 'Estilo de Vida',
+                      values: 'Valores',
+                      valores: 'Valores',
+                      communication: 'Comunicación',
+                      comunicacion: 'Comunicación',
+                      humor: 'Humor',
+                      hobbies: 'Hobbies',
+                      interests: 'Intereses',
+                      intereses: 'Intereses',
+                      creativity: 'Creatividad',
+                      creatividad: 'Creatividad',
+                      ambition: 'Ambición',
+                      ambicion: 'Ambición',
+                      energy: 'Energía',
+                      energia: 'Energía',
+                      spirituality: 'Espiritualidad',
+                      espiritualidad: 'Espiritualidad',
+                      relationships: 'Relaciones',
+                      relaciones: 'Relaciones',
+                      mindset: 'Mentalidad',
+                      mentalidad: 'Mentalidad',
+                      music: 'Música',
+                      musica: 'Música',
+                      food: 'Comida',
+                      comida: 'Comida',
+                      politics: 'Política',
+                      politica: 'Política',
+                      travel: 'Viajes',
+                      viajes: 'Viajes',
+                      health: 'Salud',
+                      salud: 'Salud',
+                      family: 'Familia',
+                      familia: 'Familia',
+                      faith: 'Fe',
+                      religion: 'Religión',
+                      money: 'Dinero',
+                      dinero: 'Dinero',
+                      nature: 'Naturaleza',
+                      naturaleza: 'Naturaleza',
+                      art: 'Arte',
+                      arte: 'Arte',
+                      sports: 'Deportes',
+                      deportes: 'Deportes',
+                      tech: 'Tecnología',
+                      technology: 'Tecnología',
+                      tecnologia: 'Tecnología',
+                      philosophy: 'Filosofía',
+                      filosofia: 'Filosofía',
+                      adventure: 'Aventura',
+                      aventura: 'Aventura',
+                      independence: 'Independencia',
+                      security: 'Seguridad',
+                      seguridad: 'Seguridad',
+                      learning: 'Aprendizaje',
+                      growth: 'Crecimiento',
+                      crecimiento: 'Crecimiento',
+                      fun: 'Diversión',
+                      leisure: 'Ocio',
+                      routine: 'Rutina',
+                      rutina: 'Rutina',
+                      spontaneity: 'Espontaneidad',
+                      identity: 'Identidad',
+                      identidad: 'Identidad',
+                      purpose: 'Propósito',
+                      proposito: 'Propósito',
+                      behavior: 'Comportamiento',
+                      behaviour: 'Comportamiento',
+                      attitude: 'Actitud',
+                      actitud: 'Actitud',
+                      empathy: 'Empatía',
+                      empatia: 'Empatía',
+                      trust: 'Confianza',
+                      confianza: 'Confianza',
                     };
+                    const key = cat.toLowerCase().replace(/\s+/g, '_');
+                    const label = CATEGORY_LABELS[key] || CATEGORY_LABELS[cat.toLowerCase()] || CATEGORY_LABELS[cat]
+                      || cat.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
                     return (
                       <div key={cat} className="px-3 py-1 rounded-full bg-white/[0.03] border border-white/5 flex items-center gap-2">
-                        <span className="text-[7px] font-black uppercase tracking-widest text-white/30">{labels[cat] || cat}</span>
+                        <span className="text-[7px] font-black uppercase tracking-widest text-white/30">{label}</span>
                         <span className="text-[10px] font-mono font-black text-cyan-400/80">{val}%</span>
                       </div>
                     );
@@ -592,7 +693,7 @@ function ProfileContent({
           {/* ASIDE: Identity Sidebar */}
           <aside className="lg:col-span-4 lg:sticky lg:top-12 space-y-12">
             <div className="space-y-8">
-              <div className="relative w-40 h-40">
+              <div className="relative w-24 h-24 md:w-40 md:h-40">
                 {/* Frame Handling */}
                 {(() => {
                   const frameObj = getFrameStyle(profile?.frame_item_id);
@@ -629,10 +730,10 @@ function ProfileContent({
                 </div>
 
                 {/* Sound State Badge */}
-                {soundState && soundState.is_playing && (
-                  <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 px-4 py-1.5 rounded-full bg-black/80 backdrop-blur-xl border border-emerald-500/30 text-[9px] font-black uppercase tracking-widest shadow-xl z-[60] flex items-center gap-2 whitespace-nowrap overflow-hidden max-w-[90%]">
-                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_10px_rgba(52,211,153,0.5)]"></span>
-                    <span className="text-emerald-400/90 truncate flex-1">{soundState.emotional_label || 'Sintonizando'}</span>
+                {liveSoundState && (
+                  <div className={`absolute -bottom-6 left-1/2 -translate-x-1/2 px-4 py-1.5 rounded-full bg-black/80 backdrop-blur-xl text-[9px] font-black uppercase tracking-widest shadow-xl z-[60] flex items-center gap-2 whitespace-nowrap overflow-hidden max-w-[90%] ${liveSoundState.is_playing ? 'border border-emerald-500/30' : 'border border-white/10'}`}>
+                    <span className={`w-2 h-2 rounded-full ${liveSoundState.is_playing ? 'bg-emerald-400 animate-pulse shadow-[0_0_10px_rgba(52,211,153,0.5)]' : 'bg-white/20'}`}></span>
+                    <span className={`truncate flex-1 ${liveSoundState.is_playing ? 'text-emerald-400/90' : 'text-white/30'}`}>{liveSoundState.emotional_label || 'Sintonizando'}</span>
                   </div>
                 )}
               </div>
@@ -837,7 +938,7 @@ function ProfileContent({
             )}
 
             {/* Radar Emocional v1.2 */}
-            {(soundState || soundAverage || musicOverlap) && (
+            {(liveSoundState || soundAverage || musicOverlap) && (
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -877,25 +978,101 @@ function ProfileContent({
                       )}
                     </div>
 
-                    {/* Señal en vivo & Overlaps (Right Side) */}
+                    {/* Player & Overlaps (Right Side) */}
                     <div className="space-y-6">
-                      {/* Estado de Reproducción Actual */}
-                      {soundState && soundState.is_playing && (
-                        <div className="space-y-2">
+                      {/* Discord-style Player */}
+                      {liveSoundState && (
+                        <div className="space-y-3">
                           <h4 className="flex items-center gap-2 text-[10px] font-black text-white/40 uppercase tracking-widest">
-                            <span className="text-cyan-400 animate-pulse">▶</span> Señal de Audio Actual
+                            {liveSoundState.is_playing
+                              ? <><span className="text-emerald-400 animate-pulse">▶</span> Reproduciendo Ahora</>
+                              : <><span className="text-white/20">⏸</span> Última Reproducida</>
+                            }
                           </h4>
-                          <div className="p-3.5 rounded-2xl bg-white/[0.02] border border-white/5 flex gap-4 items-center group/track hover:bg-white/[0.04] transition-colors">
-                            <div className="w-10 h-10 rounded-xl bg-cyan-500/10 flex items-center justify-center shrink-0">
-                              <span className="text-cyan-400/50 group-hover/track:animate-pulse">🎵</span>
+
+                          {/* Player Card */}
+                          <div className={`p-3.5 rounded-2xl flex gap-3 items-center transition-colors group/track ${liveSoundState.is_playing ? 'bg-emerald-500/5 border border-emerald-500/15 hover:bg-emerald-500/10' : 'bg-white/[0.02] border border-white/5 hover:bg-white/[0.04]'}`}>
+                            {/* Album Art */}
+                            <div className="shrink-0 relative">
+                              {liveSoundState.track_image_url ? (
+                                <img
+                                  src={liveSoundState.track_image_url}
+                                  alt={liveSoundState.track_name}
+                                  className="w-12 h-12 rounded-xl object-cover shadow-lg"
+                                />
+                              ) : (
+                                <div className="w-12 h-12 rounded-xl bg-emerald-500/10 flex items-center justify-center">
+                                  <span className="text-emerald-400/50 text-lg">🎵</span>
+                                </div>
+                              )}
+                              {liveSoundState.is_playing && (
+                                <div className="absolute -bottom-1 -right-1 w-3.5 h-3.5 bg-emerald-500 rounded-full border-2 border-[#06060c] shadow-[0_0_8px_rgba(52,211,153,0.6)]" />
+                              )}
                             </div>
-                            <div className="flex-1 min-w-0">
-                              <div className="text-[13px] font-bold text-white truncate">{soundState.track_name}</div>
-                              <div className="text-[10px] text-white/50 uppercase tracking-widest truncate">{soundState.artist_name}</div>
+
+                            {/* Track Info */}
+                            <div className="flex-1 min-w-0 space-y-0.5">
+                              <div className="text-[13px] font-bold text-white truncate leading-tight">
+                                {liveSoundState.track_name}
+                              </div>
+                              <div className="text-[10px] text-white/50 uppercase tracking-wider truncate">
+                                {liveSoundState.artist_name}
+                              </div>
+
+                              {/* Status row */}
+                              {liveSoundState.is_playing ? (
+                                <div className="flex items-center gap-1.5 pt-0.5">
+                                  {/* Waveform */}
+                                  <div className="flex items-end gap-px h-3">
+                                    {[0, 0.2, 0.05, 0.3, 0.15].map((delay, i) => (
+                                      <motion.div
+                                        key={i}
+                                        className="w-[3px] bg-emerald-400 rounded-full"
+                                        style={{ originY: 1 }}
+                                        animate={{ scaleY: [0.2, 1, 0.2] }}
+                                        transition={{ duration: 0.9, repeat: Infinity, delay, ease: 'easeInOut' }}
+                                      />
+                                    ))}
+                                  </div>
+                                  <span className="text-[8px] text-emerald-400/70 font-black uppercase tracking-widest">En vivo</span>
+                                </div>
+                              ) : (
+                                <div className="text-[8px] text-white/20 uppercase tracking-widest pt-0.5">
+                                  Última reproducida
+                                </div>
+                              )}
                             </div>
-                            <div className="hidden sm:block text-right shrink-0">
-                              <div className="text-[9px] text-cyan-400 font-black uppercase tracking-widest px-2 py-1 bg-cyan-500/10 rounded-md">{soundState.emotional_label}</div>
-                            </div>
+
+                            {/* Spotify Link Button */}
+                            <a
+                              href={liveSoundState.track_id
+                                ? `https://open.spotify.com/track/${liveSoundState.track_id}`
+                                : `https://open.spotify.com/search/${encodeURIComponent((liveSoundState.track_name || '') + ' ' + (liveSoundState.artist_name || ''))}`
+                              }
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="shrink-0 w-9 h-9 rounded-xl bg-[#1DB954]/10 hover:bg-[#1DB954]/25 border border-[#1DB954]/20 hover:border-[#1DB954]/50 flex items-center justify-center transition-all hover:scale-110 active:scale-95"
+                              title="Abrir en Spotify"
+                            >
+                              <svg width="15" height="15" viewBox="0 0 24 24" fill="#1DB954">
+                                <path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/>
+                              </svg>
+                            </a>
+                          </div>
+
+                          {/* Progress Bar — always visible, animated only when playing */}
+                          <div className="h-1 bg-white/5 rounded-full overflow-hidden">
+                            {liveSoundState.is_playing ? (
+                              <motion.div
+                                key={liveSoundState.track_id}
+                                className="h-full bg-gradient-to-r from-emerald-500/70 to-emerald-300/40 rounded-full"
+                                initial={{ width: '0%' }}
+                                animate={{ width: '100%' }}
+                                transition={{ duration: 210, ease: 'linear' }}
+                              />
+                            ) : (
+                              <div className="h-full w-3/4 bg-white/10 rounded-full" />
+                            )}
                           </div>
                         </div>
                       )}
