@@ -116,9 +116,9 @@ export const ThemeConfigModal = ({ isOpen, onClose, userId, currentTheme, curren
         const file = e.target.files[0];
         if (!file) return;
 
-        // Limite basico de tamaño (ej. 5MB)
-        if (file.size > 5 * 1024 * 1024) {
-            alert('El archivo es demasiado grande. El máximo es 5MB.');
+        // Limite basico de tamaño (ej. 30MB)
+        if (file.size > 30 * 1024 * 1024) {
+            alert('El archivo es demasiado grande. El máximo es 30MB.');
             return;
         }
 
@@ -262,7 +262,7 @@ export const ThemeConfigModal = ({ isOpen, onClose, userId, currentTheme, curren
                         </h3>
 
                         <div className="flex flex-col md:flex-row gap-8 items-center bg-white/[0.02] p-8 rounded-[2rem] border border-white/5">
-                            <div className="shrink-0 scale-90">
+                            <div className="shrink-0 scale-90 w-32 h-32 sm:w-40 sm:h-40 relative">
                                 <AvatarUploader
                                     currentAvatar={currentProfile?.avatar_url}
                                     frameStyle={getFrameStyle(currentProfile?.equipped_frame || currentProfile?.frame_item_id)}

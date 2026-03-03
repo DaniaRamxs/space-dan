@@ -4,7 +4,7 @@ import { useAuthContext } from '../contexts/AuthContext';
 import { getFrameStyle } from '../utils/styles';
 import SafeAvatar from './SafeAvatar';
 
-const MAX_SIZE_MB = 10; // Aumentado para soportar GIFs de alta calidad
+const MAX_SIZE_MB = 30; // Aumentado para soportar GIFs de alta calidad
 const MAX_SIZE_BYTES = MAX_SIZE_MB * 1024 * 1024;
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
 
@@ -25,11 +25,11 @@ export default function AvatarUploader({ currentAvatar, provider, frameStyle, on
 
         // Validación lado cliente
         if (!ALLOWED_TYPES.includes(file.type)) {
-            setErrorMsg('Formato inválido. Solo JPG, PNG, WEBP o GIF.');
+            alert('Formato inválido. Solo JPG, PNG, WEBP o GIF.');
             return;
         }
         if (file.size > MAX_SIZE_BYTES) {
-            setErrorMsg(`El archivo es demasiado grande (máx ${MAX_SIZE_MB}MB).`);
+            alert(`El archivo es demasiado grande (máx ${MAX_SIZE_MB}MB).`);
             return;
         }
 
@@ -128,7 +128,7 @@ export default function AvatarUploader({ currentAvatar, provider, frameStyle, on
             />
 
             {errorMsg && (
-                <div className="absolute top-[110%] left-1/2 -translate-x-1/2 w-48 text-center text-[10px] text-red-400 bg-red-900/30 border border-red-500/50 rounded px-2 py-1 z-30 shadow-lg">
+                <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 w-max max-w-[200px] text-center text-[8px] font-bold uppercase tracking-widest text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-1.5 z-[100] shadow-2xl backdrop-blur-md animate-in fade-in slide-in-from-top-1">
                     {errorMsg}
                 </div>
             )}
