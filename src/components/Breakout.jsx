@@ -335,12 +335,32 @@ function BreakoutInner() {
       floatingTexts={floatingTexts}
       subTitle="Destruye el muro de energía."
     >
-      <div style={{ position: 'relative', width: 'min(52vh, 86vw)', aspectRatio: `${W}/${H}`, background: 'rgba(4,4,10,0.8)', borderRadius: 20, padding: 6, border: '1px solid rgba(255,255,255,0.07)', boxShadow: '0 24px 60px rgba(0,0,0,0.7), inset 0 0 30px rgba(0,0,0,0.4)', overflow: 'hidden', backdropFilter: 'blur(8px)' }}>
+      <div style={{
+        marginBottom: 10,
+        display: 'flex',
+        gap: 28,
+        fontSize: '0.7rem',
+        fontWeight: 800,
+        color: 'rgba(255, 255, 255, 0.7)',
+        textTransform: 'uppercase',
+        letterSpacing: 2
+      }}>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+          <span style={{ fontSize: '0.55rem', opacity: 0.6, marginBottom: 2 }}>VIDAS</span>
+          <span style={{ color: COLORS.cyan }}>{stateRef.current?.lives ?? 3}</span>
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+          <span style={{ fontSize: '0.55rem', opacity: 0.6, marginBottom: 2 }}>NIVEL</span>
+          <span style={{ color: COLORS.magenta }}>{stateRef.current?.level ?? 1}</span>
+        </div>
+      </div>
+
+      <div style={{ position: 'relative', width: 'min(44vh, 78vw)', height: 'min(55vh, 97.5vw)', background: 'rgba(4,4,10,0.8)', borderRadius: 20, padding: 6, border: '1px solid rgba(255,255,255,0.07)', boxShadow: '0 24px 60px rgba(0,0,0,0.7), inset 0 0 30px rgba(0,0,0,0.4)', overflow: 'hidden', backdropFilter: 'blur(8px)' }}>
         <canvas
           ref={canvasRef}
           width={W}
           height={H}
-          onPointerDown={(e) => {
+          onPointerDown={() => {
             if (status !== 'PLAYING') start();
             else keysRef.current['launch'] = true;
           }}
@@ -356,26 +376,6 @@ function BreakoutInner() {
             touchAction: 'none',
           }}
         />
-      </div>
-
-      <div style={{
-        marginTop: 24,
-        display: 'flex',
-        gap: 32,
-        fontSize: '0.75rem',
-        fontWeight: 800,
-        color: 'rgba(255, 255, 255, 0.3)',
-        textTransform: 'uppercase',
-        letterSpacing: 2
-      }}>
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-          <span style={{ fontSize: '0.6rem', opacity: 0.6, marginBottom: 4 }}>INTENTOS</span>
-          <span style={{ color: COLORS.cyan, fontSize: '1rem' }}>{stateRef.current?.lives || 0}</span>
-        </div>
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-          <span style={{ fontSize: '0.6rem', opacity: 0.6, marginBottom: 4 }}>NIVEL</span>
-          <span style={{ color: COLORS.magenta, fontSize: '1rem' }}>{stateRef.current?.level || 1}</span>
-        </div>
       </div>
     </ArcadeShell>
   );

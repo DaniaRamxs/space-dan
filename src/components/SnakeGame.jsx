@@ -213,8 +213,8 @@ function SnakeGameInner() {
         })}
       </div>
 
-      {/* D-pad controls */}
-      <div style={{ marginTop: 24, display: 'flex', gap: 12, alignItems: 'center' }}>
+      {/* D-pad controls — mobile only */}
+      <div className="flex items-center md:hidden" style={{ marginTop: 24, gap: 12 }}>
         <DPadBtn onClick={() => { if (dirRef.current.x !== 1) { nextDirRef.current = { x: -1, y: 0 }; triggerHaptic('light'); } }}>◀</DPadBtn>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           <DPadBtn onClick={() => { if (dirRef.current.y !== 1) { nextDirRef.current = { x: 0, y: -1 }; triggerHaptic('light'); } }}>▲</DPadBtn>

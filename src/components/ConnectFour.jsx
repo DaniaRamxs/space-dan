@@ -227,14 +227,20 @@ function ConnectFourInner() {
       </div>
 
       <div style={{
-        marginTop: 16,
-        fontSize: '0.65rem',
-        color: 'rgba(255,255,255,0.25)',
+        marginTop: 14,
+        display: 'flex',
+        gap: 20,
+        fontSize: '0.6rem',
         fontWeight: 800,
-        letterSpacing: 2.5,
-        textTransform: 'uppercase'
+        letterSpacing: 1.5,
+        textTransform: 'uppercase',
+        color: 'rgba(255,255,255,0.45)'
       }}>
-        Nivel Difícil
+        <span>VICTORIAS <span style={{ color: COLORS.P1 }}>{wins}</span></span>
+        <span style={{ opacity: 0.3 }}>|</span>
+        <span>TURNO <span style={{ color: currentPlayer === 'P1' ? COLORS.P1 : COLORS.P2 }}>{currentPlayer === 'P1' ? 'TÚ' : 'IA'}</span></span>
+        <span style={{ opacity: 0.3 }}>|</span>
+        <span style={{ opacity: 0.4 }}>DIFÍCIL</span>
       </div>
     </ArcadeShell>
   );

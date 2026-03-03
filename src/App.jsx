@@ -58,6 +58,17 @@ const PostDetailPage = lazy(() => import("./pages/PostDetailPage"));
 const GlobalChatPage = lazy(() => import("./pages/GlobalChatPage"));
 const AffinityPage = lazy(() => import("./pages/AffinityPage"));
 
+function DomainGuard() {
+  useEffect(() => {
+    const hostname = window.location.hostname;
+    // Si el usuario llega al dominio viejo o de vercel, redirigir al principal
+    if (hostname.includes('space-dan.vercel.app')) {
+      window.location.replace('https://www.joinspacely.com' + window.location.pathname + window.location.search + window.location.hash);
+    }
+  }, []);
+  return null;
+}
+
 const ALL_PAGES = ['/bulletin', '/posts', '/music', '/games', '/galeria',
   '/watchlist', '/desktop', '/timecapsule', '/guestbook', '/proyectos', '/arquitectura',
   '/kinnies', '/tests', '/universo', '/dreamscape', '/logros', '/tienda', '/profile', '/leaderboard', '/cabina', '/cartas', '/cofre', '/foco', '/chat', '/blog'];
@@ -388,6 +399,7 @@ export default function App() {
       <EconomyProvider>
         <UniverseProvider>
           <BrowserRouter>
+            <DomainGuard />
             <AchievementToast />
             <Screensaver />
             <PageTracker />

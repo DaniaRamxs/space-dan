@@ -28,6 +28,8 @@ function PongInner() {
   const [best, saveScore] = useHighScore('pong');
   const [score, setScore] = useState(0);
   const [status, setStatus] = useState('IDLE');
+  const [aiScore, setAiScore] = useState(0);
+  const [gameLevel, setGameLevel] = useState(1);
 
   const {
     particles, floatingTexts, scoreControls,
@@ -165,6 +167,7 @@ function PongInner() {
     // Goals
     if (s.ball.x < 0) {
       s.aiScore++;
+      setAiScore(s.aiScore);
       triggerHaptic('heavy');
       triggerFloatingText('IA ANOTA', '30%', '50%', COLORS.magenta);
       resetBall(s, 1);
@@ -175,7 +178,7 @@ function PongInner() {
       triggerHaptic('heavy');
       triggerFloatingText('¡PUNTO!', '70%', '50%', COLORS.cyan);
       resetBall(s, -1);
-      if (s.score % 5 === 0) s.level++;
+      if (s.score % 5 === 0) { s.level++; setGameLevel(s.level); }
     }
 
     draw();
@@ -194,6 +197,8 @@ function PongInner() {
   const start = useCallback(() => {
     stateRef.current = makeState();
     setScore(0);
+    setAiScore(0);
+    setGameLevel(1);
     setStatus('PLAYING');
     if (rafRef.current) cancelAnimationFrame(rafRef.current);
     rafRef.current = requestAnimationFrame(tick);
@@ -220,7 +225,7 @@ function PongInner() {
       floatingTexts={floatingTexts}
       subTitle="El duelo clásico de paletas y reflejos."
     >
-      <div style={{ position: 'relative', width: 'min(52vh, 88vw)', aspectRatio: `${W}/${H}`, background: 'rgba(4,4,10,0.8)', borderRadius: 20, padding: 6, border: '1px solid rgba(255,255,255,0.07)', boxShadow: '0 24px 60px rgba(0,0,0,0.7), inset 0 0 30px rgba(0,0,0,0.4)', overflow: 'hidden', backdropFilter: 'blur(8px)' }}>
+      <div style={{ position: 'relative', width: 'min(52vh, 88vw)', height: 'min(35vh, 59vw)', background: 'rgba(4,4,10,0.8)', borderRadius: 20, padding: 6, border: '1px solid rgba(255,255,255,0.07)', boxShadow: '0 24px 60px rgba(0,0,0,0.7), inset 0 0 30px rgba(0,0,0,0.4)', overflow: 'hidden', backdropFilter: 'blur(8px)' }}>
         <canvas
           ref={canvasRef}
           width={W}
@@ -241,22 +246,22 @@ function PongInner() {
       </div>
 
       <div style={{
-        marginTop: 24,
+        marginTop: 20,
         display: 'flex',
         gap: 32,
         fontSize: '0.75rem',
         fontWeight: 800,
-        color: 'rgba(255, 255, 255, 0.3)',
+        color: 'rgba(255, 255, 255, 0.7)',
         textTransform: 'uppercase',
         letterSpacing: 2
       }}>
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
           <span style={{ fontSize: '0.6rem', opacity: 0.6, marginBottom: 4 }}>IA</span>
-          <span style={{ color: COLORS.magenta, fontSize: '1rem' }}>{stateRef.current?.aiScore || 0}</span>
+          <span style={{ color: COLORS.magenta, fontSize: '1rem' }}>{aiScore}</span>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
           <span style={{ fontSize: '0.6rem', opacity: 0.6, marginBottom: 4 }}>NIVEL</span>
-          <span style={{ color: COLORS.white, fontSize: '1rem' }}>{stateRef.current?.level || 1}</span>
+          <span style={{ color: COLORS.white, fontSize: '1rem' }}>{gameLevel}</span>
         </div>
       </div>
     </ArcadeShell>

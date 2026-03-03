@@ -165,9 +165,17 @@ function SimonSaysInner() {
         })}
       </div>
 
-      <p style={{ marginTop: 24, fontSize: '0.65rem', color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: 2 }}>
-        {status === 'SHOWING' ? 'Observa la secuencia' : status === 'PLAYING' ? 'Es tu turno' : 'Escucha los tonos'}
-      </p>
+      <div style={{ marginTop: 20, display: 'flex', gap: 28, alignItems: 'center' }}>
+        {sequence.length > 0 && (
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+            <span style={{ fontSize: '0.5rem', color: 'rgba(255,255,255,0.35)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: 1.5 }}>RONDA</span>
+            <span style={{ fontSize: '1.1rem', color: '#00e5ff', fontWeight: 900 }}>{sequence.length}</span>
+          </div>
+        )}
+        <p style={{ margin: 0, fontSize: '0.6rem', color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: 1.5, fontWeight: 700 }}>
+          {status === 'SHOWING' ? 'Observa' : status === 'PLAYING' ? 'Tu turno' : 'Escucha'}
+        </p>
+      </div>
     </ArcadeShell>
   );
 }

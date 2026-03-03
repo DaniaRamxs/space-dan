@@ -148,7 +148,7 @@ function TicTacToeInner() {
           WebkitBackdropFilter: 'blur(16px)',
         }}>
           {board.map((val, i) => {
-            const isClickable = !isFinished && gameStatus === 'PLAYING' && context.currentTurn.id === 'X' && val === null;
+            const isClickable = !isFinished && context.currentTurn?.id === 'X' && val === null;
             const color = val === 'X' ? C_X : C_O;
             return (
               <motion.div

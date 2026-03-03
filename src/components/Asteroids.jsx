@@ -401,7 +401,7 @@ function AsteroidsInner() {
       floatingTexts={floatingTexts}
       subTitle="Destruye los fragmentos en órbita."
     >
-      <div style={{ position: 'relative', width: 'min(52vh, 84vw)', aspectRatio: '1/1', background: 'rgba(4,4,10,0.8)', borderRadius: 20, padding: 6, border: '1px solid rgba(255,255,255,0.07)', boxShadow: '0 24px 60px rgba(0,0,0,0.7), inset 0 0 30px rgba(0,0,0,0.4)', overflow: 'hidden', backdropFilter: 'blur(8px)' }}>
+      <div style={{ position: 'relative', width: 'min(42vh, 74vw)', height: 'min(42vh, 74vw)', background: 'rgba(4,4,10,0.8)', borderRadius: 20, padding: 6, border: '1px solid rgba(255,255,255,0.07)', boxShadow: '0 24px 60px rgba(0,0,0,0.7), inset 0 0 30px rgba(0,0,0,0.4)', overflow: 'hidden', backdropFilter: 'blur(8px)' }}>
         <canvas
           ref={canvasRef}
           width={W}
@@ -417,32 +417,14 @@ function AsteroidsInner() {
         />
       </div>
 
-      <div style={{ marginTop: 24, display: 'flex', gap: 16, alignItems: 'center' }}>
-        <div style={{ display: 'flex', gap: 12 }}>
-          <ControlBtn icon="◀" onDown={() => keysRef.current['ArrowLeft'] = true} onUp={() => keysRef.current['ArrowLeft'] = false} />
-          <ControlBtn icon="▲" onDown={() => keysRef.current['ArrowUp'] = true} onUp={() => keysRef.current['ArrowUp'] = false} />
-          <ControlBtn icon="▶" onDown={() => keysRef.current['ArrowRight'] = true} onUp={() => keysRef.current['ArrowRight'] = false} />
-        </div>
+      <div style={{ marginTop: 12, display: 'flex', gap: 12, alignItems: 'center', justifyContent: 'center' }}>
+        <ControlBtn icon="◀" onDown={() => keysRef.current['ArrowLeft'] = true} onUp={() => keysRef.current['ArrowLeft'] = false} />
+        <ControlBtn icon="▲" onDown={() => keysRef.current['ArrowUp'] = true} onUp={() => keysRef.current['ArrowUp'] = false} />
+        <ControlBtn icon="▶" onDown={() => keysRef.current['ArrowRight'] = true} onUp={() => keysRef.current['ArrowRight'] = false} />
         <ControlBtn icon="FIRE" color={COLORS.magenta} onDown={() => keysRef.current['Shoot'] = true} onUp={() => keysRef.current['Shoot'] = false} />
-      </div>
-
-      <div style={{
-        marginTop: 20,
-        display: 'flex',
-        gap: 32,
-        fontSize: '0.75rem',
-        fontWeight: 800,
-        color: 'rgba(255, 255, 255, 0.3)',
-        textTransform: 'uppercase',
-        letterSpacing: 2
-      }}>
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-          <span style={{ fontSize: '0.6rem', opacity: 0.6, marginBottom: 4 }}>VIDAS</span>
-          <span style={{ color: COLORS.cyan, fontSize: '1rem' }}>{stateRef.current?.lives || 0}</span>
-        </div>
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-          <span style={{ fontSize: '0.6rem', opacity: 0.6, marginBottom: 4 }}>NIVEL</span>
-          <span style={{ color: COLORS.magenta, fontSize: '1rem' }}>{stateRef.current?.level || 1}</span>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 2, paddingLeft: 8, borderLeft: '1px solid rgba(255,255,255,0.1)' }}>
+          <span style={{ fontSize: '0.55rem', color: 'rgba(255,255,255,0.5)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: 1 }}>VIDAS <span style={{ color: COLORS.cyan }}>{stateRef.current?.lives ?? 3}</span></span>
+          <span style={{ fontSize: '0.55rem', color: 'rgba(255,255,255,0.5)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: 1 }}>NIVEL <span style={{ color: COLORS.magenta }}>{stateRef.current?.level ?? 1}</span></span>
         </div>
       </div>
     </ArcadeShell>

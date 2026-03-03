@@ -274,7 +274,7 @@ function TetrisGameInner() {
       floatingTexts={floatingTexts}
       subTitle="Une los fragmentos para despejar líneas."
     >
-      <div style={{ display: 'flex', gap: 24, alignItems: 'flex-start', flexWrap: 'wrap', justifyContent: 'center' }}>
+      <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start', justifyContent: 'center' }}>
 
         {/* Board */}
         <div style={{
@@ -290,7 +290,7 @@ function TetrisGameInner() {
             display: 'grid',
             gridTemplateColumns: `repeat(${COLS}, 1fr)`,
             gap: 2,
-            width: 'min(70vw, 240px)',
+            width: 'min(42vw, 155px)',
             aspectRatio: '10/20',
           }}>
             {displayBoard.flat().map((cell, i) => (
@@ -309,7 +309,7 @@ function TetrisGameInner() {
         </div>
 
         {/* Side Info */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 16, width: 120 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10, width: 90 }}>
           {/* Next Piece */}
           <div style={{
             padding: 16,
@@ -364,7 +364,7 @@ function TetrisGameInner() {
       </div>
 
       {/* Controls */}
-      <div style={{ marginTop: 32, display: 'flex', gap: 12, flexWrap: 'wrap', justifyContent: 'center' }}>
+      <div style={{ marginTop: 16, display: 'flex', gap: 10, flexWrap: 'wrap', justifyContent: 'center' }}>
         <ControlBtn icon="◀" onClick={() => move(-1)} />
         <ControlBtn icon="▶" onClick={() => move(1)} />
         <ControlBtn icon="▼" onClick={() => drop()} />
@@ -380,9 +380,9 @@ function ControlBtn({ icon, onClick, color = '#00e5ff', wide = false }) {
     <button
       onPointerDown={(e) => { e.preventDefault(); onClick(); }}
       style={{
-        width: wide ? 100 : 54,
-        height: 54,
-        borderRadius: 16,
+        width: wide ? 80 : 46,
+        height: 46,
+        borderRadius: 14,
         border: '1px solid rgba(255,255,255,0.1)',
         background: 'rgba(255,255,255,0.03)',
         color,

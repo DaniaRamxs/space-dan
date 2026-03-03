@@ -207,7 +207,7 @@ function Game2048Inner() {
     touchStart.current = null;
   };
 
-  const tileSize = 'min(75px, 20vw)';
+  const tileSize = 'min(66px, 18vw)';
 
   return (
     <ArcadeShell
@@ -226,13 +226,13 @@ function Game2048Inner() {
         onTouchEnd={handleTouchEnd}
         style={{
           background: 'rgba(255, 255, 255, 0.03)',
-          padding: 12,
+          padding: 10,
           borderRadius: 24,
           border: '1px solid rgba(255,255,255,0.05)',
           display: 'grid',
           gridTemplateColumns: 'repeat(4, 1fr)',
           gridTemplateRows: 'repeat(4, 1fr)',
-          gap: 12,
+          gap: 8,
           position: 'relative',
           boxShadow: 'inset 0 0 30px rgba(0,0,0,0.5)'
         }}
@@ -260,7 +260,7 @@ function Game2048Inner() {
         )}
       </div>
 
-      <div style={{ marginTop: 24, color: 'rgba(255,255,255,0.25)', fontSize: '0.75rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 1.5 }}>
+      <div style={{ marginTop: 12, color: 'rgba(255,255,255,0.2)', fontSize: '0.6rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 1.5 }}>
         Desliza para mover las fichas
       </div>
     </ArcadeShell>

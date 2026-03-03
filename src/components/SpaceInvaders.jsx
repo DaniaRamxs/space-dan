@@ -73,6 +73,8 @@ function SpaceInvadersInner() {
   const [best, saveScore] = useHighScore('spaceinvaders');
   const [score, setScore] = useState(0);
   const [status, setStatus] = useState('IDLE');
+  const [lives, setLives] = useState(3);
+  const [gameLevel, setGameLevel] = useState(1);
 
   const {
     particles, floatingTexts, scoreControls,
@@ -272,6 +274,7 @@ function SpaceInvadersInner() {
       // Ship hit
       if (b.x > s.shipX && b.x < s.shipX + SHIP_W && b.y > SHIP_Y && b.y < SHIP_Y + SHIP_H) {
         s.lives--;
+        setLives(s.lives);
         triggerHaptic('heavy');
         spawnParticles(`${(b.x / W) * 100}%`, `${(b.y / H) * 100}%`, COLORS.cyan, 20);
         triggerFloatingText('¡IMPACTO!', '50%', '40%', COLORS.cyan);
@@ -290,6 +293,7 @@ function SpaceInvadersInner() {
     // Check Win
     if (aliveCount === 0) {
       s.level++;
+      setGameLevel(s.level);
       s.invaders = makeInvaders(s.level);
       s.shields = makeShields();
       s.bullets = [];
@@ -316,6 +320,8 @@ function SpaceInvadersInner() {
   const start = useCallback(() => {
     stateRef.current = makeState();
     setScore(0);
+    setLives(3);
+    setGameLevel(1);
     setStatus('PLAYING');
     frameRef.current = 0;
     cancelAnimationFrame(rafRef.current);
@@ -354,7 +360,7 @@ function SpaceInvadersInner() {
       floatingTexts={floatingTexts}
       subTitle="Repele la invasión alienígena."
     >
-      <div style={{ position: 'relative', width: 'min(50vh, 84vw)', aspectRatio: `${W}/${H}`, background: 'rgba(4,4,10,0.8)', borderRadius: 20, padding: 6, border: '1px solid rgba(255,255,255,0.07)', boxShadow: '0 24px 60px rgba(0,0,0,0.7), inset 0 0 30px rgba(0,0,0,0.4)', overflow: 'hidden', backdropFilter: 'blur(8px)' }}>
+      <div style={{ position: 'relative', width: 'min(40vh, 72vw)', height: 'min(50vh, 90vw)', background: 'rgba(4,4,10,0.8)', borderRadius: 20, padding: 6, border: '1px solid rgba(255,255,255,0.07)', boxShadow: '0 24px 60px rgba(0,0,0,0.7), inset 0 0 30px rgba(0,0,0,0.4)', overflow: 'hidden', backdropFilter: 'blur(8px)' }}>
         <canvas
           ref={canvasRef}
           width={W}
@@ -369,38 +375,20 @@ function SpaceInvadersInner() {
         />
       </div>
 
-      <div style={{ marginTop: 24, display: 'flex', gap: 16, alignItems: 'center' }}>
-        <div style={{ display: 'flex', gap: 12 }}>
-          <ControlBtn icon="◀" onDown={() => keysRef.current['ArrowLeft'] = true} onUp={() => keysRef.current['ArrowLeft'] = false} />
-          <ControlBtn icon="▶" onDown={() => keysRef.current['ArrowRight'] = true} onUp={() => keysRef.current['ArrowRight'] = false} />
-        </div>
-        <ControlBtn icon="SHOOT" color={COLORS.magenta} onDown={() => keysRef.current['Shoot'] = true} onUp={() => keysRef.current['Shoot'] = false} />
-      </div>
-
-      <div style={{
-        marginTop: 20,
-        display: 'flex',
-        gap: 32,
-        fontSize: '0.75rem',
-        fontWeight: 800,
-        color: 'rgba(255, 255, 255, 0.3)',
-        textTransform: 'uppercase',
-        letterSpacing: 2
-      }}>
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-          <span style={{ fontSize: '0.6rem', opacity: 0.6, marginBottom: 4 }}>VIDAS</span>
-          <span style={{ color: COLORS.cyan, fontSize: '1rem' }}>{stateRef.current?.lives || 0}</span>
-        </div>
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-          <span style={{ fontSize: '0.6rem', opacity: 0.6, marginBottom: 4 }}>NIVEL</span>
-          <span style={{ color: COLORS.magenta, fontSize: '1rem' }}>{stateRef.current?.level || 1}</span>
+      <div style={{ marginTop: 10, display: 'flex', gap: 14, alignItems: 'center', justifyContent: 'center' }}>
+        <ControlBtn icon="◀" onDown={() => keysRef.current['ArrowLeft'] = true} onUp={() => keysRef.current['ArrowLeft'] = false} size={44} />
+        <ControlBtn icon="▶" onDown={() => keysRef.current['ArrowRight'] = true} onUp={() => keysRef.current['ArrowRight'] = false} size={44} />
+        <ControlBtn icon="SHOOT" color={COLORS.magenta} onDown={() => keysRef.current['Shoot'] = true} onUp={() => keysRef.current['Shoot'] = false} size={44} />
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 2, paddingLeft: 8, borderLeft: '1px solid rgba(255,255,255,0.1)' }}>
+          <span style={{ fontSize: '0.55rem', color: 'rgba(255,255,255,0.4)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: 1 }}>VIDAS <span style={{ color: COLORS.cyan }}>{lives}</span></span>
+          <span style={{ fontSize: '0.55rem', color: 'rgba(255,255,255,0.4)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: 1 }}>NIVEL <span style={{ color: COLORS.magenta }}>{gameLevel}</span></span>
         </div>
       </div>
     </ArcadeShell>
   );
 }
 
-function ControlBtn({ icon, onDown, onUp, color = '#00e5ff' }) {
+function ControlBtn({ icon, onDown, onUp, color = '#00e5ff', size = 60 }) {
   return (
     <motion.button
       onPointerDown={e => { e.preventDefault(); onDown(); }}
@@ -408,7 +396,7 @@ function ControlBtn({ icon, onDown, onUp, color = '#00e5ff' }) {
       onPointerLeave={() => onUp()}
       whileTap={{ scale: 0.87, backgroundColor: 'rgba(255,255,255,0.08)' }}
       style={{
-        width: 60, height: 60, borderRadius: 18,
+        width: size, height: size, borderRadius: 14,
         border: '1px solid rgba(255,255,255,0.1)',
         background: 'rgba(255,255,255,0.04)',
         color, fontSize: icon === 'SHOOT' ? 11 : 22,
