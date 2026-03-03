@@ -16,6 +16,7 @@ export function useSpacelyGame(engine, config) {
         gameId,
         gameType,
         players,
+        aiLevel = 'hard', // Default pro mode
         timerConfig = { softLimit: 5000, hardLimit: 15000, tickInterval: 100, autoStart: false }
     } = config;
 
@@ -44,7 +45,12 @@ export function useSpacelyGame(engine, config) {
     const activePlayer = context.players.find(p => p.id === context.currentTurn.id) || context.players[0];
 
     // 4. Integrar AI Worker
-    const { calculateMove } = useAIWorker(gameType, context.metadata.engineState);
+    const { calculateMove: rawCalculateMove } = useAIWorker(gameType, context.metadata.engineState);
+
+    // Wrap calculateMove to inject aiLevel -> isFastMode
+    const calculateMove = useCallback((params) => {
+        return rawCalculateMove({ ...params, isFastMode: aiLevel === 'easy' });
+    }, [rawCalculateMove, aiLevel]);
 
     // 5. Función proxy purificada para efectuar movimientos
     const makeMove = useCallback((moveParam) => {
@@ -117,6 +123,13 @@ export function useSpacelyGame(engine, config) {
         transitionTo('PLAYING');
         startTimer();
     }, [engine, updateContext, context.players, resetTimer, transitionTo, startTimer]);
+
+    // Arreglar bug: El juego debe pasar de IDLE a PLAYING al montar
+    useEffect(() => {
+        if (status === 'IDLE') {
+            startGame();
+        }
+    }, [status, startGame]);
 
     return {
         status,

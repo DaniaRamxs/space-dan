@@ -30,13 +30,19 @@ function TicTacToeInner() {
     timerConfig: { softLimit: 5000, hardLimit: 15000, tickInterval: 100, autoStart: true }
   }), []);
 
+  const fullConfig = useMemo(() => ({
+    ...gameConfig,
+    aiLevel: difficulty === 'hard' ? 'hard' : 'easy'
+  }), [difficulty, gameConfig]);
+
   const {
     status: gameStatus,
     context,
     engineState,
     makeMove,
-    resetGame
-  } = useSpacelyGame(tictactoeEngine, gameConfig);
+    resetGame,
+    startGame
+  } = useSpacelyGame(tictactoeEngine, fullConfig);
 
   const { board } = engineState;
   const winner = context.winner;
@@ -61,6 +67,7 @@ function TicTacToeInner() {
         triggerHaptic('medium');
         triggerFloatingText('DERROTA', '50%', '40%', C_O);
       } else if (winner === 'draw') {
+        setStreak(0);
         triggerHaptic('light');
         triggerFloatingText('EMPATE', '50%', '40%', '#fff');
       }
@@ -76,7 +83,7 @@ function TicTacToeInner() {
   const handleDifficultyChange = (d) => {
     setDifficulty(d);
     setStreak(0);
-    onRestart();
+    resetGame();
   };
 
   const onCellClick = (idx) => {
@@ -97,7 +104,7 @@ function TicTacToeInner() {
       score={streak * 100}
       scoreLabel="Puntos Racha"
       bestScore={best}
-      status={isFinished ? 'FINISHED' : 'PLAYING'}
+      status={gameStatus === 'IDLE' ? 'START' : gameStatus}
       onRetry={onRestart}
       scoreControls={scoreControls}
       particles={particles}
