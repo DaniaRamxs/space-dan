@@ -128,6 +128,10 @@ export default function useAuth() {
     if (Capacitor.isNativePlatform()) {
       return 'com.dan.space://auth';
     }
+    const hostname = window.location.hostname;
+    if (hostname.includes('joinspacely.com')) {
+      return 'https://joinspacely.com';
+    }
     return window.location.origin;
   };
 
