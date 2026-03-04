@@ -2,9 +2,9 @@ import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Eraser, Pen, Clock, Play, Trophy } from 'lucide-react';
 import { useLocalParticipant, useParticipants } from '@livekit/components-react';
-import { supabase } from '../../../supabaseClient';
-import { useAuthContext } from '../../../contexts/AuthContext';
-import { useEconomy } from '../../../contexts/EconomyContext';
+import { supabase } from '../../supabaseClient';
+import { useAuthContext } from '../../contexts/AuthContext';
+import { useEconomy } from '../../contexts/EconomyContext';
 
 const COLORS = ['#fff', '#f43f5e', '#3b82f6', '#10b981', '#f59e0b', '#a855f7'];
 const WORDS = ['Astronauta', 'Agujero Negro', 'Satélite', 'Extraterrestre', 'Supernova', 'Cohete', 'Meteorito', 'Estrellas', 'Tierra', 'Marte', 'Robot', 'Ovni', 'Luna', 'Cometa', 'Galaxia', 'Telescopio', 'Traje Espacial', 'Gravedad', 'Platillo Volador'];
@@ -292,6 +292,22 @@ export default function CosmicDraw({ roomName, onClose }) {
         ? currentWord
         : currentWord.split('').map((char, i) => char === ' ' ? ' ' : (i % 3 === 0 ? char : '_')).join(' ');
 
+    // Fix for passive event listeners in Chrome/Mobile
+    useEffect(() => {
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+
+        const handleTouchMove = (e) => {
+            if (isDrawingRef.current && isMyTurn && gameState === 'playing') {
+                if (e.cancelable) e.preventDefault();
+                draw(e);
+            }
+        };
+
+        canvas.addEventListener('touchmove', handleTouchMove, { passive: false });
+        return () => canvas.removeEventListener('touchmove', handleTouchMove);
+    }, [isMyTurn, gameState]);
+
     return (
         <motion.div
             initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }}
@@ -331,7 +347,6 @@ export default function CosmicDraw({ roomName, onClose }) {
                     onMouseUp={stopDrawing}
                     onMouseLeave={stopDrawing}
                     onTouchStart={startDrawing}
-                    onTouchMove={draw}
                     onTouchEnd={stopDrawing}
                     onTouchCancel={stopDrawing}
                 />

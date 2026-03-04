@@ -90,7 +90,7 @@ function MinerGame({ bet, balance, finishGame }) {
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: i * 0.01 }}
               style={{
-                aspectRatio: '1', borderRadius: 10, border: 'none', cursor: isRevealed ? 'default' : 'pointer',
+                aspectRatio: '1', borderRadius: 10, cursor: isRevealed ? 'default' : 'pointer',
                 background: isMine ? red : isCrystal ? 'rgba(0,230,118,0.2)' : 'rgba(255,255,255,0.07)',
                 border: `1px solid ${isMine ? red : isCrystal ? green : 'rgba(255,255,255,0.1)'}`,
                 fontSize: '1.4rem',

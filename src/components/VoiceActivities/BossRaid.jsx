@@ -2,10 +2,10 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Skull, Zap, Crosshair, Users, ShieldAlert, Award } from 'lucide-react';
 import { useLocalParticipant, useParticipants } from '@livekit/components-react';
-import { supabase } from '../../../supabaseClient';
-import { useAuthContext } from '../../../contexts/AuthContext';
-import { useEconomy } from '../../../contexts/EconomyContext';
-import { getFrameStyle } from '../../../utils/styles';
+import { supabase } from '../../supabaseClient';
+import { useAuthContext } from '../../contexts/AuthContext';
+import { useEconomy } from '../../contexts/EconomyContext';
+import { getFrameStyle } from '../../utils/styles';
 
 const BOSS_TYPES = [
     { id: 'leviathan', name: 'Leviatán del Vacío', hp: 5000, img: '👾', color: 'purple' },
@@ -150,8 +150,8 @@ export default function BossRaid({ roomName, onClose }) {
             // Coste premium
             if (balance < laserCost) return alert('No tienes suficientes Starlys para el rayo orbital.');
 
-            const { success } = await deductCoins(laserCost, 'game_bet', 'Punto Cero / Boss Raid Laser');
-            if (!success) return;
+            const result = await deductCoins(laserCost, 'casino_bet', 'Punto Cero / Boss Raid Laser');
+            if (!result?.success) return;
 
             dmgDealt = laserDamage + Math.floor(Math.random() * 100);
             // Mostrar efecto superlaser (vibrar o sonido heavy)
@@ -162,7 +162,7 @@ export default function BossRaid({ roomName, onClose }) {
 
         const myName = profile?.username || 'Piloto';
         const myAvatar = profile?.avatar_url || '/default-avatar.png';
-        const myFrame = profile?.equipped_items?.find(i => i.type === 'frame')?.item_id || null;
+        const myFrame = Array.isArray(profile?.equipped_items) ? profile.equipped_items.find(i => i.type === 'frame')?.item_id : null;
 
         setDamageMap(prev => {
             const current = prev[user.id] || { name: myName, damage: 0, avatar: myAvatar, frameId: myFrame };
@@ -226,9 +226,9 @@ export default function BossRaid({ roomName, onClose }) {
         <motion.div
             initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }}
             className={`w-full backdrop-blur-xl border rounded-[2rem] p-4 sm:p-6 mt-4 relative overflow-hidden transition-colors duration-1000 ${gameState === 'lobby' ? 'bg-[#050518]/95 border-emerald-500/20 shadow-[0_30px_60px_rgba(16,185,129,0.1)]' :
-                    gameState === 'playing' ? `bg-${currentBoss.color}-950/80 border-${currentBoss.color}-500/30 shadow-[inset_0_0_100px_rgba(200,0,0,0.1)]` :
-                        gameState === 'won' ? 'bg-emerald-950/90 border-emerald-500/50 shadow-[0_0_80px_rgba(16,185,129,0.3)]' :
-                            'bg-rose-950/90 border-rose-500/50'
+                gameState === 'playing' ? `bg-${currentBoss.color}-950/80 border-${currentBoss.color}-500/30 shadow-[inset_0_0_100px_rgba(200,0,0,0.1)]` :
+                    gameState === 'won' ? 'bg-emerald-950/90 border-emerald-500/50 shadow-[0_0_80px_rgba(16,185,129,0.3)]' :
+                        'bg-rose-950/90 border-rose-500/50'
                 }`}
         >
             <button onClick={onClose} className="absolute right-4 top-4 text-white/50 hover:text-white bg-white/10 p-2 rounded-full transition-all z-20">
@@ -248,7 +248,7 @@ export default function BossRaid({ roomName, onClose }) {
                 </div>
 
                 <div className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border font-black text-xs ${gameState === 'playing' ? (timeLeft < 60 ? 'text-rose-400 border-rose-500/30 bg-rose-500/10 animate-[pulse_0.5s_infinite]' : `text-${currentBoss.color}-400 border-${currentBoss.color}-500/20 bg-black/40 shadow-[inset_0_0_10px_rgba(255,255,255,0.05)]`)
-                        : 'text-white/40 border-white/10'
+                    : 'text-white/40 border-white/10'
                     }`}>
                     <ShieldAlert size={14} />
                     {gameState === 'playing' ? formatTime(timeLeft) : '0:00'}

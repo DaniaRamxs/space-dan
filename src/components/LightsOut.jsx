@@ -101,7 +101,7 @@ function LightsOutInner() {
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, justifyContent: 'center' }}>
                     {Object.entries(DIFFS).map(([key, d]) => (
                         <button key={key} onClick={() => changeDiff(key)} style={{
-                            padding: '10px 20px', borderRadius: 14, border: 'none', cursor: 'pointer',
+                            padding: '10px 20px', borderRadius: 14, cursor: 'pointer',
                             background: diff === key ? `${d.color}22` : 'rgba(255,255,255,0.03)',
                             color: diff === key ? d.color : 'rgba(255,255,255,0.3)',
                             fontWeight: 900, fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: 2,
@@ -121,7 +121,6 @@ function LightsOutInner() {
                     background: 'rgba(4,4,10,0.75)',
                     borderRadius: 24,
                     border: '1px solid rgba(255,255,255,0.07)',
-                    boxShadow: '0 20px 60px rgba(0,0,0,0.6), inset 0 0 30px rgba(0,0,0,0.4)',
                     backdropFilter: 'blur(10px)',
                     boxShadow: '0 20px 50px rgba(0,0,0,0.5), inset 0 0 20px rgba(255,255,255,0.02)',
                     width: 'min(340px, 90vw)',
