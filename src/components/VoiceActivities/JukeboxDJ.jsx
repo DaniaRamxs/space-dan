@@ -16,7 +16,7 @@ const YT_PLAYER_STATE = {
     CUED: 5
 };
 
-export default function JukeboxDJ({ roomName, onClose, isMinimized = false }) {
+export default function JukeboxDJ({ roomName, onClose, isMinimized = false, isPanelOpen = true }) {
     const { user, profile } = useAuthContext();
     const { balance, deductCoins, awardCoins } = useEconomy();
     const { localParticipant } = useLocalParticipant();
@@ -439,7 +439,7 @@ export default function JukeboxDJ({ roomName, onClose, isMinimized = false }) {
                             initial={{ opacity: 0, y: 10 }}
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, y: 10 }}
-                            className="p-3 bg-red-600/10 border border-red-500/20 backdrop-blur-xl rounded-2xl flex items-center gap-3 shadow-[0_0_30px_rgba(220,38,38,0.2)] mb-4 cursor-pointer hover:bg-red-600/20 transition-all"
+                            className={`${!isPanelOpen ? 'fixed bottom-24 left-4 right-4 z-[11000] max-w-sm mx-auto mb-0' : 'mb-4'} p-3 bg-red-600/10 border border-red-500/20 backdrop-blur-xl rounded-2xl flex items-center gap-3 shadow-[0_0_30px_rgba(220,38,38,0.2)] cursor-pointer hover:bg-red-600/20 transition-all`}
                             onClick={() => window.dispatchEvent(new CustomEvent('voice:open_activity', { detail: 'dj' }))}
                         >
                             <div className="relative w-10 h-10 rounded-xl overflow-hidden shrink-0 border border-white/10 group">

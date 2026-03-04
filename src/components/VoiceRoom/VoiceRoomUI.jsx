@@ -137,95 +137,116 @@ export default function VoiceRoomUI({ roomName, onLeave, onConnected, userAvatar
 
             {/* Panel completo: AnimatePresence DENTRO del portal para que funcione correctamente */}
             {createPortal(
-                <AnimatePresence>
-                    {isOpen && (
-                        <div key="voice-panel-root" className="fixed inset-0 z-[10000] flex items-center justify-center p-4 overflow-hidden">
-                            <motion.div
-                                key="voice-backdrop"
-                                initial={{ opacity: 0 }}
-                                animate={{ opacity: 1 }}
-                                exit={{ opacity: 0 }}
-                                className="absolute inset-0 bg-black/90 backdrop-blur-md"
-                                onClick={onMinimize}
-                            />
-                            <motion.div
-                                key="voice-modal"
-                                initial={{ opacity: 0, y: 30, scale: 0.95 }}
-                                animate={{ opacity: 1, y: 0, scale: 1 }}
-                                exit={{ opacity: 0, y: 30, scale: 0.95 }}
-                                className="relative w-full max-w-md bg-[#050518] border border-white/10 rounded-[3rem] shadow-[0_30px_100px_rgba(0,0,0,0.8)] overflow-hidden flex flex-col max-h-[90vh]"
-                                onClick={e => e.stopPropagation()}
-                            >
-                                <header className="flex flex-col p-6 sm:p-8 border-b border-white/5 bg-white/[0.02]">
-                                    <div className="flex items-center justify-between mb-6">
-                                        <div className="flex items-center gap-4">
-                                            <div className="w-12 h-12 rounded-2xl bg-cyan-500/10 flex items-center justify-center border border-cyan-500/20">
-                                                <Radio size={24} className="text-cyan-400" />
-                                            </div>
-                                            <div>
-                                                <h3 className="text-sm sm:text-base font-black text-white uppercase tracking-widest leading-tight">{roomName}</h3>
-                                                <div className="flex items-center gap-2 mt-1">
-                                                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                                                    <p className="text-[9px] font-black text-emerald-400 uppercase tracking-[0.2em]">En Directo</p>
+                <>
+                    {/* JukeboxDJ fuera del bloque isOpen para que la música no se corte al minimizar el panel */}
+                    {jukeboxEverStarted && (
+                        <JukeboxDJ
+                            roomName={roomName}
+                            onClose={() => setActiveActivity(null)}
+                            isMinimized={activeActivity !== 'dj' || !isOpen}
+                            isPanelOpen={isOpen}
+                        />
+                    )}
+
+                    <AnimatePresence>
+                        {isOpen && (
+                            <div key="voice-panel-root" className="fixed inset-0 z-[10000] flex items-center justify-center p-4 overflow-hidden">
+                                <motion.div
+                                    key="voice-backdrop"
+                                    initial={{ opacity: 0 }}
+                                    animate={{ opacity: 1 }}
+                                    exit={{ opacity: 0 }}
+                                    className="absolute inset-0 bg-black/90 backdrop-blur-md"
+                                    onClick={onMinimize}
+                                />
+                                <motion.div
+                                    key="voice-modal"
+                                    initial={{ opacity: 0, y: 30, scale: 0.95 }}
+                                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                                    exit={{ opacity: 0, y: 30, scale: 0.95 }}
+                                    className="relative w-full max-w-md bg-[#050518] border border-white/10 rounded-[3rem] shadow-[0_30px_100px_rgba(0,0,0,0.8)] overflow-hidden flex flex-col max-h-[90vh]"
+                                    onClick={e => e.stopPropagation()}
+                                >
+                                    <header className="flex flex-col p-6 sm:p-8 border-b border-white/5 bg-white/[0.02]">
+                                        <div className="flex items-center justify-between mb-6">
+                                            <div className="flex items-center gap-4">
+                                                <div className="w-12 h-12 rounded-2xl bg-cyan-500/10 flex items-center justify-center border border-cyan-500/20">
+                                                    <Radio size={24} className="text-cyan-400" />
+                                                </div>
+                                                <div>
+                                                    <h3 className="text-sm sm:text-base font-black text-white uppercase tracking-widest leading-tight">{roomName}</h3>
+                                                    <div className="flex items-center gap-2 mt-1">
+                                                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                                                        <p className="text-[9px] font-black text-emerald-400 uppercase tracking-[0.2em]">En Directo</p>
+                                                    </div>
                                                 </div>
                                             </div>
-                                        </div>
-                                        <div className="flex items-center gap-2">
-                                            <button
-                                                onClick={onMinimize}
-                                                title="Minimizar"
-                                                className="w-10 h-10 rounded-xl bg-white/5 text-white/40 border border-white/10 hover:bg-white/10 active:scale-95 transition-all flex items-center justify-center"
-                                            >
-                                                <ChevronDown size={20} />
-                                            </button>
-                                            <button
-                                                onClick={onLeave}
-                                                title="Salir de la sala"
-                                                className="w-12 h-12 rounded-2xl bg-rose-500/10 text-rose-400 border border-rose-500/20 hover:bg-rose-500/20 active:scale-95 transition-all flex items-center justify-center"
-                                            >
-                                                <LogOut size={20} />
-                                            </button>
-                                        </div>
-                                    </div>
-                                    <div className="flex gap-2 p-1 bg-black/20 rounded-2xl">
-                                        <button
-                                            onClick={() => setActiveTab('participants')}
-                                            className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'participants' ? 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/20' : 'text-white/30 hover:bg-white/5'}`}
-                                        >
-                                            <Users size={14} /> Tripulación
-                                        </button>
-                                        <button
-                                            onClick={() => setActiveTab('chat')}
-                                            className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'chat' ? 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/20' : 'text-white/30 hover:bg-white/5'}`}
-                                        >
-                                            <MessageSquare size={14} /> Chat Temporal
-                                        </button>
-                                    </div>
-                                </header>
-                                <div className="flex-1 overflow-y-auto p-6 sm:p-8 no-scrollbar relative min-h-[300px]">
-                                    {/* Jukebox persistente para que la música no se corte al "cerrar" la actividad */}
-                                    {jukeboxEverStarted && (
-                                        <JukeboxDJ roomName={roomName} onClose={() => setActiveActivity(null)} isMinimized={activeActivity !== 'dj'} />
-                                    )}
-
-                                    {activeActivity ? (
-                                        <VoiceActivityLauncher roomName={roomName} activeActivity={activeActivity} setActiveActivity={setActiveActivity} />
-                                    ) : (
-                                        <>
-                                            {activeTab === 'participants' ? <ParticipantsList /> : <ChatPanel />}
-                                            <div className="mt-8 relative z-10 bottom-0 left-0 w-full">
-                                                <VoiceActivityLauncher roomName={roomName} activeActivity={activeActivity} setActiveActivity={setActiveActivity} />
+                                            <div className="flex items-center gap-2">
+                                                <button
+                                                    onClick={onMinimize}
+                                                    title="Minimizar"
+                                                    className="w-10 h-10 rounded-xl bg-white/5 text-white/40 border border-white/10 hover:bg-white/10 active:scale-95 transition-all flex items-center justify-center"
+                                                >
+                                                    <ChevronDown size={20} />
+                                                </button>
+                                                <button
+                                                    onClick={onLeave}
+                                                    title="Salir de la sala"
+                                                    className="w-12 h-12 rounded-2xl bg-rose-500/10 text-rose-400 border border-rose-500/20 hover:bg-rose-500/20 active:scale-95 transition-all flex items-center justify-center"
+                                                >
+                                                    <LogOut size={20} />
+                                                </button>
                                             </div>
-                                        </>
-                                    )}
-                                </div>
-                                <footer className="p-6 sm:p-8 bg-black/40 border-t border-white/5 flex items-center justify-center">
-                                    <MuteToggle />
-                                </footer>
-                            </motion.div>
-                        </div>
-                    )}
-                </AnimatePresence>,
+                                        </div>
+                                        <div className="flex gap-2 p-1 bg-black/20 rounded-2xl">
+                                            <button
+                                                onClick={() => setActiveTab('participants')}
+                                                className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'participants' ? 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/20' : 'text-white/30 hover:bg-white/5'}`}
+                                            >
+                                                <Users size={14} /> Tripulación
+                                            </button>
+                                            <button
+                                                onClick={() => setActiveTab('chat')}
+                                                className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'chat' ? 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/20' : 'text-white/30 hover:bg-white/5'}`}
+                                            >
+                                                <MessageSquare size={14} /> Chat Temporal
+                                            </button>
+                                        </div>
+                                    </header>
+                                    <div className="flex-1 overflow-y-auto p-6 sm:p-8 no-scrollbar relative min-h-[300px]">
+                                        {/* Mini bar del jukebox dentro del panel cuando hay otra actividad activa */}
+                                        {jukeboxEverStarted && activeActivity !== 'dj' && (
+                                            <JukeboxDJ
+                                                roomName={roomName}
+                                                onClose={() => setActiveActivity(null)}
+                                                isMinimized={true}
+                                                isPanelOpen={true}
+                                            />
+                                        )}
+
+                                        {activeActivity ? (
+                                            <VoiceActivityLauncher roomName={roomName} activeActivity={activeActivity} setActiveActivity={setActiveActivity} />
+                                        ) : (
+                                            <>
+                                                {activeTab === 'participants' ? <ParticipantsList /> : <ChatPanel />}
+                                                <div className="mt-8 relative z-10 bottom-0 left-0 w-full">
+                                                    <VoiceActivityLauncher roomName={roomName} activeActivity={activeActivity} setActiveActivity={setActiveActivity} />
+                                                </div>
+                                            </>
+                                        )}
+
+                                        {activeActivity === 'dj' && (
+                                            <VoiceActivityLauncher roomName={roomName} activeActivity={activeActivity} setActiveActivity={setActiveActivity} />
+                                        )}
+                                    </div>
+                                    <footer className="p-6 sm:p-8 bg-black/40 border-t border-white/5 flex items-center justify-center">
+                                        <MuteToggle />
+                                    </footer>
+                                </motion.div>
+                            </div>
+                        )}
+                    </AnimatePresence>
+                </>,
                 document.body
             )}
         </LiveKitRoom>
