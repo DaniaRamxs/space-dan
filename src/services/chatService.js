@@ -71,7 +71,7 @@ export const chatService = {
         if (userIds.length > 0) {
             const { data: profiles } = await supabase
                 .from('profiles')
-                .select('id, username, avatar_url, equipped_nickname_style, frame_item_id, activity_level, user_level:level')
+                .select('id, username, avatar_url, equipped_nickname_style, frame_item_id, activity_level, user_level:level, badge_color')
                 .in('id', userIds);
 
             if (profiles) {

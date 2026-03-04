@@ -151,11 +151,17 @@ const HoloCard = memo(function HoloCard({ profile, onClose }) {
                         >
                             {getUserDisplayName(profile)}
                             {(fullProfile?.badge_color || profile?.badge_color) && (
-                                <Sparkles
-                                    size={18}
-                                    style={{ color: fullProfile?.badge_color || profile?.badge_color }}
-                                    className="drop-shadow-[0_0_10px_currentColor]"
-                                />
+                                <div className="relative group/badge flex items-center justify-center p-1.5 rounded-xl border border-white/10 bg-white/5 shadow-xl backdrop-blur-md">
+                                    <div
+                                        className="absolute inset-0 blur-lg opacity-30 rounded-full"
+                                        style={{ backgroundColor: fullProfile?.badge_color || profile?.badge_color }}
+                                    />
+                                    <Sparkles
+                                        size={20}
+                                        style={{ color: fullProfile?.badge_color || profile?.badge_color }}
+                                        className="relative drop-shadow-[0_0_10px_currentColor] brightness-150"
+                                    />
+                                </div>
                             )}
                         </h2>
 

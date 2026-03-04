@@ -109,14 +109,22 @@ const ChatMessage = memo(({ message, isMe, isOnline, userPresence, onProfileClic
                         <motion.div
                             initial={{ scale: 0, rotate: -45 }}
                             animate={{ scale: 1, rotate: 0 }}
-                            className="flex-shrink-0"
+                            className="flex-shrink-0 relative group/badge"
                             title="Insignia Personalizada"
                         >
-                            <Sparkles
-                                size={12}
-                                style={{ color: safeAuthor.badge_color }}
-                                className="drop-shadow-[0_0_8px_currentColor] brightness-125"
+                            <div
+                                className="absolute inset-0 blur-[6px] opacity-40 rounded-full"
+                                style={{ backgroundColor: safeAuthor.badge_color }}
                             />
+                            <div
+                                className="relative p-0.5 rounded-md border border-white/20 bg-black/40 shadow-lg backdrop-blur-[2px]"
+                            >
+                                <Sparkles
+                                    size={10}
+                                    style={{ color: safeAuthor.badge_color }}
+                                    className="drop-shadow-[0_0_5px_currentColor] brightness-150"
+                                />
+                            </div>
                         </motion.div>
                     )}
                     <span className="text-[8px] text-white/20 font-mono flex-shrink-0">

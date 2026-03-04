@@ -37,5 +37,45 @@ export const activityService = {
         }
 
         return data || [];
+    },
+
+    async getPost(postId, viewerId = null) {
+        const { data, error } = await supabase
+            .from('activity_posts')
+            .select(`
+                *,
+                author:profiles(
+                    id,
+                    username,
+                    avatar_url,
+                    frame_item_id,
+                    badge_color,
+                    equipped_nickname_style,
+                    level,
+                    activity_level
+                )
+            `)
+            .eq('id', postId)
+            .single();
+
+        if (error) {
+            console.error('[activityService] getPost error:', error);
+            throw error;
+        }
+
+        return data;
+    },
+
+    async deletePost(postId) {
+        const { error } = await supabase
+            .from('activity_posts')
+            .delete()
+            .eq('id', postId);
+
+        if (error) {
+            console.error('[activityService] deletePost error:', error);
+            throw error;
+        }
+        return true;
     }
 };

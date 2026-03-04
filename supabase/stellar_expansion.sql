@@ -205,17 +205,18 @@ RETURNS TABLE (
     LIMIT 3;
 $$;
 
--- 7. Stellar Map Data (V3)
+-- 7. Stellar Map Data (V4 - Corrected JSONB Types)
 DROP FUNCTION IF EXISTS public.get_stellar_map_data();
+
 CREATE OR REPLACE FUNCTION public.get_stellar_map_data()
 RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER AS $$
 DECLARE
     v_data jsonb;
 BEGIN
-    SELECT json_build_object(
-        'users', (
-            SELECT json_agg(
-                json_build_object(
+    SELECT jsonb_build_object(
+        'users', COALESCE((
+            SELECT jsonb_agg(
+                jsonb_build_object(
                     'id', p.id,
                     'username', p.username,
                     'avatar_url', p.avatar_url,
@@ -233,8 +234,8 @@ BEGIN
             LEFT JOIN public.user_sound_state mss ON mss.user_id = p.id
             WHERE p.username IS NOT NULL
             LIMIT 150
-        ),
-        'hall_of_fame', (SELECT json_agg(h) FROM (SELECT * FROM public.get_hall_of_fame()) h)
+        ), '[]'::jsonb),
+        'hall_of_fame', COALESCE((SELECT jsonb_agg(h) FROM (SELECT * FROM public.get_hall_of_fame()) h), '[]'::jsonb)
     ) INTO v_data;
 
     RETURN v_data;

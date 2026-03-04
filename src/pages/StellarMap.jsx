@@ -22,7 +22,7 @@ export default function StellarMap() {
     const stars = useMemo(() => {
         if (!mapData.users || mapData.users.length === 0) return [];
 
-        return mapData.users.map((u, i) => {
+        return mapData.users.filter(u => u && u.id).map((u, i) => {
             // Seeded random for stable positions
             const seed = (u.id.split('-').reduce((acc, char) => acc + char.charCodeAt(0), 0)) / 1000;
             const angle = i * 0.4 + (Math.sin(seed * 10) * 0.2);
@@ -57,9 +57,19 @@ export default function StellarMap() {
     useEffect(() => {
         async function fetchMapData() {
             setLoading(true);
-            const { data, error } = await supabase.rpc('get_stellar_map_data');
-            if (!error && data) setMapData(data);
-            setLoading(false);
+            try {
+                const { data, error } = await supabase.rpc('get_stellar_map_data');
+                if (!error && data) {
+                    setMapData({
+                        users: data.users || [],
+                        hall_of_fame: data.hall_of_fame || []
+                    });
+                }
+            } catch (err) {
+                console.error('[StellarMap] Data Fetch Error:', err);
+            } finally {
+                setLoading(false);
+            }
         }
         fetchMapData();
     }, []);
