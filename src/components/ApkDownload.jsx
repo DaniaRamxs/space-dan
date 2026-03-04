@@ -15,12 +15,12 @@ export default function ApkDownload() {
                             y nueva integracion con spotify.
                         </p>
                         <p style={{ fontSize: "0.8rem", opacity: 0.7 }}>
-                            <v1 className="3 4"></v1> • cambio de nombre · chat de voz · icono propio
+                            <v1 className="3 4"></v1> • 10+ juegos nuevos · mejoras de optimizacion · update spotify
                         </p>
                     </div>
                 </div>
                 <a
-                    href="https://github.com/DaniaRamxs/space-dan/releases/download/v1.3.4/spacely1.3.4.apk"
+                    href="https://github.com/DaniaRamxs/space-dan/releases/download/v1.3.5/spacely1.3.5.apk"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="apkDownloadBtn"
