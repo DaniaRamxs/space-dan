@@ -150,7 +150,7 @@ export function ResultScreen({ result, bet, onPlayAgain, onClose }) {
       }}>
         <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.7rem', letterSpacing: 2 }}>{won ? 'GANANCIA' : 'PÉRDIDA'}</div>
         <div style={{ color: won ? green : red, fontSize: '2.4rem', fontWeight: 900 }}>
-          {won ? `+◈ ${net}` : `-◈ ${bet}`}
+          {won ? `+◈ ${net}` : `-◈ ${Math.abs(net)}`}
         </div>
         {won && <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.8rem' }}>Total recibido: ◈ {winAmount}</div>}
       </div>

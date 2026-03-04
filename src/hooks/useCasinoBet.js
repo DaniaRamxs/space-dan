@@ -55,9 +55,9 @@ export function useCasinoBet(gameId, gameTitle) {
    */
   const finishGame = useCallback(async (multiplier, message = '') => {
     setIsLoading(true);
-    const won = multiplier > 0;
-    const winAmount = won ? Math.floor(bet * multiplier) : 0;
-    const net = winAmount - bet; // negativo si pierde
+    const winAmount = Math.floor(bet * multiplier);
+    const net = winAmount - bet;
+    const won = net >= 0; // ganaste si no pierdes dinero neto
     let streakBonusAwarded = false;
 
     if (user && won && winAmount > 0) {
