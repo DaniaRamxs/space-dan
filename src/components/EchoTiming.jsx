@@ -65,7 +65,7 @@ function EchoTimingInner() {
 
             // Expanding Radial Line
             ctx.beginPath();
-            ctx.arc(CX, CY, s.ringR, 0, Math.PI * 2);
+            ctx.arc(CX, CY, Math.max(0, s.ringR), 0, Math.PI * 2);
             ctx.strokeStyle = '#fff';
             ctx.lineWidth = 3;
             ctx.shadowColor = '#fff';
@@ -87,7 +87,7 @@ function EchoTimingInner() {
             ctx.stroke();
 
             ctx.beginPath();
-            ctx.arc(CX, CY, s.ringR, 0, Math.PI * 2);
+            ctx.arc(CX, CY, Math.max(0, s.ringR), 0, Math.PI * 2);
             ctx.strokeStyle = s.resultColor;
             ctx.lineWidth = 3;
             ctx.shadowColor = s.resultColor;
@@ -113,6 +113,7 @@ function EchoTimingInner() {
         const s = stateRef.current;
         if (!s.lastTime) s.lastTime = time;
         let dt = (time - s.lastTime) / 1000;
+        if (dt < 0) dt = 0; // Prevent negative dt
         if (dt > 0.1) dt = 0.1;
         s.lastTime = time;
 
