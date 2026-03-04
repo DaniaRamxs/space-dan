@@ -33,6 +33,7 @@ const KinniesPage = lazy(() => import("./pages/KinniesPage"));
 const TestsPage = lazy(() => import("./pages/TestsPage"));
 const GalleryPage = lazy(() => import("./pages/GalleryPage"));
 const WatchlistPage = lazy(() => import("./pages/WatchlistPage"));
+const BankPage = lazy(() => import("./pages/BankPage"));
 const UniversoPage = lazy(() => import("./pages/UniversoPage"));
 const DesktopPage = lazy(() => import("./pages/DesktopPage"));
 const DreamscapePage = lazy(() => import("./pages/DreamscapePage"));
@@ -343,6 +344,7 @@ function AnimatedRoutes() {
         <Route path="/profile/logros" element={<Layout><AchievementsPage /></Layout>} />
         <Route path="/tienda" element={<Layout><ShopPage /></Layout>} />
         <Route path="/cabina" element={<Layout><SpaceCabinPage /></Layout>} />
+        <Route path="/banco" element={<Layout><BankPage /></Layout>} />
         <Route path="/mapa-estelar" element={<StellarMap />} />
 
         <Route path="/cartas" element={

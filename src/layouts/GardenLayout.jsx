@@ -219,6 +219,7 @@ export default function GardenLayout({ children }) {
                   { to: '/cabina', icon: '🚀', label: 'Cabina' },
                   { to: '/guestbook', icon: '📖', label: 'Libro' },
                   { to: '/arquitectura', icon: '🏗️', label: 'Arquitectura' },
+                  { to: '/banco', icon: '🏦', label: 'Banco' },
                   !isNative && { to: '/desktop', icon: '💻', label: 'Desktop' },
                 ].filter(Boolean).map((item) => (
                   <motion.div

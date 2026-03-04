@@ -1090,6 +1090,41 @@ export default function GlobalChat() {
                 break;
             }
 
+            // ── /loan ─────────────────────────────────────────────────
+            case '/loan':
+            case '/prestamo': {
+                const loanAmt = parseInt(args[0]);
+                if (!loanAmt || isNaN(loanAmt)) {
+                    response = '🏦 Uso: **/loan <monto>** (Ej: /loan 500). Consulta el **Banco** en el Hub para ver tu límite.';
+                    break;
+                }
+
+                const { data: lResult } = await supabase.rpc('request_loan', { p_user_id: user.id, p_amount: loanAmt });
+                if (!lResult?.success) {
+                    const lLimit = lResult?.limit;
+                    const lReason = lResult?.reason;
+                    if (lReason === 'already_has_loan') response = `⚠️ Ya tienes una deuda activa de **${lResult.remaining} ◈**. Salda tu cuenta en el Banco para pedir otro.`;
+                    else if (lReason === 'limit_exceeded') response = `❌ Límite excedido. Tu nivel actual permite hasta **${lLimit} ◈**.`;
+                    else response = '❌ No se pudo procesar el préstamo.';
+                    break;
+                }
+
+                response = `<div class="bot-card">\n<div class="bot-card-label">🏦 Crédito Aprobado · @${senderName}</div>\n<div class="bot-card-answer bot-answer-yes bot-text-center">+<strong>${lResult.borrowed} ◈</strong></div>\n<div class="bot-card-footer">Deuda total: ${lResult.total_debt} ◈ (Interés: ${lResult.interest} ◈)<br>Se retendrá el 25% de tus ganancias automágicamente.</div>\n</div>`;
+                break;
+            }
+
+            // ── /debt ─────────────────────────────────────────────────
+            case '/debt':
+            case '/deuda': {
+                const { data: dData } = await supabase.from('user_loans').select('*').eq('user_id', user.id).eq('status', 'active').maybeSingle();
+                if (!dData) {
+                    response = '✅ No tienes deudas activas con el Banco Estelar. ¡Eres un piloto solvente!';
+                    break;
+                }
+                response = `<div class="bot-card">\n<div class="bot-card-label">🏦 Estado de Cuenta · @${senderName}</div>\n<div class="bot-card-answer bot-answer-no bot-text-center">Deuda: <strong>${dData.remaining_debt} ◈</strong></div>\n<div class="bot-card-footer">Retención activa: 25% de ingresos.<br>Paga manualmente en la sección de Banco 🛸</div>\n</div>`;
+                break;
+            }
+
             default: return;
         }
 
