@@ -151,10 +151,24 @@ export function EconomyProvider({ children }) {
     return result;
   }, [user]);
 
+  /** Descuenta coins (apuestas de casino, compras) */
+  const deductCoins = useCallback(async (amount, type = 'casino_bet', description = 'Apuesta Casino') => {
+    if (!user) return null;
+    try {
+      const result = await economyService.deductCoins(user.id, amount, type, description);
+      if (result?.success) setBalance(result.balance);
+      return result;
+    } catch (err) {
+      console.error('[EconomyContext] deductCoins:', err.message);
+      return null;
+    }
+  }, [user]);
+
   const value = {
     balance,
     loading,
     awardCoins,
+    deductCoins,
     claimDaily,
     canClaimDaily,
     transfer,

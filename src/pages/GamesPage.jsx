@@ -50,6 +50,17 @@ const SplitControl = lazy(() => import('../components/SplitControl'));
 const PhaseRunner = lazy(() => import('../components/PhaseRunner'));
 const MagnetDash = lazy(() => import('../components/MagnetDash'));
 const EchoTiming = lazy(() => import('../components/EchoTiming'));
+// Casino
+const CasinoBlackjack = lazy(() => import('../components/CasinoBlackjack'));
+const CosmicDice = lazy(() => import('../components/CosmicDice'));
+const AsteroidCrash = lazy(() => import('../components/AsteroidCrash'));
+const SpaceMiner = lazy(() => import('../components/SpaceMiner'));
+const OrbitalSlots = lazy(() => import('../components/OrbitalSlots'));
+const QuantumFlip = lazy(() => import('../components/QuantumFlip'));
+const GalaxyLadder = lazy(() => import('../components/GalaxyLadder'));
+const AlienInvasion = lazy(() => import('../components/AlienInvasion'));
+const RocketJump = lazy(() => import('../components/RocketJump'));
+const MemoryGalaxy = lazy(() => import('../components/MemoryGalaxy'));
 
 
 const GAMES = [
@@ -89,6 +100,17 @@ const GAMES = [
   { id: 'phaserunner', icon: '⚡', title: 'phase runner', component: PhaseRunner, category: 'Skill', isImmersive: true },
   { id: 'magnetdash', icon: '🧲', title: 'magnet dash', component: MagnetDash, category: 'Skill', isImmersive: true },
   { id: 'echotiming', icon: '📡', title: 'echo timing', component: EchoTiming, category: 'Skill', isImmersive: true },
+  // Casino
+  { id: 'casino-blackjack', icon: '🃠', title: 'blackjack', component: CasinoBlackjack, category: 'Casino', isImmersive: true },
+  { id: 'cosmic-dice', icon: '🎲', title: 'cosmic dice', component: CosmicDice, category: 'Casino', isImmersive: true },
+  { id: 'asteroid-crash', icon: '🚀', title: 'asteroid crash', component: AsteroidCrash, category: 'Casino', isImmersive: true },
+  { id: 'space-miner', icon: '⛏️', title: 'space miner', component: SpaceMiner, category: 'Casino', isImmersive: true },
+  { id: 'orbital-slots', icon: '🎰', title: 'orbital slots', component: OrbitalSlots, category: 'Casino', isImmersive: true },
+  { id: 'quantum-flip', icon: '🪙', title: 'quantum flip', component: QuantumFlip, category: 'Casino', isImmersive: true },
+  { id: 'galaxy-ladder', icon: '🪜', title: 'galaxy ladder', component: GalaxyLadder, category: 'Casino', isImmersive: true },
+  { id: 'alien-invasion', icon: '👾', title: 'alien invasion', component: AlienInvasion, category: 'Casino', isImmersive: true },
+  { id: 'rocket-jump', icon: '🛸', title: 'rocket jump', component: RocketJump, category: 'Casino', isImmersive: true },
+  { id: 'memory-galaxy', icon: '🧠', title: 'memory galaxy', component: MemoryGalaxy, category: 'Casino', isImmersive: true },
 ];
 
 const PLAYED_KEY = 'space-dan-played-games';
