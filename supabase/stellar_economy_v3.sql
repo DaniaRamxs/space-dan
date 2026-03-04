@@ -147,3 +147,70 @@ BEGIN
     RETURN public.start_bot_event('eclipse', '{"title": "Eclipse Galáctico", "msg": "XP y Starlys x3 ACTIVADOS"}'::jsonb, 120);
 END;
 $$;
+
+-- 4. RPC para comprar efectos de chat
+CREATE OR REPLACE FUNCTION public.buy_chat_effect(p_user_id uuid, p_effect text)
+RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER AS $$
+DECLARE
+    v_balance integer;
+    v_price integer := 250;
+BEGIN
+    IF p_effect = 'fire' THEN v_price := 300;
+    ELSIF p_effect = 'stars' THEN v_price := 250;
+    ELSIF p_effect = 'glitch' THEN v_price := 400;
+    END IF;
+
+    SELECT balance INTO v_balance FROM public.profiles WHERE id = p_user_id;
+
+    IF v_balance < v_price THEN
+        RETURN jsonb_build_object('success', false, 'reason', 'insufficient_funds', 'balance', v_balance, 'price', v_price);
+    END IF;
+
+    -- Descontar monedas
+    UPDATE public.profiles SET balance = balance - v_price, chat_effect = p_effect WHERE id = p_user_id;
+
+    -- Registrar transacción
+    INSERT INTO public.transactions (user_id, amount, balance_after, type, description)
+    VALUES (p_user_id, -v_price, v_balance - v_price, 'purchase', 'Compra de efecto de chat: ' || p_effect);
+
+    RETURN jsonb_build_object('success', true, 'price', v_price, 'balance', v_balance - v_price);
+END;
+$$;
+
+-- 5. RPC para comprar XP Boost (1h)
+CREATE OR REPLACE FUNCTION public.buy_xp_boost(p_user_id uuid)
+RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER AS $$
+DECLARE
+    v_balance integer;
+    v_price integer := 200;
+    v_active_until timestamptz;
+BEGIN
+    SELECT balance, xp_boost_until INTO v_balance, v_active_until FROM public.profiles WHERE id = p_user_id;
+
+    IF v_active_until > now() THEN
+        RETURN jsonb_build_object('success', false, 'reason', 'already_active', 'expires_at', v_active_until);
+    END IF;
+
+    IF v_balance < v_price THEN
+        RETURN jsonb_build_object('success', false, 'reason', 'insufficient_funds', 'balance', v_balance);
+    END IF;
+
+    UPDATE public.profiles 
+    SET balance = balance - v_price, 
+        xp_boost_until = now() + interval '1 hour' 
+    WHERE id = p_user_id;
+
+    INSERT INTO public.transactions (user_id, amount, balance_after, type, description)
+    VALUES (p_user_id, -v_price, v_balance - v_price, 'purchase', 'Compra de XP Boost (1h)');
+
+    RETURN jsonb_build_object('success', true, 'expires_at', now() + interval '1 hour');
+END;
+$$;
+
+-- 6. RPC para equipar título
+CREATE OR REPLACE FUNCTION public.set_user_title(p_user_id uuid, p_title text)
+RETURNS void LANGUAGE plpgsql SECURITY DEFINER AS $$
+BEGIN
+    UPDATE public.profiles SET chat_title = p_title WHERE id = p_user_id;
+END;
+$$;

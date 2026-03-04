@@ -9,9 +9,12 @@ ADD COLUMN IF NOT EXISTS streak             integer DEFAULT 0,
 ADD COLUMN IF NOT EXISTS best_streak        integer DEFAULT 0,
 ADD COLUMN IF NOT EXISTS badge_color        text    DEFAULT '#7c3aed',
 ADD COLUMN IF NOT EXISTS chat_effect       text    DEFAULT NULL,
+ADD COLUMN IF NOT EXISTS chat_title        text    DEFAULT NULL,
+ADD COLUMN IF NOT EXISTS prestige_level    integer DEFAULT 0,
 ADD COLUMN IF NOT EXISTS xp_boost_until    timestamptz DEFAULT NULL;
 
 -- 2. RPC para completar tutorial y dar recompensa inicial
+-- ... (existing complete_tutorial)
 CREATE OR REPLACE FUNCTION public.complete_tutorial(p_user_id uuid)
 RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER AS $$
 DECLARE
@@ -49,6 +52,33 @@ BEGIN
     END IF;
 
     UPDATE public.profiles SET badge_color = p_color WHERE id = p_user_id;
+
+    RETURN jsonb_build_object('success', true);
+END;
+$$;
+
+-- 4. RPC para prestigio
+CREATE OR REPLACE FUNCTION public.prestige_user(p_user_id uuid)
+RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER AS $$
+DECLARE
+    v_lvl integer;
+BEGIN
+    SELECT activity_level INTO v_lvl FROM public.profiles WHERE id = p_user_id;
+
+    IF v_lvl < 10 THEN
+        RETURN jsonb_build_object('success', false, 'reason', 'level_too_low');
+    END IF;
+
+    -- Reset XP y subir prestigio
+    UPDATE public.profiles 
+    SET prestige_level = COALESCE(prestige_level, 0) + 1,
+        activity_level = 1,
+        activity_xp = 0
+    WHERE id = p_user_id;
+
+    -- Registrar evento
+    INSERT INTO public.transactions (user_id, amount, balance_after, type, description)
+    VALUES (p_user_id, 0, 0, 'achievement', 'Ascenso a Prestige');
 
     RETURN jsonb_build_object('success', true);
 END;

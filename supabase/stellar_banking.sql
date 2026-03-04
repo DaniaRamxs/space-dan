@@ -27,6 +27,7 @@ DECLARE
     v_interest_rate numeric := 0.15; -- 15% de interés
     v_total_debt integer;
     v_pact_active boolean;
+    v_new_balance integer;
 BEGIN
     -- 0. Verificar si tiene el Pacto Estelar activo (Bloquea nuevos préstamos)
     SELECT stellar_pact_active INTO v_pact_active FROM public.profiles WHERE id = p_user_id;
@@ -50,21 +51,24 @@ BEGIN
     IF p_amount < 100 THEN
         RETURN jsonb_build_object('success', false, 'reason', 'minimum_amount', 'min', 100);
     END IF;
-
-    -- 3. Crear el préstamo
     v_total_debt := floor(p_amount * (1 + v_interest_rate));
     
     INSERT INTO public.user_loans (user_id, amount_borrowed, total_debt, remaining_debt)
     VALUES (p_user_id, p_amount, v_total_debt, v_total_debt);
 
     -- 4. Entregar los Starlys inmediatamente
-    UPDATE public.profiles SET balance = balance + p_amount WHERE id = p_user_id;
+    UPDATE public.profiles SET balance = balance + p_amount WHERE id = p_user_id RETURNING balance INTO v_new_balance;
+
+    -- 5. Registrar transacción
+    INSERT INTO public.transactions (user_id, amount, balance_after, type, description)
+    VALUES (p_user_id, p_amount, v_new_balance, 'admin_grant', 'Préstamo bancario aprobado');
 
     RETURN jsonb_build_object(
         'success', true, 
         'borrowed', p_amount, 
         'total_debt', v_total_debt,
-        'interest', floor(p_amount * v_interest_rate)
+        'interest', floor(p_amount * v_interest_rate)::int,
+        'balance', v_new_balance
     );
 END;
 $$;
@@ -103,6 +107,7 @@ DECLARE
     v_is_eligible boolean;
     v_active_loan RECORD;
     v_impulse_amount integer;
+    v_new_balance integer;
 BEGIN
     -- Verificar elegibilidad
     SELECT (check_stellar_pact_eligibility(p_user_id)->>'eligible')::boolean INTO v_is_eligible;
@@ -121,13 +126,14 @@ BEGIN
     SELECT * INTO v_active_loan FROM public.user_loans WHERE user_id = p_user_id AND status = 'active';
     v_impulse_amount := GREATEST(floor(v_active_loan.remaining_debt * 0.10), 100);
     
-    UPDATE public.profiles SET balance = balance + v_impulse_amount WHERE id = p_user_id;
+    UPDATE public.profiles SET balance = balance + v_impulse_amount WHERE id = p_user_id
+    RETURNING balance INTO v_new_balance;
     
     -- Registrar el impulso como transacción
-    INSERT INTO public.transactions (user_id, amount, type, description)
-    VALUES (p_user_id, v_impulse_amount, 'stellar_impulse', 'Impulso Estelar: Pacto de recuperación financiera');
+    INSERT INTO public.transactions (user_id, amount, balance_after, type, description)
+    VALUES (p_user_id, v_impulse_amount, v_new_balance, 'stellar_impulse', 'Impulso Estelar: Pacto de recuperación financiera');
 
-    RETURN jsonb_build_object('success', true, 'impulse', v_impulse_amount);
+    RETURN jsonb_build_object('success', true, 'impulse', v_impulse_amount, 'balance', v_new_balance);
 END;
 $$;
 
@@ -159,14 +165,18 @@ BEGIN
     WHERE id = v_active_loan.id;
 
     -- Restar balance
-    UPDATE public.profiles SET balance = balance - v_payment WHERE id = p_user_id;
+    UPDATE public.profiles SET balance = balance - v_payment WHERE id = p_user_id RETURNING balance INTO v_user_balance;
+
+    -- Registrar transacción de pago
+    INSERT INTO public.transactions (user_id, amount, balance_after, type, description)
+    VALUES (p_user_id, -v_payment, v_user_balance, 'purchase', 'Pago manual de préstamo');
 
     -- Si se saldó la deuda, desactivamos el pacto automáticamente
     IF (v_active_loan.remaining_debt - v_payment) <= 0 THEN
         UPDATE public.profiles SET stellar_pact_active = false WHERE id = p_user_id;
     END IF;
 
-    RETURN jsonb_build_object('success', true, 'paid', v_payment, 'remaining', (v_active_loan.remaining_debt - v_payment));
+    RETURN jsonb_build_object('success', true, 'paid', v_payment, 'remaining', (v_active_loan.remaining_debt - v_payment), 'balance', v_user_balance);
 END;
 $$;
 
@@ -233,22 +243,24 @@ BEGIN
     END IF;
   END IF;
 
-  -- 4. Actualizar Balance Global y Estacional
+  -- 4. Actualizar Balance Global
   UPDATE public.profiles
   SET balance = balance + v_final_amount,
-      season_balance = season_balance + v_final_amount
-  WHERE id = p_user_id;
+      updated_at = now()
+  WHERE id = p_user_id
+  RETURNING balance INTO v_hour; -- Reutilizamos v_hour para el balance actual
 
   -- 5. Registrar Transacción
-  INSERT INTO public.transactions (user_id, amount, type, reference_id, description, metadata)
-  VALUES (p_user_id, v_final_amount, p_type, p_reference, p_description, p_metadata);
+  INSERT INTO public.transactions (user_id, amount, balance_after, type, reference_id, description, metadata)
+  VALUES (p_user_id, v_final_amount, v_hour, p_type, p_reference, p_description, p_metadata);
 
   RETURN jsonb_build_object(
     'success', true, 
     'awarded', v_final_amount, 
     'withheld', v_withheld,
     'multiplier', v_multiplier,
-    'pact_active', COALESCE(v_pact_active, false)
+    'pact_active', COALESCE(v_pact_active, false),
+    'balance', v_hour
   );
 END;
 $$;
