@@ -249,7 +249,7 @@ export default function JukeboxDJ({ roomName, onClose, isMinimized = false }) {
 
     return (
         <>
-            <div id="yt-player-hidden" style={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden', opacity: 0, pointerEvents: 'none' }} />
+            <div id="yt-player-hidden" style={{ position: 'fixed', left: '-9999px', top: '-9999px', width: 320, height: 180, pointerEvents: 'none' }} />
 
             <AnimatePresence mode="wait">
                 {!isMinimized ? (
