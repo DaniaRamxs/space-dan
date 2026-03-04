@@ -109,7 +109,7 @@ export default function HoldemTable({ roomName, onClose }) {
                     identity: localParticipant.identity,
                     name: profile?.username || 'Gamer',
                     avatar: profile?.avatar_url,
-                    frame: profile?.equipped_items?.find(i => i.type === 'frame')?.item_id
+                    frame: Array.isArray(profile?.equipped_items) ? profile.equipped_items.find(i => i.type === 'frame')?.item_id : null
                 }
             });
         }

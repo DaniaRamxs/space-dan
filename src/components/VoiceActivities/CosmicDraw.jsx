@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Eraser, Pen, Clock, Play, Trophy } from 'lucide-react';
 import { useLocalParticipant, useParticipants } from '@livekit/components-react';
