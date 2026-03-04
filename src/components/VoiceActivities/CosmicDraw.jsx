@@ -410,58 +410,62 @@ export default function CosmicDraw({ roomName, onClose }) {
                 </AnimatePresence>
             </div>
 
-            <div className={`transition-all duration-300 ${!isMyTurn || gameState !== 'playing' ? 'opacity-30 pointer-events-none grayscale' : ''}`}>
-                <div className="flex items-center justify-between gap-4 overflow-x-auto no-scrollbar pb-2">
-                    <div className="flex gap-2">
+            <div className={`transition-all duration-300 ${!isMyTurn || gameState !== 'playing' ? 'opacity-40 pointer-events-none' : ''}`}>
+                <div className="flex flex-wrap items-center justify-between gap-2 pb-2">
+                    <div className="flex flex-wrap gap-2">
                         {COLORS.map(c => (
                             <button
                                 key={c} onClick={() => setColor(c)}
                                 style={{ backgroundColor: c }}
-                                className={`w-8 h-8 rounded-full border-2 transition-transform shrink-0 ${color === c ? 'border-white scale-110 shadow-[0_0_15px_rgba(255,255,255,0.5)]' : 'border-transparent opacity-50 hover:opacity-100'}`}
+                                className={`w-9 h-9 rounded-full border-2 transition-transform shrink-0 ${color === c ? 'border-white scale-110 shadow-[0_0_15px_rgba(255,255,255,0.5)]' : 'border-transparent opacity-60 hover:opacity-100'}`}
                             />
                         ))}
                     </div>
                     <div className="flex gap-2 shrink-0">
-                        <button onClick={() => setLineWidth(prev => prev === 3 ? 10 : 3)} className={`p-2 rounded-xl transition-all ${lineWidth > 3 ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/30' : 'bg-white/5 text-white/50 border border-white/10 hover:text-white'}`}>
+                        <button onClick={() => setLineWidth(prev => prev === 3 ? 10 : 3)} className={`p-3 rounded-xl transition-all ${lineWidth > 3 ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/30' : 'bg-white/5 text-white/50 border border-white/10 hover:text-white'}`}>
                             <Pen size={18} />
                         </button>
-                        <button onClick={requestClearCanvas} className="p-2 rounded-xl bg-rose-500/10 text-rose-400 border border-rose-500/20 hover:bg-rose-500/20 transition-all">
+                        <button onClick={requestClearCanvas} className="p-3 rounded-xl bg-rose-500/10 text-rose-400 border border-rose-500/20 hover:bg-rose-500/20 transition-all">
                             <Eraser size={18} />
                         </button>
                     </div>
                 </div>
             </div>
 
-            <form
-                onSubmit={submitGuess}
-                className={`mt-2 pt-3 border-t border-white/10 flex items-center gap-2 transition-all ${gameState !== 'playing' ? 'opacity-50 pointer-events-none' : ''}`}
-            >
-                <input
-                    type="text"
-                    value={guessInput}
-                    onChange={(e) => setGuessInput(e.target.value)}
-                    disabled={isMyTurn}
-                    placeholder={isMyTurn ? "Eres el dibujante (Silencio...)" : "Escribe tu respuesta aquí..."}
-                    className={`flex-1 bg-white/5 border border-white/20 focus:border-cyan-500/50 rounded-xl px-4 py-3 sm:py-4 text-[11px] sm:text-xs text-white placeholder:text-white/30 outline-none transition-all focus:shadow-[0_0_15px_rgba(6,182,212,0.2)] ${isMyTurn ? 'cursor-not-allowed opacity-50' : 'cursor-text'}`}
-                />
-                {!isMyTurn ? (
+            {isMyTurn && gameState === 'playing' ? (
+                <div className="mt-2 pt-3 border-t border-white/10 flex items-center gap-2">
+                    <div className="flex-1 bg-amber-500/10 border border-amber-500/30 rounded-xl px-4 py-3 text-xs text-amber-400 font-black uppercase tracking-widest text-center">
+                        ✏️ Estás dibujando — Los demás adivinan
+                    </div>
+                </div>
+            ) : (
+                <form
+                    onSubmit={submitGuess}
+                    className={`mt-2 pt-3 border-t border-white/10 flex items-center gap-2 transition-all ${gameState !== 'playing' ? 'opacity-50 pointer-events-none' : ''}`}
+                >
+                    <input
+                        type="text"
+                        value={guessInput}
+                        onChange={(e) => setGuessInput(e.target.value)}
+                        placeholder="Escribe tu respuesta aquí..."
+                        autoComplete="off"
+                        className="flex-1 bg-white/5 border border-white/20 focus:border-cyan-500/50 rounded-xl px-4 py-3 text-xs text-white placeholder:text-white/30 outline-none transition-all focus:shadow-[0_0_15px_rgba(6,182,212,0.2)]"
+                    />
                     <button
                         type="submit"
                         disabled={!guessInput.trim() || gameState !== 'playing'}
-                        className="px-5 py-3 sm:py-4 rounded-xl bg-cyan-500 text-black font-black uppercase tracking-widest text-[9px] sm:text-[10px] disabled:opacity-30 shadow-[0_0_15px_rgba(6,182,212,0.3)] shrink-0"
+                        className="px-5 py-3 rounded-xl bg-cyan-500 text-black font-black uppercase tracking-widest text-[10px] disabled:opacity-30 shadow-[0_0_15px_rgba(6,182,212,0.3)] shrink-0"
                     >
                         Adivinar
                     </button>
-                ) : (
-                    <div className="px-5 py-3 sm:py-4 rounded-xl bg-white/5 text-white/20 border border-white/10 font-black uppercase tracking-widest text-[9px] sm:text-[10px] shrink-0">
-                        Dibujando
-                    </div>
-                )}
-            </form>
+                </form>
+            )}
 
             {isMyTurn && gameState === 'playing' && (
-                <div className="mt-4 text-center">
-                    <button onClick={() => endRound(null)} className="text-[9px] text-white/30 hover:text-rose-400 uppercase font-black tracking-widest px-4 py-2 rounded-lg hover:bg-rose-500/10 transition-all border border-transparent hover:border-rose-500/20">Terminar Ronda (Nadie sabe)</button>
+                <div className="mt-3 text-center">
+                    <button onClick={() => endRound(null)} className="text-[10px] text-white/30 hover:text-rose-400 uppercase font-black tracking-widest px-4 py-2 rounded-lg hover:bg-rose-500/10 transition-all border border-transparent hover:border-rose-500/20">
+                        Nadie lo sabe — Terminar ronda
+                    </button>
                 </div>
             )}
         </motion.div>
