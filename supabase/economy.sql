@@ -123,7 +123,12 @@ CREATE TABLE IF NOT EXISTS public.transactions (
                  'achievement', 'daily_bonus', 'game_reward', 'page_visit',
                  'purchase', 'transfer_in', 'transfer_out', 'transfer_fee',
                  'community_donation', 'community_reward',
-                 'admin_grant', 'admin_deduct', 'migration'
+                 'admin_grant', 'admin_deduct', 'migration',
+                 'work_bonus', 'market_crash', 'boss_reward', 'stellar_impulse',
+                 'investment_profit', 'investment_loss', 'insurance_claim',
+                 'blackjack_win', 'blackjack_loss', 'bet_win', 'bet_loss',
+                 'slots_win', 'slots_loss', 'rob_success', 'rob_penalty',
+                 'duel_win', 'duel_loss', 'game_loss'
                )),
   reference_id text        DEFAULT NULL, -- id del logro, item, transfer, etc.
   description  text        DEFAULT NULL,
