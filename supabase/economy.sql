@@ -396,7 +396,17 @@ DECLARE
   v_FEE_RATE       constant numeric := 0.05;  -- 5%
   v_MAX_HOURLY_TXS integer := 10;
   v_MAX_HOURLY_VOL integer := 10000; 
+  v_is_tycoon      boolean;
+  v_tycoon_tax     integer := 0;
 BEGIN
+  -- 0. Verificar si es Magnate (Aumenta sus límites pero añade impuesto)
+  SELECT EXISTS(SELECT 1 FROM public.galactic_tycoons WHERE user_id = p_from_user_id AND is_active = true) INTO v_is_tycoon;
+  
+  IF v_is_tycoon THEN
+    v_MAX_TRANSFER := 50000000; -- Magnates pueden mover 50M
+    v_MAX_HOURLY_VOL := 100000000;
+  END IF;
+
   -- Verificar Pacto Estelar (Restricciones financieras)
   SELECT stellar_pact_active INTO v_pact_active FROM public.profiles WHERE id = p_from_user_id;
   IF COALESCE(v_pact_active, false) THEN
@@ -450,8 +460,15 @@ BEGIN
     RAISE EXCEPTION 'Usuario receptor no encontrado';
   END IF;
 
-  -- Calcular comisión (0 para montos < 10, 5% para el resto)
-  v_fee := GREATEST(0, FLOOR(p_amount * v_FEE_RATE)::integer);
+  -- Calcular comisión Base
+  v_fee := floor(p_amount * v_FEE_RATE);
+  
+  -- Añadir Impuesto Magnate (2% extra en movimientos > 1M)
+  IF v_is_tycoon AND p_amount >= 1000000 THEN
+    v_tycoon_tax := floor(p_amount * 0.02);
+    v_fee := v_fee + v_tycoon_tax;
+  END IF;
+
   v_net := p_amount - v_fee;
 
   IF v_net <= 0 THEN

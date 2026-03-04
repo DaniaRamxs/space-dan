@@ -13,6 +13,8 @@ import StellarCalendar from "./components/Social/StellarCalendar";
 import BadgePicker from "./components/Social/BadgePicker";
 import PageTransition from "./components/PageTransition";
 import ScrollToTop from "./components/ScrollToTop";
+import RedemptionInvite from "./components/Social/RedemptionInvite";
+import TycoonInvite from "./components/Social/TycoonInvite";
 import { unlockAchievement } from "./hooks/useAchievements";
 import { trackPageVisit } from "./hooks/useStarlys";
 import { applyTheme } from "./hooks/useTheme";
@@ -64,6 +66,8 @@ const PostDetailPage = lazy(() => import("./pages/PostDetailPage"));
 const GlobalChatPage = lazy(() => import("./pages/GlobalChatPage"));
 const AffinityPage = lazy(() => import("./pages/AffinityPage"));
 const StellarMap = lazy(() => import("./pages/StellarMap"));
+const RedemptionZone = lazy(() => import("./pages/RedemptionZone"));
+const TycoonDashboard = lazy(() => import("./pages/TycoonDashboard"));
 
 function DarkSideManager() {
   useEffect(() => {
@@ -352,6 +356,8 @@ function AnimatedRoutes() {
         <Route path="/banco" element={<Layout><BankPage /></Layout>} />
         <Route path="/mercado-negro" element={<BlackMarketPage />} />
         <Route path="/mapa-estelar" element={<StellarMap />} />
+        <Route path="/zona-de-redencion" element={<RedemptionZone />} />
+        <Route path="/grandes-casas" element={<TycoonDashboard />} />
 
         <Route path="/cartas" element={
           loading ? <FallbackLoader /> : (user ? <Layout><OrbitLettersPage /></Layout> : <Layout><LoginGate message="Necesitas iniciar sesión para comunicarte con otros usuarios." /></Layout>)
@@ -447,6 +453,8 @@ export default function App() {
             <MusicSyncTracker />
             <BlackMarketNotification />
             <StellarOnboarding />
+            <RedemptionInvite />
+            <TycoonInvite />
             <Suspense fallback={<FallbackLoader />}>
               <AnimatedRoutes />
             </Suspense>

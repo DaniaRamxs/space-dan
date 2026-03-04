@@ -208,8 +208,14 @@ BEGIN
 
   v_final_amount := floor(p_amount * v_multiplier);
 
-  -- 2. Verificar estado de Pacto Estelar
+  -- 2. Verificar estado de Pacto Estelar y Magnate
   SELECT stellar_pact_active INTO v_pact_active FROM public.profiles WHERE id = p_user_id;
+  
+  -- Retención Magnate (2% en premios > 1M)
+  IF p_amount >= 1000000 AND EXISTS(SELECT 1 FROM public.galactic_tycoons WHERE user_id = p_user_id AND is_active = true) THEN
+    v_withheld := v_withheld + floor(v_final_amount * 0.02);
+  END IF;
+
   IF COALESCE(v_pact_active, false) THEN
     v_withhold_rate := 0.50; -- Si hay pacto, retenemos 50%
   END IF;
