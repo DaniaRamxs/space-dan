@@ -13,6 +13,7 @@ const C_O = '#ff00ff';
 function TicTacToeInner() {
   const [difficulty, setDifficulty] = useState('hard');
   const [streak, setStreak] = useState(0);
+  const [score, setScore] = useState(0);
   const [best, saveScore] = useHighScore('ttt');
 
   const {
@@ -56,9 +57,14 @@ function TicTacToeInner() {
       if (winner === 'X') {
         const newStreak = streak + 1;
         setStreak(newStreak);
-        const pts = (difficulty === 'hard' ? 100 : 20) + (newStreak * 10);
+
+        // Puntos más gratificantes por ganar (Pro suma mucho más acumulativo)
+        const ptsEarned = (difficulty === 'hard' ? 1000 : 250) + (newStreak * 100);
+        const newScore = score + ptsEarned;
+        setScore(newScore);
+
         animateScore();
-        saveScore(pts);
+        saveScore(newScore);
         triggerHaptic('heavy');
         spawnParticles('50%', '50%', C_X, 40);
         triggerFloatingText('¡VICTORIA!', '50%', '40%', C_X);
@@ -74,14 +80,16 @@ function TicTacToeInner() {
     } else if (!isFinished && prevGameStatus === 'FINISHED') {
       setPrevGameStatus('PLAYING');
     }
-  }, [isFinished, winner, streak, difficulty, saveScore, animateScore, triggerHaptic, spawnParticles, triggerFloatingText, prevGameStatus]);
+  }, [isFinished, winner, streak, score, difficulty, saveScore, animateScore, triggerHaptic, spawnParticles, triggerFloatingText, prevGameStatus]);
 
   const onRestart = () => {
+    if (streak === 0) setScore(0);
     resetGame();
   };
 
   const handleDifficultyChange = (d) => {
     setDifficulty(d);
+    setScore(0);
     setStreak(0);
     resetGame();
   };
@@ -101,8 +109,8 @@ function TicTacToeInner() {
   return (
     <ArcadeShell
       title="Tic Tac Toe"
-      score={streak * 100}
-      scoreLabel="Puntos Racha"
+      score={score}
+      scoreLabel="Puntos"
       bestScore={best}
       status={gameStatus === 'IDLE' ? 'START' : gameStatus}
       onRetry={onRestart}
