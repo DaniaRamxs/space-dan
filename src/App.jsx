@@ -1,5 +1,5 @@
 import React, { Suspense, lazy, useEffect, useRef } from "react";
-import { BrowserRouter, Routes, Route, useLocation, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useLocation, Navigate, useParams } from "react-router-dom";
 
 import { AnimatePresence } from "framer-motion";
 import "./styles.css";
@@ -76,6 +76,11 @@ function DarkSideManager() {
     return () => clearInterval(interval);
   }, []);
   return null;
+}
+
+function NavigateToProfile() {
+  const { username } = useParams();
+  return <Navigate to={`/@${username}`} replace />;
 }
 
 function DomainGuard() {
@@ -349,6 +354,9 @@ function AnimatedRoutes() {
         <Route path="/secret" element={<PageTransition><Secret /></PageTransition>} />
         <Route path="/spotify-callback" element={<SpotifyCallback />} />
         <Route path="/blog/:username/:slug" element={<BlogPostPage />} />
+
+        {/* Redirect legacy /profile/:username to /@username */}
+        <Route path="/profile/:username" element={<NavigateToProfile />} />
 
         {/* Dynamic Profile / 404 Catch-all */}
         <Route path="/:username" element={<Layout><ProfileRedesign /></Layout>} />

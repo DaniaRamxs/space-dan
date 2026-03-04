@@ -196,7 +196,7 @@ const HoloCard = memo(function HoloCard({ profile, onClose }) {
                             <button
                                 className="btn-glass"
                                 style={{ padding: '12px' }}
-                                onClick={() => navigate(profile.username ? `/@${encodeURIComponent(profile.username)}` : `/profile/${profileId}`)}
+                                onClick={() => navigate(profile.username ? `/@${encodeURIComponent(profile.username)}` : `/@${profileId}`)}
                             >
                                 Ver Perfil 👤
                             </button>

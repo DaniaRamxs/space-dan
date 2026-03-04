@@ -26,7 +26,8 @@
       "Bash(npx cap sync:*)",
       "Bash(node:*)",
       "Bash(npx tsc:*)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(xargs -I {} sh -c 'echo \"\"=== {} ===\"\" && head -1 {} | grep -o \"\"import\\\\|// \"\" || true')"
     ]
   }
 }

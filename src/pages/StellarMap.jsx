@@ -285,7 +285,7 @@ export default function StellarMap() {
                                         <Stat badge={<Flame size={10} />} value={`Act ${selectedUser.activity_level}`} color="text-violet-400" />
                                     </div>
                                 </div>
-                                <button onClick={() => navigate(`/profile/${selectedUser.username}`)} className="w-12 h-12 bg-cyan-500 rounded-2xl flex items-center justify-center text-black hover:scale-110 active:scale-95 transition-all shrink-0"><User size={20} /></button>
+                                <button onClick={() => navigate(`/@${selectedUser.username}`)} className="w-12 h-12 bg-cyan-500 rounded-2xl flex items-center justify-center text-black hover:scale-110 active:scale-95 transition-all shrink-0"><User size={20} /></button>
                             </div>
 
                             {/* Music Metadata if playing */}
