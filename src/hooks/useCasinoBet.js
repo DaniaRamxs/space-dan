@@ -1,7 +1,6 @@
 import { useState, useCallback } from 'react';
 import { useEconomy } from '../contexts/EconomyContext';
 import { useAuthContext } from '../contexts/AuthContext';
-import { supabase } from '../supabaseClient';
 import {
   saveCasinoResult,
   contributeJackpot,
@@ -31,10 +30,23 @@ export function useCasinoBet(gameId, gameTitle) {
 
   const placeBet = useCallback(async () => {
     if (bet <= 0 || bet > balance || isLoading) return false;
-    // Solo permitimos avanzar en UI; la transacción monetaria atómica será al final.
+    setIsLoading(true);
+
+    if (user) {
+      const res = await deductCoins(bet, 'casino_bet', `Casino: ${gameId}`);
+      if (!res?.success) {
+        setIsLoading(false);
+        return false;
+      }
+    }
+
+    // Jackpot contribution (1%)
+    contributeJackpot(Math.max(1, Math.ceil(bet * 0.01))).catch(() => {});
+
+    setIsLoading(false);
     setPhase('playing');
     return true;
-  }, [bet, balance, isLoading]);
+  }, [bet, balance, isLoading, user, deductCoins, gameId]);
 
   /**
    * Termina el juego.
@@ -45,46 +57,25 @@ export function useCasinoBet(gameId, gameTitle) {
     setIsLoading(true);
     const won = multiplier > 0;
     const winAmount = won ? Math.floor(bet * multiplier) : 0;
-    let net = 0;
+    const net = winAmount - bet; // negativo si pierde
     let streakBonusAwarded = false;
 
+    if (user && won && winAmount > 0) {
+      await awardCoins(winAmount, 'game_reward', gameId, `Casino win: ${gameId}`);
+    }
+
     if (user) {
-      // Transacción de resolución atómica en una sola llamada SQL
-      const { data, error } = await supabase.rpc('play_casino', {
-        p_user_id: user.id,
-        p_game_id: gameId,
-        p_bet_amount: bet,
-        p_win_amount: winAmount
-      });
-
-      if (error || !data?.success) {
-        console.error("Error atómico en Casino:", error || data?.reason);
-        // El usuario apostó dinero que no tenía entre que el juego cargaba
-        setResult({ won: false, net: 0, winAmount: 0, message: "Fondos Insuficientes", streakBonusAwarded: false, currentStreak: 0 });
-        setPhase('result');
-        setIsLoading(false);
-        return;
-      }
-
-      net = data.net_profit;
-
-      // Jackpot contrib
-      contributeJackpot(Math.max(1, Math.ceil(bet * 0.01))).catch(() => { });
-
       if (won) {
         const newStreak = incrementStreak();
         if (newStreak >= STREAK_THRESHOLD) {
           resetStreak();
-          awardCoins(STREAK_BONUS_COINS, 'game_reward', gameId, '🔥 Racha de 3 victorias!').catch(() => { });
+          awardCoins(STREAK_BONUS_COINS, 'game_reward', gameId, '🔥 Racha de 3 victorias!').catch(() => {});
           streakBonusAwarded = true;
         }
       } else {
         resetStreak();
       }
-    }
 
-    // Guardar resultado en DB
-    if (user) {
       saveCasinoResult({
         userId: user.id,
         username: profile?.username || user.email?.split('@')[0] || 'Explorador',
@@ -93,7 +84,7 @@ export function useCasinoBet(gameId, gameTitle) {
         betAmount: bet,
         resultAmount: winAmount,
         profit: net,
-      }).catch(() => { });
+      }).catch(() => {});
     }
 
     setResult({ won, net, winAmount, message, streakBonusAwarded, currentStreak: getWinStreak() });
