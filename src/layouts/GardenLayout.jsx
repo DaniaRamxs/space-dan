@@ -181,7 +181,10 @@ export default function GardenLayout({ children }) {
                     className="hubAvatar"
                   />
                   <div className="hubUserDetails">
-                    <div className="hubUserName">{ownProfile?.display_name || user?.email?.split('@')[0] || 'Viajero'}</div>
+                    <div className="hubUserName flex items-center gap-2">
+                      {ownProfile?.display_name || user?.email?.split('@')[0] || 'Viajero'}
+                      {ownProfile?.is_stellar_citizen && <span title="Ciudadano Estelar" className="text-amber-400">👑</span>}
+                    </div>
                     <div className="hubUserLevel">Nivel Estelar {ownProfile?.level || 1}</div>
                   </div>
                 </div>
@@ -211,6 +214,7 @@ export default function GardenLayout({ children }) {
                 className="hubGrid"
               >
                 {[
+                  { to: '/tienda-galactica', icon: '💎', label: 'Tienda Galáctica', className: 'hub-item-premium' },
                   { to: '/bulletin', icon: '📰', label: 'Noticias' },
                   { to: '/chat', icon: '💬', label: 'Chat Global' },
                   { to: '/logros', icon: '🏆', label: 'Logros' },
@@ -229,7 +233,7 @@ export default function GardenLayout({ children }) {
                       show: { opacity: 1, scale: 1, y: 0 }
                     }}
                   >
-                    <NavLink to={item.to} onClick={closeMenu} className="hubItem">
+                    <NavLink to={item.to} onClick={closeMenu} className={`hubItem ${item.className || ''}`}>
                       <span className="hubItemIcon">{item.icon}</span>
                       <span className="hubItemLabel">{item.label}</span>
                     </NavLink>
