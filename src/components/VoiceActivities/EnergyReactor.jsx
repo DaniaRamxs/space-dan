@@ -14,56 +14,88 @@ export default function EnergyReactor({ roomName }) {
     const [isUpdating, setIsUpdating] = useState(false);
 
     useEffect(() => {
-        const fetchState = async () => {
-            const { data, error } = await supabase
-                .from('voice_room_reactors')
-                .select('*')
-                .eq('room_name', roomName)
-                .single();
+        if (!roomName) return;
 
-            if (data) {
-                updateLocalState(data);
-            } else if (error && error.code === 'PGRST116') {
-                // Si no existe, intentar crear uno inicial
-                await supabase.from('voice_room_reactors').insert({
-                    room_name: roomName,
-                    energy: 0,
-                    level: 1,
-                    target: 1000
-                }).select().single().then(({ data }) => {
-                    if (data) updateLocalState(data);
-                });
+        // Normalizar nombre de sala para el ID de base de datos
+        const roomKey = roomName.toLowerCase().trim();
+
+        const fetchState = async () => {
+            try {
+                const { data, error } = await supabase
+                    .from('voice_room_reactors')
+                    .select('*')
+                    .eq('room_name', roomKey)
+                    .maybeSingle();
+
+                if (data) {
+                    updateLocalState(data);
+                } else {
+                    // Si no existe, intentar crear uno inicial (upsert por si alguien más lo creó al mismo tiempo)
+                    const { data: newData } = await supabase
+                        .from('voice_room_reactors')
+                        .upsert({
+                            room_name: roomKey,
+                            energy: 0,
+                            level: 1,
+                            target: 1000,
+                            updated_at: new Date().toISOString()
+                        }, { onConflict: 'room_name' })
+                        .select()
+                        .single();
+
+                    if (newData) updateLocalState(newData);
+                }
+            } catch (err) {
+                console.error('[Reactor] Init error:', err);
             }
         };
 
         fetchState();
 
-        const channel = supabase.channel(`reactor:${roomName}`)
+        const channel = supabase.channel(`reactor:${roomKey}`)
             .on('postgres_changes', {
                 event: 'UPDATE',
                 schema: 'public',
                 table: 'voice_room_reactors',
-                filter: `room_name=eq.${roomName}`
+                filter: `room_name=eq.${roomKey}`
             }, payload => {
                 updateLocalState(payload.new);
             })
             .subscribe();
 
-        return () => supabase.removeChannel(channel);
+        return () => {
+            supabase.removeChannel(channel);
+        };
     }, [roomName]);
 
-    // Timer para el bonus
+    // Timer para el bonus (actualización por segundo)
     useEffect(() => {
         if (!isBonusActive) return;
 
-        const timer = setInterval(() => {
-            const now = new Date();
-            // Necesitamos persistir bonus_expires_at localmente para el timer
-            // o recalcularlo desde el estado.
-        }, 10000);
+        const interval = setInterval(() => {
+            const fetchCurrent = async () => {
+                const { data } = await supabase
+                    .from('voice_room_reactors')
+                    .select('bonus_expires_at')
+                    .eq('room_name', roomName.toLowerCase().trim())
+                    .single();
 
-        return () => clearInterval(timer);
-    }, [isBonusActive]);
+                if (data?.bonus_expires_at) {
+                    const expires = new Date(data.bonus_expires_at);
+                    const now = new Date();
+                    if (expires <= now) {
+                        setIsBonusActive(false);
+                        setTimeLeft(null);
+                    } else {
+                        setTimeLeft(Math.ceil((expires - now) / 60000));
+                    }
+                }
+            };
+            fetchCurrent();
+        }, 10000); // Cada 10s para no saturar
+
+        return () => clearInterval(interval);
+    }, [isBonusActive, roomName]);
 
     const updateLocalState = (data) => {
         setEnergy(data.energy);
@@ -88,9 +120,10 @@ export default function EnergyReactor({ roomName }) {
     const injectEnergy = async (amount) => {
         if (balance < amount || isUpdating) return;
 
+        const roomKey = roomName.toLowerCase().trim();
         setIsUpdating(true);
         try {
-            const success = await deductCoins(amount);
+            const success = await deductCoins(amount, 'activity', `Inyección de energía: ${roomName}`);
             if (!success?.success) {
                 setIsUpdating(false);
                 return;
@@ -100,7 +133,7 @@ export default function EnergyReactor({ roomName }) {
             const { data: currentState } = await supabase
                 .from('voice_room_reactors')
                 .select('*')
-                .eq('room_name', roomName)
+                .eq('room_name', roomKey)
                 .single();
 
             if (!currentState) {
@@ -109,11 +142,9 @@ export default function EnergyReactor({ roomName }) {
             }
 
             let newEnergy = currentState.energy + amount;
-            let levelUp = false;
             let updates = { energy: newEnergy, updated_at: new Date().toISOString() };
 
             if (newEnergy >= currentState.target) {
-                levelUp = true;
                 updates = {
                     energy: 0,
                     level: currentState.level + 1,
@@ -126,7 +157,7 @@ export default function EnergyReactor({ roomName }) {
             const { error } = await supabase
                 .from('voice_room_reactors')
                 .update(updates)
-                .eq('room_name', roomName);
+                .eq('room_name', roomKey);
 
             if (error) throw error;
 

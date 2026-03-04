@@ -1,7 +1,7 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
 
-const LIVEKIT_API_KEY    = Deno.env.get("LIVEKIT_API_KEY")!
+const LIVEKIT_API_KEY = Deno.env.get("LIVEKIT_API_KEY")!
 const LIVEKIT_API_SECRET = Deno.env.get("LIVEKIT_API_SECRET")!
 
 const corsHeaders = {
@@ -26,19 +26,19 @@ async function generateLiveKitToken(
             .replace(/\//g, "_")
             .replace(/=/g, "")
 
-    const header  = b64url({ alg: "HS256", typ: "JWT" })
+    const header = b64url({ alg: "HS256", typ: "JWT" })
     const payload = b64url({
-        iss:      LIVEKIT_API_KEY,
-        sub:      identity,
-        nbf:      now,
-        exp:      now + ttl,
+        iss: LIVEKIT_API_KEY,
+        sub: identity,
+        nbf: now,
+        exp: now + ttl,
         name,
         metadata,
         video: {
-            roomJoin:       true,
-            room:           roomName,
-            canPublish:     true,
-            canSubscribe:   true,
+            roomJoin: true,
+            room: roomName,
+            canPublish: true,
+            canSubscribe: true,
             canPublishData: true,
         },
     })
@@ -53,8 +53,8 @@ async function generateLiveKitToken(
         ["sign"]
     )
 
-    const rawSig  = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(signingInput))
-    const sig     = btoa(String.fromCharCode(...new Uint8Array(rawSig)))
+    const rawSig = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(signingInput))
+    const sig = btoa(String.fromCharCode(...new Uint8Array(rawSig)))
         .replace(/\+/g, "-")
         .replace(/\//g, "_")
         .replace(/=/g, "")
@@ -80,14 +80,14 @@ Deno.serve(async (req) => {
         const { data: { user }, error: authError } = await supabaseClient.auth.getUser()
         if (authError || !user) throw new Error("Usuario no autorizado")
 
-        const { roomName, participantName, userAvatar, nicknameStyle, frameId } = await req.json()
+        const { roomName, participantName, userAvatar, nicknameStyle, frameId, activityLevel } = await req.json()
         if (!roomName || !participantName) throw new Error("Faltan parámetros de sala")
 
         const token = await generateLiveKitToken(
             user.id,
             participantName,
             roomName,
-            JSON.stringify({ avatar: userAvatar, nicknameStyle, frameId })
+            JSON.stringify({ avatar: userAvatar, nicknameStyle, frameId, activityLevel: activityLevel || 1 })
         )
 
         return new Response(JSON.stringify({ token }), {

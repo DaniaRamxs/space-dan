@@ -8,12 +8,13 @@ import {
     RoomAudioRenderer,
     useChat,
 } from '@livekit/components-react';
-import { Mic, MicOff, LogOut, Users, Radio, X, ChevronDown, ChevronUp, MessageSquare, Send, Gamepad2, Music } from 'lucide-react';
+import { Mic, MicOff, LogOut, Users, Radio, X, ChevronDown, ChevronUp, MessageSquare, Send, Gamepad2, Music, Flame } from 'lucide-react';
 import { supabase } from '../../supabaseClient';
 import { getNicknameClass } from '../../utils/user';
 import { getFrameStyle } from '../../utils/styles';
 import { Capacitor, registerPlugin } from '@capacitor/core';
 import JukeboxDJ from '../VoiceActivities/JukeboxDJ';
+import VoiceActivityTracker from './VoiceActivityTracker';
 import VoiceActivityLauncher from '../VoiceActivities/VoiceActivityLauncher';
 import EnergyReactor from '../VoiceActivities/EnergyReactor';
 import VoiceFXMenu from './VoiceFXMenu';
@@ -27,7 +28,11 @@ const leaveSound = new Audio('https://assets.mixkit.co/active_storage/sfx/2571/2
 joinSound.volume = 0.2;
 leaveSound.volume = 0.2;
 
-export default function VoiceRoomUI({ roomName, onLeave, onConnected, userAvatar, nicknameStyle, frameId, isOpen, onMinimize, onExpand, userName }) {
+export default function VoiceRoomUI({
+    roomName, isOpen, onMinimize, onExpand, onLeave,
+    userName, userAvatar, nicknameStyle, frameId, activityLevel,
+    onConnected
+}) {
     const [token, setToken] = useState(null);
     const [connecting, setConnecting] = useState(true);
     const [error, setError] = useState(null);
@@ -57,7 +62,7 @@ export default function VoiceRoomUI({ roomName, onLeave, onConnected, userAvatar
                 const { data: { session } } = await supabase.auth.getSession();
                 const participantName = userName || session?.user?.user_metadata?.username || 'Anónimo';
                 const { data, error: fnError } = await supabase.functions.invoke('livekit-token', {
-                    body: { roomName, participantName, userAvatar, nicknameStyle, frameId }
+                    body: { roomName, participantName, userAvatar, nicknameStyle, frameId, activityLevel }
                 });
                 if (fnError) throw new Error(fnError.message);
                 if (data?.error) throw new Error(data.error);
@@ -133,6 +138,7 @@ export default function VoiceRoomUI({ roomName, onLeave, onConnected, userAvatar
             style={{ display: 'contents' }}
         >
             <RoomAudioRenderer />
+            <VoiceActivityTracker />
 
             {/* Mini-barra flotante cuando el panel está minimizado */}
             {!isOpen && <MinimizedBar roomName={roomName} onExpand={onExpand} onLeave={onLeave} />}
@@ -322,7 +328,13 @@ function ParticipantsList() {
                                 </div>
                             </div>
                             <div>
-                                <h4 className={`text-[11px] font-black uppercase tracking-widest ${nickClass || 'text-white'}`}>{p.name || 'Piloto'}</h4>
+                                <div className="flex items-center gap-2 mb-1">
+                                    <h4 className={`text-[11px] font-black uppercase tracking-widest ${nickClass || 'text-white'}`}>{p.name || 'Piloto'}</h4>
+                                    <div className="flex items-center gap-0.5 bg-violet-500/10 border border-violet-500/20 rounded-full px-1.5 py-0.5" title="Nivel de Actividad">
+                                        <Flame size={8} className="text-violet-400 fill-current" />
+                                        <span className="text-[8px] font-black text-violet-300">{meta.activityLevel || 1}</span>
+                                    </div>
+                                </div>
                                 <div className="flex items-center gap-1.5">
                                     <span className={`w-1.5 h-1.5 rounded-full ${p.isSpeaking ? 'bg-cyan-400 animate-pulse' : 'bg-white/20'}`} />
                                     <span className="text-[7px] font-bold text-white/30 uppercase tracking-[0.2em]">{p.isSpeaking ? 'Hablando' : 'En línea'}</span>

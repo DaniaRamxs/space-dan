@@ -6,6 +6,7 @@ import { useAuthContext } from '../../../contexts/AuthContext';
 import { useEconomy } from '../../../contexts/EconomyContext';
 import * as economyService from '../../../services/economy';
 import { chatService } from '../../../services/chatService';
+import { activityService } from '../../../services/activityService';
 import { createNotification } from '../../../services/supabaseNotifications';
 import { supabase } from '../../../supabaseClient';
 import ChatMessage, { parseMentions } from './ChatMessage';
@@ -501,14 +502,35 @@ export default function GlobalChat() {
             case '/lb':
             case '/leaderboard':
                 try {
-                    const top = await economyService.getLeaderboard(5);
-                    const medals = ['🥇', '🥈', '🥉', '4️⃣', '5️⃣'];
-                    const rankClasses = ['bot-lb-first', 'bot-lb-second', 'bot-lb-third', '', ''];
-                    const entries = top.map((u, i) =>
-                        `<div class="bot-lb-entry ${rankClasses[i]}"><div class="bot-lb-rank">${medals[i]}</div><div class="bot-lb-name">@${u.username}</div><div class="bot-lb-coins">${u.balance.toLocaleString()} ◈</div></div>`
-                    ).join('\n');
-                    response = `<div class="bot-card">\n<div class="bot-card-label">🏆 Top Viajeros Galácticos</div>\n${entries}\n</div>`;
-                } catch (e) { response = '❌ Error al consultar el registro estelar.'; }
+                    const isChat = args[0] === 'chat' || args[0] === 'msgs';
+                    const top = isChat
+                        ? await chatService.getChatLeaderboard(10)
+                        : await economyService.getLeaderboard(10);
+
+                    const medals = ['🥇', '🥈', '🥉', '4️⃣', '5️⃣', '6️⃣', '7️⃣', '8️⃣', '9️⃣', '🔟'];
+                    const rankClasses = ['bot-lb-first', 'bot-lb-second', 'bot-lb-third', '', '', '', '', '', '', ''];
+
+                    const entries = top.map((u, i) => {
+                        const score = isChat
+                            ? `<div class="bot-lb-coins">Lv.${u.chat_level} · ${u.message_count} 💬</div>`
+                            : `<div class="bot-lb-coins">${u.balance.toLocaleString()} ◈</div>`;
+
+                        return `<div class="bot-lb-entry ${rankClasses[i] || ''}">
+                            <div class="bot-lb-rank">${medals[i] || (i + 1)}</div>
+                            <div class="bot-lb-name">@${u.username}</div>
+                            ${score}
+                        </div>`;
+                    }).join('\n');
+
+                    response = `<div class="bot-card">
+                        <div class="bot-card-label">${isChat ? '🏆 Top Charlatanes Estelares' : '🏆 Top Viajeros Galácticos'}</div>
+                        <div class="bot-lb-container">${entries}</div>
+                        <div class="bot-card-footer">${isChat ? 'Usa /lb para ver el ranking de Starlys' : 'Usa /lb chat para ver el ranking de mensajes'}</div>
+                    </div>`;
+                } catch (e) {
+                    console.error(e);
+                    response = '❌ Error al consultar el registro estelar.';
+                }
                 break;
 
             case '/work':
@@ -760,6 +782,29 @@ export default function GlobalChat() {
         if (isVip && balance < 50) return alert('Starlys insuficientes.');
         try {
             const sentMsg = await chatService.sendMessage(content, isVip, replyToId, activeChannel);
+
+            // Incrementar estadísticas y verificar nivel
+            chatService.incrementChatStats().then(res => {
+                if (res?.level_up) {
+                    const senderName = userProfile?.username || 'Viajero';
+                    chatService.sendBotMessage(
+                        `🎊 ¡Felicidades **@${senderName}**! Has alcanzado el **Nivel de Chat ${res.chat_level}** 🚀. ¡Sigue explorando!`,
+                        activeChannel
+                    );
+                }
+            });
+
+            // Recompensa de Actividad General
+            activityService.awardActivityXP(5, 'message').then(res => {
+                if (res?.level_up) {
+                    const senderName = userProfile?.username || 'Viajero';
+                    chatService.sendBotMessage(
+                        `🔥 ¡Increíble **@${senderName}**! Tu **Nivel de Actividad** ha subido a **${res.activity_level}**. ¡Eres un pilar de la comunidad! 🌌`,
+                        activeChannel
+                    )
+                }
+            }).catch(() => { });
+
             if (isVip) await transfer(HYPERBOT.id, 50, 'VIP Message Cost');
             setReplyingTo(null);
             setIsVipMode(false);
@@ -1006,6 +1051,7 @@ export default function GlobalChat() {
                     nicknameStyle={userProfile?.equipped_nickname_style}
                     frameId={userProfile?.frame_item_id}
                     userName={userProfile?.username}
+                    activityLevel={userProfile?.activity_level}
                 />
             )}
         </div>

@@ -4,6 +4,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeRaw from 'rehype-raw';
 import rehypeSanitize, { defaultSchema } from 'rehype-sanitize';
+import { Zap, Flame } from 'lucide-react';
 import { getNicknameClass, getUserDisplayName } from '../../../utils/user';
 import { getFrameStyle } from '../../../utils/styles';
 import { parseSpaceEnergies } from '../../../utils/markdownUtils';
@@ -82,9 +83,16 @@ const ChatMessage = memo(({ message, isMe, isOnline, userPresence, onProfileClic
                         );
                     })()}
                 </div>
-                {/* Level Badge */}
-                <div className="absolute -bottom-1 -right-1 bg-black/80 border border-white/20 rounded-full px-1.5 py-0.5 text-[7px] font-black text-cyan-400 z-20 shadow-lg">
+                {/* Stellar Level Badge */}
+                <div className="absolute -top-1 -right-1 bg-black/80 border border-cyan-500/30 rounded-full px-1 py-0.5 text-[6px] font-black text-white flex items-center gap-0.5 z-20 shadow-lg">
+                    <Zap size={6} className="text-cyan-400 fill-current" />
                     {safeAuthor?.user_level || safeAuthor?.level || 1}
+                </div>
+
+                {/* Activity Level Badge */}
+                <div className="absolute -bottom-1 -right-1 bg-black/80 border border-violet-500/30 rounded-full px-1 py-0.5 text-[6px] font-black text-white flex items-center gap-0.5 z-20 shadow-lg">
+                    <Flame size={6} className="text-violet-400 fill-current" />
+                    {safeAuthor?.activity_level || 1}
                 </div>
             </div>
 

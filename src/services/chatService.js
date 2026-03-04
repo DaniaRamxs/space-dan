@@ -71,7 +71,7 @@ export const chatService = {
         if (userIds.length > 0) {
             const { data: profiles } = await supabase
                 .from('profiles')
-                .select('id, username, avatar_url, equipped_nickname_style')
+                .select('id, username, avatar_url, equipped_nickname_style, equipped_frame, activity_level, user_level:level')
                 .in('id', userIds);
 
             if (profiles) {
@@ -129,6 +129,30 @@ export const chatService = {
             `)
             .ilike('username', username)
             .maybeSingle();
+        if (error) throw error;
+        return data;
+    },
+
+    async incrementChatStats() {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return null;
+
+        const { data, error } = await supabase.rpc('increment_chat_stats', { p_user_id: user.id });
+        if (error) {
+            console.error('[chatService] incrementChatStats error:', error);
+            return null;
+        }
+        return data; // { message_count, chat_level, level_up }
+    },
+
+    async getChatLeaderboard(limit = 10) {
+        const { data, error } = await supabase
+            .from('profiles')
+            .select('username, message_count, chat_level, avatar_url')
+            .gt('message_count', 0)
+            .order('message_count', { ascending: false })
+            .limit(limit);
+
         if (error) throw error;
         return data;
     }
