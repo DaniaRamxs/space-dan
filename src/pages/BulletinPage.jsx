@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import MarkdownGuide from '../components/Social/MarkdownGuide';
+import LevelGuide from '../components/Social/LevelGuide';
 import ApkDownload from '../components/ApkDownload';
 
 const bulletinPosts = [
@@ -104,6 +105,7 @@ const bulletinPosts = [
   { id: 105, date: "2026-03-02", title: "Operación: Blindaje Estelar 🛡️", text: "Implementamos una actualización masiva de seguridad. Tu economía, perfil y mensajes ahora están respaldados por nuevas políticas de privacidad incorruptibles. Hemos fortalecido el núcleo de nuestra base de datos para prevenir spam, manipulación de Starlys y asegurar que solo tú tengas el mando de tus propios datos dentro de Spacely.", tags: ["update", "seguridad", "tecnología"] },
   { id: 106, date: "2026-03-02", title: "Refinería de Identidad 🚀", text: "Corregimos un error crítico en el proceso de bienvenida que causaba bucles de redirección al registrarse. Ahora la creación de identidad está unificada, asegurando que todos los nuevos exploradores pasen por el onboarding correctamente y sus fotos de perfil se carguen al instante sin errores.", tags: ["fix", "identidad", "performance"] },
   { id: 107, date: "2026-03-02", title: "Radar Emocional API v1.2 🎧", text: "El perfil de usuario estrena HUD de Radar Emocional v1.2. Ahora la compatibilidad y afinidad estelar se calculan usando el historial sonoro de los últimos 3 días. Además, si están sintonizando audio ahora mismo o tienen un puente musical reciente, lo verás reflejado con estilo HUD animado.", tags: ["update", "música", "diseño"] },
+  { id: 108, date: "2026-03-04", title: "Sistema de Niveles: Rayo y Llama ⚡🔥", text: "Estrenamos dos nuevos indicadores visuales en el chat: el Rayo Azul (Poder Estelar Total) y la Llama Morada (Actividad Social en Vivo). ¡Consulta la nueva sección de información para saber cómo subirlos!", tags: ["update", "gamificación"] },
 ];
 
 const PAGE_SIZE = 10;
@@ -132,6 +134,7 @@ export default function BulletinPage() {
   const [activeTag, setActiveTag] = useState(null);
   const [visible, setVisible] = useState(PAGE_SIZE);
   const [showGuide, setShowGuide] = useState(false);
+  const [showLevelGuide, setShowLevelGuide] = useState(false);
 
   const sorted = useMemo(() => [...bulletinPosts].reverse(), []);
 
@@ -170,12 +173,20 @@ export default function BulletinPage() {
             {bulletinPosts.length} entradas · Registro de actualizaciones
           </p>
         </div>
-        <button
-          onClick={() => setShowGuide(true)}
-          className="px-6 py-3 bg-white/5 border border-white/10 rounded-xl text-[10px] font-black uppercase tracking-widest text-cyan-400 hover:bg-cyan-400/10 hover:border-cyan-400/30 transition-all w-full md:w-auto shadow-lg shadow-cyan-500/5 group text-center"
-        >
-          <span className="group-hover:animate-pulse">✨ Aprende a usar la energía estelar</span>
-        </button>
+        <div className="flex flex-col gap-2 w-full md:w-auto">
+          <button
+            onClick={() => setShowGuide(true)}
+            className="px-6 py-3 bg-white/5 border border-white/10 rounded-xl text-[10px] font-black uppercase tracking-widest text-cyan-400 hover:bg-cyan-400/10 hover:border-cyan-400/30 transition-all shadow-lg shadow-cyan-500/5 group text-center"
+          >
+            <span className="group-hover:animate-pulse">✨ Guía de Energía Estelar</span>
+          </button>
+          <button
+            onClick={() => setShowLevelGuide(true)}
+            className="px-6 py-3 bg-white/5 border border-white/10 rounded-xl text-[10px] font-black uppercase tracking-widest text-violet-400 hover:bg-violet-400/10 hover:border-violet-400/30 transition-all shadow-lg shadow-violet-500/5 group text-center"
+          >
+            <span className="group-hover:animate-pulse">📊 Info Rango y Actividad</span>
+          </button>
+        </div>
       </motion.div>
 
       <div className="px-4 md:px-0 mb-8">
@@ -185,6 +196,7 @@ export default function BulletinPage() {
 
       <AnimatePresence>
         {showGuide && <MarkdownGuide onClose={() => setShowGuide(false)} />}
+        {showLevelGuide && <LevelGuide onClose={() => setShowLevelGuide(false)} />}
       </AnimatePresence>
 
       {/* Buscador */}

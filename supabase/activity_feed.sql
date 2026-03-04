@@ -78,7 +78,8 @@ CREATE OR REPLACE FUNCTION public.get_activity_feed(
   p_viewer_id uuid,
   p_filter_type text DEFAULT 'all',
   p_limit int DEFAULT 10,
-  p_offset int DEFAULT 0
+  p_offset int DEFAULT 0,
+  p_author_id uuid DEFAULT NULL
 )
 RETURNS jsonb
 LANGUAGE plpgsql
@@ -145,6 +146,7 @@ BEGIN
     JOIN public.profiles prof ON prof.id = p.author_id
     WHERE 
       (p_filter_type = 'all' OR p.type::text = p_filter_type)
+      AND (p_author_id IS NULL OR p.author_id = p_author_id)
     ORDER BY p.created_at DESC
     LIMIT p_limit
     OFFSET p_offset
