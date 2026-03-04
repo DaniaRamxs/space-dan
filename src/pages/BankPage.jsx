@@ -76,7 +76,7 @@ export default function BankPage() {
         setProcessing(false);
     };
 
-    const maxLoan = 200 + ((profile?.level || 1) * 150);
+    const maxLoan = 15000000;
 
     return (
         <div className="max-w-4xl mx-auto px-4 py-8 md:py-12 min-h-screen">
@@ -99,7 +99,7 @@ export default function BankPage() {
                             <Wallet size={80} />
                         </div>
 
-                        <h2 className="text-sm font-black text-white/30 uppercase tracking-widest mb-6">Tu Bóveda Escolar</h2>
+                        <h2 className="text-sm font-black text-white/30 uppercase tracking-widest mb-6">Tu Bóveda Estelar</h2>
                         <div className="flex items-end gap-3 mb-1">
                             <span className="text-5xl font-black text-white tracking-tighter">{balance?.toLocaleString()}</span>
                             <span className="text-amber-500 font-bold mb-2">◈</span>

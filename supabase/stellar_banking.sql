@@ -28,10 +28,8 @@ BEGIN
         RETURN jsonb_build_object('success', false, 'reason', 'already_has_loan', 'remaining', v_active_loan.remaining_debt);
     END IF;
 
-    -- 2. Calcular límite según nivel
-    SELECT activity_level INTO v_user_level FROM public.profiles WHERE id = p_user_id;
-    v_user_level := COALESCE(v_user_level, 1);
-    v_max_loan := 200 + (v_user_level * 150); -- Ej: Nivel 1 = 350, Nivel 10 = 1700
+    -- 2. Calcular límite (Máximo 15M)
+    v_max_loan := 15000000;
 
     IF p_amount > v_max_loan THEN
         RETURN jsonb_build_object('success', false, 'reason', 'limit_exceeded', 'limit', v_max_loan);

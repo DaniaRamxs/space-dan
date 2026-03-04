@@ -1104,7 +1104,7 @@ export default function GlobalChat() {
                     const lLimit = lResult?.limit;
                     const lReason = lResult?.reason;
                     if (lReason === 'already_has_loan') response = `⚠️ Ya tienes una deuda activa de **${lResult.remaining} ◈**. Salda tu cuenta en el Banco para pedir otro.`;
-                    else if (lReason === 'limit_exceeded') response = `❌ Límite excedido. Tu nivel actual permite hasta **${lLimit} ◈**.`;
+                    else if (lReason === 'limit_exceeded') response = `❌ Límite excedido. El Banco Estelar permite hasta **${lLimit.toLocaleString()} ◈**.`;
                     else response = '❌ No se pudo procesar el préstamo.';
                     break;
                 }
