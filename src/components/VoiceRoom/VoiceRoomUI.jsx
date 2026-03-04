@@ -8,11 +8,12 @@ import {
     RoomAudioRenderer,
     useChat,
 } from '@livekit/components-react';
-import { Mic, MicOff, LogOut, Users, Radio, X, ChevronDown, ChevronUp, MessageSquare, Send } from 'lucide-react';
+import { Mic, MicOff, LogOut, Users, Radio, X, ChevronDown, ChevronUp, MessageSquare, Send, Gamepad2 } from 'lucide-react';
 import { supabase } from '../../supabaseClient';
 import { getNicknameClass } from '../../utils/user';
 import { getFrameStyle } from '../../utils/styles';
 import { Capacitor, registerPlugin } from '@capacitor/core';
+import VoiceActivityLauncher from '../VoiceActivities/VoiceActivityLauncher';
 
 const VoiceServicePlugin = registerPlugin('VoiceService');
 
@@ -27,7 +28,8 @@ export default function VoiceRoomUI({ roomName, onLeave, onConnected, userAvatar
     const [token, setToken] = useState(null);
     const [connecting, setConnecting] = useState(true);
     const [error, setError] = useState(null);
-    const [activeTab, setActiveTab] = useState('participants');
+    const [activeTab, setActiveTab] = useState('participants'); // participants, chat
+    const [activeActivity, setActiveActivity] = useState(null);
     const roomRef = useRef(roomName);
 
     useEffect(() => {
@@ -186,8 +188,17 @@ export default function VoiceRoomUI({ roomName, onLeave, onConnected, userAvatar
                                         </button>
                                     </div>
                                 </header>
-                                <div className="flex-1 overflow-y-auto p-6 sm:p-8 no-scrollbar">
-                                    {activeTab === 'participants' ? <ParticipantsList /> : <ChatPanel />}
+                                <div className="flex-1 overflow-y-auto p-6 sm:p-8 no-scrollbar relative min-h-[300px]">
+                                    {activeActivity ? (
+                                        <VoiceActivityLauncher roomName={roomName} activeActivity={activeActivity} setActiveActivity={setActiveActivity} />
+                                    ) : (
+                                        <>
+                                            {activeTab === 'participants' ? <ParticipantsList /> : <ChatPanel />}
+                                            <div className="mt-8 relative z-10 bottom-0 left-0 w-full">
+                                                <VoiceActivityLauncher roomName={roomName} activeActivity={activeActivity} setActiveActivity={setActiveActivity} />
+                                            </div>
+                                        </>
+                                    )}
                                 </div>
                                 <footer className="p-6 sm:p-8 bg-black/40 border-t border-white/5 flex items-center justify-center">
                                     <MuteToggle />
