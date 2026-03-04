@@ -4,6 +4,7 @@ import { GameImmersiveLayout } from '../core/GameImmersiveLayout';
 import { ArcadeShell } from './ArcadeShell';
 import { useArcadeSystems } from '../hooks/useArcadeSystems';
 import useHighScore from '../hooks/useHighScore';
+import { MobileControls } from './MobileControls';
 
 const W = 400;
 const H = 500;
@@ -359,6 +360,7 @@ function SpaceInvadersInner() {
       particles={particles}
       floatingTexts={floatingTexts}
       subTitle="Repele la invasión alienígena."
+      gameId="invaders"
     >
       <div style={{ position: 'relative', width: 'min(40vh, 72vw)', height: 'min(50vh, 90vw)', background: 'rgba(4,4,10,0.8)', borderRadius: 20, padding: 6, border: '1px solid rgba(255,255,255,0.07)', boxShadow: '0 24px 60px rgba(0,0,0,0.7), inset 0 0 30px rgba(0,0,0,0.4)', overflow: 'hidden', backdropFilter: 'blur(8px)' }}>
         <canvas
@@ -376,14 +378,28 @@ function SpaceInvadersInner() {
       </div>
 
       <div style={{ marginTop: 10, display: 'flex', gap: 14, alignItems: 'center', justifyContent: 'center' }}>
-        <ControlBtn icon="◀" onDown={() => keysRef.current['ArrowLeft'] = true} onUp={() => keysRef.current['ArrowLeft'] = false} size={44} />
-        <ControlBtn icon="▶" onDown={() => keysRef.current['ArrowRight'] = true} onUp={() => keysRef.current['ArrowRight'] = false} size={44} />
-        <ControlBtn icon="SHOOT" color={COLORS.magenta} onDown={() => keysRef.current['Shoot'] = true} onUp={() => keysRef.current['Shoot'] = false} size={44} />
+        <div className="hidden md:flex gap-[14px]">
+          <ControlBtn icon="◀" onDown={() => keysRef.current['ArrowLeft'] = true} onUp={() => keysRef.current['ArrowLeft'] = false} size={44} />
+          <ControlBtn icon="▶" onDown={() => keysRef.current['ArrowRight'] = true} onUp={() => keysRef.current['ArrowRight'] = false} size={44} />
+          <ControlBtn icon="SHOOT" color={COLORS.magenta} onDown={() => keysRef.current['Shoot'] = true} onUp={() => keysRef.current['Shoot'] = false} size={44} />
+        </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 2, paddingLeft: 8, borderLeft: '1px solid rgba(255,255,255,0.1)' }}>
           <span style={{ fontSize: '0.55rem', color: 'rgba(255,255,255,0.4)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: 1 }}>VIDAS <span style={{ color: COLORS.cyan }}>{lives}</span></span>
           <span style={{ fontSize: '0.55rem', color: 'rgba(255,255,255,0.4)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: 1 }}>NIVEL <span style={{ color: COLORS.magenta }}>{gameLevel}</span></span>
         </div>
       </div>
+
+      <MobileControls
+        showLeft showRight
+        onLeft={() => keysRef.current['ArrowLeft'] = true}
+        onLeftUp={() => keysRef.current['ArrowLeft'] = false}
+        onRight={() => keysRef.current['ArrowRight'] = true}
+        onRightUp={() => keysRef.current['ArrowRight'] = false}
+        actionA={() => keysRef.current['Shoot'] = true}
+        actionAUp={() => keysRef.current['Shoot'] = false}
+        actionALabel="FIRE"
+        actionAColor={COLORS.magenta}
+      />
     </ArcadeShell>
   );
 }

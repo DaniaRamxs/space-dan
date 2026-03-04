@@ -89,8 +89,8 @@ function ReactionTimeInner() {
       onRetry={start}
       scoreControls={scoreControls}
       particles={particles}
-      floatingTexts={floatingTexts}
       subTitle="Mide tu velocidad de reacción en milisegundos."
+      gameId="reaction"
     >
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 20 }}>
         <motion.div

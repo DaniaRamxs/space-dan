@@ -174,6 +174,7 @@ function TypeBlitzInner() {
             particles={particles}
             floatingTexts={floatingTexts}
             subTitle="Destruye las palabras antes de que toquen tierra."
+            gameId="typeblitz"
         >
             <div style={{ position: 'relative', width: '100%', maxWidth: LOGIC_W, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                 {/* HUD Internal overlay for lives */}

@@ -110,6 +110,7 @@ function TicTacToeInner() {
       particles={particles}
       floatingTexts={floatingTexts}
       subTitle="Vence a la IA en este duelo clásico."
+      gameId="ttt"
     >
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 24 }}>
         <div style={{ display: 'flex', gap: 12, background: 'rgba(255,255,255,0.03)', padding: 6, borderRadius: 16, border: '1px solid rgba(255,255,255,0.05)' }}>

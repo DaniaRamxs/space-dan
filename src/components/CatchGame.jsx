@@ -190,6 +190,7 @@ function CatchGameInner() {
       particles={particles}
       floatingTexts={floatingTexts}
       subTitle="Atrapa todos los núcleos de energía."
+      gameId="catch"
     >
       <div style={{ position: 'relative' }}>
         {status === 'PLAYING' && (

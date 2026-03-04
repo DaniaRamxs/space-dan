@@ -94,6 +94,7 @@ function LightsOutInner() {
             particles={particles}
             floatingTexts={floatingTexts}
             subTitle="Apaga todos los nodos de energía para ganar."
+            gameId="lightsout"
         >
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%', gap: 30 }}>
                 {/* Stats & Difficulty */}

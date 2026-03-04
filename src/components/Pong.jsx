@@ -224,6 +224,7 @@ function PongInner() {
       particles={particles}
       floatingTexts={floatingTexts}
       subTitle="El duelo clásico de paletas y reflejos."
+      gameId="pong"
     >
       <div style={{ position: 'relative', width: 'min(52vh, 88vw)', height: 'min(35vh, 59vw)', background: 'rgba(4,4,10,0.8)', borderRadius: 20, padding: 6, border: '1px solid rgba(255,255,255,0.07)', boxShadow: '0 24px 60px rgba(0,0,0,0.7), inset 0 0 30px rgba(0,0,0,0.4)', overflow: 'hidden', backdropFilter: 'blur(8px)' }}>
         <canvas

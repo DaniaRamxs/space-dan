@@ -107,6 +107,7 @@ function SlidingPuzzleInner() {
       particles={particles}
       floatingTexts={floatingTexts}
       subTitle="Ordena los números del 1 al 8."
+      gameId="puzzle"
     >
       <div style={{
         display: 'grid',

@@ -111,6 +111,7 @@ function CookieClickerInner() {
       particles={particles}
       floatingTexts={floatingTexts}
       subTitle={`Generando ${fmt(cps)}/s · Click: ${fmt(clickPow)}`}
+      gameId="cookie"
     >
       <div style={{ display: 'flex', flexDirection: 'column', gap: 32, alignItems: 'center', width: '100%', maxWidth: 400 }}>
 
@@ -152,7 +153,7 @@ function CookieClickerInner() {
         </div>
 
         {/* Shop List */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, width: '100%', maxHeight: 300, overflowY: 'auto', paddingRight: 4 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12, width: '100%', maxHeight: 320, overflowY: 'auto', paddingRight: 4 }}>
           {tab === 'shop' ? BUILDINGS.map(b => (
             <ShopCard
               key={b.id}
@@ -181,12 +182,14 @@ function NavBtn({ active, label, onClick }) {
     <button
       onClick={onClick}
       style={{
-        flex: 1, padding: '10px 0', borderRadius: 12, border: 'none',
-        background: active ? 'rgba(0,229,255,0.1)' : 'rgba(255,255,255,0.03)',
-        color: active ? '#00e5ff' : 'rgba(255,255,255,0.3)',
-        fontSize: '0.65rem', fontWeight: 900, letterSpacing: 1.5,
-        cursor: 'pointer', transition: 'all 0.2s',
-        border: active ? '1px solid rgba(0,229,255,0.3)' : '1px solid transparent'
+        flex: 1, padding: '12px 0', borderRadius: 16, border: 'none',
+        background: active ? 'rgba(0,229,255,0.15)' : 'rgba(255,255,255,0.03)',
+        color: active ? '#00e5ff' : 'rgba(255,255,255,0.4)',
+        fontSize: '0.7rem', fontWeight: 900, letterSpacing: 1.5,
+        cursor: 'pointer', transition: 'all 0.3s ease',
+        border: active ? '1px solid rgba(0,229,255,0.4)' : '1px solid rgba(255,255,255,0.05)',
+        boxShadow: active ? '0 0 20px rgba(0,229,255,0.15)' : 'none',
+        backdropFilter: 'blur(10px)',
       }}
     >
       {label}
@@ -200,25 +203,30 @@ function ShopCard({ item, count, coins, onBuy }) {
 
   return (
     <motion.div
+      whileHover={canAfford ? { scale: 1.02, background: 'rgba(255,255,255,0.06)' } : {}}
       whileTap={canAfford ? { scale: 0.98 } : {}}
       onClick={canAfford ? onBuy : null}
       style={{
-        display: 'flex', alignItems: 'center', gap: 16, padding: 12,
-        background: 'rgba(255,255,255,0.03)', border: `1px solid ${canAfford ? 'rgba(0,229,255,0.2)' : 'rgba(255,255,255,0.05)'}`,
-        borderRadius: 16, cursor: canAfford ? 'pointer' : 'default',
-        opacity: canAfford ? 1 : 0.6, transition: 'all 0.2s'
+        display: 'flex', alignItems: 'center', gap: 16, padding: '14px 16px',
+        background: 'rgba(10,10,20,0.6)',
+        border: `1px solid ${canAfford ? 'rgba(0,229,255,0.3)' : 'rgba(255,255,255,0.05)'}`,
+        borderRadius: 18, cursor: canAfford ? 'pointer' : 'default',
+        opacity: canAfford ? 1 : 0.6, transition: 'all 0.2s',
+        boxShadow: canAfford ? '0 8px 30px rgba(0,0,0,0.5), inset 0 0 20px rgba(0,229,255,0.05)' : 'none',
+        backdropFilter: 'blur(16px)',
+        WebkitBackdropFilter: 'blur(16px)',
       }}
     >
-      <div style={{ fontSize: '1.5rem', width: 40, height: 40, background: 'rgba(255,255,255,0.05)', borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ fontSize: '1.6rem', width: 44, height: 44, background: 'rgba(255,255,255,0.05)', borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: 'inset 0 0 10px rgba(255,255,255,0.05)' }}>
         {item.icon}
       </div>
       <div style={{ flex: 1 }}>
-        <div style={{ fontSize: '0.8rem', fontWeight: 900, color: canAfford ? '#fff' : 'rgba(255,255,255,0.5)' }}>{item.name}</div>
-        <div style={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.3)' }}>{item.desc}</div>
+        <div style={{ fontSize: '0.85rem', fontWeight: 900, color: canAfford ? '#fff' : 'rgba(255,255,255,0.5)', letterSpacing: 0.5 }}>{item.name}</div>
+        <div style={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.4)', marginTop: 2 }}>{item.desc}</div>
       </div>
       <div style={{ textAlign: 'right' }}>
-        <div style={{ fontSize: '0.8rem', fontWeight: 900, color: '#00e5ff' }}>{fmt(cost)}</div>
-        <div style={{ fontSize: '0.6rem', color: 'rgba(255,255,255,0.4)' }}>Posees: {count}</div>
+        <div style={{ fontSize: '0.85rem', fontWeight: 900, color: '#00e5ff' }}>{fmt(cost)}</div>
+        <div style={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.4)', marginTop: 2 }}>Posees: <span style={{ color: '#fff', fontWeight: 800 }}>{count}</span></div>
       </div>
     </motion.div>
   );
@@ -229,25 +237,29 @@ function UpgradeCard({ item, bought, coins, onBuy }) {
 
   return (
     <motion.div
+      whileHover={canAfford ? { scale: 1.02, background: 'rgba(255,255,255,0.06)' } : {}}
       whileTap={canAfford ? { scale: 0.98 } : {}}
       onClick={canAfford ? onBuy : null}
       style={{
-        display: 'flex', alignItems: 'center', gap: 16, padding: 12,
-        background: bought ? 'rgba(0,229,255,0.05)' : 'rgba(255,255,255,0.03)',
-        border: `1px solid ${bought ? '#00e5ff44' : canAfford ? 'rgba(255,0,255,0.2)' : 'rgba(255,255,255,0.05)'}`,
-        borderRadius: 16, cursor: canAfford ? 'pointer' : 'default',
-        opacity: canAfford || bought ? 1 : 0.6, transition: 'all 0.2s'
+        display: 'flex', alignItems: 'center', gap: 16, padding: '14px 16px',
+        background: bought ? 'rgba(0,229,255,0.08)' : 'rgba(10,10,20,0.6)',
+        border: `1px solid ${bought ? 'rgba(0,229,255,0.4)' : canAfford ? 'rgba(255,0,255,0.3)' : 'rgba(255,255,255,0.05)'}`,
+        borderRadius: 18, cursor: canAfford ? 'pointer' : 'default',
+        opacity: canAfford || bought ? 1 : 0.6, transition: 'all 0.2s',
+        boxShadow: bought ? 'inset 0 0 20px rgba(0,229,255,0.1)' : canAfford ? '0 8px 30px rgba(0,0,0,0.5), inset 0 0 20px rgba(255,0,255,0.05)' : 'none',
+        backdropFilter: 'blur(16px)',
+        WebkitBackdropFilter: 'blur(16px)',
       }}
     >
-      <div style={{ fontSize: '1.5rem', width: 40, height: 40, background: 'rgba(255,255,255,0.05)', borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ fontSize: '1.6rem', width: 44, height: 44, background: 'rgba(255,255,255,0.05)', borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: 'inset 0 0 10px rgba(255,255,255,0.05)' }}>
         {bought ? '✅' : '⚡'}
       </div>
       <div style={{ flex: 1 }}>
-        <div style={{ fontSize: '0.8rem', fontWeight: 900, color: bought ? '#00e5ff' : '#fff' }}>{item.name}</div>
-        <div style={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.3)' }}>{item.desc}</div>
+        <div style={{ fontSize: '0.85rem', fontWeight: 900, color: bought ? '#00e5ff' : '#fff', letterSpacing: 0.5 }}>{item.name}</div>
+        <div style={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.4)', marginTop: 2 }}>{item.desc}</div>
       </div>
       {!bought && (
-        <div style={{ textAlign: 'right', fontSize: '0.8rem', fontWeight: 900, color: '#ff00ff' }}>
+        <div style={{ textAlign: 'right', fontSize: '0.85rem', fontWeight: 900, color: '#ff00ff' }}>
           {fmt(item.cost)}
         </div>
       )}

@@ -4,6 +4,7 @@ import useHighScore from '../hooks/useHighScore';
 import { GameImmersiveLayout } from '../core/GameImmersiveLayout';
 import { ArcadeShell } from './ArcadeShell';
 import { useArcadeSystems } from '../hooks/useArcadeSystems';
+import { MobileControls } from './MobileControls';
 
 const GRID = 16;
 const C_P1 = '#00e5ff'; // Cyan
@@ -260,6 +261,7 @@ function TronGameInner() {
             particles={particles}
             floatingTexts={floatingTexts}
             subTitle="Sobrevive al rastro de luz de la IA en la red."
+            gameId="tron"
         >
             <div ref={containerRef} style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 24 }}>
                 <div style={{
@@ -274,8 +276,8 @@ function TronGameInner() {
                     <canvas ref={canvasRef} style={{ display: 'block' }} />
                 </div>
 
-                {/* Mobile D-Pad */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 54px)', gap: 10 }}>
+                {/* Desktop D-Pad */}
+                <div className="hidden md:grid" style={{ gridTemplateColumns: 'repeat(3, 54px)', gap: 10 }}>
                     <div />
                     <DpadBtn icon="▲" onDown={() => handleMobileMove('up')} />
                     <div />
@@ -284,9 +286,17 @@ function TronGameInner() {
                     <DpadBtn icon="▶" onDown={() => handleMobileMove('right')} />
                 </div>
 
-                <div style={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.2)', textTransform: 'uppercase', letterSpacing: 2, fontWeight: 800 }}>
+                <div className="hidden md:block" style={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.2)', textTransform: 'uppercase', letterSpacing: 2, fontWeight: 800 }}>
                     WASD / FLECHAS PARA GIRAR
                 </div>
+
+                <MobileControls
+                    showLeft showRight showUp showDown
+                    onLeft={() => handleMobileMove('left')}
+                    onRight={() => handleMobileMove('right')}
+                    onUp={() => handleMobileMove('up')}
+                    onDown={() => handleMobileMove('down')}
+                />
             </div>
         </ArcadeShell>
     );

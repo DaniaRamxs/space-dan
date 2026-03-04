@@ -4,6 +4,7 @@ import { GameImmersiveLayout } from '../core/GameImmersiveLayout';
 import { ArcadeShell } from './ArcadeShell';
 import { useArcadeSystems } from '../hooks/useArcadeSystems';
 import useHighScore from '../hooks/useHighScore';
+import { MobileControls } from './MobileControls';
 
 const W = 400;
 const H = 400;
@@ -400,6 +401,7 @@ function AsteroidsInner() {
       particles={particles}
       floatingTexts={floatingTexts}
       subTitle="Destruye los fragmentos en órbita."
+      gameId="asteroids"
     >
       <div style={{ position: 'relative', width: 'min(42vh, 74vw)', height: 'min(42vh, 74vw)', background: 'rgba(4,4,10,0.8)', borderRadius: 20, padding: 6, border: '1px solid rgba(255,255,255,0.07)', boxShadow: '0 24px 60px rgba(0,0,0,0.7), inset 0 0 30px rgba(0,0,0,0.4)', overflow: 'hidden', backdropFilter: 'blur(8px)' }}>
         <canvas
@@ -418,15 +420,31 @@ function AsteroidsInner() {
       </div>
 
       <div style={{ marginTop: 12, display: 'flex', gap: 12, alignItems: 'center', justifyContent: 'center' }}>
-        <ControlBtn icon="◀" onDown={() => keysRef.current['ArrowLeft'] = true} onUp={() => keysRef.current['ArrowLeft'] = false} />
-        <ControlBtn icon="▲" onDown={() => keysRef.current['ArrowUp'] = true} onUp={() => keysRef.current['ArrowUp'] = false} />
-        <ControlBtn icon="▶" onDown={() => keysRef.current['ArrowRight'] = true} onUp={() => keysRef.current['ArrowRight'] = false} />
-        <ControlBtn icon="FIRE" color={COLORS.magenta} onDown={() => keysRef.current['Shoot'] = true} onUp={() => keysRef.current['Shoot'] = false} />
+        <div className="hidden md:flex gap-3">
+          <ControlBtn icon="◀" onDown={() => keysRef.current['ArrowLeft'] = true} onUp={() => keysRef.current['ArrowLeft'] = false} />
+          <ControlBtn icon="▲" onDown={() => keysRef.current['ArrowUp'] = true} onUp={() => keysRef.current['ArrowUp'] = false} />
+          <ControlBtn icon="▶" onDown={() => keysRef.current['ArrowRight'] = true} onUp={() => keysRef.current['ArrowRight'] = false} />
+          <ControlBtn icon="FIRE" color={COLORS.magenta} onDown={() => keysRef.current['Shoot'] = true} onUp={() => keysRef.current['Shoot'] = false} />
+        </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 2, paddingLeft: 8, borderLeft: '1px solid rgba(255,255,255,0.1)' }}>
           <span style={{ fontSize: '0.55rem', color: 'rgba(255,255,255,0.5)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: 1 }}>VIDAS <span style={{ color: COLORS.cyan }}>{stateRef.current?.lives ?? 3}</span></span>
           <span style={{ fontSize: '0.55rem', color: 'rgba(255,255,255,0.5)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: 1 }}>NIVEL <span style={{ color: COLORS.magenta }}>{stateRef.current?.level ?? 1}</span></span>
         </div>
       </div>
+
+      <MobileControls
+        showLeft showRight showUp
+        onLeft={() => keysRef.current['ArrowLeft'] = true}
+        onLeftUp={() => keysRef.current['ArrowLeft'] = false}
+        onRight={() => keysRef.current['ArrowRight'] = true}
+        onRightUp={() => keysRef.current['ArrowRight'] = false}
+        onUp={() => keysRef.current['ArrowUp'] = true}
+        onUpUp={() => keysRef.current['ArrowUp'] = false}
+        actionALabel="FIRE"
+        actionA={() => keysRef.current['Shoot'] = true}
+        actionAUp={() => keysRef.current['Shoot'] = false}
+        actionAColor={COLORS.magenta}
+      />
     </ArcadeShell>
   );
 }

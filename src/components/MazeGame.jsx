@@ -4,6 +4,7 @@ import useHighScore from '../hooks/useHighScore';
 import { GameImmersiveLayout } from '../core/GameImmersiveLayout';
 import { ArcadeShell } from './ArcadeShell';
 import { useArcadeSystems } from '../hooks/useArcadeSystems';
+import { MobileControls } from './MobileControls';
 
 const SIZE = 15;
 const START = { row: 1, col: 1 };
@@ -113,6 +114,7 @@ function MazeGameInner() {
       particles={particles}
       floatingTexts={floatingTexts}
       subTitle="Encuentra la salida en la oscuridad del vacío."
+      gameId="maze"
     >
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 30 }}>
         {/* Maze Container */}
@@ -176,8 +178,8 @@ function MazeGameInner() {
           </div>
         </div>
 
-        {/* D-Pad */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 50px)', gap: 10 }}>
+        {/* Desktop D-Pad */}
+        <div className="hidden md:grid" style={{ gridTemplateColumns: 'repeat(3, 50px)', gap: 10 }}>
           <div />
           <ControlBtn icon="▲" onClick={() => move(-1, 0)} />
           <div />
@@ -186,9 +188,17 @@ function MazeGameInner() {
           <ControlBtn icon="▶" onClick={() => move(0, 1)} />
         </div>
 
-        <div style={{ color: 'rgba(255,255,255,0.2)', fontSize: '0.65rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: 2 }}>
-          Usa las flechas o los controles táctiles
+        <div className="hidden md:block" style={{ color: 'rgba(255,255,255,0.2)', fontSize: '0.65rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: 2 }}>
+          Usa las flechas
         </div>
+
+        <MobileControls
+          showLeft showRight showUp showDown
+          onLeft={() => move(0, -1)}
+          onRight={() => move(0, 1)}
+          onUp={() => move(-1, 0)}
+          onDown={() => move(1, 0)}
+        />
       </div>
     </ArcadeShell>
   );

@@ -220,6 +220,7 @@ function Game2048Inner() {
       particles={particles}
       floatingTexts={floatingTexts}
       subTitle="Une las fichas para llegar al 2048."
+      gameId="2048"
     >
       <div
         onTouchStart={handleTouchStart}

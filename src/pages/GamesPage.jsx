@@ -40,35 +40,55 @@ const DodgeGame = lazy(() => import('../components/DodgeGame'));
 const TypeBlitz = lazy(() => import('../components/TypeBlitz'));
 const TronGame = lazy(() => import('../components/TronGame'));
 const LightsOut = lazy(() => import('../components/LightsOut'));
+const OneButtonHero = lazy(() => import('../components/OneButtonHero'));
+const NeonReflex = lazy(() => import('../components/NeonReflex'));
+const GravityFlip = lazy(() => import('../components/GravityFlip'));
+const NodeChain = lazy(() => import('../components/NodeChain'));
+const TenSecondsHero = lazy(() => import('../components/TenSecondsHero'));
+const PerfectTap = lazy(() => import('../components/PerfectTap'));
+const SplitControl = lazy(() => import('../components/SplitControl'));
+const PhaseRunner = lazy(() => import('../components/PhaseRunner'));
+const MagnetDash = lazy(() => import('../components/MagnetDash'));
+const EchoTiming = lazy(() => import('../components/EchoTiming'));
 
 
 const GAMES = [
   { id: 'snake', icon: '🐍', title: 'snake', component: SnakeGame, category: 'Arcade', isImmersive: true },
   { id: 'memory', icon: '🃏', title: 'memory', component: MemoryGame, category: 'Puzzle', isImmersive: true },
   { id: 'ttt', icon: '❌', title: 'tic tac toe', component: TicTacToe, category: 'Table', isImmersive: true },
-  { id: 'whack', icon: '🐭', title: 'whack-a-mole', component: WhackAMole, category: 'Skill' },
-  { id: 'color', icon: '🎨', title: 'color match', component: ColorMatch, category: 'Puzzle' },
-  { id: 'reaction', icon: '⚡', title: 'reaction time', component: ReactionTime, category: 'Skill' },
+  { id: 'whack', icon: '🐭', title: 'whack-a-mole', component: WhackAMole, category: 'Skill', isImmersive: true },
+  { id: 'color', icon: '🎨', title: 'color match', component: ColorMatch, category: 'Puzzle', isImmersive: true },
+  { id: 'reaction', icon: '⚡', title: 'reaction time', component: ReactionTime, category: 'Skill', isImmersive: true },
   { id: '2048', icon: '🔢', title: '2048', component: Game2048, category: 'Puzzle', isImmersive: true },
   { id: 'blackjack', icon: '🃠', title: 'blackjack', component: Blackjack, category: 'Table', isImmersive: true },
-  { id: 'puzzle', icon: '🧩', title: 'sliding puzzle', component: SlidingPuzzle, category: 'Puzzle' },
-  { id: 'pong', icon: '🏓', title: 'pong', component: Pong, category: 'Arcade' },
+  { id: 'puzzle', icon: '🧩', title: 'sliding puzzle', component: SlidingPuzzle, category: 'Puzzle', isImmersive: true },
+  { id: 'pong', icon: '🏓', title: 'pong', component: Pong, category: 'Arcade', isImmersive: true },
   { id: 'invaders', icon: '👾', title: 'space invaders', component: SpaceInvaders, category: 'Arcade', isImmersive: true },
   { id: 'breakout', icon: '🧱', title: 'breakout', component: Breakout, category: 'Arcade', isImmersive: true },
   { id: 'asteroids', icon: '🚀', title: 'asteroids', component: Asteroids, category: 'Arcade', isImmersive: true },
-  { id: 'tetris', icon: '🟦', title: 'tetris', component: TetrisGame, category: 'Arcade' },
+  { id: 'tetris', icon: '🟦', title: 'tetris', component: TetrisGame, category: 'Arcade', isImmersive: true },
   { id: 'flappy', icon: '🐦', title: 'flappy bird', component: FlappyBird, category: 'Skill', isImmersive: true },
   { id: 'mines', icon: '💣', title: 'buscaminas', component: Minesweeper, category: 'Puzzle', isImmersive: true },
   { id: 'dino', icon: '🦕', title: 'dino runner', component: DinoRunner, category: 'Skill', isImmersive: true },
-  { id: 'connect4', icon: '🔴', title: 'connect four', component: ConnectFour, category: 'Table' },
-  { id: 'simon', icon: '🔵', title: 'simon says', component: SimonSays, category: 'Skill' },
-  { id: 'cookie', icon: '🍪', title: 'cookie clicker', component: CookieClicker, category: 'Arcade' },
-  { id: 'maze', icon: '🌀', title: 'maze', component: MazeGame, category: 'Puzzle' },
-  { id: 'catch', icon: '🧳', title: 'catch game', component: CatchGame, category: 'Skill' },
-  { id: 'dodge', icon: '💨', title: 'dodge game', component: DodgeGame, category: 'Skill' },
-  { id: 'typeblitz', icon: '⌨️', title: 'type blitz', component: TypeBlitz, category: 'Skill' },
+  { id: 'connect4', icon: '🔴', title: 'connect four', component: ConnectFour, category: 'Table', isImmersive: true },
+  { id: 'simon', icon: '🔵', title: 'simon says', component: SimonSays, category: 'Skill', isImmersive: true },
+  { id: 'cookie', icon: '🍪', title: 'cookie clicker', component: CookieClicker, category: 'Arcade', isImmersive: true },
+  { id: 'maze', icon: '🌀', title: 'maze', component: MazeGame, category: 'Puzzle', isImmersive: true },
+  { id: 'catch', icon: '🧳', title: 'catch game', component: CatchGame, category: 'Skill', isImmersive: true },
+  { id: 'dodge', icon: '💨', title: 'dodge game', component: DodgeGame, category: 'Skill', isImmersive: true },
+  { id: 'typeblitz', icon: '⌨️', title: 'type blitz', component: TypeBlitz, category: 'Skill', isImmersive: true },
   { id: 'tron', icon: '📹', title: 'tron cycles', component: TronGame, category: 'Arcade', isImmersive: true },
-  { id: 'lightsout', icon: '💡', title: 'lights out', component: LightsOut, category: 'Puzzle' },
+  { id: 'lightsout', icon: '💡', title: 'lights out', component: LightsOut, category: 'Puzzle', isImmersive: true },
+  { id: 'hero', icon: '🏃‍♂️', title: 'neon dash', component: OneButtonHero, category: 'Arcade', isImmersive: true },
+  { id: 'reflex', icon: '✨', title: 'neon reflex', component: NeonReflex, category: 'Skill', isImmersive: true },
+  { id: 'gravityflip', icon: '🌌', title: 'gravity flip', component: GravityFlip, category: 'Skill', isImmersive: true },
+  { id: 'nodechain', icon: '🔌', title: 'node chain', component: NodeChain, category: 'Puzzle', isImmersive: true },
+  { id: '10sec', icon: '⏱️', title: '10s hero', component: TenSecondsHero, category: 'Skill', isImmersive: true },
+  { id: 'perfectap', icon: '🎯', title: 'perfect tap', component: PerfectTap, category: 'Skill', isImmersive: true },
+  { id: 'splitcontrol', icon: '🎛️', title: 'split control', component: SplitControl, category: 'Skill', isImmersive: true },
+  { id: 'phaserunner', icon: '⚡', title: 'phase runner', component: PhaseRunner, category: 'Skill', isImmersive: true },
+  { id: 'magnetdash', icon: '🧲', title: 'magnet dash', component: MagnetDash, category: 'Skill', isImmersive: true },
+  { id: 'echotiming', icon: '📡', title: 'echo timing', component: EchoTiming, category: 'Skill', isImmersive: true },
 ];
 
 const PLAYED_KEY = 'space-dan-played-games';
@@ -247,18 +267,24 @@ export default function GamesPage() {
 
   useEffect(() => {
     openIdRef.current = openId;
-    // En móviles, hacemos scroll al inicio del contenedor para que el juego sea visible
-    if (openId && window.innerWidth <= 820) {
-      const container = document.querySelector('.gardenContent');
-      if (container) {
-        container.scrollTo({ top: 0, behavior: 'smooth' });
-      } else {
-        window.scrollTo({ top: 0, behavior: 'smooth' });
+    if (openId) {
+      document.body.style.overflow = 'hidden';
+      if (window.innerWidth <= 820) {
+        const container = document.querySelector('.gardenContent');
+        if (container) {
+          container.scrollTo({ top: 0, behavior: 'instant' });
+        } else {
+          window.scrollTo({ top: 0, behavior: 'instant' });
+        }
       }
+    } else {
+      document.body.style.overflow = '';
     }
+
+    return () => {
+      document.body.style.overflow = '';
+    };
   }, [openId]);
-
-
 
   const showCoinToast = useCallback((msg) => {
     setCoinToast(msg);
@@ -267,7 +293,6 @@ export default function GamesPage() {
     toastTimer.current = setTimeout(() => setCoinToast(null), 2200);
   }, []);
 
-  // Escuchar scores de los juegos
   useEffect(() => {
     const onScore = async (e) => {
       const { isHighScore, score } = e.detail || {};
@@ -287,9 +312,9 @@ export default function GamesPage() {
           showCoinToast(`+${bonus} ◈`);
         }
       }
-      const gameId = e.detail?.gameId || openIdRef.current;
-      if (user && gameId && score != null) {
-        saveScore(user.id, gameId, score).then(() => {
+      const gId = e.detail?.gameId || openIdRef.current;
+      if (user && gId && score != null) {
+        saveScore(user.id, gId, score).then(() => {
           setLbKey(k => k + 1);
           refreshSeason();
         });
@@ -309,7 +334,6 @@ export default function GamesPage() {
         showCoinToast('+5 ◈ juego nuevo!');
         if (loadPlayedGames().size >= 5) unlockAchievement('gamer');
       }
-      // Auto fullscreen on desktop
       if (window.innerWidth >= 768 && !Capacitor.isNativePlatform()) {
         setTimeout(() => {
           gameOverlayRef.current?.requestFullscreen?.().catch(() => { });
@@ -549,6 +573,7 @@ export default function GamesPage() {
             exit={{ opacity: 0 }}
             transition={{ duration: 0.12 }}
           >
+            {/* Header always hidden if immersive or if big screen (where sidebar handles info) */}
             {!activeGame.isImmersive && (
               <div className={`gameOverlayHeader ${window.innerWidth >= 1024 ? 'hidden' : ''}`} style={{ background: 'rgba(5,5,20,0.95)', display: window.innerWidth >= 1024 ? 'none' : 'flex' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 15 }}>
@@ -615,9 +640,11 @@ export default function GamesPage() {
                     </div>
                   </div>
 
-                  <div style={{ width: '100%', position: 'relative', zIndex: 1 }}>
-                    <Leaderboard gameId={activeGame.id} refreshKey={lbKey} />
-                  </div>
+                  {!activeGame.isImmersive && (
+                    <div style={{ width: '100%', position: 'relative', zIndex: 1 }}>
+                      <Leaderboard gameId={activeGame.id} refreshKey={lbKey} />
+                    </div>
+                  )}
                 </div>
               )}
             </div>

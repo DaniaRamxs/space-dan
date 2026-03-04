@@ -134,6 +134,7 @@ function SimonSaysInner() {
       particles={particles}
       floatingTexts={floatingTexts}
       subTitle="Memoriza y repite la secuencia de luces."
+      gameId="simon"
     >
       <div style={{
         display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 16, padding: 22,

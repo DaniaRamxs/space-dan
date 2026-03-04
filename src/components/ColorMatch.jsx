@@ -164,6 +164,7 @@ function ColorMatchInner() {
       particles={particles}
       floatingTexts={floatingTexts}
       subTitle="Identifica el color correcto rápidamente."
+      gameId="color"
     >
       <div style={{
         display: 'flex', flexDirection: 'column', gap: 22, width: '100%', maxWidth: 360, padding: 22,

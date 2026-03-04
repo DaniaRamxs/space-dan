@@ -1,6 +1,7 @@
-import { useCallback, memo } from 'react';
+import { useCallback, memo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
+import Leaderboard from './Leaderboard';
 
 // ──────────────────────────────────────────────
 //  ArcadeShell — Premium Game Wrapper v2
@@ -406,6 +407,35 @@ const primaryBtnStyle = {
     transition: 'box-shadow 0.2s',
 };
 
+// ── Leaderboard Toggle Button (Added for Immersive Mode) ──
+const LeaderboardToggle = memo(({ onClick }) => (
+    <motion.button
+        onClick={onClick}
+        onPointerDown={e => e.stopPropagation()}
+        whileHover={{ scale: 1.08, backgroundColor: 'rgba(255,255,255,0.1)' }}
+        whileTap={{ scale: 0.88 }}
+        style={{
+            position: 'absolute',
+            top: 20, right: 20,
+            width: 42, height: 42,
+            borderRadius: '50%',
+            background: 'rgba(255,255,255,0.05)',
+            border: '1px solid rgba(255,255,255,0.1)',
+            color: 'rgba(255,255,255,0.7)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            cursor: 'pointer',
+            zIndex: 200,
+            fontSize: 20,
+            backdropFilter: 'blur(12px)',
+            WebkitBackdropFilter: 'blur(12px)',
+        }}
+        title="Leaderboard"
+        aria-label="Leaderboard"
+    >
+        🏆
+    </motion.button>
+));
+
 // ──────────────────────────────────────────────
 //  ArcadeShell — Main Component
 // ──────────────────────────────────────────────
@@ -423,11 +453,15 @@ export function ArcadeShell({
     totalTime = null,
     turn = null,
     subTitle = 'Listo para la misión, piloto.',
+    gameId, // Passed for leaderboard
 }) {
     const isGameOver = status === 'DEAD' || status === 'game_over' || status === 'FINISHED';
     const isPaused = status === 'PAUSED';
     const isIdle = status === 'IDLE' || status === 'WAITING' || status === 'START';
     const navigate = useNavigate();
+
+    // Leaderboard state
+    const [lbOpen, setLbOpen] = useState(false);
 
     const handleExit = useCallback(() => navigate('/games'), [navigate]);
 
@@ -483,6 +517,11 @@ export function ArcadeShell({
             {/* Exit Button */}
             <ExitButton onClick={handleExit} />
 
+            {/* Leaderboard Toggle Button */}
+            {gameId && (
+                <LeaderboardToggle onClick={() => setLbOpen(true)} />
+            )}
+
             {/* Overlays */}
             <AnimatePresence>
                 {isIdle && (
@@ -505,7 +544,81 @@ export function ArcadeShell({
                 {isPaused && (
                     <PauseOverlay key="pause" onRetry={onRetry} />
                 )}
+                {lbOpen && (
+                    <LeaderboardOverlay key="leaderboard" gameId={gameId} onClose={() => setLbOpen(false)} />
+                )}
             </AnimatePresence>
         </div>
     );
 }
+
+// ── In-Game Leaderboard Overlay ──
+const LeaderboardOverlay = memo(({ gameId, onClose }) => {
+    return (
+        <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            style={{
+                ...overlayStyle,
+                zIndex: 600, // Highest over everything
+                justifyContent: 'flex-end',
+                alignItems: 'flex-end',
+                padding: '2vh 2vw',
+                background: 'rgba(0,0,0,0.6)'
+            }}
+            onPointerDown={(e) => {
+                // Close if wrapper is clicked (not the modal itself)
+                if (e.target === e.currentTarget) onClose();
+            }}
+        >
+            <motion.div
+                initial={{ x: '100%', opacity: 0 }}
+                animate={{ x: 0, opacity: 1 }}
+                exit={{ x: '100%', opacity: 0 }}
+                transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+                style={{
+                    width: '100%',
+                    maxWidth: 380,
+                    height: '96dvh',
+                    background: 'rgba(10, 10, 15, 0.95)',
+                    borderLeft: '1px solid rgba(255,110,180,0.2)',
+                    boxShadow: '-10px 0 40px rgba(0,0,0,0.8)',
+                    borderRadius: '24px 0 0 24px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    overflow: 'hidden',
+                    backdropFilter: 'blur(30px)',
+                    WebkitBackdropFilter: 'blur(30px)',
+                }}
+            >
+                {/* Header */}
+                <div style={{
+                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                    padding: '24px 20px 16px', borderBottom: '1px solid rgba(255,255,255,0.05)'
+                }}>
+                    <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 900, color: '#fff', letterSpacing: 1 }}>🏆 CLASIFICACIÓN</h3>
+                    <button
+                        onClick={onClose}
+                        style={{
+                            background: 'transparent', border: 'none', color: 'rgba(255,255,255,0.5)',
+                            fontSize: '1.5rem', cursor: 'pointer', padding: 4
+                        }}
+                    >×</button>
+                </div>
+
+                {/* Scrollable List */}
+                <div style={{ flex: 1, overflowY: 'auto', padding: '16px 12px' }}>
+                    {!gameId ? (
+                        <div style={{ textAlign: 'center', color: 'rgba(255,255,255,0.3)', marginTop: 40, fontSize: '0.9rem' }}>
+                            Leaderboard no disponible para este juego.
+                        </div>
+                    ) : (
+                        <Leaderboard gameId={gameId} />
+                    )}
+                </div>
+            </motion.div>
+        </motion.div>
+    );
+});

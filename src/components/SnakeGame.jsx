@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import useHighScore from '../hooks/useHighScore';
 import { ArcadeShell } from './ArcadeShell';
 import { useArcadeSystems } from '../hooks/useArcadeSystems';
+import { MobileControls } from './MobileControls';
 import { GameImmersiveLayout } from '../core/GameImmersiveLayout';
 
 const GRID_SIZE = 20;
@@ -165,6 +166,7 @@ function SnakeGameInner() {
       particles={particles}
       floatingTexts={floatingTexts}
       subTitle="Recopila datos de energía para crecer."
+      gameId="snake"
     >
       {/* Game Board */}
       <div style={{
@@ -213,41 +215,15 @@ function SnakeGameInner() {
         })}
       </div>
 
-      {/* D-pad controls — mobile only */}
-      <div className="flex items-center md:hidden" style={{ marginTop: 20, gap: 10 }}>
-        <DPadBtn onClick={() => { if (dirRef.current.x !== 1) { nextDirRef.current = { x: -1, y: 0 }; triggerHaptic('light'); } }}>◀</DPadBtn>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          <DPadBtn onClick={() => { if (dirRef.current.y !== 1) { nextDirRef.current = { x: 0, y: -1 }; triggerHaptic('light'); } }}>▲</DPadBtn>
-          <DPadBtn onClick={() => { if (dirRef.current.y !== -1) { nextDirRef.current = { x: 0, y: 1 }; triggerHaptic('light'); } }}>▼</DPadBtn>
-        </div>
-        <DPadBtn onClick={() => { if (dirRef.current.x !== -1) { nextDirRef.current = { x: 1, y: 0 }; triggerHaptic('light'); } }}>▶</DPadBtn>
-      </div>
+      {/* Controls will be injected from MobileControls */}
+      <MobileControls
+        showLeft showRight showUp showDown
+        onLeft={() => { if (dirRef.current.x !== 1) { nextDirRef.current = { x: -1, y: 0 }; triggerHaptic('light'); } }}
+        onUp={() => { if (dirRef.current.y !== 1) { nextDirRef.current = { x: 0, y: -1 }; triggerHaptic('light'); } }}
+        onDown={() => { if (dirRef.current.y !== -1) { nextDirRef.current = { x: 0, y: 1 }; triggerHaptic('light'); } }}
+        onRight={() => { if (dirRef.current.x !== -1) { nextDirRef.current = { x: 1, y: 0 }; triggerHaptic('light'); } }}
+      />
     </ArcadeShell>
-  );
-}
-
-function DPadBtn({ children, onClick }) {
-  return (
-    <motion.button
-      onPointerDown={e => { e.preventDefault(); onClick(); }}
-      whileTap={{ scale: 0.88, backgroundColor: 'rgba(255,255,255,0.08)' }}
-      style={{
-        width: 58, height: 58, borderRadius: 18,
-        border: '1px solid rgba(255,255,255,0.1)',
-        background: 'rgba(255,255,255,0.04)',
-        color: 'rgba(255,255,255,0.8)',
-        fontSize: 20,
-        cursor: 'pointer',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        boxShadow: '0 4px 16px rgba(0,0,0,0.3)',
-        backdropFilter: 'blur(10px)',
-        WebkitBackdropFilter: 'blur(10px)',
-        userSelect: 'none',
-        touchAction: 'none',
-      }}
-    >
-      {children}
-    </motion.button>
   );
 }
 

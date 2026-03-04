@@ -3,6 +3,7 @@ import { GameImmersiveLayout } from '../core/GameImmersiveLayout';
 import { ArcadeShell } from './ArcadeShell';
 import { useArcadeSystems } from '../hooks/useArcadeSystems';
 import useHighScore from '../hooks/useHighScore';
+import { MobileControls } from './MobileControls';
 
 const ROWS = 20;
 const COLS = 10;
@@ -273,6 +274,7 @@ function TetrisGameInner() {
       particles={particles}
       floatingTexts={floatingTexts}
       subTitle="Une los fragmentos para despejar líneas."
+      gameId="tetris"
     >
       <div className="flex flex-col md:flex-row gap-6 md:gap-12 items-center md:items-start justify-center">
         {/* Board */}
@@ -362,14 +364,27 @@ function TetrisGameInner() {
         </div>
       </div>
 
-      {/* Controls */}
-      <div style={{ marginTop: 16, display: 'flex', gap: 10, flexWrap: 'wrap', justifyContent: 'center' }}>
+      {/* Standard desktop controls visible if needed (though usually keyboard is used) */}
+      <div className="hidden md:flex mt-4 gap-2 justify-center flex-wrap">
         <ControlBtn icon="◀" onClick={() => move(-1)} />
         <ControlBtn icon="▶" onClick={() => move(1)} />
         <ControlBtn icon="▼" onClick={() => drop()} />
         <ControlBtn icon="↻" onClick={() => handleRotate()} color={COLORS.T} />
         <ControlBtn icon="DROP" onClick={() => hardDrop()} color={COLORS.I} wide />
       </div>
+
+      <MobileControls
+        showLeft showRight showDown
+        onLeft={() => move(-1)}
+        onRight={() => move(1)}
+        onDown={() => drop()}
+        actionALabel="DROP"
+        actionA={() => hardDrop()}
+        actionAColor={COLORS.I}
+        actionBLabel="↻"
+        actionB={() => handleRotate()}
+        actionBColor={COLORS.T}
+      />
     </ArcadeShell>
   );
 }

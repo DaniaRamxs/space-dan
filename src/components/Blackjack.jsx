@@ -250,6 +250,7 @@ function BlackjackInner() {
       particles={particles}
       floatingTexts={floatingTexts}
       subTitle="Vence a la banca en el rincón más oscuro de la galaxia."
+      gameId="blackjack"
     >
       <div style={{ display: 'flex', flexDirection: 'column', gap: 40, width: 'min(95vw, 400px)', zIndex: 10 }}>
         {/* Dealer Area */}

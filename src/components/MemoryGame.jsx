@@ -66,8 +66,11 @@ function MemoryGameInner() {
           (c.id === a || c.id === b) ? { ...c, matched: true } : c
         ));
 
-        const pts = Math.max(10, 50 - moves);
-        setScore(s => s + pts);
+        setMoves(m => {
+          setScore(s => s + Math.max(10, 50 - m));
+          return m;
+        });
+
         animateScore();
         triggerHaptic('medium');
 
@@ -86,7 +89,8 @@ function MemoryGameInner() {
         setLocked(false);
       }, 1000);
     }
-  }, [selected, cards, moves, animateScore, triggerHaptic, spawnParticles, triggerFloatingText]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selected, animateScore, triggerHaptic, spawnParticles, triggerFloatingText]);
 
   useEffect(() => {
     if (cards.length > 0 && cards.every(c => c.matched)) {
@@ -95,7 +99,8 @@ function MemoryGameInner() {
       triggerHaptic('heavy');
       spawnParticles('50%', '50%', C_CYN, 50);
     }
-  }, [cards, score, saveScore, triggerHaptic, spawnParticles]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cards, saveScore, triggerHaptic, spawnParticles]);
 
   const cardSize = 'min(70px, 19vw)';
 
@@ -110,6 +115,7 @@ function MemoryGameInner() {
       particles={particles}
       floatingTexts={floatingTexts}
       subTitle="Encuentra todas las parejas espaciales."
+      gameId="memory"
     >
       <div style={{
         display: 'grid',

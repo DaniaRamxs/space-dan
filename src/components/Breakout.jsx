@@ -3,6 +3,7 @@ import { GameImmersiveLayout } from '../core/GameImmersiveLayout';
 import { ArcadeShell } from './ArcadeShell';
 import { useArcadeSystems } from '../hooks/useArcadeSystems';
 import useHighScore from '../hooks/useHighScore';
+import { MobileControls } from './MobileControls';
 
 const W = 400;
 const H = 500;
@@ -334,6 +335,7 @@ function BreakoutInner() {
       particles={particles}
       floatingTexts={floatingTexts}
       subTitle="Destruye el muro de energía."
+      gameId="breakout"
     >
       <div style={{
         marginBottom: 10,
@@ -377,6 +379,18 @@ function BreakoutInner() {
           }}
         />
       </div>
+
+      <MobileControls
+        showLeft showRight
+        onLeft={() => keysRef.current['ArrowLeft'] = true}
+        onLeftUp={() => keysRef.current['ArrowLeft'] = false}
+        onRight={() => keysRef.current['ArrowRight'] = true}
+        onRightUp={() => keysRef.current['ArrowRight'] = false}
+        actionALabel="LAUNCH"
+        actionA={() => keysRef.current['launch'] = true}
+        actionAUp={() => keysRef.current['launch'] = false}
+        actionAColor={COLORS.cyan}
+      />
     </ArcadeShell>
   );
 }

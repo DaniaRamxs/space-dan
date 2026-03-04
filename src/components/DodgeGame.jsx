@@ -4,6 +4,7 @@ import useHighScore from '../hooks/useHighScore';
 import { GameImmersiveLayout } from '../core/GameImmersiveLayout';
 import { ArcadeShell } from './ArcadeShell';
 import { useArcadeSystems } from '../hooks/useArcadeSystems';
+import { MobileControls } from './MobileControls';
 
 const CANVAS_W = 340;
 const CANVAS_H = 420;
@@ -182,6 +183,7 @@ function DodgeGameInner() {
       particles={particles}
       floatingTexts={floatingTexts}
       subTitle="Esquiva los drones de rastreo en el sector prohibido."
+      gameId="dodge"
     >
       <div style={{ display: 'flex', flexDirection: 'column', gap: 30, alignItems: 'center' }}>
         <div style={{
@@ -196,7 +198,7 @@ function DodgeGameInner() {
           <canvas ref={canvasRef} width={CANVAS_W} height={CANVAS_H} style={{ display: 'block' }} />
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 54px)', gap: 12 }}>
+        <div className="hidden md:grid" style={{ gridTemplateColumns: 'repeat(3, 54px)', gap: 12 }}>
           <div />
           <DpadBtn icon="▲" onDown={() => dpad('w', true)} onUp={() => dpad('w', false)} />
           <div />
@@ -204,6 +206,18 @@ function DodgeGameInner() {
           <DpadBtn icon="▼" onDown={() => dpad('s', true)} onUp={() => dpad('s', false)} />
           <DpadBtn icon="▶" onDown={() => dpad('d', true)} onUp={() => dpad('d', false)} />
         </div>
+
+        <MobileControls
+          showLeft showRight showUp showDown
+          onLeft={() => dpad('a', true)}
+          onLeftUp={() => dpad('a', false)}
+          onRight={() => dpad('d', true)}
+          onRightUp={() => dpad('d', false)}
+          onUp={() => dpad('w', true)}
+          onUpUp={() => dpad('w', false)}
+          onDown={() => dpad('s', true)}
+          onDownUp={() => dpad('s', false)}
+        />
       </div>
     </ArcadeShell>
   );

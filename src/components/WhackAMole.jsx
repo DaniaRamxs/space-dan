@@ -108,6 +108,7 @@ function WhackAMoleInner() {
       particles={particles}
       floatingTexts={floatingTexts}
       subTitle="Golpea a los intrusos del sistema."
+      gameId="whack"
     >
       <div style={{
         display: 'grid',

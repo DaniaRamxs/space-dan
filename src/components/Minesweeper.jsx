@@ -199,6 +199,7 @@ function MinesweeperInner() {
       particles={particles}
       floatingTexts={floatingTexts}
       subTitle="Despeja el campo sin tocar las minas."
+      gameId="mines"
     >
       <div style={{ display: 'flex', gap: 32, marginBottom: 24, fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: 1.5 }}>
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>

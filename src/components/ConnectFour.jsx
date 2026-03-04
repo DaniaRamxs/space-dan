@@ -91,6 +91,7 @@ function ConnectFourInner() {
       floatingTexts={floatingTexts}
       turn={currentPlayer === 'P1' ? 'PLAYER' : 'AI'}
       subTitle="Une cuatro orbes de energía para ganar."
+      gameId="connect4"
     >
       <div style={{
         position: 'relative',
