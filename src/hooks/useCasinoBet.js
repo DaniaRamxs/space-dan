@@ -1,54 +1,110 @@
 import { useState, useCallback } from 'react';
 import { useEconomy } from '../contexts/EconomyContext';
+import { useAuthContext } from '../contexts/AuthContext';
+import { supabase } from '../supabaseClient';
+import {
+  saveCasinoResult,
+  contributeJackpot,
+  getWinStreak,
+  incrementStreak,
+  resetStreak,
+} from '../services/casino';
+
+const STREAK_BONUS_COINS = 10;
+const STREAK_THRESHOLD = 3;
 
 /**
- * Hook compartido para lógica de apuestas en juegos de Casino.
- * Maneja fases: 'betting' | 'playing' | 'result'
+ * Hook compartido para juegos de Casino.
+ * Fases: 'betting' | 'playing' | 'result'
+ * Incluye: jackpot progresivo, racha de victorias, guardado en casino_results.
  */
 export function useCasinoBet(gameId, gameTitle) {
   const { balance, awardCoins, deductCoins } = useEconomy();
+  const { user, profile } = useAuthContext();
+
   const [phase, setPhase] = useState('betting');
   const [bet, setBet] = useState(10);
   const [result, setResult] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
 
+  const isVIP = balance >= 500;
+
   const placeBet = useCallback(async () => {
     if (bet <= 0 || bet > balance || isLoading) return false;
-    setIsLoading(true);
-    try {
-      const res = await deductCoins(bet, 'casino_bet', `Casino: ${gameTitle}`);
-      if (res?.success === false) return false;
-      setPhase('playing');
-      return true;
-    } catch {
-      return false;
-    } finally {
-      setIsLoading(false);
-    }
-  }, [bet, balance, isLoading, deductCoins, gameTitle]);
+    // Solo permitimos avanzar en UI; la transacción monetaria atómica será al final.
+    setPhase('playing');
+    return true;
+  }, [bet, balance, isLoading]);
 
   /**
    * Termina el juego.
    * @param {number} multiplier - 0 = pérdida, >0 = ganancia (ej: 2 = doble apuesta)
-   * @param {string} [message] - Mensaje descriptivo del resultado
+   * @param {string} [message]
    */
   const finishGame = useCallback(async (multiplier, message = '') => {
-    let net = -bet;
-    if (multiplier > 0) {
-      const winAmount = Math.floor(bet * multiplier);
-      await awardCoins(winAmount, 'game_reward', gameId, `Casino win: ${gameTitle}`);
-      net = winAmount - bet;
-      setResult({ won: true, net, winAmount, message });
-    } else {
-      setResult({ won: false, net, winAmount: 0, message });
+    setIsLoading(true);
+    const won = multiplier > 0;
+    const winAmount = won ? Math.floor(bet * multiplier) : 0;
+    let net = 0;
+    let streakBonusAwarded = false;
+
+    if (user) {
+      // Transacción de resolución atómica en una sola llamada SQL
+      const { data, error } = await supabase.rpc('play_casino', {
+        p_user_id: user.id,
+        p_game_id: gameId,
+        p_bet_amount: bet,
+        p_win_amount: winAmount
+      });
+
+      if (error || !data?.success) {
+        console.error("Error atómico en Casino:", error || data?.reason);
+        // El usuario apostó dinero que no tenía entre que el juego cargaba
+        setResult({ won: false, net: 0, winAmount: 0, message: "Fondos Insuficientes", streakBonusAwarded: false, currentStreak: 0 });
+        setPhase('result');
+        setIsLoading(false);
+        return;
+      }
+
+      net = data.net_profit;
+
+      // Jackpot contrib
+      contributeJackpot(Math.max(1, Math.ceil(bet * 0.01))).catch(() => { });
+
+      if (won) {
+        const newStreak = incrementStreak();
+        if (newStreak >= STREAK_THRESHOLD) {
+          resetStreak();
+          awardCoins(STREAK_BONUS_COINS, 'game_reward', gameId, '🔥 Racha de 3 victorias!').catch(() => { });
+          streakBonusAwarded = true;
+        }
+      } else {
+        resetStreak();
+      }
     }
+
+    // Guardar resultado en DB
+    if (user) {
+      saveCasinoResult({
+        userId: user.id,
+        username: profile?.username || user.email?.split('@')[0] || 'Explorador',
+        gameId,
+        gameName: gameTitle,
+        betAmount: bet,
+        resultAmount: winAmount,
+        profit: net,
+      }).catch(() => { });
+    }
+
+    setResult({ won, net, winAmount, message, streakBonusAwarded, currentStreak: getWinStreak() });
     setPhase('result');
-  }, [bet, awardCoins, gameId, gameTitle]);
+    setIsLoading(false);
+  }, [bet, gameId, gameTitle, user, profile, awardCoins]);
 
   const reset = useCallback(() => {
     setPhase('betting');
     setResult(null);
   }, []);
 
-  return { phase, bet, setBet, balance, placeBet, finishGame, reset, result, isLoading };
+  return { phase, bet, setBet, balance, placeBet, finishGame, reset, result, isLoading, isVIP };
 }
