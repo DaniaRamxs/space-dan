@@ -3,11 +3,12 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Gamepad2, Palette, Skull, Music, X } from 'lucide-react';
 import HoldemTable from './HoldemTable';
 import CosmicDraw from './CosmicDraw';
+import BossRaid from './BossRaid';
 
 const ACTIVITIES = [
     { id: 'holdem', name: "Texas Hold'em", icon: <Gamepad2 size={24} />, description: 'Póker de mesa. 500◈ Buy-in', colorBorder: 'border-rose-500/20', colorBg: 'bg-rose-500/10', colorHover: 'hover:bg-rose-500/20', colorText: 'text-rose-400' },
     { id: 'draw', name: 'Dibuja y Adivina', icon: <Palette size={24} />, description: 'Pizarra compartida. Gana ◈', colorBorder: 'border-cyan-500/20', colorBg: 'bg-cyan-500/10', colorHover: 'hover:bg-cyan-500/20', colorText: 'text-cyan-400', disabled: false },
-    { id: 'raid', name: 'Boss Raid', icon: <Skull size={24} />, description: 'Co-op (Próximamente)', colorBorder: 'border-emerald-500/20', colorBg: 'bg-emerald-500/10', colorHover: 'hover:bg-emerald-500/20', colorText: 'text-emerald-400', disabled: true },
+    { id: 'raid', name: 'Boss Raid', icon: <Skull size={24} />, description: 'Evento Co-op Multijugador', colorBorder: 'border-emerald-500/20', colorBg: 'bg-emerald-500/10', colorHover: 'hover:bg-emerald-500/20', colorText: 'text-emerald-400', disabled: false },
     { id: 'dj', name: 'Jukebox DJ', icon: <Music size={24} />, description: 'Música V.I.P (Próximamente)', colorBorder: 'border-amber-500/20', colorBg: 'bg-amber-500/10', colorHover: 'hover:bg-amber-500/20', colorText: 'text-amber-400', disabled: true },
 ];
 
@@ -16,6 +17,7 @@ export default function VoiceActivityLauncher({ roomName, activeActivity, setAct
 
     if (activeActivity === 'holdem') return <HoldemTable roomName={roomName} onClose={() => setActiveActivity(null)} />;
     if (activeActivity === 'draw') return <CosmicDraw roomName={roomName} onClose={() => setActiveActivity(null)} />;
+    if (activeActivity === 'raid') return <BossRaid roomName={roomName} onClose={() => setActiveActivity(null)} />;
 
     return (
         <div className="relative mt-2">
@@ -60,7 +62,7 @@ export default function VoiceActivityLauncher({ roomName, activeActivity, setAct
                                             setIsOpen(false);
                                         }}
                                         className={`relative flex flex-col items-center justify-center p-5 rounded-2xl border transition-all text-center ${act.disabled ? 'bg-white/5 border-white/5 opacity-50 cursor-not-allowed' :
-                                                `${act.colorBg} ${act.colorBorder} ${act.colorHover} active:scale-95`
+                                            `${act.colorBg} ${act.colorBorder} ${act.colorHover} active:scale-95`
                                             }`}
                                     >
                                         <div className={`${act.colorText} mb-3`}>{act.icon}</div>
