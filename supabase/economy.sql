@@ -383,14 +383,23 @@ DECLARE
   v_transfer_id    uuid;
   v_hourly_count   integer;
   v_hourly_volume  integer;
+  v_pact_active    boolean;
 
   -- Configuración de la economía
-  v_MAX_TRANSFER   constant integer := 500;
+  v_MAX_TRANSFER   integer := 5000; -- Aumentamos el base para la Season
   v_MIN_TRANSFER   constant integer := 10;
   v_FEE_RATE       constant numeric := 0.05;  -- 5%
-  v_MAX_HOURLY_TXS constant integer := 5;
-  v_MAX_HOURLY_VOL constant integer := 1000;  -- volumen máx/hora
+  v_MAX_HOURLY_TXS integer := 10;
+  v_MAX_HOURLY_VOL integer := 10000; 
 BEGIN
+  -- Verificar Pacto Estelar (Restricciones financieras)
+  SELECT stellar_pact_active INTO v_pact_active FROM public.profiles WHERE id = p_from_user_id;
+  IF COALESCE(v_pact_active, false) THEN
+    v_MAX_TRANSFER := 100;
+    v_MAX_HOURLY_VOL := 200;
+    v_MAX_HOURLY_TXS := 3;
+  END IF;
+
   -- El llamador debe ser el emisor
   IF auth.uid() != p_from_user_id THEN
     RAISE EXCEPTION 'Solo puedes transferir desde tu propia cuenta';
@@ -405,7 +414,11 @@ BEGIN
   END IF;
 
   IF p_amount > v_MAX_TRANSFER THEN
-    RAISE EXCEPTION 'Monto máximo de transferencia: % Starlys', v_MAX_TRANSFER;
+    IF COALESCE(v_pact_active, false) THEN
+        RAISE EXCEPTION 'Pacto Estelar Activo: Límite de transferencia reducido a % ◈', v_MAX_TRANSFER;
+    ELSE
+        RAISE EXCEPTION 'Monto máximo de transferencia: % Starlys', v_MAX_TRANSFER;
+    END IF;
   END IF;
 
   IF p_message IS NOT NULL AND char_length(p_message) > 120 THEN

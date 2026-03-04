@@ -110,6 +110,7 @@ const bulletinPosts = [
   { id: 110, date: "2026-03-04", title: "Mapa Estelar Mobile-First 🌌📱", text: "Refactorización completa del mapa: ahora puedes arrastrar, hacer zoom y usar agujeros de gusano desde tu celular. Incluye la nueva estación espacial 'Hall of Fame'.", tags: ["update", "mobile", "diseño"] },
   { id: 111, date: "2026-03-04", title: "The Dark Side & XP Boosts ⚡🌑", text: "Nuevo modo nocturno automático (12AM-5AM) con bonificación de x1.5 coins. También estrenamos /xp-boost para duplicar toda tu XP de actividad durante una hora.", tags: ["update", "gamificación", "diseño"] },
   { id: 112, date: "2026-03-04", title: "Optimización de Sincronización 🛡️", text: "Solucionadas condiciones de carrera en la asignación de misiones y redundancia en el sistema de economía para asegurar una experiencia sin errores.", tags: ["fix", "tecnología"] },
+  { id: 113, date: "2026-03-04", title: "HyperBot 3.0: Economía & Destellos 🌌🚀", text: "Llegó la actualización definitiva: Seguros Estelares contra robos, Inversiones con retorno variable, Efectos de Chat (Fuego, Estrellas, Glitch), Badge Color Designer, Calendario de Actividad con Rachas y un nuevo Onboarding guiado para reclutas. ¡El Eclipse Galáctico (x3 rewards) ya es una realidad!", tags: ["update", "gamificación", "economía"] },
 ];
 
 const PAGE_SIZE = 10;

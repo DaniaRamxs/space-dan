@@ -18,7 +18,9 @@ import HoloCard from '../../HoloCard';
 import { useUniverse } from '../../../contexts/UniverseContext';
 import { missionService } from '../../../services/missionService';
 import MissionsPanel from '../MissionsPanel';
-import { Trophy, Map } from 'lucide-react';
+import StellarCalendar from '../StellarCalendar';
+import BadgePicker from '../BadgePicker';
+import { Trophy, Map, Calendar, Palette } from 'lucide-react';
 import '../../../styles/GlobalChat.css';
 
 const HYPERBOT = {
@@ -54,16 +56,44 @@ export default function GlobalChat() {
     const [tempVoiceChannel, setTempVoiceChannel] = useState(null);
     const [tempTextChannelId, setTempTextChannelId] = useState(null);
     const [showMissions, setShowMissions] = useState(false);
+    const [showCalendar, setShowCalendar] = useState(false);
+    const [showBadgePicker, setShowBadgePicker] = useState(false);
     const [selectedProfile, setSelectedProfile] = useState(null);
     const [replyingTo, setReplyingTo] = useState(null);
     const [sidebarOpen, setSidebarOpen] = useState(false);
+    const [activeEvents, setActiveEvents] = useState({ meteor: false, eclipse: false });
+
+    // Polling de Eventos Globales
+    useEffect(() => {
+        const checkEvents = async () => {
+            const { data } = await supabase
+                .from('bot_events')
+                .select('type')
+                .eq('status', 'active')
+                .gt('expires_at', new Date().toISOString());
+
+            if (data) {
+                const types = data.map(d => d.type);
+                const status = {
+                    meteor: types.includes('meteor'),
+                    eclipse: types.includes('eclipse')
+                };
+                setActiveEvents(status);
+                activeEventsRef.current.eclipse = status.eclipse;
+            }
+        };
+
+        checkEvents();
+        const interval = setInterval(checkEvents, 30000);
+        return () => clearInterval(interval);
+    }, []);
 
     const scrollRef = useRef(null);
     const messagesEndRef = useRef(null);
     const pendingDuel = useRef(null);
     const activeGames = useRef({}); // { [userId]: { type, data } }
     const processedIds = useRef(new Set());
-    const activeEventsRef = useRef({ meteor: null, boss: null, marketCrash: null });
+    const activeEventsRef = useRef({ meteor: null, boss: null, marketCrash: null, eclipse: null });
     const lastEventRollRef = useRef(0);
 
     useEffect(() => {
@@ -221,6 +251,7 @@ export default function GlobalChat() {
                 if (ev.type === 'meteor') activeEventsRef.current.meteor = ev;
                 else if (ev.type === 'boss') activeEventsRef.current.boss = ev;
                 else if (ev.type === 'market_crash') activeEventsRef.current.marketCrash = ev;
+                else if (ev.type === 'eclipse') activeEventsRef.current.eclipse = ev;
             });
         }
     };
@@ -273,6 +304,17 @@ export default function GlobalChat() {
         );
     };
 
+    // ── Trigger de Eclipse Galáctico ──────────────────────────────
+    const triggerEclipseEvent = async (chanId) => {
+        const { data } = await supabase.rpc('start_bot_event', { p_type: 'eclipse', p_data: { multiplier: 1.5 }, p_duration: 120 });
+        if (!data?.success) return;
+        activeEventsRef.current.eclipse = { id: data.id, expires_at: data.expires_at, data: { multiplier: 1.5 } };
+        await chatService.sendBotMessage(
+            `<div class="bot-card bot-card-event">\n<div class="bot-card-label">🌑 ECLIPSE GALÁCTICO</div>\n<div class="bot-card-answer bot-answer-yes bot-text-xl bot-text-center"><strong>×1.5 XP</strong> + <strong>+5 ◈</strong> por mensaje</div>\n<div class="bot-card-footer">El Eclipse dura 2 horas. ¡Chatea y gana más que nunca! 🌌</div>\n</div>`,
+            chanId
+        );
+    };
+
     // ── Revisor periódico: decide si lanzar un evento aleatorio ──
     const maybeStartAutoEvent = async () => {
         const now = Date.now();
@@ -284,6 +326,7 @@ export default function GlobalChat() {
         if (roll < 0.30) await triggerMeteorEvent(chanId);
         else if (roll < 0.50) await triggerBossEvent(chanId);
         else if (roll < 0.60) await triggerMarketEvent(chanId);
+        else if (roll < 0.65) await triggerEclipseEvent(chanId);
     };
 
     const handleBotCommand = useCallback(async (content) => {
@@ -370,8 +413,11 @@ export default function GlobalChat() {
 
             case '/bet':
                 const betAmt = parseInt(args[0]);
+                const betLimit = profile?.stellar_pact_active ? 100 : 1000000;
                 if (isNaN(betAmt) || betAmt < 10) {
                     response = '❌ Uso: `/bet 50`. (Mín. 10 ◈).';
+                } else if (betAmt > betLimit) {
+                    response = `⚠️ **Pacto Estelar Activo:** Tu límite de apuesta se ha reducido a **${betLimit} ◈**.`;
                 } else if (betAmt > balance) {
                     response = `⚠️ Solo tienes **${balance} ◈**.`;
                 } else {
@@ -394,8 +440,13 @@ export default function GlobalChat() {
                     break;
                 }
                 const bjBet = parseInt(args[0]);
+                const bjLimit = profile?.stellar_pact_active ? 100 : 1000000;
                 if (isNaN(bjBet) || bjBet < 10) {
                     response = '❌ Uso: `/blackjack <monto>`. (Mín. 10 ◈).';
+                    break;
+                }
+                if (bjBet > bjLimit) {
+                    response = `⚠️ **Pacto Estelar Activo:** Límite de apuesta en Blackjack reducido a **${bjLimit} ◈**.`;
                     break;
                 }
                 if (bjBet > balance) {
@@ -547,8 +598,11 @@ export default function GlobalChat() {
 
             case '/slots':
                 const slotsAmt = parseInt(args[0]);
+                const slotsLimit = profile?.stellar_pact_active ? 50 : 1000000;
                 if (isNaN(slotsAmt) || slotsAmt < 10) {
                     response = '🎰 Uso: `/slots 50`. (Mín. 10 ◈).';
+                } else if (slotsAmt > slotsLimit) {
+                    response = `⚠️ **Pacto Estelar Activo:** Límite en Tragamonedas reducido a **${slotsLimit} ◈**.`;
                 } else if (slotsAmt > balance) {
                     response = `⚠️ Fondos insuficientes (**${balance} ◈**).`;
                 } else {
@@ -671,10 +725,20 @@ export default function GlobalChat() {
                 if (!robTarget) response = '🕵️ Uso: `/rob @usuario`.';
                 else {
                     try {
-                        const result = await economyService.robUser(user.id, robTarget);
-                        if (result.success) response = `<div class="bot-card">\n<div class="bot-card-label">🥷 Atraco Espacial</div>\n<div class="bot-card-answer bot-answer-yes bot-text-center"><strong>+${result.amount} ◈</strong></div>\n<div class="bot-card-footer">@${senderName} le robó a @${robTarget} exitosamente 🌌</div>\n</div>`;
-                        else if (result.reason === 'caught') response = `<div class="bot-card">\n<div class="bot-card-label">🚨 ¡Capturado!</div>\n<div class="bot-card-answer bot-answer-no bot-text-center"><strong>-${result.penalty} ◈</strong></div>\n<div class="bot-card-footer">@${senderName} fue atrapado intentando robar a @${robTarget}</div>\n</div>`;
-                        else if (result.reason === 'cooldown') response = '🕵️ El radar de la policía está activo. Espera un poco.';
+                        const { data: rData } = await supabase.rpc('rob_with_insurance', { p_from_user_id: user.id, p_target_username: robTarget });
+                        if (rData?.success) {
+                            if (rData.insured) {
+                                response = `<div class="bot-card">\n<div class="bot-card-label">🛡️ ¡Robo Bloqueado por Seguro!</div>\n<div class="bot-card-answer bot-answer-maybe bot-text-center"><strong>+0 ◈</strong></div>\n<div class="bot-card-footer">@${robTarget} tenía seguro espacial activo. El robo fue cubierto. 🛡️</div>\n</div>`;
+                            } else {
+                                response = `<div class="bot-card">\n<div class="bot-card-label">🥷 Atraco Espacial</div>\n<div class="bot-card-answer bot-answer-yes bot-text-center"><strong>+${rData.amount} ◈</strong></div>\n<div class="bot-card-footer">@${senderName} le robó a @${robTarget} exitosamente 🌌</div>\n</div>`;
+                            }
+                        } else if (rData?.reason === 'caught') {
+                            response = `<div class="bot-card">\n<div class="bot-card-label">🚨 ¡Capturado!</div>\n<div class="bot-card-answer bot-answer-no bot-text-center"><strong>-${rData.penalty} ◈</strong></div>\n<div class="bot-card-footer">@${senderName} fue atrapado intentando robar a @${robTarget}</div>\n</div>`;
+                        } else if (rData?.reason === 'cooldown') {
+                            response = '🕵️ El radar de la policía está activo. Espera un poco.';
+                        } else {
+                            response = '❌ No se pudo completar el robo.';
+                        }
                     } catch (e) { response = `❌ Error: ${e.message || 'Intento fallido.'}`; }
                 }
                 break;
@@ -1001,6 +1065,142 @@ export default function GlobalChat() {
                 break;
             }
 
+            // ── /seguro ───────────────────────────────────────────────
+            case '/seguro': {
+                const isBuy = args[0] === 'comprar' || args[0] === 'buy';
+                if (isBuy) {
+                    const { data: insResult } = await supabase.rpc('buy_insurance', { p_user_id: user.id });
+                    if (!insResult?.success) {
+                        if (insResult?.reason === 'already_active') {
+                            const remaining = Math.ceil((new Date(insResult.expires_at) - new Date()) / 3600000);
+                            response = `🛡️ Ya tienes seguro activo. Expira en **${remaining}h**.`;
+                        } else if (insResult?.reason === 'insufficient_funds') {
+                            response = `💸 Necesitas **${insResult.price} ◈** (tienes **${insResult.balance} ◈**).`;
+                        } else response = '❌ Error al procesar el seguro.';
+                        break;
+                    }
+                    const expTime = new Date(insResult.expires_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                    response = `<div class="bot-card">\n<div class="bot-card-label">🛡️ Seguro Espacial Activado · @${senderName}</div>\n<div class="bot-card-answer bot-answer-yes bot-text-center"><strong>Protegido 24h</strong></div>\n<div class="bot-card-footer">Prima: ${insResult.price} ◈ · Válido hasta las ${expTime}<br>Si alguien te roba, el seguro cubre el 100% 🌌</div>\n</div>`;
+                } else {
+                    // Ver estado + precio
+                    const [{ data: ins }, { data: priceData }] = await Promise.all([
+                        supabase.from('user_insurance').select('expires_at, premium').eq('user_id', user.id).gt('expires_at', new Date().toISOString()).maybeSingle(),
+                        supabase.rpc('get_item_price', { p_item_id: 'insurance' })
+                    ]);
+                    const currentPrice = priceData?.price || 100;
+                    const todayPurchases = priceData?.purchases_today || 0;
+                    if (ins) {
+                        const remaining = Math.ceil((new Date(ins.expires_at) - new Date()) / 3600000);
+                        response = `<div class="bot-card">\n<div class="bot-card-label">🛡️ Seguro Espacial · @${senderName}</div>\n<div class="bot-card-answer bot-answer-yes bot-text-center">✅ <strong>Activo</strong></div>\n<div class="bot-card-footer">Expira en ${remaining}h · Prima: ${ins.premium} ◈</div>\n</div>`;
+                    } else {
+                        const inflTag = todayPurchases > 0 ? `\n<div class="bot-card-footer" style="color:#f87171">📈 +${Math.round(Math.floor(todayPurchases / 5) * 15)}% inflación (${todayPurchases} compras hoy)</div>` : '';
+                        response = `<div class="bot-card">\n<div class="bot-card-label">🛡️ Seguro Espacial · @${senderName}</div>\n<div class="bot-card-answer bot-answer-no bot-text-center">Sin cobertura</div>\n<div class="bot-card-footer">Precio: <strong>${currentPrice} ◈</strong> · Cobertura: 24h</div>${inflTag}\n<div class="bot-card-footer">Usa /seguro comprar para activarlo</div>\n</div>`;
+                    }
+                }
+                break;
+            }
+
+            // ── /invertir ─────────────────────────────────────────────
+            case '/invertir': {
+                const invAmt = parseInt(args[0]);
+                const invHours = parseInt(args[1]) || 24;
+                if (!invAmt || isNaN(invAmt)) {
+                    response = '💰 Uso: `/invertir <monto> <24|48>`. Ej: `/invertir 500 24`\nRendimiento variable entre -20% y +50%.';
+                    break;
+                }
+                const { data: invResult } = await supabase.rpc('buy_investment', { p_user_id: user.id, p_amount: invAmt, p_hours: invHours });
+                if (!invResult?.success) {
+                    if (invResult?.reason === 'minimum_amount') response = `❌ Inversión mínima: **50 ◈**.`;
+                    else if (invResult?.reason === 'insufficient_funds') response = `💸 Fondos insuficientes (tienes **${invResult.balance} ◈**).`;
+                    else response = '❌ Error al procesar la inversión.';
+                    break;
+                }
+                const matureDate = new Date(invResult.matures_at).toLocaleString([], { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+                response = `<div class="bot-card">\n<div class="bot-card-label">📈 Inversión Registrada · @${senderName}</div>\n<div class="bot-card-answer bot-answer-maybe bot-text-center"><strong>${invAmt} ◈</strong> invertidos</div>\n<div class="bot-card-footer">Madura el ${matureDate} · Resultado: entre -20% y +50%<br>Usa /portafolio para reclamar 🚀</div>\n</div>`;
+                break;
+            }
+
+            // ── /portafolio ───────────────────────────────────────────
+            case '/portafolio': {
+                const { data: investments } = await supabase
+                    .from('user_investments')
+                    .select('*')
+                    .eq('user_id', user.id)
+                    .eq('status', 'active')
+                    .order('created_at', { ascending: true });
+
+                if (!investments?.length) {
+                    response = `<div class="bot-card">\n<div class="bot-card-label">📈 Portafolio · @${senderName}</div>\n<div class="bot-card-answer bot-answer-no bot-text-center">Sin inversiones activas</div>\n<div class="bot-card-footer">Usa /invertir &lt;monto&gt; &lt;24|48&gt; para comenzar</div>\n</div>`;
+                    break;
+                }
+
+                const now = new Date();
+                let rows = '';
+                let claimedAny = false;
+
+                for (const inv of investments) {
+                    if (new Date(inv.matures_at) <= now) {
+                        const { data: claimed } = await supabase.rpc('claim_investment', { p_user_id: user.id, p_investment_id: inv.id });
+                        if (claimed?.success) {
+                            claimedAny = true;
+                            const profit = claimed.profit;
+                            const sign = profit >= 0 ? '+' : '';
+                            const col = profit >= 0 ? '#4ade80' : '#f87171';
+                            rows += `<div class="bot-lb-entry"><div class="bot-lb-rank">✅</div><div class="bot-lb-name">${inv.amount} ◈</div><div class="bot-lb-coins" style="color:${col}">${sign}${profit} ◈ (${claimed.rate >= 0 ? '+' : ''}${claimed.rate}%)</div></div>\n`;
+                        }
+                    } else {
+                        const hoursLeft = Math.ceil((new Date(inv.matures_at) - now) / 3600000);
+                        rows += `<div class="bot-lb-entry"><div class="bot-lb-rank">⏳</div><div class="bot-lb-name">${inv.amount} ◈</div><div class="bot-lb-coins">Madura en ${hoursLeft}h</div></div>\n`;
+                    }
+                }
+
+                response = `<div class="bot-card">\n<div class="bot-card-label">📈 Portafolio · @${senderName}</div>\n<div class="bot-lb-container">${rows}</div>${claimedAny ? '\n<div class="bot-card-footer" style="color:#4ade80">✅ Inversiones maduras cobradas</div>' : ''}\n</div>`;
+                break;
+            }
+
+            // ── /efecto ───────────────────────────────────────────────
+            case '/efecto': {
+                const EFFECTS = { fire: '🔥 Fuego', stars: '✨ Estrellas', glitch: '⚡ Glitch' };
+                const effectArg = args[0]?.toLowerCase();
+
+                if (!effectArg) {
+                    const [{ data: prFire }, { data: prStars }, { data: prGlitch }] = await Promise.all([
+                        supabase.rpc('get_item_price', { p_item_id: 'chat_fire' }),
+                        supabase.rpc('get_item_price', { p_item_id: 'chat_stars' }),
+                        supabase.rpc('get_item_price', { p_item_id: 'chat_glitch' })
+                    ]);
+                    response = `<div class="bot-card">\n<div class="bot-card-label">✨ Efectos de Chat · @${senderName}</div>\n<div class="bot-lb-container">\n<div class="bot-lb-entry"><div class="bot-lb-rank">🔥</div><div class="bot-lb-name">fire</div><div class="bot-lb-coins">${prFire?.price || 300} ◈</div></div>\n<div class="bot-lb-entry"><div class="bot-lb-rank">✨</div><div class="bot-lb-name">stars</div><div class="bot-lb-coins">${prStars?.price || 250} ◈</div></div>\n<div class="bot-lb-entry"><div class="bot-lb-rank">⚡</div><div class="bot-lb-name">glitch</div><div class="bot-lb-coins">${prGlitch?.price || 400} ◈</div></div>\n</div>\n<div class="bot-card-footer">Usa /efecto &lt;fire|stars|glitch&gt; para comprar</div>\n</div>`;
+                    break;
+                }
+
+                if (!EFFECTS[effectArg]) { response = `❌ Efecto desconocido. Usa: fire, stars, glitch.`; break; }
+
+                const { data: efResult } = await supabase.rpc('buy_chat_effect', { p_user_id: user.id, p_effect: effectArg });
+                if (!efResult?.success) {
+                    if (efResult?.reason === 'insufficient_funds') response = `💸 Necesitas **${efResult.price} ◈** (tienes **${efResult.balance} ◈**).`;
+                    else response = '❌ Error al comprar el efecto.';
+                    break;
+                }
+                response = `<div class="bot-card">\n<div class="bot-card-label">✨ Efecto Activado · @${senderName}</div>\n<div class="bot-card-answer bot-answer-yes bot-text-center"><strong>${EFFECTS[effectArg]}</strong></div>\n<div class="bot-card-footer">-${efResult.price} ◈ · Tus mensajes ahora tienen efecto ${EFFECTS[effectArg]} 🌌</div>\n</div>`;
+                break;
+            }
+
+            // ── /badge ────────────────────────────────────────────────
+            case '/badge': {
+                const colorArg = args[0];
+                if (!colorArg) {
+                    response = `🎨 Uso: \`/badge #ff6b6b\` — Cambia el color de tu badge. Cualquier color hex válido.\nEj: \`/badge #7c3aed\` (morado) · \`/badge #06b6d4\` (cian) · \`/badge #f59e0b\` (dorado)`;
+                    break;
+                }
+                const { data: badgeResult } = await supabase.rpc('set_badge_color', { p_user_id: user.id, p_color: colorArg });
+                if (!badgeResult?.success) {
+                    response = `❌ Color inválido. Usa formato hex: \`#RRGGBB\`. Ej: \`/badge #ff6b6b\``;
+                    break;
+                }
+                response = `<div class="bot-card">\n<div class="bot-card-label">🎨 Badge Actualizado · @${senderName}</div>\n<div class="bot-card-answer bot-text-center" style="background:${colorArg}20;border:2px solid ${colorArg}"><strong style="color:${colorArg}">${colorArg}</strong></div>\n<div class="bot-card-footer">Tu nuevo color de badge es ${colorArg} 🌌</div>\n</div>`;
+                break;
+            }
+
             // ── /prestige ─────────────────────────────────────────────
             case '/prestige': {
                 const { data: pData } = await supabase
@@ -1121,7 +1321,8 @@ export default function GlobalChat() {
                     response = '✅ No tienes deudas activas con el Banco Estelar. ¡Eres un piloto solvente!';
                     break;
                 }
-                response = `<div class="bot-card">\n<div class="bot-card-label">🏦 Estado de Cuenta · @${senderName}</div>\n<div class="bot-card-answer bot-answer-no bot-text-center">Deuda: <strong>${dData.remaining_debt} ◈</strong></div>\n<div class="bot-card-footer">Retención activa: 25% de ingresos.<br>Paga manualmente en la sección de Banco 🛸</div>\n</div>`;
+                const isPact = profile?.stellar_pact_active;
+                response = `<div class="bot-card">\n<div class="bot-card-label">🏦 Estado de Cuenta · @${senderName}</div>\n<div class="bot-card-answer bot-answer-no bot-text-center">Deuda: <strong>${dData.remaining_debt} ◈</strong></div>\n<div class="bot-card-footer">${isPact ? '<strong>⚠️ PACTO ESTELAR ACTIVO</strong><br>Retención: 50% de ingresos.' : 'Retención activa: 25% de ingresos.'}<br>Paga en el Banco Estelar 🛸</div>\n</div>`;
                 break;
             }
 
@@ -1357,6 +1558,20 @@ export default function GlobalChat() {
                             <Trophy size={18} />
                         </button>
                         <button
+                            onClick={() => setShowCalendar(true)}
+                            className="p-2.5 bg-white/5 border border-white/10 rounded-xl text-purple-400 hover:bg-purple-400/10 hover:border-purple-400/30 transition-all active:scale-95"
+                            title="Calendario"
+                        >
+                            <Calendar size={18} />
+                        </button>
+                        <button
+                            onClick={() => setShowBadgePicker(true)}
+                            className="p-2.5 bg-white/5 border border-white/10 rounded-xl text-pink-400 hover:bg-pink-400/10 hover:border-pink-400/30 transition-all active:scale-95"
+                            title="Personalizar Badge"
+                        >
+                            <Palette size={18} />
+                        </button>
+                        <button
                             onClick={() => navigate('/mapa-estelar')}
                             className="p-2.5 bg-white/5 border border-white/10 rounded-xl text-cyan-400 hover:bg-cyan-400/10 hover:border-cyan-400/30 transition-all active:scale-95"
                             title="Mapa Estelar"
@@ -1426,6 +1641,26 @@ export default function GlobalChat() {
                                 </div>
                             </motion.div>
                         )}
+                        {activeEvents.eclipse && (
+                            <motion.div
+                                initial={{ opacity: 0, scale: 0.95 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                className="mx-4 mt-2 mb-1 shrink-0"
+                            >
+                                <div className="bg-indigo-900/40 backdrop-blur-md border border-indigo-500/30 rounded-2xl p-3 shadow-[0_0_20px_rgba(99,102,241,0.2)] flex items-center justify-between">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-8 h-8 rounded-full bg-black flex items-center justify-center border border-indigo-500/50 shadow-[0_0_15px_rgba(99,102,241,0.5)]">
+                                            <div className="w-5 h-5 rounded-full bg-indigo-500 blur-[2px] animate-pulse" />
+                                        </div>
+                                        <div>
+                                            <h4 className="text-[10px] font-black text-white uppercase tracking-tighter italic">Eclipse Galáctico Activo</h4>
+                                            <p className="text-[8px] text-indigo-300 font-bold uppercase tracking-widest">Recompensas ×3 Activadas</p>
+                                        </div>
+                                    </div>
+                                    <div className="text-[10px] font-black text-indigo-400 opacity-50 px-3 py-1 bg-black/40 rounded-lg">LIVE</div>
+                                </div>
+                            </motion.div>
+                        )}
                     </AnimatePresence>
 
                     <div className="chat-fade-top" />
@@ -1463,6 +1698,8 @@ export default function GlobalChat() {
             <AnimatePresence>
                 {selectedProfile && <HoloCard key="holocard" profile={selectedProfile} onClose={() => setSelectedProfile(null)} />}
                 {showMissions && <MissionsPanel onClose={() => setShowMissions(false)} />}
+                {showCalendar && <StellarCalendar onClose={() => setShowCalendar(false)} />}
+                {showBadgePicker && <BadgePicker onClose={() => setShowBadgePicker(false)} />}
             </AnimatePresence>
 
             {/* VoiceRoomUI fuera de AnimatePresence para evitar desmontaje accidental */}

@@ -89,7 +89,7 @@ export default function OnboardingPage() {
                 </button>
             </form>
 
-            <style jsx>{`
+            <style>{`
         .onboarding-container { max-width: 400px; margin: 100px auto; text-align: center; }
         .input-group { display: flex; align-items: center; border-bottom: 2px solid #333; margin: 20px 0; }
         .prefix { font-size: 1.5rem; color: #666; }

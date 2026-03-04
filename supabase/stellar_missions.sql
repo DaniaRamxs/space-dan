@@ -99,6 +99,9 @@ BEGIN
         PERFORM public.award_activity_xp(auth.uid(), v_template.reward_xp, 'mission');
     END IF;
 
+    -- Actualizar Racha ( Bonus de 7 días )
+    PERFORM public.update_mission_streak(auth.uid());
+
     RETURN jsonb_build_object(
         'success', true, 
         'starlys', v_template.reward_starlys, 

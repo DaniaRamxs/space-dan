@@ -7,6 +7,10 @@ import "./banner-effects.css";
 import "./styles/NicknameStyles.css";
 import AchievementToast from "./components/AchievementToast";
 import Screensaver from "./components/Screensaver";
+import BlackMarketNotification from "./components/Social/BlackMarketNotification";
+import StellarOnboarding from "./components/Social/StellarOnboarding";
+import StellarCalendar from "./components/Social/StellarCalendar";
+import BadgePicker from "./components/Social/BadgePicker";
 import PageTransition from "./components/PageTransition";
 import ScrollToTop from "./components/ScrollToTop";
 import { unlockAchievement } from "./hooks/useAchievements";
@@ -34,6 +38,7 @@ const TestsPage = lazy(() => import("./pages/TestsPage"));
 const GalleryPage = lazy(() => import("./pages/GalleryPage"));
 const WatchlistPage = lazy(() => import("./pages/WatchlistPage"));
 const BankPage = lazy(() => import("./pages/BankPage"));
+const BlackMarketPage = lazy(() => import("./pages/BlackMarketPage"));
 const UniversoPage = lazy(() => import("./pages/UniversoPage"));
 const DesktopPage = lazy(() => import("./pages/DesktopPage"));
 const DreamscapePage = lazy(() => import("./pages/DreamscapePage"));
@@ -345,6 +350,7 @@ function AnimatedRoutes() {
         <Route path="/tienda" element={<Layout><ShopPage /></Layout>} />
         <Route path="/cabina" element={<Layout><SpaceCabinPage /></Layout>} />
         <Route path="/banco" element={<Layout><BankPage /></Layout>} />
+        <Route path="/mercado-negro" element={<BlackMarketPage />} />
         <Route path="/mapa-estelar" element={<StellarMap />} />
 
         <Route path="/cartas" element={
@@ -439,6 +445,8 @@ export default function App() {
             <ScrollToTop />
             <PresenceTracker />
             <MusicSyncTracker />
+            <BlackMarketNotification />
+            <StellarOnboarding />
             <Suspense fallback={<FallbackLoader />}>
               <AnimatedRoutes />
             </Suspense>

@@ -9,6 +9,7 @@ export default function BankPage() {
     const { user, profile } = useAuthContext();
     const { balance, refreshBalance } = useEconomy();
     const [loanData, setLoanData] = useState(null);
+    const [pactEligibility, setPactEligibility] = useState(null);
     const [loading, setLoading] = useState(true);
     const [amount, setAmount] = useState('');
     const [statusMsg, setStatusMsg] = useState({ type: '', text: '' });
@@ -20,13 +21,13 @@ export default function BankPage() {
 
     async function fetchBankData() {
         setLoading(true);
-        const { data } = await supabase
-            .from('user_loans')
-            .select('*')
-            .eq('user_id', user.id)
-            .eq('status', 'active')
-            .maybeSingle();
-        setLoanData(data);
+        const [loanRes, eligibilityRes] = await Promise.all([
+            supabase.from('user_loans').select('*').eq('user_id', user.id).eq('status', 'active').maybeSingle(),
+            supabase.rpc('check_stellar_pact_eligibility', { p_user_id: user.id })
+        ]);
+
+        setLoanData(loanRes.data);
+        setPactEligibility(eligibilityRes.data);
         setLoading(false);
     }
 
@@ -46,6 +47,7 @@ export default function BankPage() {
             const reason = data?.reason || 'Error en la conexión';
             const msgs = {
                 already_has_loan: 'Ya tienes un crédito activo.',
+                stellar_pact_active: 'Pacto Estelar activo: No puedes pedir nuevos créditos.',
                 limit_exceeded: `Límite excedido. Máximo: ${data?.limit} ◈`,
                 minimum_amount: 'El monto es demasiado bajo.'
             };
@@ -70,6 +72,22 @@ export default function BankPage() {
             setStatusMsg({ type: 'error', text: 'Saldo insuficiente o error.' });
         } else {
             setStatusMsg({ type: 'success', text: `Pago procesado: -${data.paid} ◈` });
+            fetchBankData();
+            refreshBalance();
+        }
+        setProcessing(false);
+    };
+
+    const handleAcceptPact = async () => {
+        setProcessing(true);
+        const { data, error } = await supabase.rpc('accept_stellar_pact', {
+            p_user_id: user.id
+        });
+
+        if (error || !data.success) {
+            setStatusMsg({ type: 'error', text: 'No se pudo activar el pacto.' });
+        } else {
+            setStatusMsg({ type: 'success', text: `¡Pacto activado! Impulso de +${data.impulse} ◈ recibido.` });
             fetchBankData();
             refreshBalance();
         }
@@ -145,10 +163,19 @@ export default function BankPage() {
                             </div>
                         </div>
                     ) : (
-                        <div className="glass-panel p-8 border border-rose-500/20 rounded-[2.5rem] space-y-6 bg-gradient-to-br from-rose-500/5 to-transparent">
-                            <div className="flex items-center gap-3 text-rose-400">
-                                <AlertCircle size={20} />
-                                <h2 className="text-xl font-black uppercase italic tracking-tight">Deuda Activa</h2>
+                        <div className={`glass-panel p-8 border rounded-[2.5rem] space-y-6 bg-gradient-to-br from-rose-500/5 to-transparent ${profile?.stellar_pact_active ? 'border-amber-500/30' : 'border-rose-500/20'}`}>
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-3 text-rose-400">
+                                    <AlertCircle size={20} className={profile?.stellar_pact_active ? 'text-amber-400' : 'text-rose-400'} />
+                                    <h2 className={`text-xl font-black uppercase italic tracking-tight ${profile?.stellar_pact_active ? 'text-amber-400' : 'text-rose-400'}`}>
+                                        {profile?.stellar_pact_active ? 'Pacto Estelar Activo' : 'Deuda Activa'}
+                                    </h2>
+                                </div>
+                                {profile?.stellar_pact_active && (
+                                    <span className="px-3 py-1 bg-amber-500/10 border border-amber-500/20 rounded-full text-[9px] font-black text-amber-500 uppercase tracking-widest animate-pulse">
+                                        Modo Recuperación
+                                    </span>
+                                )}
                             </div>
 
                             <div className="grid grid-cols-2 gap-4">
@@ -158,14 +185,18 @@ export default function BankPage() {
                                 </div>
                                 <div className="p-4 bg-black/20 rounded-2xl border border-white/5">
                                     <p className="text-[9px] font-bold text-white/20 uppercase tracking-widest mb-1">Restante</p>
-                                    <p className="text-xl font-black text-rose-400 animate-pulse">{loanData.remaining_debt} ◈</p>
+                                    <p className={`text-xl font-black animate-pulse ${profile?.stellar_pact_active ? 'text-amber-400' : 'text-rose-400'}`}>
+                                        {loanData.remaining_debt} ◈
+                                    </p>
                                 </div>
                             </div>
 
-                            <div className="p-4 bg-rose-500/10 rounded-2xl border border-rose-500/20 flex gap-3 items-start">
-                                <Info size={16} className="text-rose-400 shrink-0 mt-0.5" />
-                                <p className="text-[10px] text-rose-300/70 leading-relaxed font-bold uppercase tracking-tight">
-                                    SISTEMA DE RETENCIÓN ACTIVO: EL 25% DE CUALQUIER INGRESO SERÁ DEPOSITADO AUTOMÁTICAMENTE PARA SALDAR ESTA DEUDA.
+                            <div className={`p-4 rounded-2xl border flex gap-3 items-start ${profile?.stellar_pact_active ? 'bg-amber-500/10 border-amber-500/20' : 'bg-rose-500/10 border-rose-500/20'}`}>
+                                <Info size={16} className={`shrink-0 mt-0.5 ${profile?.stellar_pact_active ? 'text-amber-400' : 'text-rose-400'}`} />
+                                <p className={`text-[10px] leading-relaxed font-bold uppercase tracking-tight ${profile?.stellar_pact_active ? 'text-amber-300/70' : 'text-rose-300/70'}`}>
+                                    {profile?.stellar_pact_active
+                                        ? 'Pacto Estelar: El 50% de todas tus ganancias se destina automáticamente a saldar la deuda para restaurar tu órbita.'
+                                        : 'SISTEMA DE RETENCIÓN ACTIVO: EL 25% DE CUALQUIER INGRESO SERÁ DEPOSITADO AUTOMÁTICAMENTE PARA SALDAR ESTA DEUDA.'}
                                 </p>
                             </div>
 
@@ -186,6 +217,43 @@ export default function BankPage() {
                                 </button>
                             </div>
                         </div>
+                    )}
+
+                    {/* Oferta de Pacto Estelar si es elegible */}
+                    {pactEligibility?.eligible && !profile?.stellar_pact_active && (
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.95 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            className="glass-panel p-8 border border-amber-500/40 rounded-[2.5rem] bg-gradient-to-br from-amber-500/10 to-transparent space-y-6"
+                        >
+                            <div className="flex items-center gap-3 text-amber-500">
+                                <ShieldCheck size={24} />
+                                <h2 className="text-xl font-black uppercase italic tracking-tight">Oportunidad: Pacto Estelar</h2>
+                            </div>
+
+                            <p className="text-xs text-white/60 leading-relaxed italic">
+                                "El Banco Estelar ha detectado una anomalía en tu constelación financiera. Podemos ofrecerte un Pacto Estelar para restaurar tu órbita económica."
+                            </p>
+
+                            <div className="p-4 bg-black/40 rounded-2xl border border-amber-500/20 space-y-3">
+                                <div className="flex items-center justify-between">
+                                    <span className="text-[10px] font-bold text-white/40 uppercase tracking-widest">Beneficio Inicial</span>
+                                    <span className="text-xs font-black text-green-400">Impulso Estelar ◈</span>
+                                </div>
+                                <div className="flex items-center justify-between">
+                                    <span className="text-[10px] font-bold text-white/40 uppercase tracking-widest">Condición</span>
+                                    <span className="text-xs font-black text-amber-500">50% Retención</span>
+                                </div>
+                            </div>
+
+                            <button
+                                onClick={handleAcceptPact}
+                                disabled={processing}
+                                className="w-full py-4 bg-amber-500 text-black font-black uppercase tracking-widest rounded-2xl hover:bg-amber-400 transition-all active:scale-95 flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(245,158,11,0.3)]"
+                            >
+                                Aceptar Pacto Estelar
+                            </button>
+                        </motion.div>
                     )}
                 </div>
 
