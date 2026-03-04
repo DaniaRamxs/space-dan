@@ -104,9 +104,9 @@ export default function YouTubeSearchModal({ isOpen, onClose, onSelect }) {
                             ) : (
                                 <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar space-y-3 no-scrollbar pb-6">
                                     {results.length > 0 ? (
-                                        results.map((video) => (
+                                        results.map((video, idx) => (
                                             <motion.div
-                                                key={video.id}
+                                                key={`${video.id}-${idx}`}
                                                 initial={{ opacity: 0, x: -10 }}
                                                 animate={{ opacity: 1, x: 0 }}
                                                 whileHover={{ x: 5 }}

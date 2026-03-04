@@ -13,6 +13,7 @@ import { supabase } from '../../supabaseClient';
 import { getNicknameClass } from '../../utils/user';
 import { getFrameStyle } from '../../utils/styles';
 import { Capacitor, registerPlugin } from '@capacitor/core';
+import JukeboxDJ from '../VoiceActivities/JukeboxDJ';
 import VoiceActivityLauncher from '../VoiceActivities/VoiceActivityLauncher';
 
 const VoiceServicePlugin = registerPlugin('VoiceService');
@@ -30,7 +31,12 @@ export default function VoiceRoomUI({ roomName, onLeave, onConnected, userAvatar
     const [error, setError] = useState(null);
     const [activeTab, setActiveTab] = useState('participants'); // participants, chat
     const [activeActivity, setActiveActivity] = useState(null);
+    const [jukeboxEverStarted, setJukeboxEverStarted] = useState(false);
     const roomRef = useRef(roomName);
+
+    useEffect(() => {
+        if (activeActivity === 'dj') setJukeboxEverStarted(true);
+    }, [activeActivity]);
 
     useEffect(() => {
         if (roomRef.current !== roomName) {
@@ -63,6 +69,14 @@ export default function VoiceRoomUI({ roomName, onLeave, onConnected, userAvatar
         };
         fetchToken();
     }, [roomName, token, isOpen]);
+
+    useEffect(() => {
+        const handleOpenActivity = (e) => {
+            if (e.detail) setActiveActivity(e.detail);
+        };
+        window.addEventListener('voice:open_activity', handleOpenActivity);
+        return () => window.removeEventListener('voice:open_activity', handleOpenActivity);
+    }, []);
 
     // ⚠️ Este hook DEBE ir antes del early return para respetar las Rules of Hooks
     useEffect(() => {
@@ -189,6 +203,11 @@ export default function VoiceRoomUI({ roomName, onLeave, onConnected, userAvatar
                                     </div>
                                 </header>
                                 <div className="flex-1 overflow-y-auto p-6 sm:p-8 no-scrollbar relative min-h-[300px]">
+                                    {/* Jukebox persistente para que la música no se corte al "cerrar" la actividad */}
+                                    {jukeboxEverStarted && (
+                                        <JukeboxDJ roomName={roomName} onClose={() => setActiveActivity(null)} isMinimized={activeActivity !== 'dj'} />
+                                    )}
+
                                     {activeActivity ? (
                                         <VoiceActivityLauncher roomName={roomName} activeActivity={activeActivity} setActiveActivity={setActiveActivity} />
                                     ) : (

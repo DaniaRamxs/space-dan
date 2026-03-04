@@ -19,7 +19,7 @@ export default function VoiceActivityLauncher({ roomName, activeActivity, setAct
     if (activeActivity === 'holdem') return <HoldemTable roomName={roomName} onClose={() => setActiveActivity(null)} />;
     if (activeActivity === 'draw') return <CosmicDraw roomName={roomName} onClose={() => setActiveActivity(null)} />;
     if (activeActivity === 'raid') return <BossRaid roomName={roomName} onClose={() => setActiveActivity(null)} />;
-    if (activeActivity === 'dj') return <JukeboxDJ roomName={roomName} onClose={() => setActiveActivity(null)} />;
+    if (activeActivity === 'dj') return null; // El padre (VoiceRoomUI) lo maneja para persistencia.
 
     return (
         <div className="relative mt-2">
