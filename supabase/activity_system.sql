@@ -121,8 +121,12 @@ BEGIN
     SELECT public.get_user_xp(v_user_id) INTO v_xp;
     v_lvl := floor(0.1 * sqrt(COALESCE(v_xp, 0)))::int;
     IF v_lvl < 1 THEN v_lvl := 1; END IF;
-
-    IF (TG_TABLE_NAME != 'profiles') THEN
+    
+    IF (TG_OP = 'UPDATE' AND TG_TABLE_NAME = 'profiles') THEN
+        NEW.xp := v_xp::int;
+        NEW.level := v_lvl;
+        RETURN NEW;
+    ELSIF (TG_TABLE_NAME != 'profiles') THEN
         UPDATE public.profiles 
         SET xp = v_xp::int,
             level = v_lvl
@@ -145,7 +149,7 @@ FOR EACH ROW EXECUTE FUNCTION public.sync_profile_level();
 
 DROP TRIGGER IF EXISTS tr_sync_level_balance ON public.profiles;
 CREATE TRIGGER tr_sync_level_balance 
-AFTER UPDATE OF balance ON public.profiles 
+BEFORE UPDATE OF balance ON public.profiles 
 FOR EACH ROW EXECUTE FUNCTION public.sync_profile_level();
 
 -- 6. Stellar Map Data

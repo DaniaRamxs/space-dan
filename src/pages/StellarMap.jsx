@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../supabaseClient';
-import { Zap, Flame, X, User, Orbit, Plus, Minus, Move } from 'lucide-react';
+import { Zap, Flame, X, User, Orbit, Plus, Minus, Move, Sparkles } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 export default function StellarMap() {
@@ -23,8 +23,10 @@ export default function StellarMap() {
         if (!mapData.users || mapData.users.length === 0) return [];
 
         return mapData.users.map((u, i) => {
-            const angle = i * 0.4 + (Math.random() * 0.2);
-            const distance = 80 + (i * 12) + (Math.random() * 20);
+            // Seeded random for stable positions
+            const seed = (u.id.split('-').reduce((acc, char) => acc + char.charCodeAt(0), 0)) / 1000;
+            const angle = i * 0.4 + (Math.sin(seed * 10) * 0.2);
+            const distance = 80 + (i * 12) + (Math.cos(seed * 5) * 20);
             const x = Math.cos(angle) * distance;
             const y = Math.sin(angle) * distance;
 
@@ -46,7 +48,7 @@ export default function StellarMap() {
                 baseY: y,
                 size,
                 pulseSpeed,
-                pulseOffset: Math.random() * Math.PI * 2,
+                pulseOffset: seed * Math.PI,
                 color: starColor,
             };
         });
@@ -82,6 +84,22 @@ export default function StellarMap() {
             const currentZoom = cameraRef.current.zoom;
             const centerX = window.innerWidth / 2 + cameraRef.current.x;
             const centerY = window.innerHeight / 2 + cameraRef.current.y;
+
+            // 0. Background Starfield (Parallax)
+            ctx.fillStyle = 'white';
+            const starfieldCount = 200;
+            for (let i = 0; i < starfieldCount; i++) {
+                const s = (i * 137.5) % 1; // Pseudo-randomness
+                const px = ((i * 123.456) + cameraRef.current.x * 0.2) % window.innerWidth;
+                const py = ((i * 654.321) + cameraRef.current.y * 0.2) % window.innerHeight;
+                const size = (i % 3) * 0.5;
+                const op = 0.1 + (Math.sin(time * 0.001 + i) * 0.1);
+                ctx.globalAlpha = op;
+                ctx.beginPath();
+                ctx.arc(px < 0 ? px + window.innerWidth : px, py < 0 ? py + window.innerHeight : py, size, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            ctx.globalAlpha = 1.0;
 
             // 1. Draw Hall of Fame
             if (mapData.hall_of_fame?.length) {
@@ -119,17 +137,18 @@ export default function StellarMap() {
                 const x = centerX + star.baseX * currentZoom;
                 const y = centerY + star.baseY * currentZoom;
 
-                // Optimization: Don't draw if off-screen
-                if (x < -100 || x > window.innerWidth + 100 || y < -100 || y > window.innerHeight + 100) return;
+                // Optimization: Don't draw if off-screen (with buffer)
+                if (x < -200 || x > window.innerWidth + 200 || y < -200 || y > window.innerHeight + 200) return;
 
-                const pulse = 1 + Math.sin(time * star.pulseSpeed + star.pulseOffset) * 0.3;
+                const pulse = 1 + Math.sin(time * star.pulseSpeed + star.pulseOffset) * 0.2;
                 star.screenX = x;
                 star.screenY = y;
 
-                const glowSize = star.size * pulse * 4 * Math.min(2, currentZoom);
+                // Outer Glow
+                const glowSize = star.size * pulse * 6 * Math.min(2, currentZoom);
                 const gradient = ctx.createRadialGradient(x, y, 0, x, y, glowSize);
                 gradient.addColorStop(0, star.color);
-                gradient.addColorStop(0.3, star.color + '22');
+                gradient.addColorStop(0.2, star.color + '44');
                 gradient.addColorStop(1, 'transparent');
 
                 ctx.fillStyle = gradient;
@@ -137,17 +156,30 @@ export default function StellarMap() {
                 ctx.arc(x, y, glowSize, 0, Math.PI * 2);
                 ctx.fill();
 
+                // Core
                 ctx.fillStyle = '#fff';
+                ctx.shadowBlur = 10 * currentZoom;
+                ctx.shadowColor = star.color;
                 ctx.beginPath();
-                ctx.arc(x, y, (star.size / 2) * Math.min(1.5, currentZoom), 0, Math.PI * 2);
+                ctx.arc(x, y, (star.size / 2) * Math.min(1.2, currentZoom), 0, Math.PI * 2);
                 ctx.fill();
+                ctx.shadowBlur = 0; // Reset shadow
 
-                // Text rendering (only if zoomed in)
-                if (currentZoom > 1.5 || (hoveredUser?.id === star.id)) {
-                    ctx.fillStyle = 'rgba(255,255,255,0.6)';
-                    ctx.font = `800 ${Math.max(8, 10 * currentZoom * 0.5)}px Outfit`;
+                // Label (High quality)
+                if (currentZoom > 1.2 || (hoveredUser?.id === star.id)) {
+                    const opacity = Math.min(1, (currentZoom - 1.2) * 2);
+                    ctx.fillStyle = `rgba(255,255,255,${hoveredUser?.id === star.id ? 1 : opacity})`;
+                    ctx.font = `900 ${Math.max(10, 12 * currentZoom * 0.6)}px Outfit`;
                     ctx.textAlign = 'center';
-                    ctx.fillText(star.username.toUpperCase(), x, y + star.size * 2 + 15);
+                    ctx.fillText(star.username.toUpperCase(), x, y + star.size * 2 + 20);
+
+                    if (hoveredUser?.id === star.id) {
+                        ctx.strokeStyle = star.color;
+                        ctx.lineWidth = 2;
+                        ctx.beginPath();
+                        ctx.arc(x, y, glowSize * 0.5, 0, Math.PI * 2);
+                        ctx.stroke();
+                    }
                 }
             });
 
@@ -277,6 +309,9 @@ export default function StellarMap() {
                                 <div className="flex-1 min-w-0">
                                     <div className="flex items-center gap-2">
                                         <h2 className="text-xl font-black text-white truncate">{selectedUser.username}</h2>
+                                        {selectedUser.badge_color && (
+                                            <Sparkles size={14} style={{ color: selectedUser.badge_color }} className="shrink-0 drop-shadow-[0_0_5px_currentColor]" />
+                                        )}
                                         {selectedUser.prestige_level > 0 && <span className="text-yellow-500 font-black text-xs shrink-0">✦{selectedUser.prestige_level}</span>}
                                     </div>
                                     <p className="text-[10px] text-violet-400 font-bold uppercase tracking-widest truncate">{selectedUser.chat_title || 'VIAJERO DEL ESPACIO'}</p>

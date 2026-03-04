@@ -4,7 +4,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeRaw from 'rehype-raw';
 import rehypeSanitize, { defaultSchema } from 'rehype-sanitize';
-import { Zap, Flame } from 'lucide-react';
+import { Zap, Flame, Sparkles } from 'lucide-react';
 import { getNicknameClass, getUserDisplayName } from '../../../utils/user';
 import { getFrameStyle } from '../../../utils/styles';
 import { parseSpaceEnergies } from '../../../utils/markdownUtils';
@@ -105,6 +105,20 @@ const ChatMessage = memo(({ message, isMe, isOnline, userPresence, onProfileClic
                     >
                         {getUserDisplayName(safeAuthor)}
                     </span>
+                    {safeAuthor?.badge_color && (
+                        <motion.div
+                            initial={{ scale: 0, rotate: -45 }}
+                            animate={{ scale: 1, rotate: 0 }}
+                            className="flex-shrink-0"
+                            title="Insignia Personalizada"
+                        >
+                            <Sparkles
+                                size={12}
+                                style={{ color: safeAuthor.badge_color }}
+                                className="drop-shadow-[0_0_8px_currentColor] brightness-125"
+                            />
+                        </motion.div>
+                    )}
                     <span className="text-[8px] text-white/20 font-mono flex-shrink-0">
                         {new Date(created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </span>

@@ -9,6 +9,7 @@ import { supabase } from '../supabaseClient';
 import { getUserDisplayName, getNicknameClass } from '../utils/user';
 import '../styles/NicknameStyles.css';
 
+import { Zap, Flame, Sparkles } from 'lucide-react';
 import { getFrameStyle } from '../utils/styles';
 
 import SafeAvatar from './SafeAvatar';
@@ -146,9 +147,16 @@ const HoloCard = memo(function HoloCard({ profile, onClose }) {
                     <div style={{ transform: 'translateZ(30px)', textAlign: 'center' }}>
                         <h2
                             className={getNicknameClass(fullProfile || profile)}
-                            style={{ margin: '0 0 5px 0', fontSize: '22px' }}
+                            style={{ margin: '0 0 5px 0', fontSize: '22px', display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'center' }}
                         >
                             {getUserDisplayName(profile)}
+                            {(fullProfile?.badge_color || profile?.badge_color) && (
+                                <Sparkles
+                                    size={18}
+                                    style={{ color: fullProfile?.badge_color || profile?.badge_color }}
+                                    className="drop-shadow-[0_0_10px_currentColor]"
+                                />
+                            )}
                         </h2>
 
                         <p style={{

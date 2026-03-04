@@ -225,7 +225,8 @@ BEGIN
                     'chat_title', p.chat_title,
                     'is_playing', COALESCE(mss.is_playing, false),
                     'music_mood', mss.emotional_label,
-                    'xp_boost', (p.xp_boost_until IS NOT NULL AND p.xp_boost_until > now())
+                    'xp_boost', (p.xp_boost_until IS NOT NULL AND p.xp_boost_until > now()),
+                    'badge_color', p.badge_color
                 )
             )
             FROM public.profiles p
