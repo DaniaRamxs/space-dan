@@ -50,7 +50,7 @@ const SplitControl = lazy(() => import('../components/SplitControl'));
 const PhaseRunner = lazy(() => import('../components/PhaseRunner'));
 const MagnetDash = lazy(() => import('../components/MagnetDash'));
 const EchoTiming = lazy(() => import('../components/EchoTiming'));
-// Casino
+// Casino — Batch 1
 const CasinoBlackjack = lazy(() => import('../components/CasinoBlackjack'));
 const CosmicDice = lazy(() => import('../components/CosmicDice'));
 const AsteroidCrash = lazy(() => import('../components/AsteroidCrash'));
@@ -61,6 +61,20 @@ const GalaxyLadder = lazy(() => import('../components/GalaxyLadder'));
 const AlienInvasion = lazy(() => import('../components/AlienInvasion'));
 const RocketJump = lazy(() => import('../components/RocketJump'));
 const MemoryGalaxy = lazy(() => import('../components/MemoryGalaxy'));
+// Casino — Batch 2
+const NebulaSniper = lazy(() => import('../components/NebulaSniper'));
+const PulsarRoulette = lazy(() => import('../components/PulsarRoulette'));
+const HiLoCards = lazy(() => import('../components/HiLoCards'));
+const TimeBomb = lazy(() => import('../components/TimeBomb'));
+const GravityWave = lazy(() => import('../components/GravityWave'));
+const CosmicWheel = lazy(() => import('../components/CosmicWheel'));
+const StarSudoku = lazy(() => import('../components/StarSudoku'));
+const OraclePrediction = lazy(() => import('../components/OraclePrediction'));
+const PowerSurge = lazy(() => import('../components/PowerSurge'));
+const PlanetAuction = lazy(() => import('../components/PlanetAuction'));
+const BlackHolePull = lazy(() => import('../components/BlackHolePull'));
+const AlienPoker = lazy(() => import('../components/AlienPoker'));
+const CasinoLeaderboard = lazy(() => import('../components/CasinoLeaderboard'));
 
 
 const GAMES = [
@@ -111,6 +125,18 @@ const GAMES = [
   { id: 'alien-invasion', icon: '👾', title: 'alien invasion', component: AlienInvasion, category: 'Casino', isImmersive: true },
   { id: 'rocket-jump', icon: '🛸', title: 'rocket jump', component: RocketJump, category: 'Casino', isImmersive: true },
   { id: 'memory-galaxy', icon: '🧠', title: 'memory galaxy', component: MemoryGalaxy, category: 'Casino', isImmersive: true },
+  { id: 'nebula-sniper', icon: '🎯', title: 'nebula sniper', component: NebulaSniper, category: 'Casino', isImmersive: true },
+  { id: 'pulsar-roulette', icon: '🌀', title: 'pulsar roulette', component: PulsarRoulette, category: 'Casino', isImmersive: true },
+  { id: 'hilo-cards', icon: '🃏', title: 'hi-lo cards', component: HiLoCards, category: 'Casino', isImmersive: true },
+  { id: 'time-bomb', icon: '💣', title: 'time bomb', component: TimeBomb, category: 'Casino', isImmersive: true },
+  { id: 'gravity-wave', icon: '🌊', title: 'gravity wave', component: GravityWave, category: 'Casino', isImmersive: true },
+  { id: 'cosmic-wheel', icon: '🎡', title: 'cosmic wheel', component: CosmicWheel, category: 'Casino', isImmersive: true },
+  { id: 'star-sudoku', icon: '🧩', title: 'star sudoku', component: StarSudoku, category: 'Casino', isImmersive: true },
+  { id: 'oracle-prediction', icon: '🔮', title: 'oracle prediction', component: OraclePrediction, category: 'Casino', isImmersive: true },
+  { id: 'power-surge', icon: '⚡', title: 'power surge', component: PowerSurge, category: 'Casino', isImmersive: true },
+  { id: 'planet-auction', icon: '🪐', title: 'planet auction', component: PlanetAuction, category: 'Casino', isImmersive: true },
+  { id: 'black-hole-pull', icon: '🕳️', title: 'black hole pull', component: BlackHolePull, category: 'Casino', isImmersive: true },
+  { id: 'alien-poker', icon: '🎭', title: 'alien poker', component: AlienPoker, category: 'Casino', isImmersive: true },
 ];
 
 const PLAYED_KEY = 'space-dan-played-games';
@@ -569,6 +595,15 @@ export default function GamesPage() {
             ))}
           </div>
         </div>
+
+        {/* CASINO LEADERBOARD */}
+        {filterCat === 'Casino' && (
+          <div className="px-4 md:px-0" style={{ marginBottom: 24 }}>
+            <Suspense fallback={null}>
+              <CasinoLeaderboard />
+            </Suspense>
+          </div>
+        )}
 
         {/* GRID */}
         {filteredGames.length === 0 ? (
