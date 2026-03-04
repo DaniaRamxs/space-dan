@@ -8,7 +8,7 @@ public class MainActivity extends BridgeActivity {
 
     @Override
     public void onCreate(android.os.Bundle savedInstanceState) {
-        registerPlugin(VoiceServicePlugin.class);
+        registerPlugin(VoiceServicePlugin.class);l.ñ
         registerPlugin(RadioServicePlugin.class);
         super.onCreate(savedInstanceState);
     }

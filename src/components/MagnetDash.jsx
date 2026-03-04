@@ -28,7 +28,7 @@ function makeState() {
 function MagnetDashInner() {
     const [status, setStatus] = useState('IDLE'); // IDLE, PLAYING, DEAD
     const [score, setScore] = useState(0);
-    const [best, saveScore] = useHighScore('magnet');
+    const [best, saveScore] = useHighScore('magnetdash');
 
     const statusRef = useRef('IDLE');
     const stateRef = useRef(makeState());

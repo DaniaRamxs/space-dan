@@ -71,7 +71,7 @@ function SpaceInvadersInner() {
   const keysRef = useRef({});
   const frameRef = useRef(0);
 
-  const [best, saveScore] = useHighScore('spaceinvaders');
+  const [best, saveScore] = useHighScore('invaders');
   const [score, setScore] = useState(0);
   const [status, setStatus] = useState('IDLE');
   const [lives, setLives] = useState(3);

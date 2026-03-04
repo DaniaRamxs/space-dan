@@ -95,7 +95,7 @@ function MinesweeperInner() {
   const [minesLeft, setMinesLeft] = useState(MINES);
   const [elapsed, setElapsed] = useState(0);
   const [flagMode, setFlagMode] = useState(false);
-  const [best, saveScore] = useHighScore('minesweeper');
+  const [best, saveScore] = useHighScore('mines');
   const [score, setScore] = useState(0);
 
   const timerRef = useRef(null);

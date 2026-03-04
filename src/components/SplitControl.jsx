@@ -30,7 +30,7 @@ function SplitControlInner() {
     const [status, setStatus] = useState('IDLE'); // IDLE, PLAYING, DEAD, WIN
     const [score, setScore] = useState(0); // Score will be remaining time * 10 or just a calculated score
     const [displayTime, setDisplayTime] = useState(0);
-    const [best, saveScore] = useHighScore('split');
+    const [best, saveScore] = useHighScore('splitcontrol');
     const [progress, setProgress] = useState(0);
 
     const canvasRef = useRef(null);
@@ -245,6 +245,13 @@ function SplitControlInner() {
         if (collidedA || collidedB) {
             statusRef.current = 'DEAD';
             setStatus('DEAD');
+
+            // Si chocan, el puntaje base es la distancia que lograron recorrer (max 12000 pts)
+            // Si ganan, se les da un gran bono basado en la velocidad de finalización (+30000 pts)
+            const crashScore = Math.floor(s.distance);
+            setScore(crashScore);
+            saveScore(crashScore);
+
             triggerHaptic('heavy');
             if (collidedA) {
                 spawnParticles('25%', '80%', '#ff1744', 30);
