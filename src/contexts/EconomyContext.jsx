@@ -176,6 +176,7 @@ export function EconomyProvider({ children }) {
     claimDaily,
     canClaimDaily,
     transfer,
+    refreshBalance: refreshEconomy,
     // Alias para compatibilidad con código existente que usa useStarlys
     coins: balance,
   };
