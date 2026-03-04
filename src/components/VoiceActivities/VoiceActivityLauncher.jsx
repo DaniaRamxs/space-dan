@@ -4,12 +4,13 @@ import { Gamepad2, Palette, Skull, Music, X } from 'lucide-react';
 import HoldemTable from './HoldemTable';
 import CosmicDraw from './CosmicDraw';
 import BossRaid from './BossRaid';
+import JukeboxDJ from './JukeboxDJ';
 
 const ACTIVITIES = [
     { id: 'holdem', name: "Texas Hold'em", icon: <Gamepad2 size={24} />, description: 'Póker de mesa. 500◈ Buy-in', colorBorder: 'border-rose-500/20', colorBg: 'bg-rose-500/10', colorHover: 'hover:bg-rose-500/20', colorText: 'text-rose-400' },
     { id: 'draw', name: 'Dibuja y Adivina', icon: <Palette size={24} />, description: 'Pizarra compartida. Gana ◈', colorBorder: 'border-cyan-500/20', colorBg: 'bg-cyan-500/10', colorHover: 'hover:bg-cyan-500/20', colorText: 'text-cyan-400', disabled: false },
     { id: 'raid', name: 'Boss Raid', icon: <Skull size={24} />, description: 'Evento Co-op Multijugador', colorBorder: 'border-emerald-500/20', colorBg: 'bg-emerald-500/10', colorHover: 'hover:bg-emerald-500/20', colorText: 'text-emerald-400', disabled: false },
-    { id: 'dj', name: 'Jukebox DJ', icon: <Music size={24} />, description: 'Música V.I.P (Próximamente)', colorBorder: 'border-amber-500/20', colorBg: 'bg-amber-500/10', colorHover: 'hover:bg-amber-500/20', colorText: 'text-amber-400', disabled: true },
+    { id: 'dj', name: 'Jukebox DJ', icon: <Music size={24} />, description: 'Música V.I.P Sincronizada', colorBorder: 'border-amber-500/20', colorBg: 'bg-amber-500/10', colorHover: 'hover:bg-amber-500/20', colorText: 'text-amber-400', disabled: false },
 ];
 
 export default function VoiceActivityLauncher({ roomName, activeActivity, setActiveActivity }) {
@@ -18,6 +19,7 @@ export default function VoiceActivityLauncher({ roomName, activeActivity, setAct
     if (activeActivity === 'holdem') return <HoldemTable roomName={roomName} onClose={() => setActiveActivity(null)} />;
     if (activeActivity === 'draw') return <CosmicDraw roomName={roomName} onClose={() => setActiveActivity(null)} />;
     if (activeActivity === 'raid') return <BossRaid roomName={roomName} onClose={() => setActiveActivity(null)} />;
+    if (activeActivity === 'dj') return <JukeboxDJ roomName={roomName} onClose={() => setActiveActivity(null)} />;
 
     return (
         <div className="relative mt-2">
