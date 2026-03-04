@@ -1,132 +1,153 @@
 import { useEffect, useRef, useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../supabaseClient';
-import { Zap, Flame, X, User, ExternalLink } from 'lucide-react';
+import { Zap, Flame, X, User, Orbit, Plus, Minus, Move } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 export default function StellarMap() {
     const canvasRef = useRef(null);
-    const [users, setUsers] = useState([]);
+    const [mapData, setMapData] = useState({ users: [], hall_of_fame: [] });
     const [selectedUser, setSelectedUser] = useState(null);
     const [loading, setLoading] = useState(true);
     const [hoveredUser, setHoveredUser] = useState(null);
     const navigate = useNavigate();
 
+    // Camera State
+    const [camera, setCamera] = useState({ x: 0, y: 0, zoom: 1 });
+    const cameraRef = useRef({ x: 0, y: 0, zoom: 1 });
+    const isDragging = useRef(false);
+    const lastPos = useRef({ x: 0, y: 0 });
+
     // Galactic centers and stars logic
     const stars = useMemo(() => {
-        if (users.length === 0) return [];
+        if (!mapData.users || mapData.users.length === 0) return [];
 
-        return users.map((u, i) => {
-            // Spiral galaxy formula
+        return mapData.users.map((u, i) => {
             const angle = i * 0.4 + (Math.random() * 0.2);
-            const distance = 50 + (i * 8) + (Math.random() * 20);
+            const distance = 80 + (i * 12) + (Math.random() * 20);
             const x = Math.cos(angle) * distance;
             const y = Math.sin(angle) * distance;
 
-            // Size based on Stellar Level (Zap)
             const size = Math.max(2, (u.level || 1) * 0.8 + 2);
-            // Pulse based on Activity Level (Flame)
             const pulseSpeed = 0.02 + (u.activity_level || 1) * 0.005;
+
+            let starColor = u.activity_level > 10 ? '#a78bfa' : '#22d3ee';
+            if (u.xp_boost) starColor = '#facc15';
+            if (u.is_playing) {
+                const mood = u.music_mood?.toLowerCase() || '';
+                if (mood.includes('euforia') || mood.includes('energía')) starColor = '#ef4444';
+                if (mood.includes('calma') || mood.includes('luminosa')) starColor = '#10b981';
+                if (mood.includes('introspección') || mood.includes('melancólica')) starColor = '#6366f1';
+            }
 
             return {
                 ...u,
                 baseX: x,
                 baseY: y,
-                angle,
-                distance,
                 size,
                 pulseSpeed,
                 pulseOffset: Math.random() * Math.PI * 2,
-                color: u.activity_level > 10 ? '#a78bfa' : '#22d3ee', // Violet if high activity, Cyan if normal
-                currentPulse: 1
+                color: starColor,
             };
         });
-    }, [users]);
+    }, [mapData]);
 
     useEffect(() => {
         async function fetchMapData() {
             setLoading(true);
             const { data, error } = await supabase.rpc('get_stellar_map_data');
-            if (!error && data) setUsers(data);
+            if (!error && data) setMapData(data);
             setLoading(false);
         }
         fetchMapData();
     }, []);
 
     useEffect(() => {
-        if (stars.length === 0) return;
-
         const canvas = canvasRef.current;
         const ctx = canvas.getContext('2d');
         let animationFrame;
 
         const resize = () => {
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
+            const ratio = window.devicePixelRatio || 1;
+            canvas.width = window.innerWidth * ratio;
+            canvas.height = window.innerHeight * ratio;
+            ctx.scale(ratio, ratio);
         };
         window.addEventListener('resize', resize);
         resize();
 
-        let offsetX = 0;
-        let offsetY = 0;
-        let targetOffsetX = 0;
-        let targetOffsetY = 0;
-        let zoom = 1;
-
         const animate = (time) => {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-            const centerX = canvas.width / 2 + offsetX;
-            const centerY = canvas.height / 2 + offsetY;
+            const currentZoom = cameraRef.current.zoom;
+            const centerX = window.innerWidth / 2 + cameraRef.current.x;
+            const centerY = window.innerHeight / 2 + cameraRef.current.y;
 
-            // Interpolate camera
-            offsetX += (targetOffsetX - offsetX) * 0.05;
-            offsetY += (targetOffsetY - offsetY) * 0.05;
+            // 1. Draw Hall of Fame
+            if (mapData.hall_of_fame?.length) {
+                const stationPulse = 1 + Math.sin(time * 0.001) * 0.1;
+                const radius = 60 * currentZoom * stationPulse;
 
-            // Draw Background Stars (Generic)
-            ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
-            for (let i = 0; i < 100; i++) {
-                const bx = (Math.sin(i) * 5000) % canvas.width;
-                const by = (Math.cos(i) * 5000) % canvas.height;
+                ctx.strokeStyle = 'rgba(167, 139, 250, 0.1)';
+                ctx.lineWidth = 1;
                 ctx.beginPath();
-                ctx.arc(bx, by, 0.5, 0, Math.PI * 2);
+                ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+                ctx.stroke();
+
+                const grad = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, 40 * currentZoom);
+                grad.addColorStop(0, 'rgba(167, 139, 250, 0.2)');
+                grad.addColorStop(1, 'transparent');
+                ctx.fillStyle = grad;
+                ctx.beginPath();
+                ctx.arc(centerX, centerY, 40 * currentZoom, 0, Math.PI * 2);
                 ctx.fill();
+
+                mapData.hall_of_fame.forEach((h, i) => {
+                    const angle = (time * 0.0002) + (i * Math.PI * 2 / 3);
+                    const hx = centerX + Math.cos(angle) * radius;
+                    const hy = centerY + Math.sin(angle) * radius;
+
+                    ctx.fillStyle = i === 0 ? '#facc15' : i === 1 ? '#e2e8f0' : '#cd7f32';
+                    ctx.beginPath();
+                    ctx.arc(hx, hy, 3 * currentZoom, 0, Math.PI * 2);
+                    ctx.fill();
+                });
             }
 
-            // Draw User Stars
+            // 2. User Stars
             stars.forEach(star => {
-                const x = centerX + star.baseX * zoom;
-                const y = centerY + star.baseY * zoom;
+                const x = centerX + star.baseX * currentZoom;
+                const y = centerY + star.baseY * currentZoom;
 
-                // Calculate pulse
+                // Optimization: Don't draw if off-screen
+                if (x < -100 || x > window.innerWidth + 100 || y < -100 || y > window.innerHeight + 100) return;
+
                 const pulse = 1 + Math.sin(time * star.pulseSpeed + star.pulseOffset) * 0.3;
-                star.currentPulse = pulse;
                 star.screenX = x;
                 star.screenY = y;
 
-                // Glow
-                const gradient = ctx.createRadialGradient(x, y, 0, x, y, star.size * pulse * 4);
+                const glowSize = star.size * pulse * 4 * Math.min(2, currentZoom);
+                const gradient = ctx.createRadialGradient(x, y, 0, x, y, glowSize);
                 gradient.addColorStop(0, star.color);
-                gradient.addColorStop(0.2, star.color + '44');
+                gradient.addColorStop(0.3, star.color + '22');
                 gradient.addColorStop(1, 'transparent');
 
                 ctx.fillStyle = gradient;
                 ctx.beginPath();
-                ctx.arc(x, y, star.size * pulse * 4, 0, Math.PI * 2);
+                ctx.arc(x, y, glowSize, 0, Math.PI * 2);
                 ctx.fill();
 
-                // Core
                 ctx.fillStyle = '#fff';
                 ctx.beginPath();
-                ctx.arc(x, y, star.size / 2, 0, Math.PI * 2);
+                ctx.arc(x, y, (star.size / 2) * Math.min(1.5, currentZoom), 0, Math.PI * 2);
                 ctx.fill();
 
-                // Name if zoomed in or hovered
-                if (zoom > 1.5 || hoveredUser?.id === star.id) {
-                    ctx.fillStyle = 'rgba(255,255,255,0.5)';
-                    ctx.font = 'bold 10px Inter';
+                // Text rendering (only if zoomed in)
+                if (currentZoom > 1.5 || (hoveredUser?.id === star.id)) {
+                    ctx.fillStyle = 'rgba(255,255,255,0.6)';
+                    ctx.font = `800 ${Math.max(8, 10 * currentZoom * 0.5)}px Outfit`;
                     ctx.textAlign = 'center';
-                    ctx.fillText(star.username, x, y + star.size * 2 + 10);
+                    ctx.fillText(star.username.toUpperCase(), x, y + star.size * 2 + 15);
                 }
             });
 
@@ -138,120 +159,165 @@ export default function StellarMap() {
             window.removeEventListener('resize', resize);
             cancelAnimationFrame(animationFrame);
         };
-    }, [stars, hoveredUser]);
+    }, [stars, hoveredUser, mapData]);
 
-    const handleMouseMove = (e) => {
-        const rect = canvasRef.current.getBoundingClientRect();
-        const mx = e.clientX - rect.left;
-        const my = e.clientY - rect.top;
+    // Interaction Handlers (Universal)
+    const handleStart = (e) => {
+        isDragging.current = true;
+        const pos = e.touches ? e.touches[0] : e;
+        lastPos.current = { x: pos.clientX, y: pos.clientY };
+    };
 
-        let found = null;
-        for (const star of stars) {
-            const dx = mx - star.screenX;
-            const dy = my - star.screenY;
-            const dist = Math.sqrt(dx * dx + dy * dy);
-            if (dist < 20) {
-                found = star;
-                break;
-            }
-        }
-        setHoveredUser(found);
-    }
+    const handleMove = (e) => {
+        const pos = e.touches ? e.touches[0] : e;
 
-    const handleClick = () => {
-        if (hoveredUser) {
-            setSelectedUser(hoveredUser);
+        if (isDragging.current) {
+            const dx = pos.clientX - lastPos.current.x;
+            const dy = pos.clientY - lastPos.current.y;
+            cameraRef.current.x += dx;
+            cameraRef.current.y += dy;
+            lastPos.current = { x: pos.clientX, y: pos.clientY };
+            setCamera({ ...cameraRef.current });
         } else {
-            setSelectedUser(null);
+            // Hover logic
+            const rect = canvasRef.current.getBoundingClientRect();
+            const mx = pos.clientX - rect.left;
+            const my = pos.clientY - rect.top;
+            const found = stars.find(s => {
+                const dist = Math.sqrt((mx - s.screenX) ** 2 + (my - s.screenY) ** 2);
+                return dist < (e.touches ? 40 : 25); // Bigger hit area for touch
+            });
+            setHoveredUser(found);
         }
-    }
+    };
+
+    const handleEnd = () => {
+        isDragging.current = false;
+    };
+
+    const adjustZoom = (delta) => {
+        const newZoom = Math.max(0.3, Math.min(5, cameraRef.current.zoom + delta));
+        cameraRef.current.zoom = newZoom;
+        setCamera({ ...cameraRef.current });
+    };
+
+    const handleWormhole = () => {
+        if (!stars.length) return;
+        const randomStar = stars[Math.floor(Math.random() * stars.length)];
+        cameraRef.current.x = -randomStar.baseX * cameraRef.current.zoom;
+        cameraRef.current.y = -randomStar.baseY * cameraRef.current.zoom;
+        setCamera({ ...cameraRef.current });
+        setSelectedUser(randomStar);
+    };
 
     return (
-        <div className="fixed inset-0 bg-[#020205] overflow-hidden cursor-crosshair">
+        <div className="fixed inset-0 bg-[#020205] overflow-hidden select-none touch-none">
             <canvas
                 ref={canvasRef}
-                onMouseMove={handleMouseMove}
-                onClick={handleClick}
-                className="w-full h-full"
+                onMouseDown={handleStart}
+                onMouseMove={handleMove}
+                onMouseUp={handleEnd}
+                onTouchStart={handleStart}
+                onTouchMove={handleMove}
+                onTouchEnd={handleEnd}
+                onClick={() => hoveredUser && setSelectedUser(hoveredUser)}
+                className="w-full h-full cursor-grab active:cursor-grabbing"
             />
 
-            {/* UI Overlays */}
-            <div className="absolute top-8 left-8 p-6 glass-panel border border-white/10 rounded-3xl pointer-events-none">
-                <h1 className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-violet-400 uppercase tracking-tighter">
-                    Mapa Estelar
-                </h1>
-                <p className="text-[10px] text-white/30 uppercase tracking-[0.3em] font-bold mt-1">
-                    Explorando {users.length} pilotos activos
-                </p>
+            {/* Header / Info - Hidden when user selected to save space */}
+            <AnimatePresence>
+                {!selectedUser && (
+                    <motion.div
+                        initial={{ opacity: 0, y: -20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -20 }}
+                        className="absolute top-6 left-6 right-6 flex justify-between items-start pointer-events-none"
+                    >
+                        <div className="glass-panel p-4 sm:p-6 border border-white/10 rounded-3xl pointer-events-auto">
+                            <h1 className="text-xl sm:text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-violet-400 uppercase tracking-tighter">MAPA ESTELAR</h1>
+                            <div className="hidden sm:block mt-4 space-y-2">
+                                <LegendItem color="bg-cyan-400" label="Explorador" />
+                                <LegendItem color="bg-yellow-400" label="Boost Activo" />
+                            </div>
+                        </div>
 
-                <div className="mt-6 flex flex-col gap-4">
-                    <div className="flex items-center gap-3">
-                        <div className="w-2 h-2 rounded-full bg-cyan-400 shadow-[0_0_8px_#22d3ee]" />
-                        <span className="text-[9px] text-white/50 uppercase font-black">Niveles Estelares</span>
-                    </div>
-                    <div className="flex items-center gap-3">
-                        <div className="w-2 h-2 rounded-full bg-violet-500 shadow-[0_0_8px_#8b5cf6] animate-pulse" />
-                        <span className="text-[9px] text-white/50 uppercase font-black">Actividad Social</span>
-                    </div>
-                </div>
+                        <div className="flex gap-2 pointer-events-auto">
+                            <button onClick={() => navigate('/posts')} className="w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center bg-white/5 border border-white/10 rounded-2xl text-white/40 hover:text-white transition-all active:scale-90">
+                                <X size={20} />
+                            </button>
+                        </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
+            {/* Mobile Controls Right Bottom */}
+            <div className="absolute right-6 bottom-32 sm:bottom-12 flex flex-col gap-3 z-10">
+                <button onClick={() => adjustZoom(0.3)} className="w-12 h-12 flex items-center justify-center bg-white/5 border border-white/10 rounded-2xl text-white/60 active:scale-90"><Plus size={20} /></button>
+                <button onClick={() => adjustZoom(-0.3)} className="w-12 h-12 flex items-center justify-center bg-white/5 border border-white/10 rounded-2xl text-white/60 active:scale-90"><Minus size={20} /></button>
+                <button onClick={handleWormhole} className="w-12 h-12 flex items-center justify-center bg-violet-600/20 border border-violet-500/30 rounded-2xl text-violet-400 active:scale-90"><Orbit size={20} /></button>
             </div>
 
-            <button
-                onClick={() => navigate('/posts')}
-                className="absolute top-8 right-8 w-12 h-12 flex items-center justify-center bg-white/5 border border-white/10 rounded-full text-white/40 hover:text-white hover:bg-white/10 transition-all active:scale-90"
-            >
-                <X size={20} />
-            </button>
-
-            {/* Selected User Modal */}
+            {/* Selected User Modal (Mobile Refined) */}
             <AnimatePresence>
                 {selectedUser && (
                     <motion.div
-                        initial={{ opacity: 0, scale: 0.9, y: 20 }}
-                        animate={{ opacity: 1, scale: 1, y: 0 }}
-                        exit={{ opacity: 0, scale: 0.9, y: 20 }}
-                        className="absolute bottom-12 left-1/2 -translate-x-1/2 w-full max-w-sm"
+                        initial={{ opacity: 0, y: 100 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: 100 }}
+                        className="absolute bottom-0 left-0 right-0 sm:bottom-12 sm:left-1/2 sm:-translate-x-1/2 sm:w-full sm:max-w-sm px-0 sm:px-6 z-20"
                     >
-                        <div className="glass-panel p-6 border border-cyan-500/30 rounded-[2.5rem] shadow-2xl relative overflow-hidden group">
-                            {/* Glow background */}
-                            <div className="absolute inset-0 bg-gradient-to-tr from-cyan-500/5 to-violet-500/5 pointer-events-none" />
+                        <div className="glass-panel p-6 border-t sm:border border-cyan-500/30 rounded-t-[2.5rem] sm:rounded-[2.5rem] shadow-2xl relative overflow-hidden pb-12 sm:pb-6">
+                            <button onClick={() => setSelectedUser(null)} className="absolute top-4 right-4 text-white/20 hover:text-white"><X size={20} /></button>
 
-                            <div className="flex items-center gap-5 relative">
-                                <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-white/10 bg-black/40">
+                            <div className="flex items-center gap-5">
+                                <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full overflow-hidden border-2 border-white/10 bg-black/40 relative shrink-0">
                                     <img src={selectedUser.avatar_url || '/default-avatar.png'} className="w-full h-full object-cover" alt="" />
+                                    {selectedUser.xp_boost && <div className="absolute inset-0 border-2 border-yellow-400 rounded-full animate-pulse" />}
                                 </div>
-
-                                <div className="flex-1">
-                                    <h2 className="text-xl font-black text-white">{selectedUser.username}</h2>
-                                    <div className="flex gap-3 mt-1">
-                                        <div className="flex items-center gap-1 text-[10px] font-black text-cyan-400 uppercase">
-                                            <Zap size={10} className="fill-current" />
-                                            Lvl {selectedUser.level}
-                                        </div>
-                                        <div className="flex items-center gap-1 text-[10px] font-black text-violet-400 uppercase">
-                                            <Flame size={10} className="fill-current" />
-                                            Act {selectedUser.activity_level}
-                                        </div>
+                                <div className="flex-1 min-w-0">
+                                    <div className="flex items-center gap-2">
+                                        <h2 className="text-xl font-black text-white truncate">{selectedUser.username}</h2>
+                                        {selectedUser.prestige_level > 0 && <span className="text-yellow-500 font-black text-xs shrink-0">✦{selectedUser.prestige_level}</span>}
+                                    </div>
+                                    <p className="text-[10px] text-violet-400 font-bold uppercase tracking-widest truncate">{selectedUser.chat_title || 'VIAJERO DEL ESPACIO'}</p>
+                                    <div className="flex gap-3 mt-2">
+                                        <Stat badge={<Zap size={10} />} value={`Lvl ${selectedUser.level}`} color="text-cyan-400" />
+                                        <Stat badge={<Flame size={10} />} value={`Act ${selectedUser.activity_level}`} color="text-violet-400" />
                                     </div>
                                 </div>
-
-                                <button
-                                    onClick={() => navigate(`/profile/${selectedUser.username}`)}
-                                    className="w-10 h-10 bg-cyan-500 rounded-2xl flex items-center justify-center text-black hover:scale-110 active:scale-95 transition-transform"
-                                >
-                                    <User size={18} />
-                                </button>
+                                <button onClick={() => navigate(`/profile/${selectedUser.username}`)} className="w-12 h-12 bg-cyan-500 rounded-2xl flex items-center justify-center text-black hover:scale-110 active:scale-95 transition-all shrink-0"><User size={20} /></button>
                             </div>
+
+                            {/* Music Metadata if playing */}
+                            {selectedUser.is_playing && (
+                                <div className="mt-4 pt-4 border-t border-white/5 flex items-center gap-3">
+                                    <div className="px-2 py-1 bg-violet-500/20 rounded text-[9px] font-black text-violet-300 uppercase letter-spacing-widest">Sintonizando</div>
+                                    <span className="text-[11px] text-white/40 italic truncate">{selectedUser.music_mood}</span>
+                                </div>
+                            )}
                         </div>
                     </motion.div>
                 )}
             </AnimatePresence>
 
             {loading && (
-                <div className="absolute inset-0 flex items-center justify-center">
+                <div className="absolute inset-0 flex items-center justify-center bg-[#020205]">
                     <div className="w-12 h-12 border-2 border-cyan-500/20 border-t-cyan-500 rounded-full animate-spin" />
                 </div>
             )}
         </div>
     );
 }
+
+const LegendItem = ({ color, label }) => (
+    <div className="flex items-center gap-3">
+        <div className={`w-2 h-2 rounded-full ${color} shadow-[0_0_8px_currentColor]`} />
+        <span className="text-[9px] text-white/50 uppercase font-black">{label}</span>
+    </div>
+);
+
+const Stat = ({ badge, value, color }) => (
+    <div className={`flex items-center gap-1 text-[10px] font-black uppercase ${color}`}>
+        {badge} {value}
+    </div>
+);

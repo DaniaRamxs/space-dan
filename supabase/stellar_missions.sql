@@ -63,7 +63,8 @@ BEGIN
             (CURRENT_DATE + interval '1 day')
         FROM public.mission_templates
         ORDER BY random()
-        LIMIT 3;
+        LIMIT 3
+        ON CONFLICT DO NOTHING;
     END IF;
 
     RETURN QUERY 

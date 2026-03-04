@@ -707,7 +707,7 @@ textarea,
   border: 1px solid rgba(255, 255, 255, 0.07);
   border-radius: 20px;
   box-shadow: 0 24px 60px rgba(0, 0, 0, 0.65),
-              inset 0 0 30px rgba(0, 0, 0, 0.4);
+    inset 0 0 30px rgba(0, 0, 0, 0.4);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
 }
@@ -765,19 +765,33 @@ textarea,
 .blitz-mode .spacely-board {
   border-color: rgba(255, 63, 164, 0.12);
   box-shadow: 0 24px 60px rgba(0, 0, 0, 0.65),
-              inset 0 0 30px rgba(0, 0, 0, 0.4),
-              0 0 40px rgba(255, 63, 164, 0.05);
+    inset 0 0 30px rgba(0, 0, 0, 0.4),
+    0 0 40px rgba(255, 63, 164, 0.05);
 }
 
 /* ── Game entrance keyframes ── */
 @keyframes gameSlideIn {
-  from { opacity: 0; transform: translateY(12px) scale(0.97); }
-  to   { opacity: 1; transform: translateY(0) scale(1); }
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.97);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 @keyframes timerPulse {
-  0%, 100% { opacity: 1; }
-  50%       { opacity: 0.65; }
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.65;
+  }
 }
 
 /* Timer pulse when critical (< 25%) — applied via JS className */
@@ -787,9 +801,17 @@ textarea,
 
 /* ── Score pop animation ── */
 @keyframes scorePop {
-  0%   { transform: scale(1); }
-  35%  { transform: scale(1.18); }
-  100% { transform: scale(1); }
+  0% {
+    transform: scale(1);
+  }
+
+  35% {
+    transform: scale(1.18);
+  }
+
+  100% {
+    transform: scale(1);
+  }
 }
 
 .score-pop {
@@ -798,14 +820,28 @@ textarea,
 
 /* ── Turn change highlight ── */
 @keyframes turnFlash {
-  0%, 100% { opacity: 1; }
-  50%       { opacity: 0.4; }
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.4;
+  }
 }
 
 /* ── Star twinkle (for starfield bg) ── */
 @keyframes starTwinkle {
-  0%, 100% { opacity: 0.8; }
-  50%       { opacity: 0.2; }
+
+  0%,
+  100% {
+    opacity: 0.8;
+  }
+
+  50% {
+    opacity: 0.2;
+  }
 }
 
 /* ── Arcade immersive layout utility ── */
@@ -11019,4 +11055,28 @@ html.native .gardenPage--fixed .gardenMain {
   background: rgba(255, 255, 255, 0.03);
   backdrop-filter: blur(24px);
   border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* =============================================
+   THE DARK SIDE (NIGHT MODE 00:00 - 05:00)
+   ============================================= */
+.the-dark-side {
+  --bg: #010103;
+  --bg-deep: #000000;
+  --bg-mid: #020205;
+  --accent: #a78bfa;
+  /* Morado/Violeta profundo */
+  --accent-glow: rgba(167, 139, 250, 0.25);
+  --cyan: #8b5cf6;
+  --cyan-glow: rgba(139, 92, 246, 0.25);
+  filter: contrast(1.1) brightness(0.9);
+}
+
+.the-dark-side::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background: radial-gradient(circle at center, transparent 0%, rgba(0, 0, 0, 0.4) 100%);
+  pointer-events: none;
+  z-index: 9999;
 }

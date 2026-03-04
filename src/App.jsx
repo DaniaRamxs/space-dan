@@ -59,6 +59,25 @@ const GlobalChatPage = lazy(() => import("./pages/GlobalChatPage"));
 const AffinityPage = lazy(() => import("./pages/AffinityPage"));
 const StellarMap = lazy(() => import("./pages/StellarMap"));
 
+function DarkSideManager() {
+  useEffect(() => {
+    const checkDarkSide = () => {
+      const h = new Date().getHours();
+      // El "Lado Oscuro" activo de 12 AM a 5 AM
+      const isDarkSide = h >= 0 && h < 5;
+      if (isDarkSide) {
+        document.body.classList.add('the-dark-side');
+      } else {
+        document.body.classList.remove('the-dark-side');
+      }
+    };
+    checkDarkSide();
+    const interval = setInterval(checkDarkSide, 60000); // Re-verificar cada minuto
+    return () => clearInterval(interval);
+  }, []);
+  return null;
+}
+
 function DomainGuard() {
   useEffect(() => {
     const hostname = window.location.hostname;
@@ -403,6 +422,7 @@ export default function App() {
         <UniverseProvider>
           <BrowserRouter>
             <DomainGuard />
+            <DarkSideManager />
             <AchievementToast />
             <Screensaver />
             <PageTracker />

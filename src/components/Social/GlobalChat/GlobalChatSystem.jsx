@@ -1,6 +1,7 @@
 
 // v2.8.0 - Discord Mode: Channels & Multi-Room Support 📡🛰️
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuthContext } from '../../../contexts/AuthContext';
 import { useEconomy } from '../../../contexts/EconomyContext';
@@ -35,6 +36,7 @@ const CHANNELS = [
 ];
 
 export default function GlobalChat() {
+    const navigate = useNavigate();
     const auth = useAuthContext();
     const user = auth?.user;
     const userProfile = auth?.profile;
@@ -1025,13 +1027,13 @@ export default function GlobalChat() {
             // ── /title ────────────────────────────────────────────────
             case '/title': {
                 const TITLES = [
-                    { id: 'Viajero',     req: 'Nivel 1',    minLevel: 1,  minPrestige: 0 },
-                    { id: 'Explorador',  req: 'Nivel 3',    minLevel: 3,  minPrestige: 0 },
-                    { id: 'Pionero',     req: 'Nivel 5',    minLevel: 5,  minPrestige: 0 },
-                    { id: 'Comandante',  req: 'Nivel 10',   minLevel: 10, minPrestige: 0 },
-                    { id: 'Almirante',   req: 'Nivel 20',   minLevel: 20, minPrestige: 0 },
-                    { id: '✦ Estelar',   req: 'Prestige 1', minLevel: 1,  minPrestige: 1 },
-                    { id: '✦✦ Cósmico', req: 'Prestige 2', minLevel: 1,  minPrestige: 2 },
+                    { id: 'Viajero', req: 'Nivel 1', minLevel: 1, minPrestige: 0 },
+                    { id: 'Explorador', req: 'Nivel 3', minLevel: 3, minPrestige: 0 },
+                    { id: 'Pionero', req: 'Nivel 5', minLevel: 5, minPrestige: 0 },
+                    { id: 'Comandante', req: 'Nivel 10', minLevel: 10, minPrestige: 0 },
+                    { id: 'Almirante', req: 'Nivel 20', minLevel: 20, minPrestige: 0 },
+                    { id: '✦ Estelar', req: 'Prestige 1', minLevel: 1, minPrestige: 1 },
+                    { id: '✦✦ Cósmico', req: 'Prestige 2', minLevel: 1, minPrestige: 2 },
                     { id: '✦✦✦ Nebulosa', req: 'Prestige 3', minLevel: 1, minPrestige: 3 },
                 ];
 
@@ -1425,6 +1427,7 @@ export default function GlobalChat() {
 
             <AnimatePresence>
                 {selectedProfile && <HoloCard key="holocard" profile={selectedProfile} onClose={() => setSelectedProfile(null)} />}
+                {showMissions && <MissionsPanel onClose={() => setShowMissions(false)} />}
             </AnimatePresence>
 
             {/* VoiceRoomUI fuera de AnimatePresence para evitar desmontaje accidental */}
