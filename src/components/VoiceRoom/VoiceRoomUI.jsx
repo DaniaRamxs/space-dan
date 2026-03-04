@@ -8,7 +8,7 @@ import {
     RoomAudioRenderer,
     useChat,
 } from '@livekit/components-react';
-import { Mic, MicOff, LogOut, Users, Radio, X, ChevronDown, ChevronUp, MessageSquare, Send, Gamepad2 } from 'lucide-react';
+import { Mic, MicOff, LogOut, Users, Radio, X, ChevronDown, ChevronUp, MessageSquare, Send, Gamepad2, Music } from 'lucide-react';
 import { supabase } from '../../supabaseClient';
 import { getNicknameClass } from '../../utils/user';
 import { getFrameStyle } from '../../utils/styles';
@@ -162,7 +162,12 @@ export default function VoiceRoomUI({ roomName, onLeave, onConnected, userAvatar
                                 <motion.div
                                     key="voice-modal"
                                     initial={{ opacity: 0, y: 30, scale: 0.95 }}
-                                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                                    animate={{
+                                        opacity: activeActivity === 'dj' ? 0 : 1,
+                                        y: activeActivity === 'dj' ? 30 : 0,
+                                        scale: activeActivity === 'dj' ? 0.95 : 1,
+                                        pointerEvents: activeActivity === 'dj' ? 'none' : 'auto'
+                                    }}
                                     exit={{ opacity: 0, y: 30, scale: 0.95 }}
                                     className="relative w-full max-w-md bg-[#050518] border border-white/10 rounded-[3rem] shadow-[0_30px_100px_rgba(0,0,0,0.8)] overflow-hidden flex flex-col max-h-[90vh]"
                                     onClick={e => e.stopPropagation()}
@@ -214,29 +219,23 @@ export default function VoiceRoomUI({ roomName, onLeave, onConnected, userAvatar
                                         </div>
                                     </header>
                                     <div className="flex-1 overflow-y-auto p-6 sm:p-8 no-scrollbar relative min-h-[300px]">
-                                        {/* Mini bar del jukebox dentro del panel cuando hay otra actividad activa */}
-                                        {jukeboxEverStarted && activeActivity !== 'dj' && (
-                                            <JukeboxDJ
-                                                roomName={roomName}
-                                                onClose={() => setActiveActivity(null)}
-                                                isMinimized={true}
-                                                isPanelOpen={true}
-                                            />
-                                        )}
+                                        {/* El JukeboxDJ persistente se renderiza a nivel del root del portal para evitar cortes de audio. */}
 
-                                        {activeActivity ? (
+                                        {activeActivity && activeActivity !== 'dj' ? (
                                             <VoiceActivityLauncher roomName={roomName} activeActivity={activeActivity} setActiveActivity={setActiveActivity} />
-                                        ) : (
+                                        ) : !activeActivity ? (
                                             <>
                                                 {activeTab === 'participants' ? <ParticipantsList /> : <ChatPanel />}
                                                 <div className="mt-8 relative z-10 bottom-0 left-0 w-full">
                                                     <VoiceActivityLauncher roomName={roomName} activeActivity={activeActivity} setActiveActivity={setActiveActivity} />
                                                 </div>
                                             </>
-                                        )}
-
-                                        {activeActivity === 'dj' && (
-                                            <VoiceActivityLauncher roomName={roomName} activeActivity={activeActivity} setActiveActivity={setActiveActivity} />
+                                        ) : (
+                                            /* Si es 'dj', el Jukebox se encarga de mostrarse en modo completo sobre este espacio */
+                                            <div className="h-full flex flex-col items-center justify-center opacity-20 pointer-events-none">
+                                                <Music size={40} className="mb-4" />
+                                                <p className="text-[10px] font-black uppercase tracking-widest">Actividad activa: Jukebox DJ</p>
+                                            </div>
                                         )}
                                     </div>
                                     <footer className="p-6 sm:p-8 bg-black/40 border-t border-white/5 flex items-center justify-center">
