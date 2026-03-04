@@ -15,6 +15,8 @@ import { getFrameStyle } from '../../utils/styles';
 import { Capacitor, registerPlugin } from '@capacitor/core';
 import JukeboxDJ from '../VoiceActivities/JukeboxDJ';
 import VoiceActivityLauncher from '../VoiceActivities/VoiceActivityLauncher';
+import EnergyReactor from '../VoiceActivities/EnergyReactor';
+import VoiceFXMenu from './VoiceFXMenu';
 
 const VoiceServicePlugin = registerPlugin('VoiceService');
 
@@ -219,6 +221,9 @@ export default function VoiceRoomUI({ roomName, onLeave, onConnected, userAvatar
                                         </div>
                                     </header>
                                     <div className="flex-1 overflow-y-auto p-6 sm:p-8 no-scrollbar relative min-h-[300px]">
+                                        {/* REACTOR DE ENERGÍA COLECTIVA */}
+                                        <EnergyReactor roomName={roomName} />
+
                                         {/* El JukeboxDJ persistente se renderiza a nivel del root del portal para evitar cortes de audio. */}
 
                                         {activeActivity && activeActivity !== 'dj' ? (
@@ -238,7 +243,8 @@ export default function VoiceRoomUI({ roomName, onLeave, onConnected, userAvatar
                                             </div>
                                         )}
                                     </div>
-                                    <footer className="p-6 sm:p-8 bg-black/40 border-t border-white/5 flex items-center justify-center">
+                                    <footer className="p-6 sm:p-8 bg-black/40 border-t border-white/5 flex items-center justify-center gap-6">
+                                        <VoiceFXMenu />
                                         <MuteToggle />
                                     </footer>
                                 </motion.div>
