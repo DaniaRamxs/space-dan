@@ -10,6 +10,7 @@ import { createContext, useContext, useState, useEffect, useCallback } from 'rea
 import { supabase } from '../supabaseClient';
 import { useAuthContext } from './AuthContext';
 import * as economyService from '../services/economy';
+import { missionService } from '../services/missionService';
 
 const EconomyContext = createContext(null);
 
@@ -124,6 +125,9 @@ export function EconomyProvider({ children }) {
         // Claim exitoso — actualizar balance y timestamp localmente
         setBalance(result.balance);
         setLastDailyAt(new Date().toISOString());
+
+        // Misión: Constancia Estelar (Reclamar bonus)
+        missionService.updateProgress('exploration', 1, 'daily_claim').catch(() => { });
       } else if (result?.reason === 'cooldown') {
         // Cooldown activo — sincronizar estado sin tirar error
         refreshEconomy();

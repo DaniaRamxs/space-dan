@@ -11014,3 +11014,9 @@ html.native .gardenPage--fixed .gardenMain {
     background: rgba(255, 255, 255, 0.2);
   }
 }
+
+.glass-panel {
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}

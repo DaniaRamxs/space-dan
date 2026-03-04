@@ -15,6 +15,9 @@ import VoicePartyBar from './VoicePartyBar';
 import VoiceRoomUI from '../../VoiceRoom/VoiceRoomUI';
 import HoloCard from '../../HoloCard';
 import { useUniverse } from '../../../contexts/UniverseContext';
+import { missionService } from '../../../services/missionService';
+import MissionsPanel from '../MissionsPanel';
+import { Trophy, Map } from 'lucide-react';
 import '../../../styles/GlobalChat.css';
 
 const HYPERBOT = {
@@ -48,6 +51,7 @@ export default function GlobalChat() {
     const [voiceRoomName, setVoiceRoomName] = useState('Sala Galáctica');
     const [tempVoiceChannel, setTempVoiceChannel] = useState(null);
     const [tempTextChannelId, setTempTextChannelId] = useState(null);
+    const [showMissions, setShowMissions] = useState(false);
     const [selectedProfile, setSelectedProfile] = useState(null);
     const [replyingTo, setReplyingTo] = useState(null);
     const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -57,6 +61,8 @@ export default function GlobalChat() {
     const pendingDuel = useRef(null);
     const activeGames = useRef({}); // { [userId]: { type, data } }
     const processedIds = useRef(new Set());
+    const activeEventsRef = useRef({ meteor: null, boss: null, marketCrash: null });
+    const lastEventRollRef = useRef(0);
 
     useEffect(() => {
         loadMessages(activeChannel);
@@ -88,6 +94,14 @@ export default function GlobalChat() {
             scrollToBottom(true);
         }
     }, [messages, user?.id]);
+
+    // ── Auto-eventos: cargar estado y timer ──────────────────────
+    useEffect(() => {
+        if (!user) return;
+        loadActiveEvents();
+        const interval = setInterval(maybeStartAutoEvent, 12 * 60 * 1000);
+        return () => clearInterval(interval);
+    }, [user]); // eslint-disable-line react-hooks/exhaustive-deps
 
     const loadMessages = async (chanId) => {
         setLoading(true);
@@ -193,6 +207,83 @@ export default function GlobalChat() {
         updatePresence({ inVoice: false, voiceRoom: null });
     }, [updatePresence]);
 
+    // ── Cargar eventos activos desde DB al montar ────────────────
+    const loadActiveEvents = async () => {
+        const { data } = await supabase
+            .from('bot_events')
+            .select('*')
+            .eq('status', 'active')
+            .gt('expires_at', new Date().toISOString());
+        if (data) {
+            data.forEach(ev => {
+                if (ev.type === 'meteor') activeEventsRef.current.meteor = ev;
+                else if (ev.type === 'boss') activeEventsRef.current.boss = ev;
+                else if (ev.type === 'market_crash') activeEventsRef.current.marketCrash = ev;
+            });
+        }
+    };
+
+    // ── Trigger de Lluvia de Meteoritos ──────────────────────────
+    const METEOR_KEYWORDS = ['nebula', 'pulsar', 'quasar', 'stardust', 'cosmos', 'aurora', 'solaris', 'vortex', 'photon', 'galaxis'];
+    const triggerMeteorEvent = async (chanId) => {
+        const keyword = METEOR_KEYWORDS[Math.floor(Math.random() * METEOR_KEYWORDS.length)];
+        const reward = Math.floor(Math.random() * 101) + 50; // 50–150
+        const { data } = await supabase.rpc('start_bot_event', { p_type: 'meteor', p_data: { keyword, reward }, p_duration: 8 });
+        if (!data?.success) return;
+        activeEventsRef.current.meteor = { id: data.id, data: { keyword, reward } };
+        await chatService.sendBotMessage(
+            `<div class="bot-card bot-card-event">\n<div class="bot-card-label">☄️ LLUVIA DE METEORITOS</div>\n<div class="bot-card-answer bot-answer-yes bot-text-xl bot-text-center"><strong>+${reward} ◈</strong> para el primero</div>\n<div class="bot-card-footer">¡Escribe la palabra clave <strong>"${keyword}"</strong> antes que nadie! (8 min)</div>\n</div>`,
+            chanId
+        );
+    };
+
+    // ── Trigger de Jefe Cósmico ───────────────────────────────────
+    const BOSS_NAMES = ['Nebulón el Devorador', 'Xarath el Oscuro', 'Voidus el Sin-Fin', 'Kronax el Eterno', 'Stellarex el Caótico'];
+    const triggerBossEvent = async (chanId) => {
+        const bossName = BOSS_NAMES[Math.floor(Math.random() * BOSS_NAMES.length)];
+        const maxHp = Math.floor(Math.random() * 301) + 200; // 200–500
+        const reward = Math.floor(Math.random() * 401) + 200; // 200–600 total
+        const { data } = await supabase.rpc('start_bot_event', { p_type: 'boss', p_data: { boss_name: bossName, hp: maxHp, max_hp: maxHp, reward, attackers: {} }, p_duration: 20 });
+        if (!data?.success) return;
+        activeEventsRef.current.boss = { id: data.id };
+        const hpBar = '█'.repeat(20);
+        await chatService.sendBotMessage(
+            `<div class="bot-card bot-card-event">\n<div class="bot-card-label">👾 ¡JEFE CÓSMICO APARECE!</div>\n<div class="bot-card-answer bot-answer-no bot-text-center"><strong>${bossName}</strong></div>\n<div class="bot-progress">[${hpBar}] ${maxHp}/${maxHp} HP</div>\n<div class="bot-card-footer">Usa <strong>/attack</strong> para combatir · Recompensa total: ${reward} ◈</div>\n</div>`,
+            chanId
+        );
+    };
+
+    // ── Trigger de Evento de Mercado ──────────────────────────────
+    const triggerMarketEvent = async (chanId) => {
+        const isBoom = Math.random() > 0.5;
+        const multiplier = isBoom ? 2 : 0.5;
+        const { data } = await supabase.rpc('start_bot_event', { p_type: 'market_crash', p_data: { multiplier, is_boom: isBoom }, p_duration: 30 });
+        if (!data?.success) return;
+        activeEventsRef.current.marketCrash = { id: data.id, data: { multiplier, is_boom: isBoom } };
+        const icon = isBoom ? '📈' : '📉';
+        const color = isBoom ? 'bot-answer-yes' : 'bot-answer-no';
+        const text = isBoom
+            ? '¡BOOM ESTELAR! Las misiones /work dan ×2 durante 30 minutos.'
+            : '¡CRASH GALÁCTICO! Las misiones /work dan la mitad durante 30 minutos.';
+        await chatService.sendBotMessage(
+            `<div class="bot-card bot-card-event">\n<div class="bot-card-label">${icon} Evento Económico Galáctico</div>\n<div class="bot-card-answer ${color} bot-text-xl bot-text-center"><strong>×${multiplier}</strong> en /work</div>\n<div class="bot-card-footer">${text}</div>\n</div>`,
+            chanId
+        );
+    };
+
+    // ── Revisor periódico: decide si lanzar un evento aleatorio ──
+    const maybeStartAutoEvent = async () => {
+        const now = Date.now();
+        if (now - lastEventRollRef.current < 10 * 60 * 1000) return;
+        lastEventRollRef.current = now;
+        const chanId = activeChannel === 'comandos' || activeChannel === 'global' ? 'global' : null;
+        if (!chanId) return;
+        const roll = Math.random();
+        if (roll < 0.30) await triggerMeteorEvent(chanId);
+        else if (roll < 0.50) await triggerBossEvent(chanId);
+        else if (roll < 0.60) await triggerMarketEvent(chanId);
+    };
+
     const handleBotCommand = useCallback(async (content) => {
         const parts = content.trim().split(' ');
         const cmd = parts[0].toLowerCase();
@@ -253,8 +344,12 @@ export default function GlobalChat() {
                     response = '🤖 **Protocolos HyperBot:**\n\n' +
                         '💰 `/help economy`: Dinero y Juegos.\n' +
                         '🎭 `/help social`: Perfil y Amigos.\n' +
+                        '⚡ `/rank`: Tu nivel y XP.\n' +
+                        '🏆 `/top-level`: Ranking por nivel.\n' +
+                        '🔥 `/streak`: Tu racha diaria.\n' +
+                        '🎖️ `/achievements`: Tus logros.\n' +
+                        '👾 `/attack`: Atacar al jefe (en eventos).\n' +
                         '🔊 `/voice <sala>`: Crear sala de voz.\n' +
-                        '⚔️ `/duel @user`: Combate 21.\n' +
                         '✨ `/joke`, `/quote`, `/pick`, `/roll`.';
                 }
                 break;
@@ -537,7 +632,31 @@ export default function GlobalChat() {
                 try {
                     const result = await economyService.workMission(user.id);
                     if (result.success) {
-                        response = `<div class="bot-card">\n<div class="bot-card-label">🚀 Misión Completada · @${senderName}</div>\n<div class="bot-card-answer bot-answer-yes bot-text-center"><strong>+${result.reward} ◈</strong></div>\n<div class="bot-card-footer">Recolección de restos estelares exitosa</div>\n</div>`;
+                        let finalReward = result.reward;
+                        let bonusTag = '';
+                        // Aplicar multiplicador de evento de mercado
+                        const { data: mktEvent } = await supabase
+                            .from('bot_events')
+                            .select('data')
+                            .eq('type', 'market_crash')
+                            .eq('status', 'active')
+                            .gt('expires_at', new Date().toISOString())
+                            .maybeSingle();
+                        if (mktEvent) {
+                            const mult = mktEvent.data.multiplier;
+                            const extra = Math.round(result.reward * (mult - 1));
+                            if (extra > 0) {
+                                await awardCoins(extra, 'work_bonus');
+                                finalReward += extra;
+                                bonusTag = `\n<div class="bot-card-footer" style="color:#4ade80">⚡ Bonus Mercado ×${mult}: +${extra} ◈ extra</div>`;
+                            } else if (extra < 0) {
+                                // crash: descontar la diferencia (el trabajo ya premió el monto base)
+                                try { await economyService.deductCoins(user.id, Math.abs(extra), 'market_crash', 'Penalización por crash de mercado'); } catch (_) { }
+                                finalReward += extra;
+                                bonusTag = `\n<div class="bot-card-footer" style="color:#f87171">📉 Penalización Crash ×${mult}: ${extra} ◈</div>`;
+                            }
+                        }
+                        response = `<div class="bot-card">\n<div class="bot-card-label">🚀 Misión Completada · @${senderName}</div>\n<div class="bot-card-answer bot-answer-yes bot-text-center"><strong>+${finalReward} ◈</strong></div>${bonusTag}\n</div>`;
                     } else {
                         const mins = Math.ceil((new Date(result.next_available) - new Date()) / 60000);
                         response = `<div class="bot-card">\n<div class="bot-card-label">⏳ Fatiga Espacial · @${senderName}</div>\n<div class="bot-card-answer bot-answer-maybe bot-text-center"><strong>${mins} min</strong></div>\n<div class="bot-card-footer">Descansa y vuelve más tarde</div>\n</div>`;
@@ -747,6 +866,228 @@ export default function GlobalChat() {
                 response = `<div class="bot-card bot-card-poll">\n<div class="bot-card-label">📊 Encuesta Estelar</div>\n<div class="bot-poll-question"><strong>${pollQ}</strong></div>\n${optHtml}\n<div class="bot-card-footer">Responde con el número de tu elección</div>\n</div>`;
                 break;
             }
+            // ── /rank ─────────────────────────────────────────────────
+            case '/rank': {
+                const { data: p } = await supabase
+                    .from('profiles')
+                    .select('activity_xp, activity_level, level, xp, chat_level, message_count, prestige_level, chat_title, xp_boost_until')
+                    .eq('id', user.id)
+                    .single();
+                if (!p) { response = '❌ No se pudo cargar tu perfil.'; break; }
+
+                const lvl = p.activity_level || 1;
+                const xp = p.activity_xp || 0;
+                const xpCurr = Math.pow(lvl - 1, 2) * 10;
+                const xpNext = Math.pow(lvl, 2) * 10;
+                const xpIn = xp - xpCurr;
+                const xpNeeded = xpNext - xpCurr;
+                const filled = Math.min(20, Math.floor((xpIn / xpNeeded) * 20));
+                const bar = '█'.repeat(filled) + '░'.repeat(20 - filled);
+                const pct = Math.min(100, Math.floor((xpIn / xpNeeded) * 100));
+
+                const prestige = p.prestige_level || 0;
+                const prestigeBadge = prestige > 0 ? ' ' + '✦'.repeat(Math.min(prestige, 5)) : '';
+                const titleTag = p.chat_title ? `\n<div class="bot-card-footer" style="color:#a78bfa">🏷️ Título: <strong>${p.chat_title}</strong></div>` : '';
+                const boostActive = p.xp_boost_until && new Date(p.xp_boost_until) > new Date();
+                const boostTag = boostActive ? `\n<div class="bot-card-footer" style="color:#facc15">⚡ XP Boost ×2 activo hasta ${new Date(p.xp_boost_until).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>` : '';
+
+                response = `<div class="bot-card">\n<div class="bot-card-label">⚡ Rango Estelar · @${senderName}${prestigeBadge}</div>\n<div class="bot-card-answer bot-answer-maybe bot-text-xl bot-text-center"><strong>Nivel ${lvl}</strong>${prestige > 0 ? ` <span style="color:#f59e0b;font-size:0.7em">Prestige ${prestige}</span>` : ''}</div>\n<div class="bot-progress-text">[${bar}] ${pct}%</div>\n<div class="bot-card-footer">${xp} XP · Chat Lv.${p.chat_level || 1} · ${p.message_count || 0} msgs · Estelar: ${p.level || 1}</div>${titleTag}${boostTag}\n</div>`;
+                break;
+            }
+
+            // ── /top-level ────────────────────────────────────────────
+            case '/top-level': {
+                const { data: top } = await supabase
+                    .from('profiles')
+                    .select('username, activity_level, activity_xp')
+                    .gt('activity_level', 0)
+                    .order('activity_level', { ascending: false })
+                    .order('activity_xp', { ascending: false })
+                    .limit(10);
+                if (!top?.length) { response = '📭 Todavía no hay viajeros con nivel registrado.'; break; }
+
+                const medals = ['🥇', '🥈', '🥉', '4️⃣', '5️⃣', '6️⃣', '7️⃣', '8️⃣', '9️⃣', '🔟'];
+                const rankCls = ['bot-lb-first', 'bot-lb-second', 'bot-lb-third', '', '', '', '', '', '', ''];
+                const entries = top.map((u, i) =>
+                    `<div class="bot-lb-entry ${rankCls[i] || ''}">\n<div class="bot-lb-rank">${medals[i]}</div>\n<div class="bot-lb-name">@${u.username}</div>\n<div class="bot-lb-coins">Lv.${u.activity_level} · ${u.activity_xp} XP</div>\n</div>`
+                ).join('\n');
+                response = `<div class="bot-card">\n<div class="bot-card-label">⚡ Top Viajeros por Nivel de Actividad</div>\n<div class="bot-lb-container">${entries}</div>\n<div class="bot-card-footer">Gana XP chateando y participando en la comunidad</div>\n</div>`;
+                break;
+            }
+
+            // ── /streak ───────────────────────────────────────────────
+            case '/streak': {
+                const { data: p } = await supabase
+                    .from('profiles')
+                    .select('streak, best_streak, last_active_date')
+                    .eq('id', user.id)
+                    .single();
+                if (!p) { response = '❌ No se pudo cargar tu racha.'; break; }
+
+                const streak = p.streak || 0;
+                const best = p.best_streak || 0;
+                const streakFire = streak >= 30 ? '🔥🔥🔥' : streak >= 14 ? '🔥🔥' : streak >= 3 ? '🔥' : '💫';
+                const color = streak >= 7 ? 'bot-answer-yes' : streak >= 3 ? 'bot-answer-maybe' : 'bot-answer-no';
+
+                response = `<div class="bot-card">\n<div class="bot-card-label">🔥 Racha Estelar · @${senderName}</div>\n<div class="bot-card-answer ${color} bot-text-xl bot-text-center">${streakFire} <strong>${streak} día${streak !== 1 ? 's' : ''}</strong></div>\n<div class="bot-card-footer">Mejor racha: ${best} días · Usa /daily para mantenerla</div>\n</div>`;
+                break;
+            }
+
+            // ── /achievements ─────────────────────────────────────────
+            case '/achievements': {
+                const { data: unlocked } = await supabase
+                    .from('user_achievements')
+                    .select('unlocked_at, achievement:achievements(icon, title, description)')
+                    .eq('user_id', user.id)
+                    .order('unlocked_at', { ascending: false });
+
+                if (!unlocked?.length) {
+                    response = `<div class="bot-card">\n<div class="bot-card-label">🎖️ Logros de @${senderName}</div>\n<div class="bot-card-answer bot-answer-no bot-text-center">Ningún logro aún</div>\n<div class="bot-card-footer">¡Explora la plataforma para desbloquear logros!</div>\n</div>`;
+                    break;
+                }
+
+                const list = unlocked.slice(0, 5).map(u =>
+                    `<div class="bot-lb-entry"><div class="bot-lb-rank">${u.achievement?.icon || '🎖️'}</div><div class="bot-lb-name">${u.achievement?.title || '?'}</div></div>`
+                ).join('\n');
+                const extra = unlocked.length > 5 ? `\n<div class="bot-card-footer">+${unlocked.length - 5} más · Total: ${unlocked.length} logros</div>` : `\n<div class="bot-card-footer">Total: ${unlocked.length} logro${unlocked.length !== 1 ? 's' : ''}</div>`;
+                response = `<div class="bot-card">\n<div class="bot-card-label">🎖️ Logros de @${senderName}</div>\n<div class="bot-lb-container">${list}</div>${extra}\n</div>`;
+                break;
+            }
+
+            // ── /attack ───────────────────────────────────────────────
+            case '/attack': {
+                const { data: bossEvent } = await supabase
+                    .from('bot_events')
+                    .select('*')
+                    .eq('type', 'boss')
+                    .eq('status', 'active')
+                    .gt('expires_at', new Date().toISOString())
+                    .maybeSingle();
+
+                if (!bossEvent) { response = '👾 No hay ningún jefe activo ahora. ¡Espera al próximo evento!'; break; }
+
+                const damage = Math.floor(Math.random() * 41) + 10; // 10–50
+                const { data: result } = await supabase.rpc('attack_boss_event', {
+                    p_event_id: bossEvent.id,
+                    p_user_id: user.id,
+                    p_username: senderName,
+                    p_damage: damage
+                });
+
+                if (!result?.success) {
+                    response = result?.reason === 'boss_dead' ? '☠️ El jefe ya fue derrotado.' : '❌ Error en el combate.';
+                    break;
+                }
+
+                const bossName = bossEvent.data.boss_name;
+                const hpFilled = Math.max(0, Math.floor((result.new_hp / result.max_hp) * 20));
+                const hpBar = '█'.repeat(hpFilled) + '░'.repeat(20 - hpFilled);
+
+                if (result.defeated) {
+                    // Distribuir recompensas entre todos los atacantes
+                    const attackerIds = Object.keys(result.attackers);
+                    const rewardEach = Math.max(30, Math.floor(result.reward / Math.max(1, attackerIds.length)));
+                    await Promise.allSettled(attackerIds.map(uid =>
+                        supabase.rpc('award_coins', { p_user_id: uid, p_amount: rewardEach, p_type: 'boss_reward', p_reference: bossEvent.id, p_description: 'Recompensa por derrotar al jefe cósmico', p_metadata: {} })
+                    ));
+                    const heroList = Object.values(result.attackers).map(u => `@${u}`).join(', ');
+                    response = `<div class="bot-card">\n<div class="bot-card-label">💀 ¡JEFE DERROTADO!</div>\n<div class="bot-card-answer bot-answer-yes bot-text-center"><strong>${bossName}</strong> ha caído</div>\n<div class="bot-card-footer">Héroes: ${heroList}<br>+${rewardEach} ◈ para cada uno 🎉</div>\n</div>`;
+                } else {
+                    const hpColor = result.new_hp > result.max_hp * 0.5 ? 'bot-answer-maybe' : 'bot-answer-no';
+                    response = `<div class="bot-card">\n<div class="bot-card-label">⚔️ Ataque de @${senderName}</div>\n<div class="bot-card-answer ${hpColor} bot-text-center">−<strong>${damage} HP</strong> a ${bossName}</div>\n<div class="bot-progress">[${hpBar}] ${result.new_hp}/${result.max_hp}</div>\n<div class="bot-card-footer">¡Sigue atacando con /attack!</div>\n</div>`;
+                }
+                break;
+            }
+
+            // ── /prestige ─────────────────────────────────────────────
+            case '/prestige': {
+                const { data: pData } = await supabase
+                    .from('profiles')
+                    .select('activity_level, prestige_level')
+                    .eq('id', user.id)
+                    .single();
+                if (!pData) { response = '❌ Error al cargar tu perfil.'; break; }
+
+                if ((pData.activity_level || 1) < 10) {
+                    response = `<div class="bot-card">\n<div class="bot-card-label">✦ Prestige · @${senderName}</div>\n<div class="bot-card-answer bot-answer-no bot-text-center">Necesitas <strong>Nivel 10</strong> para hacer Prestige</div>\n<div class="bot-card-footer">Tu nivel actual: ${pData.activity_level || 1} · ¡Sigue ganando XP!</div>\n</div>`;
+                    break;
+                }
+
+                const nextPrestige = (pData.prestige_level || 0) + 1;
+                const { data: pResult } = await supabase.rpc('prestige_user', { p_user_id: user.id });
+                if (!pResult?.success) { response = '❌ Error al procesar el prestige.'; break; }
+
+                const badge = '✦'.repeat(Math.min(nextPrestige, 5));
+                response = `<div class="bot-card">\n<div class="bot-card-label">✦ ¡PRESTIGE ${nextPrestige}! · @${senderName}</div>\n<div class="bot-card-answer bot-answer-yes bot-text-xl bot-text-center"><strong>${badge}</strong></div>\n<div class="bot-card-footer">Tu XP se reinició a 0. Has ganado el badge <strong>Prestige ${nextPrestige}</strong> visible en /rank 🌌</div>\n</div>`;
+                break;
+            }
+
+            // ── /title ────────────────────────────────────────────────
+            case '/title': {
+                const TITLES = [
+                    { id: 'Viajero',     req: 'Nivel 1',    minLevel: 1,  minPrestige: 0 },
+                    { id: 'Explorador',  req: 'Nivel 3',    minLevel: 3,  minPrestige: 0 },
+                    { id: 'Pionero',     req: 'Nivel 5',    minLevel: 5,  minPrestige: 0 },
+                    { id: 'Comandante',  req: 'Nivel 10',   minLevel: 10, minPrestige: 0 },
+                    { id: 'Almirante',   req: 'Nivel 20',   minLevel: 20, minPrestige: 0 },
+                    { id: '✦ Estelar',   req: 'Prestige 1', minLevel: 1,  minPrestige: 1 },
+                    { id: '✦✦ Cósmico', req: 'Prestige 2', minLevel: 1,  minPrestige: 2 },
+                    { id: '✦✦✦ Nebulosa', req: 'Prestige 3', minLevel: 1, minPrestige: 3 },
+                ];
+
+                const titleArg = args.join(' ').trim();
+                const { data: tData } = await supabase
+                    .from('profiles')
+                    .select('activity_level, prestige_level')
+                    .eq('id', user.id)
+                    .single();
+                const userLvl = tData?.activity_level || 1;
+                const userPrestige = tData?.prestige_level || 0;
+
+                if (!titleArg) {
+                    // Mostrar títulos disponibles
+                    const titleRows = TITLES.map(t => {
+                        const unlocked = userLvl >= t.minLevel && userPrestige >= t.minPrestige;
+                        return `<div class="bot-lb-entry">\n<div class="bot-lb-rank">${unlocked ? '✅' : '🔒'}</div>\n<div class="bot-lb-name">${t.id}</div>\n<div class="bot-lb-coins">${t.req}</div>\n</div>`;
+                    }).join('\n');
+                    response = `<div class="bot-card">\n<div class="bot-card-label">🏷️ Títulos Disponibles · @${senderName}</div>\n<div class="bot-lb-container">${titleRows}</div>\n<div class="bot-card-footer">Usa /title &lt;nombre&gt; para equipar uno desbloqueado</div>\n</div>`;
+                    break;
+                }
+
+                const found = TITLES.find(t => t.id.toLowerCase() === titleArg.toLowerCase());
+                if (!found) { response = `❌ Título **"${titleArg}"** no reconocido. Usa /title para ver la lista.`; break; }
+                if (userLvl < found.minLevel || userPrestige < found.minPrestige) {
+                    response = `🔒 No has desbloqueado **${found.id}** aún. Requiere: **${found.req}**.`;
+                    break;
+                }
+
+                await supabase.rpc('set_user_title', { p_user_id: user.id, p_title: found.id });
+                response = `<div class="bot-card">\n<div class="bot-card-label">🏷️ Título Equipado · @${senderName}</div>\n<div class="bot-card-answer bot-answer-yes bot-text-center"><strong>${found.id}</strong></div>\n<div class="bot-card-footer">Se muestra en tu /rank 👑</div>\n</div>`;
+                break;
+            }
+
+            // ── /xp-boost ─────────────────────────────────────────────
+            case '/xp-boost': {
+                const { data: bResult } = await supabase.rpc('buy_xp_boost', { p_user_id: user.id });
+                if (!bResult) { response = '❌ Error al activar el boost.'; break; }
+
+                if (!bResult.success) {
+                    if (bResult.reason === 'already_active') {
+                        const remaining = Math.ceil((new Date(bResult.expires_at) - new Date()) / 60000);
+                        response = `⚡ Ya tienes un XP Boost activo. Expira en **${remaining} min**.`;
+                    } else if (bResult.reason === 'insufficient_funds') {
+                        response = `💸 Fondos insuficientes. Necesitas **200 ◈** (tienes **${bResult.balance} ◈**).`;
+                    } else {
+                        response = '❌ No se pudo activar el boost.';
+                    }
+                    break;
+                }
+
+                const expireTime = new Date(bResult.expires_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                response = `<div class="bot-card">\n<div class="bot-card-label">⚡ XP Boost Activado · @${senderName}</div>\n<div class="bot-card-answer bot-answer-yes bot-text-xl bot-text-center"><strong>×2 XP</strong></div>\n<div class="bot-card-footer">-200 ◈ · Activo durante 1 hora (hasta las ${expireTime}) · ¡Chatea y participa para aprovechar! 🚀</div>\n</div>`;
+                break;
+            }
+
             default: return;
         }
 
@@ -758,7 +1099,8 @@ export default function GlobalChat() {
                 '/slots', '/give', '/lb', '/leaderboard', '/work', '/rob', '/ship', '/marry',
                 '/profile', '/avatar', '/mood', '/clear', '/tax', '/announce',
                 '/help', '/voice', '/8ball', '/confession', '/poll',
-                '/roll', '/flip', '/weather', '/pick', '/joke', '/quote', '/ship'
+                '/rank', '/top-level', '/streak', '/achievements', '/attack',
+                '/prestige', '/title', '/xp-boost'
             ];
             if (persistentCmds.includes(cmd)) {
                 try {
@@ -773,33 +1115,41 @@ export default function GlobalChat() {
     const handleSendMessage = useCallback(async (content, isVip, replyToId = null) => {
         if (!user || !content.trim()) return;
         const cmd = content.trim().split(' ')[0].toLowerCase();
+        const senderName = userProfile?.username || user?.user_metadata?.username || 'Viajero';
         const tempMsg = { id: `temp-${Date.now()}`, content, created_at: new Date().toISOString(), user_id: user.id, author: userProfile || { username: user.user_metadata?.username || 'Tú' }, is_vip: isVip, reply: replyingTo ? { content: replyingTo.content, author: replyingTo.author?.username || 'Anónimo' } : null };
+
         setMessages(prev => [...prev, tempMsg].slice(-100));
+
         if (content.startsWith('/')) {
             handleBotCommand(content);
             if (['/help', '/bal'].includes(cmd)) return;
         }
+
         if (isVip && balance < 50) return alert('Starlys insuficientes.');
+
         try {
             const sentMsg = await chatService.sendMessage(content, isVip, replyToId, activeChannel);
 
-            // Incrementar estadísticas y verificar nivel
+            // 1. Estadísticas y Nivel de Chat
             chatService.incrementChatStats().then(res => {
                 if (res?.level_up) {
-                    const senderName = userProfile?.username || 'Viajero';
+                    const sName = userProfile?.username || 'Viajero';
                     chatService.sendBotMessage(
-                        `🎊 ¡Felicidades **@${senderName}**! Has alcanzado el **Nivel de Chat ${res.chat_level}** 🚀. ¡Sigue explorando!`,
+                        `🎊 ¡Felicidades **@${sName}**! Has alcanzado el **Nivel de Chat ${res.chat_level}** 🚀. ¡Sigue explorando!`,
                         activeChannel
                     );
                 }
             });
 
-            // Recompensa de Actividad General
+            // 2. Misiones: Voz del Vacío (5 mensajes)
+            missionService.updateProgress('social', 1, 'msg_5').catch(() => { });
+
+            // 3. XP de Actividad General
             activityService.awardActivityXP(5, 'message').then(res => {
                 if (res?.level_up) {
-                    const senderName = userProfile?.username || 'Viajero';
+                    const sName = userProfile?.username || 'Viajero';
                     chatService.sendBotMessage(
-                        `🔥 ¡Increíble **@${senderName}**! Tu **Nivel de Actividad** ha subido a **${res.activity_level}**. ¡Eres un pilar de la comunidad! 🌌`,
+                        `🔥 ¡Increíble **@${sName}**! Tu **Nivel de Actividad** ha subido a **${res.activity_level}**. ¡Eres un pilar de la comunidad! 🌌`,
                         activeChannel
                     )
                 }
@@ -809,7 +1159,29 @@ export default function GlobalChat() {
             setReplyingTo(null);
             setIsVipMode(false);
 
-            // Detectar @menciones y crear notificaciones
+            // 4. Detección de Meteoritos
+            if (!content.startsWith('/')) {
+                const { data: meteorEv } = await supabase
+                    .from('bot_events')
+                    .select('*')
+                    .eq('type', 'meteor')
+                    .eq('status', 'active')
+                    .gt('expires_at', new Date().toISOString())
+                    .maybeSingle();
+
+                if (meteorEv && content.trim().toLowerCase() === meteorEv.data.keyword.toLowerCase()) {
+                    const { data: claimed } = await supabase.rpc('claim_meteor_event', { p_event_id: meteorEv.id, p_user_id: user.id });
+                    if (claimed?.success) {
+                        await awardCoins(claimed.reward, 'meteor_reward');
+                        chatService.sendBotMessage(
+                            `<div class="bot-card">\n<div class="bot-card-label">☄️ ¡METEORITO RECLAMADO!</div>\n<div class="bot-card-answer bot-answer-yes bot-text-center"><strong>@${senderName}</strong> fue el primero</div>\n<div class="bot-card-footer">+${claimed.reward} ◈ depositados 🎉</div>\n</div>`,
+                            activeChannel
+                        );
+                    }
+                }
+            }
+
+            // 5. Menciones y Notificaciones
             const mentionMatches = [...content.matchAll(/@([\w]+)/g)];
             if (mentionMatches.length > 0) {
                 const handles = [...new Set(mentionMatches.map(m => m[1].toLowerCase()))];
@@ -819,21 +1191,23 @@ export default function GlobalChat() {
                     .in('username_normalized', handles);
 
                 if (mentionedUsers?.length) {
-                    const senderName = userProfile?.username || 'Alguien';
+                    const sName = userProfile?.username || 'Alguien';
                     const channelLabel = activeChannel === 'global' ? '#general' : `#${activeChannel}`;
                     const preview = content.length > 80 ? content.slice(0, 80) + '…' : content;
                     for (const target of mentionedUsers) {
-                        if (target.id === user.id) continue; // no auto-notificarse
+                        if (target.id === user.id) continue;
                         createNotification(
                             target.id,
                             'mention',
-                            `@${senderName} te mencionó en ${channelLabel}: "${preview}"`,
+                            `@${sName} te mencionó en ${channelLabel}: "${preview}"`,
                             sentMsg?.id || null
                         );
                     }
                 }
             }
-        } catch (err) { console.error('[GlobalChat] Send Error:', err); }
+        } catch (err) {
+            console.error('[GlobalChat] Error sending message:', err);
+        }
     }, [user, userProfile, balance, awardCoins, transfer, handleBotCommand, replyingTo, activeChannel]);
 
     const playNotificationSound = () => {
@@ -937,10 +1311,26 @@ export default function GlobalChat() {
                             <span className="text-[13px] sm:text-sm font-black uppercase tracking-wider">{CHANNELS.find(c => c.id === activeChannel)?.name}</span>
                         </div>
                     </div>
-                    <div className="flex items-center gap-2 sm:gap-4 opacity-40 text-[9px] sm:text-[10px] font-black uppercase tracking-tighter">
-                        <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
-                        <span className="hidden xs:inline">Conexión Segura</span>
-                        <span className="xs:hidden">Live</span>
+                    <div className="flex items-center gap-2 sm:gap-3">
+                        <button
+                            onClick={() => setShowMissions(true)}
+                            className="p-2.5 bg-white/5 border border-white/10 rounded-xl text-yellow-400 hover:bg-yellow-400/10 hover:border-yellow-400/30 transition-all active:scale-95"
+                            title="Misiones Diarias"
+                        >
+                            <Trophy size={18} />
+                        </button>
+                        <button
+                            onClick={() => navigate('/mapa-estelar')}
+                            className="p-2.5 bg-white/5 border border-white/10 rounded-xl text-cyan-400 hover:bg-cyan-400/10 hover:border-cyan-400/30 transition-all active:scale-95"
+                            title="Mapa Estelar"
+                        >
+                            <Map size={18} />
+                        </button>
+                        <div className="flex items-center gap-2 sm:gap-4 opacity-40 text-[9px] sm:text-[10px] font-black uppercase tracking-tighter ml-2">
+                            <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+                            <span className="hidden xs:inline">Conexión Segura</span>
+                            <span className="xs:hidden">Live</span>
+                        </div>
                     </div>
                 </header>
 

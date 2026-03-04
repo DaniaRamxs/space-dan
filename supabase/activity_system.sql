@@ -9,10 +9,9 @@ ADD COLUMN IF NOT EXISTS activity_xp     integer DEFAULT 0,
 ADD COLUMN IF NOT EXISTS level           integer DEFAULT 1,
 ADD COLUMN IF NOT EXISTS xp               integer DEFAULT 0;
 
--- 2. Ensure transactions can be negative (Drop if wrong constraint exists)
+-- 2. Ensure transactions can be negative
 DO $$ 
 BEGIN
-    -- This constraint is likely what's causing the error for expenses
     ALTER TABLE public.transactions DROP CONSTRAINT IF EXISTS check_positive_amount;
 EXCEPTION
     WHEN undefined_object THEN null;
@@ -33,7 +32,6 @@ DECLARE
     v_new_lvl int;
     v_level_up boolean := false;
 BEGIN
-    -- 1. Get current stats
     SELECT activity_xp, activity_level INTO v_old_xp, v_old_lvl
     FROM public.profiles WHERE id = p_user_id;
 
@@ -41,18 +39,13 @@ BEGIN
         RAISE EXCEPTION 'Usuario no encontrado';
     END IF;
 
-    -- 2. Update XP
     v_new_xp := v_old_xp + p_amount;
-    
-    -- 3. Calculate new level (Logarithmic or linear)
-    -- Simple formula: Level = floor(sqrt(xp / 10)) + 1
     v_new_lvl := floor(sqrt(v_new_xp / 10.0))::int + 1;
 
     IF v_new_lvl > v_old_lvl THEN
         v_level_up := true;
     END IF;
 
-    -- 4. Update profile
     UPDATE public.profiles
     SET activity_xp = v_new_xp,
         activity_level = v_new_lvl,
@@ -89,7 +82,6 @@ BEGIN
     FROM public.profiles WHERE id = p_user_id;
 
     v_new_count := v_old_count + 1;
-    -- Level up every 50 messages
     v_new_lvl := (v_new_count / 50) + 1;
 
     IF v_new_lvl > v_old_lvl THEN
@@ -109,8 +101,8 @@ BEGIN
 END;
 $$;
 
--- 5. Stellar Level Sync (The "Bolt" Icon)
--- This keeps the static columns in 'profiles' updated with the dynamic XP calculation
+-- 5. Stellar Level Sync
+DROP FUNCTION IF EXISTS public.sync_profile_level() CASCADE;
 CREATE OR REPLACE FUNCTION public.sync_profile_level()
 RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER AS $$
 DECLARE
@@ -118,7 +110,6 @@ DECLARE
     v_lvl int;
     v_user_id uuid;
 BEGIN
-    -- Determine user_id based on the table acting on
     IF (TG_OP = 'DELETE') THEN
         v_user_id := OLD.user_id;
     ELSIF (TG_TABLE_NAME = 'profiles') THEN
@@ -127,15 +118,10 @@ BEGIN
         v_user_id := NEW.user_id;
     END IF;
 
-    -- Calculate current dynamic XP
     SELECT public.get_user_xp(v_user_id) INTO v_xp;
-    
-    -- Calculate level: floor(0.1 * sqrt(xp))
     v_lvl := floor(0.1 * sqrt(COALESCE(v_xp, 0)))::int;
     IF v_lvl < 1 THEN v_lvl := 1; END IF;
 
-    -- Update the static columns (using a separate update to avoid recursion if on profiles)
-    -- We only update if we are NOT on the profiles table or if we are but only level/xp changed
     IF (TG_TABLE_NAME != 'profiles') THEN
         UPDATE public.profiles 
         SET xp = v_xp::int,
@@ -147,7 +133,6 @@ BEGIN
 END;
 $$;
 
--- Triggers to fire the sync
 DROP TRIGGER IF EXISTS tr_sync_level_scores ON public.scores;
 CREATE TRIGGER tr_sync_level_scores 
 AFTER INSERT OR UPDATE OR DELETE ON public.scores 
@@ -158,8 +143,33 @@ CREATE TRIGGER tr_sync_level_achievements
 AFTER INSERT OR DELETE ON public.user_achievements 
 FOR EACH ROW EXECUTE FUNCTION public.sync_profile_level();
 
--- Trigger for balance changes
 DROP TRIGGER IF EXISTS tr_sync_level_balance ON public.profiles;
 CREATE TRIGGER tr_sync_level_balance 
 AFTER UPDATE OF balance ON public.profiles 
 FOR EACH ROW EXECUTE FUNCTION public.sync_profile_level();
+
+-- 6. Stellar Map Data
+DROP FUNCTION IF EXISTS public.get_stellar_map_data();
+CREATE OR REPLACE FUNCTION public.get_stellar_map_data()
+RETURNS TABLE (
+    id uuid,
+    username text,
+    avatar_url text,
+    level int,
+    activity_level int,
+    frame_item_id text,
+    last_active timestamptz
+) LANGUAGE sql STABLE SECURITY DEFINER AS $$
+    SELECT 
+        p.id, 
+        p.username, 
+        p.avatar_url, 
+        COALESCE(p.level, 1), 
+        COALESCE(p.activity_level, 1),
+        p.frame_item_id,
+        p.updated_at as last_active
+    FROM public.profiles p
+    WHERE p.username IS NOT NULL
+    ORDER BY p.level DESC, p.activity_level DESC
+    LIMIT 200;
+$$;

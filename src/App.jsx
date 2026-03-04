@@ -57,6 +57,7 @@ const VinculosPage = lazy(() => import("./pages/VinculosPage"));
 const PostDetailPage = lazy(() => import("./pages/PostDetailPage"));
 const GlobalChatPage = lazy(() => import("./pages/GlobalChatPage"));
 const AffinityPage = lazy(() => import("./pages/AffinityPage"));
+const StellarMap = lazy(() => import("./pages/StellarMap"));
 
 function DomainGuard() {
   useEffect(() => {
@@ -71,7 +72,7 @@ function DomainGuard() {
 
 const ALL_PAGES = ['/bulletin', '/posts', '/music', '/games', '/galeria',
   '/watchlist', '/desktop', '/timecapsule', '/guestbook', '/proyectos', '/arquitectura',
-  '/kinnies', '/tests', '/universo', '/dreamscape', '/logros', '/tienda', '/profile', '/leaderboard', '/cabina', '/cartas', '/cofre', '/foco', '/chat', '/blog'];
+  '/kinnies', '/tests', '/universo', '/dreamscape', '/logros', '/tienda', '/profile', '/leaderboard', '/cabina', '/cartas', '/cofre', '/foco', '/chat', '/blog', '/mapa-estelar'];
 
 function PageTracker() {
   const location = useLocation();
@@ -121,6 +122,7 @@ function PresenceTracker() {
       if (path === '/cartas') return 'ENVIANDO CARTAS 💌';
       if (path === '/posts') return 'EXPLORANDO EL FEED 🌌';
       if (path === '/leaderboard') return 'VIENDO EL RANKING 🌍';
+      if (path === '/mapa-estelar') return 'VIAJANDO POR EL MAPA ESTELAR 🌌🛸';
       if (path.startsWith('/profile/')) return 'MIRANDO LOGROS 🏆';
       if (path.startsWith('/@') || (path.startsWith('/profile') && path.length > 8)) return 'MIRANDO UN PERFIL 👤';
       return 'EXPLORANDO EL SISTEMA';
@@ -317,6 +319,7 @@ function AnimatedRoutes() {
         <Route path="/profile/logros" element={<Layout><AchievementsPage /></Layout>} />
         <Route path="/tienda" element={<Layout><ShopPage /></Layout>} />
         <Route path="/cabina" element={<Layout><SpaceCabinPage /></Layout>} />
+        <Route path="/mapa-estelar" element={<StellarMap />} />
 
         <Route path="/cartas" element={
           loading ? <FallbackLoader /> : (user ? <Layout><OrbitLettersPage /></Layout> : <Layout><LoginGate message="Necesitas iniciar sesión para comunicarte con otros usuarios." /></Layout>)
