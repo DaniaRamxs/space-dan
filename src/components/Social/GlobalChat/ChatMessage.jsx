@@ -4,7 +4,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeRaw from 'rehype-raw';
 import rehypeSanitize, { defaultSchema } from 'rehype-sanitize';
-import { Zap, Flame, Sparkles } from 'lucide-react';
+import { Zap, Flame, Sparkles, ShieldCheck } from 'lucide-react';
 import { getNicknameClass, getUserDisplayName } from '../../../utils/user';
 import { getFrameStyle } from '../../../utils/styles';
 import { parseSpaceEnergies } from '../../../utils/markdownUtils';
@@ -105,6 +105,24 @@ const ChatMessage = memo(({ message, isMe, isOnline, userPresence, onProfileClic
                     >
                         {getUserDisplayName(safeAuthor)}
                     </span>
+
+                    {/* Premium Title */}
+                    {safeAuthor?.equipped_title && (
+                        <span className="text-[7px] font-black text-white/40 uppercase tracking-[0.15em] border border-white/10 px-1.5 py-0.5 rounded bg-white/5 shrink-0">
+                            {safeAuthor.equipped_title}
+                        </span>
+                    )}
+
+                    {/* Stellar Citizen Badge */}
+                    {safeAuthor?.is_stellar_citizen && (
+                        <div className="flex-shrink-0 bg-gradient-to-r from-amber-200 via-amber-500 to-amber-200 p-[1px] rounded-[4px] shadow-[0_0_15px_rgba(245,158,11,0.2)]">
+                            <div className="bg-[#050510] px-1.5 py-0.5 rounded-[3px] flex items-center gap-1">
+                                <ShieldCheck size={10} className="text-amber-500" />
+                                <span className="text-[8px] font-black text-white uppercase tracking-tighter">CITIZEN</span>
+                            </div>
+                        </div>
+                    )}
+
                     {safeAuthor?.badge_color && (
                         <motion.div
                             initial={{ scale: 0, rotate: -45 }}

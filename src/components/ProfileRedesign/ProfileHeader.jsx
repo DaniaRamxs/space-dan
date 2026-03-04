@@ -1,4 +1,5 @@
 import { motion } from 'framer-motion';
+import { ShieldCheck } from 'lucide-react';
 import { getFrameStyle } from '../../utils/styles';
 import { getUserDisplayName, getNicknameClass } from '../../utils/user';
 import { useAuthContext } from '../../contexts/AuthContext';
@@ -110,11 +111,26 @@ export const ProfileHeader = ({ profile, theme, isOwn, isFollowing, onFollow, on
                                     {getUserDisplayName(profile)}
                                 </h1>
                                 {profile.is_vip && (
-                                    <span className="text-[9px] font-black uppercase tracking-widest text-amber-400 bg-amber-400/10 border border-amber-400/20 px-2.5 py-1 rounded-md mb-1">
+                                    <span className="text-[9px] font-black uppercase tracking-widest text-amber-400 bg-amber-400/10 border border-amber-400/20 px-2.5 py-1 rounded-md">
                                         VIP
                                     </span>
                                 )}
+                                {profile.is_stellar_citizen && (
+                                    <div className="flex items-center gap-1.5 px-2.5 py-1 bg-gradient-to-r from-amber-500/20 to-transparent border border-amber-500/30 rounded-md shadow-[0_0_15px_rgba(245,158,11,0.1)]">
+                                        <ShieldCheck size={12} className="text-amber-500" />
+                                        <span className="text-[9px] font-black text-amber-500 uppercase tracking-tighter">CITIZEN</span>
+                                    </div>
+                                )}
                             </div>
+
+                            {/* Title row */}
+                            {profile.equipped_title && (
+                                <div className="flex justify-center md:justify-start">
+                                    <span className="text-[10px] font-black text-white/40 uppercase tracking-[0.3em] bg-white/5 border border-white/10 px-3 py-1 rounded-full">
+                                        {profile.equipped_title}
+                                    </span>
+                                </div>
+                            )}
 
                             {/* Status text (if exists) */}
                             {profile.profile_status && (

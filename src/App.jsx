@@ -68,6 +68,7 @@ const AffinityPage = lazy(() => import("./pages/AffinityPage"));
 const StellarMap = lazy(() => import("./pages/StellarMap"));
 const RedemptionZone = lazy(() => import("./pages/RedemptionZone"));
 const TycoonDashboard = lazy(() => import("./pages/TycoonDashboard"));
+const GalacticStore = lazy(() => import("./pages/GalacticStore"));
 
 function DarkSideManager() {
   useEffect(() => {
@@ -358,6 +359,7 @@ function AnimatedRoutes() {
         <Route path="/mapa-estelar" element={<StellarMap />} />
         <Route path="/zona-de-redencion" element={<RedemptionZone />} />
         <Route path="/grandes-casas" element={<TycoonDashboard />} />
+        <Route path="/tienda-galactica" element={<GalacticStore />} />
 
         <Route path="/cartas" element={
           loading ? <FallbackLoader /> : (user ? <Layout><OrbitLettersPage /></Layout> : <Layout><LoginGate message="Necesitas iniciar sesión para comunicarte con otros usuarios." /></Layout>)

@@ -81,6 +81,11 @@ DECLARE
     v_active_loan_debt integer;
     v_pact_active boolean;
 BEGIN
+    -- Verificar si tiene PROTECCIÓN PREMIUM (Contrato del Banco)
+    IF EXISTS(SELECT 1 FROM public.active_effects WHERE user_id = p_user_id AND effect_type = 'bankruptcy_protection' AND expires_at > now()) THEN
+        RETURN jsonb_build_object('eligible', false, 'reason', 'premium_protection_active');
+    END IF;
+
     SELECT balance, stellar_pact_active INTO v_balance, v_pact_active FROM public.profiles WHERE id = p_user_id;
     
     -- Si ya lo tiene activo, no es elegible para "activarlo" de nuevo
@@ -204,6 +209,11 @@ BEGIN
   v_hour := extract(hour from (now() at time zone 'utc'));
   IF p_type = 'game_reward' AND v_hour >= 0 AND v_hour < 5 THEN
     v_multiplier := 1.5;
+  END IF;
+
+  -- Bono de Casino Premium (+10% si tiene efecto activo)
+  IF p_type = 'casino_win' AND EXISTS(SELECT 1 FROM public.active_effects WHERE user_id = p_user_id AND effect_type = 'casino_bonus' AND expires_at > now()) THEN
+    v_multiplier := v_multiplier + 0.10;
   END IF;
 
   v_final_amount := floor(p_amount * v_multiplier);
