@@ -1,12 +1,20 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Music, Search, Play, Pause, SkipForward, Flame, TrendingUp, Disc, ListMusic } from 'lucide-react';
+import { X, Music, Search, Play, Pause, SkipForward, Flame, TrendingUp, Disc, ListMusic, Youtube } from 'lucide-react';
 import { useLocalParticipant, useParticipants } from '@livekit/components-react';
 import { supabase } from '../../supabaseClient';
 import { useAuthContext } from '../../contexts/AuthContext';
 import { useEconomy } from '../../contexts/EconomyContext';
-import { spotifyService } from '../../services/spotifyService';
-import SongSearchModal from '../Social/SongSearchModal';
+import YouTubeSearchModal from '../Social/YouTubeSearchModal';
+
+const YT_PLAYER_STATE = {
+    UNSTARTED: -1,
+    ENDED: 0,
+    PLAYING: 1,
+    PAUSED: 2,
+    BUFFERING: 3,
+    CUED: 5
+};
 
 export default function JukeboxDJ({ roomName, onClose }) {
     const { user, profile } = useAuthContext();
@@ -15,13 +23,16 @@ export default function JukeboxDJ({ roomName, onClose }) {
     const participants = useParticipants();
 
     const [isSearchOpen, setIsSearchOpen] = useState(false);
-    const [queue, setQueue] = useState([]); // [{ id, name, artist, cover, preview_url, addedBy, tips: 0 }]
+    const [queue, setQueue] = useState([]); // [{ id, name, artist, cover, source: 'youtube', tips: 0 }]
     const [currentTrack, setCurrentTrack] = useState(null);
     const [isPlaying, setIsPlaying] = useState(false);
-    const [progress, setProgress] = useState(0); // 0 to 100
+    const [progress, setProgress] = useState(0);
 
-    const audioRef = useRef(null);
+    const playerRef = useRef(null);
     const channelRef = useRef(null);
+    const progressIntervalRef = useRef(null);
+
+    // El host es el que sincroniza el tiempo real
     const isHost = participants.length === 0 || localParticipant?.identity === participants[0]?.identity;
 
     // --- 1. Realtime Sync ---
@@ -36,7 +47,6 @@ export default function JukeboxDJ({ roomName, onClose }) {
             .on('broadcast', { event: 'queue_update' }, ({ payload }) => {
                 setQueue(payload.queue);
                 if (payload.currentTrack !== undefined) {
-                    // Si el track cambió, actualizamos localmente
                     if (payload.currentTrack?.id !== currentTrack?.id) {
                         setCurrentTrack(payload.currentTrack);
                         setProgress(0);
@@ -45,65 +55,108 @@ export default function JukeboxDJ({ roomName, onClose }) {
             })
             .on('broadcast', { event: 'playback_update' }, ({ payload }) => {
                 setIsPlaying(payload.isPlaying);
-                if (payload.progress !== undefined) setProgress(payload.progress);
+                if (payload.progress !== undefined) {
+                    setProgress(payload.progress);
+                    // Si la diferencia es mucha, forzar skip en el youtube player
+                    syncPlayerTime(payload.progress);
+                }
             })
             .subscribe();
 
+        // Cargar API de YouTube
+        if (!window.YT) {
+            const tag = document.createElement('script');
+            tag.src = "https://www.youtube.com/iframe_api";
+            const firstScriptTag = document.getElementsByTagName('script')[0];
+            firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+        }
+
         return () => {
             supabase.removeChannel(channel);
-            if (audioRef.current) {
-                audioRef.current.pause();
-                audioRef.current = null;
-            }
+            if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
         };
     }, [roomName, user]);
 
-    // --- 2. Audio Control ---
+    // --- 2. YouTube Player Logic ---
     useEffect(() => {
-        if (!currentTrack?.preview_url) {
-            if (audioRef.current) {
-                audioRef.current.pause();
-                audioRef.current = null;
+        if (!currentTrack?.id) return;
+
+        const initPlayer = () => {
+            if (playerRef.current) {
+                playerRef.current.loadVideoById(currentTrack.id);
+                return;
             }
-            return;
+
+            playerRef.current = new window.YT.Player('yt-player-hidden', {
+                height: '0',
+                width: '0',
+                videoId: currentTrack.id,
+                playerVars: {
+                    autoplay: isPlaying ? 1 : 0,
+                    controls: 0,
+                    disablekb: 1,
+                    fs: 0,
+                    rel: 0,
+                    modestbranding: 1
+                },
+                events: {
+                    onReady: (event) => {
+                        if (isPlaying) event.target.playVideo();
+                        event.target.setVolume(50);
+                    },
+                    onStateChange: (event) => {
+                        if (event.data === YT_PLAYER_STATE.ENDED && isHost) {
+                            playNext();
+                        }
+                    }
+                }
+            });
+        };
+
+        if (window.YT && window.YT.Player) {
+            initPlayer();
+        } else {
+            window.onYouTubeIframeAPIReady = initPlayer;
         }
+    }, [currentTrack?.id]);
 
-        // Si cambia el track, reiniciamos el audio
-        if (!audioRef.current || audioRef.current.src !== currentTrack.preview_url) {
-            if (audioRef.current) audioRef.current.pause();
-            const audio = new Audio(currentTrack.preview_url);
-            audio.crossOrigin = "anonymous";
-            audio.volume = 0.5;
-            audioRef.current = audio;
-
-            audio.onended = () => {
-                if (isHost) playNext();
-            };
-
-            audio.ontimeupdate = () => {
-                const p = (audio.currentTime / audio.duration) * 100;
-                setProgress(p);
-            };
-        }
+    useEffect(() => {
+        if (!playerRef.current || !playerRef.current.playVideo) return;
 
         if (isPlaying) {
-            audioRef.current.play().catch(e => console.error("Autoplay preventado:", e));
+            playerRef.current.playVideo();
         } else {
-            audioRef.current.pause();
+            playerRef.current.pauseVideo();
         }
-
-    }, [currentTrack, isPlaying]);
+    }, [isPlaying]);
 
     // Sync progress periodically if host
     useEffect(() => {
-        if (!isHost || !isPlaying) return;
-        const interval = setInterval(() => {
-            if (audioRef.current) {
-                broadcastPlayback(isPlaying, (audioRef.current.currentTime / audioRef.current.duration) * 100);
+        if (!isHost) return;
+
+        progressIntervalRef.current = setInterval(() => {
+            if (playerRef.current && playerRef.current.getCurrentTime) {
+                const currentTime = playerRef.current.getCurrentTime();
+                const duration = playerRef.current.getDuration();
+                const p = (currentTime / duration) * 100;
+                setProgress(p);
+                if (isPlaying) broadcastPlayback(isPlaying, p);
             }
-        }, 3000);
-        return () => clearInterval(interval);
+        }, 4000);
+
+        return () => clearInterval(progressIntervalRef.current);
     }, [isHost, isPlaying]);
+
+    const syncPlayerTime = (p) => {
+        if (!playerRef.current || !playerRef.current.getCurrentTime) return;
+        const duration = playerRef.current.getDuration();
+        const targetTime = (p / 100) * duration;
+        const actualTime = playerRef.current.getCurrentTime();
+
+        if (Math.abs(actualTime - targetTime) > 5) {
+            playerRef.current.seekTo(targetTime, true);
+        }
+    };
 
     // --- 3. Actions ---
     const broadcastQueue = (newQueue, newTrack = currentTrack) => {
@@ -126,19 +179,17 @@ export default function JukeboxDJ({ roomName, onClose }) {
 
     const addToQueue = (track) => {
         const entry = {
-            id: track.track_id + Math.random().toString(36).substr(2, 5), // unique in queue
-            spotifyId: track.track_id,
-            name: track.track_name,
-            artist: track.artist_name,
-            cover: track.album_cover,
-            preview_url: track.preview_url,
-            addedBy: profile?.username || 'DJ Anon',
+            id: track.id,
+            name: track.name,
+            artist: track.artist,
+            cover: track.cover,
+            source: 'youtube',
+            addedBy: profile?.username || 'Tripulante',
             tips: 0
         };
 
         const newQueue = [...queue, entry];
 
-        // Si no hay nada sonando, empezamos esto
         if (!currentTrack) {
             setCurrentTrack(entry);
             setIsPlaying(true);
@@ -194,18 +245,17 @@ export default function JukeboxDJ({ roomName, onClose }) {
             broadcastQueue(updated);
             return updated;
         });
-
-        // Award some coins back to the person who added it? (optional)
     };
 
     return (
         <motion.div
             initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }}
-            className="w-full bg-[#070715]/95 backdrop-blur-2xl border border-amber-500/20 rounded-[2.5rem] p-6 mt-4 relative overflow-hidden shadow-[0_40px_100px_rgba(0,0,0,0.8)]"
+            className="w-full bg-[#070715]/95 backdrop-blur-2xl border border-red-500/20 rounded-[2.5rem] p-6 mt-4 relative overflow-hidden shadow-[0_40px_100px_rgba(0,0,0,0.8)]"
         >
+            <div id="yt-player-hidden" className="hidden pointer-events-none opacity-0" />
+
             {/* Background Glows */}
-            <div className="absolute -top-20 -right-20 w-80 h-80 bg-amber-500/5 blur-[100px] rounded-full pointer-events-none" />
-            <div className="absolute -bottom-20 -left-20 w-80 h-80 bg-purple-500/5 blur-[100px] rounded-full pointer-events-none" />
+            <div className="absolute -top-20 -right-20 w-80 h-80 bg-red-500/5 blur-[100px] rounded-full pointer-events-none" />
 
             <button onClick={onClose} className="absolute right-6 top-6 text-white/30 hover:text-white bg-white/5 p-2.5 rounded-full transition-all z-20 hover:scale-110 active:scale-90">
                 <X size={18} />
@@ -213,14 +263,14 @@ export default function JukeboxDJ({ roomName, onClose }) {
 
             {/* Header */}
             <div className="flex items-center gap-4 mb-8">
-                <div className="p-3.5 bg-gradient-to-br from-amber-500/20 to-amber-600/10 rounded-2xl border border-amber-500/30 text-amber-400 shadow-[0_0_20px_rgba(245,158,11,0.1)]">
-                    <Music size={24} />
+                <div className="p-3.5 bg-gradient-to-br from-red-500/20 to-red-600/10 rounded-2xl border border-red-500/30 text-red-500 shadow-[0_0_20px_rgba(220,38,38,0.1)]">
+                    <Youtube size={24} />
                 </div>
                 <div>
-                    <h3 className="text-white font-black uppercase tracking-[0.2em] text-sm">Frecuencia Estelar DJ</h3>
+                    <h3 className="text-white font-black uppercase tracking-[0.2em] text-sm">Frecuencia YouTube DJ</h3>
                     <div className="flex items-center gap-2">
-                        <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                        <span className="text-[9px] font-bold text-emerald-400 uppercase tracking-widest">En Vivo • {participants.length + 1} Tripulantes</span>
+                        <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+                        <span className="text-[9px] font-bold text-red-400 uppercase tracking-widest">Sincronizado • {participants.length + 1} Tripulantes</span>
                     </div>
                 </div>
             </div>
@@ -228,52 +278,42 @@ export default function JukeboxDJ({ roomName, onClose }) {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 {/* Visualizador & Player */}
                 <div className="flex flex-col items-center">
-                    <div className="relative w-full aspect-square max-w-[280px] mb-8">
-                        {/* Vinyl Mockup */}
+                    <div className="relative w-full aspect-video rounded-[2rem] overflow-hidden mb-8 border border-white/5 bg-black/40 group">
+                        {currentTrack ? (
+                            <img src={currentTrack.cover} alt="" className="w-full h-full object-cover opacity-60 group-hover:scale-105 transition-transform duration-700" />
+                        ) : (
+                            <div className="w-full h-full flex flex-col items-center justify-center gap-4 text-white/10">
+                                <Youtube size={60} />
+                                <span className="text-[10px] uppercase font-black tracking-widest">Nada en el Radar</span>
+                            </div>
+                        )}
+                        <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent" />
+
+                        {/* Vinyl Mockup overlaying video cover slightly */}
                         <motion.div
                             animate={{ rotate: isPlaying ? 360 : 0 }}
-                            transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
-                            className="absolute inset-0 rounded-full border-[12px] border-black shadow-2xl relative z-10"
+                            transition={{ duration: 15, repeat: Infinity, ease: "linear" }}
+                            className="absolute -bottom-10 -right-10 w-40 h-40 bg-black rounded-full border-[10px] border-black/80 shadow-2xl overflow-hidden opacity-80"
                         >
                             <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/5 to-transparent rounded-full" />
-                            <div className={`w-full h-full rounded-full overflow-hidden border-4 ${currentTrack ? 'border-amber-500/30' : 'border-white/5'} bg-black/40 flex items-center justify-center`}>
-                                {currentTrack?.cover ? (
-                                    <img src={currentTrack.cover} alt="" className="w-full h-full object-cover opacity-80" />
-                                ) : (
-                                    <Disc size={80} className="text-white/10" />
-                                )}
-                            </div>
-                            {/* Inner Circle */}
-                            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-20 h-20 bg-black rounded-full border-4 border-white/5 flex items-center justify-center z-20">
-                                <div className="w-3 h-3 bg-white/20 rounded-full" />
-                            </div>
+                            {currentTrack?.cover && <img src={currentTrack.cover} className="w-full h-full object-cover grayscale opacity-40 blur-[1px]" alt="" />}
+                            <div className="absolute inset-0 border-[30px] border-black/20 rounded-full" />
                         </motion.div>
-
-                        {/* Ambient Glow */}
-                        <AnimatePresence>
-                            {isPlaying && (
-                                <motion.div
-                                    initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.8 }}
-                                    className="absolute -inset-10 bg-amber-500/10 blur-[60px] rounded-full -z-0"
-                                />
-                            )}
-                        </AnimatePresence>
                     </div>
 
                     <div className="w-full text-center mb-8">
                         <AnimatePresence mode="wait">
                             {currentTrack ? (
                                 <motion.div key={currentTrack.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-1 px-4">
-                                    <h4 className="text-lg font-black text-white truncate drop-shadow-lg">{currentTrack.name}</h4>
-                                    <p className="text-amber-500 font-bold uppercase tracking-[0.2em] text-[10px]">{currentTrack.artist}</p>
-                                    <div className="flex items-center justify-center gap-1.5 mt-4">
-                                        <div className="text-[8px] font-black bg-white/5 border border-white/10 px-2 py-1 rounded-md text-white/40 uppercase tracking-widest">Añadido por: {currentTrack.addedBy}</div>
+                                    <h4 className="text-lg font-black text-white truncate drop-shadow-lg" dangerouslySetInnerHTML={{ __html: currentTrack.name }} />
+                                    <p className="text-red-500 font-bold uppercase tracking-[0.2em] text-[10px]">{currentTrack.artist}</p>
+                                    <div className="mt-4">
+                                        <div className="text-[8px] font-black bg-white/5 border border-white/10 px-3 py-1.5 rounded-full text-white/40 uppercase tracking-widest inline-block">DJ: {currentTrack.addedBy}</div>
                                     </div>
                                 </motion.div>
                             ) : (
-                                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-2 opacity-30">
-                                    <h4 className="text-sm font-black text-white uppercase tracking-widest">Sintonizando el Vacío...</h4>
-                                    <p className="text-[10px] uppercase font-bold tracking-widest">Busca una pista para comenzar</p>
+                                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-2 opacity-20">
+                                    <h4 className="text-sm font-black text-white uppercase tracking-widest underline decoration-red-500/50 underline-offset-8">Sistema en Reposo</h4>
                                 </motion.div>
                             )}
                         </AnimatePresence>
@@ -282,30 +322,26 @@ export default function JukeboxDJ({ roomName, onClose }) {
                     {/* Controls */}
                     <div className="w-full max-w-sm px-4">
                         <div className="flex items-center justify-center gap-8 mb-6">
-                            <button className="text-white/40 hover:text-white transition-colors" onClick={() => audioRef.current && (audioRef.current.currentTime = 0)}>
+                            <button className="text-white/40 hover:text-red-500 transition-colors" onClick={() => playerRef.current?.seekTo(0)}>
                                 <SkipForward size={24} className="rotate-180" />
                             </button>
                             <button
                                 onClick={togglePlayback}
-                                className="w-16 h-16 rounded-full bg-white text-black flex items-center justify-center shadow-[0_0_30px_rgba(255,255,255,0.3)] hover:scale-110 active:scale-95 transition-all"
+                                className="w-16 h-16 rounded-full bg-red-600 text-white flex items-center justify-center shadow-[0_0_30px_rgba(220,38,38,0.3)] hover:scale-110 active:scale-95 transition-all"
                             >
-                                {isPlaying ? <Pause size={28} fill="black" /> : <Play size={28} fill="black" className="ml-1" />}
+                                {isPlaying ? <Pause size={28} fill="white" /> : <Play size={28} fill="white" className="ml-1" />}
                             </button>
-                            <button className="text-white/40 hover:text-white transition-colors" onClick={playNext}>
+                            <button className="text-white/40 hover:text-red-500 transition-colors" onClick={playNext}>
                                 <SkipForward size={24} />
                             </button>
                         </div>
 
                         <div className="w-full h-1.5 bg-white/5 rounded-full overflow-hidden relative">
                             <motion.div
-                                className="absolute top-0 left-0 h-full bg-amber-500 shadow-[0_0_10px_rgba(245,158,11,0.5)]"
+                                className="absolute top-0 left-0 h-full bg-red-600 shadow-[0_0_10px_rgba(220,38,38,0.5)]"
                                 animate={{ width: `${progress}%` }}
                                 transition={{ type: "tween", ease: "linear" }}
                             />
-                        </div>
-                        <div className="flex justify-between mt-2 text-[9px] font-black text-white/20 uppercase tracking-widest">
-                            <span>0:00</span>
-                            <span>{currentTrack ? '0:30' : '0:00'}</span>
                         </div>
                     </div>
                 </div>
@@ -314,14 +350,14 @@ export default function JukeboxDJ({ roomName, onClose }) {
                 <div className="flex flex-col min-h-[400px]">
                     <div className="flex items-center justify-between mb-6">
                         <div className="flex items-center gap-2">
-                            <ListMusic size={16} className="text-amber-500" />
-                            <span className="text-[10px] font-black text-white uppercase tracking-widest">Cola de Reproducción</span>
+                            <ListMusic size={16} className="text-red-500" />
+                            <span className="text-[10px] font-black text-white uppercase tracking-widest">Lista de Espera</span>
                         </div>
                         <button
                             onClick={() => setIsSearchOpen(true)}
-                            className="px-4 py-2 bg-amber-500/10 border border-amber-500/30 rounded-xl text-[9px] font-black text-amber-500 uppercase tracking-widest flex items-center gap-2 hover:bg-amber-500/20 transition-all"
+                            className="px-5 py-2.5 bg-red-600/10 border border-red-600/30 rounded-xl text-[9px] font-black text-red-500 uppercase tracking-widest flex items-center gap-2 hover:bg-red-600/20 transition-all shadow-[0_4px_15px_rgba(220,38,38,0.1)]"
                         >
-                            <Search size={14} /> Ordenar Pista
+                            <Search size={14} /> Buscar en YouTube
                         </button>
                     </div>
 
@@ -329,36 +365,36 @@ export default function JukeboxDJ({ roomName, onClose }) {
                         <AnimatePresence initial={false}>
                             {queue.length === 0 ? (
                                 <div className="h-full flex flex-col items-center justify-center gap-4 py-20 opacity-20">
-                                    <Search size={40} />
-                                    <p className="text-[10px] font-black uppercase tracking-widest">Vibraciones de radio ausentes</p>
+                                    <Music size={40} />
+                                    <p className="text-[10px] font-black uppercase tracking-widest">Nada en cola...</p>
                                 </div>
                             ) : (
                                 queue.map((track, i) => (
                                     <motion.div
-                                        key={track.id}
+                                        key={track.id + i}
                                         initial={{ opacity: 0, x: 20 }}
                                         animate={{ opacity: 1, x: 0 }}
                                         exit={{ opacity: 0, x: -20 }}
                                         className="group p-3 bg-white/[0.03] border border-white/5 rounded-2xl flex items-center gap-3 hover:bg-white/5 transition-all"
                                     >
-                                        <div className="relative w-10 h-10 rounded-lg overflow-hidden shrink-0 border border-white/10">
+                                        <div className="relative w-12 h-12 rounded-lg overflow-hidden shrink-0 border border-white/10">
                                             <img src={track.cover} alt="" className="w-full h-full object-cover" />
                                         </div>
                                         <div className="flex-1 min-w-0">
-                                            <h5 className="text-[10px] font-black text-white truncate">{track.name}</h5>
+                                            <h5 className="text-[10px] font-black text-white truncate" dangerouslySetInnerHTML={{ __html: track.name }} />
                                             <p className="text-[8px] text-white/40 uppercase tracking-widest truncate">{track.artist}</p>
                                         </div>
 
                                         <div className="flex items-center gap-2 pr-1">
                                             {track.tips > 0 && (
-                                                <div className="flex items-center gap-1 bg-amber-500/10 px-2 py-1 rounded-lg border border-amber-500/20 text-amber-400">
+                                                <div className="flex items-center gap-1 bg-red-500/10 px-2 py-1 rounded-lg border border-red-500/20 text-red-500">
                                                     <Flame size={10} fill="currentColor" />
                                                     <span className="text-[9px] font-black">{track.tips}</span>
                                                 </div>
                                             )}
                                             <button
                                                 onClick={() => boostTrack(track.id)}
-                                                className="p-2 rounded-xl bg-white/5 text-white/40 opacity-0 group-hover:opacity-100 hover:text-amber-500 hover:bg-amber-500/10 transition-all active:scale-90"
+                                                className="p-2 rounded-xl bg-white/5 text-white/40 opacity-0 group-hover:opacity-100 hover:text-red-500 hover:bg-red-600/10 transition-all active:scale-90"
                                             >
                                                 <TrendingUp size={16} />
                                             </button>
@@ -369,22 +405,22 @@ export default function JukeboxDJ({ roomName, onClose }) {
                         </AnimatePresence>
                     </div>
 
-                    <div className="mt-6 p-4 rounded-2xl bg-amber-500/5 border border-amber-500/10 flex items-center justify-between">
+                    <div className="mt-6 p-4 rounded-2xl bg-red-600/5 border border-red-600/10 flex items-center justify-between">
                         <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-full bg-amber-500/20 flex items-center justify-center">
-                                <Disc size={16} className="text-amber-500 animate-[spin_4s_linear_infinite]" />
+                            <div className="w-8 h-8 rounded-full bg-red-600/20 flex items-center justify-center">
+                                <Disc size={16} className="text-red-500 animate-[spin_4s_linear_infinite]" />
                             </div>
                             <div className="flex flex-col">
-                                <span className="text-[8px] font-black text-amber-500/60 uppercase tracking-widest">Tu Balance DJ</span>
+                                <span className="text-[8px] font-black text-red-500/60 uppercase tracking-widest">Créditos de DJ</span>
                                 <span className="text-[11px] font-black text-white tracking-widest">{balance.toLocaleString()}◈</span>
                             </div>
                         </div>
-                        <p className="text-[8px] text-white/30 uppercase tracking-tighter max-w-[120px] text-right italic">Cada boost de 50◈ sube el hype de la pista</p>
+                        <p className="text-[8px] text-white/30 uppercase tracking-tighter max-w-[120px] text-right italic leading-none">Añade 50◈ para prioridad máxima</p>
                     </div>
                 </div>
             </div>
 
-            <SongSearchModal
+            <YouTubeSearchModal
                 isOpen={isSearchOpen}
                 onClose={() => setIsSearchOpen(false)}
                 onSelect={addToQueue}
