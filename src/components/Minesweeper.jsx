@@ -150,6 +150,12 @@ function MinesweeperInner() {
       setBoard(revealAllMines(curr));
       setStatus('DEAD');
       stopTimer();
+
+      const revealedCount = curr.flat().filter(c => c.isRevealed && !c.isMine).length;
+      const pts = revealedCount * 15;
+      setScore(pts);
+      saveScore(pts);
+
       triggerHaptic('heavy');
       spawnParticles(`${(c / COLS) * 100}%`, `${(r / ROWS) * 100}%`, '#ff0000', 40);
       triggerFloatingText('¡BOOM!', `${(c / COLS) * 100}%`, `${(r / ROWS) * 100}%`, '#ff0000');
@@ -163,7 +169,11 @@ function MinesweeperInner() {
     if (checkWin(next)) {
       setStatus('WIN');
       stopTimer();
-      const pts = Math.max(100, 1000 - elapsed * 5);
+
+      const revealedCount = next.flat().filter(c => c.isRevealed && !c.isMine).length;
+      const timeBonus = Math.max(100, 1000 - elapsed * 5);
+      const pts = (revealedCount * 15) + timeBonus;
+
       setScore(pts);
       animateScore();
       saveScore(pts);
