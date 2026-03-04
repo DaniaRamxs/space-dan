@@ -31,9 +31,22 @@ export default function CosmicDraw({ roomName, onClose }) {
     const [color, setColor] = useState(COLORS[0]);
     const [lineWidth, setLineWidth] = useState(3);
 
-    // El "Host" es el que dibuja por ahora (el primero en entrar o el drawer actual)
-    const isHost = currentDrawerId === localParticipant.identity || (!currentDrawerId && participants.length > 0 && localParticipant.identity === participants[0].identity);
-    const isMyTurn = currentDrawerId === localParticipant.identity || (!currentDrawerId && isHost && gameState === 'playing'); // Simplificado para que el host dibuje
+    // Stable leader selection (alphabetical by identity)
+    const allParticipants = useMemo(() => {
+        if (!localParticipant) return participants;
+        return [localParticipant, ...participants];
+    }, [localParticipant, participants]);
+
+    const sortedParticipants = useMemo(() => {
+        return [...allParticipants].sort((a, b) => (a.identity || '').localeCompare(b.identity || ''));
+    }, [allParticipants]);
+
+    const leaderIdentity = useMemo(() => sortedParticipants[0]?.identity, [sortedParticipants]);
+    const isLeader = localParticipant?.identity === leaderIdentity;
+
+    // El drawer es el host por defecto si no hay uno asignado, o el asignado
+    const isHost = isLeader;
+    const isMyTurn = currentDrawerId === localParticipant?.identity || (gameState === 'playing' && !currentDrawerId && isLeader);
 
     // --- 1. Supabase Realtime Sync ---
     useEffect(() => {
@@ -139,18 +152,18 @@ export default function CosmicDraw({ roomName, onClose }) {
 
     // Escuchar premio si gané
     useEffect(() => {
-        if (!channelRef.current) return;
+        if (!channelRef.current || !localParticipant?.identity) return;
 
-        const claimListener = channelRef.current.on('broadcast', { event: 'claim_reward' }, ({ payload }) => {
+        const sub = channelRef.current.on('broadcast', { event: 'claim_reward' }, ({ payload }) => {
             if (payload.winnerId === localParticipant.identity) {
                 awardCoins(payload.amount, 'game_reward', 'cosmic-draw', '¡Adivinaste en Cosmic Draw!');
             }
         });
 
         return () => {
-            // Limpieza si el canal sigue vivo (aunque el principal lo borra)
+            // sub.unsubscribe() // if needed
         }
-    }, [localParticipant.identity]);
+    }, [localParticipant?.identity, awardCoins]);
 
     const endRound = (winData) => {
         setGameState('finished');
@@ -419,15 +432,31 @@ export default function CosmicDraw({ roomName, onClose }) {
                 </div>
             </div>
 
-            <form onSubmit={submitGuess} className={`mt-2 pt-3 border-t border-white/10 flex items-center gap-2 transition-all ${isMyTurn || gameState !== 'playing' ? 'opacity-50 pointer-events-none' : ''}`}>
+            <form
+                onSubmit={submitGuess}
+                className={`mt-2 pt-3 border-t border-white/10 flex items-center gap-2 transition-all ${gameState !== 'playing' ? 'opacity-50 pointer-events-none' : ''}`}
+            >
                 <input
                     type="text"
                     value={guessInput}
                     onChange={(e) => setGuessInput(e.target.value)}
-                    placeholder={isMyTurn ? "Estás dibujando..." : "Escribe tu respuesta aquí..."}
-                    className="flex-1 bg-white/5 border border-white/20 focus:border-cyan-500/50 rounded-xl px-4 py-3 sm:py-4 text-[11px] sm:text-xs text-white placeholder:text-white/30 outline-none transition-all focus:shadow-[0_0_15px_rgba(6,182,212,0.2)]"
+                    disabled={isMyTurn}
+                    placeholder={isMyTurn ? "Eres el dibujante (Silencio...)" : "Escribe tu respuesta aquí..."}
+                    className={`flex-1 bg-white/5 border border-white/20 focus:border-cyan-500/50 rounded-xl px-4 py-3 sm:py-4 text-[11px] sm:text-xs text-white placeholder:text-white/30 outline-none transition-all focus:shadow-[0_0_15px_rgba(6,182,212,0.2)] ${isMyTurn ? 'cursor-not-allowed opacity-50' : 'cursor-text'}`}
                 />
-                <button type="submit" disabled={!guessInput.trim()} className="px-5 py-3 sm:py-4 rounded-xl bg-cyan-500 text-black font-black uppercase tracking-widest text-[9px] sm:text-[10px] disabled:opacity-30 shadow-[0_0_15px_rgba(6,182,212,0.3)] shrink-0">Adivinar</button>
+                {!isMyTurn ? (
+                    <button
+                        type="submit"
+                        disabled={!guessInput.trim() || gameState !== 'playing'}
+                        className="px-5 py-3 sm:py-4 rounded-xl bg-cyan-500 text-black font-black uppercase tracking-widest text-[9px] sm:text-[10px] disabled:opacity-30 shadow-[0_0_15px_rgba(6,182,212,0.3)] shrink-0"
+                    >
+                        Adivinar
+                    </button>
+                ) : (
+                    <div className="px-5 py-3 sm:py-4 rounded-xl bg-white/5 text-white/20 border border-white/10 font-black uppercase tracking-widest text-[9px] sm:text-[10px] shrink-0">
+                        Dibujando
+                    </div>
+                )}
             </form>
 
             {isMyTurn && gameState === 'playing' && (
