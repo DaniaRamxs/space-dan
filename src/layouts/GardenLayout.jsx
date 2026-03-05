@@ -76,7 +76,6 @@ export default function GardenLayout({ children }) {
 
   return (
     <div className={`gardenPage ${isFixedLayout ? 'gardenPage--fixed' : ''}`}>
-      <StarfieldBg />
       <AmbientOrbs />
       <CursorTrail />
       <KonamiEasterEgg />

@@ -24,6 +24,7 @@ import { UniverseProvider, useUniverse } from "./contexts/UniverseContext.jsx";
 import { spotifyService } from "./services/spotifyService";
 import CosmicEventBanner from "./components/Social/CosmicEventBanner";
 import WelcomeExperience from "./components/WelcomeExperience";
+import StarfieldBg from "./components/StarfieldBg";
 import ClickRipple from "./components/ClickRipple";
 import ActivityRadar from "./components/ActivityRadar";
 
@@ -455,6 +456,7 @@ export default function App() {
             <Screensaver />
             <PageTracker />
             <ScrollToTop />
+            <StarfieldBg />
             <ClickRipple />
             <ActivityRadar />
             <WelcomeExperience />

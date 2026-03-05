@@ -101,8 +101,7 @@ body {
   display: flex;
   justify-content: center;
   margin: 0;
-  background-color: var(--bg);
-  /* Darker, more solid */
+  background-color: transparent;
   color: var(--text);
   font-family: var(--font-main);
   font-size: 14px;
@@ -1457,12 +1456,11 @@ textarea,
   width: 100vw;
   margin: 0;
   padding: 0;
-  background-color: var(--bg-deep);
+  background-color: transparent;
   background-image:
     radial-gradient(1200px 700px at 6% -10%, var(--bg-accent-a), transparent 62%),
     radial-gradient(950px 620px at 100% 8%, var(--bg-accent-b), transparent 68%),
-    radial-gradient(720px 520px at 40% 115%, var(--bg-accent-c), transparent 72%),
-    linear-gradient(180deg, var(--bg-mid) 0%, var(--bg-deep) 55%, #04060a 100%);
+    radial-gradient(720px 520px at 40% 115%, var(--bg-accent-c), transparent 72%);
   background-repeat: no-repeat;
   background-size: cover;
   overflow-y: auto;
@@ -1866,8 +1864,7 @@ textarea,
   flex: 1;
   display: flex;
   flex-direction: column;
-  background: radial-gradient(circle at 50% -20%, rgba(0, 229, 255, 0.1), transparent 70%),
-    rgba(3, 3, 10, 0.98);
+  background: transparent;
   overflow: visible;
   position: relative;
   margin: 0 !important;
