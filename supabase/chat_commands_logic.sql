@@ -68,7 +68,7 @@ CREATE OR REPLACE FUNCTION public.deduct_coins(
     p_amount    int,
     p_type      text,
     p_desc      text
-) RETURNS int LANGUAGE plpgsql SECURITY DEFINER AS $$
+) RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER AS $$
 DECLARE
     v_new_balance int;
 BEGIN
@@ -80,7 +80,10 @@ BEGIN
     INSERT INTO public.transactions (user_id, amount, balance_after, type, description)
     VALUES (p_user_id, -p_amount, v_new_balance, p_type, p_desc);
 
-    RETURN v_new_balance;
+    RETURN jsonb_build_object(
+        'success', true,
+        'balance', v_new_balance
+    );
 END;
 $$;
 

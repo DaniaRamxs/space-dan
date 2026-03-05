@@ -18,6 +18,7 @@ import PostComposer from '../../components/Social/PostComposer';
 import ActivityFeed from '../../components/Social/ActivityFeed';
 import ActivityCard from '../../components/Social/ActivityCard';
 import { motion, AnimatePresence } from 'framer-motion';
+import { StellarSupport } from '../../components/ProfileRedesign/StellarSupport';
 
 // ─── Mini activity feed (3 posts, no infinite scroll) ──────────────────────
 function RecentActivityBlock({ userId, onViewAll }) {
@@ -294,7 +295,7 @@ export default function ProfileRedesignPage() {
                     // Refresh counts
                     profileSocialService.getFollowCounts(profile.id)
                         .then(setFollowCounts)
-                        .catch(() => {});
+                        .catch(() => { });
                 }}
                 onEdit={() => setShowConfig(true)}
             />
@@ -319,9 +320,8 @@ export default function ProfileRedesignPage() {
                             <button
                                 key={tab.id}
                                 onClick={() => setActiveTab(tab.id)}
-                                className={`relative text-[11px] font-bold uppercase tracking-widest whitespace-nowrap pb-3 pt-3 transition-colors shrink-0 ${
-                                    activeTab === tab.id ? 'text-white' : 'text-white/25 hover:text-white/50'
-                                }`}
+                                className={`relative text-[11px] font-bold uppercase tracking-widest whitespace-nowrap pb-3 pt-3 transition-colors shrink-0 ${activeTab === tab.id ? 'text-white' : 'text-white/25 hover:text-white/50'
+                                    }`}
                             >
                                 {tab.label}
                                 {activeTab === tab.id && (
@@ -350,6 +350,12 @@ export default function ProfileRedesignPage() {
 
                                 {/* LEFT: Radar + Resonancia + Stats + Connections (desktop) */}
                                 <div className="flex flex-col gap-4">
+
+                                    <StellarSupport
+                                        profileUserId={profile.id}
+                                        isOwn={isOwn}
+                                        profileUsername={profile.username}
+                                    />
 
                                     {/* Radar Sonoro */}
                                     {(hasSpotifyBlock || isOwn) && (
