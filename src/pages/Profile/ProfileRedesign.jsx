@@ -194,6 +194,7 @@ export default function ProfileRedesignPage() {
     const [activeTab, setActiveTab] = useState('identity');
     const [showConfig, setShowConfig] = useState(false);
     const [showComposer, setShowComposer] = useState(false);
+    const [stats, setStats] = useState({ stars: 0, echoes: 0, age: 0 });
 
     useEffect(() => {
         load();
@@ -243,6 +244,18 @@ export default function ProfileRedesignPage() {
                 setIsFollowing(following);
                 signalsService.trackVisit(user.id, prof.id);
             }
+
+            // Fetch extra stats for the header
+            Promise.all([
+                supabase.from('transfers').select('amount').eq('to_user_id', prof.id),
+                supabase.from('space_echoes').select('id', { count: 'exact', head: true }).eq('user_id', prof.id)
+            ]).then(([starsRes, echoesRes]) => {
+                const totalStars = starsRes.data?.reduce((acc, curr) => acc + curr.amount, 0) || 0;
+                const totalEchoes = echoesRes.count || 0;
+                const createdAt = new Date(prof.created_at);
+                const ageDays = Math.floor((new Date() - createdAt) / (1000 * 60 * 60 * 24));
+                setStats({ stars: totalStars, echoes: totalEchoes, age: ageDays });
+            });
         } catch (e) {
             console.error('Profile load error:', e);
             setNotFound(true);
@@ -296,6 +309,7 @@ export default function ProfileRedesignPage() {
                 profile={profile}
                 theme={theme}
                 isOwn={isOwn}
+                stats={stats}
                 isFollowing={isFollowing}
                 onFollow={async () => {
                     if (!user) return alert('Debes iniciar sesión.');
@@ -353,145 +367,120 @@ export default function ProfileRedesignPage() {
                         exit={{ opacity: 0, y: -6 }}
                         transition={{ duration: 0.22, ease: 'easeOut' }}
                     >
-                        {/* ── IDENTIDAD ────────────────────────────────── */}
+                        {/* ── IDENTIDAD (SECUENCIA ESPACIAL) ────────────────── */}
                         {activeTab === 'identity' && (
-                            <div className="grid grid-cols-1 lg:grid-cols-[1fr_1.5fr] gap-4">
+                            <div className="flex flex-col gap-24 py-12">
 
-                                {/* LEFT: Radar + Resonancia + Stats + Connections (desktop) */}
-                                <div className="flex flex-col gap-4">
-
-                                    <StellarSupport
-                                        profileUserId={profile.id}
-                                        isOwn={isOwn}
-                                        profileUsername={profile.username}
-                                    />
-
-                                    {/* Radar Sonoro */}
-                                    {(hasSpotifyBlock || isOwn) && (
-                                        <SpotifyBlock userId={profile.id} isOwn={isOwn} />
-                                    )}
-
-                                    {/* Aura */}
+                                {/* 1. AURA DEL UNIVERSO */}
+                                <section className="space-y-6">
                                     <AuraBlock userId={profile.id} />
+                                </section>
 
-                                    {/* Señales misteriosas de visitas */}
-                                    {isOwn && (
-                                        <MysterySignals userId={profile.id} isOwn={isOwn} />
-                                    )}
+                                {/* 2. UNIVERSO QUE ATRAES & APOYO */}
+                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                                    <section className="space-y-4">
+                                        <div className="px-1 py-1">
+                                            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-white/20 mb-4">Interferencias de Campo</p>
+                                            <UniverseAttractionBlock userId={profile.id} isOwn={isOwn} profileUsername={profile.username} />
+                                        </div>
+                                    </section>
+                                    <section className="space-y-4">
+                                        <div className="px-1 py-1">
+                                            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-white/20 mb-4">Soporte Vital</p>
+                                            <StellarSupport
+                                                profileUserId={profile.id}
+                                                isOwn={isOwn}
+                                                profileUsername={profile.username}
+                                            />
+                                        </div>
+                                    </section>
+                                </div>
 
-                                    {/* El Universo que Atraes */}
-                                    <UniverseAttractionBlock userId={profile.id} isOwn={isOwn} profileUsername={profile.username} />
-
-                                    {/* Constelaciones */}
+                                {/* 3. MAPA DE AFINIDAD */}
+                                <section className="space-y-4">
+                                    <p className="text-center text-[10px] font-black uppercase tracking-[0.5em] text-white/20">Cartografía de Vínculos</p>
                                     <AffinityMapBlock userId={profile.id} ownerAvatar={profile.avatar_url} />
+                                </section>
 
-                                    {/* Resonancia — solo cuando se visita un perfil ajeno */}
-                                    {!isOwn && user && (
+                                {/* 4. MÉTRICAS VITALES y ARCHIVO DE IDENTIDAD */}
+                                <div className="grid grid-cols-1 lg:grid-cols-[1fr_1.5fr] gap-12">
+                                    <div className="space-y-12">
+                                        {/* Métricas Vitales */}
+                                        <div className="rounded-3xl bg-white/[0.02] border border-white/5 p-8 space-y-6 transition-all hover:bg-white/[0.03]">
+                                            <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-cyan-400">Núcleo de Datos</p>
+                                            <div className="grid grid-cols-1 gap-6">
+                                                <div className="flex items-center justify-between group">
+                                                    <span className="text-[11px] font-black text-white/40 uppercase">Rango Estelar</span>
+                                                    <span className="text-2xl font-black text-white italic">NIVEL {profile.level || 1}</span>
+                                                </div>
+                                                <div className="flex items-center justify-between group">
+                                                    <span className="text-[11px] font-black text-white/40 uppercase">Resonancia</span>
+                                                    <span className="text-2xl font-black text-violet-400 italic">{profile.streak || 0}D</span>
+                                                </div>
+                                                <div className="pt-4 border-t border-white/5">
+                                                    <div className="flex items-center justify-between mb-4">
+                                                        <span className="text-[11px] font-black text-white/40 uppercase">Energía Starlys</span>
+                                                        <StarlyOrb balance={profile.balance || 0} className="scale-75" />
+                                                    </div>
+                                                    <StarlysCounter value={profile.balance || 0} className="text-3xl font-black text-white italic block text-right" />
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Archivo de Identidad (Conexiones) */}
+                                        <div className="space-y-4">
+                                            <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-white/20">Exploradores Vinculados</p>
+                                            <ConnectionsBlock userId={profile.id} followCounts={followCounts} />
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-12">
+                                        {/* Bio / Manifiesto */}
+                                        {showBioFallback && (
+                                            <BioCard bio={profile.bio} />
+                                        )}
+
+                                        {/* Galería Estelar (Blocks) */}
+                                        {contentBlocks.length > 0 && (
+                                            <BlocksRenderer
+                                                blocks={contentBlocks}
+                                                userId={profile.id}
+                                                isOwn={isOwn}
+                                                onEdit={() => setShowConfig(true)}
+                                                profileData={profile}
+                                            />
+                                        )}
+
+                                        {/* Señales misteriosas (Solo dueño) */}
+                                        {isOwn && (
+                                            <MysterySignals userId={profile.id} isOwn={isOwn} />
+                                        )}
+                                    </div>
+                                </div>
+
+                                {/* 5. ACTIVIDAD RECIENTE */}
+                                <section className="space-y-8 max-w-2xl mx-auto w-full">
+                                    <div className="text-center">
+                                        <h3 className="text-sm font-black text-white uppercase tracking-[0.3em] opacity-40">Últimas transmisiones</h3>
+                                    </div>
+                                    <RecentActivityBlock
+                                        userId={profile.id}
+                                        onViewAll={() => setActiveTab('activity')}
+                                    />
+                                </section>
+
+                                {/* 6. RESONANCIA (Solo ajeno) */}
+                                {!isOwn && user && (
+                                    <section className="max-w-xl mx-auto w-full">
                                         <ResonanciaBlock
                                             viewerId={user.id}
                                             profileUserId={profile.id}
                                             viewerUsername={user.username}
                                             profileUsername={profile.username}
                                         />
-                                    )}
+                                    </section>
+                                )}
 
-                                    {/* Stats + follow counts */}
-                                    <div className="rounded-2xl bg-white/[0.02] border border-white/5 p-5 space-y-4">
-                                        <p className="text-[10px] font-bold uppercase tracking-widest text-white/25">Métricas</p>
-                                        <div className="grid grid-cols-3 gap-4">
-                                            <div className="space-y-0.5">
-                                                <p className="text-[9px] font-bold uppercase text-white/20">Nivel</p>
-                                                <p className="text-lg font-black text-white italic">{profile.level || 1}</p>
-                                            </div>
-                                            <div className="space-y-0.5 relative group">
-                                                <p className="text-[9px] font-bold uppercase text-white/20">Starlys</p>
-                                                <div className="flex items-center gap-3">
-                                                    <StarlysCounter value={profile.balance || 0} className="text-lg font-black text-cyan-400 italic" />
-                                                    <StarlyOrb balance={profile.balance || 0} className="scale-50 -ml-10 -mr-10" />
-                                                </div>
-                                            </div>
-                                            <div className="space-y-0.5">
-                                                <p className="text-[9px] font-bold uppercase text-white/20">Racha</p>
-                                                <p className="text-lg font-black text-violet-400 italic">{profile.streak || 0}D</p>
-                                            </div>
-                                        </div>
-
-                                        {/* Follow counts */}
-                                        {followCounts && (followCounts.followers > 0 || followCounts.following > 0) && (
-                                            <div className="flex items-center gap-5 pt-1 border-t border-white/[0.04]">
-                                                <div className="space-y-0">
-                                                    <span className="text-[13px] font-black text-white/70">{followCounts.followers}</span>
-                                                    <p className="text-[9px] font-bold uppercase text-white/20">Seguidores</p>
-                                                </div>
-                                                <div className="space-y-0">
-                                                    <span className="text-[13px] font-black text-white/70">{followCounts.following}</span>
-                                                    <p className="text-[9px] font-bold uppercase text-white/20">Siguiendo</p>
-                                                </div>
-                                            </div>
-                                        )}
-                                    </div>
-
-                                    {/* Connections — desktop only, left col */}
-                                    <div className="hidden lg:block">
-                                        <ConnectionsBlock userId={profile.id} followCounts={null} />
-                                    </div>
-                                </div>
-
-                                {/* RIGHT: Bio + Blocks + Activity + Connections (mobile) */}
-                                <div className="flex flex-col gap-4">
-
-                                    {/* Bio fallback — shown when no "about" block exists */}
-                                    {showBioFallback && (
-                                        <BioCard bio={profile.bio} />
-                                    )}
-
-                                    {/* Content blocks (bio, thought, gallery, interests…) */}
-                                    {contentBlocks.length > 0 && (
-                                        <BlocksRenderer
-                                            blocks={contentBlocks}
-                                            userId={profile.id}
-                                            isOwn={isOwn}
-                                            onEdit={() => setShowConfig(true)}
-                                            profileData={profile}
-                                        />
-                                    )}
-
-                                    {/* Empty state when nothing is configured */}
-                                    {contentBlocks.length === 0 && !showBioFallback && isOwn && (
-                                        <div className="rounded-2xl border border-dashed border-white/[0.06] p-8 text-center space-y-3">
-                                            <p className="text-white/20 text-sm italic">Tu espacio está vacío por ahora.</p>
-                                            <button
-                                                onClick={() => setShowConfig(true)}
-                                                className="text-[11px] font-bold uppercase tracking-widest text-cyan-400/50 hover:text-cyan-400 transition-colors"
-                                            >
-                                                + Añadir bloques
-                                            </button>
-                                        </div>
-                                    )}
-
-                                    {/* Actividad reciente */}
-                                    <RecentActivityBlock
-                                        userId={profile.id}
-                                        onViewAll={() => setActiveTab('activity')}
-                                    />
-
-                                    {/* Connections — mobile only */}
-                                    <div className="lg:hidden">
-                                        <ConnectionsBlock userId={profile.id} followCounts={null} />
-                                    </div>
-
-                                    {/* Owner add blocks CTA */}
-                                    {isOwn && (
-                                        <motion.button
-                                            whileHover={{ scale: 1.01 }}
-                                            onClick={() => setShowConfig(true)}
-                                            className="w-full py-5 border border-dashed border-white/[0.06] rounded-2xl flex items-center justify-center gap-3 text-white/20 hover:text-white/40 hover:border-white/[0.12] transition-all"
-                                        >
-                                            <span className="text-xl leading-none">+</span>
-                                            <span className="text-[10px] font-bold uppercase tracking-widest">Añadir bloque</span>
-                                        </motion.button>
-                                    )}
-                                </div>
                             </div>
                         )}
 

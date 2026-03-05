@@ -1,11 +1,47 @@
-import { motion } from 'framer-motion';
-import { ShieldCheck } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { ShieldCheck, Star, MessageSquare, Compass, Settings, LogOut, UserPlus, UserCheck } from 'lucide-react';
 import { getFrameStyle } from '../../utils/styles';
 import { getUserDisplayName, getNicknameClass } from '../../utils/user';
 import { useAuthContext } from '../../contexts/AuthContext';
+import { useState, useEffect } from 'react';
 
-export const ProfileHeader = ({ profile, theme, isOwn, isFollowing, onFollow, onEdit }) => {
+// --- Partículas estelares para la entrada ---
+const StarParticles = () => (
+    <div className="absolute inset-0 pointer-events-none overflow-hidden">
+        {[...Array(20)].map((_, i) => (
+            <motion.div
+                key={i}
+                initial={{
+                    opacity: 0,
+                    x: Math.random() * 400 - 200,
+                    y: Math.random() * 400 - 200,
+                    scale: 0
+                }}
+                animate={{
+                    opacity: [0, 1, 0],
+                    x: Math.random() * 600 - 300,
+                    y: Math.random() * 600 - 300,
+                    scale: [0, 1, 0]
+                }}
+                transition={{
+                    duration: 1.5 + Math.random(),
+                    delay: Math.random() * 0.5,
+                    repeat: 0
+                }}
+                className="absolute left-1/2 top-1/2 w-1 h-1 bg-white rounded-full shadow-[0_0_8px_white]"
+            />
+        ))}
+    </div>
+);
+
+export const ProfileHeader = ({ profile, theme, isOwn, isFollowing, onFollow, onEdit, stats }) => {
     const { logout } = useAuthContext();
+    const [mounted, setMounted] = useState(false);
+
+    useEffect(() => {
+        setMounted(true);
+    }, []);
+
     const bannerStyle = {
         backgroundColor: theme?.primary_color || '#0c0c16',
         backgroundImage: theme?.background_url ? `url(${theme.background_url})` : 'none',
@@ -19,170 +55,197 @@ export const ProfileHeader = ({ profile, theme, isOwn, isFollowing, onFollow, on
         : false;
 
     return (
-        <header className="relative w-full">
-            {/* Banner */}
-            <div
-                className="h-44 md:h-64 w-full overflow-hidden relative"
+        <header className="relative w-full overflow-hidden bg-[#04040a]">
+            {/* Banner Section */}
+            <motion.div
+                initial={{ opacity: 0, scale: 1.05 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 1.2, ease: "easeOut" }}
+                className="h-[260px] md:h-[320px] w-full relative overflow-hidden"
                 style={bannerStyle}
             >
-                <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-[#04040a]" />
+                {/* Overlay Oscurecedor */}
+                <div
+                    className="absolute inset-0 z-10"
+                    style={{
+                        background: 'linear-gradient(to bottom, rgba(0,0,0,0.25), rgba(0,0,0,0.55), #04040a)'
+                    }}
+                />
 
-                {/* Mood bubble */}
+                {/* Mood bubble (Esquina superior) */}
                 {(profile.mood_emoji || profile.mood_text) && (
                     <motion.div
-                        initial={{ opacity: 0, y: -8 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.3, duration: 0.4 }}
-                        className="absolute top-4 right-4 md:top-6 md:right-6 z-20"
+                        initial={{ opacity: 0, x: 20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: 0.8 }}
+                        className="absolute top-6 right-6 z-20"
                     >
-                        <div className="flex items-center gap-2.5 px-3.5 py-2.5 bg-black/50 backdrop-blur-xl border border-white/10 rounded-2xl shadow-xl">
-                            <div className="w-7 h-7 flex items-center justify-center shrink-0">
-                                {profile.mood_emoji?.startsWith('http') ? (
-                                    <img
-                                        src={profile.mood_emoji}
-                                        className="w-full h-full object-contain rounded"
-                                        alt="Mood"
-                                    />
-                                ) : (
-                                    <span className="text-xl">{profile.mood_emoji || '🪐'}</span>
-                                )}
-                            </div>
-                            <div>
-                                <p className="text-[8px] font-bold uppercase tracking-widest text-white/40 leading-none mb-0.5">
-                                    Mood
-                                </p>
-                                <p className="text-[11px] font-bold text-white leading-none">
-                                    {profile.mood_text || 'En órbita'}
-                                </p>
-                            </div>
+                        <div className="flex items-center gap-2.5 px-4 py-2 bg-black/40 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl">
+                            <span className="text-xl">{profile.mood_emoji || '🪐'}</span>
+                            <p className="text-[11px] font-black uppercase text-white tracking-widest leading-none">
+                                {profile.mood_text || 'En órbita'}
+                            </p>
                         </div>
                     </motion.div>
                 )}
-            </div>
+            </motion.div>
 
-            {/* Avatar + Identity */}
-            <div className="max-w-5xl mx-auto px-4 md:px-6">
-                <div className="flex flex-col md:flex-row md:items-end gap-0 md:gap-8 -mt-8 md:-mt-10">
+            {/* Hub Central de Identidad */}
+            <div className="relative z-20 -mt-24 md:-mt-32 px-4 flex flex-col items-center">
 
-                    {/* Avatar */}
+                {/* Avatar Planetario */}
+                <div className="relative mb-6">
+                    <StarParticles />
+
+                    {/* Halo Luminoso */}
                     <motion.div
-                        initial={{ scale: 0.85, opacity: 0 }}
-                        animate={{ scale: 1, opacity: 1 }}
-                        transition={{ type: 'spring', damping: 14, stiffness: 120 }}
-                        className="relative shrink-0 self-center md:self-auto"
-                    >
-                        {isOnline && (
-                            <div className="absolute -inset-2 rounded-full blur-xl opacity-25 bg-cyan-400 animate-pulse" />
-                        )}
+                        animate={{ scale: [1, 1.05, 1], opacity: [0.15, 0.3, 0.15] }}
+                        transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+                        className="absolute -inset-6 rounded-full blur-3xl"
+                        style={{ backgroundColor: theme?.primary_color || '#22d3ee' }}
+                    />
 
-                        <div className="w-32 h-32 md:w-40 md:h-40 relative flex items-center justify-center">
-                            <div
-                                className={`w-full h-full flex items-center justify-center p-1 md:p-1.5 ${frame.className || ''}`}
-                                style={{ ...frame, borderRadius: frame.borderRadius || '50%' }}
-                            >
-                                <div className="w-full h-full rounded-full overflow-hidden border-[4px] border-[#04040a] bg-[#04040a] shadow-inner">
-                                    <img
-                                        src={profile.avatar_url || '/default_user_blank.png'}
-                                        className="w-full h-full object-cover"
-                                        alt={profile.username}
-                                    />
-                                </div>
+                    <motion.div
+                        initial={{ scale: 0.5, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        transition={{
+                            type: 'spring',
+                            damping: 12,
+                            stiffness: 100,
+                            delay: 0.2
+                        }}
+                        className="relative w-36 h-36 md:w-44 md:h-44 flex items-center justify-center cursor-pointer group"
+                    >
+                        <div
+                            className={`w-full h-full flex items-center justify-center p-1.5 md:p-2 shadow-2xl ${frame.className || ''}`}
+                            style={{ ...frame, borderRadius: frame.borderRadius || '50%' }}
+                        >
+                            <div className="w-full h-full rounded-full overflow-hidden border-[6px] border-[#04040a] bg-[#04040a]">
+                                <img
+                                    src={profile.avatar_url || '/default_user_blank.png'}
+                                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                                    alt={profile.username}
+                                />
                             </div>
                         </div>
 
-                        {/* Online indicator */}
-                        <div className={`absolute bottom-0 right-0 md:bottom-0.5 md:right-0.5 w-3 h-3 md:w-4 md:h-4 rounded-full border-2 border-[#04040a] z-10 transition-all ${isOnline ? 'bg-green-500 shadow-green-500/40 shadow-md' : 'bg-zinc-700'
-                            }`} />
-
-                        {/* Voice active badge */}
-                        {profile.is_voice_active && (
-                            <div className="absolute -top-2 left-1/2 -translate-x-1/2 bg-cyan-500 px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wide text-white shadow-lg shadow-cyan-500/40 whitespace-nowrap">
-                                🎙️ En cabina
-                            </div>
+                        {/* Online Pulse */}
+                        {isOnline && (
+                            <div className="absolute bottom-3 right-3 w-5 h-5 rounded-full border-[3px] border-[#04040a] bg-green-500 shadow-[0_0_15px_rgba(34,197,94,0.6)] z-30" />
                         )}
                     </motion.div>
+                </div>
 
-                    {/* Name + status + actions */}
-                    <div className="flex-1 pt-4 md:pt-0 md:pb-1.5 text-center md:text-left space-y-4 md:space-y-3">
-                        <div className="space-y-1.5 md:space-y-1">
-                            {/* Name row */}
-                            <div className="flex flex-wrap items-center justify-center md:justify-start gap-2.5">
-                                <h1 className={`text-2xl md:text-4.5xl font-black tracking-tighter uppercase italic leading-tight drop-shadow-2xl ${getNicknameClass(profile)}`}>
-                                    {getUserDisplayName(profile)}
-                                </h1>
-                                {profile.is_vip && (
-                                    <span className="text-[9px] font-black uppercase tracking-widest text-amber-400 bg-amber-400/10 border border-amber-400/20 px-2.5 py-1 rounded-md">
-                                        VIP
-                                    </span>
-                                )}
-                                {profile.is_stellar_citizen && (
-                                    <div className="flex items-center gap-1.5 px-2.5 py-1 bg-gradient-to-r from-amber-500/20 to-transparent border border-amber-500/30 rounded-md shadow-[0_0_15px_rgba(245,158,11,0.1)]">
-                                        <ShieldCheck size={12} className="text-amber-500" />
-                                        <span className="text-[9px] font-black text-amber-500 uppercase tracking-tighter">CITIZEN</span>
-                                    </div>
-                                )}
+                {/* Información del Universo */}
+                <div className="text-center space-y-4 max-w-2xl">
+                    <div className="space-y-1">
+                        <motion.h1
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.4 }}
+                            className={`text-3xl md:text-5xl font-black tracking-tighter uppercase italic drop-shadow-[0_0_20px_rgba(255,255,255,0.15)] ${getNicknameClass(profile)}`}
+                        >
+                            {getUserDisplayName(profile)}
+                        </motion.h1>
+
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            transition={{ delay: 0.5 }}
+                            className="flex items-center justify-center gap-3"
+                        >
+                            {profile.is_stellar_citizen && (
+                                <div className="flex items-center gap-1.5 px-2 py-0.5 bg-amber-500/10 border border-amber-500/20 rounded text-[9px] font-black text-amber-500 tracking-tighter uppercase">
+                                    <ShieldCheck size={10} /> CITIZEN
+                                </div>
+                            )}
+                            <span className="text-[10px] font-bold text-white/30 uppercase tracking-widest">
+                                {isOnline ? '🟢 Espectro Activo' : '⚪ En Hibernación'}
+                            </span>
+                        </motion.div>
+                    </div>
+
+                    {/* Métricas del Universo */}
+                    <motion.div
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.6 }}
+                        className="flex flex-wrap items-center justify-center gap-6 md:gap-12 pt-2 pb-6"
+                    >
+                        <div className="text-center">
+                            <p className="text-[10px] font-black text-white/20 uppercase tracking-[0.2em] mb-1">Estrellas</p>
+                            <div className="flex items-center gap-1.5 text-amber-400">
+                                <Star size={14} className="fill-current" />
+                                <span className="text-lg font-black italic">{(stats?.stars || 0).toLocaleString()}</span>
                             </div>
-
-                            {/* Title row */}
-                            {profile.equipped_title && (
-                                <div className="flex justify-center md:justify-start">
-                                    <span className="text-[10px] font-black text-white/40 uppercase tracking-[0.3em] bg-white/5 border border-white/10 px-3 py-1 rounded-full">
-                                        {profile.equipped_title}
-                                    </span>
-                                </div>
-                            )}
-
-                            {/* Status text (if exists) */}
-                            {profile.profile_status && (
-                                <div className="flex justify-center md:justify-start">
-                                    <span className="text-[11px] font-medium text-white/25 italic truncate max-w-[280px]">
-                                        "{profile.profile_status}"
-                                    </span>
-                                </div>
-                            )}
                         </div>
-
-                        {/* Status pill + Action buttons */}
-                        <div className="flex flex-wrap items-center justify-center md:justify-start gap-3 pt-1">
-                            {/* Status indicator pill moved here */}
-                            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 bg-white/[0.04] border border-white/10 rounded-full shadow-inner h-[34px]">
-                                <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${isOnline ? 'bg-green-500 animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.6)]' : 'bg-white/20'
-                                    }`} />
-                                <span className="text-[10px] font-bold text-white/40 uppercase tracking-widest leading-none">
-                                    {isOnline ? 'En línea' : 'Desconectado'}
-                                </span>
+                        <div className="text-center">
+                            <p className="text-[10px] font-black text-white/20 uppercase tracking-[0.2em] mb-1">Ecos</p>
+                            <div className="flex items-center gap-1.5 text-cyan-400">
+                                <MessageSquare size={14} className="fill-current" />
+                                <span className="text-lg font-black italic">{stats?.echoes || 0}</span>
                             </div>
+                        </div>
+                        <div className="text-center">
+                            <p className="text-[10px] font-black text-white/20 uppercase tracking-[0.2em] mb-1">Edad Universo</p>
+                            <div className="flex items-center gap-1.5 text-violet-400">
+                                <Compass size={14} />
+                                <span className="text-lg font-black italic">{stats?.age || 0}D</span>
+                            </div>
+                        </div>
+                    </motion.div>
 
-                            {isOwn ? (
-                                <div className="flex gap-2">
-                                    <button
-                                        onClick={onEdit}
-                                        className="px-8 py-2.5 rounded-xl bg-white text-black text-[11px] font-black uppercase tracking-widest hover:bg-cyan-400 transition-all shadow-lg active:scale-95"
-                                    >
-                                        Editar perfil
-                                    </button>
-                                    <button
-                                        onClick={() => { if (window.confirm('¿Seguro que deseas cerrar sesión?')) logout(); }}
-                                        className="px-6 py-2.5 rounded-xl border border-white/10 text-white/40 text-[10px] font-black uppercase tracking-widest hover:bg-white/5 hover:text-white transition-all active:scale-95"
-                                    >
-                                        Cerrar sesión
-                                    </button>
-                                </div>
-                            ) : (
+                    {/* Botones de Acción (Estilo Glass) */}
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ delay: 0.7 }}
+                        className="flex flex-wrap items-center justify-center gap-3 md:gap-4"
+                    >
+                        {isOwn ? (
+                            <>
+                                <button
+                                    onClick={onEdit}
+                                    className="px-8 py-3 rounded-2xl bg-white text-black text-[11px] font-black uppercase tracking-widest hover:bg-cyan-400 transition-all shadow-xl active:scale-95 flex items-center gap-2"
+                                >
+                                    <Settings size={14} /> Configuración
+                                </button>
+                                <button
+                                    onClick={() => { if (window.confirm('¿Desconectar sistemas?')) logout(); }}
+                                    className="px-6 py-3 rounded-2xl bg-white/5 border border-white/10 text-white/30 text-[10px] font-black uppercase tracking-widest hover:bg-red-500/10 hover:text-red-400 transition-all flex items-center gap-2"
+                                >
+                                    <LogOut size={14} /> Salir
+                                </button>
+                            </>
+                        ) : (
+                            <>
+                                <button
+                                    className="px-8 py-3 rounded-2xl bg-gradient-to-r from-amber-400 to-orange-500 text-black text-[11px] font-black uppercase tracking-widest hover:scale-105 transition-all shadow-lg flex items-center gap-2"
+                                >
+                                    <Star size={14} className="fill-current" /> Dejar estrella
+                                </button>
+                                <button
+                                    className="px-8 py-3 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-md text-white text-[11px] font-black uppercase tracking-widest hover:bg-white/10 transition-all flex items-center gap-2"
+                                >
+                                    <MessageSquare size={14} /> Enviar eco
+                                </button>
                                 <button
                                     onClick={onFollow}
-                                    className={`px-8 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all active:scale-95 shadow-xl ${isFollowing
-                                        ? 'bg-white/[0.05] text-white/40 border border-white/10'
-                                        : 'bg-gradient-to-r from-cyan-500 to-violet-600 text-white shadow-cyan-500/25 hover:scale-105'
+                                    className={`px-8 py-3 rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all active:scale-95 flex items-center gap-2 shadow-xl ${isFollowing
+                                        ? 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/40'
+                                        : 'bg-white text-black hover:bg-cyan-400'
                                         }`}
                                 >
-                                    {isFollowing ? '✓ Siguiendo' : '+ Seguir'}
+                                    {isFollowing ? <><UserCheck size={14} /> Siguiendo</> : <><UserPlus size={14} /> Explorar universo</>}
                                 </button>
-                            )}
-                        </div>
-                    </div>
+                            </>
+                        )}
+                    </motion.div>
                 </div>
             </div>
+
+            {/* Espaciador final para suavizar transición al contenido */}
+            <div className="h-10 md:h-16" />
         </header>
     );
 };
