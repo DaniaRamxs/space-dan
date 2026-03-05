@@ -65,7 +65,6 @@ export default function GardenLayout({ children }) {
   if (isGameRoute) {
     return (
       <div className="gardenPage w-screen h-screen overflow-hidden" style={{ backgroundColor: '#030305' }}>
-        <StarfieldBg />
         <AmbientOrbs />
         <CursorTrail />
         <RadioPlayer />
@@ -104,7 +103,7 @@ export default function GardenLayout({ children }) {
               <div className="topbarStats hidden lg:flex">
                 <div className="statItem">
                   <span className="statLabel">DNC</span>
-                  <span className="statValue">◈ {balance}</span>
+                  <StarlysCounter value={balance} className="statValue" />
                 </div>
               </div>
 
