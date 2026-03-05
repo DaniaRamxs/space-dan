@@ -1,19 +1,23 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { tycoonService } from '../../services/tycoonService';
 import { useAuthContext } from '../../contexts/AuthContext';
 import { Crown, Sparkles, X, TrendingUp } from 'lucide-react';
 
 export default function TycoonInvite() {
     const navigate = useNavigate();
+    const location = useLocation();
     const { profile } = useAuthContext();
     const [show, setShow] = useState(false);
     const THRESHOLD = 50000000; // 50M
 
     useEffect(() => {
         const check = async () => {
+            // No mostrar en perfiles para no matar inmersión
+            if (location.pathname.startsWith('/@')) return;
+
             if (!profile || profile.balance < THRESHOLD) return;
 
             // Si ya se mostró o si ya es magnate, no hacer nada

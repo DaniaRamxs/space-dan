@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useLocation } from 'react-router-dom';
 import { Sparkles, MessageSquare, Rocket, Shield, Star, ChevronRight, CheckCircle2 } from 'lucide-react';
 import { supabase } from '../../supabaseClient';
 import { useAuthContext } from '../../contexts/AuthContext';
@@ -34,15 +35,19 @@ const STEPS = [
 
 export default function StellarOnboarding() {
     const { user, profile } = useAuthContext();
+    const location = useLocation();
     const { refreshEconomy } = useEconomy();
     const [step, setStep] = useState(0);
     const [isVisible, setIsVisible] = useState(false);
 
     useEffect(() => {
+        // No interrumpir si estamos en un perfil
+        if (location.pathname.startsWith('/@')) return;
+
         if (profile && !profile.tutorial_completed) {
             setIsVisible(true);
         }
-    }, [profile]);
+    }, [profile, location.pathname]);
 
     const handleNext = async () => {
         if (step < STEPS.length - 1) {

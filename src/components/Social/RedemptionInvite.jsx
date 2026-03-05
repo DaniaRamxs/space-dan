@@ -1,17 +1,21 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { redemptionService } from '../../services/redemptionService';
 import { Skull, Sparkles, X } from 'lucide-react';
 
 export default function RedemptionInvite() {
     const navigate = useNavigate();
+    const location = useLocation();
     const [show, setShow] = useState(false);
     const [debt, setDebt] = useState(0);
 
     useEffect(() => {
         const check = async () => {
+            // No mostrar si estamos en un perfil (inmersión)
+            if (location.pathname.startsWith('/@')) return;
+
             // No mostrar si ya se mostró en esta sesión
             if (sessionStorage.getItem('redemption_checked')) return;
 

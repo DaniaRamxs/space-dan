@@ -1,12 +1,20 @@
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useLocation } from 'react-router-dom';
 import { cosmicEventsService } from '../../services/cosmicEventsService';
 
 export default function CosmicEventBanner() {
+    const location = useLocation();
     const [event, setEvent] = useState(null);
     const [timeLeft, setTimeLeft] = useState('');
 
     useEffect(() => {
+        // No mostrar en perfiles para mantener inmersión total
+        if (location.pathname.startsWith('/@')) {
+            setEvent(null);
+            return;
+        }
+
         const checkEvent = async () => {
             const active = await cosmicEventsService.getActiveEvent();
             setEvent(active);

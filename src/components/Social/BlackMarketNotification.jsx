@@ -12,8 +12,9 @@ export default function BlackMarketNotification() {
     const [dismissed, setDismissed] = useState(false);
 
     useEffect(() => {
-        // No mostrar si ya estamos en el mercado o si ya se descartó en esta sesión
-        if (location.pathname === '/mercado-negro' || dismissed) {
+        // No mostrar si estamos en el mercado, si ya se descartó, o si estamos en un perfil (inmersión)
+        const isProfile = location.pathname.startsWith('/@');
+        if (location.pathname === '/mercado-negro' || dismissed || isProfile) {
             setIsVisible(false);
             return;
         }
