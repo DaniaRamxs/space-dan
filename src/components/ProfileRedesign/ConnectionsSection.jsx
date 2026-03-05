@@ -74,7 +74,12 @@ export const ConnectionsSection = ({ userId, followCounts }) => {
         if (userId) load();
     }, [userId]);
 
-    if (loading) return null;
+    if (loading) return (
+        <div className="w-full py-20 flex flex-col items-center justify-center gap-4 opacity-20">
+            <div className="w-8 h-8 rounded-full border-2 border-white/10 border-t-white/30 animate-spin" />
+            <p className="text-[10px] font-black uppercase tracking-widest italic">Sincronizando constelación...</p>
+        </div>
+    );
 
     const totalStars = (followCounts?.followers || 0);
     const hasAny = connections.closest.length > 0 || connections.frequent.length > 0 || connections.recent.length > 0;

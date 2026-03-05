@@ -381,22 +381,6 @@ export default function ProfileRedesignPage() {
                                             </div>
                                         </div>
 
-                                        <div className="space-y-4">
-                                            <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-white/20">Identidad Digital</p>
-                                            <div className="rounded-2xl bg-white/[0.02] border border-white/5 p-5">
-                                                <p className="text-[10px] font-bold text-white/30 uppercase mb-4 tracking-widest text-center">Registro de Existencia</p>
-                                                <div className="space-y-3">
-                                                    <div className="flex justify-between items-center bg-white/[0.03] p-3 rounded-xl border border-white/5">
-                                                        <span className="text-[10px] font-black text-white/40 uppercase">UID</span>
-                                                        <span className="text-[10px] font-mono text-white/60">{profile.id.slice(0, 8)}...</span>
-                                                    </div>
-                                                    <div className="flex justify-between items-center bg-white/[0.03] p-3 rounded-xl border border-white/5">
-                                                        <span className="text-[10px] font-black text-white/40 uppercase">Rol</span>
-                                                        <span className="text-[10px] font-black text-white/60 uppercase">Nómada Estelar</span>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
                                     </div>
 
                                     <div className="space-y-12">
