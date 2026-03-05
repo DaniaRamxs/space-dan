@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import { NavLink, Link, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from 'framer-motion';
 import CursorTrail from "../components/CursorTrail.jsx";
-import StarfieldBg from "../components/StarfieldBg.jsx";
 import KonamiEasterEgg from "../components/KonamiEasterEgg.jsx";
 import { SpacelyLogo } from "../components/SpacelyLogo.jsx";
 
@@ -10,6 +9,7 @@ import RadioPlayer from "../components/RadioPlayer.jsx";
 import AuthWidget from "../components/AuthWidget.jsx";
 import { useEconomy } from '../contexts/EconomyContext';
 import NotificationBell from "../components/NotificationBell.jsx";
+import StarlysCounter from "../components/StarlysCounter.jsx";
 import AmbientOrbs from "../components/AmbientOrbs.jsx";
 import { useAuthContext } from "../contexts/AuthContext";
 import { useRef } from 'react';
@@ -202,7 +202,7 @@ export default function GardenLayout({ children }) {
               >
                 <div className="hubStatItem">
                   <span className="hubStatLabel">Starlys</span>
-                  <span className="hubStatValue text-amber-400">◈ {balance}</span>
+                  <StarlysCounter value={balance} className="hubStatValue text-amber-400" />
                 </div>
               </motion.div>
 

@@ -6,10 +6,20 @@ export default function ActivityRadar() {
     const [notifications, setNotifications] = useState([]);
 
     useEffect(() => {
+        // Initial system check notification
+        setTimeout(() => {
+            addNotification({
+                id: 'sys-init',
+                text: '🛰️ Radar Estelar: Sistema en línea. Escaneando sector...',
+                icon: '🛰️',
+                color: 'text-amber-400'
+            });
+        }, 3000);
+
         // Listen for new echoes
         const channel = supabase
-            .channel('public:space_echoes')
-            .on('postgres_changes', { event: 'INSERT', table: 'space_echoes' }, payload => {
+            .channel('space_echoes_radar')
+            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'space_echoes' }, payload => {
                 addNotification({
                     id: Date.now(),
                     text: '🌌 Alguien dejó un nuevo eco en el universo',

@@ -70,22 +70,24 @@ export default function VaultPage() {
     if (scanning) {
         return (
             <div style={{ position: 'fixed', inset: 0, background: '#050510', zIndex: 9999, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}>
-                <motion.div
-                    initial={{ width: 0 }}
-                    animate={{ width: '300px' }}
-                    style={{ height: '2px', background: 'var(--accent)', boxShadow: '0 0 20px var(--accent-glow)', marginBottom: '20px' }}
-                />
-                <div className="system-activation" style={{ fontFamily: 'var(--font-mono)', fontSize: '14px', letterSpacing: '2px', color: 'var(--accent)' }}>
-                    {">"} SÍNCRONIZANDO_DATOS...
+                <div className="flex flex-col items-center justify-center p-12 space-y-6 relative overflow-hidden bg-black/40 rounded-3xl border border-cyan-500/20">
+                    <div className="scanline-overlay"></div>
+
+                    <div className="w-16 h-16 border-4 border-cyan-500/20 border-t-cyan-500 rounded-full animate-spin"></div>
+
+                    <div className="space-y-2 text-center">
+                        <div className="system-activation" style={{ fontFamily: 'var(--font-mono)', fontSize: '14px', letterSpacing: '2px', color: 'var(--accent)' }}>
+                            {">"} ACCEDIENDO_PROTOCOLOS_ORION...
+                        </div>
+                        <div className="system-activation" style={{ animationDelay: '1s', fontFamily: 'var(--font-mono)', fontSize: '11px', color: 'rgba(255,255,255,0.4)' }}>
+                            {">"} ESTADO: [ SÍNCRONIZACIÓN_REMOTA_ACTIVA ]
+                        </div>
+                    </div>
                 </div>
-                <div style={{ fontFamily: 'var(--font-mono)', fontSize: '10px', letterSpacing: '2px', color: 'var(--accent)', opacity: 0.5, marginTop: '10px' }}>
-                    [ ACCESO AUTORIZADO ]
+
+                <div style={{ fontFamily: 'var(--font-mono)', fontSize: '10px', letterSpacing: '2px', color: 'var(--accent)', opacity: 0.5, marginTop: '20px' }}>
+                    [ ACCESO AUTORIZADO — NÚCLEO CRIPTO ACTIVO ]
                 </div>
-                <motion.div
-                    animate={{ y: [0, 600, 0] }}
-                    transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
-                    style={{ position: 'absolute', top: '10%', left: 0, right: 0, height: '1px', background: 'rgba(255,110,180,0.3)', boxShadow: '0 0 15px var(--accent-glow)' }}
-                />
             </div>
         );
     }
