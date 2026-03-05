@@ -15,6 +15,7 @@ import { ConstellationsBlock } from '../../components/ProfileRedesign/Constellat
 import { ResonanciaBlock } from '../../components/ProfileRedesign/ResonanciaBlock';
 import { MysterySignals } from '../../components/ProfileRedesign/MysterySignals';
 import { UniverseAttractionBlock } from '../../components/ProfileRedesign/UniverseAttractionBlock';
+import { AuraBlock } from '../../components/ProfileRedesign/AuraBlock';
 import BlogComposer from '../../components/ProfileRedesign/BlogComposer';
 import { BlogSection } from '../../components/ProfileRedesign/BlogSection';
 import { signalsService } from '../../services/signalsService';
@@ -367,6 +368,9 @@ export default function ProfileRedesignPage() {
                                     {(hasSpotifyBlock || isOwn) && (
                                         <SpotifyBlock userId={profile.id} isOwn={isOwn} />
                                     )}
+
+                                    {/* Aura */}
+                                    <AuraBlock userId={profile.id} />
 
                                     {/* Señales misteriosas de visitas */}
                                     {isOwn && (

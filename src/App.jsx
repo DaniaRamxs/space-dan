@@ -23,6 +23,7 @@ import { EconomyProvider, useEconomy } from "./contexts/EconomyContext";
 import { UniverseProvider, useUniverse } from "./contexts/UniverseContext.jsx";
 import { spotifyService } from "./services/spotifyService";
 import CosmicEventBanner from "./components/Social/CosmicEventBanner";
+import WelcomeExperience from "./components/WelcomeExperience";
 
 const PostsPage = lazy(() => import("./pages/PostsPage"));
 const CreatePostPage = lazy(() => import("./pages/CreatePostPage"));
@@ -452,6 +453,7 @@ export default function App() {
             <Screensaver />
             <PageTracker />
             <ScrollToTop />
+            <WelcomeExperience />
             <CosmicEventBanner />
             <PresenceTracker />
             <MusicSyncTracker />
