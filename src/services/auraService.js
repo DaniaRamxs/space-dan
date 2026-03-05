@@ -29,17 +29,25 @@ export const auraService = {
      * Obtiene el aura activa (cronometrada) de un usuario.
      */
     async getActiveAura(userId) {
-        const { data, error } = await supabase
-            .from('user_auras')
-            .select('*')
-            .eq('user_id', userId)
-            .single();
+        if (!userId) return null;
+        try {
+            const { data, error } = await supabase
+                .from('user_auras')
+                .select('*')
+                .eq('user_id', userId)
+                .limit(1);
 
-        if (error && error.code !== 'PGRST116') throw error;
+            if (error) {
+                // Silently fail if table doesn't exist yet or 406 error
+                return null;
+            }
 
-        // Verificar si ha expirado
-        if (data && new Date(data.expires_at) > new Date()) {
-            return data;
+            const active = data?.[0];
+            if (active && new Date(active.expires_at) > new Date()) {
+                return active;
+            }
+        } catch (e) {
+            return null;
         }
         return null;
     },

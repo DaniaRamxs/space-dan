@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
 
 /**
@@ -114,6 +114,3 @@ export default function StellarConstellation({ ownerId, friends = [], ownerAvata
         </div>
     );
 }
-
-// Reutilizamos framer-motion AnimatePresence
-import { AnimatePresence } from 'framer-motion';

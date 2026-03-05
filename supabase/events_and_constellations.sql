@@ -13,6 +13,7 @@ CREATE TABLE IF NOT EXISTS public.user_auras (
 -- Habilitar RLS
 ALTER TABLE public.user_auras ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Auras visibles para todos" ON public.user_auras;
 CREATE POLICY "Auras visibles para todos" ON public.user_auras
     FOR SELECT USING (true);
 
