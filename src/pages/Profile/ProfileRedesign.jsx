@@ -18,6 +18,7 @@ import { UniverseAttractionBlock } from '../../components/ProfileRedesign/Univer
 import { AuraBlock } from '../../components/ProfileRedesign/AuraBlock';
 import BlogComposer from '../../components/ProfileRedesign/BlogComposer';
 import { BlogSection } from '../../components/ProfileRedesign/BlogSection';
+import StarlysCounter from '../../components/StarlysCounter';
 import { signalsService } from '../../services/signalsService';
 import PostComposer from '../../components/Social/PostComposer';
 import ActivityFeed from '../../components/Social/ActivityFeed';
@@ -403,7 +404,7 @@ export default function ProfileRedesignPage() {
                                             </div>
                                             <div className="space-y-0.5">
                                                 <p className="text-[9px] font-bold uppercase text-white/20">Starlys</p>
-                                                <p className="text-lg font-black text-cyan-400 italic">◈ {(profile.balance || 0).toLocaleString()}</p>
+                                                <StarlysCounter value={profile.balance || 0} className="text-lg font-black text-cyan-400 italic" />
                                             </div>
                                             <div className="space-y-0.5">
                                                 <p className="text-[9px] font-bold uppercase text-white/20">Racha</p>

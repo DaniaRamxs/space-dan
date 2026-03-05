@@ -86,7 +86,9 @@ export default function GardenLayout({ children }) {
         <main className={`gardenMain ${isFixedLayout ? 'gardenMain--fixed' : ''}`}>
           <header className="gardenTopbar">
             <div className="topbarLeft">
-              <SpacelyLogo />
+              <div className="icon-pulse">
+                <SpacelyLogo />
+              </div>
 
               <nav className="desktopNav hidden md:flex">
                 <NavLink to="/posts" className="desktopNavLink" end>Social</NavLink>
@@ -129,15 +131,15 @@ export default function GardenLayout({ children }) {
       {/* Mobile Bottom Nav */}
       <nav className="gardenMobileNav">
         <NavLink to="/posts" className={({ isActive }) => `mobileNavLink ${isActive ? 'active' : ''}`}>
-          <span className="mobileNavIcon">🌌</span>
+          <span className="mobileNavIcon icon-pulse">🌌</span>
           <span className="mobileNavLabel">Feed</span>
         </NavLink>
         <NavLink to="/games" className={({ isActive }) => `mobileNavLink ${isActive ? 'active' : ''}`}>
-          <span className="mobileNavIcon">🎮</span>
+          <span className="mobileNavIcon icon-spin-slow">🎮</span>
           <span className="mobileNavLabel">Juegos</span>
         </NavLink>
         <NavLink to="/tienda" className={({ isActive }) => `mobileNavLink ${isActive ? 'active' : ''}`}>
-          <span className="mobileNavIcon">🛍️</span>
+          <span className="mobileNavIcon icon-float">🛍️</span>
           <span className="mobileNavLabel">Tienda</span>
         </NavLink>
         <NavLink to="/profile" className={({ isActive }) => `mobileNavLink ${isActive ? 'active' : ''}`}>

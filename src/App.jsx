@@ -24,6 +24,8 @@ import { UniverseProvider, useUniverse } from "./contexts/UniverseContext.jsx";
 import { spotifyService } from "./services/spotifyService";
 import CosmicEventBanner from "./components/Social/CosmicEventBanner";
 import WelcomeExperience from "./components/WelcomeExperience";
+import ClickRipple from "./components/ClickRipple";
+import ActivityRadar from "./components/ActivityRadar";
 
 const PostsPage = lazy(() => import("./pages/PostsPage"));
 const CreatePostPage = lazy(() => import("./pages/CreatePostPage"));
@@ -453,6 +455,8 @@ export default function App() {
             <Screensaver />
             <PageTracker />
             <ScrollToTop />
+            <ClickRipple />
+            <ActivityRadar />
             <WelcomeExperience />
             <CosmicEventBanner />
             <PresenceTracker />

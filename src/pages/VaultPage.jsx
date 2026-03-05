@@ -75,8 +75,11 @@ export default function VaultPage() {
                     animate={{ width: '300px' }}
                     style={{ height: '2px', background: 'var(--accent)', boxShadow: '0 0 20px var(--accent-glow)', marginBottom: '20px' }}
                 />
-                <div style={{ fontFamily: 'var(--font-mono)', fontSize: '14px', letterSpacing: '2px', color: 'var(--accent)' }}>
-                    {">"} ESCANEANDO_IDENTIDAD...
+                <div className="system-activation" style={{ fontFamily: 'var(--font-mono)', fontSize: '14px', letterSpacing: '2px', color: 'var(--accent)' }}>
+                    {">"} SÍNCRONIZANDO_DATOS...
+                </div>
+                <div style={{ fontFamily: 'var(--font-mono)', fontSize: '10px', letterSpacing: '2px', color: 'var(--accent)', opacity: 0.5, marginTop: '10px' }}>
+                    [ ACCESO AUTORIZADO ]
                 </div>
                 <motion.div
                     animate={{ y: [0, 600, 0] }}

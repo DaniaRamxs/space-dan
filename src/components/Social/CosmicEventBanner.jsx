@@ -55,7 +55,7 @@ export default function CosmicEventBanner() {
                 exit={{ y: -100, opacity: 0 }}
                 className="fixed top-0 left-0 right-0 z-[9999] pointer-events-none flex justify-center p-4"
             >
-                <div className="bg-gradient-to-r from-purple-600/90 via-cyan-500/90 to-blue-600/90 backdrop-blur-md border border-white/20 rounded-full px-6 py-2 shadow-[0_0_30px_rgba(0,229,255,0.4)] flex items-center gap-4 pointer-events-auto cursor-pointer hover:scale-105 transition-transform"
+                <div className="bg-gradient-to-r from-purple-600/90 via-cyan-500/90 to-blue-600/90 backdrop-blur-md border border-white/20 rounded-full px-6 py-2 shadow-[0_0_30px_rgba(0,229,255,0.4)] flex items-center gap-4 pointer-events-auto cursor-pointer hover:scale-105 transition-all duration-300 animate-pulse hover:animate-none"
                     onClick={() => alert(`🌌 EVENTO ACTIVO: ${event.name}\n\n${event.description}\n\nMultiplicador: x${event.multiplier}`)}
                 >
                     <span className="text-xl animate-pulse">
