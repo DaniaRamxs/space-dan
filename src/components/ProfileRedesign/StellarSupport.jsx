@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supportService } from '../../services/supportService';
+import { cosmicEventsService } from '../../services/cosmicEventsService';
 import { useAuthContext } from '../../contexts/AuthContext';
 import { useEconomy } from '../../contexts/EconomyContext';
 
@@ -59,6 +60,8 @@ export function StellarSupport({ profileUserId, isOwn, profileUsername }) {
             } else {
                 await supportService.sendGift(user.id, profileUserId, amount, message, supportType);
             }
+
+            cosmicEventsService.incrementBond(user.id, profileUserId, 15);
 
             await loadData();
             await refreshBalance();
@@ -221,8 +224,8 @@ export function StellarSupport({ profileUserId, isOwn, profileUsername }) {
                                                         key={t.id}
                                                         onClick={() => setSupportType(t.id)}
                                                         className={`flex items-center gap-2 p-2 rounded-xl text-left border transition-all ${supportType === t.id
-                                                                ? 'bg-cyan-500/10 border-cyan-500/50 text-white'
-                                                                : 'bg-white/[0.02] border-white/5 text-white/30 hover:bg-white/[0.04]'
+                                                            ? 'bg-cyan-500/10 border-cyan-500/50 text-white'
+                                                            : 'bg-white/[0.02] border-white/5 text-white/30 hover:bg-white/[0.04]'
                                                             }`}
                                                     >
                                                         <span className="text-base">{t.icon}</span>

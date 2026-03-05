@@ -12,6 +12,7 @@ import { ACHIEVEMENTS } from '../../hooks/useAchievements';
 import { getUserGameRanks } from '../../services/supabaseScores';
 import { useAuthContext } from '../../contexts/AuthContext';
 import ActivityFeed from '../../components/Social/ActivityFeed';
+import EchoesSection from '../../components/Social/EchoesSection';
 import { activityService } from '../../services/activityService';
 import { PostSkeleton } from '../../components/Skeletons/Skeleton';
 import BlogPostCard from '../../components/Social/BlogPostCard';
@@ -1055,7 +1056,7 @@ function ProfileContent({
                               title="Abrir en Spotify"
                             >
                               <svg width="15" height="15" viewBox="0 0 24 24" fill="#1DB954">
-                                <path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/>
+                                <path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z" />
                               </svg>
                             </a>
                           </div>
@@ -1109,7 +1110,7 @@ function ProfileContent({
               </TabButton>
               <TabButton active={activeTab === 'records'} onClick={() => setActiveTab('records')}>Registros</TabButton>
               <TabButton active={activeTab === 'achievements'} onClick={() => setActiveTab('achievements')}>Logros</TabButton>
-              <TabButton active={activeTab === 'wall'} onClick={() => setActiveTab('wall')}>Muro</TabButton>
+              <TabButton active={activeTab === 'ecos'} onClick={() => setActiveTab('ecos')}>Ecos</TabButton>
             </nav>
 
             <div className="w-full max-w-2xl mx-auto min-h-[400px]">
@@ -1161,51 +1162,9 @@ function ProfileContent({
                     </div>
                   )}
 
-                  {activeTab === 'wall' && (
+                  {activeTab === 'ecos' && (
                     <div className="space-y-12">
-                      <div className="p-8 rounded-3xl bg-white/[0.01] border border-white/5 space-y-6">
-                        <textarea
-                          value={newComment}
-                          onChange={e => setNewComment(e.target.value)}
-                          placeholder={`Escribe algo en el muro de ${profile?.username}...`}
-                          className="w-full bg-transparent border-none text-sm outline-none h-24 text-white opacity-80 resize-none"
-                        />
-                        <div className="flex justify-end">
-                          <button
-                            onClick={handleAddComment}
-                            disabled={submittingComment}
-                            className="text-micro font-black px-6 py-2 bg-white text-black rounded-xl hover:bg-white/90 transition-all uppercase tracking-widest disabled:opacity-50"
-                          >
-                            {submittingComment ? 'Emitiendo...' : 'Publicar Mensaje'}
-                          </button>
-                        </div>
-                      </div>
-                      <div className="space-y-6">
-                        {comments.map(c => (
-                          <div key={c.id} className="p-8 rounded-3xl bg-white/[0.01] border border-white/5 flex gap-6 hover:bg-white/[0.02] transition-colors relative group">
-                            <img src={c.author?.avatar_url || '/default_user_blank.png'} className="w-12 h-12 rounded-2xl object-cover opacity-60" />
-                            <div className="space-y-1 flex-1">
-                              <div className="flex justify-between items-center">
-                                <Link to={`/@${c.author?.username}`} className="text-micro font-black uppercase tracking-widest opacity-40 hover:opacity-100 transition-opacity">
-                                  {c.author?.username}
-                                </Link>
-                                {(user?.id === c.author_id || user?.id === profile?.id) && (
-                                  <button
-                                    onClick={() => handleDeleteComment(c.id)}
-                                    className="text-[10px] text-rose-500/40 hover:text-rose-500 opacity-0 group-hover:opacity-100 transition-all font-black uppercase tracking-widest"
-                                  >
-                                    Eliminar
-                                  </button>
-                                )}
-                              </div>
-                              <p className="text-sm text-white/50 leading-relaxed">{c.content}</p>
-                            </div>
-                          </div>
-                        ))}
-                        {comments.length === 0 && (
-                          <div className="py-20 text-center text-micro opacity-20 uppercase tracking-widest">El muro está vacío</div>
-                        )}
-                      </div>
+                      <EchoesSection profileId={profile?.id} isOwnProfile={false} />
                     </div>
                   )}
                 </motion.div>

@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { useAuthContext } from '../../contexts/AuthContext';
 import { useEconomy } from '../../contexts/EconomyContext';
 import ActivityFeed from '../../components/Social/ActivityFeed';
+import EchoesSection from '../../components/Social/EchoesSection';
 import PostComposer from '../../components/Social/PostComposer';
 import { activityService } from '../../services/activityService';
 import BlogPostCard from '../../components/Social/BlogPostCard';
@@ -1216,7 +1217,7 @@ export default function ProfileOwn() {
                 Registros
               </TabButton>
               <TabButton active={activeTab === 'achievements'} onClick={() => setActiveTab('achievements')}>Logros</TabButton>
-              <TabButton active={activeTab === 'wall'} onClick={() => setActiveTab('wall')}>Muro</TabButton>
+              <TabButton active={activeTab === 'ecos'} onClick={() => setActiveTab('ecos')}>Ecos</TabButton>
               <TabButton active={activeTab === 'economy'} onClick={() => setActiveTab('economy')}>Cartera</TabButton>
               <TabButton active={activeTab === 'identity'} onClick={() => setActiveTab('identity')}>Identidad</TabButton>
               <TabButton active={activeTab === 'cabina'} onClick={() => setActiveTab('cabina')}>Cabina</TabButton>
@@ -1272,28 +1273,9 @@ export default function ProfileOwn() {
                     </div>
                   )}
 
-                  {activeTab === 'wall' && (
+                  {activeTab === 'ecos' && (
                     <div className="space-y-12">
-                      <div className="p-8 rounded-3xl bg-white/[0.01] border border-white/5 space-y-6">
-                        <textarea value={newComment} onChange={e => setNewComment(e.target.value)} placeholder="Escribe en el muro de este refugio..." className="w-full bg-transparent border-none text-sm outline-none h-24 text-white opacity-80" />
-                        <div className="flex justify-end">
-                          <button onClick={handleAddComment} className="text-micro font-black px-6 py-2 bg-white text-black rounded-xl hover:bg-white/90 transition-all uppercase tracking-widest">Publicar Mensaje</button>
-                        </div>
-                      </div>
-                      <div className="space-y-6">
-                        {comments.map(c => (
-                          <div key={c.id} className="p-8 rounded-3xl bg-white/[0.01] border border-white/5 flex gap-6 hover:bg-white/[0.02] transition-colors">
-                            <SafeAvatar src={c.author?.avatar_url} fallback="/default_user_blank.png" className="w-12 h-12 rounded-2xl object-cover opacity-60" />
-                            <div className="space-y-1">
-                              <div className="text-micro font-black uppercase tracking-widest opacity-40">{c.author?.username}</div>
-                              <p className="text-sm text-white/50 leading-relaxed">{c.content}</p>
-                            </div>
-                          </div>
-                        ))}
-                        {comments.length === 0 && (
-                          <div className="py-20 text-center text-micro opacity-20 uppercase tracking-widest">El muro está vacío</div>
-                        )}
-                      </div>
+                      <EchoesSection profileId={profile?.id} isOwnProfile={true} />
                     </div>
                   )}
 

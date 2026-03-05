@@ -182,7 +182,7 @@ function NavBtn({ active, label, onClick }) {
     <button
       onClick={onClick}
       style={{
-        flex: 1, padding: '12px 0', borderRadius: 16, border: 'none',
+        flex: 1, padding: '12px 0', borderRadius: 16,
         background: active ? 'rgba(0,229,255,0.15)' : 'rgba(255,255,255,0.03)',
         color: active ? '#00e5ff' : 'rgba(255,255,255,0.4)',
         fontSize: '0.7rem', fontWeight: 900, letterSpacing: 1.5,

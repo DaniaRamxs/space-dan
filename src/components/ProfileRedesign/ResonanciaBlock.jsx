@@ -25,7 +25,7 @@ function getScoreColor(pct) {
     return 'text-white/50';
 }
 
-export function ResonanciaBlock({ viewerId, profileUserId }) {
+export function ResonanciaBlock({ viewerId, profileUserId, viewerUsername, profileUsername }) {
     const [loading, setLoading] = useState(true);
     const [score, setScore] = useState(null);
     const [narrative, setNarrative] = useState('');

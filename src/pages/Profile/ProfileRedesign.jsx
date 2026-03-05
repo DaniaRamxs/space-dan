@@ -11,11 +11,16 @@ import { ProfileHeader } from '../../components/ProfileRedesign/ProfileHeader';
 import { BlocksRenderer } from '../../components/ProfileRedesign/BlocksRenderer';
 import { ThemeConfigModal } from '../../components/ProfileRedesign/ThemeConfigModal';
 import { SpotifyBlock } from '../../components/ProfileRedesign/SpotifyBlock';
+import { ConstellationsBlock } from '../../components/ProfileRedesign/ConstellationsBlock';
 import { ResonanciaBlock } from '../../components/ProfileRedesign/ResonanciaBlock';
+import { MysterySignals } from '../../components/ProfileRedesign/MysterySignals';
+import { UniverseAttractionBlock } from '../../components/ProfileRedesign/UniverseAttractionBlock';
 import BlogComposer from '../../components/ProfileRedesign/BlogComposer';
 import { BlogSection } from '../../components/ProfileRedesign/BlogSection';
+import { signalsService } from '../../services/signalsService';
 import PostComposer from '../../components/Social/PostComposer';
 import ActivityFeed from '../../components/Social/ActivityFeed';
+import EchoesSection from '../../components/Social/EchoesSection';
 import ActivityCard from '../../components/Social/ActivityCard';
 import { motion, AnimatePresence } from 'framer-motion';
 import { StellarSupport } from '../../components/ProfileRedesign/StellarSupport';
@@ -233,6 +238,7 @@ export default function ProfileRedesignPage() {
             if (user && user.id !== prof.id) {
                 const following = await profileSocialService.isFollowing(prof.id).catch(() => false);
                 setIsFollowing(following);
+                signalsService.trackVisit(user.id, prof.id);
             }
         } catch (e) {
             console.error('Profile load error:', e);
@@ -277,7 +283,7 @@ export default function ProfileRedesignPage() {
         { id: 'identity', label: 'Identidad' },
         { id: 'activity', label: 'Actividad' },
         { id: 'blog', label: 'Bitácora' },
-        { id: 'guestbook', label: 'Muro' },
+        { id: 'guestbook', label: 'Ecos' },
     ];
 
     return (
@@ -362,11 +368,24 @@ export default function ProfileRedesignPage() {
                                         <SpotifyBlock userId={profile.id} isOwn={isOwn} />
                                     )}
 
+                                    {/* Señales misteriosas de visitas */}
+                                    {isOwn && (
+                                        <MysterySignals userId={profile.id} isOwn={isOwn} />
+                                    )}
+
+                                    {/* El Universo que Atraes */}
+                                    <UniverseAttractionBlock userId={profile.id} isOwn={isOwn} profileUsername={profile.username} />
+
+                                    {/* Constelaciones */}
+                                    <ConstellationsBlock userId={profile.id} />
+
                                     {/* Resonancia — solo cuando se visita un perfil ajeno */}
                                     {!isOwn && user && (
                                         <ResonanciaBlock
                                             viewerId={user.id}
                                             profileUserId={profile.id}
+                                            viewerUsername={user.username}
+                                            profileUsername={profile.username}
                                         />
                                     )}
 
@@ -520,13 +539,10 @@ export default function ProfileRedesignPage() {
                             </div>
                         )}
 
-                        {/* ── MURO ─────────────────────────────────────── */}
+                        {/* ── ECOS ─────────────────────────────────────── */}
                         {activeTab === 'guestbook' && (
-                            <div className="py-24 flex flex-col items-center gap-4 opacity-20">
-                                <span className="text-5xl">📡</span>
-                                <p className="text-[10px] font-bold uppercase tracking-[0.4em]">
-                                    Muro en construcción
-                                </p>
+                            <div className="py-8">
+                                <EchoesSection profileId={profile.id} isOwnProfile={isOwn} />
                             </div>
                         )}
                     </motion.div>

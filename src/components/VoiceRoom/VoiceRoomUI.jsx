@@ -8,7 +8,7 @@ import {
     RoomAudioRenderer,
     useChat,
 } from '@livekit/components-react';
-import { Mic, MicOff, LogOut, Users, Radio, X, ChevronDown, ChevronUp, MessageSquare, Send, Gamepad2, Music, Flame } from 'lucide-react';
+import { Mic, MicOff, LogOut, Users, Radio, X, ChevronDown, ChevronUp, MessageSquare, Send, Gamepad2, Music, Flame, Volume2, VolumeX } from 'lucide-react';
 import { supabase } from '../../supabaseClient';
 import { getNicknameClass } from '../../utils/user';
 import { getFrameStyle } from '../../utils/styles';
@@ -18,15 +18,70 @@ import VoiceActivityTracker from './VoiceActivityTracker';
 import VoiceActivityLauncher from '../VoiceActivities/VoiceActivityLauncher';
 import EnergyReactor from '../VoiceActivities/EnergyReactor';
 import VoiceFXMenu from './VoiceFXMenu';
+import toast from 'react-hot-toast';
 
 const VoiceServicePlugin = registerPlugin('VoiceService');
 
 const LIVEKIT_URL = "wss://danspace-76f5bceh.livekit.cloud";
 
-const joinSound = new Audio('https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3');
-const leaveSound = new Audio('https://assets.mixkit.co/active_storage/sfx/2571/2571-preview.mp3');
-joinSound.volume = 0.2;
-leaveSound.volume = 0.2;
+const joinSound = new Audio('/sounds/room_join.mp3'); // We'll use dummy src, actually fallbacks below if file doesn't exist
+const leaveSound = new Audio('/sounds/room_leave.mp3');
+const micOnSound = new Audio('/sounds/mic_on.mp3');
+
+joinSound.volume = 0.3;
+leaveSound.volume = 0.3;
+micOnSound.volume = 0.15;
+
+// Fallback syntethic space sounds if files don't exist
+const playSyntheticSound = (type) => {
+    try {
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        if (!AudioContext) return;
+        const ctx = new AudioContext();
+        const mainGain = ctx.createGain();
+        mainGain.connect(ctx.destination);
+
+        if (type === 'join') {
+            const osc = ctx.createOscillator();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(440, ctx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(880, ctx.currentTime + 0.1);
+
+            mainGain.gain.setValueAtTime(0, ctx.currentTime);
+            mainGain.gain.linearRampToValueAtTime(0.2, ctx.currentTime + 0.05);
+            mainGain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.8);
+
+            osc.connect(mainGain);
+            osc.start();
+            osc.stop(ctx.currentTime + 0.8);
+        } else if (type === 'leave') {
+            const osc = ctx.createOscillator();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(600, ctx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(300, ctx.currentTime + 0.2);
+
+            mainGain.gain.setValueAtTime(0.15, ctx.currentTime);
+            mainGain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.6);
+
+            osc.connect(mainGain);
+            osc.start();
+            osc.stop(ctx.currentTime + 0.6);
+        } else if (type === 'mic') {
+            const osc = ctx.createOscillator();
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(800, ctx.currentTime);
+            osc.frequency.linearRampToValueAtTime(1200, ctx.currentTime + 0.05);
+
+            mainGain.gain.setValueAtTime(0, ctx.currentTime);
+            mainGain.gain.linearRampToValueAtTime(0.05, ctx.currentTime + 0.02);
+            mainGain.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.1);
+
+            osc.connect(mainGain);
+            osc.start();
+            osc.stop(ctx.currentTime + 0.1);
+        }
+    } catch (e) { }
+};
 
 export default function VoiceRoomUI({
     roomName, isOpen, onMinimize, onExpand, onLeave,
@@ -301,15 +356,76 @@ function MinimizedBar({ roomName, onExpand, onLeave }) {
 function ParticipantsList() {
     const participants = useParticipants();
     const prevCount = useRef(participants.length);
+    const prevParticipantsInfo = useRef(new Map());
+    const [soundEnabled, setSoundEnabled] = useState(true);
+
+    const playSound = (type) => {
+        if (!soundEnabled) return;
+        playSyntheticSound(type);
+    };
 
     useEffect(() => {
-        if (participants.length > prevCount.current) { joinSound.play().catch(() => { }); }
-        else if (participants.length < prevCount.current) { leaveSound.play().catch(() => { }); }
+        // Find who joined or left
+        const currentIds = participants.map(p => p.sid);
+        const prevIds = Array.from(prevParticipantsInfo.current.keys());
+
+        const joined = participants.filter(p => !prevIds.includes(p.sid));
+        const left = prevIds.filter(id => !currentIds.includes(id)).map(id => prevParticipantsInfo.current.get(id));
+
+        // Group events to avoid saturation
+        if (joined.length > 0 && joined.length <= 3) {
+            playSound('join');
+            joined.forEach(p => {
+                toast(`🌌 ${p.name || 'Piloto'} ha entrado al universo.`, {
+                    style: { background: '#080b14', color: '#22d3ee', border: '1px solid rgba(34,211,238,0.2)' },
+                    icon: '🚀'
+                });
+            });
+        }
+
+        if (left.length > 0 && left.length <= 3) {
+            playSound('leave');
+            left.forEach(p => {
+                toast(`🌠 ${p.name || 'Piloto'} ha abandonado la sala.`, {
+                    style: { background: '#0f0505', color: '#f43f5e', border: '1px solid rgba(244,63,94,0.2)' },
+                    icon: '💨'
+                });
+            });
+        }
+
+        // Detect mic first time activations
+        participants.forEach(p => {
+            const prev = prevParticipantsInfo.current.get(p.sid);
+            if (prev && !prev.isMicrophoneEnabled && p.isMicrophoneEnabled) {
+                playSound('mic');
+                toast(`🎙️ ${p.name || 'Piloto'} activó su micrófono.`, {
+                    style: { background: '#050a14', color: '#e2e8f0', border: '1px solid rgba(255,255,255,0.1)' },
+                    duration: 2000
+                });
+            }
+        });
+
+        // Update tracking ref
+        const newMap = new Map();
+        participants.forEach(p => newMap.set(p.sid, { name: p.name, isMicrophoneEnabled: p.isMicrophoneEnabled }));
+        prevParticipantsInfo.current = newMap;
         prevCount.current = participants.length;
-    }, [participants.length]);
+
+    }, [participants, soundEnabled]);
 
     return (
-        <div className="flex flex-col gap-3">
+        <div className="flex flex-col gap-3 relative">
+
+            <div className="flex items-center justify-between mb-2 pb-2 border-b border-white/5">
+                <span className="text-[9px] uppercase tracking-widest text-white/40 font-bold">Actividad Espacial</span>
+                <button
+                    onClick={() => setSoundEnabled(!soundEnabled)}
+                    className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[9px] font-bold uppercase transition-all ${soundEnabled ? 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/20' : 'bg-white/5 text-white/30 border border-transparent hover:bg-white/10'}`}
+                >
+                    {soundEnabled ? <Volume2 size={12} /> : <VolumeX size={12} />}
+                    {soundEnabled ? 'Sonidos Activos' : 'Silenciado'}
+                </button>
+            </div>
             {participants.map((p) => {
                 let meta = {}; try { meta = p.metadata ? JSON.parse(p.metadata) : {}; } catch (e) { }
                 const frame = getFrameStyle(meta.frameId);
