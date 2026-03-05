@@ -81,7 +81,17 @@ export const ProfileHeader = ({ profile, theme, isOwn, isFollowing, onFollow, on
                         className="absolute top-6 right-6 z-20"
                     >
                         <div className="flex items-center gap-2.5 px-4 py-2 bg-black/40 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl">
-                            <span className="text-xl">{profile.mood_emoji || '🪐'}</span>
+                            <div className="w-6 h-6 flex items-center justify-center shrink-0">
+                                {profile.mood_emoji?.startsWith('http') ? (
+                                    <img
+                                        src={profile.mood_emoji}
+                                        className="w-full h-full object-contain rounded"
+                                        alt="Mood"
+                                    />
+                                ) : (
+                                    <span className="text-lg">{profile.mood_emoji || '🪐'}</span>
+                                )}
+                            </div>
                             <p className="text-[11px] font-black uppercase text-white tracking-widest leading-none">
                                 {profile.mood_text || 'En órbita'}
                             </p>
