@@ -252,8 +252,12 @@ export default function ProfileRedesignPage() {
             ]).then(([starsRes, echoesRes]) => {
                 const totalStars = starsRes.data?.reduce((acc, curr) => acc + (curr.stars_count || 0), 0) || 0;
                 const totalEchoes = echoesRes.count || 0;
-                const createdAt = new Date(prof.created_at);
-                const ageDays = Math.floor((new Date() - createdAt) / (1000 * 60 * 60 * 24));
+
+                // Edad del universo: Días desde la creación (mínimo 1 día para el día 0)
+                const createdAt = prof.created_at ? new Date(prof.created_at) : new Date();
+                const diffTime = Math.abs(new Date() - createdAt);
+                const ageDays = Math.max(1, Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1);
+
                 setStats({ stars: totalStars, echoes: totalEchoes, age: ageDays });
             });
         } catch (e) {
