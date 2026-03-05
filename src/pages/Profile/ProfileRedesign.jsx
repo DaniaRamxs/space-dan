@@ -247,10 +247,10 @@ export default function ProfileRedesignPage() {
 
             // Fetch extra stats for the header
             Promise.all([
-                supabase.from('transfers').select('amount').eq('to_user_id', prof.id),
+                supabase.from('space_echoes').select('stars_count').eq('user_id', prof.id),
                 supabase.from('space_echoes').select('id', { count: 'exact', head: true }).eq('user_id', prof.id)
             ]).then(([starsRes, echoesRes]) => {
-                const totalStars = starsRes.data?.reduce((acc, curr) => acc + curr.amount, 0) || 0;
+                const totalStars = starsRes.data?.reduce((acc, curr) => acc + (curr.stars_count || 0), 0) || 0;
                 const totalEchoes = echoesRes.count || 0;
                 const createdAt = new Date(prof.created_at);
                 const ageDays = Math.floor((new Date() - createdAt) / (1000 * 60 * 60 * 24));
