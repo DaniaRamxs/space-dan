@@ -17,11 +17,11 @@ export default function CosmicEventBanner() {
     }, []);
 
     useEffect(() => {
-        if (!event || !event.ends_at) return;
+        if (!event || !event.end_time) return;
 
         const updateTimer = () => {
             const now = new Date();
-            const end = new Date(event.ends_at);
+            const end = new Date(event.end_time);
             const diff = end - now;
 
             if (diff <= 0) {
