@@ -27,6 +27,7 @@ import ActivityCard from '../../components/Social/ActivityCard';
 import { motion, AnimatePresence } from 'framer-motion';
 import { StellarSupport } from '../../components/ProfileRedesign/StellarSupport';
 import StarlyOrb from '../../components/StarlyOrb';
+import { ConnectionsSection } from '../../components/ProfileRedesign/ConnectionsSection';
 
 // ─── Mini activity feed (3 posts, no infinite scroll) ──────────────────────
 function RecentActivityBlock({ userId, onViewAll }) {
@@ -71,57 +72,6 @@ function RecentActivityBlock({ userId, onViewAll }) {
     );
 }
 
-// ─── Connections block ──────────────────────────────────────────────────────
-function ConnectionsBlock({ userId, followCounts }) {
-    const [connections, setConnections] = useState([]);
-    const [loading, setLoading] = useState(true);
-
-    useEffect(() => {
-        profileSocialService.getFollowing(userId)
-            .then(data => setConnections(data.slice(0, 8)))
-            .catch(() => setConnections([]))
-            .finally(() => setLoading(false));
-    }, [userId]);
-
-    if (loading) return <div className="rounded-2xl bg-white/[0.02] border border-white/5 h-20 animate-pulse" />;
-    if (connections.length === 0) return null;
-
-    return (
-        <div className="rounded-2xl bg-white/[0.02] border border-white/5 p-5 space-y-4">
-            <div className="flex items-center justify-between">
-                <p className="text-[10px] font-bold uppercase tracking-widest text-white/25">Conexiones</p>
-                {followCounts && (
-                    <div className="flex items-center gap-3">
-                        <span className="text-[9px] text-white/20 font-bold">
-                            <span className="text-white/40">{followCounts.followers}</span> seguidores
-                        </span>
-                        <span className="text-[9px] text-white/20 font-bold">
-                            <span className="text-white/40">{followCounts.following}</span> siguiendo
-                        </span>
-                    </div>
-                )}
-            </div>
-            <div className="flex flex-wrap gap-2">
-                {connections.map(c => (
-                    <Link
-                        key={c.id}
-                        to={`/@${c.username}`}
-                        className="flex items-center gap-2 px-2.5 py-1.5 rounded-xl bg-white/[0.03] border border-white/[0.06] hover:bg-white/[0.06] transition-colors group"
-                    >
-                        <img
-                            src={c.avatar_url || '/default_user_blank.png'}
-                            alt={c.username}
-                            className="w-5 h-5 rounded-full object-cover opacity-70 group-hover:opacity-100 transition-opacity"
-                        />
-                        <span className="text-[11px] text-white/35 group-hover:text-white/65 transition-colors font-medium">
-                            {c.username}
-                        </span>
-                    </Link>
-                ))}
-            </div>
-        </div>
-    );
-}
 
 // ─── Bio fallback card (when no "about" block is configured) ───────────────
 function BioCard({ bio }) {
@@ -431,10 +381,21 @@ export default function ProfileRedesignPage() {
                                             </div>
                                         </div>
 
-                                        {/* Archivo de Identidad (Conexiones) */}
                                         <div className="space-y-4">
-                                            <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-white/20">Exploradores Vinculados</p>
-                                            <ConnectionsBlock userId={profile.id} followCounts={followCounts} />
+                                            <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-white/20">Identidad Digital</p>
+                                            <div className="rounded-2xl bg-white/[0.02] border border-white/5 p-5">
+                                                <p className="text-[10px] font-bold text-white/30 uppercase mb-4 tracking-widest text-center">Registro de Existencia</p>
+                                                <div className="space-y-3">
+                                                    <div className="flex justify-between items-center bg-white/[0.03] p-3 rounded-xl border border-white/5">
+                                                        <span className="text-[10px] font-black text-white/40 uppercase">UID</span>
+                                                        <span className="text-[10px] font-mono text-white/60">{profile.id.slice(0, 8)}...</span>
+                                                    </div>
+                                                    <div className="flex justify-between items-center bg-white/[0.03] p-3 rounded-xl border border-white/5">
+                                                        <span className="text-[10px] font-black text-white/40 uppercase">Rol</span>
+                                                        <span className="text-[10px] font-black text-white/60 uppercase">Nómada Estelar</span>
+                                                    </div>
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
 
@@ -473,7 +434,30 @@ export default function ProfileRedesignPage() {
                                     />
                                 </section>
 
-                                {/* 6. RESONANCIA (Solo ajeno) */}
+                                {/* 6. CONEXIONES (CONSTELACIÓN SOCIAL) */}
+                                <section className="w-full">
+                                    <ConnectionsSection userId={profile.id} followCounts={followCounts} />
+                                </section>
+
+                                {/* 7. BOTÓN: AÑADIR BLOQUE (Solo dueño) */}
+                                {isOwn && (
+                                    <section className="max-w-md mx-auto w-full pt-12">
+                                        <button
+                                            onClick={() => setShowConfig(true)}
+                                            className="w-full h-32 rounded-[2.5rem] border-2 border-dashed border-white/10 hover:border-white/20 hover:bg-white/[0.02] transition-all group flex flex-col items-center justify-center gap-3"
+                                        >
+                                            <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center group-hover:scale-110 transition-transform">
+                                                <span className="text-white/40 text-xl font-light">＋</span>
+                                            </div>
+                                            <div className="text-center">
+                                                <p className="text-[10px] font-black text-white/20 uppercase tracking-[0.4em]">Ampliar Universo</p>
+                                                <p className="text-[9px] font-bold text-white/10 uppercase tracking-widest mt-1">Añadir nuevo bloque de contenido</p>
+                                            </div>
+                                        </button>
+                                    </section>
+                                )}
+
+                                {/* 8. RESONANCIA (Solo ajeno) */}
                                 {!isOwn && user && (
                                     <section className="max-w-xl mx-auto w-full">
                                         <ResonanciaBlock
