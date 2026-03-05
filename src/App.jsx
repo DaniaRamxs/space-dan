@@ -452,6 +452,7 @@ export default function App() {
           <BrowserRouter>
             <DomainGuard />
             <DarkSideManager />
+            <div className="scanline-overlay opacity-[0.03] fixed inset-0 pointer-events-none z-[99999]" />
             <AchievementToast />
             <Screensaver />
             <PageTracker />

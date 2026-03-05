@@ -24,7 +24,7 @@ export default function PostsPage() {
         animate={{ opacity: 1, y: 0 }}
         className="mb-6 px-4 md:px-0"
       >
-        <h1 className="text-3xl md:text-4xl font-black uppercase tracking-tight text-white/90">
+        <h1 className="text-3xl md:text-4xl font-black uppercase tracking-tight text-white/90 glitch-text">
           Global Feed
         </h1>
         <p className="text-[10px] font-bold uppercase tracking-widest text-cyan-400/40 mt-1">

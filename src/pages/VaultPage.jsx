@@ -19,7 +19,7 @@ export default function VaultPage() {
 
     useEffect(() => {
         // Simulation of "Identity Scan"
-        const timer = setTimeout(() => setScanning(false), 2500);
+        const timer = setTimeout(() => setScanning(false), 4000);
         loadData();
         return () => clearTimeout(timer);
     }, []);

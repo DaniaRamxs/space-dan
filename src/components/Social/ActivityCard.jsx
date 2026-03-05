@@ -89,7 +89,7 @@ const ActivityCard = memo(({ post, onUpdate, onNewPost, onHeightChange }) => {
                 initial={{ opacity: 0, scale: 0.98 }}
                 animate={{ opacity: 1, scale: 1 }}
                 layout
-                className="group relative bg-[#070710]/40 border-b border-white/[0.03] p-4 md:p-5 hover:bg-[#0a0a15]/80 transition-all duration-300"
+                className="postCard mb-4 cursor-pointer"
                 onClick={() => {
                     if (post.isOptimistic) return;
                     if (!isExpanded && hasLongContent) {

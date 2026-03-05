@@ -9,15 +9,28 @@ export default function ActivityRadar() {
         // Initial system check notification
         setTimeout(() => {
             addNotification({
-                id: 'sys-init',
+                id: `sys-init-${Date.now()}`,
                 text: '🛰️ Radar Estelar: Sistema en línea. Escaneando sector...',
                 icon: '🛰️',
                 color: 'text-amber-400'
             });
-        }, 3000);
+        }, 1500);
+
+        // Listen for new posts
+        const postsChannel = supabase
+            .channel('global_posts_radar')
+            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'posts' }, payload => {
+                addNotification({
+                    id: `post-${Date.now()}`,
+                    text: '📡 Nueva transmisión detectada en el sector',
+                    icon: '📡',
+                    color: 'text-purple-400'
+                });
+            })
+            .subscribe();
 
         // Listen for new echoes
-        const channel = supabase
+        const echoesChannel = supabase
             .channel('space_echoes_radar')
             .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'space_echoes' }, payload => {
                 addNotification({
@@ -30,7 +43,8 @@ export default function ActivityRadar() {
             .subscribe();
 
         return () => {
-            supabase.removeChannel(channel);
+            supabase.removeChannel(postsChannel);
+            supabase.removeChannel(echoesChannel);
         };
     }, []);
 
