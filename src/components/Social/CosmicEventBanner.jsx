@@ -4,6 +4,7 @@ import { cosmicEventsService } from '../../services/cosmicEventsService';
 
 export default function CosmicEventBanner() {
     const [event, setEvent] = useState(null);
+    const [timeLeft, setTimeLeft] = useState('');
 
     useEffect(() => {
         const checkEvent = async () => {
@@ -14,6 +15,35 @@ export default function CosmicEventBanner() {
         const interval = setInterval(checkEvent, 60000); // Check every minute
         return () => clearInterval(interval);
     }, []);
+
+    useEffect(() => {
+        if (!event || !event.ends_at) return;
+
+        const updateTimer = () => {
+            const now = new Date();
+            const end = new Date(event.ends_at);
+            const diff = end - now;
+
+            if (diff <= 0) {
+                setTimeLeft('00:00:00');
+                setEvent(null); // Clear event if it ended
+                return;
+            }
+
+            const h = Math.floor(diff / (1000 * 60 * 60));
+            const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+            const s = Math.floor((diff % (1000 * 60)) / 1000);
+
+            const sf = s < 10 ? `0${s}` : s;
+            const hf = h > 0 ? `${h}h ` : '';
+
+            setTimeLeft(`${hf}${m}m ${sf}s`);
+        };
+
+        updateTimer();
+        const timerInterval = setInterval(updateTimer, 1000);
+        return () => clearInterval(timerInterval);
+    }, [event]);
 
     if (!event) return null;
 
@@ -37,9 +67,16 @@ export default function CosmicEventBanner() {
                         <span className="text-[10px] font-black uppercase tracking-widest text-white/80">
                             Evento Cósmico Activo
                         </span>
-                        <span className="text-sm font-bold text-white drop-shadow-md">
-                            {event.name}
-                        </span>
+                        <div className="flex items-center gap-2">
+                            <span className="text-sm font-bold text-white drop-shadow-md">
+                                {event.name}
+                            </span>
+                            {timeLeft && (
+                                <span className="bg-black/30 px-2 py-0.5 rounded-full text-[10px] uppercase font-bold tracking-wider text-cyan-200 border border-white/10 shadow-inner">
+                                    Termina en {timeLeft}
+                                </span>
+                            )}
+                        </div>
                     </div>
                 </div>
             </motion.div>
