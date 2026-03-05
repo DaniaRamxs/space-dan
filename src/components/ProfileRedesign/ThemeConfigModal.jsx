@@ -70,6 +70,9 @@ export const ThemeConfigModal = ({ isOpen, onClose, userId, currentTheme, curren
             let defaultConfig = {};
             if (type === 'gallery') defaultConfig = { images: [] };
             if (type === 'interests') defaultConfig = { likes: '', dislikes: '' };
+            if (type === 'music_odyssey') defaultConfig = { songs: Array(5).fill({ title: '', artist: '', annotation: '', cover: '' }) };
+            if (type === 'random_facts') defaultConfig = { facts: Array(4).fill({ text: '' }) };
+            if (type === 'time_capsule') defaultConfig = { message: '', reveal_date: '' };
 
             setBlocks([...blocks, {
                 block_type: type,
@@ -438,6 +441,9 @@ export const ThemeConfigModal = ({ isOpen, onClose, userId, currentTheme, curren
                                 { id: 'favorites', label: 'Mis Favoritos', desc: 'Libros, series y objetos de poder.' },
                                 { id: 'gallery', label: 'Galería Estelar', desc: 'Exhibe tus capturas visuales.' },
                                 { id: 'spotify', label: 'Frecuencia Spotify', desc: 'Sincronización musical en tiempo real.' },
+                                { id: 'music_odyssey', label: 'Odisea Musical', desc: 'Tus 5 himnos semanales con alma.' },
+                                { id: 'random_facts', label: 'Gabinete de Curiosidades', desc: 'Datos aleatorios revelados al tacto.' },
+                                { id: 'time_capsule', label: 'Cápsula del Tiempo', desc: 'Un mensaje sellado para el futuro.' },
                             ].map(b => {
                                 const currentBlock = blocks.find(bl => bl.block_type === b.id);
                                 const active = currentBlock?.is_active;
@@ -554,6 +560,111 @@ export const ThemeConfigModal = ({ isOpen, onClose, userId, currentTheme, curren
                                                             className="hidden"
                                                             onChange={handleGalleryUpload}
                                                         />
+                                                    </div>
+                                                )}
+
+                                                {b.id === 'music_odyssey' && (
+                                                    <div className="space-y-4">
+                                                        {(currentBlock.config?.songs || []).map((song, idx) => (
+                                                            <div key={idx} className="p-4 bg-white/[0.03] border border-white/5 rounded-2xl space-y-3">
+                                                                <div className="flex items-center justify-between">
+                                                                    <span className="text-[9px] font-black text-cyan-400 uppercase tracking-widest italic">Himno #{idx + 1}</span>
+                                                                </div>
+                                                                <div className="grid grid-cols-2 gap-3">
+                                                                    <input
+                                                                        type="text"
+                                                                        placeholder="Título"
+                                                                        value={song.title || ''}
+                                                                        onChange={e => {
+                                                                            const newSongs = [...currentBlock.config.songs];
+                                                                            newSongs[idx] = { ...song, title: e.target.value };
+                                                                            setBlocks(blocks.map(bl => bl.block_type === 'music_odyssey' ? { ...bl, config: { ...bl.config, songs: newSongs } } : bl));
+                                                                        }}
+                                                                        className="bg-black/40 border border-white/10 rounded-xl px-3 py-2 text-[10px] text-white outline-none focus:border-cyan-500"
+                                                                    />
+                                                                    <input
+                                                                        type="text"
+                                                                        placeholder="Artista"
+                                                                        value={song.artist || ''}
+                                                                        onChange={e => {
+                                                                            const newSongs = [...currentBlock.config.songs];
+                                                                            newSongs[idx] = { ...song, artist: e.target.value };
+                                                                            setBlocks(blocks.map(bl => bl.block_type === 'music_odyssey' ? { ...bl, config: { ...bl.config, songs: newSongs } } : bl));
+                                                                        }}
+                                                                        className="bg-black/40 border border-white/10 rounded-xl px-3 py-2 text-[10px] text-white outline-none focus:border-cyan-500"
+                                                                    />
+                                                                </div>
+                                                                <textarea
+                                                                    placeholder="¿Por qué este himno?"
+                                                                    value={song.annotation || ''}
+                                                                    onChange={e => {
+                                                                        const newSongs = [...currentBlock.config.songs];
+                                                                        newSongs[idx] = { ...song, annotation: e.target.value };
+                                                                        setBlocks(blocks.map(bl => bl.block_type === 'music_odyssey' ? { ...bl, config: { ...bl.config, songs: newSongs } } : bl));
+                                                                    }}
+                                                                    className="w-full bg-black/40 border border-white/10 rounded-xl px-3 py-2 text-[10px] text-white/60 outline-none focus:border-cyan-500 resize-none h-16"
+                                                                />
+                                                                <input
+                                                                    type="text"
+                                                                    placeholder="URL de la carátula (opcional)"
+                                                                    value={song.cover || ''}
+                                                                    onChange={e => {
+                                                                        const newSongs = [...currentBlock.config.songs];
+                                                                        newSongs[idx] = { ...song, cover: e.target.value };
+                                                                        setBlocks(blocks.map(bl => bl.block_type === 'music_odyssey' ? { ...bl, config: { ...bl.config, songs: newSongs } } : bl));
+                                                                    }}
+                                                                    className="w-full bg-black/40 border border-white/10 rounded-xl px-3 py-2 text-[8px] text-white/40 outline-none focus:border-cyan-500"
+                                                                />
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                )}
+
+                                                {b.id === 'random_facts' && (
+                                                    <div className="grid grid-cols-1 gap-3">
+                                                        {(currentBlock.config?.facts || []).map((fact, idx) => (
+                                                            <div key={idx} className="flex gap-2">
+                                                                <span className="text-[10px] font-black text-emerald-500/50 mt-3 italic">#{idx + 1}</span>
+                                                                <input
+                                                                    type="text"
+                                                                    placeholder="Escribe un dato curioso..."
+                                                                    value={fact.text || ''}
+                                                                    onChange={e => {
+                                                                        const newFacts = [...currentBlock.config.facts];
+                                                                        newFacts[idx] = { ...fact, text: e.target.value };
+                                                                        setBlocks(blocks.map(bl => bl.block_type === 'random_facts' ? { ...bl, config: { ...bl.config, facts: newFacts } } : bl));
+                                                                    }}
+                                                                    className="flex-1 bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-[10px] text-white outline-none focus:border-emerald-500"
+                                                                />
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                )}
+
+                                                {b.id === 'time_capsule' && (
+                                                    <div className="space-y-4">
+                                                        <div className="space-y-2">
+                                                            <label className="text-[9px] font-black text-white/20 uppercase ml-1">Fecha de Revelación</label>
+                                                            <input
+                                                                type="date"
+                                                                value={currentBlock.config?.reveal_date || ''}
+                                                                onChange={e => {
+                                                                    setBlocks(blocks.map(bl => bl.block_type === 'time_capsule' ? { ...bl, config: { ...bl.config, reveal_date: e.target.value } } : bl));
+                                                                }}
+                                                                className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-xs text-white outline-none focus:border-amber-500 [color-scheme:dark]"
+                                                            />
+                                                        </div>
+                                                        <div className="space-y-2">
+                                                            <label className="text-[9px] font-black text-white/20 uppercase ml-1">Mensaje Sellado</label>
+                                                            <textarea
+                                                                value={currentBlock.config?.message || ''}
+                                                                onChange={e => {
+                                                                    setBlocks(blocks.map(bl => bl.block_type === 'time_capsule' ? { ...bl, config: { ...bl.config, message: e.target.value } } : bl));
+                                                                }}
+                                                                placeholder="¿Qué quieres decirle a tu yo del futuro o a tus visitantes?"
+                                                                className="w-full bg-black/40 border border-white/10 rounded-2xl p-4 text-[11px] text-white outline-none focus:border-amber-500 resize-none min-h-[100px]"
+                                                            />
+                                                        </div>
                                                     </div>
                                                 )}
                                             </motion.div>

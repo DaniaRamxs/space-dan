@@ -4,6 +4,9 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeRaw from 'rehype-raw';
 import { SpotifyBlock } from './SpotifyBlock';
+import { MusicOdysseyBlock } from './MusicOdysseyBlock';
+import { RandomFactsBlock } from './RandomFactsBlock';
+import { TimeCapsuleBlock } from './TimeCapsuleBlock';
 
 export const BlocksRenderer = ({ blocks, userId, isOwn, onEdit, profileData }) => {
     const container = {
@@ -112,6 +115,12 @@ export const BlocksRenderer = ({ blocks, userId, isOwn, onEdit, profileData }) =
                         <MarkdownContent content={block.config?.text || 'La biblioteca galáctica está vacía por ahora.'} />
                     </div>
                 );
+            case 'music_odyssey':
+                return <MusicOdysseyBlock config={block.config} />;
+            case 'random_facts':
+                return <RandomFactsBlock config={block.config} />;
+            case 'time_capsule':
+                return <TimeCapsuleBlock config={block.config} />;
             case 'gallery':
                 const images = block.config?.images || [];
                 return (
