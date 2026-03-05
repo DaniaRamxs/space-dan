@@ -5,11 +5,16 @@ import { supabase } from '../supabaseClient';
 export default function ActivityRadar() {
     const [notifications, setNotifications] = useState([]);
 
+    const hasMounted = React.useRef(false);
+
     useEffect(() => {
+        if (hasMounted.current) return;
+        hasMounted.current = true;
+
         // Initial system check notification
         setTimeout(() => {
             addNotification({
-                id: `sys-init-${Date.now()}`,
+                id: `sys-init-${Math.random().toString(36).substr(2, 9)}`,
                 text: '🛰️ Radar Estelar: Sistema en línea. Escaneando sector...',
                 icon: '🛰️',
                 color: 'text-amber-400'
@@ -21,7 +26,7 @@ export default function ActivityRadar() {
             .channel('global_posts_radar')
             .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'posts' }, payload => {
                 addNotification({
-                    id: `post-${Date.now()}`,
+                    id: `post-${Date.now()}-${Math.random()}`,
                     text: '📡 Nueva transmisión detectada en el sector',
                     icon: '📡',
                     color: 'text-purple-400'
@@ -34,7 +39,7 @@ export default function ActivityRadar() {
             .channel('space_echoes_radar')
             .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'space_echoes' }, payload => {
                 addNotification({
-                    id: Date.now(),
+                    id: `echo-${Date.now()}-${Math.random()}`,
                     text: '🌌 Alguien dejó un nuevo eco en el universo',
                     icon: '🌠',
                     color: 'text-cyan-400'
@@ -56,7 +61,7 @@ export default function ActivityRadar() {
     };
 
     return (
-        <div className="fixed bottom-24 right-6 z-[9999] flex flex-col gap-3 items-end pointer-events-none">
+        <div className="fixed top-20 right-6 z-[9999] flex flex-col gap-3 items-end pointer-events-none">
             <AnimatePresence>
                 {notifications.map(n => (
                     <motion.div
