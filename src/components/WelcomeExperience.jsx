@@ -27,7 +27,7 @@ export default function WelcomeExperience() {
         setStep(4);
         setTimeout(() => {
             setIsVisible(false);
-            navigate('/universo');
+            navigate('/posts');
         }, 1000);
     };
 
