@@ -151,7 +151,11 @@ const ChatMessage = memo(({ message, isMe, isOnline, userPresence, onProfileClic
                 </div>
 
                 <div className={`flex items-start gap-2 w-full ${isMe ? 'flex-row-reverse' : 'flex-row'}`}>
-                    <div className={`chat-message-bubble relative group/bubble ${is_vip ? 'chat-message-vip' : ''} ${safeAuthor?.chat_effect ? `chat-effect-${safeAuthor.chat_effect}` : ''} shadow-xl`}>
+                    <div className={`chat-message-bubble relative group/bubble 
+                        ${is_vip ? 'chat-message-vip' : ''} 
+                        ${safeAuthor?.chat_effect ? `chat-effect-${safeAuthor.chat_effect}` : ''} 
+                        ${safeAuthor?.active_aura ? `chat-effect-${safeAuthor.active_aura}` : ''} 
+                        shadow-xl`}>
                         {reply && (
                             <div className="mb-2 p-2 rounded-xl bg-white/5 border-l-2 border-cyan-500/50 text-[10px] opacity-80 backdrop-blur-sm">
                                 <div className="font-black text-[8px] uppercase tracking-widest text-cyan-400 mb-0.5">

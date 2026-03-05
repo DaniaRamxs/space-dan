@@ -993,6 +993,41 @@ textarea,
   }
 }
 
+/* ── Aura Dynamic Effects ── */
+.aura-supernova {
+  box-shadow: 0 0 30px rgba(255, 204, 51, 0.2);
+  border-color: rgba(255, 204, 51, 0.4) !important;
+}
+
+.aura-nebula {
+  box-shadow: 0 0 30px rgba(255, 0, 255, 0.2);
+  border-color: rgba(255, 0, 255, 0.4) !important;
+}
+
+.aura-void {
+  box-shadow: 0 0 30px rgba(136, 85, 255, 0.2);
+  border-color: rgba(136, 85, 255, 0.4) !important;
+}
+
+/* Chat Message Aura Potions */
+.chat-effect-supernova {
+  background: linear-gradient(135deg, rgba(255, 204, 51, 0.05), rgba(0, 0, 0, 0.8)) !important;
+  border-left: 2px solid #ffcc33 !important;
+  box-shadow: 0 4px 15px rgba(255, 204, 51, 0.1) !important;
+}
+
+.chat-effect-nebula {
+  background: linear-gradient(135deg, rgba(255, 0, 255, 0.05), rgba(0, 0, 0, 0.8)) !important;
+  border-left: 2px solid #ff00ff !important;
+  box-shadow: 0 4px 15px rgba(255, 0, 255, 0.1) !important;
+}
+
+.chat-effect-void {
+  background: linear-gradient(135deg, rgba(136, 85, 255, 0.05), rgba(0, 0, 0, 0.8)) !important;
+  border-left: 2px solid #8855ff !important;
+  box-shadow: 0 4px 15px rgba(136, 85, 255, 0.1) !important;
+}
+
 /* ── Arcade immersive layout utility ── */
 /* Ensure game layouts never scroll on mobile */
 .arcade-shell-container {

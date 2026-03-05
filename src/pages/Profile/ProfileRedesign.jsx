@@ -11,7 +11,7 @@ import { ProfileHeader } from '../../components/ProfileRedesign/ProfileHeader';
 import { BlocksRenderer } from '../../components/ProfileRedesign/BlocksRenderer';
 import { ThemeConfigModal } from '../../components/ProfileRedesign/ThemeConfigModal';
 import { SpotifyBlock } from '../../components/ProfileRedesign/SpotifyBlock';
-import { ConstellationsBlock } from '../../components/ProfileRedesign/ConstellationsBlock';
+import { AffinityMapBlock } from '../../components/ProfileRedesign/AffinityMapBlock';
 import { ResonanciaBlock } from '../../components/ProfileRedesign/ResonanciaBlock';
 import { MysterySignals } from '../../components/ProfileRedesign/MysterySignals';
 import { UniverseAttractionBlock } from '../../components/ProfileRedesign/UniverseAttractionBlock';
@@ -26,6 +26,7 @@ import EchoesSection from '../../components/Social/EchoesSection';
 import ActivityCard from '../../components/Social/ActivityCard';
 import { motion, AnimatePresence } from 'framer-motion';
 import { StellarSupport } from '../../components/ProfileRedesign/StellarSupport';
+import StarlyOrb from '../../components/StarlyOrb';
 
 // ─── Mini activity feed (3 posts, no infinite scroll) ──────────────────────
 function RecentActivityBlock({ userId, onViewAll }) {
@@ -382,7 +383,7 @@ export default function ProfileRedesignPage() {
                                     <UniverseAttractionBlock userId={profile.id} isOwn={isOwn} profileUsername={profile.username} />
 
                                     {/* Constelaciones */}
-                                    <ConstellationsBlock userId={profile.id} />
+                                    <AffinityMapBlock userId={profile.id} ownerAvatar={profile.avatar_url} />
 
                                     {/* Resonancia — solo cuando se visita un perfil ajeno */}
                                     {!isOwn && user && (
@@ -402,9 +403,12 @@ export default function ProfileRedesignPage() {
                                                 <p className="text-[9px] font-bold uppercase text-white/20">Nivel</p>
                                                 <p className="text-lg font-black text-white italic">{profile.level || 1}</p>
                                             </div>
-                                            <div className="space-y-0.5">
+                                            <div className="space-y-0.5 relative group">
                                                 <p className="text-[9px] font-bold uppercase text-white/20">Starlys</p>
-                                                <StarlysCounter value={profile.balance || 0} className="text-lg font-black text-cyan-400 italic" />
+                                                <div className="flex items-center gap-3">
+                                                    <StarlysCounter value={profile.balance || 0} className="text-lg font-black text-cyan-400 italic" />
+                                                    <StarlyOrb balance={profile.balance || 0} className="scale-50 -ml-10 -mr-10" />
+                                                </div>
                                             </div>
                                             <div className="space-y-0.5">
                                                 <p className="text-[9px] font-bold uppercase text-white/20">Racha</p>

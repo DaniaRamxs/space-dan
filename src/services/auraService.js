@@ -1,6 +1,48 @@
 import { supabase } from '../supabaseClient';
 
+export const AURA_TYPES = {
+    SUPERNOVA: { id: 'supernova', label: 'Modo Supernova', cost: 50000, duration: 1, glow: '#ffcc33', effect: 'radial-pulse' },
+    NEBULA: { id: 'nebula', label: 'Aura de Nebulosa', cost: 150000, duration: 6, glow: '#ff00ff', effect: 'cloud-vortex' },
+    VOID: { id: 'void', label: 'Vacío Primordial', cost: 500000, duration: 24, glow: '#8855ff', effect: 'shadow-drift' }
+};
+
 export const auraService = {
+    /**
+     * Activa un aura consumiendo Starlys.
+     */
+    async activateAura(userId, auraType) {
+        const aura = AURA_TYPES[auraType.toUpperCase()];
+        if (!aura) throw new Error('Tipo de aura no válido');
+
+        const { data, error } = await supabase.rpc('activate_user_aura', {
+            p_user_id: userId,
+            p_aura_type: aura.id,
+            p_cost: aura.cost,
+            p_duration_hours: aura.duration
+        });
+
+        if (error) throw error;
+        return data; // { success, aura_type, expires_at, new_balance }
+    },
+
+    /**
+     * Obtiene el aura activa (cronometrada) de un usuario.
+     */
+    async getActiveAura(userId) {
+        const { data, error } = await supabase
+            .from('user_auras')
+            .select('*')
+            .eq('user_id', userId)
+            .single();
+
+        if (error && error.code !== 'PGRST116') throw error;
+
+        // Verificar si ha expirado
+        if (data && new Date(data.expires_at) > new Date()) {
+            return data;
+        }
+        return null;
+    },
     async getAura(userId) {
         if (!userId) return [];
 

@@ -179,5 +179,17 @@ export const affinityService = {
         });
 
         return results;
+    },
+
+    /**
+     * Obtiene las 5 estrellas (amigos) más cercanos basándose en apoyo económico y afiinidad.
+     */
+    async getUserConstellation(userId) {
+        if (!userId) return [];
+        const { data, error } = await supabase.rpc('get_user_constellation', {
+            p_user_id: userId
+        });
+        if (error) throw error;
+        return data;
     }
 };
