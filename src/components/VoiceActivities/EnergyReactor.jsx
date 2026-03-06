@@ -57,7 +57,7 @@ export default function EnergyReactor({ roomName }) {
                 event: 'UPDATE',
                 schema: 'public',
                 table: 'voice_room_reactors',
-                filter: `room_name=eq.${roomKey}`
+                filter: `room_name=eq."${roomKey}"` // Fix for spaces
             }, payload => {
                 updateLocalState(payload.new);
             })
@@ -98,9 +98,12 @@ export default function EnergyReactor({ roomName }) {
     }, [isBonusActive, roomName]);
 
     const updateLocalState = (data) => {
-        setEnergy(data.energy);
-        setLevel(data.level);
-        setTarget(data.target);
+        if (!data) return;
+        console.log('[Reactor] Update local state:', data);
+        setEnergy(data.energy ?? 0);
+        setLevel(data.level ?? 1);
+        setTarget(data.target ?? 1000);
+
         if (data.bonus_expires_at) {
             const expires = new Date(data.bonus_expires_at);
             const now = new Date();
@@ -118,48 +121,41 @@ export default function EnergyReactor({ roomName }) {
     };
 
     const injectEnergy = async (amount) => {
-        if (balance < amount || isUpdating) return;
+        if (balance < amount || isUpdating) {
+            console.log('[Reactor] Pre-check failed:', { balance, amount, isUpdating });
+            return;
+        }
 
         const roomKey = roomName.toLowerCase().trim();
         setIsUpdating(true);
+        console.log('[Reactor] Injecting energy:', { roomKey, amount });
+
         try {
-            const success = await deductCoins(amount, 'activity', `Inyección de energía: ${roomName}`);
-            if (!success?.success) {
+            const result = await deductCoins(amount, 'activity', `Inyección de energía: ${roomName}`);
+            console.log('[Reactor] Coin deduction result:', result);
+
+            if (!result?.success) {
+                console.error('[Reactor] Coin deduction failed');
                 setIsUpdating(false);
                 return;
             }
 
-            // Usamos RPC para evitar race conditions en la suma
-            const { data: currentState } = await supabase
-                .from('voice_room_reactors')
-                .select('*')
-                .eq('room_name', roomKey)
-                .single();
+            // Usamos RPC para suma atómica y level up automático
+            console.log('[Reactor] Calling RPC inject_reactor_energy...');
+            const { data: newState, error } = await supabase.rpc('inject_reactor_energy', {
+                p_room_name: roomKey,
+                p_amount: amount
+            });
 
-            if (!currentState) {
-                setIsUpdating(false);
-                return;
+            if (error) {
+                console.error('[Reactor] RPC Error:', error);
+                throw error;
             }
 
-            let newEnergy = currentState.energy + amount;
-            let updates = { energy: newEnergy, updated_at: new Date().toISOString() };
-
-            if (newEnergy >= currentState.target) {
-                updates = {
-                    energy: 0,
-                    level: currentState.level + 1,
-                    target: Math.floor(currentState.target * 1.5),
-                    bonus_expires_at: new Date(Date.now() + 30 * 60000).toISOString(),
-                    updated_at: new Date().toISOString()
-                };
+            console.log('[Reactor] RPC Success, new state:', newState);
+            if (newState) {
+                updateLocalState(newState);
             }
-
-            const { error } = await supabase
-                .from('voice_room_reactors')
-                .update(updates)
-                .eq('room_name', roomKey);
-
-            if (error) throw error;
 
         } catch (err) {
             console.error('[Reactor] Error injecting energy:', err);

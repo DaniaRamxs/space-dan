@@ -19,6 +19,20 @@ export const cosmicEventsService = {
         return data || null;
     },
 
+    getRecentCosmicEvents: async (limit = 10) => {
+        const { data, error } = await supabase
+            .from('cosmic_events')
+            .select('*')
+            .order('created_at', { ascending: false })
+            .limit(limit);
+
+        if (error) {
+            console.error('Error fetching recent cosmic events:', error);
+            return [];
+        }
+        return data || [];
+    },
+
     // Incrementar interactividad entre usuarios para crear posibles constelaciones
     incrementBond: async (userA, userB, points = 1) => {
         if (!userA || !userB || userA === userB) return;

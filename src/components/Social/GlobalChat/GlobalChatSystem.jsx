@@ -21,6 +21,8 @@ import MissionsPanel from '../MissionsPanel';
 import StellarCalendar from '../StellarCalendar';
 import BadgePicker from '../BadgePicker';
 import { Trophy, Map, Calendar, Palette } from 'lucide-react';
+import ChatSidebar from './ChatSidebar';
+import { cosmicEventsService } from '../../../services/cosmicEventsService';
 import '../../../styles/GlobalChat.css';
 
 const HYPERBOT = {
@@ -62,6 +64,8 @@ export default function GlobalChat() {
     const [replyingTo, setReplyingTo] = useState(null);
     const [sidebarOpen, setSidebarOpen] = useState(false);
     const [activeEvents, setActiveEvents] = useState({ meteor: false, eclipse: false });
+    const [recentCosmicEvents, setRecentCosmicEvents] = useState([]);
+    const [channelStats, setChannelStats] = useState({ messageCount: 0, activityLevel: 0 });
 
     // Polling de Eventos Globales
     useEffect(() => {
@@ -87,6 +91,24 @@ export default function GlobalChat() {
         const interval = setInterval(checkEvents, 30000);
         return () => clearInterval(interval);
     }, []);
+
+    // Sidebar: Cargar eventos recientes y estadísticas
+    useEffect(() => {
+        const loadSidebarData = async () => {
+            const evs = await cosmicEventsService.getRecentCosmicEvents(5);
+            setRecentCosmicEvents(evs);
+
+            // Stats ficticias o reales
+            setChannelStats({
+                messageCount: messages.length * 12, // Simulando día
+                activityLevel: (messages.length / 10).toFixed(1)
+            });
+        };
+
+        loadSidebarData();
+        const interval = setInterval(loadSidebarData, 60000);
+        return () => clearInterval(interval);
+    }, [messages.length]);
 
     const scrollRef = useRef(null);
     const messagesEndRef = useRef(null);
@@ -1457,7 +1479,7 @@ export default function GlobalChat() {
     const lastVip = messages.filter(m => m.is_vip).pop();
 
     return (
-        <div className="chat-window-wrapper relative overflow-hidden">
+        <div className="chat-window-wrapper relative overflow-hidden flex flex-row">
             {/* Sidebar Backdrop (Mobile) */}
             <AnimatePresence>
                 {sidebarOpen && (
@@ -1672,11 +1694,29 @@ export default function GlobalChat() {
                         ) : (
                             <>
                                 {messages.length === 0 && <div className="text-center py-20 opacity-20 text-[10px] uppercase font-black">Silencio espacial...</div>}
-                                {messages.map((m) => (
-                                    <div key={String(m.id)} id={`msg-${m.id}`} className="px-4 mb-2">
-                                        <ChatMessage message={m} isMe={m.user_id === user?.id} isOnline={m.author?.id && !!onlineUsers[m.author.id]} userPresence={onlineUsers[m.author?.id]} onProfileClick={setSelectedProfile} onReply={setReplyingTo} />
-                                    </div>
-                                ))}
+                                {messages.map((m, idx) => {
+                                    const prevMsg = messages[idx - 1];
+                                    const isGrouped = prevMsg &&
+                                        prevMsg.user_id === m.user_id &&
+                                        (new Date(m.created_at) - new Date(prevMsg.created_at)) < 5 * 60000 &&
+                                        !m.reply_to_id &&
+                                        !m.is_vip &&
+                                        m.user_id !== HYPERBOT.id;
+
+                                    return (
+                                        <div key={String(m.id)} id={`msg-${m.id}`} className={`px-4 ${isGrouped ? 'mb-1' : 'mb-4 md:mb-6'}`}>
+                                            <ChatMessage
+                                                message={m}
+                                                isMe={m.user_id === user?.id}
+                                                isOnline={m.author?.id && !!onlineUsers[m.author.id]}
+                                                userPresence={onlineUsers[m.author?.id]}
+                                                onProfileClick={setSelectedProfile}
+                                                onReply={setReplyingTo}
+                                                isGrouped={isGrouped}
+                                            />
+                                        </div>
+                                    );
+                                })}
                                 <div ref={messagesEndRef} />
                             </>
                         )}
@@ -1694,6 +1734,13 @@ export default function GlobalChat() {
                     activeChannel={activeChannel}
                 />
             </div>
+
+            {/* Panel Lateral Desktop */}
+            <ChatSidebar
+                onlineUsers={onlineUsers}
+                recentEvents={recentCosmicEvents}
+                channelStats={channelStats}
+            />
 
             <AnimatePresence>
                 {selectedProfile && <HoloCard key="holocard" profile={selectedProfile} onClose={() => setSelectedProfile(null)} />}

@@ -3,8 +3,10 @@ import { motion } from 'framer-motion';
 import { useAuthContext } from '../contexts/AuthContext';
 import ActivityFeed from '../components/Social/ActivityFeed';
 import PostComposer from '../components/Social/PostComposer';
+import ChatActivityCard from '../components/Social/ChatActivityCard';
+import GlobalChatPreview from '../components/Social/GlobalChatPreview';
 import { CATEGORIES } from '../constants/categories';
-import { Globe } from 'lucide-react';
+import { Globe, MessageSquare } from 'lucide-react';
 
 export default function PostsPage() {
   const { user } = useAuthContext();
@@ -73,6 +75,12 @@ export default function PostsPage() {
           </button>
         ))}
       </motion.div>
+
+      {/* Activity Integration: Global Chat */}
+      <div className="px-4 md:px-0 mb-6">
+        <GlobalChatPreview />
+        <ChatActivityCard />
+      </div>
 
       {/* Feed */}
       <ActivityFeed filter="all" category={activeCategory === 'all' ? null : activeCategory} />

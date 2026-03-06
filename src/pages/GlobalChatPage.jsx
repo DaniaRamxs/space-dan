@@ -8,10 +8,10 @@ const isNative = Capacitor.isNativePlatform();
 
 export default function GlobalChatPage() {
     return (
-        <main className={`w-full max-w-4xl mx-auto text-white font-sans flex flex-col overflow-hidden
+        <main className={`w-full max-w-7xl mx-auto text-white font-sans flex flex-col overflow-hidden
             ${isNative
                 ? 'h-full pt-0 px-0'
-                : 'h-[calc(100vh-120px)] pt-4 md:pt-8 px-0 md:px-4'
+                : 'h-[calc(100vh-80px)] md:py-8 px-0 md:px-6'
             }`}
         >
             {/* Botón de vuelta — solo en web */}
