@@ -58,6 +58,7 @@ const ShopPage = lazy(() => import("./pages/ShopPage"));
 const ProfileRedesign = lazy(() => import("./pages/Profile/ProfileRedesign"));
 const BlogPostPage = lazy(() => import("./components/ProfileRedesign/BlogPostPage"));
 const SpotifyCallback = lazy(() => import("./pages/SpotifyCallback"));
+const InventoryPage = lazy(() => import("./pages/InventoryPage"));
 
 const ProfileOwn = lazy(() => import("./pages/Profile/ProfileOwn"));
 const ProfilePublic = lazy(() => import("./pages/Profile/ProfilePublic"));
@@ -112,7 +113,7 @@ function DomainGuard() {
 
 const ALL_PAGES = ['/bulletin', '/posts', '/music', '/games', '/galeria',
   '/watchlist', '/desktop', '/timecapsule', '/guestbook', '/proyectos', '/arquitectura',
-  '/kinnies', '/tests', '/universo', '/dreamscape', '/logros', '/tienda', '/profile', '/leaderboard', '/cabina', '/cartas', '/cofre', '/foco', '/chat', '/blog', '/mapa-estelar'];
+  '/kinnies', '/tests', '/universo', '/dreamscape', '/logros', '/tienda', '/inventario', '/profile', '/leaderboard', '/cabina', '/cartas', '/cofre', '/foco', '/chat', '/blog', '/mapa-estelar'];
 
 function PageTracker() {
   const location = useLocation();
@@ -358,6 +359,7 @@ function AnimatedRoutes() {
         <Route path="/proyectos" element={<Layout><ProjectsPage /></Layout>} />
         <Route path="/profile/logros" element={<Layout><AchievementsPage /></Layout>} />
         <Route path="/tienda" element={<Layout><ShopPage /></Layout>} />
+        <Route path="/inventario" element={<Layout><InventoryPage /></Layout>} />
         <Route path="/cabina" element={<Layout><SpaceCabinPage /></Layout>} />
         <Route path="/banco" element={<Layout><BankPage /></Layout>} />
         <Route path="/mercado-negro" element={<BlackMarketPage />} />

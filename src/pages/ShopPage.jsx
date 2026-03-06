@@ -296,14 +296,24 @@ export default function ShopPage() {
               </div>
             </div>
 
-            <button
-              onClick={() => navigate('/tienda-galactica')}
-              className="group flex items-center gap-4 px-8 py-4 bg-white text-black rounded-2xl text-[11px] font-black uppercase tracking-widest hover:bg-cyan-400 transition-all shadow-[0_10px_30px_-10px_rgba(255,255,255,0.3)] relative z-10"
-            >
-              <ReloadIcon size={16} />
-              Recargar Starlys
-              <ChevronRight size={16} className="group-hover:translate-x-1 transition-transform" />
-            </button>
+            <div className="flex flex-wrap justify-center gap-4 relative z-10">
+              <button
+                onClick={() => navigate('/tienda-galactica')}
+                className="group flex items-center gap-4 px-8 py-4 bg-white text-black rounded-2xl text-[11px] font-black uppercase tracking-widest hover:bg-cyan-400 transition-all shadow-[0_10px_30px_-10px_rgba(255,255,255,0.3)]"
+              >
+                <ReloadIcon size={16} />
+                Recargar Starlys
+              </button>
+
+              <button
+                onClick={() => navigate('/inventario')}
+                className="group flex items-center gap-4 px-8 py-4 bg-purple-500/10 border border-purple-500/30 text-purple-200 rounded-2xl text-[11px] font-black uppercase tracking-widest hover:bg-purple-500/20 hover:border-purple-500/60 transition-all shadow-[0_10px_30px_-10px_rgba(168,85,247,0.2)]"
+              >
+                <Layout size={16} className="text-purple-400" />
+                Mi Inventario
+                <ChevronRight size={16} className="group-hover:translate-x-1 transition-transform opacity-50" />
+              </button>
+            </div>
           </div>
         </div>
 
