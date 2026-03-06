@@ -5,6 +5,7 @@ import { Sparkles, MessageSquare, Rocket, Shield, Star, ChevronRight, CheckCircl
 import { supabase } from '../../supabaseClient';
 import { useAuthContext } from '../../contexts/AuthContext';
 import { useEconomy } from '../../contexts/EconomyContext';
+import { useCosmic } from '../Effects/CosmicProvider';
 
 const STEPS = [
     {
@@ -37,6 +38,7 @@ export default function StellarOnboarding() {
     const { user, profile } = useAuthContext();
     const location = useLocation();
     const { refreshEconomy } = useEconomy();
+    const { triggerBigBang } = useCosmic();
     const [step, setStep] = useState(0);
     const [isVisible, setIsVisible] = useState(false);
 
@@ -59,6 +61,8 @@ export default function StellarOnboarding() {
                 if (data?.success) {
                     refreshEconomy?.();
                     setIsVisible(false);
+                    // Trigger Big Bang Effect
+                    triggerBigBang();
                 }
             } catch (e) {
                 setIsVisible(false);

@@ -1,4 +1,4 @@
--- ============================================================
+﻿-- ============================================================
 -- sync_items_v2.sql :: Sincronización Total de Catálogo
 -- ============================================================
 
@@ -8,7 +8,7 @@ BEGIN
     ALTER TABLE public.store_items DROP CONSTRAINT IF EXISTS store_items_category_check;
     ALTER TABLE public.store_items ADD CONSTRAINT store_items_category_check 
     CHECK (category IN (
-        'banner', 'frame', 'pet_accessory', 'cursor', 'theme', 'screensaver', 'stars', 'radio',
+        'banner', 'frame', 'pet_accessory', 'cursor', 'theme', 'stars', 'radio',
         'nickname_style', 'profile_theme', 'role', 'ambient_sound'
     ));
 END $$;
@@ -23,11 +23,6 @@ VALUES
 ('cursor_rainbow', 'cursor', 'Trail Arcoíris', 'Todos los colores a la vez', 200, 'epic', '🌈', '{"rainbow": true}'),
 ('cursor_pink', 'cursor', 'Trail Magenta', 'Partículas rosa eléctrico', 60, 'common', '🩷', '{"colors": ["#ff69b4", "#ff1493"]}'),
 ('cursor_white', 'cursor', 'Trail Blanco', 'Partículas blanco puro y suave', 45, 'common', '🤍', '{"colors": ["#f0f0f0", "#c0c0c0"]}'),
-
--- SCREENSAVERS
-('saver_matrix', 'screensaver', 'Matrix Rain', 'Lluvia de código verde', 100, 'rare', '🟩', '{}'),
-('saver_dvd', 'screensaver', 'DVD Bounce', 'Logo clásico rebotando', 80, 'common', '📀', '{}'),
-('saver_pipes', 'screensaver', 'Tuberías 3D', 'Clásico Windows 95/98', 120, 'rare', '🔧', '{}'),
 
 -- ESTRELLAS
 ('stars_blue', 'stars', 'Nebulosa Azul', 'Fondo estelar azul profundo', 80, 'common', '🔵', '{"colors": ["#64b4ff", "#0096ff"]}'),

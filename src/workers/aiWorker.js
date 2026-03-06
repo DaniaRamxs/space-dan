@@ -1,6 +1,4 @@
 /* eslint-disable no-restricted-globals */
-import { calculateConnect4Move } from '../engine/connect4Minimax.js';
-import { calculateTicTacToeMove } from '../engine/tictactoeMinimax.js';
 
 // Módulo: AI Execution Layer (Web Worker Despachador)
 // Implementado en Modo Contingencia por Ingeniero IA
@@ -23,18 +21,18 @@ self.onmessage = async function (e) {
             } = payload;
 
             let move = null;
-
-            // Creamos un AbortSignal ficticio para pasarle a la función
-            // dado que el worker se matará en caso de cancelarse (vía worker.terminate).
-            // Aún así proveemos interfaz standard. Este booleano simula una señal.
             const signalSimulada = { aborted: false };
 
+            // Usamos imports dinámicos para que Vite los gestione como chunks y 
+            // podamos capturar errores de carga en producción (Vercel).
             if (gameType === 'connect4') {
+                const { calculateConnect4Move } = await import('../engine/connect4Minimax.js');
                 move = await calculateConnect4Move(engineState, isFastMode, signalSimulada);
             } else if (gameType === 'tictactoe') {
+                const { calculateTicTacToeMove } = await import('../engine/tictactoeMinimax.js');
                 move = await calculateTicTacToeMove(engineState, isFastMode, signalSimulada);
             } else {
-                throw new Error('Juego no soportado por IA');
+                throw new Error(`Juego '${gameType}' no soportado por IA`);
             }
 
             self.postMessage({
@@ -44,6 +42,7 @@ self.onmessage = async function (e) {
             });
         }
     } catch (error) {
+        console.error('[Worker Thread] Error en cálculo:', error);
         self.postMessage({
             type: 'CALCULATE_MOVE_ERROR',
             messageId,

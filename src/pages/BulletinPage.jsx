@@ -116,6 +116,7 @@ const bulletinPosts = [
   { id: 116, date: "2026-03-04", title: "Protocolo de Auditoría e Impuestos 🛡️", text: "Implementamos el Impuesto Magnate (2%) para movimientos de gran volumen y el sistema de Auditorías Bancarias. Además, los magnates ahora tienen límites de transferencia ultra-extendidos de hasta 50M ◈.", tags: ["update", "seguridad", "economía"] },
   { id: 117, date: "2026-03-05", title: "Rediseño de Economía de Tienda 📉📈", text: "Reescalamos todos los precios de la Tienda de Spacely para adaptarnos a los estándares actuales de Starlys. Los ítems cosméticos ahora siguen una progresión de precio justa, desde básicos en decenas de miles hasta míticos por 15 Millones. También ajustamos los retornos de reciclaje de cofres para asegurar que seguir probando suerte (Gacha) sea rentable incluso si te tocan artículos repetidos.", tags: ["update", "economía", "gamificación"] },
   { id: 118, date: "2026-03-05", title: "Fix: Errores Visuales en Colección", text: "Se resolvió el error 400 Bad Request que aparecía en la sección de 'Colección' de los perfiles públicos. La incongruencia de atributos en la base de datos se depuró para una respuesta ágil y limpia del servidor.", tags: ["fix", "performance"] },
+  { id: 119, date: "2026-03-06", title: "Retiro definitivo de Screensaver", text: "El sistema de screensaver fue eliminado por completo de la app web y de Android. Tambien se retiraron sus referencias del catalogo de tienda y sincronizaciones para que no vuelva a activarse.", tags: ["update", "fix", "mobile"] },
 ];
 
 const PAGE_SIZE = 10;
@@ -344,3 +345,5 @@ export default function BulletinPage() {
     </main>
   );
 }
+
+

@@ -47,7 +47,7 @@
         },
         {
           "key": "Content-Security-Policy",
-          "value": "default-src 'self' data: https: wss: 'unsafe-inline' 'unsafe-eval'; img-src 'self' data: https: blob:; media-src 'self' https: data: blob:; worker-src 'self' blob:; child-src 'self' blob:; frame-src 'self' https:;"
+          "value": "default-src 'self' data: https: wss: 'unsafe-inline' 'unsafe-eval'; img-src 'self' data: https: blob:; media-src 'self' https: data: blob:; worker-src 'self' blob: data:; child-src 'self' blob: data:; frame-src 'self' https:;"
         },
         {
           "key": "Strict-Transport-Security",

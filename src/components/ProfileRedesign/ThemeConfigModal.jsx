@@ -17,6 +17,12 @@ export const ThemeConfigModal = ({ isOpen, onClose, userId, currentTheme, curren
     const [moodEmoji, setMoodEmoji] = useState(currentProfile?.mood_emoji || '✨');
     const [moodText, setMoodText] = useState(currentProfile?.mood_text || '');
     const [bio, setBio] = useState(currentProfile?.bio || '');
+    const [interests, setInterests] = useState(currentProfile?.interests || [
+        { icon: '🎮', label: 'Gaming' },
+        { icon: '🎵', label: 'Música' },
+        { icon: '🚀', label: 'Espacio' },
+        { icon: '🌌', label: 'Exploración' }
+    ]);
     const [saving, setSaving] = useState(false);
     const [uploadingGallery, setUploadingGallery] = useState(false);
     const [uploadingBanner, setUploadingBanner] = useState(false);
@@ -45,7 +51,7 @@ export const ThemeConfigModal = ({ isOpen, onClose, userId, currentTheme, curren
             await Promise.all([
                 newProfileService.updateProfileTheme(theme),
                 newProfileService.updateProfileBlocks(blocks),
-                newProfileService.updateProfile({ bio }),
+                newProfileService.updateProfile({ bio, interests }),
                 supabase.rpc('set_user_mood', {
                     p_text: moodText,
                     p_emoji: moodEmoji,
@@ -181,6 +187,12 @@ export const ThemeConfigModal = ({ isOpen, onClose, userId, currentTheme, curren
             } else {
                 setMoodText(prev => prev + gifMd);
             }
+        } else if (id === 'interests_orbit') {
+            setInterests(prev => {
+                const newI = [...prev];
+                newI[type] = { ...newI[type], icon: gifUrl };
+                return newI;
+            });
         } else {
             setBlocks(blocks.map(bl => {
                 if (bl.block_type === id) {
@@ -422,6 +434,76 @@ export const ThemeConfigModal = ({ isOpen, onClose, userId, currentTheme, curren
                                         disabled={uploadingBanner}
                                     />
                                 </label>
+                            )}
+                        </div>
+                    </section>
+
+                    {/* Órbitas de Intereses */}
+                    <section className="space-y-6">
+                        <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-cyan-400 italic flex items-center gap-2">
+                            <span className="w-1.5 h-1.5 rounded-full bg-cyan-500 shadow-[0_0_10px_rgba(6,182,212,1)]" />
+                            Órbitas de Intereses (Satélites)
+                        </h3>
+                        <div className="bg-white/[0.02] border border-white/5 rounded-[2rem] p-6 space-y-6">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                {interests.map((interest, idx) => (
+                                    <div key={idx} className="bg-black/40 border border-white/10 rounded-2xl p-4 flex gap-4 items-center group relative">
+                                        <div className="w-12 h-12 bg-white/5 rounded-xl flex items-center justify-center shrink-0 overflow-hidden border border-white/5 group-hover:border-white/20 transition-all">
+                                            {interest.icon?.startsWith('http') ? (
+                                                <img src={interest.icon} className="w-full h-full object-cover" alt="" />
+                                            ) : (
+                                                <span className="text-xl">{interest.icon || '✨'}</span>
+                                            )}
+                                        </div>
+                                        <div className="flex-1 space-y-2">
+                                            <input
+                                                type="text"
+                                                value={interest.label}
+                                                onChange={e => {
+                                                    const newI = [...interests];
+                                                    newI[idx].label = e.target.value;
+                                                    setInterests(newI);
+                                                }}
+                                                placeholder="Etiqueta..."
+                                                className="w-full bg-transparent border-none text-[10px] font-black uppercase italic text-white outline-none placeholder:text-white/10"
+                                            />
+                                            <div className="flex gap-2">
+                                                <input
+                                                    type="text"
+                                                    value={interest.icon}
+                                                    onChange={e => {
+                                                        const newI = [...interests];
+                                                        newI[idx].icon = e.target.value;
+                                                        setInterests(newI);
+                                                    }}
+                                                    placeholder="Icono o URL..."
+                                                    className="flex-1 bg-white/5 border border-white/5 rounded-lg px-2 py-1 text-[9px] text-white/40 outline-none focus:border-cyan-500 focus:text-white transition-all"
+                                                />
+                                                <button
+                                                    onClick={() => { setShowGiphy(true); setActiveGifField({ id: 'interests_orbit', type: idx }); }}
+                                                    className="bg-cyan-500/10 text-cyan-400 text-[8px] px-2 py-1 rounded-lg hover:bg-cyan-500/20"
+                                                >
+                                                    GIF
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <button
+                                            onClick={() => setInterests(interests.filter((_, i) => i !== idx))}
+                                            className="absolute top-2 right-2 p-1 text-white/10 hover:text-red-400 transition-colors"
+                                        >
+                                            ✕
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
+
+                            {interests.length < 8 && (
+                                <button
+                                    onClick={() => setInterests([...interests, { icon: '✨', label: 'Nuevo Interés' }])}
+                                    className="w-full py-3 bg-white/5 border border-dashed border-white/10 rounded-2xl text-[9px] font-black uppercase tracking-widest text-white/30 hover:bg-white/10 hover:text-white hover:border-white/20 transition-all"
+                                >
+                                    ＋ Añadir nuevo satélite
+                                </button>
                             )}
                         </div>
                     </section>

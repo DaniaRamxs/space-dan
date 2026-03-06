@@ -4,6 +4,7 @@ import { getFrameStyle } from '../../utils/styles';
 import { getUserDisplayName, getNicknameClass } from '../../utils/user';
 import { useAuthContext } from '../../contexts/AuthContext';
 import { useState, useEffect } from 'react';
+import OrbitingInterests from '../Effects/OrbitingInterests';
 
 // --- Partículas estelares para la entrada ---
 const StarParticles = () => (
@@ -33,6 +34,8 @@ const StarParticles = () => (
         ))}
     </div>
 );
+
+const isMobile = () => typeof window !== 'undefined' && window.innerWidth < 768;
 
 export const ProfileHeader = ({ profile, theme, isOwn, isFollowing, onFollow, onEdit, stats, onStar, onEcho }) => {
     const { logout } = useAuthContext();
@@ -106,6 +109,17 @@ export const ProfileHeader = ({ profile, theme, isOwn, isFollowing, onFollow, on
                 {/* Avatar Planetario */}
                 <div className="relative mb-6">
                     <StarParticles />
+
+                    {/* Intereses Orbitando */}
+                    <OrbitingInterests
+                        avatarSize={isMobile() ? 144 : 176}
+                        interests={profile.interests || [
+                            { icon: '🎮', label: 'Gaming' },
+                            { icon: '🎵', label: 'Música' },
+                            { icon: '🚀', label: 'Espacio' },
+                            { icon: '🌌', label: 'Exploración' }
+                        ]}
+                    />
 
                     {/* Halo Luminoso */}
                     <motion.div

@@ -1,4 +1,4 @@
--- ============================================================
+﻿-- ============================================================
 -- space-dan :: Store Items Seed
 -- Migra los items existentes de useShopItems.js a la DB
 -- + Nuevos items: banners, frames, pet accessories
@@ -27,16 +27,6 @@ VALUES
 
 ('cursor_rainbow', 'cursor', 'Trail Arcoíris', 'Todos los colores a la vez',      200, 'epic',      '🌈',
  '{"rainbow": true}', 15),
-
--- ── SCREENSAVERS (existentes) ───────────────────────────────
-('saver_dvd',      'screensaver', 'DVD Bounce',  'Logo clásico rebotando',        80,  'common',    '📀',
- '{}', 20),
-
-('saver_matrix',   'screensaver', 'Matrix Rain', 'Lluvia de código verde',        100, 'rare',      '🟩',
- '{}', 21),
-
-('saver_pipes',    'screensaver', 'Tuberías 3D', 'Clásico Windows 95/98',         120, 'rare',      '🔧',
- '{}', 22),
 
 -- ── ESTRELLAS (existentes) ──────────────────────────────────
 ('stars_blue',     'stars', 'Nebulosa Azul',     'Fondo estelar azul profundo',   80,  'common',    '🔵',

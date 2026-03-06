@@ -122,7 +122,7 @@ const TREE = {
   sub: "BrowserRouter + Suspense",
   children: [
     { label: "AchievementToast", sub: "Notificaciones logros" },
-    { label: "Screensaver", sub: "30s inactividad" },
+    { label: "PageTracker", sub: "Tracking de visitas y logros" },
     { label: "Wpage", sub: "Landing page" },
     {
       label: "GardenLayout",

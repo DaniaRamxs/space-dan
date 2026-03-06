@@ -3,11 +3,13 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useLocation } from 'react-router-dom';
 import { cosmicEventsService } from '../../services/cosmicEventsService';
 import { Zap, Timer, Info } from 'lucide-react';
+import { useCosmic } from '../Effects/CosmicProvider';
 
 export default function CosmicEventBanner() {
     const location = useLocation();
     const [event, setEvent] = useState(null);
     const [timeLeft, setTimeLeft] = useState('');
+    const { toggleStarRain } = useCosmic();
 
     useEffect(() => {
         // No mostrar en perfiles individuales para mantener inmersión total
@@ -26,8 +28,19 @@ export default function CosmicEventBanner() {
 
         checkEvent();
         const interval = setInterval(checkEvent, 30000); // Check every 30s
-        return () => clearInterval(interval);
-    }, [location.pathname]);
+        return () => {
+            clearInterval(interval);
+            toggleStarRain(false);
+        };
+    }, [location.pathname, toggleStarRain]);
+
+    useEffect(() => {
+        if (event) {
+            toggleStarRain(true);
+        } else {
+            toggleStarRain(false);
+        }
+    }, [event, toggleStarRain]);
 
     useEffect(() => {
         if (!event || !event.expires_at) return;

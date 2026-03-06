@@ -20,12 +20,19 @@ export default function ReactionsBar({ post, onUpdate }) {
     const metadata = post.reactions_metadata || { total_count: 0, top_reactions: [], user_reaction: null };
     const total = parseInt(metadata.total_count) || 0;
 
-    const handleReact = useCallback((type) => {
+    const handleReact = useCallback((type, event) => {
+        const isAdding = metadata.user_reaction !== type;
         toggleReaction(type);
         setShowPicker(false);
+
+        if (isAdding && window.triggerLikeStar && event) {
+            const rect = event.currentTarget.getBoundingClientRect();
+            if (window.triggerLikeStar) window.triggerLikeStar(rect, 'starlys-counter', REACTION_CONFIG[type]?.icon || '✨');
+        }
+
         setShowParticles(true);
         setTimeout(() => setShowParticles(false), 800);
-    }, [toggleReaction]);
+    }, [toggleReaction, metadata.user_reaction]);
 
     return (
         <>
@@ -79,7 +86,7 @@ export default function ReactionsBar({ post, onUpdate }) {
                                             key={type}
                                             whileHover={{ scale: 1.2, y: -4 }}
                                             whileTap={{ scale: 0.8 }}
-                                            onClick={() => handleReact(type)}
+                                            onClick={(e) => handleReact(type, e)}
                                             className={`p-2 rounded-xl transition-all relative group flex justify-center items-center ${isActive ? 'bg-white/10' : 'hover:bg-white/5'}`}
                                         >
                                             <span className={`text-lg ${isActive ? '' : 'filter grayscale opacity-60 group-hover:filter-none group-hover:opacity-100'}`}>

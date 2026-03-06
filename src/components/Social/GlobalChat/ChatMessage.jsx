@@ -216,10 +216,15 @@ const ChatMessage = memo(({ message, isMe, isOnline, userPresence, onProfileClic
                             <span className="text-[11px]">↩️</span>
                         </button>
                         <button
+                            onClick={(e) => {
+                                if (window.triggerLikeStar) {
+                                    window.triggerLikeStar(e.currentTarget.getBoundingClientRect(), 'starlys-counter', '❤️');
+                                }
+                            }}
                             className="p-2 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all"
                             title="Reaccionar"
                         >
-                            <span className="text-[11px]">⚡</span>
+                            <span className="text-[11px]">❤️</span>
                         </button>
                         <button
                             onClick={handleCopy}

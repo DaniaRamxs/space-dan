@@ -11,7 +11,15 @@ export default function LikeButton({ postId }) {
   return (
     <button
       className={`likeBtn${liked ? ' liked' : ''}`}
-      onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggle(); }}
+      onClick={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (!liked) {
+          const rect = e.currentTarget.getBoundingClientRect();
+          if (window.triggerLikeStar) window.triggerLikeStar(rect, 'starlys-counter', '❤️');
+        }
+        toggle();
+      }}
       aria-label={liked ? 'quitar like' : 'dar like'}
       title={liked ? 'quitar like' : 'dar like'}
     >

@@ -7,6 +7,9 @@ export default defineConfig(({ mode }) => {
 
   return {
     plugins: [react()],
+    worker: {
+      format: 'es',
+    },
     build: {
       // Reducir warnings de chunk size
       chunkSizeWarningLimit: 800,

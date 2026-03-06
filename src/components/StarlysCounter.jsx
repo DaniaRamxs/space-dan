@@ -36,7 +36,7 @@ export default function StarlysCounter({ value, className }) {
     }, [value]);
 
     return (
-        <div className={`relative inline-flex items-center ${className} font-mono`}>
+        <div id="starlys-counter" className={`relative inline-flex items-center ${className} font-mono`}>
             <motion.span
                 key={value}
                 initial={{ opacity: 0.5, y: 5 }}

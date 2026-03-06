@@ -29,7 +29,7 @@ CREATE TABLE IF NOT EXISTS public.store_items (
   id              text        PRIMARY KEY,
   category        text        NOT NULL CHECK (category IN (
                     'banner', 'frame', 'pet_accessory',
-                    'cursor', 'theme', 'screensaver', 'stars', 'radio'
+                    'cursor', 'theme', 'stars', 'radio'
                   )),
   title           text        NOT NULL,
   description     text,
@@ -1184,3 +1184,4 @@ BEGIN
   RETURN jsonb_build_object('success', true, 'migrated', p_amount, 'balance', v_new_balance);
 END;
 $$;
+

@@ -15,32 +15,56 @@ import { useRef, useCallback, useEffect } from 'react';
  */
 export function useAIWorker(gameType, engineState) {
     const workerRef = useRef(null);
-    const pendingRef = useRef(null); // Guarda { resolve, reject } temporalmente
+    const pendingRef = useRef(null);
 
-    // Inicializar Worker de manera segura (solo corre en cliente)
-    useEffect(() => {
-        if (typeof window !== 'undefined') {
-            // Nota: Asumiendo Vite/Webpack, new Worker(new URL(...), { type: 'module' })
-            // Se utiliza fallback de script directo para el entorno de este proyecto
-            workerRef.current = new window.Worker(new URL('../workers/aiWorker.js', import.meta.url), { type: 'module' });
+    // Función centralizada para inicializar el worker con sus listeners
+    const initWorker = useCallback(() => {
+        if (workerRef.current) {
+            workerRef.current.terminate();
+        }
+
+        try {
+            // Nota para el compilador de Vite: No usar variables para la URL, debe ser un literal 
+            // para que detecte el worker como un entry point de bundle.
+            workerRef.current = new Worker(
+                new URL('../workers/aiWorker.js', import.meta.url),
+                { type: 'module' }
+            );
 
             workerRef.current.onmessage = (e) => {
-                const { type, move, error } = e.data;
-
+                const { type, move, error: workerError } = e.data;
                 if (pendingRef.current) {
                     if (type === 'CALCULATE_MOVE_SUCCESS') {
                         pendingRef.current.resolve(move);
                     } else if (type === 'CALCULATE_MOVE_ERROR') {
-                        pendingRef.current.reject(new Error(error));
+                        console.error('[AI Worker] Error en lógica de IA:', workerError);
+                        pendingRef.current.reject(new Error(workerError));
                     }
                     pendingRef.current = null;
                 }
             };
+
+            workerRef.current.onerror = (err) => {
+                console.error('[AI Worker] Error de carga o ejecución (onerror):', err);
+                if (pendingRef.current) {
+                    pendingRef.current.reject(new Error('WorkerLoadError'));
+                    pendingRef.current = null;
+                }
+            };
+        } catch (e) {
+            console.error('[AI Worker] Error crítico al instanciar Worker:', e);
+        }
+    }, []);
+
+    // Inicializar al montar
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            initWorker();
         }
 
         return () => {
             if (workerRef.current) {
-                workerRef.current.terminate(); // Kill brutal de seguridad al desmontar
+                workerRef.current.terminate();
                 workerRef.current = null;
             }
             if (pendingRef.current) {
@@ -48,42 +72,24 @@ export function useAIWorker(gameType, engineState) {
                 pendingRef.current = null;
             }
         };
-    }, []);
+    }, [initWorker]);
 
     /**
      * Función a ser inyectada en useAIOrchestrator
      */
     const calculateMove = useCallback(async ({ signal, isFastMode }) => {
         if (!workerRef.current) {
-            throw new Error('Worker no inicializado');
+            initWorker();
+            if (!workerRef.current) throw new Error('Worker no disponible');
         }
 
         return new Promise((resolve, reject) => {
-            // 1. Manejo inmediato si ya venía abortado
             if (signal?.aborted) {
                 return reject(new DOMException(signal.reason || 'Aborted', 'AbortError'));
             }
 
-            // 2. Escuchar la cancelación enviada por el Orchestrator
             const abortHandler = () => {
-                // En un worker nativo, la forma más agresiva y segura de parar computo pesado 
-                // bloqueante (un while true infinito en el worker) es terminar el thread
-                // y levantar uno nuevo.
-                if (workerRef.current) {
-                    workerRef.current.terminate();
-                    // Revivir el worker para el siguiente uso
-                    workerRef.current = new window.Worker(new URL('../workers/aiWorker.js', import.meta.url), { type: 'module' });
-
-                    // Re-enganchar listeners al nuevo thread
-                    workerRef.current.onmessage = (e) => {
-                        const { type, move: rMove, error } = e.data;
-                        if (pendingRef.current) {
-                            if (type === 'CALCULATE_MOVE_SUCCESS') pendingRef.current.resolve(rMove);
-                            else if (type === 'CALCULATE_MOVE_ERROR') pendingRef.current.reject(new Error(error));
-                            pendingRef.current = null;
-                        }
-                    };
-                }
+                initWorker();
                 reject(new DOMException(signal.reason || 'Aborted', 'AbortError'));
                 pendingRef.current = null;
             };
@@ -92,7 +98,6 @@ export function useAIWorker(gameType, engineState) {
                 signal.addEventListener('abort', abortHandler, { once: true });
             }
 
-            // 3. Wrapper del resolver para remover el listener y evitar memory leaks
             const safeResolve = (val) => {
                 if (signal) signal.removeEventListener('abort', abortHandler);
                 resolve(val);
@@ -103,14 +108,12 @@ export function useAIWorker(gameType, engineState) {
                 reject(err);
             };
 
-            // Si ya había algo corriendo malamente, lo sobre-escribimos cancelándolo
             if (pendingRef.current) {
-                pendingRef.current.reject(new Error('OverwrittenByNewRequest'));
+                pendingRef.current = null;
             }
 
             pendingRef.current = { resolve: safeResolve, reject: safeReject };
 
-            // 4. Despachar tarea al Thread del Worker
             workerRef.current.postMessage({
                 type: 'CALCULATE_MOVE',
                 messageId: Date.now(),
@@ -120,8 +123,17 @@ export function useAIWorker(gameType, engineState) {
                     isFastMode
                 }
             });
+
+            // Timeout de 12 segundos (un poco más que el soft timeout del juego)
+            setTimeout(() => {
+                if (pendingRef.current?.resolve === safeResolve) {
+                    console.warn('[AI Worker] Timeout alcanzado sin respuesta.');
+                    safeReject(new Error('WorkerTimeout'));
+                    pendingRef.current = null;
+                }
+            }, 12000);
         });
-    }, [gameType, engineState]);
+    }, [gameType, engineState, initWorker]);
 
     return { calculateMove };
 }

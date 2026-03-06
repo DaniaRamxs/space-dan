@@ -1,11 +1,12 @@
 import { useEffect, useState, useRef } from 'react';
+import { animate } from 'animejs';
 
 const DURATION = 4000;
 
 export default function AchievementToast() {
-  const [queue, setQueue]     = useState([]);
+  const [queue, setQueue] = useState([]);
   const [visible, setVisible] = useState(null);
-  const timerRef              = useRef(null);
+  const timerRef = useRef(null);
 
   // Listen for achievement unlocks
   useEffect(() => {
@@ -29,6 +30,25 @@ export default function AchievementToast() {
     const [next, ...rest] = queue;
     setQueue(rest);
     setVisible(next);
+
+    // Animation Effect
+    setTimeout(() => {
+      animate('.achievementToast', {
+        scale: [0.5, 1],
+        opacity: [0, 1],
+        translateY: [20, 0],
+        duration: 800,
+        easing: 'outElastic(1, .6)'
+      });
+
+      animate('.achToastIcon', {
+        rotate: '1turn',
+        scale: [0, 1.2, 1],
+        duration: 1000,
+        easing: 'outExpo'
+      });
+    }, 10);
+
     timerRef.current = setTimeout(dismiss, DURATION);
     return () => clearTimeout(timerRef.current);
   }, [queue, visible]);

@@ -6,7 +6,6 @@ import "./styles.css";
 import "./banner-effects.css";
 import "./styles/NicknameStyles.css";
 import AchievementToast from "./components/AchievementToast";
-import Screensaver from "./components/Screensaver";
 import BlackMarketNotification from "./components/Social/BlackMarketNotification";
 import StellarOnboarding from "./components/Social/StellarOnboarding";
 import StellarCalendar from "./components/Social/StellarCalendar";
@@ -27,6 +26,7 @@ import WelcomeExperience from "./components/WelcomeExperience";
 import StarfieldBg from "./components/StarfieldBg";
 import ClickRipple from "./components/ClickRipple";
 import ActivityRadar from "./components/ActivityRadar";
+import { CosmicProvider, useCosmic } from "./components/Effects/CosmicProvider";
 
 const PostsPage = lazy(() => import("./pages/PostsPage"));
 const CreatePostPage = lazy(() => import("./pages/CreatePostPage"));
@@ -119,7 +119,12 @@ const ALL_PAGES = ['/bulletin', '/posts', '/music', '/games', '/galeria',
 function PageTracker() {
   const location = useLocation();
   const { awardCoins } = useEconomy();
+  const { triggerWarp } = useCosmic();
+
   useEffect(() => {
+    // Trigger Warp Effect on navigation
+    triggerWarp();
+
     const path = location.pathname;
     // Track visit & award coins via Supabase on first visit (no-op for guests)
     const { isNew, total } = trackPageVisit(path);
@@ -447,29 +452,30 @@ export default function App() {
     <AuthProvider>
       <EconomyProvider>
         <UniverseProvider>
-          <BrowserRouter>
-            <DomainGuard />
-            <DarkSideManager />
-            <div className="scanline-overlay opacity-[0.03] fixed inset-0 pointer-events-none z-[99999]" />
-            <AchievementToast />
-            <Screensaver />
-            <PageTracker />
-            <ScrollToTop />
-            <StarfieldBg />
-            <ClickRipple />
-            <ActivityRadar />
-            <WelcomeExperience />
-            <CosmicEventBanner />
-            <PresenceTracker />
-            <MusicSyncTracker />
-            <BlackMarketNotification />
-            <StellarOnboarding />
-            <RedemptionInvite />
-            <TycoonInvite />
-            <Suspense fallback={<FallbackLoader />}>
-              <AnimatedRoutes />
-            </Suspense>
-          </BrowserRouter>
+          <CosmicProvider>
+            <BrowserRouter>
+              <DomainGuard />
+              <DarkSideManager />
+              <div className="scanline-overlay opacity-[0.03] fixed inset-0 pointer-events-none z-[99999]" />
+              <AchievementToast />
+              <PageTracker />
+              <ScrollToTop />
+              <StarfieldBg />
+              <ClickRipple />
+              <ActivityRadar />
+              <WelcomeExperience />
+              <CosmicEventBanner />
+              <PresenceTracker />
+              <MusicSyncTracker />
+              <BlackMarketNotification />
+              <StellarOnboarding />
+              <RedemptionInvite />
+              <TycoonInvite />
+              <Suspense fallback={<FallbackLoader />}>
+                <AnimatedRoutes />
+              </Suspense>
+            </BrowserRouter>
+          </CosmicProvider>
         </UniverseProvider>
       </EconomyProvider>
     </AuthProvider>

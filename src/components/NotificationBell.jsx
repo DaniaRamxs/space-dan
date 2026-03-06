@@ -15,29 +15,30 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Bell, AtSign, Users, Trophy, Settings, X, CheckCheck, Trash2 } from 'lucide-react';
+import SatelliteNotification from './Effects/SatelliteNotification';
 
 // ── Configuración de tipos ────────────────────────────────────────────────────
 const NOTIF_CONFIG = {
-    achievement:         { icon: '🏆', color: 'text-amber-400',  ring: 'ring-amber-400/30',  bg: 'bg-amber-400/10',  label: 'Logro',      href: '/profile/logros' },
-    record:              { icon: '🔥', color: 'text-orange-400', ring: 'ring-orange-400/30', bg: 'bg-orange-400/10', label: 'Récord',     href: '/profile/logros' },
-    letter:              { icon: '✉️', color: 'text-cyan-400',   ring: 'ring-cyan-400/30',   bg: 'bg-cyan-400/10',   label: 'Carta',      href: '/cartas' },
-    room_invite:         { icon: '🚪', color: 'text-purple-400', ring: 'ring-purple-400/30', bg: 'bg-purple-400/10', label: 'Sala',       href: null },
-    partnership_request: { icon: '✨', color: 'text-pink-400',   ring: 'ring-pink-400/30',   bg: 'bg-pink-400/10',   label: 'Vínculo',   href: null },
-    mention:             { icon: '@',  color: 'text-blue-400',   ring: 'ring-blue-400/30',   bg: 'bg-blue-400/10',   label: 'Mención',    href: '/chat' },
-    reaction:            { icon: '⚡', color: 'text-yellow-400', ring: 'ring-yellow-400/30', bg: 'bg-yellow-400/10', label: 'Reacción',   href: null },
-    repost:              { icon: '🔁', color: 'text-green-400',  ring: 'ring-green-400/30',  bg: 'bg-green-400/10',  label: 'Reposteo',  href: null },
-    quote:               { icon: '💬', color: 'text-indigo-400', ring: 'ring-indigo-400/30', bg: 'bg-indigo-400/10', label: 'Cita',       href: null },
-    comment:             { icon: '💭', color: 'text-teal-400',   ring: 'ring-teal-400/30',   bg: 'bg-teal-400/10',   label: 'Comentario', href: null },
-    follow:              { icon: '👤', color: 'text-rose-400',   ring: 'ring-rose-400/30',   bg: 'bg-rose-400/10',   label: 'Seguidor',   href: null },
-    system:              { icon: '⚙️', color: 'text-white/40',   ring: 'ring-white/10',      bg: 'bg-white/5',       label: 'Sistema',    href: null },
+    achievement: { icon: '🏆', color: 'text-amber-400', ring: 'ring-amber-400/30', bg: 'bg-amber-400/10', label: 'Logro', href: '/profile/logros' },
+    record: { icon: '🔥', color: 'text-orange-400', ring: 'ring-orange-400/30', bg: 'bg-orange-400/10', label: 'Récord', href: '/profile/logros' },
+    letter: { icon: '✉️', color: 'text-cyan-400', ring: 'ring-cyan-400/30', bg: 'bg-cyan-400/10', label: 'Carta', href: '/cartas' },
+    room_invite: { icon: '🚪', color: 'text-purple-400', ring: 'ring-purple-400/30', bg: 'bg-purple-400/10', label: 'Sala', href: null },
+    partnership_request: { icon: '✨', color: 'text-pink-400', ring: 'ring-pink-400/30', bg: 'bg-pink-400/10', label: 'Vínculo', href: null },
+    mention: { icon: '@', color: 'text-blue-400', ring: 'ring-blue-400/30', bg: 'bg-blue-400/10', label: 'Mención', href: '/chat' },
+    reaction: { icon: '⚡', color: 'text-yellow-400', ring: 'ring-yellow-400/30', bg: 'bg-yellow-400/10', label: 'Reacción', href: null },
+    repost: { icon: '🔁', color: 'text-green-400', ring: 'ring-green-400/30', bg: 'bg-green-400/10', label: 'Reposteo', href: null },
+    quote: { icon: '💬', color: 'text-indigo-400', ring: 'ring-indigo-400/30', bg: 'bg-indigo-400/10', label: 'Cita', href: null },
+    comment: { icon: '💭', color: 'text-teal-400', ring: 'ring-teal-400/30', bg: 'bg-teal-400/10', label: 'Comentario', href: null },
+    follow: { icon: '👤', color: 'text-rose-400', ring: 'ring-rose-400/30', bg: 'bg-rose-400/10', label: 'Seguidor', href: null },
+    system: { icon: '⚙️', color: 'text-white/40', ring: 'ring-white/10', bg: 'bg-white/5', label: 'Sistema', href: null },
 };
 
 const TABS = [
-    { id: 'all',      label: 'Todas',     Icon: Bell,     filter: null },
-    { id: 'mentions', label: 'Menciones', Icon: AtSign,   filter: ['mention'] },
-    { id: 'social',   label: 'Social',    Icon: Users,    filter: ['reaction', 'repost', 'quote', 'comment', 'letter', 'partnership_request', 'follow'] },
-    { id: 'logros',   label: 'Logros',    Icon: Trophy,   filter: ['achievement', 'record'] },
-    { id: 'sistema',  label: 'Sistema',   Icon: Settings, filter: ['system', 'room_invite'] },
+    { id: 'all', label: 'Todas', Icon: Bell, filter: null },
+    { id: 'mentions', label: 'Menciones', Icon: AtSign, filter: ['mention'] },
+    { id: 'social', label: 'Social', Icon: Users, filter: ['reaction', 'repost', 'quote', 'comment', 'letter', 'partnership_request', 'follow'] },
+    { id: 'logros', label: 'Logros', Icon: Trophy, filter: ['achievement', 'record'] },
+    { id: 'sistema', label: 'Sistema', Icon: Settings, filter: ['system', 'room_invite'] },
 ];
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -331,7 +332,7 @@ export default function NotificationBell() {
                 if (Capacitor.isNativePlatform()) {
                     import('@capacitor/haptics').then(({ Haptics, ImpactStyle }) => {
                         Haptics.impact({ style: ImpactStyle.Medium });
-                    }).catch(() => {});
+                    }).catch(() => { });
                 } else if ('vibrate' in navigator && document.hidden) {
                     navigator.vibrate(100);
                 }
@@ -458,6 +459,7 @@ export default function NotificationBell() {
                 aria-label="Notificaciones"
             >
                 <Bell size={16} strokeWidth={isOpen ? 2.5 : 1.8} />
+                <SatelliteNotification active={unreadCount > 0} />
                 <AnimatePresence>
                     {unreadCount > 0 && (
                         <motion.span

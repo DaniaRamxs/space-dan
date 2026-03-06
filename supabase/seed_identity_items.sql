@@ -9,7 +9,7 @@ BEGIN
     ALTER TABLE public.store_items DROP CONSTRAINT IF EXISTS store_items_category_check;
     ALTER TABLE public.store_items ADD CONSTRAINT store_items_category_check 
     CHECK (category IN (
-        'banner', 'frame', 'pet_accessory', 'cursor', 'theme', 'screensaver', 'stars', 'radio',
+        'banner', 'frame', 'pet_accessory', 'cursor', 'theme', 'stars', 'radio',
         'nickname_style', 'profile_theme', 'role', 'ambient_sound'
     ));
 END $$;
@@ -69,3 +69,4 @@ VALUES
 ('sound_rain', 'ambient_sound', 'Lluvia en el Domo', 'Sonido relajante de lluvia sobre cristal espacial.', 300, 'rare', '🌧️', '{"url": "https://assets.mixkit.co/sfx/preview/mixkit-light-rain-loop-2393.mp3"}'),
 ('sound_void', 'ambient_sound', 'Frecuencia del Vacío', 'Hum sutil de una estación espacial abandonada.', 400, 'epic', '🛸', '{"url": "https://assets.mixkit.co/sfx/preview/mixkit-space-ambience-loop-1493.mp3"}')
 ON CONFLICT (id) DO UPDATE SET price = EXCLUDED.price, metadata = EXCLUDED.metadata;
+
