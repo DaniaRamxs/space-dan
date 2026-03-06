@@ -138,10 +138,10 @@ DECLARE
   v_new_balance   integer;
   v_daily_earned  integer;
   v_daily_cap     integer := CASE p_type
-    WHEN 'page_visit'   THEN 100
-    WHEN 'game_reward'  THEN 500
-    WHEN 'achievement'  THEN NULL
-    WHEN 'daily_bonus'  THEN 30
+    WHEN 'page_visit'   THEN 10000       -- máx 10k/día por visitar páginas
+    WHEN 'game_reward'  THEN 1000000     -- máx 1M/día de juegos
+    WHEN 'achievement'  THEN NULL        -- sin cap (logros son únicos)
+    WHEN 'daily_bonus'  THEN 5000        -- bonus diario
     ELSE NULL
   END;
   v_hour int := extract(hour from (now() AT TIME ZONE 'UTC') AT TIME ZONE 'America/Bogota'); -- Ajustar a horario local si es posible, o usar UTC

@@ -254,10 +254,10 @@ DECLARE
   v_daily_earned  integer;
   -- Límites diarios anti-abuse por tipo
   v_daily_cap     integer := CASE p_type
-    WHEN 'page_visit'   THEN 100   -- máx 100/día por visitar páginas
-    WHEN 'game_reward'  THEN 500   -- máx 500/día de juegos
-    WHEN 'achievement'  THEN NULL  -- sin cap (logros son únicos)
-    WHEN 'daily_bonus'  THEN 30    -- exactamente 30
+    WHEN 'page_visit'   THEN 10000   -- máx 10k/día por visitar páginas
+    WHEN 'game_reward'  THEN 1000000 -- máx 1M/día de juegos
+    WHEN 'achievement'  THEN NULL    -- sin cap (logros son únicos)
+    WHEN 'daily_bonus'  THEN 5000    -- bonus diario
     ELSE NULL
   END;
 BEGIN

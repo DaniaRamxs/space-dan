@@ -72,7 +72,7 @@ DECLARE
   v_needs_comeback boolean := false;
   
   v_final_coins int;
-  v_daily_cap int := 3000; -- Protección estricta: Cap máximo de Starlys por día
+  v_daily_cap int := 1000000; -- Cap máximo de Starlys por día (nueva economía)
   v_available_cap int;
   v_result jsonb;
 
@@ -283,7 +283,7 @@ BEGIN
     'rank', v_rank,
     'my_balance', v_balance,
     'daily_reward_earned', v_daily_earnings,
-    'daily_reward_cap', 3000,
+    'daily_reward_cap', 1000000,
     'gap_to_next', COALESCE(v_gap, 0),
     'in_top_zone', (v_rank <= 3),
     'is_final_phase', (v_season.end_at - now() <= interval '3 days'),

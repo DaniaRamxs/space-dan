@@ -242,10 +242,10 @@ DECLARE
   v_already_has   boolean;
   -- Límites diarios anti-abuse por tipo
   v_daily_cap     integer := CASE p_type
-    WHEN 'page_visit'   THEN 100   
-    WHEN 'game_reward'  THEN 500   
+    WHEN 'page_visit'   THEN 10000   
+    WHEN 'game_reward'  THEN 1000000   
     WHEN 'achievement'  THEN NULL  
-    WHEN 'daily_bonus'  THEN 30    
+    WHEN 'daily_bonus'  THEN 5000    
     ELSE NULL
   END;
 BEGIN
