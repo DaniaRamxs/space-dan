@@ -16,6 +16,7 @@ import {
 import { getNicknameClass, getUserDisplayName } from '../utils/user';
 import { getFrameStyle } from '../utils/styles';
 import ChatBadge from '../components/Social/ChatBadge';
+import { cosmicEventService } from '../services/cosmicEventService';
 import '../styles/NicknameStyles.css';
 
 const CAT_LABELS = {
@@ -137,7 +138,10 @@ export default function ShopPage() {
       if (currentCoins < item.price) return showFlash('Starlys insuficientes', false);
       setOpeningChest(item);
       try {
-        const res = await storeService.openChest(user?.id, item.id);
+        const res = await storeService.openChest(user?.id, item.id, {
+          username: profile?.username || user?.user_metadata?.username || '',
+          chestTitle: item.title || item.id,
+        });
         if (res.success) {
           const fakeItems = Array.from({ length: WINNING_INDEX + 5 }).map((_, i) => {
             if (i === WINNING_INDEX) return { ...res.item, drop_type: res.drop_type };
@@ -197,6 +201,16 @@ export default function ShopPage() {
         await reloadDbItems();
         showFlash(`¡${item.title} obtenido!`, true);
         unlockAchievement('shopper');
+        // Registrar evento cósmico si el ítem es raro o mejor
+        if (['epic', 'legendary', 'mythic'].includes(item.rarity)) {
+          cosmicEventService.registerCosmeticUnlock({
+            userId: user.id,
+            username: profile?.username || user?.user_metadata?.username || '',
+            itemTitle: item.title,
+            itemCategory: item.category,
+            rarity: item.rarity,
+          }).catch(() => { });
+        }
       } catch (err) {
         showFlash(err.message || 'Error al comprar', false);
       }

@@ -4,6 +4,7 @@
  * Toda compra/equipamiento pasa por funciones SECURITY DEFINER en Supabase.
  */
 import { supabase } from '../supabaseClient';
+import { cosmicEventService } from './cosmicEventService';
 
 // ─────────────────────────────────────────────────────────────
 // CATÁLOGO
@@ -149,12 +150,26 @@ export async function unequipItem(userId, itemId) {
 /**
  * Abre un cofre de colección (Gacha).
  */
-export async function openChest(userId, chestId) {
+export async function openChest(userId, chestId, { username, chestTitle } = {}) {
   const { data, error } = await supabase.rpc('open_chest', {
     p_user_id: userId,
     p_chest_id: chestId,
   });
   if (error) throw error;
+
+  // Registrar evento cósmico si el resultado es épico o mejor
+  const rarity = data?.rarity || data?.character?.rarity || '';
+  const characterName = data?.character_name || data?.character?.name || data?.name || '';
+  if (['epic', 'legendary', 'mythic'].includes(rarity) && username && characterName) {
+    cosmicEventService.registerChestOpen({
+      userId,
+      username,
+      chestTitle: chestTitle || chestId,
+      characterName,
+      rarity,
+    }).catch(() => { }); // fire-and-forget, no bloquea la UI
+  }
+
   return data;
 }
 
