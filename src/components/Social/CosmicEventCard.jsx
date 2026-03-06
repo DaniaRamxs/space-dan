@@ -43,6 +43,9 @@ const EVENT_LABEL = {
     cosmetic_rare: '💄 Cosmético Raro',
     collection_complete: '🎖️ Colección Completa',
     community: '🌐 Evento Comunitario',
+    stellar_rebalance: '🌍 Equilibrio Estelar',
+    legendary_purchase: '💎 Compra Legendaria',
+    cosmetic_unlock: '✨ Cosmético Desbloqueado'
 };
 
 function safeTimeAgo(dateStr) {
@@ -72,10 +75,44 @@ function MythicParticles() {
 }
 
 const CosmicEventCard = memo(({ event }) => {
-    const rarity = event.rarity || 'epic';
+    // Si es un evento global de sistema (cosmic_event)
+    const isSystemEvent = event.type === 'cosmic_event';
+    const metadata = event.metadata || {};
+    const rarity = metadata.rarity || 'epic';
     const cfg = RARITY_CONFIG[rarity] || RARITY_CONFIG.epic;
-    const eventLabel = EVENT_LABEL[event.event_type] || '🛰️ Evento Cósmico';
-    const author = event.author || {};
+    const author = event.profile || {}; // Usar profiles de la nueva consulta
+
+    if (isSystemEvent) {
+        return (
+            <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="relative mb-6 rounded-[2rem] border border-cyan-500/30 bg-[#0a0a1a]/80 backdrop-blur-xl overflow-hidden shadow-[0_0_40px_rgba(34,211,238,0.15)] p-6"
+            >
+                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-cyan-500 via-purple-500 to-cyan-500 animate-gradient" />
+                <div className="flex items-start gap-4">
+                    <div className="w-12 h-12 rounded-2xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-2xl">
+                        🌠
+                    </div>
+                    <div className="flex-1">
+                        <div className="flex items-center gap-3 mb-1">
+                            <span className="text-[10px] font-black text-cyan-400 uppercase tracking-[0.3em] animate-pulse">Evento Global</span>
+                            <span className="text-[10px] text-white/20 font-mono">{safeTimeAgo(event.created_at)}</span>
+                        </div>
+                        <h3 className="text-lg font-black text-white uppercase tracking-tight leading-none mb-2">
+                            {event.event_name}
+                        </h3>
+                        <p className="text-sm text-white/60 leading-relaxed italic">
+                            {metadata.description || 'El universo ha cambiado temporalmente.'}
+                        </p>
+                    </div>
+                </div>
+            </motion.div>
+        );
+    }
+
+    // Comportamiento normal para feed_activity (actividad de usuario)
+    const eventLabel = EVENT_LABEL[event.event_name] || '✨ Actividad';
 
     return (
         <motion.div
@@ -89,14 +126,9 @@ const CosmicEventCard = memo(({ event }) => {
         >
             {rarity === 'mythic' && <MythicParticles />}
 
-            {/* Línea decorativa superior */}
-            <div className={`absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-current to-transparent opacity-50 ${cfg.textAccent}`} />
-
             <div className="relative p-4">
-                {/* Header: etiqueta evento + tiempo */}
                 <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-2">
-                        {/* Dot pulsante */}
                         <span className="relative flex h-2 w-2">
                             <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-60 ${cfg.dot}`} />
                             <span className={`relative inline-flex rounded-full h-2 w-2 ${cfg.dot}`} />
@@ -104,30 +136,23 @@ const CosmicEventCard = memo(({ event }) => {
                         <span className={`text-[9px] font-black uppercase tracking-[0.2em] px-2 py-0.5 rounded-full border ${cfg.badge}`}>
                             {eventLabel}
                         </span>
-                        <span className={`text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded border ${cfg.badge} opacity-70`}>
-                            {cfg.label}
-                        </span>
                     </div>
                     <span className="text-[10px] text-white/25 font-mono">
                         {safeTimeAgo(event.created_at)}
                     </span>
                 </div>
 
-                {/* Cuerpo: avatar + texto */}
                 <div className="flex items-center gap-3">
-                    {/* Avatar con orb de rareza */}
                     <Link to={author.username ? `/@${author.username}` : '#'} className="shrink-0 relative">
                         <div className={`absolute -inset-0.5 rounded-full bg-gradient-to-br ${cfg.orb} opacity-60 blur-sm`} />
                         <img
-                            src={author.avatar_url || '/default_user_blank.png'}
+                            src={author.avatar_url || '/default-avatar.png'}
                             className="relative w-10 h-10 rounded-full object-cover border-2 border-black/50"
                             alt={author.username}
                         />
-                        {/* Ícono del evento */}
-                        <span className="absolute -bottom-1 -right-1 text-sm leading-none">{event.icon || '✨'}</span>
+                        <span className="absolute -bottom-1 -right-1 text-sm leading-none">{metadata.icon || '✨'}</span>
                     </Link>
 
-                    {/* Texto del evento */}
                     <div className="flex-1 min-w-0">
                         <p className="text-sm leading-snug text-white/90">
                             <Link
@@ -137,20 +162,15 @@ const CosmicEventCard = memo(({ event }) => {
                                 {author.username || 'Explorador'}
                             </Link>{' '}
                             <span className="text-white/60 font-medium">
-                                {event.title?.replace(/^[^\s]+\s/, '') || event.title}
+                                {metadata.title?.replace(/^[^\s]+\s/, '') || metadata.title || event.event_name}
                             </span>
                         </p>
                         <p className="text-xs text-white/35 mt-0.5 leading-relaxed">
-                            {event.description}
+                            {metadata.description}
                         </p>
                     </div>
                 </div>
             </div>
-
-            {/* Línea decorativa inferior para míticos/legendarios */}
-            {(rarity === 'mythic' || rarity === 'legendary') && (
-                <div className={`h-px bg-gradient-to-r from-transparent via-current to-transparent opacity-30 ${cfg.textAccent}`} />
-            )}
         </motion.div>
     );
 });

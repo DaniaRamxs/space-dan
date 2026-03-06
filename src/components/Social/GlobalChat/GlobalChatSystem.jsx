@@ -67,23 +67,21 @@ export default function GlobalChat() {
     const [recentCosmicEvents, setRecentCosmicEvents] = useState([]);
     const [channelStats, setChannelStats] = useState({ messageCount: 0, activityLevel: 0 });
 
-    // Polling de Eventos Globales
+    // Polling de Eventos Cósmicos Globales
     useEffect(() => {
         const checkEvents = async () => {
-            const { data } = await supabase
-                .from('bot_events')
-                .select('type')
-                .eq('status', 'active')
-                .gt('expires_at', new Date().toISOString());
-
-            if (data) {
-                const types = data.map(d => d.type);
+            const active = await cosmicEventsService.getActiveEvent();
+            if (active) {
+                const name = active.name.toLowerCase();
                 const status = {
-                    meteor: types.includes('meteor'),
-                    eclipse: types.includes('eclipse')
+                    meteor: name.includes('meteor'),
+                    eclipse: name.includes('eclipse')
                 };
                 setActiveEvents(status);
                 activeEventsRef.current.eclipse = status.eclipse;
+            } else {
+                setActiveEvents({ meteor: false, eclipse: false });
+                activeEventsRef.current.eclipse = false;
             }
         };
 
