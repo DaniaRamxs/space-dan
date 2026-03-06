@@ -66,6 +66,53 @@ export const activityService = {
         return data;
     },
 
+    async createPost(payload) {
+        const { data, error } = await supabase
+            .from('activity_posts')
+            .insert([{
+                author_id: payload.author_id,
+                title: payload.title || null,
+                content: payload.content || null,
+                category: payload.category || 'general',
+                type: payload.type || 'post',
+                metadata: payload.metadata || null,
+            }])
+            .select(`
+                *,
+                author:profiles(
+                    id, username, avatar_url, frame_item_id,
+                    badge_color, equipped_nickname_style, level, activity_level
+                )
+            `)
+            .single();
+
+        if (error) {
+            console.error('[activityService] createPost error:', error);
+            throw error;
+        }
+        return data;
+    },
+
+    async updatePost(postId, updates) {
+        const { data, error } = await supabase
+            .from('activity_posts')
+            .update({
+                title: updates.title ?? null,
+                content: updates.content ?? null,
+                category: updates.category || 'general',
+                updated_at: new Date().toISOString(),
+            })
+            .eq('id', postId)
+            .select('*')
+            .single();
+
+        if (error) {
+            console.error('[activityService] updatePost error:', error);
+            throw error;
+        }
+        return data;
+    },
+
     async deletePost(postId) {
         const { error } = await supabase
             .from('activity_posts')
