@@ -130,6 +130,8 @@ DECLARE
   v_pact_active  boolean;
   v_eclipse      boolean;
   v_hour         int;
+  v_sub_tier     int;
+  v_sub_multi    numeric := 1.0;
   v_withhold_rate numeric := 0.25;
   -- Límites diarios anti-abuso
   v_daily_cap     integer := CASE p_type
@@ -148,6 +150,13 @@ BEGIN
   -- 2. Multiplicador Eclipse Galáctico (x3)
   SELECT EXISTS (SELECT 1 FROM public.bot_events WHERE type = 'eclipse' AND status = 'active' AND expires_at > now()) INTO v_eclipse;
   IF v_eclipse THEN v_multiplier := v_multiplier * 3.0; END IF;
+
+  -- 2.5 Multiplicador por Suscripción (Tier 1+: x1.2 en misiones/juegos)
+  SELECT sub_tier INTO v_sub_tier FROM public.profiles WHERE id = p_user_id;
+  IF COALESCE(v_sub_tier, 0) >= 1 AND (p_type = 'game_reward' OR p_type = 'work_mission' OR p_type = 'work_bonus' OR p_type = 'page_visit') THEN
+    v_sub_multi := 1.2;
+    v_multiplier := v_multiplier * v_sub_multi;
+  END IF;
 
   v_final_reward := floor(p_amount * v_multiplier);
 

@@ -122,6 +122,7 @@ const ChatMessage = memo(({ message, isMe, isOnline, userPresence, onProfileClic
                     <div className={`flex items-center gap-2 mb-1 px-1 overflow-hidden max-w-full ${isMe ? 'flex-row-reverse' : 'flex-row'}`}>
                         <span
                             className={`text-[10px] sm:text-[11px] font-black tracking-wider ${getNicknameClass(safeAuthor)} cursor-pointer hover:underline decoration-white/20 underline-offset-2 transition-all truncate`}
+                            style={safeAuthor?.custom_name_color ? { color: safeAuthor.custom_name_color } : {}}
                             onClick={() => onProfileClick?.(safeAuthor)}
                         >
                             {getUserDisplayName(safeAuthor)}
