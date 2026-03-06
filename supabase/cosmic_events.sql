@@ -79,57 +79,61 @@ RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER AS $$
 DECLARE
   v_result jsonb;
 BEGIN
-  SELECT jsonb_agg(item ORDER BY item->>'created_at' DESC)
+  SELECT jsonb_agg(item ORDER BY (item->>'created_at') DESC)
   INTO v_result
   FROM (
-    -- Posts normales
-    SELECT jsonb_build_object(
-      'id',         p.id,
-      'kind',       'post',
-      'created_at', p.created_at,
-      'author_id',  p.author_id,
-      'content',    p.content,
-      'category',   p.category,
-      'type',       p.type,
-      'metadata',   p.metadata,
-      'author', jsonb_build_object(
-        'id',         u.id,
-        'username',   u.username,
-        'avatar_url', u.avatar_url,
-        'equipped_nickname_style', u.equipped_nickname_style
-      )
-    ) AS item
-    FROM public.activity_posts p
-    JOIN public.profiles u ON u.id = p.author_id
-    WHERE p.type = 'post'
-    ORDER BY p.created_at DESC
-    LIMIT p_limit
+    -- Posts normales (envueltos en subquery para permitir ORDER BY + LIMIT)
+    SELECT item FROM (
+      SELECT jsonb_build_object(
+        'id',         p.id,
+        'kind',       'post',
+        'created_at', p.created_at,
+        'author_id',  p.author_id,
+        'content',    p.content,
+        'category',   p.category,
+        'type',       p.type,
+        'metadata',   p.metadata,
+        'author', jsonb_build_object(
+          'id',         u.id,
+          'username',   u.username,
+          'avatar_url', u.avatar_url,
+          'equipped_nickname_style', u.equipped_nickname_style
+        )
+      ) AS item
+      FROM public.activity_posts p
+      JOIN public.profiles u ON u.id = p.author_id
+      WHERE p.type = 'post'
+      ORDER BY p.created_at DESC
+      LIMIT p_limit
+    ) posts_sub
 
     UNION ALL
 
     -- Eventos cósmicos (últimas 24h solamente)
-    SELECT jsonb_build_object(
-      'id',           e.id,
-      'kind',         'cosmic_event',
-      'created_at',   e.created_at,
-      'event_type',   e.event_type,
-      'rarity',       e.rarity,
-      'title',        e.title,
-      'description',  e.description,
-      'icon',         e.icon,
-      'metadata',     e.metadata,
-      'author', jsonb_build_object(
-        'id',         u.id,
-        'username',   u.username,
-        'avatar_url', u.avatar_url,
-        'equipped_nickname_style', u.equipped_nickname_style
-      )
-    ) AS item
-    FROM public.cosmic_events e
-    JOIN public.profiles u ON u.id = e.user_id
-    WHERE e.created_at > now() - interval '24 hours'
-    ORDER BY e.created_at DESC
-    LIMIT 20
+    SELECT item FROM (
+      SELECT jsonb_build_object(
+        'id',           e.id,
+        'kind',         'cosmic_event',
+        'created_at',   e.created_at,
+        'event_type',   e.event_type,
+        'rarity',       e.rarity,
+        'title',        e.title,
+        'description',  e.description,
+        'icon',         e.icon,
+        'metadata',     e.metadata,
+        'author', jsonb_build_object(
+          'id',         u.id,
+          'username',   u.username,
+          'avatar_url', u.avatar_url,
+          'equipped_nickname_style', u.equipped_nickname_style
+        )
+      ) AS item
+      FROM public.cosmic_events e
+      JOIN public.profiles u ON u.id = e.user_id
+      WHERE e.created_at > now() - interval '24 hours'
+      ORDER BY e.created_at DESC
+      LIMIT 20
+    ) events_sub
   ) combined
   LIMIT p_limit
   OFFSET p_offset;
