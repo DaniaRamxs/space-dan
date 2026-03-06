@@ -22,8 +22,14 @@ export async function calculateTicTacToeMove(state, isFastMode, signal) {
     if (possibleMoves.length === 0) return null;
     if (possibleMoves.length === 1) return possibleMoves[0];
 
-    // Random randomness in fast mode to make easiest levels
-    if (isFastMode && Math.random() > 0.5) {
+    // Shuffle moves to make AI less predictable on same scores
+    for (let i = possibleMoves.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [possibleMoves[i], possibleMoves[j]] = [possibleMoves[j], possibleMoves[i]];
+    }
+
+    // Random randomness in easy mode
+    if (isFastMode && Math.random() > 0.6) {
         return possibleMoves[Math.floor(Math.random() * possibleMoves.length)];
     }
 
@@ -33,7 +39,6 @@ export async function calculateTicTacToeMove(state, isFastMode, signal) {
         }
 
         const nextState = applyMove(state, move);
-        // TicTacToe es lo bastante chico para evaluar hasta el final (depth 9)
         const score = minimax(nextState, 0, false, aiPlayer, humanPlayer, signal);
 
         if (score > bestScore) {
@@ -42,6 +47,7 @@ export async function calculateTicTacToeMove(state, isFastMode, signal) {
         }
     }
 
+    // Fallback security
     return bestMove !== -1 ? bestMove : possibleMoves[0];
 }
 

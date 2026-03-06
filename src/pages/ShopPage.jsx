@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { SHOP_ITEMS } from '../hooks/useShopItems';
 import useShopItems from '../hooks/useShopItems';
@@ -543,117 +544,123 @@ export default function ShopPage() {
       </div>
 
       {/* Gacha Modal */}
-      {openingChest && (
-        <div className="fixed inset-0 z-[200] flex flex-col items-center justify-center bg-[#050505]/95 backdrop-blur-xl animate-in fade-in duration-300 isolate">
-          {(isSpinning || (!chestResult && !isSpinning)) ? (
-            <div className="w-full flex flex-col items-center overflow-hidden">
-              <h2 className="text-2xl font-black uppercase text-cyan-400 mb-8 tracking-[0.2em] animate-pulse">
-                Desencriptando Suministro
-              </h2>
-              <div className="relative w-full overflow-hidden h-72 border-y border-white/10 shadow-2xl flex flex-col justify-center" style={{ background: 'linear-gradient(to right, rgba(0,0,0,1) 0%, rgba(10,15,22,1) 50%, rgba(0,0,0,1) 100%)' }}>
-
-                {/* Selector Line (The needle) */}
-                <div className="absolute left-1/2 top-0 bottom-0 w-1 bg-amber-400 z-50 transform -translate-x-1/2 shadow-[0_0_20px_#fbbf24] blur-[0.5px] pointer-events-none">
-                  <div className="absolute top-0 left-1/2 -translate-x-1/2 w-4 h-4 bg-amber-400 clip-polygon-[50%_100%,_0_0,_100%_0]" />
-                  <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-4 h-4 bg-amber-400 clip-polygon-[50%_0,_0_100%,_100%_100%]" />
-                </div>
-
-                {spinItems.length > 0 ? (
-                  <div
-                    className="flex items-center gap-4 absolute left-1/2 transition-transform ease-[cubic-bezier(0.15,0.85,0.1,1)]"
-                    style={{
-                      transitionDuration: isSpinning ? '5.0s' : '0s',
-                      transform: `translateX(calc(-50% - ${(spinOffset * 176)}px))` // 160px card + 16px gap
-                    }}
-                  >
-                    {spinItems.map((spinItem, idx) => {
-                      const isFake = spinItem.type === 'fake';
-                      const rarity = isFake ? spinItem.rarity : (spinItem.rarity || 'common');
-                      // Random background pattern to simulate items inside fake boxes
-                      const bgColors = {
-                        mythic: 'bg-rose-500/10 border-rose-500/50 shadow-[inset_0_0_50px_rgba(225,29,72,0.2)]',
-                        legendary: 'bg-amber-500/10 border-amber-500/50 shadow-[inset_0_0_50px_rgba(245,158,11,0.2)]',
-                        epic: 'bg-purple-500/10 border-purple-500/50 shadow-[inset_0_0_50px_rgba(168,85,247,0.2)]',
-                        rare: 'bg-cyan-500/10 border-cyan-500/50 shadow-[inset_0_0_50px_rgba(6,182,212,0.2)]',
-                        common: 'bg-white/5 border-white/20'
-                      };
-
-                      return (
-                        <div key={idx} className={`w-40 h-56 rounded-2xl flex-shrink-0 flex items-center justify-center border-b-4 overflow-hidden relative ${bgColors[rarity] || bgColors.common} ${isFake ? 'opacity-80' : 'opacity-100 z-10 scale-105 shadow-[0_0_30px_rgba(255,255,255,0.2)]'}`}>
-                          {isFake ? (
-                            <div className="text-5xl opacity-20 filter blur-[2px]">?</div>
-                          ) : (
-                            spinItem.drop_type === 'character' || spinItem.image_url ? (
-                              <img src={spinItem.image_url} className="w-full h-full object-cover rounded-t-[14px]" />
-                            ) : (
-                              <div className="text-6xl drop-shadow-2xl">{spinItem.icon || '🎁'}</div>
-                            )
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                ) : (
-                  <div className="w-full flex justify-center"><Box size={64} className="text-cyan-400 animate-spin" /></div>
-                )}
-              </div>
-
-              <div className="mt-8 text-[10px] text-white/30 uppercase tracking-[0.4em] flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-red-500 animate-ping" /> Sincronizando inventario
-              </div>
-            </div>
-          ) : (
-            <div className="flex flex-col items-center gap-12 max-w-lg w-full animate-in zoom-in-95 duration-500 p-4 relative z-50">
-              <div className="relative group">
-                <div className={`absolute -inset-10 blur-[100px] opacity-40 transition-opacity ${chestResult?.item?.rarity === 'mythic' ? 'bg-rose-500' :
-                  chestResult?.item?.rarity === 'legendary' ? 'bg-amber-500' :
-                    chestResult?.item?.rarity === 'epic' ? 'bg-purple-500' : 'bg-cyan-500'
-                  }`} />
-
-                {chestResult.drop_type === 'character' ? (
-                  <img src={chestResult?.item?.image_url} alt={chestResult?.item?.name} className="w-80 aspect-[2/3] object-cover rounded-[3rem] border border-white/20 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.8)] relative z-10" />
-                ) : (
-                  <div className="w-80 aspect-[2/3] bg-[#0a0f16] border border-white/20 rounded-[3rem] shadow-[0_20px_60px_-15px_rgba(0,0,0,0.8)] relative z-10 flex items-center justify-center text-8xl backdrop-blur-md">
-                    <div className="absolute inset-0 bg-gradient-to-t from-white/10 to-transparent pointer-events-none rounded-[3rem]" />
-                    {chestResult?.item?.icon || '🎁'}
-                  </div>
-                )}
-
-                <div className="absolute top-6 right-6 z-20 px-4 py-2 bg-black/80 backdrop-blur-md border border-white/10 rounded-2xl text-[10px] font-black uppercase tracking-widest">
-                  {chestResult?.item?.rarity || 'common'}
-                </div>
-              </div>
-
-              <div className="text-center space-y-4 relative z-10 w-full">
-                <span className="text-[10px] font-black text-cyan-400 uppercase tracking-[0.6em]">
-                  {chestResult.drop_type === 'character' ? (chestResult?.item?.series || 'Desconocida') : (CAT_LABELS[chestResult?.item?.category] || 'Cosmético Exclusivo')}
-                </span>
-                <h2 className="text-4xl font-black uppercase tracking-tighter text-white">
-                  {chestResult.drop_type === 'character' ? (chestResult?.item?.name || 'Personaje Anónimo') : (chestResult?.item?.title || 'Ítem Misterioso')}
+      {openingChest && createPortal(
+        <div className="fixed inset-0 z-[2000] overflow-y-auto bg-[#050505]/95 backdrop-blur-3xl animate-in fade-in duration-300 isolate">
+          <div className="min-h-full w-full flex flex-col items-center justify-center p-4 py-20 relative">
+            {(isSpinning || (!chestResult && !isSpinning)) ? (
+              <div className="w-full flex flex-col items-center overflow-hidden">
+                <h2 className="text-xl md:text-2xl font-black uppercase text-cyan-400 mb-8 tracking-[0.2em] animate-pulse text-center">
+                  Desencriptando Suministro
                 </h2>
-                <p className="text-sm text-white/40 font-medium italic">
-                  "{chestResult.drop_type === 'character' ? chestResult.item.description : chestResult.item.desc || chestResult.item.description}"
-                </p>
+                <div className="relative w-full overflow-hidden h-64 md:h-72 border-y border-white/10 shadow-2xl flex flex-col justify-center" style={{ background: 'linear-gradient(to right, rgba(0,0,0,1) 0%, rgba(10,15,22,1) 50%, rgba(0,0,0,1) 100%)' }}>
 
-                {chestResult.is_duplicate && (
-                  <div className="mt-8 p-6 bg-rose-500/10 border border-rose-500/20 rounded-3xl space-y-2">
-                    <span className="text-[10px] font-black text-rose-400 uppercase tracking-[0.4em]">Sistema_Reciclaje</span>
-                    <p className="text-[12px] font-bold text-white/60 uppercase tracking-widest">
-                      Duplicado detectado. Recibes <span className="text-rose-400">◈ {chestResult.recycle_value}</span> Starlys.
-                    </p>
+                  {/* Selector Line (The needle) */}
+                  <div className="absolute left-1/2 top-0 bottom-0 w-1 bg-amber-400 z-50 transform -translate-x-1/2 shadow-[0_0_20px_#fbbf24] blur-[0.5px] pointer-events-none">
+                    <div className="absolute top-0 left-1/2 -translate-x-1/2 w-4 h-4 bg-amber-400 clip-polygon-[50%_100%,_0_0,_100%_0]" />
+                    <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-4 h-4 bg-amber-400 clip-polygon-[50%_0,_0_100%,_100%_100%]" />
                   </div>
-                )}
 
-                <button
-                  onClick={() => { setOpeningChest(null); setChestResult(null); setSpinItems([]); }}
-                  className="mt-12 w-full py-5 rounded-2xl bg-white text-black text-[12px] font-black uppercase tracking-widest hover:bg-cyan-400 transition-all shadow-2xl"
-                >
-                  Continuar Exploración
-                </button>
+                  {spinItems.length > 0 ? (
+                    <div
+                      className="flex items-center gap-4 absolute left-1/2 transition-transform ease-[cubic-bezier(0.15,0.85,0.1,1)]"
+                      style={{
+                        transitionDuration: isSpinning ? '5.0s' : '0s',
+                        transform: `translateX(calc(-50% - ${(spinOffset * 176)}px))` // 160px card + 16px gap
+                      }}
+                    >
+                      {spinItems.map((spinItem, idx) => {
+                        const isFake = spinItem.type === 'fake';
+                        const rarity = isFake ? spinItem.rarity : (spinItem.rarity || 'common');
+                        // Random background pattern to simulate items inside fake boxes
+                        const bgColors = {
+                          mythic: 'bg-rose-500/10 border-rose-500/50 shadow-[inset_0_0_50px_rgba(225,29,72,0.2)]',
+                          legendary: 'bg-amber-500/10 border-amber-500/50 shadow-[inset_0_0_50px_rgba(245,158,11,0.2)]',
+                          epic: 'bg-purple-500/10 border-purple-500/50 shadow-[inset_0_0_50px_rgba(168,85,247,0.2)]',
+                          rare: 'bg-cyan-500/10 border-cyan-500/50 shadow-[inset_0_0_50px_rgba(6,182,212,0.2)]',
+                          common: 'bg-white/5 border-white/20'
+                        };
+
+                        return (
+                          <div key={idx} className={`w-40 h-56 rounded-2xl flex-shrink-0 flex items-center justify-center border-b-4 overflow-hidden relative ${bgColors[rarity] || bgColors.common} ${isFake ? 'opacity-80' : 'opacity-100 z-10 scale-105 shadow-[0_0_30px_rgba(255,255,255,0.2)]'}`}>
+                            {isFake ? (
+                              <div className="text-5xl opacity-20 filter blur-[2px]">?</div>
+                            ) : (
+                              spinItem.drop_type === 'character' || spinItem.image_url ? (
+                                <img src={spinItem.image_url} className="w-full h-full object-cover rounded-t-[14px]" />
+                              ) : (
+                                <div className="text-6xl drop-shadow-2xl">{spinItem.icon || '🎁'}</div>
+                              )
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div className="w-full flex justify-center"><Box size={64} className="text-cyan-400 animate-spin" /></div>
+                  )}
+                </div>
+
+                <div className="mt-8 text-[10px] text-white/30 uppercase tracking-[0.4em] flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-red-500 animate-ping" /> Sincronizando inventario
+                </div>
               </div>
-            </div>
-          )}
-        </div>
+            ) : (
+              <div className="flex flex-col items-center gap-8 md:gap-12 max-w-lg w-full animate-in zoom-in-95 duration-500 p-4 relative z-50">
+                <div className="relative group">
+                  <div className={`absolute -inset-10 blur-[100px] opacity-40 transition-opacity ${chestResult?.item?.rarity === 'mythic' ? 'bg-rose-500' :
+                    chestResult?.item?.rarity === 'legendary' ? 'bg-amber-500' :
+                      chestResult?.item?.rarity === 'epic' ? 'bg-purple-500' : 'bg-cyan-500'
+                    }`} />
+
+                  {chestResult.drop_type === 'character' ? (
+                    <img src={chestResult?.item?.image_url} alt={chestResult?.item?.name} className="w-64 sm:w-80 aspect-[2/3] object-cover rounded-[3rem] border border-white/20 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.8)] relative z-10" />
+                  ) : (
+                    <div className="w-64 sm:w-80 aspect-[2/3] bg-[#0a0f16] border border-white/20 rounded-[3rem] shadow-[0_20px_60px_-15px_rgba(0,0,0,0.8)] relative z-10 flex items-center justify-center text-8xl backdrop-blur-md">
+                      <div className="absolute inset-0 bg-gradient-to-t from-white/10 to-transparent pointer-events-none rounded-[3rem]" />
+                      {chestResult?.item?.icon || '🎁'}
+                    </div>
+                  )}
+
+                  <div className="absolute top-6 right-6 z-20 px-4 py-2 bg-black/80 backdrop-blur-md border border-white/10 rounded-2xl text-[10px] font-black uppercase tracking-widest">
+                    {chestResult?.item?.rarity || 'common'}
+                  </div>
+                </div>
+
+                <div className="text-center space-y-4 relative z-10 w-full px-4">
+                  <div className="space-y-1">
+                    <span className="text-[10px] font-black text-cyan-400 uppercase tracking-[0.6em] block">
+                      {chestResult.drop_type === 'character' ? (chestResult?.item?.series || 'Desconocida') : (CAT_LABELS[chestResult?.item?.category] || 'Cosmético Exclusivo')}
+                    </span>
+                    <h2 className="text-3xl md:text-4xl font-black uppercase tracking-tighter text-white">
+                      {chestResult.drop_type === 'character' ? (chestResult?.item?.name || 'Personaje Anónimo') : (chestResult?.item?.title || 'Ítem Misterioso')}
+                    </h2>
+                  </div>
+
+                  <p className="text-sm text-white/40 font-medium italic">
+                    "{chestResult.drop_type === 'character' ? chestResult.item.description : chestResult.item.desc || chestResult.item.description}"
+                  </p>
+
+                  {chestResult.is_duplicate && (
+                    <div className="mt-8 p-6 bg-rose-500/10 border border-rose-500/20 rounded-3xl space-y-2">
+                      <span className="text-[10px] font-black text-rose-400 uppercase tracking-[0.4em]">Sistema_Reciclaje</span>
+                      <p className="text-[12px] font-bold text-white/60 uppercase tracking-widest">
+                        Duplicado detectado. Recibes <span className="text-rose-400">◈ {chestResult.recycle_value}</span> Starlys.
+                      </p>
+                    </div>
+                  )}
+
+                  <button
+                    onClick={() => { setOpeningChest(null); setChestResult(null); setSpinItems([]); }}
+                    className="mt-8 md:mt-12 w-full py-5 rounded-2xl bg-white text-black text-[12px] font-black uppercase tracking-widest hover:bg-cyan-400 transition-all shadow-2xl"
+                  >
+                    Continuar Exploración
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>,
+        document.body
       )}
 
       {/* Flash Feedback */}

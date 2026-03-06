@@ -69,7 +69,9 @@ function minimax(state, depth, alpha, beta, isMaximizing, aiPlayer, humanPlayer,
         throw new DOMException('Aborted by Orchestrator', 'AbortError');
     }
 
-    const winner = checkWinner(state);
+    const winnerResult = checkWinner(state);
+    const winner = winnerResult.winner;
+
     // Recompensar victorias rápidas, penalizar derrotas rápidas
     if (winner === aiPlayer) return SCORE_WIN + depth;
     if (winner === humanPlayer) return SCORE_LOSE - depth;
