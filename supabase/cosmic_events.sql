@@ -48,9 +48,9 @@ DECLARE
   v_event_id   uuid;
 BEGIN
   -- Anti-spam: Solo permitir 1 evento por usuario cada 10 minutos
-  SELECT MAX(created_at) INTO v_last_event
-  FROM public.cosmic_events
-  WHERE user_id = p_user_id;
+  SELECT MAX(ce.created_at) INTO v_last_event
+  FROM public.cosmic_events ce
+  WHERE ce.user_id = p_user_id;
 
   IF v_last_event IS NOT NULL AND v_last_event > now() - interval '10 minutes' THEN
     RETURN jsonb_build_object('success', false, 'reason', 'cooldown');
