@@ -120,6 +120,10 @@ export default function GardenLayout({ children }) {
                         </div>
                         {activeChatters > 0 && <span className="text-[8px] font-black text-cyan-400/40">LIVE 🔴</span>}
                       </NavLink>
+                      <NavLink to="/pase-estelar" className={({ isActive }) => `flex items-center justify-between px-4 py-3 rounded-xl transition-all ${isActive ? 'bg-cyan-500/10 text-cyan-400' : 'text-white/40 hover:bg-white/5 hover:text-white'}`}>
+                        <span className="text-[10px] font-black uppercase tracking-widest">Pase Estelar</span>
+                        <span className="text-[10px]">🎫</span>
+                      </NavLink>
                     </div>
                   </div>
                 </div>
@@ -330,6 +334,7 @@ export default function GardenLayout({ children }) {
               >
                 {[
                   { to: '/tienda-galactica', icon: '💎', label: 'Tienda Galáctica', className: 'hub-item-premium' },
+                  { to: '/pase-estelar', icon: '🎫', label: 'Pase Estelar', className: 'hub-item-premium' },
                   { to: '/posts', icon: '🌌', label: 'Feed Social' },
                   { to: '/chat', icon: '💬', label: 'Chat Global', badge: activeChatters > 0 ? `${activeChatters} Activos` : null, isLive: activeChatters > 0 },
                   { to: '/bulletin', icon: '📰', label: 'Noticias' },

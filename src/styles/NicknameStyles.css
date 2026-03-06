@@ -589,12 +589,35 @@
     }
 }
 
-/* ⚪ ESTILO: MINIMAL (Limpio y sutil) */
+/* ⚪ ESTILO: MINIMAL (Firma elegante) */
 .nick-style-minimal {
+    font-family: 'Dancing Script', cursive !important;
     color: #ffffff;
-    opacity: 0.9;
-    letter-spacing: 0.05em;
-    text-transform: uppercase;
+    opacity: 1;
+    letter-spacing: 0.02em;
+    text-transform: none;
+    /* Las firmas no suelen ser uppercase */
+    font-size: 1.1em;
+    font-weight: 700;
+    text-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
+}
+
+.nick-style-minimal::after {
+    content: '';
+    position: absolute;
+    bottom: 2px;
+    left: 0;
+    width: 100%;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.8), transparent);
+    transform: scaleX(0);
+    transition: transform 0.6s cubic-bezier(0.19, 1, 0.22, 1);
+    transform-origin: left;
+}
+
+.dan-nickname:hover .nick-style-minimal::after,
+.nick-style-minimal:hover::after {
+    transform: scaleX(1);
 }
 
 /* ─────────────────────────────────────────────────────────────
@@ -1008,5 +1031,103 @@
 
     100% {
         top: 100%;
+    }
+}
+
+/* ✨ ESTILO: STARLIGHT (Pase Estelar - Épico) */
+.nick-style-starlight {
+    background: linear-gradient(90deg, #e2e8f0, #ffffff, #e2e8f0);
+    background-size: 200% auto;
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent !important;
+    animation: starlightShimmer 3s linear infinite;
+    font-weight: 900;
+    text-shadow: 0 0 15px rgba(255, 255, 255, 0.4);
+}
+
+@keyframes starlightShimmer {
+    to {
+        background-position: 200% center;
+    }
+}
+
+.nick-style-starlight::before {
+    content: '✨';
+    position: absolute;
+    top: -8px;
+    right: -10px;
+    font-size: 10px;
+    -webkit-text-fill-color: initial !important;
+    animation: sparkleSpin 4s linear infinite !important;
+}
+
+@keyframes sparkleSpin {
+    from {
+        transform: rotate(0deg) scale(0.5);
+        opacity: 0;
+    }
+
+    50% {
+        transform: rotate(180deg) scale(1.2);
+        opacity: 1;
+    }
+
+    to {
+        transform: rotate(360deg) scale(0.5);
+        opacity: 0;
+    }
+}
+
+/* 💥 ESTILO: SUPERNOVA (Pase Estelar - Legendario) */
+.nick-style-supernova {
+    background: linear-gradient(135deg, #ff00cc, #3333ff, #00ffcc, #ffff00, #ff00cc);
+    background-size: 400% 400%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent !important;
+    animation: supernovaPulse 5s ease infinite;
+    font-weight: 950;
+    filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.3));
+}
+
+@keyframes supernovaPulse {
+    0% {
+        background-position: 0% 50%;
+        transform: scale(1);
+    }
+
+    50% {
+        background-position: 100% 50%;
+        transform: scale(1.05);
+    }
+
+    100% {
+        background-position: 0% 50%;
+        transform: scale(1);
+    }
+}
+
+.nick-style-supernova::after {
+    content: '';
+    position: absolute;
+    inset: -5px -10px;
+    background: radial-gradient(circle, rgba(255, 255, 255, 0.2) 0%, transparent 70%);
+    z-index: -1;
+    filter: blur(10px);
+    animation: supernovaAura 2s ease-in-out infinite;
+}
+
+@keyframes supernovaAura {
+
+    0%,
+    100% {
+        opacity: 0.3;
+        transform: scale(0.8);
+    }
+
+    50% {
+        opacity: 0.7;
+        transform: scale(1.2);
     }
 }

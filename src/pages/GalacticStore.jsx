@@ -4,6 +4,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { stellarStoreService } from '../services/stellarStoreService';
 import { supabase } from '../supabaseClient';
 import { useAuthContext } from '../contexts/AuthContext';
+import { getNicknameClass, getUserDisplayName } from '../utils/user';
+import { getFrameStyle } from '../utils/styles';
+import MiniHoloCard from '../components/MiniHoloCard';
 import { useEconomy } from '../contexts/EconomyContext';
 import {
     ShoppingBag, Star, Shield, Crown,
@@ -15,7 +18,7 @@ import {
 const PAYPAL_CLIENT_ID = "AVZwoe7SUXP6ZXpZnt0GfNIrL0odia6rftWBJDVMFQ5dGKpWtyAPYl_TKmp-2yNHZMyqG3EVEIpNnVgr";
 
 export default function GalacticStore() {
-    const { user } = useAuthContext();
+    const { user, profile } = useAuthContext();
     const { refreshBalance } = useEconomy();
     const [products, setProducts] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -26,6 +29,7 @@ export default function GalacticStore() {
     const [paymentLoading, setPaymentLoading] = useState(false);
     const [showPassPreview, setShowPassPreview] = useState(false);
     const [passRewards, setPassRewards] = useState([]);
+    const [previewReward, setPreviewReward] = useState(null);
 
     useEffect(() => {
         loadProducts();
@@ -263,7 +267,11 @@ export default function GalacticStore() {
                                 ) : (
                                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                                         {passRewards.map(rew => (
-                                            <div key={rew.id} className={`p-6 rounded-[2rem] border transition-all group relative overflow-hidden ${rew.is_premium ? 'bg-amber-500/[0.03] border-amber-500/20 hover:border-amber-500/40' : 'bg-white/[0.03] border-white/5 hover:border-cyan-500/40'}`}>
+                                            <div
+                                                key={rew.id}
+                                                onClick={() => rew.reward_type === 'item' ? setPreviewReward(rew) : null}
+                                                className={`p-6 rounded-[2rem] border transition-all cursor-pointer group relative overflow-hidden ${rew.is_premium ? 'bg-amber-500/[0.03] border-amber-500/20 hover:border-amber-500/40' : 'bg-white/[0.03] border-white/5 hover:border-cyan-500/40'}`}
+                                            >
                                                 <div className="flex items-center justify-between mb-4 relative z-10">
                                                     <span className={`text-[9px] font-black uppercase px-2.5 py-1 rounded-full ${rew.is_premium ? 'bg-amber-500/20 text-amber-500' : 'bg-white/10 text-white/40'}`}>
                                                         {rew.is_premium ? 'Premium' : 'Gratis'}
@@ -275,8 +283,8 @@ export default function GalacticStore() {
                                                         {rew.reward_type === 'starlys' ? <Zap size={24} /> : <Gift size={24} />}
                                                     </div>
                                                     <div>
-                                                        <p className="text-sm font-black text-white uppercase tracking-tight">{rew.reward_type === 'starlys' ? `${rew.reward_amount.toLocaleString()} Starlys` : rew.reward_type.charAt(0).toUpperCase() + rew.reward_type.slice(1)}</p>
-                                                        <p className="text-[10px] text-white/30 font-bold uppercase tracking-widest">Recompensa Instantánea</p>
+                                                        <p className="text-sm font-black text-white uppercase tracking-tight">{rew.reward_type === 'starlys' ? `${rew.reward_amount.toLocaleString()} Starlys` : (rew.reward_data?.item_title || rew.reward_type)}</p>
+                                                        <p className="text-[10px] text-white/30 font-bold uppercase tracking-widest">Haz clic para ver previa</p>
                                                     </div>
                                                 </div>
                                                 {/* Background decoration */}
@@ -288,6 +296,90 @@ export default function GalacticStore() {
                                     </div>
                                 )}
                             </div>
+
+                            {/* Live Preview Side Panel (Same style as StellarPassPage) */}
+                            <AnimatePresence>
+                                {previewReward && (
+                                    <div className="absolute inset-0 z-[120] flex items-center justify-end p-4 md:p-8 bg-black/60 backdrop-blur-sm rounded-[2.5rem] overflow-hidden">
+                                        <motion.div
+                                            initial={{ opacity: 0 }}
+                                            animate={{ opacity: 1 }}
+                                            exit={{ opacity: 0 }}
+                                            onClick={() => setPreviewReward(null)}
+                                            className="absolute inset-0"
+                                        />
+                                        <motion.div
+                                            initial={{ x: 300, opacity: 0 }}
+                                            animate={{ x: 0, opacity: 1 }}
+                                            exit={{ x: 300, opacity: 0 }}
+                                            className="relative w-full max-w-sm h-full bg-[#070710] border-l border-white/10 shadow-2xl flex flex-col overflow-hidden rounded-l-[2rem]"
+                                        >
+                                            <button
+                                                onClick={() => setPreviewReward(null)}
+                                                className="absolute top-6 right-6 p-2 bg-white/5 hover:bg-white/10 rounded-xl text-white/40 transition-all z-20"
+                                            >
+                                                ✕
+                                            </button>
+
+                                            <div className="flex-1 overflow-y-auto p-8 space-y-8 custom-scrollbar">
+                                                <div className="space-y-1 mt-6">
+                                                    <span className="text-[9px] font-black text-cyan-400 uppercase tracking-widest">Previsualización</span>
+                                                    <h3 className="text-xl font-black text-white uppercase tracking-tighter">
+                                                        {previewReward.reward_data?.item_title || 'Item Cosmético'}
+                                                    </h3>
+                                                </div>
+
+                                                <div className="p-6 rounded-3xl bg-white/[0.02] border border-white/5 flex flex-col items-center justify-center gap-6 relative overflow-hidden min-h-[200px]">
+                                                    {previewReward.reward_data?.item_id?.includes('frame') && (
+                                                        <div className="flex flex-col items-center gap-3">
+                                                            <div className="w-28 h-28 relative flex items-center justify-center">
+                                                                {(() => {
+                                                                    const frame = getFrameStyle(previewReward.reward_data.item_id);
+                                                                    return (
+                                                                        <div className={`w-24 h-24 rounded-full relative flex items-center justify-center border border-white/5 ${frame.className || ''}`}
+                                                                            style={{ ...frame, width: '96px', height: '96px' }}>
+                                                                            <div className="w-full h-full rounded-full overflow-hidden bg-black/40">
+                                                                                <img src={profile?.avatar_url || '/default-avatar.png'} className="w-full h-full object-cover" alt="" />
+                                                                            </div>
+                                                                        </div>
+                                                                    );
+                                                                })()}
+                                                            </div>
+                                                        </div>
+                                                    )}
+
+                                                    {previewReward.reward_data?.item_id?.includes('nick') && (
+                                                        <div className="py-6 text-center">
+                                                            <span className={`text-xl font-black ${getNicknameClass({ ...profile, equipped_nickname_style: previewReward.reward_data.item_id })}`}>
+                                                                {getUserDisplayName(profile)}
+                                                            </span>
+                                                        </div>
+                                                    )}
+
+                                                    {previewReward.reward_data?.item_id?.includes('holo') && (
+                                                        <div className="w-full scale-75">
+                                                            <MiniHoloCard profile={{ ...profile, equipped_theme: previewReward.reward_data.item_id }} />
+                                                        </div>
+                                                    )}
+                                                </div>
+
+                                                <div className="space-y-4">
+                                                    <div className="p-4 rounded-xl bg-white/5 border border-white/5">
+                                                        <p className="text-[10px] text-white/40 uppercase font-black">Nivel Requerido</p>
+                                                        <p className="text-sm font-black text-white">Nivel {previewReward.level}</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div className="p-8 bg-white/[0.02] border-t border-white/5">
+                                                <button onClick={() => setPreviewReward(null)} className="w-full py-3 bg-white/5 hover:bg-white/10 text-white rounded-xl text-[9px] font-black uppercase tracking-widest transition-all">
+                                                    Volver al Pase
+                                                </button>
+                                            </div>
+                                        </motion.div>
+                                    </div>
+                                )}
+                            </AnimatePresence>
 
                             <footer className="p-8 border-t border-white/5 shrink-0 bg-white/[0.04] backdrop-blur-md flex flex-col md:flex-row items-center justify-between gap-6">
                                 <div className="flex items-center gap-4">

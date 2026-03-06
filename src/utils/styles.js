@@ -25,6 +25,10 @@ export function getFrameStyle(frameItemId) {
     if (id === 'frame_pixel') return { border: '4px solid #ff6b35', borderRadius: '50%', boxShadow: '0 0 15px rgba(255,107,53,0.7)', imageRendering: 'pixelated' };
     if (id === 'frame_holo') return { border: '3px solid #b464ff', borderRadius: '50%', boxShadow: '0 0 20px rgba(180,100,255,0.8), 0 0 40px rgba(0,229,255,0.4)', animated: true };
     if (id === 'frame_crown') return { className: 'marco-corona' };
+    if (id === 'frame_basic') return { border: '3px solid #94a3b8', borderRadius: '50%', boxShadow: '0 0 15px rgba(148,163,184,0.3)' };
+    if (id === 'frame_star') return { border: '3px solid #fbbf24', borderRadius: '50%', boxShadow: '0 0 20px rgba(251,191,36,0.4)' };
+    if (id === 'frame_stellar_hero') return { border: '3px solid #06b6d4', borderRadius: '50%', boxShadow: '0 0 25px rgba(6,182,212,0.6), inset 0 0 10px rgba(6,182,212,0.4)', animation: 'pulseAuraStriking 2s infinite alternate ease-in-out' };
+    if (id === 'frame_void_master') return { border: '3px solid #1e1b4b', borderRadius: '50%', boxShadow: '0 0 30px #000, 0 0 10px #4338ca', background: 'radial-gradient(circle, #000 30%, #1e1b4b 100%)', transform: 'scale(1.05)' };
 
     // Fallbacks por keyword
     if (id === 'frame_galaxy') return { border: '3px solid #b464ff', borderRadius: '50%', boxShadow: '0 0 20px rgba(180,100,255,0.8), inset 0 0 10px rgba(0,229,255,0.4)', background: 'radial-gradient(circle, transparent 60%, rgba(180,100,255,0.1) 100%)' };
