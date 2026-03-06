@@ -11,6 +11,8 @@ import { useEconomy } from '../contexts/EconomyContext';
 import * as storeService from '../services/store';
 import useShopItems from '../hooks/useShopItems';
 import { getFrameStyle } from '../utils/styles';
+import { getNicknameClass, getUserDisplayName } from '../utils/user';
+import ChatBadge from '../components/Social/ChatBadge';
 import '../styles/NicknameStyles.css';
 
 const CAT_LABELS = {
@@ -254,8 +256,10 @@ export default function InventoryPage() {
                         >
                             {currentItems.map((item, idx) => (
                                 <InventoryCard
-                                    key={item.id + idx}
+                                    key={`inv-${item.id || idx}`}
                                     item={item}
+                                    profile={profile}
+                                    user={user}
                                     onAction={() => handleEquipAction(item)}
                                 />
                             ))}
@@ -307,7 +311,7 @@ function FilterTab({ active, label, icon, onClick }) {
     );
 }
 
-function InventoryCard({ item, onAction }) {
+function InventoryCard({ item, onAction, profile, user }) {
     const rarityClass = RARITY_COLORS[item.rarity] || RARITY_COLORS.common;
     const borderClass = RARITY_BORDERS[item.rarity] || RARITY_BORDERS.common;
     const kind = item.kind || 'standard';
@@ -355,8 +359,8 @@ function InventoryCard({ item, onAction }) {
                         </p>
                     </div>
                 ) : (
-                    <div className="text-4xl filter drop-shadow-[0_0_15px_rgba(255,255,255,0.2)] group-hover:scale-125 transition-transform duration-500">
-                        {item.icon || '🪐'}
+                    <div className="w-full flex items-center justify-center min-h-[140px]">
+                        <RenderInventoryPreview item={item} profile={profile} user={user} />
                     </div>
                 )}
             </div>
@@ -395,6 +399,119 @@ function InventoryCard({ item, onAction }) {
                 </div>
             )}
         </motion.div>
+    );
+}
+
+function RenderInventoryPreview({ item, profile, user }) {
+    if (item.category === 'nickname_style') {
+        const nickStyle = getNicknameClass({ equipped_nickname_style: item.id });
+        return (
+            <div className="flex flex-col items-center justify-center w-full p-4 bg-white/5 rounded-2xl border border-white/10 min-h-[100px]">
+                <span className={`text-lg font-bold whitespace-nowrap ${nickStyle}`}>
+                    {user ? getUserDisplayName(profile || user) : 'Explorador_DAN'}
+                </span>
+                <span className="text-[7px] text-white/20 mt-2 uppercase tracking-widest font-mono">:: Previsualización_Nick</span>
+            </div>
+        );
+    }
+
+    if (item.category === 'chat_effect') {
+        const effectClass = `chat-effect-${item.id.replace('chat_', '')}`;
+        return (
+            <div className="flex flex-col items-center justify-center w-full min-h-[100px] p-2">
+                <div className={`w-full p-2.5 rounded-xl border border-white/5 bg-white/5 text-[9px] text-white/60 leading-tight transition-all duration-700 ${effectClass}`}>
+                    <span className="font-bold block mb-0.5 text-[7px] text-white/40">MENSAJE_SIM</span>
+                    ¡Hola explorador!
+                </div>
+            </div>
+        );
+    }
+
+    if (item.category === 'radio') {
+        return (
+            <div className="flex flex-col items-center justify-center w-full min-h-[100px] gap-4">
+                <div className="relative">
+                    <div className="absolute inset-0 bg-cyan-500/10 blur-xl rounded-full scale-150 animate-pulse" />
+                    <div className="relative w-16 h-16 rounded-[2rem] bg-white/5 border border-white/10 flex items-center justify-center text-3xl shadow-2xl group-hover:scale-110 group-hover:rotate-12 transition-all duration-700">
+                        {item.icon}
+                    </div>
+                    <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 flex gap-0.5 h-3 items-end">
+                        {[1, 2, 3, 4, 5].map(i => (
+                            <div
+                                key={i}
+                                className="w-0.5 bg-cyan-400/40 rounded-full animate-bounce"
+                                style={{ height: `${30 + Math.random() * 70}%`, animationDelay: `${i * 0.15}s` }}
+                            />
+                        ))}
+                    </div>
+                </div>
+                <span className="text-[7px] text-white/20 uppercase tracking-widest font-black font-mono">:: Audio_Stream</span>
+            </div>
+        );
+    }
+
+    if (item.category === 'chat_badge') {
+        return (
+            <div className="flex flex-col items-center justify-center w-full min-h-[100px] gap-3">
+                <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/5 border border-white/10 shadow-lg group-hover:border-cyan-500/30 transition-colors">
+                    <div className="w-6 h-6 rounded-lg overflow-hidden border border-white/10">
+                        <img
+                            src={profile?.avatar_url || '/dan_profile.jpg'}
+                            alt="Mini Avatar"
+                            className="w-full h-full object-cover opacity-80"
+                        />
+                    </div>
+                    <ChatBadge badge={item} color={profile?.badge_color} size={10} />
+                    <span className="text-[9px] font-black text-white/40 truncate max-w-[60px] uppercase tracking-tighter">
+                        {user ? getUserDisplayName(profile || user) : 'Explorador'}
+                    </span>
+                </div>
+                <span className="text-[7px] text-white/20 uppercase tracking-widest font-black font-mono">:: Pre_Emblema</span>
+            </div>
+        );
+    }
+
+    if (item.category === 'holocard') {
+        const isGold = item.id.includes('gold');
+        const isMatrix = item.id.includes('matrix');
+        const isVoid = item.id.includes('void');
+        const isNebula = item.id.includes('nebula');
+        const isGlass = item.id.includes('glass');
+        const isCyber = item.id.includes('cyber');
+
+        return (
+            <div className="flex flex-col items-center justify-center w-full min-h-[120px]">
+                <div className={`w-32 aspect-[1.6/1] rounded-2xl border-2 flex flex-col p-3 relative overflow-hidden shadow-2xl transition-all duration-700 group-hover:scale-110 group-hover:-rotate-3
+            ${isGold ? 'bg-gradient-to-br from-amber-200 via-amber-500 to-amber-800 border-amber-300/50 shadow-amber-500/20' :
+                        isMatrix ? 'bg-zinc-950 border-green-500/40 shadow-green-500/10' :
+                            isVoid ? 'bg-[#030305] border-white/5 shadow-white/5' :
+                                isNebula ? 'bg-gradient-to-tr from-indigo-900 via-purple-600 to-rose-500 border-rose-400/40 shadow-purple-500/20' :
+                                    isGlass ? 'bg-white/5 backdrop-blur-xl border-white/30' :
+                                        isCyber ? 'bg-[#0a0a15] border-cyan-500/30' : 'bg-white/10 border-white/10'
+                    }`}>
+                    <div className="absolute inset-0 bg-gradient-to-tr from-white/10 to-transparent opacity-30 pointer-events-none" />
+                    {isMatrix && <div className="absolute inset-0 opacity-20 bg-[linear-gradient(90deg,rgba(34,197,94,.1)_1px,transparent_1px),linear-gradient(0deg,rgba(34,197,94,.1)_1px,transparent_1px)] bg-[size:10px_10px]" />}
+                    {isGold && <div className="absolute top-[-50%] left-[-50%] w-[200%] h-[200%] bg-gradient-to-r from-transparent via-white/20 to-transparent rotate-45 animate-pulse" />}
+
+                    <div className="flex gap-2 items-center relative z-10">
+                        <div className={`w-6 h-6 rounded-lg overflow-hidden border ${isGold ? 'border-amber-200/50' : 'border-white/20'} bg-black/20`}>
+                            <img src={profile?.avatar_url || '/dan_profile.jpg'} className="w-full h-full object-cover opacity-80" />
+                        </div>
+                        <div className={`h-2 w-14 rounded-full ${isGold ? 'bg-amber-100/50' : 'bg-white/20'}`} />
+                    </div>
+                </div>
+                <span className={`text-[7px] mt-4 uppercase tracking-[0.3em] font-black font-mono transition-colors ${isGold ? 'text-amber-400' : isMatrix ? 'text-green-400' : isNebula ? 'text-rose-400' : 'text-white/20'
+                    }`}>
+                    :: HOLO_CARD
+                </span>
+            </div>
+        );
+    }
+
+    return (
+        <div className="text-4xl filter drop-shadow-[0_0_15px_rgba(255,255,255,0.2)] group-hover:scale-125 transition-transform duration-500">
+            {item.icon || '🪐'}
+        </div>
     );
 }
 
