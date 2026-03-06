@@ -6,7 +6,7 @@ import { useAuthContext } from '../../contexts/AuthContext';
 import { useEconomy } from '../../contexts/EconomyContext';
 import { Link } from 'react-router-dom';
 
-export default function EchoesSection({ profileId, isOwnProfile }) {
+export default function EchoesSection({ profileId, isOwnProfile, autoOpenStar = false, onStarModalClose }) {
     const { user } = useAuthContext();
     const { awardCoins } = useEconomy();
     const [echoes, setEchoes] = useState([]);
@@ -17,6 +17,14 @@ export default function EchoesSection({ profileId, isOwnProfile }) {
     const [submitting, setSubmitting] = useState(false);
     const [metadata, setMetadata] = useState({});
     const [isFleeting, setIsFleeting] = useState(false);
+
+    // Abrir modal en modo estrella desde el botón del header
+    useEffect(() => {
+        if (autoOpenStar) {
+            setModalType('star');
+            setShowModal(true);
+        }
+    }, [autoOpenStar]);
 
     useEffect(() => {
         if (profileId) fetchEchoes();
@@ -46,6 +54,7 @@ export default function EchoesSection({ profileId, isOwnProfile }) {
             setEchoContent('');
             setMetadata({});
             setIsFleeting(false);
+            onStarModalClose?.(); // Notificar al padre que el modal cerró
 
             // Increase Bond
             cosmicEventsService.incrementBond(user.id, profileId, 5);
@@ -166,7 +175,7 @@ export default function EchoesSection({ profileId, isOwnProfile }) {
                         >
                             <div className="p-6 border-b border-white/5 flex justify-between items-center bg-white/[0.02]">
                                 <h3 className="text-sm font-black text-white/80 uppercase tracking-widest">Crear Eco</h3>
-                                <button onClick={() => setShowModal(false)} className="text-white/40 hover:text-white">✕</button>
+                                <button onClick={() => { setShowModal(false); onStarModalClose?.(); }} className="text-white/40 hover:text-white">✕</button>
                             </div>
 
                             <div className="p-6 space-y-6">

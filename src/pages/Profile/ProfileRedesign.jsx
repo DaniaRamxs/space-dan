@@ -258,7 +258,7 @@ export default function ProfileRedesignPage() {
     const [showConfig, setShowConfig] = useState(false);
     const [showComposer, setShowComposer] = useState(false);
     const [stats, setStats] = useState({ stars: 0, echoes: 0, age: 0 });
-    const [showStellarModal, setShowStellarModal] = useState(false);
+    const [openEchoAsStar, setOpenEchoAsStar] = useState(false);
 
     useEffect(() => {
         load();
@@ -391,7 +391,9 @@ export default function ProfileRedesignPage() {
                 onEdit={() => setShowConfig(true)}
                 onStar={() => {
                     if (!user) return alert('Debes iniciar sesión para dejar una estrella.');
-                    setShowStellarModal(true);
+                    // Ir al tab Ecos y abrir el modal pre-seleccionado en tipo estrella
+                    setActiveTab('guestbook');
+                    setOpenEchoAsStar(true);
                 }}
                 onEcho={() => setActiveTab('guestbook')}
             />
@@ -406,14 +408,7 @@ export default function ProfileRedesignPage() {
                 onSave={load}
             />
 
-            {/* Modal Dejar Estrella — siempre montado, independiente del tab */}
-            <StarGiftModal
-                open={showStellarModal}
-                onClose={() => setShowStellarModal(false)}
-                toUserId={profile.id}
-                toUsername={profile.username}
-                fromUserId={user?.id}
-            />
+            {/* Modal Dejar Estrella eliminado — ahora usa EchoesSection con autoOpenStar */}
 
             {/* Main content */}
             <div className="max-w-5xl mx-auto px-4 md:px-6 pt-6 pb-20">
@@ -648,7 +643,12 @@ export default function ProfileRedesignPage() {
                         {/* ── ECOS ─────────────────────────────────────── */}
                         {activeTab === 'guestbook' && (
                             <div className="py-8">
-                                <EchoesSection profileId={profile.id} isOwnProfile={isOwn} />
+                                <EchoesSection
+                                    profileId={profile.id}
+                                    isOwnProfile={isOwn}
+                                    autoOpenStar={openEchoAsStar}
+                                    onStarModalClose={() => setOpenEchoAsStar(false)}
+                                />
                             </div>
                         )}
                     </motion.div>
