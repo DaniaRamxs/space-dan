@@ -9,7 +9,7 @@ import { supabase } from '../supabaseClient';
 import { getUserDisplayName, getNicknameClass } from '../utils/user';
 import '../styles/NicknameStyles.css';
 
-import { Zap, Flame, Sparkles } from 'lucide-react';
+import { Zap, Flame, Sparkles, ShieldCheck, Crown, Orbit } from 'lucide-react';
 import { getFrameStyle } from '../utils/styles';
 
 import SafeAvatar from './SafeAvatar';
@@ -39,13 +39,14 @@ const HoloCard = memo(function HoloCard({ profile, onClose }) {
                 .then(setSocialStats)
                 .catch(console.error);
 
-            // Fetch full profile for identity styles
+            // Fetch full profile for identity styles + pass/shield info
             supabase
                 .from('profiles')
                 .select(`
                     *,
                     nick_style_item:equipped_nickname_style(id, metadata),
-                    theme_item:equipped_theme(id, metadata)
+                    theme_item:equipped_theme(id, metadata),
+                    stellar_pass:stellar_pass_progression(level, xp, is_premium)
                 `)
                 .eq('id', profileId)
                 .maybeSingle()
@@ -132,6 +133,14 @@ const HoloCard = memo(function HoloCard({ profile, onClose }) {
                     }} />
 
                     <div style={{ transform: 'translateZ(50px)', marginBottom: '20px', width: '100px', height: '100px' }} className={`relative flex items-center justify-center ${frameClass}`}>
+                        {/* Shield Indicator */}
+                        {fullProfile?.anti_rob_until && new Date(fullProfile.anti_rob_until) > new Date() && (
+                            <div className="absolute -top-2 -left-2 bg-cyan-500 rounded-full p-1.5 shadow-[0_0_10px_cyan] z-50 overflow-hidden">
+                                <ShieldCheck size={14} className="text-white" />
+                                <motion.div animate={{ rotate: 360 }} transition={{ duration: 4, repeat: Infinity, ease: "linear" }} className="absolute inset-0 border border-white/30 rounded-full" />
+                            </div>
+                        )}
+
                         <SafeAvatar
                             src={profile.avatar_url}
                             provider={profile.provider}
@@ -161,11 +170,25 @@ const HoloCard = memo(function HoloCard({ profile, onClose }) {
                         </h2>
 
                         <p style={{
-                            opacity: 0.7, fontSize: '11px', marginBottom: '15px',
+                            opacity: 0.7, fontSize: '11px', marginBottom: '5px',
                             maxHeight: '40px', overflow: 'hidden', fontStyle: profile.bio ? 'normal' : 'italic'
                         }}>
                             {profile.bio || 'Explorador del Spacely'}
                         </p>
+
+                        {/* Stellar Pass Indicator */}
+                        {fullProfile?.stellar_pass && (
+                            <div className="flex flex-col items-center gap-1 mb-3">
+                                <div className="flex items-center gap-1.5 text-[9px] font-black tracking-widest text-cyan-400 uppercase">
+                                    <Sparkles size={8} />
+                                    Pase Estelar LV. {fullProfile.stellar_pass.level}
+                                    {fullProfile.stellar_pass.is_premium && <span className="text-amber-400">[PREMIUM]</span>}
+                                </div>
+                                <div className="w-32 h-1 bg-white/5 rounded-full overflow-hidden">
+                                    <div className="h-full bg-cyan-500 shadow-[0_0_10px_cyan]" style={{ width: `${(fullProfile.stellar_pass.xp / 1000) * 100}%` }} />
+                                </div>
+                            </div>
+                        )}
 
                         <div style={{ display: 'flex', gap: '20px', justifyContent: 'center', marginBottom: '20px' }}>
                             <div style={{ textAlign: 'center' }}>

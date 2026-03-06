@@ -222,6 +222,9 @@ BEGIN
   -- 8. Sincronizar Snapshot Semanal
   PERFORM public.upsert_weekly_snapshot(p_user_id, v_new_balance);
 
+  -- 9. Otorgar XP de Pase Estelar (10 XP por cada 100 Starlys, mín 1, máx 50 por acción)
+  PERFORM public.award_pass_xp(p_user_id, LEAST(GREATEST(1, floor(p_amount / 10)), 50));
+
   RETURN jsonb_build_object(
     'success', true, 
     'awarded', v_final_reward, 
@@ -236,8 +239,6 @@ $$;
 CREATE OR REPLACE FUNCTION public.rob_user(p_from_user_id uuid, p_target_username text)
 RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER AS $$
 DECLARE
-    v_target_id     uuid;
-    v_target_bal    int;
     v_success       boolean;
     v_amount        int;
     v_penalty       int := 100;
@@ -245,16 +246,22 @@ DECLARE
     v_actual_penalty int;
     v_cooldown      interval := '2 hours';
     v_last_rob      timestamptz;
+    v_target_shield timestamptz;
 BEGIN
     SELECT last_rob_at INTO v_last_rob FROM public.profiles WHERE id = p_from_user_id;
     IF v_last_rob IS NOT NULL AND v_last_rob > now() - v_cooldown THEN
         RETURN jsonb_build_object('success', false, 'reason', 'cooldown', 'next', v_last_rob + v_cooldown);
     END IF;
 
-    SELECT id, balance INTO v_target_id, v_target_bal FROM public.profiles 
+    SELECT id, balance, anti_rob_until INTO v_target_id, v_target_bal, v_target_shield FROM public.profiles 
     WHERE lower(username) = lower(p_target_username);
 
     IF v_target_id IS NULL THEN RAISE EXCEPTION 'Objetivo no encontrado'; END IF;
+    
+    -- Check Shield de Neutrones
+    IF v_target_shield IS NOT NULL AND v_target_shield > now() THEN
+        RETURN jsonb_build_object('success', false, 'reason', 'shielded', 'expires_at', v_target_shield);
+    END IF;
     IF v_target_id = p_from_user_id THEN RAISE EXCEPTION 'No puedes robarte a ti mismo'; END IF;
     IF v_target_bal < 100 THEN RAISE EXCEPTION 'Objetivo demasiado pobre'; END IF;
 

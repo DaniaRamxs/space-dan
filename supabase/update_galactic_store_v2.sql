@@ -25,7 +25,9 @@ INSERT INTO public.premium_products (id, name, description, price, type, reward_
 
 ('bot_assistant', 'Asistente HyperBot', 'Automatiza tus recordatorios y optimiza tus tiempos de trabajo.', 1.99, 'subscription', 0, '{"assistant": true}'),
 
-('anti_theft_shield', 'Escudo de Neutrones', 'Inmunidad total ante intentos de robo durante 7 días.', 1.99, 'item', 0, '{"anti_rob_days": 7}');
+('anti_theft_shield', 'Escudo de Neutrones', 'Inmunidad total ante intentos de robo durante 7 días.', 1.99, 'item', 0, '{"anti_rob_days": 7}'),
+
+('stellar_pass', 'Pase Estelar (Premium)', 'Desbloquea la línea de recompensas exclusiva y bonos de nivel.', 4.99, 'item', 0, '{"pass_premium": true}');
 
 -- 3. FUNCIÓN MAESTRA DE PROCESAMIENTO AUTOMÁTICO
 CREATE OR REPLACE FUNCTION public.process_premium_purchase(p_user_id uuid, p_product_id text)
@@ -77,6 +79,13 @@ BEGIN
     -- D. Asistente Bot
     IF v_meta ? 'assistant' THEN
         UPDATE public.profiles SET bot_assistant = true WHERE id = p_user_id;
+    END IF;
+
+    -- F. PASE ESTELAR
+    IF v_meta ? 'pass_premium' THEN
+        INSERT INTO public.stellar_pass_progression (user_id, is_premium)
+        VALUES (p_user_id, true)
+        ON CONFLICT (user_id) DO UPDATE SET is_premium = true;
     END IF;
 
     -- E. EVENTOS GLOBALES (Pulso Cósmico)
