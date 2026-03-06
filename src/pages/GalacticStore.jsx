@@ -20,6 +20,9 @@ export default function GalacticStore() {
     const [loading, setLoading] = useState(true);
     const [successMessage, setSuccessMessage] = useState(null);
     const [selectedProduct, setSelectedProduct] = useState(null);
+    const [paymentMethod, setPaymentMethod] = useState(null); // 'paypal', 'pagoefectivo', 'yape'
+    const [cipData, setCipData] = useState(null);
+    const [paymentLoading, setPaymentLoading] = useState(false);
 
     useEffect(() => {
         loadProducts();
@@ -50,7 +53,37 @@ export default function GalacticStore() {
         setSuccessMessage("¡Gracias por tu apoyo! Tus recompensas han sido acreditadas en el Banco Estelar.");
         refreshBalance();
         setSelectedProduct(null);
+        setPaymentMethod(null);
+        setCipData(null);
         setTimeout(() => setSuccessMessage(null), 5000);
+    };
+
+    const handlePagoEfectivo = async (method) => {
+        if (!user) return alert('Debes iniciar sesión para proceder.');
+        setPaymentLoading(true);
+        setPaymentMethod(method);
+
+        try {
+            const res = await stellarStoreService.generatePagoEfectivoCIP(
+                selectedProduct.id,
+                user.id,
+                user.email,
+                selectedProduct.price * 3.8, // Conversión PEN aprox
+                user.user_metadata?.username || user.email
+            );
+
+            setCipData({
+                cip: res.cip,
+                expiry: res.expiry,
+                qr: res.qr || `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=CIP:${res.cip}`,
+                method: method
+            });
+        } catch (e) {
+            alert(e.message || 'Error al conectar con PagoEfectivo');
+            setPaymentMethod(null);
+        } finally {
+            setPaymentLoading(false);
+        }
     };
 
     if (loading) return (
@@ -120,47 +153,72 @@ export default function GalacticStore() {
                 </div>
             </div>
 
-            {/* PayPal Modal */}
+            {/* Payment Modal */}
             <AnimatePresence>
                 {selectedProduct && (
-                    <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/80 backdrop-blur-xl">
+                    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-xl">
                         <motion.div
                             initial={{ opacity: 0, scale: 0.9 }}
                             animate={{ opacity: 1, scale: 1 }}
                             exit={{ opacity: 0, scale: 0.9 }}
-                            className="max-w-md w-full bg-[#070710] border border-white/10 rounded-[2.5rem] p-10 relative overflow-hidden"
+                            className="max-w-xl w-full bg-[#070710] border border-white/10 rounded-[2.5rem] overflow-hidden relative flex flex-col md:flex-row"
                         >
                             <button
-                                onClick={() => setSelectedProduct(null)}
-                                className="absolute top-6 right-6 p-2 text-white/20 hover:text-white transition-colors"
+                                onClick={() => { setSelectedProduct(null); setPaymentMethod(null); setCipData(null); }}
+                                className="absolute top-6 right-6 z-20 p-2 text-white/20 hover:text-white transition-colors"
                             >
                                 <X size={20} />
                             </button>
 
-                            <div className="space-y-6 text-center">
-                                <div className="space-y-2">
-                                    <p className="text-[10px] font-black text-cyan-400 uppercase tracking-widest">Proceder al Pago</p>
-                                    <h2 className="text-2xl font-black text-white uppercase tracking-tighter">{selectedProduct.name}</h2>
-                                    <p className="text-3xl font-black text-white mt-2 font-mono">${selectedProduct.price}</p>
+                            {/* Info Section */}
+                            <div className="md:w-1/3 bg-white/[0.02] p-8 border-b md:border-b-0 md:border-r border-white/5 flex flex-col justify-between">
+                                <div className="space-y-4">
+                                    <div className="w-12 h-12 rounded-xl bg-white/5 flex items-center justify-center text-white/40">
+                                        {getProductIcon(selectedProduct.id)}
+                                    </div>
+                                    <div>
+                                        <h3 className="text-xl font-black text-white uppercase tracking-tighter leading-tight">{selectedProduct.name}</h3>
+                                        <p className="text-2xl font-black text-cyan-400 mt-1 font-mono">${selectedProduct.price}</p>
+                                    </div>
                                 </div>
-
-                                <div className="bg-white/5 p-4 rounded-2xl text-[10px] text-white/40 leading-relaxed">
-                                    Haz clic en el botón de abajo para completar tu donación de forma segura. Los beneficios se activarán al instante.
+                                <div className="space-y-4 mt-8 md:mt-0">
+                                    {parseMetadata(selectedProduct).slice(0, 3).map((benefit, i) => (
+                                        <div key={i} className="flex items-center gap-2">
+                                            <CheckCircle2 size={10} className="text-cyan-500" />
+                                            <span className="text-[10px] text-white/40 font-medium">{benefit}</span>
+                                        </div>
+                                    ))}
                                 </div>
+                            </div>
 
-                                <div className="min-h-[150px] flex items-center justify-center">
-                                    <PayPalButtons
-                                        product={selectedProduct}
-                                        userId={user?.id}
-                                        onSuccess={onPaymentSuccess}
-                                    />
+                            {/* Payment Section */}
+                            <div className="flex-1 p-8 md:p-10 flex flex-col justify-center min-h-[400px]">
+                                <div className="space-y-6">
+                                    <div className="text-center md:text-left">
+                                        <p className="text-[10px] font-black text-cyan-400 uppercase tracking-widest mb-2">Proceder al Pago</p>
+                                        <div className="bg-white/5 p-4 rounded-2xl text-[10px] text-white/40 leading-relaxed mb-6">
+                                            Haz clic en el botón de abajo para completar tu donación de forma segura vía PayPal. Los beneficios se activarán al instante.
+                                        </div>
+                                    </div>
+
+                                    <div className="min-h-[150px] flex items-center justify-center">
+                                        <PayPalButtons
+                                            product={selectedProduct}
+                                            userId={user?.id}
+                                            onSuccess={onPaymentSuccess}
+                                        />
+                                    </div>
+
+                                    <p className="text-[9px] text-center text-white/20 uppercase tracking-widest font-bold">
+                                        ⚡ Encriptación de Grado Estelar
+                                    </p>
                                 </div>
                             </div>
                         </motion.div>
                     </div>
                 )}
-            </AnimatePresence>
-        </div>
+            </AnimatePresence >
+        </div >
     );
 }
 
@@ -222,40 +280,67 @@ function PayPalButtons({ product, userId, onSuccess }) {
     const containerRef = useRef(null);
 
     useEffect(() => {
-        if (!window.paypal || !containerRef.current) return;
+        let isInstanceValid = true;
 
-        // Limpiamos el contenedor por si acaso
-        containerRef.current.innerHTML = "";
+        const renderButtons = async () => {
+            if (!window.paypal || !containerRef.current) return;
 
-        window.paypal.Buttons({
-            createOrder: (data, actions) => {
-                return actions.order.create({
-                    purchase_units: [{
-                        amount: { value: product.price.toString() },
-                        description: product.name,
-                        custom_id: `${product.id}|${userId}`
-                    }]
+            // Limpiamos el contenedor
+            containerRef.current.innerHTML = "";
+
+            try {
+                const buttons = window.paypal.Buttons({
+                    createOrder: (data, actions) => {
+                        return actions.order.create({
+                            purchase_units: [{
+                                amount: { value: product.price.toString() },
+                                description: product.name,
+                                custom_id: `${product.id}|${userId}`
+                            }]
+                        });
+                    },
+                    onApprove: async (data, actions) => {
+                        try {
+                            await stellarStoreService.verifyPayPalPayment(data.orderID, product.id, userId);
+                            onSuccess();
+                        } catch (err) {
+                            console.error('[PayPalButtons] Verification Error:', err);
+                            alert('Error confirmando el pago. Contacta a soporte.');
+                        }
+                    },
+                    style: {
+                        layout: 'vertical',
+                        color: 'blue',
+                        shape: 'pill',
+                        label: 'pay'
+                    },
+                    onError: (err) => {
+                        console.warn('[PayPalButtons] SDK Error:', err);
+                    }
                 });
-            },
-            onApprove: async (data, actions) => {
-                try {
-                    // Llamar a nuestra Edge Function para verificar y entregar premios
-                    await stellarStoreService.verifyPayPalPayment(data.orderID, product.id, userId);
-                    onSuccess();
-                } catch (err) {
-                    alert('Error confirmando el pago. Contacta a soporte.');
+
+                if (buttons.isEligible() && isInstanceValid && containerRef.current) {
+                    await buttons.render(containerRef.current);
                 }
-            },
-            style: {
-                layout: 'vertical',
-                color: 'blue',
-                shape: 'pill',
-                label: 'pay'
+            } catch (err) {
+                // Silenciamos el error si es simplemente que el contenedor desapareció
+                if (!err.message?.includes('container element removed')) {
+                    console.error('[PayPalButtons] Render Error:', err);
+                }
             }
-        }).render(containerRef.current);
+        };
+
+        renderButtons();
+
+        return () => {
+            isInstanceValid = false;
+            if (containerRef.current) {
+                containerRef.current.innerHTML = "";
+            }
+        };
     }, [product, userId]);
 
-    return <div ref={containerRef} className="w-full max-w-[200px]" />;
+    return <div ref={containerRef} key={`paypal-container-${product?.id}`} className="w-full max-w-[200px] min-h-[150px]" />;
 }
 
 function getProductIcon(id) {

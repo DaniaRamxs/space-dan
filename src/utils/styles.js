@@ -27,12 +27,10 @@ export function getFrameStyle(frameItemId) {
     if (id === 'frame_crown') return { className: 'marco-corona' };
 
     // Fallbacks por keyword
-    if (id.includes('gold')) return { border: '3px solid #ffd700', borderRadius: '50%', boxShadow: '0 0 15px rgba(255,215,0,0.6)' };
-    if (id.includes('cyan') || id.includes('cyber')) return { border: '3px solid #00e5ff', borderRadius: '50%', boxShadow: '0 0 15px rgba(0,229,255,0.6)' };
-    if (id.includes('pink') || id.includes('rose')) return { border: '3px solid #ff69b4', borderRadius: '50%', boxShadow: '0 0 15px rgba(255,105,180,0.6)' };
-    if (id.includes('purple') || id.includes('galaxy')) return { border: '3px solid #b464ff', borderRadius: '50%', boxShadow: '0 0 15px rgba(180,100,255,0.6)' };
-    if (id.includes('green') || id.includes('matrix')) return { border: '3px solid #39ff14', borderRadius: '50%', boxShadow: '0 0 15px rgba(57,255,20,0.6)' };
-    if (id.includes('red') || id.includes('fire')) return { border: '3px solid #ff3300', borderRadius: '50%', boxShadow: '0 0 15px rgba(255,51,0,0.6)' };
+    if (id === 'frame_galaxy') return { border: '3px solid #b464ff', borderRadius: '50%', boxShadow: '0 0 20px rgba(180,100,255,0.8), inset 0 0 10px rgba(0,229,255,0.4)', background: 'radial-gradient(circle, transparent 60%, rgba(180,100,255,0.1) 100%)' };
+    if (id === 'frame_golden') return { border: '3px solid #ffd700', borderRadius: '50%', boxShadow: '0 0 20px rgba(255,215,0,0.6), 0 0 5px rgba(255,255,255,0.8)', background: 'linear-gradient(45deg, rgba(255,215,0,0.1), transparent)' };
+    if (id === 'frame_glitch') return { border: '3px solid #fff', borderRadius: '50%', boxShadow: '2px 0 #f0f, -2px 0 #0f0', animation: 'cyberGlitch 0.2s infinite' };
+    if (id === 'frame_prism') return { border: '3px solid transparent', borderRadius: '50%', backgroundImage: 'linear-gradient(#000,#000), conic-gradient(from 0deg, #ff0000, #ffff00, #00ff00, #00ffff, #0000ff, #ff00ff, #ff0000)', backgroundOrigin: 'border-box', backgroundClip: 'padding-box, border-box', boxShadow: '0 0 20px rgba(255,255,255,0.4)', animation: 'spin 4s linear infinite' };
 
     // Default fallback (para cuando hay un ID randoom pero no mapeado)
     return { border: '2px solid rgba(255,255,255,0.2)', borderRadius: '50%', boxShadow: '0 0 10px rgba(255,255,255,0.1)' };

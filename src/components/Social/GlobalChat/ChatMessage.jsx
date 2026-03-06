@@ -8,6 +8,7 @@ import { Zap, Flame, Sparkles, ShieldCheck } from 'lucide-react';
 import { getNicknameClass, getUserDisplayName } from '../../../utils/user';
 import { getFrameStyle } from '../../../utils/styles';
 import { parseSpaceEnergies } from '../../../utils/markdownUtils';
+import ChatBadge from '../../Social/ChatBadge';
 
 const sanitizeSchema = {
     ...defaultSchema,
@@ -123,27 +124,11 @@ const ChatMessage = memo(({ message, isMe, isOnline, userPresence, onProfileClic
                         </div>
                     )}
 
-                    {safeAuthor?.badge_color && (
-                        <motion.div
-                            initial={{ scale: 0, rotate: -45 }}
-                            animate={{ scale: 1, rotate: 0 }}
-                            className="flex-shrink-0 relative group/badge"
-                            title="Insignia Personalizada"
-                        >
-                            <div
-                                className="absolute inset-0 blur-[6px] opacity-40 rounded-full"
-                                style={{ backgroundColor: safeAuthor.badge_color }}
-                            />
-                            <div
-                                className="relative p-0.5 rounded-md border border-white/20 bg-black/40 shadow-lg backdrop-blur-[2px]"
-                            >
-                                <Sparkles
-                                    size={10}
-                                    style={{ color: safeAuthor.badge_color }}
-                                    className="drop-shadow-[0_0_5px_currentColor] brightness-150"
-                                />
-                            </div>
-                        </motion.div>
+                    {(safeAuthor?.badge_color || safeAuthor?.equipped_badge) && (
+                        <ChatBadge
+                            badge={safeAuthor.equipped_badge}
+                            color={safeAuthor.badge_color}
+                        />
                     )}
                     <span className="text-[8px] text-white/20 font-mono flex-shrink-0">
                         {new Date(created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}

@@ -129,7 +129,6 @@ const TREE = {
       sub: "Shell principal",
       children: [
         { label: "StarfieldBg", sub: "Canvas + temas tienda" },
-        { label: "CursorTrail", sub: "Partículas cursor" },
         { label: "KonamiEasterEgg", sub: "↑↑↓↓←→←→BA" },
         { label: "RadioPlayer", sub: "Radio en vivo" },
         { label: "LastFmWidget", sub: "Sidebar now-playing" },

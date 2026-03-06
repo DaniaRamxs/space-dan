@@ -6,22 +6,7 @@ const STAR_COUNT = isMobile() ? 60 : 150;
 const NEBULA_COUNT = isMobile() ? 1 : 3;
 const FRAME_INTERVAL = isMobile() ? 1000 / 30 : 1000 / 60;
 
-const STAR_THEMES = {
-  default: { r: 255, g: 255, b: 255, nebula: 'rgba(139, 92, 246, 0.05)' },
-  stars_blue: { r: 0, g: 191, b: 255, nebula: 'rgba(6, 182, 212, 0.05)' },
-  stars_green: { r: 57, g: 255, b: 20, nebula: 'rgba(16, 185, 129, 0.05)' },
-  stars_red: { r: 255, g: 50, b: 50, nebula: 'rgba(244, 63, 94, 0.05)' },
-  stars_purple: { r: 191, g: 0, b: 255, nebula: 'rgba(168, 85, 247, 0.05)' },
-};
-
-function getStarTheme() {
-  try {
-    const equipped = JSON.parse(localStorage.getItem('space-dan-shop-equipped') || '{}');
-    const pick = equipped.stars;
-    if (pick && STAR_THEMES[pick]) return STAR_THEMES[pick];
-  } catch { }
-  return STAR_THEMES.default;
-}
+const STAR_THEME = { r: 255, g: 255, b: 255, nebula: 'rgba(139, 92, 246, 0.05)' };
 
 export default function StarfieldBg() {
   const canvasRef = useRef(null);
@@ -40,14 +25,7 @@ export default function StarfieldBg() {
   useEffect(() => {
     const canvas = canvasRef.current;
     const ctx = canvas.getContext('2d');
-    let theme = getStarTheme();
-
-    const onThemeChange = (e) => {
-      if (!e.detail || e.detail.category === 'stars') {
-        theme = getStarTheme();
-      }
-    };
-    window.addEventListener('dan:item-equipped', onThemeChange);
+    const theme = STAR_THEME;
 
     const stars = Array.from({ length: STAR_COUNT }, () => ({
       x: Math.random(),
@@ -184,7 +162,6 @@ export default function StarfieldBg() {
       cancelAnimationFrame(raf);
       window.removeEventListener('resize', resize);
       if (!mobile) window.removeEventListener('mousemove', onMouseMove);
-      window.removeEventListener('dan:item-equipped', onThemeChange);
     };
   }, [event]);
 

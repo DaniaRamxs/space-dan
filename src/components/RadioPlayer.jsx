@@ -31,64 +31,71 @@ const BASE_STATIONS = [
 ];
 
 const EXTRA_STATIONS = {
-  radio_jcore: {
-    id: 'jcore',
-    name: 'Listen.moe — Anime',
-    genre: 'J-Pop · Anime · K-Pop',
-    stream: 'https://listen.moe/stream',
-    icon: <RadioSvg type="jcore" />,
+  radio_lofi: {
+    id: 'radio_lofi',
+    name: 'Beats de Vacío',
+    genre: 'Lofi · Chillhop · Study',
+    stream: 'https://streams.ilovemusic.de/iloveradio17.mp3',
+    icon: <RadioSvg type="lofi" />,
   },
-  radio_groove: {
-    id: 'groove',
-    name: 'Groove Salad',
-    genre: 'Ambient · Electronica',
-    stream: 'https://ice4.somafm.com/groovesalad-128-mp3',
-    icon: <RadioSvg type="groove" />,
+  radio_retro: {
+    id: 'radio_retro',
+    name: 'Frecuencia FM',
+    genre: 'Secret Agent · 60s Jazz',
+    stream: 'https://ice4.somafm.com/secretagent-128-mp3',
+    icon: <RadioSvg type="lofi" />,
   },
-  radio_beatblender: {
-    id: 'beatblender',
-    name: 'Beat Blender',
-    genre: 'Deep House · Electro',
+  radio_synthwave: {
+    id: 'radio_synthwave',
+    name: 'Synth 80s',
+    genre: 'Synthwave · Retro Future',
+    stream: 'https://radio.plaza.one/mp3', // Map to plaza for synth feel
+    icon: <RadioSvg type="nightwave" />,
+  },
+  radio_cyberpunk: {
+    id: 'radio_cyberpunk',
+    name: 'Nivel Crítico',
+    genre: 'Cyberpunk · EBS · Industrial',
     stream: 'https://ice4.somafm.com/beatblender-128-mp3',
-    icon: <RadioSvg type="beat" />,
+    icon: <RadioSvg type="space" />,
   },
-  radio_dronezone: {
-    id: 'dronezone',
-    name: 'Drone Zone',
-    genre: 'Ambient · Space',
+  radio_dark: {
+    id: 'radio_dark',
+    name: 'Frecuencias Oscuras',
+    genre: 'Dark Ambient · Drone',
     stream: 'https://ice4.somafm.com/dronezone-128-mp3',
     icon: <RadioSvg type="space" />,
   },
-  radio_secretagent: {
-    id: 'secretagent',
-    name: 'Secret Agent',
-    genre: 'Spy Jazz · Lounge',
-    stream: 'https://ice4.somafm.com/secretagent-128-mp3',
-    icon: <RadioSvg type="agent" />,
+  radio_urbano: {
+    id: 'radio_urbano',
+    name: 'Nexo Urbano',
+    genre: 'Urban · Reggaeton · Latino',
+    stream: 'https://streams.ilovemusic.de/iloveradio2.mp3', // I Love 2 (Urban/HipHop)
+    icon: <RadioSvg type="lofi" />,
   },
-  radio_kpop: {
-    id: 'kpop',
-    name: 'K-Pop Universe',
-    genre: 'K-Pop · Hallyu Hits',
-    stream: 'https://listen.moe/kpop/stream',
-    icon: <RadioSvg type="kpop" />,
+  radio_yeye: {
+    id: 'radio_yeye',
+    name: 'Radio Yeye',
+    genre: 'Pop Hits · Top 40 · Modern Rock',
+    stream: 'https://streams.ilovemusic.de/iloveradio1.mp3', // I Love Radio (Main Hit Station)
+    icon: <RadioSvg type="nightwave" />,
   },
 };
 
-function getStations(dbItems = []) {
+function getStations(equippedId = null) {
   const stations = [...BASE_STATIONS];
-  try {
-    const localPurchased = JSON.parse(
-      localStorage.getItem('space-dan-shop-purchased') || '[]'
-    );
-    // Combinamos compras locales con compras de la base de datos
-    const dbPurchasedIds = dbItems.map(ui => ui.item_id);
-    const allPurchased = [...new Set([...localPurchased, ...dbPurchasedIds])];
 
-    for (const [key, station] of Object.entries(EXTRA_STATIONS)) {
-      if (allPurchased.includes(key)) stations.push(station);
+  if (!Array.isArray(equippedId)) {
+    equippedId = equippedId ? [equippedId] : [];
+  }
+
+  // Añadir las estaciones que están EQUIPADAS
+  equippedId.forEach(id => {
+    if (EXTRA_STATIONS[id]) {
+      stations.push(EXTRA_STATIONS[id]);
     }
-  } catch { }
+  });
+
   return stations;
 }
 
@@ -115,12 +122,20 @@ export default function RadioPlayer() {
 
     const loadDbStations = async () => {
       try {
-        const { data } = await supabase
+        const { data: items } = await supabase
           .from('user_items')
           .select('item_id')
-          .eq('user_id', user.id);
+          .eq('user_id', user.id)
+          .eq('is_equipped', true);
 
-        if (data) setStations(getStations(data));
+        const equippedIds = items ? items.map(ui => ui.item_id) : [];
+        const newStations = getStations(equippedIds);
+        setStations(newStations);
+
+        if (equippedIds.length > 0 && current === 0) {
+          const idx = newStations.findIndex(s => s.id === equippedIds[equippedIds.length - 1]);
+          if (idx !== -1) setCurrent(idx);
+        }
       } catch (err) {
         console.warn('[RadioPlayer] Error loading DB stations:', err);
       }
@@ -174,20 +189,47 @@ export default function RadioPlayer() {
   }, [playing, current, stations, setActiveStation]);
 
   useEffect(() => {
-    const sync = async () => {
+    const sync = async (e) => {
+      let equippedIds = [];
+
       if (user) {
-        const { data } = await supabase
-          .from('user_items')
-          .select('item_id')
-          .eq('user_id', user.id);
-        setStations(getStations(data || []));
+        const { data: items } = await supabase.from('user_items').select('item_id').eq('user_id', user.id).eq('is_equipped', true);
+        equippedIds = items ? items.map(ui => ui.item_id) : [];
       } else {
-        setStations(getStations([]));
+        const localEquipped = JSON.parse(localStorage.getItem('spacely_equipped_items') || '{}');
+        const localRadio = localEquipped.radio || [];
+        equippedIds = Array.isArray(localRadio) ? localRadio : [localRadio].filter(Boolean);
+      }
+
+      // Si el evento fue de equipar y es una radio, agregarlo a la lista de equipados si no estaba
+      if (e?.type === 'dan:item-equipped' && e.detail.category === 'radio') {
+        if (!equippedIds.includes(e.detail.id)) equippedIds.push(e.detail.id);
+      } else if (e?.type === 'dan:item-unequipped' && e.detail.category === 'radio') {
+        equippedIds = equippedIds.filter(id => id !== e.detail.id);
+      }
+
+      const newStations = getStations(equippedIds);
+      setStations(newStations);
+
+      if (e?.type === 'dan:item-equipped' && e.detail.category === 'radio') {
+        const targetId = e.detail.id;
+        const idx = newStations.findIndex(s => s.id === targetId);
+        if (idx !== -1) {
+          setCurrent(idx);
+          // Auto-reproducir la radio recién equipada
+          audio.src = newStations[idx].stream;
+          audio.play().catch(() => { });
+        }
       }
     };
     window.addEventListener('dan:item-purchased', sync);
-    return () =>
+    window.addEventListener('dan:item-equipped', sync);
+    window.addEventListener('dan:item-unequipped', sync); // Add listener for unequip
+    return () => {
       window.removeEventListener('dan:item-purchased', sync);
+      window.removeEventListener('dan:item-equipped', sync);
+      window.removeEventListener('dan:item-unequipped', sync);
+    };
   }, [user]);
 
   useEffect(() => {
@@ -201,9 +243,9 @@ export default function RadioPlayer() {
       RadioServicePlugin.start({
         name: stations[current].name,
         genre: stations[current].genre,
-      }).catch(() => {});
+      }).catch(() => { });
     } else {
-      RadioServicePlugin.stop().catch(() => {});
+      RadioServicePlugin.stop().catch(() => { });
     }
   }, [playing, current, stations]);
 
@@ -221,7 +263,7 @@ export default function RadioPlayer() {
     const onVoiceDisconnect = () => {
       if (wasPlayingRef.current) {
         wasPlayingRef.current = false;
-        audio.play().catch(() => {});
+        audio.play().catch(() => { });
       }
     };
 

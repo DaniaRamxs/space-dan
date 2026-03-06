@@ -13,6 +13,7 @@ import { Zap, Flame, Sparkles } from 'lucide-react';
 import { getFrameStyle } from '../utils/styles';
 
 import SafeAvatar from './SafeAvatar';
+import ChatBadge from './Social/ChatBadge';
 
 const HoloCard = memo(function HoloCard({ profile, onClose }) {
     const navigate = useNavigate();
@@ -150,18 +151,12 @@ const HoloCard = memo(function HoloCard({ profile, onClose }) {
                             style={{ margin: '0 0 5px 0', fontSize: '22px', display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'center' }}
                         >
                             {getUserDisplayName(profile)}
-                            {(fullProfile?.badge_color || profile?.badge_color) && (
-                                <div className="relative group/badge flex items-center justify-center p-1.5 rounded-xl border border-white/10 bg-white/5 shadow-xl backdrop-blur-md">
-                                    <div
-                                        className="absolute inset-0 blur-lg opacity-30 rounded-full"
-                                        style={{ backgroundColor: fullProfile?.badge_color || profile?.badge_color }}
-                                    />
-                                    <Sparkles
-                                        size={20}
-                                        style={{ color: fullProfile?.badge_color || profile?.badge_color }}
-                                        className="relative drop-shadow-[0_0_10px_currentColor] brightness-150"
-                                    />
-                                </div>
+                            {(fullProfile?.badge_color || profile?.badge_color || fullProfile?.equipped_badge) && (
+                                <ChatBadge
+                                    badge={fullProfile?.equipped_badge || profile?.equipped_badge}
+                                    color={fullProfile?.badge_color || profile?.badge_color}
+                                    size={16}
+                                />
                             )}
                         </h2>
 

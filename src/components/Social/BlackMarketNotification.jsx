@@ -12,9 +12,11 @@ export default function BlackMarketNotification() {
     const [dismissed, setDismissed] = useState(false);
 
     useEffect(() => {
-        // No mostrar si estamos en el mercado, si ya se descartó, o si estamos en un perfil (inmersión)
+        // No mostrar si estamos en el mercado, tienda, perfiles o ya se descartó
         const isProfile = location.pathname.startsWith('/@');
-        if (location.pathname === '/mercado-negro' || dismissed || isProfile) {
+        const isShop = location.pathname === '/tienda' || location.pathname === '/tienda-galactica';
+
+        if (location.pathname === '/mercado-negro' || dismissed || isProfile || isShop) {
             setIsVisible(false);
             return;
         }

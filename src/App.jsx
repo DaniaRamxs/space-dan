@@ -388,11 +388,6 @@ function AnimatedRoutes() {
 
 export default function App() {
   useEffect(() => {
-    const onEquip = (e) => {
-      if (e.detail?.category === 'theme') applyTheme(e.detail.itemId || 'theme_default');
-    };
-    window.addEventListener('dan:item-equipped', onEquip);
-
     // Global drag-to-scroll logic for .mobile-scroll-x
     let activeEl = null;
     let startX = 0;
@@ -438,7 +433,6 @@ export default function App() {
     window.addEventListener('mouseup', onMouseUp);
 
     return () => {
-      window.removeEventListener('dan:item-equipped', onEquip);
       window.removeEventListener('mousedown', onMouseDown);
       window.removeEventListener('mousemove', onMouseMove);
       window.removeEventListener('mouseup', onMouseUp);

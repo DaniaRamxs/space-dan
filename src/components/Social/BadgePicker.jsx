@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Palette, Check, RefreshCcw, Sparkles } from 'lucide-react';
+import ChatBadge from './ChatBadge';
 import { supabase } from '../../supabaseClient';
 import { useAuthContext } from '../../contexts/AuthContext';
 
@@ -59,17 +60,12 @@ export default function BadgePicker({ onClose, onUpdate }) {
 
                 <div className="p-8 space-y-8">
                     {/* Preview */}
-                    <div className="flex flex-col items-center gap-4">
-                        <div
-                            className="w-16 h-16 rounded-2xl flex items-center justify-center shadow-lg transition-all"
-                            style={{
-                                background: `${color}15`,
-                                border: `2px solid ${color}`,
-                                boxShadow: `0 0 20px ${color}30`
-                            }}
-                        >
-                            <Sparkles style={{ color }} size={32} />
-                        </div>
+                    <div className="flex flex-col items-center justify-center gap-6">
+                        <ChatBadge
+                            badge={profile?.equipped_badge}
+                            color={color}
+                            size={32}
+                        />
                         <div className="px-3 py-1 rounded-full bg-white/5 border border-white/10 text-[10px] font-mono text-white/60">
                             {color.toUpperCase()}
                         </div>

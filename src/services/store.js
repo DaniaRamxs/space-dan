@@ -1,4 +1,4 @@
-/**
+﻿/**
  * store.js
  * Capa de servicio para la tienda y el inventario de usuario.
  * Toda compra/equipamiento pasa por funciones SECURITY DEFINER en Supabase.
@@ -70,10 +70,26 @@ export async function hasItem(userId, itemId) {
 // COMPRAR
 // ─────────────────────────────────────────────────────────────
 
+/** Items coleccionables que posee un usuario (Gacha) */
+export async function getUserCollectibles(userId) {
+  const { data, error } = await supabase
+    .from('user_collectibles')
+    .select(`
+      collectible_id,
+      obtained_at,
+      collectible:collectibles(id, name, description, series, rarity, image_url)
+    `)
+    .eq('user_id', userId)
+    .order('obtained_at', { ascending: false });
+
+  if (error) throw error;
+  // Extraemos el objeto `collectible` simplificando la estructura para la UI
+  return data.map(row => row.collectible);
+}
+
 /**
  * Compra un item de la tienda.
  * El servidor valida balance, stock, duplicados y descuenta coins.
- * @returns {Promise<{success:boolean, item_id:string, item_title:string, new_balance:number}>}
  */
 export async function purchaseItem(userId, itemId) {
   const { data, error } = await supabase.rpc('purchase_item', {
@@ -86,7 +102,6 @@ export async function purchaseItem(userId, itemId) {
 
 /**
  * Otorga monedas (uso administrativo/tester).
- * Mantiene compatibilidad con llamadas existentes desde ShopPage.
  */
 export async function awardCoins(userId, amount, type, reference = null, description = null) {
   const { data, error } = await supabase.rpc('award_coins', {
@@ -107,13 +122,12 @@ export async function awardCoins(userId, amount, type, reference = null, descrip
 
 /**
  * Equipa un item (el servidor gestiona slots y mutual exclusividad)
- * @returns {Promise<{success:boolean, equipped:boolean, item_id:string}>}
  */
 export async function equipItem(userId, itemId) {
   const { data, error } = await supabase.rpc('equip_item', {
     p_user_id: userId,
     p_item_id: itemId,
-    p_equip:   true,
+    p_equip: true,
   });
   if (error) throw error;
   return data;
@@ -126,46 +140,24 @@ export async function unequipItem(userId, itemId) {
   const { data, error } = await supabase.rpc('equip_item', {
     p_user_id: userId,
     p_item_id: itemId,
-    p_equip:   false,
+    p_equip: false,
   });
   if (error) throw error;
   return data;
 }
-
-// ─────────────────────────────────────────────────────────────
-// PERSONALIZACIÓN DE PERFIL
-// ─────────────────────────────────────────────────────────────
 
 /**
- * Establece color de banner personalizado (hex)
- * Pasa null para eliminar el banner de color
+ * Abre un cofre de colección (Gacha).
  */
-export async function setBannerColor(userId, hexColor) {
-  const { data, error } = await supabase.rpc('set_banner_color', {
+export async function openChest(userId, chestId) {
+  const { data, error } = await supabase.rpc('open_chest', {
     p_user_id: userId,
-    p_color:   hexColor,
+    p_chest_id: chestId,
   });
   if (error) throw error;
   return data;
 }
 
 // ─────────────────────────────────────────────────────────────
-// PET LOADOUT
+// END OF SERVICE
 // ─────────────────────────────────────────────────────────────
-
-/** Obtiene el loadout de mascota de un usuario */
-export async function getPetLoadout(userId) {
-  const { data, error } = await supabase
-    .from('pet_loadouts')
-    .select(`
-      slot_head,   head:store_items!slot_head(id, title, icon, metadata),
-      slot_body,   body:store_items!slot_body(id, title, icon, metadata),
-      slot_hand,   hand:store_items!slot_hand(id, title, icon, metadata),
-      slot_bg,     bg:store_items!slot_bg(id, title, icon, metadata),
-      slot_extra,  extra:store_items!slot_extra(id, title, icon, metadata)
-    `)
-    .eq('user_id', userId)
-    .maybeSingle();
-  if (error) throw error;
-  return data;
-}

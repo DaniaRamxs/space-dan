@@ -46,6 +46,19 @@ export const stellarStoreService = {
         return data;
     },
 
+    async generatePagoEfectivoCIP(productId, userId, email, amount, name) {
+        const { data, error } = await supabase.functions.invoke('pagoefectivo-generate', {
+            body: { productId, userId, email, amount, name }
+        });
+
+        if (error) {
+            console.error('[stellarStoreService] PagoEfectivo Error:', error);
+            throw error;
+        }
+
+        return data;
+    },
+
     /**
      * Obtiene los efectos activos del usuario (protección, bonos, etc.)
      */

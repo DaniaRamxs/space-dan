@@ -28,6 +28,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { StellarSupport } from '../../components/ProfileRedesign/StellarSupport';
 import StarlyOrb from '../../components/StarlyOrb';
 import { ConnectionsSection } from '../../components/ProfileRedesign/ConnectionsSection';
+import { CollectionSection } from '../../components/ProfileRedesign/CollectionSection';
+import { FeaturedCharacters } from '../../components/ProfileRedesign/FeaturedCharacters';
 
 // ─── Mini activity feed (3 posts, no infinite scroll) ──────────────────────
 function RecentActivityBlock({ userId, onViewAll }) {
@@ -381,6 +383,8 @@ export default function ProfileRedesignPage() {
                                             </div>
                                         </div>
 
+                                        {/* Personajes Destacados */}
+                                        <FeaturedCharacters userId={profile.id} />
                                     </div>
 
                                     <div className="space-y-12">
@@ -407,7 +411,12 @@ export default function ProfileRedesignPage() {
                                     </div>
                                 </div>
 
-                                {/* 5. ACTIVIDAD RECIENTE */}
+                                {/* 5. COLECCIÓN DE PERSONAJES */}
+                                <section className="w-full">
+                                    <CollectionSection userId={profile.id} />
+                                </section>
+
+                                {/* 6. ACTIVIDAD RECIENTE */}
                                 <section className="space-y-8 max-w-2xl mx-auto w-full">
                                     <div className="text-center">
                                         <h3 className="text-sm font-black text-white uppercase tracking-[0.3em] opacity-40">Últimas transmisiones</h3>
@@ -418,12 +427,11 @@ export default function ProfileRedesignPage() {
                                     />
                                 </section>
 
-                                {/* 6. CONEXIONES (CONSTELACIÓN SOCIAL) */}
                                 <section className="w-full">
                                     <ConnectionsSection userId={profile.id} followCounts={followCounts} />
                                 </section>
 
-                                {/* 7. BOTÓN: AÑADIR BLOQUE (Solo dueño) */}
+                                {/* 8. BOTÓN: AÑADIR BLOQUE (Solo dueño) */}
                                 {isOwn && (
                                     <section className="max-w-md mx-auto w-full pt-12">
                                         <button

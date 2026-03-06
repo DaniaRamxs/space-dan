@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { NavLink, Link, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from 'framer-motion';
-import CursorTrail from "../components/CursorTrail.jsx";
 import KonamiEasterEgg from "../components/KonamiEasterEgg.jsx";
 import { SpacelyLogo } from "../components/SpacelyLogo.jsx";
 
@@ -10,7 +9,6 @@ import AuthWidget from "../components/AuthWidget.jsx";
 import { useEconomy } from '../contexts/EconomyContext';
 import NotificationBell from "../components/NotificationBell.jsx";
 import StarlysCounter from "../components/StarlysCounter.jsx";
-import AmbientOrbs from "../components/AmbientOrbs.jsx";
 import { useAuthContext } from "../contexts/AuthContext";
 import { useRef } from 'react';
 import { Capacitor } from '@capacitor/core';
@@ -65,8 +63,6 @@ export default function GardenLayout({ children }) {
   if (isGameRoute) {
     return (
       <div className="gardenPage w-screen h-screen overflow-hidden" style={{ backgroundColor: '#030305' }}>
-        <AmbientOrbs />
-        <CursorTrail />
         <RadioPlayer />
         {children}
       </div>
@@ -75,8 +71,6 @@ export default function GardenLayout({ children }) {
 
   return (
     <div className={`gardenPage ${isFixedLayout ? 'gardenPage--fixed' : ''}`}>
-      <AmbientOrbs />
-      <CursorTrail />
       <KonamiEasterEgg />
       <RadioPlayer />
 

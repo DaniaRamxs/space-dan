@@ -5,14 +5,9 @@ import { supabase } from '../supabaseClient';
 export default function ActivityRadar() {
     const [notifications, setNotifications] = useState([]);
 
-    const hasMounted = React.useRef(false);
-
     useEffect(() => {
-        if (hasMounted.current) return;
-        hasMounted.current = true;
-
         // Initial system check notification
-        setTimeout(() => {
+        const timer = setTimeout(() => {
             addNotification({
                 id: `sys-init-${Math.random().toString(36).substr(2, 9)}`,
                 text: '🛰️ Radar Estelar: Sistema en línea. Escaneando sector...',
@@ -48,6 +43,7 @@ export default function ActivityRadar() {
             .subscribe();
 
         return () => {
+            clearTimeout(timer);
             supabase.removeChannel(postsChannel);
             supabase.removeChannel(echoesChannel);
         };
