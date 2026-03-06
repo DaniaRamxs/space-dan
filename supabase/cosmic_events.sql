@@ -38,37 +38,55 @@ DROP POLICY IF EXISTS "Authenticated can insert cosmic events" ON public.cosmic_
 CREATE POLICY "Authenticated can insert cosmic events"
   ON public.cosmic_events FOR INSERT TO authenticated WITH CHECK (true);
 
--- ─── Función para registrar eventos (con anti-spam de 10 min) ───────────────
+-- ─── Función para registrar eventos (versión que funciona en producción) ─────
 CREATE OR REPLACE FUNCTION public.register_cosmic_event(
-  p_user_id    uuid,
+  p_user_id uuid,
   p_event_type text,
-  p_rarity     text,
-  p_title      text,
+  p_rarity text,
+  p_title text,
   p_description text,
-  p_icon       text  DEFAULT '✨',
-  p_metadata   jsonb DEFAULT '{}'
+  p_icon text DEFAULT '✨',
+  p_metadata jsonb DEFAULT '{}'
 )
-RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER AS $$
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
 DECLARE
   v_last_event timestamptz;
-  v_event_id   uuid;
+  v_event_id uuid;
 BEGIN
-  SELECT MAX(ce.created_at) INTO v_last_event
-  FROM public.cosmic_events ce
-  WHERE ce.user_id = p_user_id;
 
-  IF v_last_event IS NOT NULL AND v_last_event > now() - interval '10 minutes' THEN
-    RETURN jsonb_build_object('success', false, 'reason', 'cooldown');
+  SELECT MAX(created_at)
+  INTO v_last_event
+  FROM public.cosmic_events
+  WHERE user_id = p_user_id;
+
+  IF v_last_event IS NOT NULL
+     AND v_last_event > now() - interval '10 minutes' THEN
+    RETURN jsonb_build_object(
+      'success', false,
+      'reason', 'cooldown'
+    );
   END IF;
 
-  IF p_rarity NOT IN ('epic', 'legendary', 'mythic') THEN
-    RETURN jsonb_build_object('success', false, 'reason', 'not_rare_enough');
+  IF p_rarity NOT IN ('epic','legendary','mythic') THEN
+    RETURN jsonb_build_object(
+      'success', false,
+      'reason', 'not_rare_enough'
+    );
   END IF;
 
-  INSERT INTO public.cosmic_events (user_id, event_type, rarity, title, description, icon, metadata)
-  VALUES (p_user_id, p_event_type, p_rarity, p_title, p_description, p_icon, p_metadata)
+  INSERT INTO public.cosmic_events
+  (user_id, event_type, rarity, title, description, icon, metadata)
+  VALUES
+  (p_user_id, p_event_type, p_rarity, p_title, p_description, p_icon, p_metadata)
   RETURNING id INTO v_event_id;
 
-  RETURN jsonb_build_object('success', true, 'event_id', v_event_id);
+  RETURN jsonb_build_object(
+    'success', true,
+    'event_id', v_event_id
+  );
+
 END;
 $$;
