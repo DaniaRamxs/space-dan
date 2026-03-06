@@ -159,10 +159,12 @@ $$;
 -- Asegurar que los buckets tengan sus propias reglas RLS
 
 -- Permite a cualquiera descargar avatars
+DROP POLICY IF EXISTS "Avatars are publicly accessible" ON storage.objects;
 CREATE POLICY "Avatars are publicly accessible"
 ON storage.objects FOR SELECT USING (bucket_id = 'avatars');
 
 -- Solo el dueño del archivo puede subir un avatar y debe coincidir con su ID
+DROP POLICY IF EXISTS "Users can upload their own avatar" ON storage.objects;
 CREATE POLICY "Users can upload their own avatar"
 ON storage.objects FOR INSERT 
 TO authenticated 
@@ -171,6 +173,7 @@ WITH CHECK (
     AND (auth.uid())::text = (storage.foldername(name))[1] -- El archivo debe estar en una carpeta con su UUID
 );
 
+DROP POLICY IF EXISTS "Users can delete their own avatar" ON storage.objects;
 CREATE POLICY "Users can delete their own avatar"
 ON storage.objects FOR DELETE 
 TO authenticated 
