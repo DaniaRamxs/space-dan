@@ -13,7 +13,7 @@ const SUPPORT_TYPES = [
     { id: 'bet', label: 'Apuesta entre amigos', icon: '🤝' },
 ];
 
-export function StellarSupport({ profileUserId, isOwn, profileUsername }) {
+export function StellarSupport({ profileUserId, isOwn, profileUsername, autoOpen = false, onModalClose }) {
     const { user } = useAuthContext();
     const { balance, refreshBalance } = useEconomy();
 
@@ -32,6 +32,14 @@ export function StellarSupport({ profileUserId, isOwn, profileUsername }) {
     useEffect(() => {
         loadData();
     }, [profileUserId]);
+
+    // Abrir modal automáticamente cuando autoOpen cambia a true
+    useEffect(() => {
+        if (autoOpen) {
+            setModalType('gift');
+            setShowModal(true);
+        }
+    }, [autoOpen]);
 
     async function loadData() {
         try {
@@ -66,6 +74,7 @@ export function StellarSupport({ profileUserId, isOwn, profileUsername }) {
             await loadData();
             await refreshBalance();
             setShowModal(false);
+            onModalClose?.();
             setMessage('');
             setAmount(100);
         } catch (e) {
@@ -179,7 +188,7 @@ export function StellarSupport({ profileUserId, isOwn, profileUsername }) {
                     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
                         <motion.div
                             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                            onClick={() => setShowModal(false)}
+                            onClick={() => { setShowModal(false); onModalClose?.(); }}
                             className="absolute inset-0 bg-[#050510]/80 backdrop-blur-md"
                         />
                         <motion.div

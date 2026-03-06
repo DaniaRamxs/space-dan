@@ -147,6 +147,7 @@ export default function ProfileRedesignPage() {
     const [showConfig, setShowConfig] = useState(false);
     const [showComposer, setShowComposer] = useState(false);
     const [stats, setStats] = useState({ stars: 0, echoes: 0, age: 0 });
+    const [showStellarModal, setShowStellarModal] = useState(false);
 
     useEffect(() => {
         load();
@@ -277,6 +278,11 @@ export default function ProfileRedesignPage() {
                         .catch(() => { });
                 }}
                 onEdit={() => setShowConfig(true)}
+                onStar={() => {
+                    if (!user) return alert('Debes iniciar sesión para dejar una estrella.');
+                    setShowStellarModal(true);
+                }}
+                onEcho={() => setActiveTab('guestbook')}
             />
 
             <ThemeConfigModal
@@ -347,6 +353,8 @@ export default function ProfileRedesignPage() {
                                                 profileUserId={profile.id}
                                                 isOwn={isOwn}
                                                 profileUsername={profile.username}
+                                                autoOpen={showStellarModal}
+                                                onModalClose={() => setShowStellarModal(false)}
                                             />
                                         </div>
                                     </section>

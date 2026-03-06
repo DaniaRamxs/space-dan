@@ -34,7 +34,7 @@ const StarParticles = () => (
     </div>
 );
 
-export const ProfileHeader = ({ profile, theme, isOwn, isFollowing, onFollow, onEdit, stats }) => {
+export const ProfileHeader = ({ profile, theme, isOwn, isFollowing, onFollow, onEdit, stats, onStar, onEcho }) => {
     const { logout } = useAuthContext();
     const [mounted, setMounted] = useState(false);
 
@@ -230,11 +230,13 @@ export const ProfileHeader = ({ profile, theme, isOwn, isFollowing, onFollow, on
                         ) : (
                             <>
                                 <button
+                                    onClick={onStar}
                                     className="px-8 py-3 rounded-2xl bg-gradient-to-r from-amber-400 to-orange-500 text-black text-[11px] font-black uppercase tracking-widest hover:scale-105 transition-all shadow-lg flex items-center gap-2"
                                 >
                                     <Star size={14} className="fill-current" /> Dejar estrella
                                 </button>
                                 <button
+                                    onClick={onEcho}
                                     className="px-8 py-3 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-md text-white text-[11px] font-black uppercase tracking-widest hover:bg-white/10 transition-all flex items-center gap-2"
                                 >
                                     <MessageSquare size={14} /> Enviar eco
