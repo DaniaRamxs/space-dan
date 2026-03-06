@@ -21,12 +21,23 @@ CREATE TABLE IF NOT EXISTS public.stellar_pass_rewards (
     is_premium    boolean DEFAULT false
 );
 
--- 2. RECOMPENSAS DE EJEMPLO (Temporada 1)
+-- 2. RECOMPENSAS DE TEMPORADA 1 (1-50)
 INSERT INTO public.stellar_pass_rewards (level, reward_type, reward_amount, is_premium) VALUES
+(1, 'starlys', 1000, false),
 (2, 'starlys', 5000, false),
-(3, 'starlys', 15000, true),
-(5, 'title', 0, false), -- Título: Cadete del Espacio
-(10, 'starlys', 100000, true)
+(3, 'starlys', 10000, true),
+(4, 'starlys', 2000, false),
+(5, 'title', 0, false), -- Recompensa de título manejada por metadata si se extiende
+(6, 'starlys', 3000, false),
+(7, 'starlys', 15000, true),
+(8, 'starlys', 4000, false),
+(9, 'starlys', 5000, false),
+(10, 'starlys', 100000, true),
+(15, 'starlys', 50000, false),
+(20, 'starlys', 250000, true),
+(30, 'starlys', 500000, true),
+(40, 'starlys', 1000000, true),
+(50, 'starlys', 5000000, true)
 ON CONFLICT DO NOTHING;
 
 -- 3. FUNCIÓN PARA OTORGAR XP DE PASE (Se llama desde award_coins)
