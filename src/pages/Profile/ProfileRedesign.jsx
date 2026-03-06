@@ -2,9 +2,11 @@ import { useEffect, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { supabase } from '../../supabaseClient';
 import { useAuthContext } from '../../contexts/AuthContext';
+import { useEconomy } from '../../contexts/EconomyContext';
 import { newProfileService } from '../../services/newProfileService';
 import { profileSocialService } from '../../services/profile_social';
 import { useActivityFeed } from '../../hooks/useActivityFeed';
+import { supportService } from '../../services/supportService';
 
 import { ProfileLayout } from '../../components/ProfileRedesign/ProfileLayout';
 import { ProfileHeader } from '../../components/ProfileRedesign/ProfileHeader';
@@ -30,6 +32,115 @@ import StarlyOrb from '../../components/StarlyOrb';
 import { ConnectionsSection } from '../../components/ProfileRedesign/ConnectionsSection';
 import { CollectionSection } from '../../components/ProfileRedesign/CollectionSection';
 import { FeaturedCharacters } from '../../components/ProfileRedesign/FeaturedCharacters';
+
+// ─── Modal de Regalo Estelar (independiente del tab activo) ──────────────────
+const GIFT_TYPES = [
+    { id: 'gift', label: 'Regalo', icon: '🎁' },
+    { id: 'tip', label: 'Propina', icon: '⚡' },
+    { id: 'financial_aid', label: 'Apoyo', icon: '🏦' },
+    { id: 'bet', label: 'Apuesta', icon: '🤝' },
+];
+
+function StarGiftModal({ open, onClose, toUserId, toUsername, fromUserId }) {
+    const { balance, refreshBalance } = useEconomy();
+    const [amount, setAmount] = useState(1000);
+    const [message, setMessage] = useState('');
+    const [giftType, setGiftType] = useState('gift');
+    const [loading, setLoading] = useState(false);
+    const [done, setDone] = useState(false);
+
+    useEffect(() => { if (open) { setDone(false); setAmount(1000); setMessage(''); setGiftType('gift'); } }, [open]);
+
+    async function handleSend() {
+        if (!fromUserId) return alert('Debes iniciar sesión.');
+        if (amount <= 0 || amount > balance) return alert('Monto inválido o balance insuficiente.');
+        setLoading(true);
+        try {
+            await supportService.sendGift(fromUserId, toUserId, amount, message, giftType);
+            await refreshBalance();
+            setDone(true);
+        } catch (e) {
+            alert(e.message || 'Error al enviar la estrella.');
+        } finally {
+            setLoading(false);
+        }
+    }
+
+    return (
+        <AnimatePresence>
+            {open && (
+                <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                        onClick={onClose} className="absolute inset-0 bg-black/70 backdrop-blur-md" />
+                    <motion.div initial={{ opacity: 0, scale: 0.9, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }}
+                        exit={{ opacity: 0, scale: 0.9 }}
+                        className="relative w-full max-w-sm bg-[#09090f] border border-white/10 rounded-3xl p-8 shadow-2xl space-y-6">
+                        {done ? (
+                            <div className="text-center space-y-4 py-4">
+                                <div className="text-5xl">⭐</div>
+                                <h3 className="text-xl font-black text-white uppercase italic">¡Estrella enviada!</h3>
+                                <p className="text-sm text-white/40">Tu apoyo llegó a @{toUsername}</p>
+                                <button onClick={onClose} className="px-8 py-3 bg-white text-black rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-cyan-400 transition-all">Cerrar</button>
+                            </div>
+                        ) : (
+                            <>
+                                <div className="text-center space-y-1">
+                                    <div className="text-4xl mb-2">⭐</div>
+                                    <h3 className="text-lg font-black text-white uppercase italic tracking-tight">Dejar Estrella</h3>
+                                    <p className="text-xs text-white/30">Enviando a @{toUsername}</p>
+                                </div>
+
+                                {/* Tipo */}
+                                <div className="grid grid-cols-2 gap-2">
+                                    {GIFT_TYPES.map(t => (
+                                        <button key={t.id} onClick={() => setGiftType(t.id)}
+                                            className={`flex items-center gap-2 p-2 rounded-xl border text-left transition-all ${giftType === t.id ? 'bg-amber-500/10 border-amber-500/40 text-white' : 'bg-white/[0.02] border-white/5 text-white/30 hover:bg-white/[0.04]'
+                                                }`}>
+                                            <span>{t.icon}</span>
+                                            <span className="text-[9px] font-black uppercase">{t.label}</span>
+                                        </button>
+                                    ))}
+                                </div>
+
+                                {/* Monto */}
+                                <div className="space-y-2">
+                                    <label className="text-[9px] font-bold uppercase tracking-widest text-white/20 px-1">Monto (◈ Starlys)</label>
+                                    <div className="relative">
+                                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-amber-400 font-black italic text-lg">◈</span>
+                                        <input type="number" value={amount} onChange={e => setAmount(Number(e.target.value))}
+                                            className="w-full bg-white/[0.03] border border-white/10 rounded-xl py-3 pl-10 pr-4 text-white font-black italic text-xl focus:outline-none focus:border-amber-500/50 transition-colors" />
+                                    </div>
+                                    <div className="flex justify-between px-1">
+                                        <span className="text-[9px] text-white/20">Saldo: ◈ {(balance || 0).toLocaleString()}</span>
+                                        <button onClick={() => setAmount(balance)} className="text-[9px] font-bold text-amber-500/50 hover:text-amber-400 uppercase">Máximo</button>
+                                    </div>
+                                </div>
+
+                                {/* Mensaje */}
+                                <div className="space-y-2">
+                                    <label className="text-[9px] font-bold uppercase tracking-widest text-white/20 px-1">Mensaje (opcional)</label>
+                                    <textarea value={message} onChange={e => setMessage(e.target.value.slice(0, 120))}
+                                        placeholder="Escribe algo especial..."
+                                        className="w-full bg-white/[0.03] border border-white/10 rounded-xl p-3 text-sm text-white/70 placeholder:text-white/10 focus:outline-none focus:border-amber-500/50 transition-colors resize-none h-16" />
+                                    <span className="block text-right text-[9px] text-white/15">{message.length}/120</span>
+                                </div>
+
+                                <div className="flex flex-col gap-3">
+                                    <button disabled={loading || amount <= 0 || amount > balance}
+                                        onClick={handleSend}
+                                        className="w-full py-4 bg-gradient-to-r from-amber-400 to-orange-500 text-black text-xs font-black uppercase tracking-[0.2em] rounded-2xl hover:brightness-110 transition-all shadow-xl active:scale-95 disabled:opacity-30 disabled:pointer-events-none">
+                                        {loading ? 'Enviando...' : '⭐ Confirmar Estrella'}
+                                    </button>
+                                    <button onClick={onClose} className="text-[10px] font-bold text-white/20 hover:text-white/40 uppercase tracking-widest py-2">Cancelar</button>
+                                </div>
+                            </>
+                        )}
+                    </motion.div>
+                </div>
+            )}
+        </AnimatePresence>
+    );
+}
 
 // ─── Mini activity feed (3 posts, no infinite scroll) ──────────────────────
 function RecentActivityBlock({ userId, onViewAll }) {
@@ -293,6 +404,15 @@ export default function ProfileRedesignPage() {
                 currentBlocks={blocks}
                 currentProfile={profile}
                 onSave={load}
+            />
+
+            {/* Modal Dejar Estrella — siempre montado, independiente del tab */}
+            <StarGiftModal
+                open={showStellarModal}
+                onClose={() => setShowStellarModal(false)}
+                toUserId={profile.id}
+                toUsername={profile.username}
+                fromUserId={user?.id}
             />
 
             {/* Main content */}
