@@ -468,8 +468,6 @@ export default function ProfileRedesignPage() {
                                                 profileUserId={profile.id}
                                                 isOwn={isOwn}
                                                 profileUsername={profile.username}
-                                                autoOpen={showStellarModal}
-                                                onModalClose={() => setShowStellarModal(false)}
                                             />
                                         </div>
                                     </section>

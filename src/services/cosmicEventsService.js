@@ -6,13 +6,13 @@ export const cosmicEventsService = {
         const { data, error } = await supabase
             .from('cosmic_events')
             .select('*')
-            .eq('is_active', true)
-            .gt('end_time', new Date().toISOString())
+            .in('rarity', ['legendary', 'mythic'])  // solo eventos raros recientes
+            .gt('created_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString())
             .order('created_at', { ascending: false })
             .limit(1)
-            .single();
+            .maybeSingle();
 
-        if (error && error.code !== 'PGRST116') { // PGRST116 es "no rows"
+        if (error) {
             console.error('Error fetching cosmic event:', error);
             return null;
         }
