@@ -334,29 +334,11 @@ function InventoryCard({ item, onAction, profile, user }) {
 
             {/* Item Visual */}
             <div className="flex-1 flex flex-col items-center justify-center p-4 relative z-10 min-h-[160px]">
-                {item.category === 'frame' ? (
-                    <div className="relative w-24 h-24">
-                        <div className="absolute inset-0 rounded-full border-4 border-white/10" />
-                        <div className="absolute inset-0" style={getFrameStyle(item.id)} />
-                        <div className="absolute inset-2 overflow-hidden rounded-full">
-                            <img src="/default_user_blank.png" className="w-full h-full object-cover opacity-50 contrast-125" alt="Preview" />
-                        </div>
-                    </div>
-                ) : item.category === 'character' ? (
+                {item.category === 'character' ? (
                     <div className="relative w-full h-32 flex items-center justify-center overflow-hidden rounded-2xl bg-black/40 border border-white/5">
                         <img src={item.image_url} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" alt={item.name} />
                         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
                         <span className="absolute bottom-2 left-3 text-[9px] font-bold text-white/50">{item.series}</span>
-                    </div>
-                ) : item.category === 'chat_effect' ? (
-                    <div className="w-full p-4 rounded-xl bg-black/40 border border-white/5 flex flex-col gap-2">
-                        <div className="flex items-center gap-2">
-                            <div className="w-6 h-6 rounded-full bg-cyan-500/20" />
-                            <div className="h-2 w-16 bg-white/10 rounded-full" />
-                        </div>
-                        <p className="text-[10px] bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text text-transparent font-medium italic">
-                            Este es un mensaje con efecto...
-                        </p>
                     </div>
                 ) : (
                     <div className="w-full flex items-center justify-center min-h-[140px]">
@@ -403,6 +385,26 @@ function InventoryCard({ item, onAction, profile, user }) {
 }
 
 function RenderInventoryPreview({ item, profile, user }) {
+    if (item.category === 'frame') {
+        const frameObj = getFrameStyle(item.id);
+        return (
+            <div className="flex flex-col items-center justify-center w-full min-h-[100px] relative">
+                <div className="relative w-20 h-20 flex items-center justify-center">
+                    <div
+                        className={`relative w-full h-full flex items-center justify-center ${frameObj?.className || ''}`}
+                        style={frameObj?.className ? {} : frameObj}
+                    >
+                        <img
+                            src={profile?.avatar_url || '/dan_profile.jpg'}
+                            alt="Preview"
+                            className="w-[85%] h-[85%] object-cover rounded-full border border-white/10 shadow-lg"
+                        />
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
     if (item.category === 'nickname_style') {
         const nickStyle = getNicknameClass({ equipped_nickname_style: item.id });
         return (
