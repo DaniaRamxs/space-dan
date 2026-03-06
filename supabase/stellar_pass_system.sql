@@ -73,23 +73,3 @@ BEGIN
 END;
 $$;
 
--- 4. ACTUALIZACIÓN DE ROB_USER (Añadir Shield Check)
-CREATE OR REPLACE FUNCTION public.rob_user_v2(p_from_user_id uuid, p_target_username text)
-RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER AS $$
-DECLARE
-    v_target_id     uuid;
-    v_target_bal    int;
-    v_anti_rob_until timestamptz;
-BEGIN
-    SELECT id, balance, anti_rob_until INTO v_target_id, v_target_bal, v_anti_rob_until 
-    FROM public.profiles WHERE lower(username) = lower(p_target_username);
-
-    -- Verificar Shield de Neutrones
-    IF v_anti_rob_until IS NOT NULL AND v_anti_rob_until > now() THEN
-        RETURN jsonb_build_object('success', false, 'reason', 'shielded', 'expires_at', v_anti_rob_until);
-    END IF;
-
-    -- Re-usar la lógica existente de rob_user corregida
-    RETURN public.rob_user(p_from_user_id, p_target_username);
-END;
-$$;

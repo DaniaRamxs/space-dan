@@ -239,6 +239,8 @@ $$;
 CREATE OR REPLACE FUNCTION public.rob_user(p_from_user_id uuid, p_target_username text)
 RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER AS $$
 DECLARE
+    v_target_id     uuid;
+    v_target_bal    int;
     v_success       boolean;
     v_amount        int;
     v_penalty       int := 100;
