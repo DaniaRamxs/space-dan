@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { stellarStoreService } from '../services/stellarStoreService';
+import { supabase } from '../supabaseClient';
 import { useAuthContext } from '../contexts/AuthContext';
 import { useEconomy } from '../contexts/EconomyContext';
 import {
