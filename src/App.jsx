@@ -71,6 +71,7 @@ const StellarPassPage = lazy(() => import("./pages/StellarPassPage"));
 const InventoryPage = lazy(() => import("./pages/InventoryPage"));
 const ExplorePage = lazy(() => import("./pages/ExplorePage"));
 const SpotifyCallback = lazy(() => import("./pages/SpotifyCallback"));
+const AuthCallback = lazy(() => import("./pages/AuthCallback"));
 
 const NAV_TRACE_KEY = "spacely_nav_trace_v1";
 const FORCE_NAV_TRACE = false
@@ -476,6 +477,7 @@ function AnimatedRoutes() {
         <Route path="/guestbook" element={<Layout><GuestbookPage /></Layout>} />
         <Route path="/desktop" element={<Layout><DesktopPage /></Layout>} />
         <Route path="/spotify-callback" element={<Suspense fallback={null}><SpotifyCallback /></Suspense>} />
+        <Route path="/auth/callback" element={<Suspense fallback={null}><AuthCallback /></Suspense>} />
         <Route path="/@:username" element={<Layout><ProfileRedesign /></Layout>} />
         <Route path="/:username" element={<Layout><ProfileRedesign /></Layout>} />
         <Route path="/profile/:userId" element={<Layout><ProfileRedesign /></Layout>} />

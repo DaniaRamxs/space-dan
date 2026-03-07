@@ -52,8 +52,8 @@ export const ProfileHeader = ({ profile, theme, isOwn, isFollowing, onFollow, on
         backgroundPosition: 'center',
     };
 
-    const frame = getFrameStyle(profile.equipped_frame || profile.frame_item_id);
-    const isOnline = profile.last_seen_at
+    const frame = getFrameStyle(profile?.equipped_frame || profile?.frame_item_id);
+    const isOnline = profile?.last_seen_at
         ? (new Date() - new Date(profile.last_seen_at)) < 6 * 60 * 1000
         : false;
 
@@ -76,7 +76,7 @@ export const ProfileHeader = ({ profile, theme, isOwn, isFollowing, onFollow, on
                 />
 
                 {/* Mood bubble (Esquina superior) */}
-                {(profile.mood_emoji || profile.mood_text) && (
+                {(profile?.mood_emoji || profile?.mood_text) && (
                     <motion.div
                         initial={{ opacity: 0, x: 20 }}
                         animate={{ opacity: 1, x: 0 }}
@@ -85,18 +85,18 @@ export const ProfileHeader = ({ profile, theme, isOwn, isFollowing, onFollow, on
                     >
                         <div className="flex items-center gap-2.5 px-4 py-2 bg-black/40 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl">
                             <div className="w-6 h-6 flex items-center justify-center shrink-0">
-                                {profile.mood_emoji?.startsWith('http') ? (
+                                {profile?.mood_emoji?.startsWith('http') ? (
                                     <img
-                                        src={profile.mood_emoji}
+                                        src={profile?.mood_emoji}
                                         className="w-full h-full object-contain rounded"
                                         alt="Mood"
                                     />
                                 ) : (
-                                    <span className="text-lg">{profile.mood_emoji || '🪐'}</span>
+                                    <span className="text-lg">{profile?.mood_emoji || '🪐'}</span>
                                 )}
                             </div>
                             <p className="text-[11px] font-black uppercase text-white tracking-widest leading-none">
-                                {profile.mood_text || 'En órbita'}
+                                {profile?.mood_text || 'En órbita'}
                             </p>
                         </div>
                     </motion.div>
@@ -113,7 +113,7 @@ export const ProfileHeader = ({ profile, theme, isOwn, isFollowing, onFollow, on
                     {/* Intereses Orbitando */}
                     <OrbitingInterests
                         avatarSize={isMobile() ? 144 : 176}
-                        interests={profile.interests || [
+                        interests={profile?.interests || [
                             { icon: '🎮', label: 'Gaming' },
                             { icon: '🎵', label: 'Música' },
                             { icon: '🚀', label: 'Espacio' },
@@ -146,9 +146,9 @@ export const ProfileHeader = ({ profile, theme, isOwn, isFollowing, onFollow, on
                         >
                             <div className="w-full h-full rounded-full overflow-hidden border-[6px] border-[#04040a] bg-[#04040a]">
                                 <img
-                                    src={profile.avatar_url || '/default_user_blank.png'}
+                                    src={profile?.avatar_url || '/default_user_blank.png'}
                                     className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-                                    alt={profile.username}
+                                    alt={profile?.username}
                                 />
                             </div>
                         </div>
@@ -167,11 +167,11 @@ export const ProfileHeader = ({ profile, theme, isOwn, isFollowing, onFollow, on
                         className="absolute -bottom-2 left-1/2 -translate-x-1/2 z-40"
                     >
                         <div className="px-5 py-1.5 rounded-full bg-white text-black text-[10px] font-black uppercase tracking-[0.2em] shadow-[0_10px_30px_rgba(255,255,255,0.3)] flex items-center gap-2 border border-white/20">
-                            <span>LVL {profile.level || 1}</span>
-                            {profile.prestige_level > 0 && (
+                            <span>LVL {profile?.level || 1}</span>
+                            {profile?.prestige_level > 0 && (
                                 <div className="flex items-center gap-1.5 pl-2 border-l border-black/10">
                                     <span className="text-[12px] animate-spin-slow">🌀</span>
-                                    <span className="text-[10px] font-black">{profile.prestige_level}</span>
+                                    <span className="text-[10px] font-black">{profile?.prestige_level}</span>
                                 </div>
                             )}
                         </div>
@@ -196,7 +196,7 @@ export const ProfileHeader = ({ profile, theme, isOwn, isFollowing, onFollow, on
                             transition={{ delay: 0.5 }}
                             className="flex items-center justify-center gap-3"
                         >
-                            {profile.is_stellar_citizen && (
+                            {profile?.is_stellar_citizen && (
                                 <div className="flex items-center gap-1.5 px-2 py-0.5 bg-amber-500/10 border border-amber-500/20 rounded text-[9px] font-black text-amber-500 tracking-tighter uppercase">
                                     <ShieldCheck size={10} /> CITIZEN
                                 </div>

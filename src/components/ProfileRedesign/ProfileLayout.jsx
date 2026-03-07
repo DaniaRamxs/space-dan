@@ -1,5 +1,6 @@
-export const ProfileLayout = ({ children, theme }) => {
+import React from 'react';
 
+export const ProfileLayout = ({ children, theme }) => {
     const getFontStyle = (font) => {
         switch (font) {
             case 'mono': return 'font-mono';
@@ -11,7 +12,6 @@ export const ProfileLayout = ({ children, theme }) => {
 
     const getBackgroundStyle = (bg, customColor) => {
         if (customColor) return '';
-
         switch (bg) {
             case 'dark': return 'bg-[#04040a]';
             case 'light': return 'bg-[#f4f4f9] text-black';
@@ -21,9 +21,7 @@ export const ProfileLayout = ({ children, theme }) => {
     };
 
     return (
-        <div
-            className={`min-h-screen text-white ${getFontStyle(theme?.font_style)} ${getBackgroundStyle(theme?.background_style, theme?.primary_color)}`}
-        >
+        <div className={`min-h-screen text-white ${getFontStyle(theme?.font_style)} ${getBackgroundStyle(theme?.background_style, theme?.primary_color)}`}>
             <main className="relative z-10">
                 {children}
             </main>

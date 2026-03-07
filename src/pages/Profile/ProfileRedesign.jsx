@@ -376,14 +376,14 @@ export default function ProfileRedesignPage() {
         </div>
     );
 
-    const isOwn = user?.id === profile.id;
+    const isOwn = user?.id === profile?.id;
 
     // Derived block lists
     const activeBlocks = blocks.filter(b => b.is_active);
     const hasSpotifyBlock = activeBlocks.some(b => b.block_type === 'spotify');
     const contentBlocks = activeBlocks.filter(b => b.block_type !== 'spotify');
     const hasBioBlock = contentBlocks.some(b => b.block_type === 'about');
-    const showBioFallback = !hasBioBlock && profile.bio;
+    const showBioFallback = !hasBioBlock && profile?.bio;
 
     const tabs = [
         { id: 'identity', label: 'Identidad' },
@@ -423,7 +423,7 @@ export default function ProfileRedesignPage() {
             <ThemeConfigModal
                 isOpen={showConfig}
                 onClose={() => setShowConfig(false)}
-                userId={profile.id}
+                userId={profile?.id}
                 currentTheme={theme}
                 currentBlocks={blocks}
                 currentProfile={profile}
@@ -472,7 +472,7 @@ export default function ProfileRedesignPage() {
 
                                 {/* 1. AURA DEL UNIVERSO */}
                                 <section className="space-y-6">
-                                    <AuraBlock userId={profile.id} />
+                                    <AuraBlock userId={profile?.id} />
                                 </section>
 
                                 {/* 2. UNIVERSO QUE ATRAES & APOYO */}
@@ -480,16 +480,16 @@ export default function ProfileRedesignPage() {
                                     <section className="space-y-4">
                                         <div className="px-1 py-1">
                                             <p className="text-[10px] font-black uppercase tracking-[0.3em] text-white/20 mb-4">Interferencias de Campo</p>
-                                            <UniverseAttractionBlock userId={profile.id} isOwn={isOwn} profileUsername={profile.username} />
+                                            <UniverseAttractionBlock userId={profile?.id} isOwn={isOwn} profileUsername={profile?.username} />
                                         </div>
                                     </section>
                                     <section className="space-y-4">
                                         <div className="px-1 py-1">
                                             <p className="text-[10px] font-black uppercase tracking-[0.3em] text-white/20 mb-4">Soporte Vital</p>
                                             <StellarSupport
-                                                profileUserId={profile.id}
+                                                profileUserId={profile?.id}
                                                 isOwn={isOwn}
-                                                profileUsername={profile.username}
+                                                profileUsername={profile?.username}
                                             />
                                         </div>
                                     </section>
@@ -498,7 +498,7 @@ export default function ProfileRedesignPage() {
                                 {/* 3. MAPA DE AFINIDAD */}
                                 <section className="space-y-4">
                                     <p className="text-center text-[10px] font-black uppercase tracking-[0.5em] text-white/20">Cartografía de Vínculos</p>
-                                    <AffinityMapBlock userId={profile.id} ownerAvatar={profile.avatar_url} />
+                                    <AffinityMapBlock userId={profile?.id} ownerAvatar={profile?.avatar_url} />
                                 </section>
 
                                 {/* 4. MÉTRICAS VITALES y ARCHIVO DE IDENTIDAD */}
@@ -510,24 +510,24 @@ export default function ProfileRedesignPage() {
                                             <div className="grid grid-cols-1 gap-6">
                                                 <div className="flex items-center justify-between group">
                                                     <span className="text-[11px] font-black text-white/40 uppercase">Rango Estelar</span>
-                                                    <span className="text-2xl font-black text-white italic">NIVEL {profile.level || 1}</span>
+                                                    <span className="text-2xl font-black text-white italic">NIVEL {profile?.level || 1}</span>
                                                 </div>
                                                 <div className="flex items-center justify-between group">
                                                     <span className="text-[11px] font-black text-white/40 uppercase">Resonancia</span>
-                                                    <span className="text-2xl font-black text-violet-400 italic">{profile.streak || 0}D</span>
+                                                    <span className="text-2xl font-black text-violet-400 italic">{profile?.streak || 0}D</span>
                                                 </div>
                                                 <div className="pt-4 border-t border-white/5">
                                                     <div className="flex items-center justify-between mb-4">
                                                         <span className="text-[11px] font-black text-white/40 uppercase">Energía Starlys</span>
-                                                        <StarlyOrb balance={profile.balance || 0} className="scale-75" />
+                                                        <StarlyOrb balance={profile?.balance || 0} className="scale-75" />
                                                     </div>
-                                                    <StarlysCounter value={profile.balance || 0} className="text-3xl font-black text-white italic block text-right" />
+                                                    <StarlysCounter value={profile?.balance || 0} className="text-3xl font-black text-white italic block text-right" />
                                                 </div>
                                             </div>
                                         </div>
 
                                         {/* Personajes Destacados */}
-                                        <FeaturedCharacters userId={profile.id} />
+                                        <FeaturedCharacters userId={profile?.id} />
                                     </div>
 
                                     <div className="space-y-12">
@@ -540,7 +540,7 @@ export default function ProfileRedesignPage() {
                                         {contentBlocks.length > 0 && (
                                             <BlocksRenderer
                                                 blocks={contentBlocks}
-                                                userId={profile.id}
+                                                userId={profile?.id}
                                                 isOwn={isOwn}
                                                 onEdit={() => setShowConfig(true)}
                                                 profileData={profile}
@@ -549,14 +549,14 @@ export default function ProfileRedesignPage() {
 
                                         {/* Señales misteriosas (Solo dueño) */}
                                         {isOwn && (
-                                            <MysterySignals userId={profile.id} isOwn={isOwn} />
+                                            <MysterySignals userId={profile?.id} isOwn={isOwn} />
                                         )}
                                     </div>
                                 </div>
 
                                 {/* 5. COLECCIÓN DE PERSONAJES */}
                                 <section className="w-full">
-                                    <CollectionSection userId={profile.id} />
+                                    <CollectionSection userId={profile?.id} />
                                 </section>
 
                                 {/* 6. ACTIVIDAD RECIENTE */}
@@ -565,13 +565,13 @@ export default function ProfileRedesignPage() {
                                         <h3 className="text-sm font-black text-white uppercase tracking-[0.3em] opacity-40">Últimas transmisiones</h3>
                                     </div>
                                     <RecentActivityBlock
-                                        userId={profile.id}
+                                        userId={profile?.id}
                                         onViewAll={() => setActiveTab('activity')}
                                     />
                                 </section>
 
                                 <section className="w-full">
-                                    <ConnectionsSection userId={profile.id} followCounts={followCounts} />
+                                    <ConnectionsSection userId={profile?.id} followCounts={followCounts} />
                                 </section>
 
                                 {/* 8. BOTÓN: AÑADIR BLOQUE (Solo dueño) */}
@@ -597,9 +597,9 @@ export default function ProfileRedesignPage() {
                                     <section className="max-w-xl mx-auto w-full">
                                         <ResonanciaBlock
                                             viewerId={user.id}
-                                            profileUserId={profile.id}
+                                            profileUserId={profile?.id}
                                             viewerUsername={user.username}
-                                            profileUsername={profile.username}
+                                            profileUsername={profile?.username}
                                         />
                                     </section>
                                 )}
@@ -611,7 +611,7 @@ export default function ProfileRedesignPage() {
                         {activeTab === 'activity' && (
                             <div className="max-w-2xl mx-auto space-y-4">
                                 {isOwn && <PostComposer onPostCreated={load} />}
-                                <ActivityFeed userId={profile.id} />
+                                <ActivityFeed userId={profile?.id} />
                             </div>
                         )}
 
@@ -664,7 +664,7 @@ export default function ProfileRedesignPage() {
                         {activeTab === 'guestbook' && (
                             <div className="py-8">
                                 <EchoesSection
-                                    profileId={profile.id}
+                                    profileId={profile?.id}
                                     isOwnProfile={isOwn}
                                     autoOpenStar={openEchoAsStar}
                                     onStarModalClose={() => setOpenEchoAsStar(false)}
