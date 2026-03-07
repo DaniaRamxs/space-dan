@@ -131,11 +131,11 @@ export default function useAuth() {
 
 
   const getRedirectUrl = () => {
-    const { origin, hostname } = window.location;
+    const { origin } = window.location;
 
-    // Si estamos en nativo, forzamos siempre la URL de producción
-    if (Capacitor.isNativePlatform()) {
-      return 'https://joinspacely.com/auth/callback';
+    // Si estamos en NATIVO (APK), usamos el esquema personalizado
+    if (Capacitor.isNativePlatform() && (Capacitor.getPlatform() === 'android' || Capacitor.getPlatform() === 'ios')) {
+      return 'com.dan.space://auth';
     }
 
     // Para cualquier entorno web (localhost, IPs locales o producción), 

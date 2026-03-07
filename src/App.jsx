@@ -1,6 +1,9 @@
 import React, { Suspense, lazy, useEffect, useRef } from "react";
 import { BrowserRouter, Routes, Route, useLocation, Navigate, useParams } from "react-router-dom";
 import { AnimatePresence } from "framer-motion";
+import { Capacitor } from "@capacitor/core";
+import { App as CapApp } from "@capacitor/app";
+import { supabase } from "./supabaseClient";
 
 import "./styles.css";
 import "./banner-effects.css";
@@ -546,6 +549,48 @@ export default function App() {
       window.removeEventListener('mousedown', onMouseDown);
       window.removeEventListener('mousemove', onMouseMove);
       window.removeEventListener('mouseup', onMouseUp);
+    };
+  }, []);
+
+  // Native Deep Link Handling
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return;
+
+    CapApp.addListener('appUrlOpen', async (event) => {
+      console.log('[Native] Deep Link detectado:', event.url);
+
+      const url = new URL(event.url);
+
+      // Manejar auth callback: com.dan.space://auth#access_token=...
+      if (url.host === 'auth' || url.pathname.includes('auth/callback')) {
+        const hash = url.hash.substring(1); // remove #
+        const params = new URLSearchParams(hash);
+
+        const accessToken = params.get('access_token');
+        const refreshToken = params.get('refresh_token');
+
+        if (accessToken && refreshToken) {
+          console.log('[Native] Sincronizando sesión desde deep link...');
+          const { error } = await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken,
+          });
+
+          if (error) console.error('[Native] Error sincronizando sesión:', error.message);
+          else window.location.href = '/posts';
+        } else {
+          // Si Supabase envía el código PKCE: ?code=...
+          const code = url.searchParams.get('code');
+          if (code) {
+            console.log('[Native] PKCE Code detectado. Redirigiendo a callback...');
+            window.location.href = `/auth/callback?code=${code}`;
+          }
+        }
+      }
+    });
+
+    return () => {
+      CapApp.removeAllListeners();
     };
   }, []);
 
