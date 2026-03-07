@@ -89,6 +89,47 @@ const ActivityCard = memo(({ post, onUpdate, onNewPost, onHeightChange }) => {
     const reactions = post.reactions_metadata || { total_count: 0 };
     const totalReactions = parseInt(reactions.total_count) || 0;
     const popularityIntensity = Math.min(10, Math.floor(totalReactions / 5));
+    const profilePath = post.author?.username
+        ? `/@${encodeURIComponent(post.author.username)}`
+        : (post.author_id || post.user_id || post.author?.id)
+            ? `/profile/${post.author_id || post.user_id || post.author?.id}`
+            : '/profile';
+
+    const stopCardNavigation = (e) => {
+        e.stopPropagation();
+    };
+
+    const blockAndGoProfile = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (e.nativeEvent?.stopImmediatePropagation) {
+            e.nativeEvent.stopImmediatePropagation();
+        }
+        window.__pushNavTrace?.({
+            type: 'click',
+            reason: 'activity_profile',
+            path: profilePath,
+            extra: String(post?.id || '')
+        });
+        navigate(profilePath);
+    };
+
+    const handleCardClick = (e) => {
+        const interactive = e.target?.closest?.('a,button,input,textarea,select,label,[role="button"]');
+        if (interactive) return;
+        if (post.isOptimistic) return;
+        if (!isExpanded && hasLongContent) {
+            setIsExpanded(true);
+            return;
+        }
+        window.__pushNavTrace?.({
+            type: 'click',
+            reason: 'activity_open_post',
+            path: `/transmission/${post.id}`,
+            extra: String(post?.id || '')
+        });
+        navigate(`/transmission/${post.id}`);
+    };
 
     return (
         <StardustEntrance delay={Math.random() * 300}>
@@ -97,14 +138,7 @@ const ActivityCard = memo(({ post, onUpdate, onNewPost, onHeightChange }) => {
                 animate={{ opacity: 1, scale: 1 }}
                 layout
                 className="postCard mb-4 cursor-pointer relative"
-                onClick={() => {
-                    if (post.isOptimistic) return;
-                    if (!isExpanded && hasLongContent) {
-                        setIsExpanded(true);
-                    } else {
-                        navigate(`/transmission/${post.id}`);
-                    }
-                }}
+                onClick={handleCardClick}
                 role="article"
             >
                 <GravityField isActive={totalReactions > 5} intensity={popularityIntensity} />
@@ -112,8 +146,16 @@ const ActivityCard = memo(({ post, onUpdate, onNewPost, onHeightChange }) => {
                 <div className="flex gap-4">
                     {/* AVATAR */}
                     <Link
-                        to={post.author?.username ? `/@${encodeURIComponent(post.author.username)}` : `/profile/${post.author_id}`}
-                        onClick={e => e.stopPropagation()}
+                        to={profilePath}
+                        onClick={blockAndGoProfile}
+                        onClickCapture={stopCardNavigation}
+                        onMouseDown={stopCardNavigation}
+                        onMouseUp={stopCardNavigation}
+                        onContextMenu={stopCardNavigation}
+                        onTouchStart={stopCardNavigation}
+                        onTouchEnd={stopCardNavigation}
+                        onPointerDown={stopCardNavigation}
+                        onPointerUp={stopCardNavigation}
                         className="shrink-0"
                     >
                         <div className="w-10 h-10 rounded-full overflow-hidden border border-white/10 bg-black hover:border-cyan-500/40 transition-all">
@@ -131,8 +173,16 @@ const ActivityCard = memo(({ post, onUpdate, onNewPost, onHeightChange }) => {
                         {/* Header Row */}
                         <div className="flex items-center gap-1.5 mb-1 flex-wrap">
                             <Link
-                                to={post.author?.username ? `/@${encodeURIComponent(post.author.username)}` : `/profile/${post.author_id}`}
-                                onClick={e => e.stopPropagation()}
+                                to={profilePath}
+                                onClick={blockAndGoProfile}
+                                onClickCapture={stopCardNavigation}
+                                onMouseDown={stopCardNavigation}
+                                onMouseUp={stopCardNavigation}
+                                onContextMenu={stopCardNavigation}
+                                onTouchStart={stopCardNavigation}
+                                onTouchEnd={stopCardNavigation}
+                                onPointerDown={stopCardNavigation}
+                                onPointerUp={stopCardNavigation}
                                 className="text-[13px] font-black text-white/90 hover:underline flex items-center gap-1.5"
                             >
                                 <span className={getNicknameClass(post.author)}>

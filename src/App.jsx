@@ -72,6 +72,151 @@ const InventoryPage = lazy(() => import("./pages/InventoryPage"));
 const ExplorePage = lazy(() => import("./pages/ExplorePage"));
 const SpotifyCallback = lazy(() => import("./pages/SpotifyCallback"));
 
+const NAV_TRACE_KEY = "spacely_nav_trace_v1";
+const FORCE_NAV_TRACE = false
+
+function isNavTraceEnabled() {
+  if (typeof window === "undefined") return false;
+  if (FORCE_NAV_TRACE) return true;
+  return window.location.search.includes("traceNav=1") || localStorage.getItem("traceNav") === "1";
+}
+
+function pushNavTrace(entry) {
+  if (typeof window === "undefined" || !isNavTraceEnabled()) return;
+  try {
+    const prev = JSON.parse(sessionStorage.getItem(NAV_TRACE_KEY) || "[]");
+    const next = [...prev, { at: new Date().toISOString(), ...entry }].slice(-40);
+    sessionStorage.setItem(NAV_TRACE_KEY, JSON.stringify(next));
+    console.log("[NAV_TRACE]", next[next.length - 1]);
+  } catch {
+    // no-op trace safety
+  }
+}
+
+if (typeof window !== "undefined") {
+  window.__pushNavTrace = pushNavTrace;
+}
+
+function normalizeProfilePath(pathname) {
+  if (!pathname || pathname === "/") return null;
+  let next = pathname;
+
+  // /posts/@user -> /@user (relative links accidentally resolved under /posts)
+  if (next.startsWith("/posts/@")) {
+    next = next.replace(/^\/posts/, "");
+  }
+
+  // /%40user -> /@user
+  if (next.startsWith("/%40")) {
+    next = `/@${next.slice(4)}`;
+  }
+
+  // /@@user or /@@@user -> /@user
+  if (/^\/@{2,}/.test(next)) {
+    next = `/${next.replace(/^\/@+/, "@")}`;
+  }
+
+  // /@/user -> /@user
+  if (next.startsWith("/@/")) {
+    next = `/@${next.slice(3)}`;
+  }
+
+  // remove trailing slash except root
+  if (next.length > 1 && next.endsWith("/")) {
+    next = next.slice(0, -1);
+  }
+
+  return next !== pathname ? next : null;
+}
+
+function recoverProfilePathFromUnknown(pathname) {
+  if (!pathname) return null;
+  const raw = pathname;
+  let decoded = raw;
+  try {
+    decoded = decodeURIComponent(raw);
+  } catch {
+    decoded = raw;
+  }
+
+  const combined = `${raw} ${decoded}`;
+
+  // Recover "arroba username" in almost any separator format
+  const arrobaMatch = decoded.match(/arroba[\s/_-]*([a-zA-Z0-9_.-]{2,32})/i)
+    || raw.match(/arroba[\s/_-]*([a-zA-Z0-9_.-]{2,32})/i);
+  if (arrobaMatch?.[1]) {
+    return `/@${encodeURIComponent(arrobaMatch[1])}`;
+  }
+
+  // Recover anything that looks like ".../@username" or ".../%40username"
+  const atMatch = combined.match(/(?:\/|^)(?:@|%40)([^/?#\s]+)/i);
+  if (atMatch?.[1]) {
+    const username = atMatch[1].replace(/^@+/, "").trim();
+    if (username) return `/@${encodeURIComponent(username)}`;
+  }
+
+  // Recover ".../profile/:id/..."
+  const profileMatch = decoded.match(/\/profile\/([^/?#\s]+)/i);
+  if (profileMatch?.[1]) {
+    const id = profileMatch[1].trim();
+    if (id) return `/profile/${encodeURIComponent(id)}`;
+  }
+
+  // Recover "/username" (single unknown segment)
+  const parts = decoded.split("/").filter(Boolean);
+  if (parts.length === 1) {
+    const maybeUser = parts[0];
+    const asArrobaWord = maybeUser.match(/^arroba([a-zA-Z0-9_.-]{2,32})$/i);
+    if (asArrobaWord?.[1]) {
+      return `/@${encodeURIComponent(asArrobaWord[1])}`;
+    }
+    if (/^[a-zA-Z0-9_.-]{2,32}$/.test(maybeUser)) {
+      return `/@${encodeURIComponent(maybeUser)}`;
+    }
+  }
+
+  // Recover "/posts/username" or "/post/username"
+  if (parts.length === 2 && /^(posts?|feed)$/i.test(parts[0])) {
+    const maybeUser = parts[1];
+    if (/^[a-zA-Z0-9_.-]{2,32}$/.test(maybeUser)) {
+      return `/@${encodeURIComponent(maybeUser)}`;
+    }
+  }
+
+  // Recover nested variants like "/route/@user", "/algo/arroba/user"
+  for (let i = parts.length - 1; i >= 0; i -= 1) {
+    const current = parts[i];
+    if (!current) continue;
+
+    if (current.startsWith("@")) {
+      const user = current.replace(/^@+/, "");
+      if (/^[a-zA-Z0-9_.-]{2,32}$/.test(user)) {
+        return `/@${encodeURIComponent(user)}`;
+      }
+    }
+
+    if (/^arroba$/i.test(current) && parts[i + 1] && /^[a-zA-Z0-9_.-]{2,32}$/.test(parts[i + 1])) {
+      return `/@${encodeURIComponent(parts[i + 1])}`;
+    }
+  }
+
+  // Last-resort fallback for unknown paths: treat last segment as username.
+  // This prevents bouncing to /posts when malformed profile links are generated.
+  const last = parts[parts.length - 1];
+  if (last) {
+    const normalizedLast = last
+      .replace(/^@+/, "")
+      .replace(/^arroba/i, "")
+      .replace(/[^a-zA-Z0-9_.-]/g, "")
+      .trim();
+    if (/^[a-zA-Z0-9_.-]{2,32}$/.test(normalizedLast)) {
+      return `/@${encodeURIComponent(normalizedLast)}`;
+    }
+  }
+
+  return null;
+}
+
 function DarkSideManager() {
   useEffect(() => {
     const checkDarkSide = () => {
@@ -108,6 +253,79 @@ function FallbackLoader() {
   );
 }
 
+function NavTraceOverlay() {
+  const [entries, setEntries] = React.useState([]);
+  const enabled = isNavTraceEnabled();
+
+  useEffect(() => {
+    if (!enabled) return;
+    const sync = () => {
+      try {
+        setEntries(JSON.parse(sessionStorage.getItem(NAV_TRACE_KEY) || "[]"));
+      } catch {
+        setEntries([]);
+      }
+    };
+    sync();
+    const id = setInterval(sync, 500);
+    return () => clearInterval(id);
+  }, [enabled]);
+
+  if (!enabled) return null;
+
+  return (
+    <div className="fixed left-2 bottom-2 z-[100001] w-[min(96vw,420px)] max-h-[45vh] overflow-auto rounded-xl border border-red-500/40 bg-black/90 p-2 text-[10px] font-mono text-red-200">
+      <div className="mb-2 flex items-center justify-between">
+        <strong className="tracking-wider">NAV TRACE</strong>
+        <button
+          className="rounded bg-red-500/20 px-2 py-0.5"
+          onClick={() => {
+            sessionStorage.removeItem(NAV_TRACE_KEY);
+            setEntries([]);
+          }}
+        >
+          clear
+        </button>
+      </div>
+      <div className="space-y-1">
+        {entries.slice(-10).map((e, i) => (
+          <div key={`${e.at}-${i}`} className="rounded bg-white/5 p-1">
+            <div>{e.at}</div>
+            <div>{e.type || "event"} {e.path ? `| ${e.path}` : ""}</div>
+            {e.reason && <div>reason: {e.reason}</div>}
+            {e.extra && <div>extra: {e.extra}</div>}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function RouteNotFoundRedirect() {
+
+  const location = useLocation();
+  const recovered = recoverProfilePathFromUnknown(location.pathname);
+
+  useEffect(() => {
+    pushNavTrace({
+      type: "redirect",
+      reason: recovered ? "wildcard_profile_recover" : "wildcard_not_found",
+      path: location.pathname,
+      extra: recovered || location.search || ""
+    });
+  }, [location.pathname, location.search, recovered]);
+
+  // Si ya es perfil válido, no intervenir
+  if (location.pathname.startsWith("/@")) {
+    return null;
+  }
+
+  if (recovered && recovered !== location.pathname) {
+    return <Navigate to={recovered} replace />;
+  }
+
+  return <Navigate to="/posts" replace />;
+}
 function PresenceTracker() {
   const location = useLocation();
   const { updatePresence, activeStation, isPresenceReady } = useUniverse();
@@ -177,6 +395,7 @@ function Layout({ children }) {
 function AnimatedRoutes() {
   const location = useLocation();
   const { user, profile, loading, profileLoading } = useAuthContext();
+  const normalizedPath = normalizeProfilePath(location.pathname);
 
   const isOnboardingPath = location.pathname === '/onboarding';
   const isLandingPath = location.pathname === '/';
@@ -184,6 +403,44 @@ function AnimatedRoutes() {
   const shouldRedirectToOnboarding = !loading && !profileLoading && user && !profile?.username && !isOnboardingPath && !isLandingPath;
   const isAffinityPath = location.pathname === '/afinidad';
   const shouldRedirectToAffinity = !loading && !profileLoading && user && profile?.username && !profile?.affinity_completed && !isAffinityPath && !isLandingPath;
+
+  useEffect(() => {
+    pushNavTrace({
+      type: "route",
+      path: location.pathname,
+      extra: location.search || ""
+    });
+  }, [location.pathname, location.search]);
+
+  useEffect(() => {
+    if (shouldRedirectToOnboarding) {
+      pushNavTrace({
+        type: "redirect",
+        reason: "guard_onboarding",
+        path: location.pathname
+      });
+    }
+  }, [shouldRedirectToOnboarding, location.pathname]);
+
+  useEffect(() => {
+    if (shouldRedirectToAffinity) {
+      pushNavTrace({
+        type: "redirect",
+        reason: "guard_affinity",
+        path: location.pathname
+      });
+    }
+  }, [shouldRedirectToAffinity, location.pathname]);
+
+  if (normalizedPath) {
+    pushNavTrace({
+      type: "redirect",
+      reason: "normalize_profile_path",
+      path: location.pathname,
+      extra: normalizedPath
+    });
+    return <Navigate to={`${normalizedPath}${location.search || ''}`} replace />;
+  }
 
   if (shouldRedirectToOnboarding) return <Navigate to="/onboarding" replace />;
   if (shouldRedirectToAffinity) return <Navigate to="/afinidad" replace />;
@@ -220,8 +477,10 @@ function AnimatedRoutes() {
         <Route path="/desktop" element={<Layout><DesktopPage /></Layout>} />
         <Route path="/spotify-callback" element={<Suspense fallback={null}><SpotifyCallback /></Suspense>} />
         <Route path="/@:username" element={<Layout><ProfileRedesign /></Layout>} />
+        <Route path="/:username" element={<Layout><ProfileRedesign /></Layout>} />
+        <Route path="/profile/:userId" element={<Layout><ProfileRedesign /></Layout>} />
         <Route path="/profile" element={user ? <Layout><ProfileRedesign /></Layout> : <Layout><LoginGate /></Layout>} />
-        <Route path="*" element={<Navigate to="/posts" replace />} />
+        <Route path="*" element={<RouteNotFoundRedirect />} />
       </Routes>
     </AnimatePresence>
   );
@@ -295,6 +554,7 @@ export default function App() {
               <StarfieldBg />
               <ClickRipple />
               <ActivityRadar />
+              <NavTraceOverlay />
               <WelcomeExperience />
               <CosmicEventBanner />
               <PresenceTracker />

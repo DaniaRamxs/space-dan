@@ -1,11 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
 
 export default function WelcomeExperience() {
     const [isVisible, setIsVisible] = useState(false);
     const [step, setStep] = useState(0); // 0 = start, 1 = text1, 2 = text2, 3 = galaxy
-    const navigate = useNavigate();
 
     useEffect(() => {
         const hasSeen = localStorage.getItem('has_seen_welcome_experience_v1');
@@ -27,7 +25,6 @@ export default function WelcomeExperience() {
         setStep(4);
         setTimeout(() => {
             setIsVisible(false);
-            navigate('/posts');
         }, 1000);
     };
 

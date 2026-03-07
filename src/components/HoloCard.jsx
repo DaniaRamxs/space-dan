@@ -80,6 +80,33 @@ const HoloCard = memo(function HoloCard({ profile, onClose }) {
         }
     }
 
+    const resolvedUsername = (fullProfile?.username || profile?.username || '').trim();
+    const profileHref = resolvedUsername
+        ? `/@${encodeURIComponent(resolvedUsername)}`
+        : profileId
+            ? `/profile/${profileId}`
+            : '/profile';
+
+    function blockEvent(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        if (e.nativeEvent?.stopImmediatePropagation) {
+            e.nativeEvent.stopImmediatePropagation();
+        }
+    }
+
+    function handleProfileNav(e) {
+        blockEvent(e);
+        window.__pushNavTrace?.({
+            type: 'click',
+            reason: 'holocard_profile',
+            path: profileHref,
+            extra: String(profileId || '')
+        });
+        navigate(profileHref);
+        setTimeout(() => onClose?.(), 120);
+    }
+
     const frameObj = getFrameStyle(fullProfile?.frame_item_id || profile?.frame_item_id);
     const frameClass = frameObj?.className || '';
 
@@ -100,6 +127,10 @@ const HoloCard = memo(function HoloCard({ profile, onClose }) {
                 exit={{ opacity: 0, scale: 0.8 }}
                 onMouseMove={handleMouse}
                 onMouseLeave={handleReset}
+                onMouseDown={e => e.stopPropagation()}
+                onMouseUp={e => e.stopPropagation()}
+                onPointerDown={e => e.stopPropagation()}
+                onPointerUp={e => e.stopPropagation()}
                 onClick={e => e.stopPropagation()}
                 style={{
                     width: '320px',
@@ -226,9 +257,12 @@ const HoloCard = memo(function HoloCard({ profile, onClose }) {
                                 {inviting ? 'Sintonizando...' : 'Sala de Enfoque 🧘'}
                             </button>
                             <button
+                                type="button"
                                 className="btn-glass"
-                                style={{ padding: '12px' }}
-                                onClick={() => navigate(profile.username ? `/@${encodeURIComponent(profile.username)}` : `/@${profileId}`)}
+                                style={{ padding: '12px', display: 'block', textAlign: 'center' }}
+                                onMouseDown={blockEvent}
+                                onMouseUp={blockEvent}
+                                onClick={handleProfileNav}
                             >
                                 Ver Perfil 👤
                             </button>

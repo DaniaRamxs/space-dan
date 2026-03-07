@@ -243,7 +243,7 @@ function ProfileSkeleton() {
 
 // ─── Main page ──────────────────────────────────────────────────────────────
 export default function ProfileRedesignPage() {
-    const { username } = useParams();
+    const { username, userId } = useParams();
     const { user } = useAuthContext();
 
     const [loading, setLoading] = useState(true);
@@ -262,7 +262,7 @@ export default function ProfileRedesignPage() {
 
     useEffect(() => {
         load();
-    }, [username]);
+    }, [username, userId, user?.id]);
 
     async function load() {
         setLoading(true);
@@ -270,12 +270,12 @@ export default function ProfileRedesignPage() {
         try {
             let prof = null;
 
-            if (!username && user) {
+            if (userId) {
                 const { data } = await supabase
                     .from('profiles')
                     .select('*')
-                    .eq('id', user.id)
-                    .single();
+                    .eq('id', userId)
+                    .maybeSingle();
                 prof = data;
             } else if (username) {
                 const cleanUsername = username.startsWith('@') ? username.slice(1) : username;
@@ -284,6 +284,13 @@ export default function ProfileRedesignPage() {
                     .select('*')
                     .ilike('username', cleanUsername)
                     .maybeSingle();
+                prof = data;
+            } else if (user) {
+                const { data } = await supabase
+                    .from('profiles')
+                    .select('*')
+                    .eq('id', user.id)
+                    .single();
                 prof = data;
             }
 
@@ -357,7 +364,7 @@ export default function ProfileRedesignPage() {
                     Perfil fuera de alcance
                 </h2>
                 <p className="text-white/30 text-sm max-w-xs mx-auto">
-                    "@{username}" no responde a nuestras señales.
+                    "{username ? `@${username}` : (userId || 'perfil')}" no responde a nuestras señales.
                 </p>
             </div>
             <Link

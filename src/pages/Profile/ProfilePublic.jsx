@@ -122,7 +122,7 @@ export default function PublicProfilePage() {
           banner_item:banner_item_id(id, title, metadata, preview_url),
           frame_item:frame_item_id(id, title, metadata, preview_url)
         `)
-        .ilike('username', cleanUsername)
+        .ilike('username', cleanUsername.toLowerCase())
         .maybeSingle();
 
       if (!isMountedLocal) return;
