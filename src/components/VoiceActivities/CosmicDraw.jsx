@@ -412,21 +412,21 @@ export default function CosmicDraw({ roomName, onClose }) {
 
             <div className={`transition-all duration-300 ${!isMyTurn || gameState !== 'playing' ? 'opacity-40 pointer-events-none' : ''}`}>
                 <div className="flex flex-wrap items-center justify-between gap-2 pb-2">
-                    <div className="flex flex-wrap gap-2">
+                    <div className="flex flex-wrap gap-1.5">
                         {COLORS.map(c => (
                             <button
                                 key={c} onClick={() => setColor(c)}
                                 style={{ backgroundColor: c }}
-                                className={`w-9 h-9 rounded-full border-2 transition-transform shrink-0 ${color === c ? 'border-white scale-110 shadow-[0_0_15px_rgba(255,255,255,0.5)]' : 'border-transparent opacity-60 hover:opacity-100'}`}
+                                className={`w-7 h-7 sm:w-9 sm:h-9 rounded-full border-2 transition-transform shrink-0 ${color === c ? 'border-white scale-110 shadow-[0_0_15px_rgba(255,255,255,0.5)]' : 'border-transparent opacity-60 hover:opacity-100'}`}
                             />
                         ))}
                     </div>
-                    <div className="flex gap-2 shrink-0">
-                        <button onClick={() => setLineWidth(prev => prev === 3 ? 10 : 3)} className={`p-3 rounded-xl transition-all ${lineWidth > 3 ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/30' : 'bg-white/5 text-white/50 border border-white/10 hover:text-white'}`}>
-                            <Pen size={18} />
+                    <div className="flex gap-1.5 shrink-0">
+                        <button onClick={() => setLineWidth(prev => prev === 3 ? 10 : 3)} className={`p-2 sm:p-3 rounded-xl transition-all ${lineWidth > 3 ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/30' : 'bg-white/5 text-white/50 border border-white/10 hover:text-white'}`}>
+                            <Pen size={16} />
                         </button>
-                        <button onClick={requestClearCanvas} className="p-3 rounded-xl bg-rose-500/10 text-rose-400 border border-rose-500/20 hover:bg-rose-500/20 transition-all">
-                            <Eraser size={18} />
+                        <button onClick={requestClearCanvas} className="p-2 sm:p-3 rounded-xl bg-rose-500/10 text-rose-400 border border-rose-500/20 hover:bg-rose-500/20 transition-all">
+                            <Eraser size={16} />
                         </button>
                     </div>
                 </div>

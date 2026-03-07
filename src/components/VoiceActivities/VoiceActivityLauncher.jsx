@@ -1,90 +1,391 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Gamepad2, Palette, Skull, Music, X } from 'lucide-react';
+import { X, Gamepad2, Skull, Music, Zap, Coins, Layers, PenLine, Sparkles, Minimize2, Maximize2 } from 'lucide-react';
 import HoldemTable from './HoldemTable';
-import CosmicDraw from './CosmicDraw';
 import BossRaid from './BossRaid';
-import JukeboxDJ from './JukeboxDJ';
 import Connect4Game from './Connect4Game';
 import SnakeDuelGame from './SnakeDuelGame';
 import TetrisDuelGame from './TetrisDuelGame';
-import { Zap, Tv, Tv2, Smartphone } from 'lucide-react';
+import Starboard from './Starboard';
 
 const ACTIVITIES = [
-    { id: 'connect4', name: 'Cosmic 4', icon: <Gamepad2 size={24} />, description: 'Duelo 1vs1. Gana 150◈', colorBorder: 'border-purple-500/20', colorBg: 'bg-purple-500/10', colorHover: 'hover:bg-purple-500/20', colorText: 'text-purple-400', disabled: false },
-    { id: 'snake', name: 'Snake Duel', icon: <Zap size={24} />, description: 'Duelo 1vs1. Supervivencia', colorBorder: 'border-emerald-500/20', colorBg: 'bg-emerald-500/10', colorHover: 'hover:bg-emerald-500/20', colorText: 'text-emerald-400', disabled: false },
-    { id: 'tetris', name: 'Tetris Duel', icon: <Gamepad2 size={24} />, description: 'Duelo 1vs1. Competitivo', colorBorder: 'border-blue-500/20', colorBg: 'bg-blue-500/10', colorHover: 'hover:bg-blue-500/20', colorText: 'text-blue-400', disabled: false },
-    { id: 'holdem', name: "Texas Hold'em", icon: <Gamepad2 size={24} />, description: 'Póker de mesa. 500◈ Buy-in', colorBorder: 'border-rose-500/20', colorBg: 'bg-rose-500/10', colorHover: 'hover:bg-rose-500/20', colorText: 'text-rose-400' },
-    { id: 'draw', name: 'Dibuja y Adivina', icon: <Palette size={24} />, description: 'Pizarra compartida. Gana ◈', colorBorder: 'border-cyan-500/20', colorBg: 'bg-cyan-500/10', colorHover: 'hover:bg-cyan-500/20', colorText: 'text-cyan-400', disabled: false },
-    { id: 'raid', name: 'Boss Raid', icon: <Skull size={24} />, description: 'Evento Co-op Multijugador', colorBorder: 'border-emerald-500/20', colorBg: 'bg-emerald-500/10', colorHover: 'hover:bg-emerald-500/20', colorText: 'text-emerald-400', disabled: false },
-    { id: 'dj', name: 'Jukebox DJ', icon: <Music size={24} />, description: 'Música V.I.P Sincronizada', colorBorder: 'border-amber-500/20', colorBg: 'bg-amber-500/10', colorHover: 'hover:bg-amber-500/20', colorText: 'text-amber-400', disabled: false },
+    {
+        id: 'connect4', name: 'Cosmic 4', tag: 'Duelo',
+        icon: Gamepad2,
+        description: 'Conecta 4 fichas antes que tu rival',
+        reward: '150',
+        border: 'border-purple-500/30', bg: 'bg-purple-500/5',
+        hover: 'hover:bg-purple-500/10 hover:border-purple-500/50',
+        accent: 'bg-purple-500', text: 'text-purple-400',
+        tagBg: 'bg-purple-500/20 text-purple-400',
+    },
+    {
+        id: 'snake', name: 'Snake Duel', tag: 'Duelo',
+        icon: Zap,
+        description: 'Serpientes 1vs1. Sobrevive mas tiempo',
+        reward: null,
+        border: 'border-emerald-500/30', bg: 'bg-emerald-500/5',
+        hover: 'hover:bg-emerald-500/10 hover:border-emerald-500/50',
+        accent: 'bg-emerald-500', text: 'text-emerald-400',
+        tagBg: 'bg-emerald-500/20 text-emerald-400',
+    },
+    {
+        id: 'tetris', name: 'Tetris Duel', tag: 'Duelo',
+        icon: Layers,
+        description: 'Tetris competitivo. Envia basura al rival',
+        reward: null,
+        border: 'border-blue-500/30', bg: 'bg-blue-500/5',
+        hover: 'hover:bg-blue-500/10 hover:border-blue-500/50',
+        accent: 'bg-blue-500', text: 'text-blue-400',
+        tagBg: 'bg-blue-500/20 text-blue-400',
+    },
+    {
+        id: 'raid', name: 'Boss Raid', tag: 'Co-op',
+        icon: Skull,
+        description: 'Derrota al jefe con toda la sala',
+        reward: 'Variable',
+        border: 'border-rose-500/30', bg: 'bg-rose-500/5',
+        hover: 'hover:bg-rose-500/10 hover:border-rose-500/50',
+        accent: 'bg-rose-500', text: 'text-rose-400',
+        tagBg: 'bg-rose-500/20 text-rose-400',
+    },
+    {
+        id: 'holdem', name: "Texas Hold'em", tag: 'Casino',
+        icon: Coins,
+        description: 'Poker de mesa. Buy-in requerido',
+        reward: 'Bote',
+        border: 'border-amber-500/30', bg: 'bg-amber-500/5',
+        hover: 'hover:bg-amber-500/10 hover:border-amber-500/50',
+        accent: 'bg-amber-500', text: 'text-amber-400',
+        tagBg: 'bg-amber-500/20 text-amber-400',
+    },
+    {
+        id: 'starboard', name: 'Starboard', tag: 'Social',
+        icon: PenLine,
+        description: 'Pizarra Pro compartida. GIFs y capas',
+        reward: null,
+        border: 'border-teal-500/30', bg: 'bg-teal-500/5',
+        hover: 'hover:bg-teal-500/10 hover:border-teal-500/50',
+        accent: 'bg-teal-500', text: 'text-teal-400',
+        tagBg: 'bg-teal-500/20 text-teal-400',
+    },
+    {
+        id: 'dj', name: 'Jukebox DJ', tag: 'Musica',
+        icon: Music,
+        description: 'Musica sincronizada V.I.P para la sala',
+        reward: null,
+        border: 'border-orange-500/30', bg: 'bg-orange-500/5',
+        hover: 'hover:bg-orange-500/10 hover:border-orange-500/50',
+        accent: 'bg-orange-500', text: 'text-orange-400',
+        tagBg: 'bg-orange-500/20 text-orange-400',
+    },
 ];
+
+const ALL_TAGS = ['Todos', 'Duelo', 'Co-op', 'Social', 'Casino', 'Musica'];
 
 export default function VoiceActivityLauncher({ roomName, activeActivity, setActiveActivity, isTheater, isFullView, onToggleTheater }) {
     const [isOpen, setIsOpen] = useState(false);
+    const [activeTag, setActiveTag] = useState('Todos');
+    const [minimized, setMinimized] = useState(false);
+    // Pill position — starts centered at bottom
+    const [pillPos, setPillPos] = useState(null); // null = default centered
+    const dragRef = useRef(null); // { startX, startY, originX, originY }
+    const pillRef = useRef(null);
 
-    const commonProps = { roomName, isTheater, isFullView, onToggleTheater, onClose: () => setActiveActivity(null) };
+    // Reset minimized + position when activity changes
+    useEffect(() => { setMinimized(false); setPillPos(null); }, [activeActivity]);
 
-    if (activeActivity === 'holdem') return <HoldemTable {...commonProps} />;
-    if (activeActivity === 'draw') return <CosmicDraw {...commonProps} />;
-    if (activeActivity === 'raid') return <BossRaid {...commonProps} />;
-    if (activeActivity === 'connect4') return <Connect4Game {...commonProps} />;
-    if (activeActivity === 'snake') return <SnakeDuelGame {...commonProps} />;
-    if (activeActivity === 'tetris') return <TetrisDuelGame {...commonProps} />;
-    if (activeActivity === 'dj') return null; // El padre (VoiceRoomUI) lo maneja para persistencia.
+    // Drag handlers (mouse + touch)
+    const startDrag = useCallback((clientX, clientY) => {
+        const el = pillRef.current;
+        if (!el) return;
+        const rect = el.getBoundingClientRect();
+        dragRef.current = {
+            startX: clientX,
+            startY: clientY,
+            originX: rect.left + rect.width / 2,
+            originY: rect.top + rect.height / 2,
+        };
+
+        const onMove = (e) => {
+            const cx = e.touches ? e.touches[0].clientX : e.clientX;
+            const cy = e.touches ? e.touches[0].clientY : e.clientY;
+            const { startX, startY, originX, originY } = dragRef.current;
+            const newX = originX + (cx - startX);
+            const newY = originY + (cy - startY);
+            // Clamp within viewport
+            const halfW = (pillRef.current?.offsetWidth ?? 160) / 2;
+            const halfH = (pillRef.current?.offsetHeight ?? 40) / 2;
+            const clampedX = Math.max(halfW + 8, Math.min(window.innerWidth - halfW - 8, newX));
+            const clampedY = Math.max(halfH + 8, Math.min(window.innerHeight - halfH - 8, newY));
+            setPillPos({ x: clampedX, y: clampedY });
+        };
+
+        const onUp = () => {
+            dragRef.current = null;
+            window.removeEventListener('mousemove', onMove);
+            window.removeEventListener('mouseup', onUp);
+            window.removeEventListener('touchmove', onMove);
+            window.removeEventListener('touchend', onUp);
+        };
+
+        window.addEventListener('mousemove', onMove);
+        window.addEventListener('mouseup', onUp);
+        window.addEventListener('touchmove', onMove, { passive: false });
+        window.addEventListener('touchend', onUp);
+    }, []);
+
+    const handleClose = () => {
+        setActiveActivity(null);
+        setMinimized(false);
+    };
+
+    const commonProps = {
+        roomName,
+        isTheater: true,
+        isFullView: true,
+        onToggleTheater,
+        onClose: handleClose,
+    };
+
+    // ── Fullscreen active activity ──────────────────────────────────────────
+    if (activeActivity && activeActivity !== 'dj') {
+        if (!minimized) {
+            return (
+                <>
+                    {/* Fullscreen wrapper */}
+                    <div className="fixed inset-0 z-[10020] bg-[#04040f] overflow-hidden flex flex-col">
+                        {activeActivity === 'holdem'    && <HoldemTable   {...commonProps} />}
+                        {activeActivity === 'raid'      && <BossRaid      {...commonProps} />}
+                        {activeActivity === 'connect4'  && <Connect4Game  {...commonProps} />}
+                        {activeActivity === 'snake'     && <SnakeDuelGame {...commonProps} />}
+                        {activeActivity === 'tetris'    && <TetrisDuelGame {...commonProps} />}
+                        {activeActivity === 'starboard' && <Starboard     {...commonProps} />}
+                    </div>
+
+                    {/* Floating minimize button — fixed so it stays on top of any z-index inside the wrapper */}
+                    <div className="fixed bottom-5 right-5 z-[10025] flex items-center gap-2">
+                        <motion.button
+                            initial={{ opacity: 0, y: 12, scale: 0.9 }}
+                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                            transition={{ delay: 0.6, type: 'spring', damping: 20 }}
+                            onClick={() => setMinimized(true)}
+                            className="flex items-center gap-1.5 px-3 py-2 rounded-full bg-black/70 border border-white/15 text-white/50 hover:text-white text-[10px] font-black uppercase tracking-widest backdrop-blur-xl transition-all hover:bg-black/90 shadow-2xl active:scale-95"
+                        >
+                            <Minimize2 size={11} />
+                            Minimizar
+                        </motion.button>
+                    </div>
+                </>
+            );
+        }
+
+        // ── Minimized pill (arrastrable) ──────────────────────────────────
+        const actData = ACTIVITIES.find(a => a.id === activeActivity);
+        const Icon = actData?.icon || Gamepad2;
+
+        const pillStyle = pillPos
+            ? { position: 'fixed', left: pillPos.x, top: pillPos.y, transform: 'translate(-50%, -50%)', zIndex: 10020 }
+            : { position: 'fixed', bottom: 80, left: '50%', transform: 'translateX(-50%)', zIndex: 10020 };
+
+        return (
+            <motion.div
+                ref={pillRef}
+                initial={{ opacity: 0, scale: 0.85 }}
+                animate={{ opacity: 1, scale: 1 }}
+                style={pillStyle}
+                className="flex items-center gap-3 px-4 py-2.5 bg-[#07071a]/95 border border-white/15 rounded-2xl backdrop-blur-xl shadow-2xl select-none touch-none"
+            >
+                {/* Drag handle */}
+                <div
+                    className="flex items-center gap-1.5 cursor-grab active:cursor-grabbing pr-1 border-r border-white/10"
+                    onMouseDown={(e) => { e.preventDefault(); startDrag(e.clientX, e.clientY); }}
+                    onTouchStart={(e) => { e.preventDefault(); startDrag(e.touches[0].clientX, e.touches[0].clientY); }}
+                >
+                    {/* grip dots */}
+                    <div className="flex flex-col gap-[3px]">
+                        {[0,1,2].map(i => (
+                            <div key={i} className="flex gap-[3px]">
+                                <div className="w-[3px] h-[3px] rounded-full bg-white/25" />
+                                <div className="w-[3px] h-[3px] rounded-full bg-white/25" />
+                            </div>
+                        ))}
+                    </div>
+                </div>
+
+                <div className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse flex-shrink-0" />
+                <Icon size={14} className={actData?.text || 'text-purple-400'} />
+                <span className="text-[11px] font-black text-white uppercase tracking-widest whitespace-nowrap">
+                    {actData?.name}
+                </span>
+
+                <button
+                    onClick={() => setMinimized(false)}
+                    className="flex items-center gap-1 px-2.5 py-1 bg-purple-500/20 text-purple-400 rounded-full text-[9px] font-black uppercase tracking-widest hover:bg-purple-500/30 transition-all border border-purple-500/20 flex-shrink-0"
+                >
+                    <Maximize2 size={9} />
+                    Restaurar
+                </button>
+                <button
+                    onClick={handleClose}
+                    className="p-1 text-white/30 hover:text-rose-400 transition-colors flex-shrink-0"
+                >
+                    <X size={12} />
+                </button>
+            </motion.div>
+        );
+    }
+
+    if (activeActivity === 'dj') return null;
+
+    // ── Launcher UI ────────────────────────────────────────────────────────
+    const filtered = activeTag === 'Todos' ? ACTIVITIES : ACTIVITIES.filter(a => a.tag === activeTag);
 
     return (
         <div className="relative mt-2">
+            {/* Trigger Button */}
             <button
                 onClick={() => setIsOpen(true)}
-                className="flex items-center gap-2 justify-center py-3 px-4 rounded-xl bg-purple-500/10 text-purple-400 border border-purple-500/20 text-[10px] font-black uppercase tracking-widest hover:bg-purple-500/20 active:scale-95 transition-all w-full"
+                className="group relative w-full flex items-center justify-between gap-3 px-4 py-3 rounded-2xl bg-purple-500/10 border border-purple-500/20 hover:bg-purple-500/15 hover:border-purple-500/40 active:scale-[0.98] transition-all overflow-hidden"
             >
-                <Gamepad2 size={16} /> Ver Actividades de Voz
+                <div className="absolute inset-0 bg-gradient-to-r from-purple-500/5 via-transparent to-blue-500/5 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
+                <div className="flex items-center gap-2.5 relative z-10">
+                    <div className="w-7 h-7 rounded-xl bg-purple-500/20 border border-purple-500/30 flex items-center justify-center flex-shrink-0">
+                        <Sparkles size={14} className="text-purple-400" />
+                    </div>
+                    <div className="flex flex-col items-start">
+                        <span className="text-[10px] font-black text-white uppercase tracking-[0.2em] leading-tight">Modulo de Actividades</span>
+                        <span className="text-[8px] text-purple-400/70 uppercase tracking-widest">{ACTIVITIES.length} actividades disponibles</span>
+                    </div>
+                </div>
+                <span className="text-[8px] font-black text-purple-400 bg-purple-500/20 px-2.5 py-1 rounded-full border border-purple-500/20 uppercase tracking-widest relative z-10 flex-shrink-0">
+                    Ver
+                </span>
             </button>
 
             <AnimatePresence>
                 {isOpen && (
                     <>
+                        {/* Backdrop — centrador flex en PC */}
                         <motion.div
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                             exit={{ opacity: 0 }}
                             onClick={() => setIsOpen(false)}
-                            className="fixed inset-0 z-[10010] bg-black/60 backdrop-blur-sm"
-                        />
-                        <motion.div
-                            initial={{ opacity: 0, y: 30, scale: 0.95 }}
-                            animate={{ opacity: 1, y: 0, scale: 1 }}
-                            exit={{ opacity: 0, y: 30, scale: 0.95 }}
-                            className="fixed inset-x-4 max-w-sm mx-auto top-1/2 -translate-y-1/2 bg-[#050518] border border-white/10 rounded-[2rem] p-6 shadow-[0_20px_60px_rgba(168,85,247,0.2)] z-[10020]"
+                            className="fixed inset-0 z-[10010] bg-black/70 backdrop-blur-sm sm:flex sm:items-center sm:justify-center sm:p-6 lg:p-10"
                         >
-                            <div className="flex justify-between items-center mb-6 border-b border-white/10 pb-4">
-                                <h3 className="text-white font-black uppercase tracking-widest text-xs flex items-center gap-2">
-                                    <span className="w-2 h-2 rounded-full bg-purple-500 animate-pulse" />
-                                    Módulo de Juegos
-                                </h3>
-                                <button onClick={() => setIsOpen(false)} className="text-white/40 hover:text-white p-2 rounded-full hover:bg-white/10 transition-all"><X size={16} /></button>
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-3">
-                                {ACTIVITIES.map(act => (
+                            {/* Modal */}
+                            <motion.div
+                                initial={{ opacity: 0, y: 30, scale: 0.96 }}
+                                animate={{ opacity: 1, y: 0, scale: 1 }}
+                                exit={{ opacity: 0, y: 20, scale: 0.97 }}
+                                transition={{ type: 'spring', damping: 28, stiffness: 320 }}
+                                onClick={e => e.stopPropagation()}
+                                className="flex flex-col overflow-hidden bg-[#07071a] border border-white/10 shadow-[0_30px_80px_rgba(139,92,246,0.25)]
+                                           absolute inset-x-2 top-10 bottom-2 rounded-[1.75rem]
+                                           sm:static sm:inset-auto sm:w-full sm:max-w-2xl lg:max-w-4xl xl:max-w-5xl sm:max-h-[85vh] sm:rounded-[2rem]"
+                            >
+                                {/* Header */}
+                                <div className="flex-shrink-0 flex items-center justify-between px-5 py-4 border-b border-white/8">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-8 h-8 rounded-xl bg-purple-500/20 border border-purple-500/30 flex items-center justify-center flex-shrink-0">
+                                            <Sparkles size={15} className="text-purple-400" />
+                                        </div>
+                                        <div>
+                                            <h3 className="text-white font-black uppercase tracking-[0.2em] text-xs sm:text-sm leading-tight">Modulo de Actividades</h3>
+                                            <p className="text-[8px] text-white/30 uppercase tracking-widest mt-0.5">Sala activa: {roomName}</p>
+                                        </div>
+                                    </div>
                                     <button
-                                        key={act.id}
-                                        onClick={() => {
-                                            if (act.disabled) return;
-                                            setActiveActivity(act.id);
-                                            setIsOpen(false);
-                                        }}
-                                        className={`relative flex flex-col items-center justify-center p-5 rounded-2xl border transition-all text-center ${act.disabled ? 'bg-white/5 border-white/5 opacity-50 cursor-not-allowed' :
-                                            `${act.colorBg} ${act.colorBorder} ${act.colorHover} active:scale-95`
-                                            }`}
+                                        onClick={() => setIsOpen(false)}
+                                        className="w-8 h-8 flex items-center justify-center text-white/30 hover:text-white bg-white/5 hover:bg-white/10 rounded-full transition-all flex-shrink-0"
                                     >
-                                        <div className={`${act.colorText} mb-3`}>{act.icon}</div>
-                                        <div className={`text-[10px] font-black uppercase tracking-widest ${act.colorText} mb-1`}>{act.name}</div>
-                                        <div className="text-[8px] text-white/50 leading-tight uppercase tracking-wide">{act.description}</div>
+                                        <X size={15} />
                                     </button>
-                                ))}
-                            </div>
+                                </div>
+
+                                {/* Filtros */}
+                                <div className="flex-shrink-0 flex items-center gap-2 px-5 py-3 overflow-x-auto no-scrollbar border-b border-white/5">
+                                    {ALL_TAGS.map(tag => (
+                                        <button
+                                            key={tag}
+                                            onClick={() => setActiveTag(tag)}
+                                            className={`flex-shrink-0 px-3 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest transition-all ${
+                                                activeTag === tag
+                                                    ? 'bg-purple-500 text-white shadow-[0_0_12px_rgba(168,85,247,0.35)]'
+                                                    : 'bg-white/5 text-white/40 hover:bg-white/10 hover:text-white/70 border border-white/10'
+                                            }`}
+                                        >
+                                            {tag}
+                                            {tag === 'Todos' && (
+                                                <span className="ml-1.5 opacity-60">{ACTIVITIES.length}</span>
+                                            )}
+                                        </button>
+                                    ))}
+                                </div>
+
+                                {/* Grid scrollable */}
+                                <div className="flex-1 overflow-y-auto overscroll-contain p-4 sm:p-5 lg:p-6">
+                                    <motion.div layout className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
+                                        <AnimatePresence mode="popLayout">
+                                            {filtered.map((act) => {
+                                                const Icon = act.icon;
+                                                return (
+                                                    <motion.button
+                                                        key={act.id}
+                                                        layout
+                                                        initial={{ opacity: 0, scale: 0.88 }}
+                                                        animate={{ opacity: 1, scale: 1 }}
+                                                        exit={{ opacity: 0, scale: 0.88 }}
+                                                        transition={{ type: 'spring', damping: 20, stiffness: 250 }}
+                                                        onClick={() => {
+                                                            setActiveActivity(act.id);
+                                                            setIsOpen(false);
+                                                        }}
+                                                        className={`relative flex flex-col text-left p-3 sm:p-4 rounded-2xl border transition-all active:scale-95 group overflow-hidden ${act.bg} ${act.border} ${act.hover}`}
+                                                    >
+                                                        <div className={`absolute top-0 left-0 right-0 h-[2px] ${act.accent} opacity-50 group-hover:opacity-100 transition-opacity`} />
+                                                        <div className={`w-10 h-10 sm:w-11 sm:h-11 rounded-xl border flex items-center justify-center mb-3 group-hover:scale-105 transition-transform ${act.bg} ${act.border}`}>
+                                                            <Icon size={20} className={act.text} />
+                                                        </div>
+                                                        <span className={`inline-block text-[7px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-full mb-1.5 w-fit ${act.tagBg}`}>
+                                                            {act.tag}
+                                                        </span>
+                                                        <p className={`text-[11px] sm:text-xs font-black uppercase tracking-wide leading-tight mb-1 ${act.text}`}>
+                                                            {act.name}
+                                                        </p>
+                                                        <p className="text-[9px] sm:text-[10px] text-white/40 leading-snug flex-1">
+                                                            {act.description}
+                                                        </p>
+                                                        {act.reward && (
+                                                            <div className="mt-2 pt-2 border-t border-white/5 flex items-center gap-1">
+                                                                <span className="text-[7px] font-black text-white/20 uppercase tracking-widest">Premio:</span>
+                                                                <span className={`text-[9px] font-black ${act.text}`}>{act.reward}</span>
+                                                            </div>
+                                                        )}
+                                                    </motion.button>
+                                                );
+                                            })}
+                                        </AnimatePresence>
+                                    </motion.div>
+
+                                    {filtered.length === 0 && (
+                                        <div className="flex items-center justify-center py-20">
+                                            <p className="text-white/20 text-[10px] uppercase tracking-widest font-black">Sin actividades en esta categoria</p>
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Footer */}
+                                <div className="flex-shrink-0 flex items-center justify-between px-5 py-3 border-t border-white/5">
+                                    <span className="text-[8px] text-white/20 uppercase tracking-widest font-black">
+                                        {filtered.length} actividad{filtered.length !== 1 ? 'es' : ''}
+                                    </span>
+                                    <span className="text-[8px] text-purple-400/40 uppercase tracking-widest font-black">
+                                        Space Dan · Voz activa
+                                    </span>
+                                </div>
+                            </motion.div>
                         </motion.div>
                     </>
                 )}

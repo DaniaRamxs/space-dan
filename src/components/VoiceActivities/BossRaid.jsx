@@ -13,6 +13,40 @@ const BOSS_TYPES = [
     { id: 'behemoth', name: 'Behemoth Solar', hp: 12000, img: '🌞', color: 'amber' },
 ];
 
+// Mapa estático de colores para que Tailwind JIT los incluya en el build
+const BOSS_COLOR_CLASSES = {
+    purple: {
+        containerBg: 'bg-purple-950/80 border-purple-500/30',
+        headerBorder: 'border-purple-500/20',
+        iconBox: 'bg-purple-500/10 border-purple-500/20 text-purple-400',
+        text: 'text-purple-400',
+        timer: 'text-purple-400 border-purple-500/20 bg-black/40',
+        glow: 'bg-purple-500/20',
+        bar: 'from-purple-600 to-purple-400',
+        hp: 'text-purple-400',
+    },
+    rose: {
+        containerBg: 'bg-rose-950/80 border-rose-500/30',
+        headerBorder: 'border-rose-500/20',
+        iconBox: 'bg-rose-500/10 border-rose-500/20 text-rose-400',
+        text: 'text-rose-400',
+        timer: 'text-rose-400 border-rose-500/20 bg-black/40',
+        glow: 'bg-rose-500/20',
+        bar: 'from-rose-600 to-rose-400',
+        hp: 'text-rose-400',
+    },
+    amber: {
+        containerBg: 'bg-amber-950/80 border-amber-500/30',
+        headerBorder: 'border-amber-500/20',
+        iconBox: 'bg-amber-500/10 border-amber-500/20 text-amber-400',
+        text: 'text-amber-400',
+        timer: 'text-amber-400 border-amber-500/20 bg-black/40',
+        glow: 'bg-amber-500/20',
+        bar: 'from-amber-600 to-amber-400',
+        hp: 'text-amber-400',
+    },
+};
+
 export default function BossRaid({ roomName, onClose }) {
     const { user, profile } = useAuthContext();
     const { balance, awardCoins, deductCoins } = useEconomy();
@@ -222,11 +256,13 @@ export default function BossRaid({ roomName, onClose }) {
         return Math.max(0, (currentHp / currentBoss.hp) * 100);
     };
 
+    const bc = BOSS_COLOR_CLASSES[currentBoss?.color] || BOSS_COLOR_CLASSES.purple;
+
     return (
         <motion.div
             initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }}
             className={`w-full backdrop-blur-xl border rounded-[2rem] p-4 sm:p-6 mt-4 relative overflow-hidden transition-colors duration-1000 ${gameState === 'lobby' ? 'bg-[#050518]/95 border-emerald-500/20 shadow-[0_30px_60px_rgba(16,185,129,0.1)]' :
-                gameState === 'playing' ? `bg-${currentBoss.color}-950/80 border-${currentBoss.color}-500/30 shadow-[inset_0_0_100px_rgba(200,0,0,0.1)]` :
+                gameState === 'playing' ? `${bc.containerBg} shadow-[inset_0_0_100px_rgba(200,0,0,0.1)]` :
                     gameState === 'won' ? 'bg-emerald-950/90 border-emerald-500/50 shadow-[0_0_80px_rgba(16,185,129,0.3)]' :
                         'bg-rose-950/90 border-rose-500/50'
                 }`}
@@ -236,18 +272,18 @@ export default function BossRaid({ roomName, onClose }) {
             </button>
 
             {/* Cabecera Táctica */}
-            <div className={`flex flex-wrap justify-between items-center mb-6 gap-2 pr-10 border-b pb-4 ${gameState === 'playing' ? `border-${currentBoss.color}-500/20` : 'border-white/10'}`}>
+            <div className={`flex flex-wrap justify-between items-center mb-6 gap-2 pr-10 border-b pb-4 ${gameState === 'playing' ? bc.headerBorder : 'border-white/10'}`}>
                 <div className="flex items-center gap-3">
-                    <div className={`p-2 rounded-xl border ${gameState === 'lobby' || gameState === 'won' ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : `bg-${currentBoss.color}-500/10 border-${currentBoss.color}-500/30 text-${currentBoss.color}-400`}`}>
+                    <div className={`p-2 rounded-xl border ${gameState === 'lobby' || gameState === 'won' ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : bc.iconBox}`}>
                         <Skull size={20} />
                     </div>
                     <div>
                         <h3 className="text-white font-black uppercase tracking-widest text-[10px] sm:text-xs">Boss Raid Co-op</h3>
-                        {gameState === 'playing' && <p className={`text-${currentBoss.color}-400 text-[9px] uppercase tracking-[0.2em] font-bold`}>{currentBoss.name}</p>}
+                        {gameState === 'playing' && <p className={`${bc.text} text-[9px] uppercase tracking-[0.2em] font-bold`}>{currentBoss.name}</p>}
                     </div>
                 </div>
 
-                <div className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border font-black text-xs ${gameState === 'playing' ? (timeLeft < 60 ? 'text-rose-400 border-rose-500/30 bg-rose-500/10 animate-[pulse_0.5s_infinite]' : `text-${currentBoss.color}-400 border-${currentBoss.color}-500/20 bg-black/40 shadow-[inset_0_0_10px_rgba(255,255,255,0.05)]`)
+                <div className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border font-black text-xs ${gameState === 'playing' ? (timeLeft < 60 ? 'text-rose-400 border-rose-500/30 bg-rose-500/10 animate-[pulse_0.5s_infinite]' : `${bc.timer} shadow-[inset_0_0_10px_rgba(255,255,255,0.05)]`)
                     : 'text-white/40 border-white/10'
                     }`}>
                     <ShieldAlert size={14} />
@@ -293,18 +329,18 @@ export default function BossRaid({ roomName, onClose }) {
                             >
                                 <span className={isDead ? 'grayscale opacity-50 blur-sm scale-150 transition-all duration-1000' : 'animate-[bounce_2s_ease-in-out_infinite] hover:scale-110'}>{currentBoss.img}</span>
                             </motion.button>
-                            <div className={`absolute inset-0 bg-${currentBoss.color}-500/20 rounded-full blur-[50px] -z-10`} />
+                            <div className={`absolute inset-0 ${bc.glow} rounded-full blur-[50px] -z-10`} />
                         </div>
 
                         {/* Barra de Vida Global */}
                         <div className="w-full max-w-sm mb-8">
                             <div className="flex justify-between text-[10px] font-black uppercase text-white/80 mb-2 tracking-widest">
                                 <span>Integridad del Objetivo</span>
-                                <span className={`text-${currentBoss.color}-400`}>{currentHp.toLocaleString()} <span className="text-white/30">/ {currentBoss.hp.toLocaleString()} HP</span></span>
+                                <span className={bc.hp}>{currentHp.toLocaleString()} <span className="text-white/30">/ {currentBoss.hp.toLocaleString()} HP</span></span>
                             </div>
                             <div className="w-full h-5 bg-black/60 border border-white/10 rounded-full overflow-hidden p-[3px] shadow-[inset_0_0_20px_rgba(0,0,0,0.8)]">
                                 <motion.div
-                                    className={`h-full rounded-full bg-gradient-to-r from-${currentBoss.color}-600 to-${currentBoss.color}-400 w-full relative overflow-hidden`}
+                                    className={`h-full rounded-full bg-gradient-to-r ${bc.bar} w-full relative overflow-hidden`}
                                     animate={{ width: `${getBossHealthPercentage()}%` }}
                                     transition={{ type: "spring", bounce: 0.2 }}
                                 >
