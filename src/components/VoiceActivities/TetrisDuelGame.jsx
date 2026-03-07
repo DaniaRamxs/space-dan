@@ -38,8 +38,12 @@ export default function TetrisDuelGame({ roomName, onClose, isTheater, onToggleT
     const [countdown, setCountdown] = useState(null);
 
     // Boards
-    const [myBoard, setMyBoard] = useState(Array(ROWS).fill(null).map(() => Array(COLS).fill(0)));
-    const [opponentBoard, setOpponentBoard] = useState(Array(ROWS).fill(null).map(() => Array(COLS).fill(0)));
+    const [p1Board, setP1Board] = useState(Array(ROWS).fill(null).map(() => Array(COLS).fill(0)));
+    const [p2Board, setP2Board] = useState(Array(ROWS).fill(null).map(() => Array(COLS).fill(0)));
+    const myBoard = myPlayerKey === 'p1' ? p1Board : p2Board;
+    const setMyBoard = myPlayerKey === 'p1' ? setP1Board : setP2Board;
+    const opponentBoard = myPlayerKey === 'p1' ? p2Board : p1Board;
+    const setOpponentBoard = myPlayerKey === 'p1' ? setP2Board : setP1Board;
 
     // Active Piece (Local only)
     const [piece, setPiece] = useState(null);
@@ -221,9 +225,8 @@ export default function TetrisDuelGame({ roomName, onClose, isTheater, onToggleT
 
         channel
             .on('broadcast', { event: 'tetris_board_sync' }, ({ payload }) => {
-                if (payload.player !== myPlayerKey) {
-                    setOpponentBoard(payload.board);
-                }
+                if (payload.player === 'p1') setP1Board(payload.board);
+                if (payload.player === 'p2') setP2Board(payload.board);
             })
             .on('broadcast', { event: 'tetris_garbage' }, ({ payload }) => {
                 if (payload.from !== myPlayerKey && gameState === 'playing') {
@@ -307,8 +310,8 @@ export default function TetrisDuelGame({ roomName, onClose, isTheater, onToggleT
                 clearInterval(timer);
                 setGameState('playing');
                 setCountdown(null);
-                setMyBoard(Array(ROWS).fill(null).map(() => Array(COLS).fill(0)));
-                setOpponentBoard(Array(ROWS).fill(null).map(() => Array(COLS).fill(0)));
+                setP1Board(Array(ROWS).fill(null).map(() => Array(COLS).fill(0)));
+                setP2Board(Array(ROWS).fill(null).map(() => Array(COLS).fill(0)));
                 broadcastEvent('tetris_update_players', { players, gameState: 'playing', countdown: null });
             }
         }, 1000);
@@ -383,38 +386,38 @@ export default function TetrisDuelGame({ roomName, onClose, isTheater, onToggleT
                     <p className="text-[10px] font-black text-white/20 uppercase tracking-widest mt-1">Supervivencia • Envia basura al rival</p>
                 </div>
 
-                <div className={`flex flex-col md:flex-row items-center gap-6 md:gap-12 w-full justify-center ${isTheater ? 'md:scale-90 lg:scale-100' : ''}`}>
-                    {/* My Board */}
-                    <div className="flex flex-col items-center gap-4">
-                        <div className={`flex items-center gap-3 mb-2 p-3 rounded-2xl border transition-all ${myPlayerKey === 'p1' ? 'border-blue-500/40 bg-blue-500/5' : 'border-white/5 bg-black/20'}`}>
-                            <div className="w-10 h-10 rounded-xl overflow-hidden border-2 border-blue-500">
+                <div className={`flex flex-row items-start justify-center gap-2 sm:gap-6 md:gap-12 w-full max-w-4xl ${isTheater ? 'md:scale-90 lg:scale-100' : ''}`}>
+                    {/* Board P1 */}
+                    <div className="flex flex-col items-center gap-2 sm:gap-4 w-1/2 md:w-auto">
+                        <div className={`flex items-center gap-2 sm:gap-3 p-2 sm:p-3 rounded-2xl border transition-all w-full md:w-auto ${myPlayerKey === 'p1' ? 'border-blue-500/40 bg-blue-500/5' : 'border-white/5 bg-black/20'}`}>
+                            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl overflow-hidden border-2 border-blue-500 flex-shrink-0">
                                 {players.p1 ? <img src={players.p1.avatar} className="w-full h-full object-cover" /> : <div className="bg-white/5 w-full h-full" />}
                             </div>
-                            <div className="flex flex-col overflow-hidden max-w-[80px]">
-                                <span className="text-[10px] font-black text-white uppercase truncate">{players.p1?.name || 'Vacio'}</span>
-                                {gameState === 'lobby' && !players.p1 && <button onClick={() => joinGame(1)} className="mt-1 bg-blue-500 text-white px-2 py-0.5 rounded text-[8px] font-black uppercase">Unirse</button>}
+                            <div className="flex flex-col overflow-hidden">
+                                <span className="text-[9px] sm:text-[10px] font-black text-white uppercase truncate">{players.p1?.name || 'Vacio'}</span>
+                                {gameState === 'lobby' && !players.p1 && <button onClick={() => joinGame(1)} className="mt-1 bg-blue-500 text-white px-2 py-0.5 rounded text-[7px] sm:text-[8px] font-black uppercase">Unirse</button>}
                             </div>
                         </div>
-                        <div className={`relative transition-all duration-700 ${isTheater ? 'h-[360px] w-[180px] sm:h-[400px] sm:w-[200px] md:h-[450px] md:w-[225px]' : 'h-[320px] w-[160px]'}`}>
-                            {renderBoard(myBoard, true)}
+                        <div className={`relative transition-all duration-700 w-full max-w-[150px] sm:max-w-[180px] md:max-w-none ${isTheater ? 'h-[320px] sm:h-[400px] md:h-[450px] md:w-[225px]' : 'h-[280px] sm:h-[320px] md:w-[160px]'}`}>
+                            {renderBoard(p1Board, myPlayerKey === 'p1')}
                         </div>
                     </div>
 
-                    {!isTheater && <div className="text-white/20 font-black italic scale-150 hidden md:block">VS</div>}
+                    {!isTheater && <div className="text-white/10 font-black italic scale-110 hidden lg:block mt-32">VS</div>}
 
-                    {/* Opponent Board */}
-                    <div className="flex flex-col items-center gap-4">
-                        <div className={`flex items-center gap-3 mb-2 p-3 rounded-2xl border transition-all ${myPlayerKey === 'p2' ? 'border-rose-500/40 bg-rose-500/5' : 'border-white/5 bg-black/20'}`}>
-                            <div className="w-10 h-10 rounded-xl overflow-hidden border-2 border-rose-500">
+                    {/* Board P2 */}
+                    <div className="flex flex-col items-center gap-2 sm:gap-4 w-1/2 md:w-auto">
+                        <div className={`flex items-center gap-2 sm:gap-3 p-2 sm:p-3 rounded-2xl border transition-all w-full md:w-auto ${myPlayerKey === 'p2' ? 'border-rose-500/40 bg-rose-500/5' : 'border-white/5 bg-black/20'}`}>
+                            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl overflow-hidden border-2 border-rose-500 flex-shrink-0">
                                 {players.p2 ? <img src={players.p2.avatar} className="w-full h-full object-cover" /> : <div className="bg-white/5 w-full h-full" />}
                             </div>
-                            <div className="flex flex-col overflow-hidden max-w-[80px]">
-                                <span className="text-[10px] font-black text-white uppercase truncate">{players.p2?.name || 'Vacio'}</span>
-                                {gameState === 'lobby' && !players.p2 && <button onClick={() => joinGame(2)} className="mt-1 bg-rose-500 text-white px-2 py-0.5 rounded text-[8px] font-black uppercase">Unirse</button>}
+                            <div className="flex flex-col overflow-hidden">
+                                <span className="text-[9px] sm:text-[10px] font-black text-white uppercase truncate">{players.p2?.name || 'Vacio'}</span>
+                                {gameState === 'lobby' && !players.p2 && <button onClick={() => joinGame(2)} className="mt-1 bg-rose-500 text-white px-2 py-0.5 rounded text-[7px] sm:text-[8px] font-black uppercase">Unirse</button>}
                             </div>
                         </div>
-                        <div className={`relative transition-all duration-700 ${isTheater ? 'h-[360px] w-[180px] sm:h-[400px] sm:w-[200px] md:h-[450px] md:w-[225px]' : 'h-[320px] w-[160px] opacity-60 scale-95'}`}>
-                            {renderBoard(opponentBoard)}
+                        <div className={`relative transition-all duration-700 w-full max-w-[150px] sm:max-w-[180px] md:max-w-none ${isTheater ? 'h-[320px] sm:h-[400px] md:h-[450px] md:w-[225px]' : 'h-[280px] sm:h-[320px] md:w-[160px]'}`}>
+                            {renderBoard(p2Board, myPlayerKey === 'p2')}
                         </div>
                     </div>
                 </div>
@@ -422,19 +425,19 @@ export default function TetrisDuelGame({ roomName, onClose, isTheater, onToggleT
                 {/* Controls Mobile */}
                 <div className={`flex flex-col items-center gap-4 w-full max-w-sm ${isTheater ? 'md:absolute md:bottom-12 md:left-1/2 md:-translate-x-1/2' : ''}`}>
                     {gameState === 'playing' && myPlayerKey && (
-                        <div className="grid grid-cols-4 gap-3 w-full px-4">
-                            <button onPointerDown={(e) => { e.preventDefault(); handleMove({ x: -1, y: 0 }); }} className="h-16 bg-white/10 rounded-2xl flex items-center justify-center active:bg-blue-500 active:scale-95 transition-all"><ChevronLeft className="text-white" size={32} /></button>
-                            <button onPointerDown={(e) => { e.preventDefault(); handleRotate(); }} className="h-16 bg-white/10 rounded-2xl flex items-center justify-center active:bg-purple-500 active:scale-95 transition-all"><RotateCcw className="text-white" size={32} /></button>
-                            <button onPointerDown={(e) => { e.preventDefault(); drop(); }} className="h-16 bg-white/10 rounded-2xl flex items-center justify-center active:bg-blue-500 active:scale-95 transition-all"><ChevronDown className="text-white" size={32} /></button>
-                            <button onPointerDown={(e) => { e.preventDefault(); handleMove({ x: 1, y: 0 }); }} className="h-16 bg-white/10 rounded-2xl flex items-center justify-center active:bg-blue-500 active:scale-95 transition-all"><ChevronRight className="text-white" size={32} /></button>
-                            <button onPointerDown={(e) => { e.preventDefault(); hardDrop(); }} className="col-span-4 h-14 bg-blue-500/20 rounded-2xl flex items-center justify-center text-[10px] font-black uppercase tracking-[0.3em] text-blue-400 border border-blue-500/30 active:bg-blue-500 active:text-white transition-all">Caída Rápida</button>
+                        <div className="grid grid-cols-4 gap-2 w-full px-2 mt-4 sm:mt-8">
+                            <button onPointerDown={(e) => { e.preventDefault(); handleMove({ x: -1, y: 0 }); }} className="h-14 sm:h-16 bg-white/10 rounded-2xl flex items-center justify-center active:bg-blue-500 active:scale-95 transition-all"><ChevronLeft className="text-white" size={28} /></button>
+                            <button onPointerDown={(e) => { e.preventDefault(); handleRotate(); }} className="h-14 sm:h-16 bg-white/10 rounded-2xl flex items-center justify-center active:bg-purple-500 active:scale-95 transition-all"><RotateCcw className="text-white" size={28} /></button>
+                            <button onPointerDown={(e) => { e.preventDefault(); drop(); }} className="h-14 sm:h-16 bg-white/10 rounded-2xl flex items-center justify-center active:bg-blue-500 active:scale-95 transition-all"><ChevronDown className="text-white" size={28} /></button>
+                            <button onPointerDown={(e) => { e.preventDefault(); handleMove({ x: 1, y: 0 }); }} className="h-14 sm:h-16 bg-white/10 rounded-2xl flex items-center justify-center active:bg-blue-500 active:scale-95 transition-all"><ChevronRight className="text-white" size={28} /></button>
+                            <button onPointerDown={(e) => { e.preventDefault(); hardDrop(); }} className="col-span-4 h-12 bg-blue-500/20 rounded-2xl flex items-center justify-center text-[9px] font-black uppercase tracking-[0.3em] text-blue-400 border border-blue-500/30 active:bg-blue-500 active:text-white transition-all">Caída Rápida</button>
                         </div>
                     )}
 
                     {isTheater && (
                         <div className="flex items-center gap-2 px-4 py-2 bg-white/5 rounded-full border border-white/10 animate-pulse md:hidden mt-2">
-                            <Smartphone className="text-blue-400 rotate-90" size={14} />
-                            <span className="text-[8px] font-black text-white/30 uppercase tracking-widest">Gira tu pantalla para mejor vista</span>
+                            <Smartphone className="text-blue-400 rotate-90" size={12} />
+                            <span className="text-[7px] font-black text-white/30 uppercase tracking-widest">Gira tu pantalla para mejor vista</span>
                         </div>
                     )}
                 </div>

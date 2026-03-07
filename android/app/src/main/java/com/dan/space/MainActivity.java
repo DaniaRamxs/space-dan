@@ -4,7 +4,7 @@ import android.os.Handler;
 import android.os.Looper;
 import com.getcapacitor.BridgeActivity;
 
-public class MainActivity extends BridgeActivity {
+public class Mn                                  ainActivity extends BridgeActivity {
 
     @Override
     public void onCreate(android.os.Bundle savedInstanceState) {
