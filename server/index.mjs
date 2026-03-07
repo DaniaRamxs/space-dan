@@ -14,18 +14,22 @@ import { PixelGalaxyRoom } from "./rooms/PixelGalaxyRoom.mjs";
 
 import cors from "cors";
 
-// Just define the rooms here, let @colyseus/tools handle the server setup
 const port = process.env.PORT || 2567;
 const app = express();
 
 app.use(cors());
 app.use(express.json());
-app.get("/health", (req, res) => res.send("Server is alive!"));
+app.get("/health", (_, res) => res.send("Server is alive!"));
+
+// Create the HTTP server first, then pass it directly to the transport.
+// This ensures Colyseus attaches its matchmaking routes (with built-in CORS)
+// to the same server that Express uses — not to an internal empty server.
+const server = http.createServer(app);
 
 const gameServer = new Server({
     transport: new WebSocketTransport({
+        server,
         maxPayload: 1024 * 1024,
-        /* Injected CORS into transport */
     })
 });
 
@@ -40,9 +44,6 @@ gameServer.define("asteroid-battle", AsteroidBattleRoom).filterBy(['roomName']);
 gameServer.define("chess", ChessRoom).filterBy(['roomName']);
 gameServer.define("pixel-galaxy", PixelGalaxyRoom).filterBy(['roomName']);
 
-const server = http.createServer(app);
-gameServer.attach({ server, app });
-
-server.listen(port, () => {
+gameServer.listen(port).then(() => {
     console.log(`[Colyseus Server] Battle station active at port ${port}`);
 });
