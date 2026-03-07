@@ -1,556 +1,359 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Trophy, Play, RotateCcw, User, UserPlus, Tv2, Smartphone } from 'lucide-react';
-import { useLocalParticipant, useParticipants } from '@livekit/components-react';
-import { supabase } from '../../supabaseClient';
+import { X, Trophy, Play, RotateCcw, User, UserPlus, Tv2, Smartphone, Gamepad2, Info } from 'lucide-react';
+import { client } from '../../services/colyseusClient';
 import { useAuthContext } from '../../contexts/AuthContext';
 import toast from 'react-hot-toast';
 
 const ROWS = 6;
 const COLS = 7;
 
-function GamepadIcon(props) {
-    return (
-        <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <line x1="6" x2="10" y1="12" y2="12" />
-            <line x1="8" x2="8" y1="10" y2="14" />
-            <line x1="15" x2="15.01" y1="13" y2="13" />
-            <line x1="18" x2="18.01" y1="11" y2="11" />
-            <rect width="20" height="12" x="2" y="6" rx="2" />
-        </svg>
-    );
-}
-
 export default function Connect4Game({ roomName, onClose, isTheater, onToggleTheater }) {
     const { user, profile } = useAuthContext();
-    const { localParticipant } = useLocalParticipant();
-    const participants = useParticipants();
-
-    const [gameState, setGameState] = useState('lobby');
-    const [board, setBoard] = useState(Array(ROWS).fill(null).map(() => Array(COLS).fill(0)));
-    const [turn, setTurn] = useState(1);
-    const [players, setPlayers] = useState({ p1: null, p2: null });
-    const [winner, setWinner] = useState(null);
-    const [cellSize, setCellSize] = useState(56);
-
-    const channelRef = useRef(null);
-    const syncRef = useRef({ gameState, board, turn, players, winner });
+    const [room, setRoom] = useState(null);
+    const [state, setState] = useState(null);
+    const [connecting, setConnecting] = useState(true);
+    const [tick, setTick] = useState(0);
 
     useEffect(() => {
-        syncRef.current = { gameState, board, turn, players, winner };
-    }, [gameState, board, turn, players, winner]);
-
-    // Compute cell size based on available viewport space (theater mode)
-    useEffect(() => {
-        if (!isTheater) return;
-        const compute = () => {
-            const sidebarW = 208; // w-52 = 208px
-            const headerH = 56;
-            const padding = 80;
-            const availW = Math.floor((window.innerWidth - sidebarW - padding) / COLS);
-            const availH = Math.floor((window.innerHeight - headerH - padding) / ROWS);
-            setCellSize(Math.min(availW, availH, 110));
-        };
-        compute();
-        window.addEventListener('resize', compute);
-        return () => window.removeEventListener('resize', compute);
-    }, [isTheater]);
-
-    const allParticipants = useMemo(() => {
-        if (!localParticipant) return participants;
-        return [localParticipant, ...participants];
-    }, [localParticipant, participants]);
-
-    const sortedParticipants = useMemo(() => {
-        return [...allParticipants].sort((a, b) => (a.identity || '').localeCompare(b.identity || ''));
-    }, [allParticipants]);
-
-    const leaderIdentity = useMemo(() => sortedParticipants[0]?.identity, [sortedParticipants]);
-    const isLeader = localParticipant?.identity === leaderIdentity;
-
-    useEffect(() => {
-        if (!roomName || !user) return;
-        const channelName = `connect4-${roomName.toLowerCase().replace(/[^a-z0-9]/g, '-')}`;
-        const channel = supabase.channel(channelName);
-        channelRef.current = channel;
-
-        channel
-            .on('broadcast', { event: 'game_update' }, ({ payload }) => {
-                setGameState(payload.state);
-                setBoard(payload.board);
-                setTurn(payload.turn);
-                setPlayers(payload.players);
-                setWinner(payload.winner);
-            })
-            .on('broadcast', { event: 'sync_request' }, () => {
-                if (isLeader) {
-                    const s = syncRef.current;
-                    broadcastState({ state: s.gameState, board: s.board, turn: s.turn, players: s.players, winner: s.winner });
-                }
-            })
-            .subscribe((status) => {
-                if (status === 'SUBSCRIBED') {
-                    channel.send({ type: 'broadcast', event: 'sync_request', payload: {} });
-                }
-            });
-
-        return () => { supabase.removeChannel(channel); };
-    }, [roomName, user, isLeader]);
-
-    const broadcastState = (payload) => {
-        channelRef.current?.send({ type: 'broadcast', event: 'game_update', payload });
-    };
-
-    const joinGame = (pos) => {
-        if (gameState !== 'lobby') return;
-        if (players.p1?.identity === localParticipant.identity || players.p2?.identity === localParticipant.identity) return;
-
-        const newPlayers = { ...players };
-        const playerData = {
-            identity: localParticipant.identity,
-            name: profile?.username || 'Piloto',
-            avatar: profile?.avatar_url,
-            id: user?.id
-        };
-
-        if (pos === 1 && !players.p1) {
-            newPlayers.p1 = playerData;
-        } else if (pos === 2 && !players.p2) {
-            newPlayers.p2 = playerData;
-        } else return;
-
-        setPlayers(newPlayers);
-
-        if (newPlayers.p1 && newPlayers.p2) {
-            const startPayload = {
-                state: 'playing',
-                board: Array(ROWS).fill(null).map(() => Array(COLS).fill(0)),
-                turn: 1, players: newPlayers, winner: null
-            };
-            setGameState('playing');
-            setBoard(startPayload.board);
-            setTurn(1);
-            setWinner(null);
-            broadcastState(startPayload);
-        } else {
-            broadcastState({ state: 'lobby', players: newPlayers, board, turn, winner });
-            if (pos === 1) {
-                toast(`@${playerData.name} ha iniciado un duelo de Conecta 4.`, {
-                    style: { background: '#080b14', color: '#a855f7', border: '1px solid rgba(168,85,247,0.2)' },
-                    icon: '🎮'
+        const joinGame = async () => {
+            try {
+                const c4Room = await client.joinOrCreate("connect4", {
+                    name: profile?.username || user?.email?.split('@')[0] || "Anon",
+                    avatar: profile?.avatar_url || "/default-avatar.png",
+                    roomName: roomName
                 });
+
+                setRoom(c4Room);
+                setState(c4Room.state);
+                setConnecting(false);
+
+                c4Room.onStateChange((newState) => {
+                    setState(newState);
+                    setTick(t => t + 1);
+                });
+
+                c4Room.onLeave((code) => {
+                    console.log("Left Connect4 room", code);
+                });
+
+            } catch (e) {
+                console.error("Colyseus Error", e);
+                toast.error("Error conectando al servidor de juegos");
+                onClose();
             }
-        }
-    };
-
-    const dropDisc = (col) => {
-        if (gameState !== 'playing' || winner) return;
-        const isP1 = players.p1?.identity === localParticipant.identity;
-        const isP2 = players.p2?.identity === localParticipant.identity;
-        if (turn === 1 && !isP1) return;
-        if (turn === 2 && !isP2) return;
-
-        let row = -1;
-        for (let r = ROWS - 1; r >= 0; r--) {
-            if (board[r][col] === 0) { row = r; break; }
-        }
-        if (row === -1) return;
-
-        const newBoard = board.map(r => [...r]);
-        newBoard[row][col] = turn;
-
-        const win = checkWinner(newBoard, row, col);
-        const isDraw = !win && newBoard[0].every(c => c !== 0);
-        const nextTurn = turn === 1 ? 2 : 1;
-        const nextWinner = win ? turn : (isDraw ? 'draw' : null);
-        const nextState = (win || isDraw) ? 'finished' : 'playing';
-
-        setBoard(newBoard);
-        setTurn(nextTurn);
-        setWinner(nextWinner);
-        setGameState(nextState);
-        broadcastState({ state: nextState, board: newBoard, turn: nextTurn, players, winner: nextWinner });
-
-        if (nextWinner && nextWinner !== 'draw') {
-            const winningPlayer = nextWinner === 1 ? players.p1 : players.p2;
-            const losingPlayer = nextWinner === 1 ? players.p2 : players.p1;
-            if (localParticipant.identity === (nextWinner === 1 ? players.p1.identity : players.p2.identity)) {
-                updateStats(winningPlayer.id, 'win');
-                updateStats(losingPlayer.id, 'loss');
-                toast.success('Victoria registrada!', { icon: '👑' });
-            }
-        }
-    };
-
-    const updateStats = async (userId, type) => {
-        if (!userId) return;
-        try {
-            await supabase.rpc('increment_profile_stat', {
-                profile_id: userId,
-                stat_col: type === 'win' ? 'connect4_wins' : 'connect4_losses',
-                inc_val: 1
-            });
-        } catch (err) { console.error('[Connect4] Stats error:', err); }
-    };
-
-    const resetGame = () => {
-        const payload = {
-            state: 'lobby',
-            board: Array(ROWS).fill(null).map(() => Array(COLS).fill(0)),
-            turn: 1, players: { p1: null, p2: null }, winner: null
         };
-        setGameState('lobby'); setBoard(payload.board); setTurn(1);
-        setPlayers(payload.players); setWinner(null);
-        broadcastState(payload);
-    };
 
-    const rematch = () => {
-        const payload = {
-            state: 'playing',
-            board: Array(ROWS).fill(null).map(() => Array(COLS).fill(0)),
-            turn: winner === 1 ? 2 : 1, players, winner: null
-        };
-        setGameState('playing'); setBoard(payload.board);
-        setTurn(payload.turn); setWinner(null);
-        broadcastState(payload);
-    };
+        joinGame();
+        return () => { if (room) room.leave(); };
+    }, []);
 
-    const checkWinner = (b, r, c) => {
-        const p = b[r][c];
-        let count = 0;
-        for (let j = 0; j < COLS; j++) { if (b[r][j] === p) { count++; if (count === 4) return true; } else count = 0; }
-        count = 0;
-        for (let i = 0; i < ROWS; i++) { if (b[i][c] === p) { count++; if (count === 4) return true; } else count = 0; }
-        for (let [dr, dc] of [[1, 1], [1, -1]]) {
-            count = 1;
-            for (let i = 1; i < 4; i++) { const nr = r + dr * i, nc = c + dc * i; if (nr >= 0 && nr < ROWS && nc >= 0 && nc < COLS && b[nr][nc] === p) count++; else break; }
-            for (let i = 1; i < 4; i++) { const nr = r - dr * i, nc = c - dc * i; if (nr >= 0 && nr < ROWS && nc >= 0 && nc < COLS && b[nr][nc] === p) count++; else break; }
-            if (count >= 4) return true;
-        }
-        return false;
-    };
-
-    const isMyTurn = (turn === 1 && players.p1?.identity === localParticipant.identity) ||
-        (turn === 2 && players.p2?.identity === localParticipant.identity);
-
-    const gap = Math.max(6, Math.floor(cellSize * 0.15));
-    const boardPad = Math.max(12, Math.floor(cellSize * 0.2));
-
-    const BoardGrid = () => (
-        <div
-            className="relative bg-purple-950/40 rounded-[2rem] border-4 border-white/10 shadow-[inset_0_0_60px_rgba(0,0,0,0.6),0_20px_60px_rgba(0,0,0,0.5)] overflow-hidden"
-            style={{ padding: boardPad }}
-        >
-            <div style={{ display: 'flex', flexDirection: 'column', gap }} className="relative z-20">
-                {board.map((row, r) => (
-                    <div key={r} style={{ display: 'flex', gap }}>
-                        {row.map((cell, c) => (
-                            <div key={c} className="relative" style={{ width: cellSize, height: cellSize }}>
-                                <button
-                                    onClick={() => dropDisc(c)}
-                                    disabled={gameState !== 'playing' || !isMyTurn || cell !== 0}
-                                    className={`absolute inset-0 z-10 w-full h-full rounded-full border-2 transition-all ${cell === 0 ? 'bg-black/40 border-white/5 hover:border-purple-500/40 hover:bg-purple-500/10' : 'bg-transparent border-transparent'}`}
-                                />
-                                <AnimatePresence>
-                                    {cell !== 0 && (
-                                        <motion.div
-                                            initial={{ y: -500 }} animate={{ y: 0 }}
-                                            transition={{ type: 'spring', damping: 12, stiffness: 100, mass: 0.8 }}
-                                            className={`absolute inset-0 rounded-full border-2 pointer-events-none ${
-                                                cell === 1
-                                                    ? 'bg-gradient-to-br from-rose-400 to-rose-600 border-rose-300 shadow-[0_4px_12px_rgba(244,63,94,0.5)]'
-                                                    : 'bg-gradient-to-br from-amber-300 to-amber-500 border-amber-200 shadow-[0_4px_12px_rgba(245,158,11,0.5)]'
-                                            }`}
-                                        />
-                                    )}
-                                </AnimatePresence>
-                            </div>
-                        ))}
-                    </div>
-                ))}
-            </div>
-
-            {/* Lobby overlay */}
-            <AnimatePresence>
-                {gameState === 'lobby' && (
-                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="absolute inset-0 bg-black/30 backdrop-blur-[1px] pointer-events-none rounded-[1.8rem]" />
-                )}
-            </AnimatePresence>
-
-            {/* Finish overlay */}
-            <AnimatePresence>
-                {gameState === 'finished' && (
-                    <motion.div
-                        initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                        className="absolute inset-0 bg-black/85 backdrop-blur-md flex flex-col items-center justify-center rounded-[1.8rem] z-10 p-6 border border-white/10"
-                    >
-                        {winner === 'draw' ? (
-                            <>
-                                <div className="text-5xl mb-4">🤝</div>
-                                <h3 className="text-white font-black uppercase tracking-widest mb-6">Empate Dimensional</h3>
-                            </>
-                        ) : (
-                            <>
-                                <Trophy size={52} className={`mb-4 ${winner === 1 ? 'text-rose-400' : 'text-amber-400'}`} />
-                                <h3 className="text-white font-black uppercase tracking-widest text-xs mb-2">Duelo Terminado</h3>
-                                <p className={`text-xl font-black uppercase tracking-widest mb-8 ${winner === 1 ? 'text-rose-400' : 'text-amber-400'}`}>
-                                    @{winner === 1 ? players.p1?.name : players.p2?.name} Victoria
-                                </p>
-                            </>
-                        )}
-                        <div className="flex gap-3">
-                            <button onClick={rematch} className="flex items-center gap-2 px-6 py-3 rounded-2xl bg-white text-black font-black uppercase tracking-widest text-[10px] hover:scale-105 active:scale-95 transition-all">
-                                <Play size={14} /> Revancha
-                            </button>
-                            <button onClick={resetGame} className="flex items-center gap-2 px-4 py-3 rounded-2xl bg-white/5 border border-white/10 text-white/40 font-black uppercase tracking-widest text-[10px] hover:bg-white/10 transition-all">
-                                <RotateCcw size={14} /> Salir
-                            </button>
-                        </div>
-                    </motion.div>
-                )}
-            </AnimatePresence>
-        </div>
-    );
-
-    // ── Theater / Fullscreen layout ─────────────────────────────────────────
-    if (isTheater) {
+    if (connecting || !state || !room) {
         return (
-            <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="fixed inset-0 z-[50] bg-[#050518] flex flex-col"
-            >
-                {/* Header */}
-                <div className="flex-shrink-0 flex items-center justify-between px-5 py-3 border-b border-white/5 bg-black/20">
-                    <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center">
-                            <GamepadIcon className="text-purple-400" width={16} height={16} />
-                        </div>
-                        <h2 className="text-[11px] font-black text-white uppercase tracking-[0.3em]">Conecta 4: Desafío Espacial</h2>
-                    </div>
-                    <div className="flex items-center gap-2">
-                        <button onClick={onToggleTheater} className="p-2 rounded-full bg-purple-500/20 text-purple-400 border border-purple-500/30 hover:bg-purple-500/30 transition-all" title="Vista Normal">
-                            <Tv2 size={14} />
-                        </button>
-                        <button onClick={onClose} className="p-2 rounded-full bg-white/5 text-white/30 hover:text-white hover:bg-white/10 transition-all">
-                            <X size={14} />
-                        </button>
-                    </div>
-                </div>
-
-                {/* Main: sidebar + board */}
-                <div className="flex-1 flex overflow-hidden">
-                    {/* Left sidebar */}
-                    <div className="flex-shrink-0 w-52 flex flex-col gap-3 p-4 border-r border-white/5 overflow-y-auto no-scrollbar">
-                        {/* P1 */}
-                        <PlayerSlot
-                            player={players.p1} slot={1} turn={turn} gameState={gameState}
-                            isMyTurn={turn === 1 && players.p1?.identity === localParticipant?.identity}
-                            onJoin={() => joinGame(1)}
-                        />
-
-                        <div className="flex items-center gap-2 px-2">
-                            <div className="flex-1 h-px bg-white/5" />
-                            <span className="text-[8px] font-black text-white/20 uppercase tracking-widest">VS</span>
-                            <div className="flex-1 h-px bg-white/5" />
-                        </div>
-
-                        {/* P2 */}
-                        <PlayerSlot
-                            player={players.p2} slot={2} turn={turn} gameState={gameState}
-                            isMyTurn={turn === 2 && players.p2?.identity === localParticipant?.identity}
-                            onJoin={() => joinGame(2)}
-                        />
-
-                        <div className="flex-1" />
-
-                        {/* Turn / Lobby status */}
-                        {gameState === 'lobby' && (
-                            <div className="flex flex-col items-center gap-2 py-4 animate-pulse">
-                                <UserPlus className="text-purple-400" size={22} />
-                                <span className="text-[9px] font-black text-white/40 uppercase tracking-widest text-center leading-relaxed">
-                                    Esperando Retadores...
-                                </span>
-                            </div>
-                        )}
-                        {gameState === 'playing' && (
-                            <div className={`flex flex-col items-center gap-2 p-3 rounded-2xl border transition-all ${turn === 1 ? 'border-rose-500/30 bg-rose-500/5' : 'border-amber-500/30 bg-amber-500/5'}`}>
-                                <div className={`w-3 h-3 rounded-full animate-pulse ${turn === 1 ? 'bg-rose-500' : 'bg-amber-500'}`} />
-                                <span className={`text-[10px] font-black uppercase tracking-widest text-center ${turn === 1 ? 'text-rose-400' : 'text-amber-400'}`}>
-                                    {turn === 1 ? players.p1?.name : players.p2?.name}
-                                </span>
-                                {isMyTurn && (
-                                    <span className="bg-amber-500 text-black text-[8px] font-black px-2 py-0.5 rounded-full uppercase animate-bounce">
-                                        Tu turno!
-                                    </span>
-                                )}
-                            </div>
-                        )}
-
-                        {isLeader && gameState !== 'lobby' && (
-                            <button onClick={resetGame} className="text-[9px] font-black text-white/20 hover:text-rose-400 uppercase tracking-widest transition-all text-center py-2">
-                                Terminar (Lider)
-                            </button>
-                        )}
-
-                        {/* Hint landscape mobile */}
-                        <div className="flex items-center gap-2 px-3 py-2 bg-white/5 rounded-full border border-white/10 md:hidden">
-                            <Smartphone className="text-cyan-400 rotate-90 flex-shrink-0" size={12} />
-                            <span className="text-[7px] font-black text-white/30 uppercase tracking-widest">Gira la pantalla</span>
-                        </div>
-                    </div>
-
-                    {/* Board area — fills remaining space, centers board */}
-                    <div className="flex-1 flex items-center justify-center overflow-hidden p-4">
-                        <BoardGrid />
-                    </div>
-                </div>
-            </motion.div>
+            <div className="flex-1 flex flex-col items-center justify-center bg-[#02020a]">
+                <div className="w-12 h-12 border-4 border-purple-500/20 border-t-purple-500 rounded-full animate-spin mb-4" />
+                <p className="text-[10px] font-black uppercase tracking-widest text-white/40 animate-pulse">
+                    Sincronizando Duelo Estelar...
+                </p>
+            </div>
         );
     }
 
-    // ── Card / Normal layout ────────────────────────────────────────────────
+    const myPlayer = state.players?.get(room.sessionId);
+    const isMyTurn = state.currentTurn === room.sessionId;
+    const isSpectator = !state.p1 || !state.p2 || (room.sessionId !== state.p1 && room.sessionId !== state.p2);
+
+    const handleJoin = (slot) => {
+        room.send("join_slot", {
+            slot,
+            name: profile?.username || "Piloto",
+            avatar: profile?.avatar_url
+        });
+    };
+
+    const handleLeaveSlot = () => {
+        room.send("leave_slot");
+    };
+
+    const handleDrop = (col) => {
+        if (!isMyTurn || state.gameState !== 'playing') return;
+        room.send("drop", { col });
+    };
+
+    const handleReset = () => {
+        room.send("reset");
+    };
+
     return (
-        <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.95 }}
-            className="w-full relative bg-[#050518]/95 backdrop-blur-xl border border-purple-500/20 rounded-[2.5rem] p-6 mt-4 shadow-[0_40px_100px_rgba(139,92,246,0.3)]"
-        >
-            <div className="absolute top-0 right-0 w-40 h-40 bg-purple-500/5 blur-[80px] pointer-events-none" />
-            <div className="absolute bottom-0 left-0 w-40 h-40 bg-cyan-500/5 blur-[80px] pointer-events-none" />
+        <div className="flex-1 flex flex-col relative bg-[#050510] overflow-hidden text-white font-sans">
+            {/* Ambient Background Elements */}
+            <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-purple-600/5 blur-[120px] rounded-full -z-10 animate-pulse" />
+            <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-blue-600/5 blur-[120px] rounded-full -z-10" />
 
-            <div className="absolute right-6 top-6 flex items-center gap-3 z-30">
-                <button onClick={onToggleTheater} className="bg-white/5 text-white/30 hover:text-white hover:bg-white/10 p-2 rounded-full transition-all" title="Vista de Cine">
-                    <Tv2 size={16} />
-                </button>
-                <button onClick={onClose} className="text-white/30 hover:text-white bg-white/5 p-2 rounded-full transition-all">
-                    <X size={16} />
-                </button>
-            </div>
-
-            <div className="flex flex-col items-center mb-4">
-                <div className="flex items-center gap-3 mb-2">
-                    <div className="w-10 h-10 rounded-2xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center">
-                        <GamepadIcon className="text-purple-400" width={20} height={20} />
+            {/* Header */}
+            <div className="flex-shrink-0 flex items-center justify-between p-4 sm:p-5 border-b border-white/5 bg-black/40 backdrop-blur-xl z-30">
+                <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-2xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center shadow-[0_0_20px_rgba(168,85,247,0.1)]">
+                        <Gamepad2 size={20} className="text-purple-400" />
                     </div>
-                    <h2 className="text-sm font-black text-white uppercase tracking-[0.3em]">Conecta 4: Desafío Espacial</h2>
+                    <div>
+                        <h2 className="text-[11px] font-black uppercase tracking-[0.2em] leading-none">Conecta 4</h2>
+                        <p className="text-[8px] text-white/30 uppercase tracking-widest mt-1.5 font-bold">Duelo Galáctico</p>
+                    </div>
                 </div>
-                <div className="px-4 py-1.5 rounded-full bg-white/5 border border-white/10">
-                    <p className="text-[9px] font-black text-white/40 uppercase tracking-widest">Actividad de Entretenimiento</p>
-                </div>
-            </div>
-
-            <div className="flex items-center gap-3 mb-5 w-full max-w-sm mx-auto">
-                <PlayerSlot player={players.p1} slot={1} turn={turn} gameState={gameState} isMyTurn={turn === 1 && players.p1?.identity === localParticipant?.identity} onJoin={() => joinGame(1)} compact />
-                <span className="text-white/20 font-black text-xs flex-shrink-0">VS</span>
-                <PlayerSlot player={players.p2} slot={2} turn={turn} gameState={gameState} isMyTurn={turn === 2 && players.p2?.identity === localParticipant?.identity} onJoin={() => joinGame(2)} compact />
-            </div>
-
-            <div className="flex justify-center mb-6">
-                <BoardGrid />
-            </div>
-
-            <div className="flex flex-col items-center gap-4">
-                {gameState === 'lobby' && (
-                    <div className="flex flex-col items-center animate-bounce">
-                        <UserPlus className="text-purple-400 mb-2" size={22} />
-                        <span className="text-[10px] font-black text-white/40 uppercase tracking-[0.4em]">Esperando Retadores...</span>
-                    </div>
-                )}
-                {gameState === 'playing' && (
-                    <div className="flex items-center gap-4 px-6 py-3 rounded-2xl bg-white/5 border border-white/10">
-                        <div className={`w-3 h-3 rounded-full animate-pulse ${turn === 1 ? 'bg-rose-500' : 'bg-amber-500'}`} />
-                        <span className="text-[10px] font-black text-white uppercase tracking-widest">
-                            Turno: <span className={turn === 1 ? 'text-rose-400' : 'text-amber-400'}>@{turn === 1 ? players.p1?.name : players.p2?.name}</span>
-                        </span>
-                        {isMyTurn && <span className="bg-amber-500 text-black text-[8px] font-black px-2 py-0.5 rounded uppercase ml-2 animate-bounce">Tu turno!</span>}
-                    </div>
-                )}
-                {isLeader && gameState !== 'lobby' && (
-                    <button onClick={resetGame} className="text-[9px] font-black text-white/20 hover:text-rose-400 uppercase tracking-widest transition-all">
-                        Terminar Partida (Lider)
+                <div className="flex items-center gap-3">
+                    <button onClick={onToggleTheater} className="p-2.5 rounded-xl bg-white/5 text-white/30 hover:text-white transition-all border border-white/5 hover:bg-white/10">
+                        <Tv2 size={16} />
                     </button>
+                    <button onClick={onClose} className="p-2.5 rounded-xl bg-rose-500/10 text-rose-400 hover:bg-rose-500/20 transition-all border border-rose-500/20 group">
+                        <X size={16} className="group-hover:rotate-90 transition-transform duration-500" />
+                    </button>
+                </div>
+            </div>
+
+            {/* Main Content Area */}
+            <div className={`flex-1 flex ${isTheater ? 'flex-col lg:flex-row' : 'flex-col'} overflow-hidden relative`}>
+
+                {/* Players Sidebar / Mobile Top Bar */}
+                <div className={`
+                    ${isTheater
+                        ? 'w-full lg:w-64 border-b lg:border-b-0 lg:border-r h-auto lg:h-full'
+                        : 'w-full border-b h-auto'
+                    } flex-shrink-0 border-white/5 bg-black/20 p-4 sm:p-6
+                    flex ${isTheater ? 'flex-row lg:flex-col' : 'flex-row justify-center'}
+                    gap-4 sm:gap-6 items-center overflow-x-auto no-scrollbar
+                `}>
+                    <PlayerCard
+                        slot={1}
+                        player={state.players?.get?.(state.p1)}
+                        isActive={state.currentTurn === state.p1 && state.gameState === 'playing'}
+                        onJoin={() => handleJoin(1)}
+                        onLeave={handleLeaveSlot}
+                        isMe={room.sessionId === state.p1}
+                        gameState={state.gameState}
+                        compact={!isTheater}
+                    />
+
+                    <div className={`
+                        ${isTheater ? 'h-10 lg:h-px w-px lg:w-full' : 'h-10 w-px'}
+                        bg-white/10 relative flex items-center justify-center flex-shrink-0
+                    `}>
+                        <span className="absolute bg-[#0b0b1a] px-2 text-[10px] font-black italic text-white/20">VS</span>
+                    </div>
+
+                    <PlayerCard
+                        slot={2}
+                        player={state.players?.get?.(state.p2)}
+                        isActive={state.currentTurn === state.p2 && state.gameState === 'playing'}
+                        onJoin={() => handleJoin(2)}
+                        onLeave={handleLeaveSlot}
+                        isMe={room.sessionId === state.p2}
+                        gameState={state.gameState}
+                        compact={!isTheater}
+                    />
+                </div>
+
+                {/* Game Board Container */}
+                <div className="flex-1 flex items-center justify-center p-2 sm:p-10 perspective-1000 overflow-hidden">
+                    <div className="relative group scale-[0.85] sm:scale-100 transition-transform">
+                        {/* Board Frame */}
+                        <div className="relative bg-purple-950/30 rounded-[2rem] sm:rounded-[2.5rem] border-[4px] sm:border-[6px] border-white/5 p-3 sm:p-6 shadow-[0_40px_100px_rgba(0,0,0,0.8),inset_0_0_60px_rgba(139,92,246,0.1)] backdrop-blur-md">
+                            {/* Grid */}
+                            <div className="grid grid-cols-7 gap-1.5 sm:gap-4 relative z-20">
+                                {Array.from({ length: COLS }).map((_, c) => (
+                                    <div key={c} className="flex flex-col gap-2 sm:gap-4">
+                                        {Array.from({ length: ROWS }).map((_, r) => {
+                                            const cell = state.board ? state.board[r * COLS + c] : 0;
+                                            return (
+                                                <div
+                                                    key={r}
+                                                    className="w-10 h-10 sm:w-14 sm:h-14 lg:w-16 lg:h-16 rounded-full relative bg-gray-900/40 border-2 border-white/5 shadow-inner group/cell"
+                                                >
+                                                    <button
+                                                        onClick={() => handleDrop(c)}
+                                                        disabled={!isMyTurn || state.gameState !== 'playing'}
+                                                        className="absolute inset-0 z-10 w-full h-full rounded-full cursor-pointer disabled:cursor-default"
+                                                    />
+
+                                                    <AnimatePresence>
+                                                        {cell !== 0 && (
+                                                            <motion.div
+                                                                initial={{ y: -500, opacity: 0 }}
+                                                                animate={{ y: 0, opacity: 1 }}
+                                                                transition={{ type: 'spring', damping: 15, stiffness: 120 }}
+                                                                className={`absolute inset-0 rounded-full border-2 shadow-2xl ${cell === 1
+                                                                    ? 'bg-gradient-to-br from-rose-400 to-rose-600 border-rose-300 shadow-rose-500/40'
+                                                                    : 'bg-gradient-to-br from-amber-300 to-amber-500 border-amber-200 shadow-amber-500/40'
+                                                                    }`}
+                                                            >
+                                                                <div className="absolute inset-0 bg-gradient-to-tr from-white/10 to-transparent rounded-full" />
+                                                            </motion.div>
+                                                        )}
+                                                    </AnimatePresence>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* Drop Hints */}
+                        {isMyTurn && state.gameState === 'playing' && (
+                            <div className="absolute -top-12 sm:-top-16 inset-x-6 flex justify-between pointer-events-none">
+                                {Array.from({ length: COLS }).map((_, c) => (
+                                    <div key={c} className="w-10 sm:w-14 lg:w-16 flex justify-center">
+                                        <motion.div
+                                            animate={{ y: [0, 5, 0] }}
+                                            transition={{ repeat: Infinity, duration: 1.5 }}
+                                            className={`w-4 h-4 rounded-full ${state.p1 === room.sessionId ? 'bg-rose-500/40' : 'bg-amber-500/40'} border border-white/20`}
+                                        />
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                </div>
+
+                {/* Overlays (Win / Lobby) */}
+                <AnimatePresence>
+                    {state.gameState === 'finished' && (
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            className="absolute inset-0 z-[100] bg-[#050510]/90 backdrop-blur-xl flex flex-col items-center justify-center p-8"
+                        >
+                            <motion.div
+                                initial={{ scale: 0.8, y: 20 }}
+                                animate={{ scale: 1, y: 0 }}
+                                className="text-center"
+                            >
+                                {state.winner === 3 ? (
+                                    <h3 className="text-3xl font-black uppercase tracking-[0.3em] text-white/50 mb-8">Empate Galáctico</h3>
+                                ) : (
+                                    <div className="flex flex-col items-center">
+                                        <Trophy size={80} className={`mb-6 p-4 rounded-3xl bg-white/5 ${state.winner === 1 ? 'text-rose-500' : 'text-amber-500'}`} />
+                                        <h3 className="text-[12px] font-black uppercase tracking-[0.5em] text-white/40 mb-2">Victoria Detectada</h3>
+                                        <p className="text-4xl font-black uppercase tracking-widest text-white mb-8">
+                                            @{state.players?.get?.(state.winner === 1 ? state.p1 : state.p2)?.name || 'Anónimo'}
+                                        </p>
+                                    </div>
+                                )}
+
+                                <div className="flex gap-4">
+                                    <button
+                                        onClick={handleReset}
+                                        className="px-10 py-4 rounded-2xl bg-white text-black font-black uppercase tracking-widest text-xs hover:scale-105 active:scale-95 transition-all shadow-[0_20px_50px_rgba(255,255,255,0.2)]"
+                                    >
+                                        Revancha
+                                    </button>
+                                    <button
+                                        onClick={onClose}
+                                        className="px-8 py-4 rounded-2xl bg-white/5 border border-white/10 text-white/40 font-black uppercase tracking-widest text-xs hover:bg-white/10 transition-all"
+                                    >
+                                        Salir
+                                    </button>
+                                </div>
+                            </motion.div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+            </div>
+
+            {/* Footer / Status Bar */}
+            <div className="flex-shrink-0 px-6 py-4 bg-black/40 border-t border-white/5 backdrop-blur-md flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                    <Info size={14} className="text-white/20" />
+                    <span className="text-[9px] font-black uppercase tracking-[0.2em] text-white/40">
+                        {state.gameState === 'lobby' && "Esperando retadores..."}
+                        {state.gameState === 'playing' && `Duelo en curso · Turno de @${state.players?.get?.(state.currentTurn)?.name || '...'}`}
+                        {state.gameState === 'finished' && "Partida finalizada"}
+                    </span>
+                </div>
+                {!isTheater && (
+                    <div className="flex items-center gap-2 md:hidden">
+                        <Smartphone className="text-cyan-400 rotate-90" size={14} />
+                        <span className="text-[8px] font-black text-white/20 uppercase tracking-widest">Gira para mejor vista</span>
+                    </div>
                 )}
             </div>
-        </motion.div>
+        </div>
     );
 }
 
-// Static classes for Tailwind JIT (dynamic strings get purged)
-const SLOT_CLASSES = {
-    1: {
-        activeBorder: 'border-rose-500/40',
-        activeBg: 'bg-rose-500/5',
-        border: 'border-rose-500',
-        iconText: 'text-rose-500/30',
-        label: 'text-rose-400',
-        joinBtn: 'bg-rose-500 text-white hover:bg-rose-400',
-        turnBg: 'border-rose-500/30 bg-rose-500/5',
-        turnText: 'text-rose-400',
-        dot: 'bg-rose-500',
-    },
-    2: {
-        activeBorder: 'border-amber-500/40',
-        activeBg: 'bg-amber-500/5',
-        border: 'border-amber-500',
-        iconText: 'text-amber-500/30',
-        label: 'text-amber-400',
-        joinBtn: 'bg-amber-500 text-black hover:bg-amber-400',
-        turnBg: 'border-amber-500/30 bg-amber-500/5',
-        turnText: 'text-amber-400',
-        dot: 'bg-amber-500',
-    },
-};
+function PlayerCard({ slot, player, isActive, onJoin, onLeave, isMe, gameState, compact }) {
+    const isP1 = slot === 1;
 
-function PlayerSlot({ player, slot, turn, gameState, isMyTurn, onJoin, compact }) {
-    const isRed = slot === 1;
-    const sc = SLOT_CLASSES[slot];
-    const isActive = turn === slot && gameState === 'playing';
+    // Explicit classes for Tailwind JIT
+    const styles = isP1 ? {
+        borderActive: 'border-rose-500 bg-rose-500/5 shadow-[0_0_30px_rgba(244,63,94,0.15)]',
+        borderInner: 'border-rose-500',
+        textAccent: 'text-rose-400',
+        btn: 'bg-rose-500 text-white hover:bg-rose-400',
+        dot: 'bg-rose-500'
+    } : {
+        borderActive: 'border-amber-500 bg-amber-500/5 shadow-[0_0_30px_rgba(245,158,11,0.15)]',
+        borderInner: 'border-amber-500',
+        textAccent: 'text-amber-400',
+        btn: 'bg-amber-500 text-black hover:bg-amber-400',
+        dot: 'bg-amber-500'
+    };
 
-    if (compact) {
-        return (
-            <div className={`flex items-center gap-2 flex-1 p-2 rounded-2xl border transition-all min-w-0 ${isActive ? `${sc.activeBorder} ${sc.activeBg}` : 'border-white/5 bg-black/20'}`}>
-                <div className={`relative w-9 h-9 rounded-xl overflow-hidden flex-shrink-0 border-2 ${isActive ? sc.border : 'border-white/10'}`}>
+    return (
+        <div className={`relative flex lg:flex-col items-center p-2 sm:p-3 rounded-2xl sm:rounded-3xl transition-all duration-500 border-2 ${isActive ? styles.borderActive : 'border-white/5 bg-white/5'
+            } ${compact ? 'flex-row gap-3 min-w-0 flex-1 lg:flex-none' : 'flex-col sm:flex-row lg:flex-col gap-3 min-w-[120px]'}`}>
+
+            <div className="relative flex-shrink-0">
+                <div className={`w-10 h-10 sm:w-16 sm:h-16 rounded-xl sm:rounded-2xl overflow-hidden border-2 transition-all duration-500 ${isActive ? styles.borderInner : 'border-white/10 opacity-40 grayscale'
+                    }`}>
                     {player
-                        ? <img src={player.avatar || '/default_user_blank.png'} alt="" className="w-full h-full object-cover" />
-                        : <div className={`w-full h-full bg-white/5 flex items-center justify-center`}><User size={14} className={sc.iconText} /></div>
+                        ? <img src={player.avatar || '/default_user_blank.png'} className="w-full h-full object-cover" alt="" />
+                        : <div className="w-full h-full bg-white/5 flex items-center justify-center"><User size={18} className="text-white/10" /></div>
                     }
-                    {isActive && <div className="absolute inset-0 border-2 border-white/60 animate-pulse rounded-xl" />}
                 </div>
-                <div className="flex flex-col flex-1 min-w-0">
-                    <span className={`text-[8px] font-black ${sc.label} uppercase tracking-widest`}>P{slot} · {isRed ? 'Rojo' : 'Oro'}</span>
-                    <p className="text-[10px] font-black text-white truncate">{player?.name || '—'}</p>
-                </div>
-                {gameState === 'lobby' && !player && (
-                    <button onClick={onJoin} className={`text-[7px] ${sc.joinBtn} px-2 py-1 rounded-lg font-black uppercase flex-shrink-0 transition-all`}>
-                        Unirse
-                    </button>
+                {isActive && (
+                    <motion.div
+                        initial={{ scale: 0 }} animate={{ scale: 1 }}
+                        className={`absolute -top-1 -right-1 sm:-top-2 sm:-right-2 w-4 h-4 sm:w-6 sm:h-6 rounded sm:rounded-lg ${styles.dot} flex items-center justify-center shadow-lg`}
+                    >
+                        <Play size={8} className="text-black fill-black sm:w-[10px] sm:h-[10px]" />
+                    </motion.div>
                 )}
             </div>
-        );
-    }
 
-    // Sidebar variant (theater)
-    return (
-        <div className={`flex flex-col gap-2 p-3 rounded-2xl border transition-all ${isActive ? `${sc.activeBorder} ${sc.activeBg}` : 'border-white/5 bg-black/20'}`}>
-            <div className="flex items-center gap-2">
-                <div className={`relative w-10 h-10 rounded-xl overflow-hidden flex-shrink-0 border-2 ${isActive ? sc.border : 'border-white/10'}`}>
-                    {player
-                        ? <img src={player.avatar || '/default_user_blank.png'} alt="" className="w-full h-full object-cover" />
-                        : <div className="w-full h-full bg-white/5 flex items-center justify-center"><User size={16} className={sc.iconText} /></div>
-                    }
-                    {isActive && <div className="absolute inset-0 border-2 border-white/60 animate-pulse rounded-xl" />}
-                </div>
-                <div className="flex flex-col flex-1 min-w-0">
-                    <span className={`text-[8px] font-black ${sc.label} uppercase tracking-widest`}>Jugador {slot} · {isRed ? 'Rojo' : 'Oro'}</span>
-                    <p className="text-xs font-black text-white truncate">{player?.name || 'Esperando...'}</p>
-                </div>
+            <div className={`text-left lg:text-center flex-1 min-w-0 ${compact ? '' : 'sm:ml-0'}`}>
+                <p className={`text-[7px] sm:text-[8px] font-black uppercase tracking-[0.3em] mb-0.5 sm:mb-1 ${isActive ? styles.textAccent : 'text-white/20'}`}>
+                    P{slot} · {isP1 ? 'Alfa' : 'Beta'}
+                </p>
+                <p className={`text-[10px] sm:text-[11px] font-black uppercase truncate ${isActive ? 'text-white' : 'text-white/20'}`}>
+                    {player?.name || 'Esperando...'}
+                </p>
             </div>
-            {gameState === 'lobby' && !player && (
-                <button onClick={onJoin} className={`w-full py-1.5 rounded-xl font-black text-[9px] uppercase tracking-widest transition-all ${sc.joinBtn}`}>
-                    Unirse como P{slot}
-                </button>
+
+            {gameState === 'lobby' && (
+                <div className="flex gap-2 lg:w-full lg:mt-4">
+                    {!player ? (
+                        <button
+                            onClick={onJoin}
+                            className={`px-3 lg:w-full py-1.5 sm:py-2.5 rounded-lg sm:rounded-xl text-[8px] sm:text-[9px] font-black uppercase tracking-widest transition-all ${styles.btn}`}
+                        >
+                            Entrar
+                        </button>
+                    ) : isMe ? (
+                        <button
+                            onClick={onLeave}
+                            className="px-3 lg:w-full py-1.5 sm:py-2.5 rounded-lg sm:rounded-xl text-[8px] sm:text-[9px] font-black uppercase tracking-widest transition-all bg-white/5 border border-white/10 text-white/50 hover:bg-rose-500/20 hover:text-rose-400 hover:border-rose-500/20"
+                        >
+                            Salir
+                        </button>
+                    ) : null}
+                </div>
+            )}
+
+            {isMe && (
+                <div className="absolute -bottom-1.5 lg:-bottom-2 right-2 lg:right-auto lg:left-1/2 lg:-translate-x-1/2 px-2 py-0.5 rounded-md bg-white text-black text-[6px] sm:text-[7px] font-black uppercase tracking-widest shadow-xl z-10">
+                    Tú
+                </div>
             )}
         </div>
     );

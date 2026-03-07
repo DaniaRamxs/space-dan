@@ -28,7 +28,8 @@
       "Bash(npx tsc:*)",
       "Bash(grep:*)",
       "Bash(xargs -I {} sh -c 'echo \"\"=== {} ===\"\" && head -1 {} | grep -o \"\"import\\\\|// \"\" || true')",
-      "Bash(done)"
+      "Bash(done)",
+      "Bash(wc:*)"
     ]
   }
 }

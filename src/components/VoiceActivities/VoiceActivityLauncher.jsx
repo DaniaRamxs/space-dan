@@ -1,16 +1,20 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Gamepad2, Skull, Music, Zap, Coins, Layers, PenLine, Sparkles, Minimize2, Maximize2 } from 'lucide-react';
-import HoldemTable from './HoldemTable';
-import BossRaid from './BossRaid';
+import { X, Gamepad2, Skull, Music, Zap, Coins, Layers, PenLine, Sparkles, Minimize2, Maximize2, Smartphone, Rocket, Crosshair } from 'lucide-react';
+import PokerGame from './PokerGame';
 import Connect4Game from './Connect4Game';
 import SnakeDuelGame from './SnakeDuelGame';
 import TetrisDuelGame from './TetrisDuelGame';
 import Starboard from './Starboard';
+import AsteroidBattleGame from './AsteroidBattleGame';
+import BlackjackGame from './Blackjack/BlackjackGame';
+import ChessGame from './Chess/ChessGame';
 
 const ACTIVITIES = [
     {
         id: 'connect4', name: 'Cosmic 4', tag: 'Duelo',
+        mode: 'colyseus',
         icon: Gamepad2,
         description: 'Conecta 4 fichas antes que tu rival',
         reward: '150',
@@ -21,6 +25,7 @@ const ACTIVITIES = [
     },
     {
         id: 'snake', name: 'Snake Duel', tag: 'Duelo',
+        mode: 'colyseus',
         icon: Zap,
         description: 'Serpientes 1vs1. Sobrevive mas tiempo',
         reward: null,
@@ -31,7 +36,8 @@ const ACTIVITIES = [
     },
     {
         id: 'tetris', name: 'Tetris Duel', tag: 'Duelo',
-        icon: Layers,
+        mode: 'colyseus',
+        icon: Smartphone,
         description: 'Tetris competitivo. Envia basura al rival',
         reward: null,
         border: 'border-blue-500/30', bg: 'bg-blue-500/5',
@@ -40,34 +46,26 @@ const ACTIVITIES = [
         tagBg: 'bg-blue-500/20 text-blue-400',
     },
     {
-        id: 'raid', name: 'Boss Raid', tag: 'Co-op',
-        icon: Skull,
-        description: 'Derrota al jefe con toda la sala',
-        reward: 'Variable',
-        border: 'border-rose-500/30', bg: 'bg-rose-500/5',
-        hover: 'hover:bg-rose-500/10 hover:border-rose-500/50',
-        accent: 'bg-rose-500', text: 'text-rose-400',
-        tagBg: 'bg-rose-500/20 text-rose-400',
-    },
-    {
-        id: 'holdem', name: "Texas Hold'em", tag: 'Casino',
+        id: 'poker', name: "Poker", tag: 'Casino',
+        mode: 'colyseus',
         icon: Coins,
-        description: 'Poker de mesa. Buy-in requerido',
+        description: 'Texas Hold\'em multinivel en tiempo real',
         reward: 'Bote',
-        border: 'border-amber-500/30', bg: 'bg-amber-500/5',
-        hover: 'hover:bg-amber-500/10 hover:border-amber-500/50',
-        accent: 'bg-amber-500', text: 'text-amber-400',
-        tagBg: 'bg-amber-500/20 text-amber-400',
+        border: 'border-emerald-500/30', bg: 'bg-emerald-500/5',
+        hover: 'hover:bg-emerald-500/10 hover:border-emerald-500/50',
+        accent: 'bg-emerald-500', text: 'text-emerald-400',
+        tagBg: 'bg-emerald-500/20 text-emerald-400',
     },
     {
         id: 'starboard', name: 'Starboard', tag: 'Social',
-        icon: PenLine,
-        description: 'Pizarra Pro compartida. GIFs y capas',
+        mode: 'colyseus',
+        icon: Sparkles,
+        description: 'Pizarra Pro compartida. GIFs, capas y Colyseus real-time',
         reward: null,
-        border: 'border-teal-500/30', bg: 'bg-teal-500/5',
-        hover: 'hover:bg-teal-500/10 hover:border-teal-500/50',
-        accent: 'bg-teal-500', text: 'text-teal-400',
-        tagBg: 'bg-teal-500/20 text-teal-400',
+        border: 'border-cyan-500/30', bg: 'bg-cyan-500/5',
+        hover: 'hover:bg-cyan-500/10 hover:border-cyan-500/50',
+        accent: 'bg-cyan-500', text: 'text-cyan-400',
+        tagBg: 'bg-cyan-500/20 text-cyan-400',
     },
     {
         id: 'dj', name: 'Jukebox DJ', tag: 'Musica',
@@ -78,6 +76,40 @@ const ACTIVITIES = [
         hover: 'hover:bg-orange-500/10 hover:border-orange-500/50',
         accent: 'bg-orange-500', text: 'text-orange-400',
         tagBg: 'bg-orange-500/20 text-orange-400',
+        mode: 'api'
+    },
+    {
+        id: 'blackjack', name: 'Blackjack', tag: 'Casino',
+        icon: Coins,
+        description: 'Mesa de Blackjack multijugador en tiempo real',
+        reward: 'Casa/Player',
+        border: 'border-rose-500/30', bg: 'bg-rose-500/5',
+        hover: 'hover:bg-rose-500/10 hover:border-rose-500/50',
+        accent: 'bg-rose-500', text: 'text-rose-400',
+        tagBg: 'bg-rose-500/20 text-rose-400',
+        mode: 'colyseus'
+    },
+    {
+        id: 'chess', name: 'Realtime Chess', tag: 'Duelo',
+        mode: 'colyseus',
+        icon: Gamepad2,
+        description: 'Ajedrez 1vs1 con sincronización en tiempo real',
+        reward: null,
+        border: 'border-emerald-500/30', bg: 'bg-emerald-500/5',
+        hover: 'hover:bg-emerald-500/10 hover:border-emerald-500/50',
+        accent: 'bg-emerald-500', text: 'text-emerald-400',
+        tagBg: 'bg-emerald-500/20 text-emerald-400',
+    },
+    {
+        id: 'asteroid-battle', name: 'Asteroid Battle', tag: 'Duelo',
+        mode: 'colyseus',
+        icon: Rocket,
+        description: 'Arena espacial masiva. Dispara y sobrevive.',
+        reward: 'Puntos',
+        border: 'border-cyan-500/30', bg: 'bg-cyan-500/5',
+        hover: 'hover:bg-cyan-500/10 hover:border-cyan-500/50',
+        accent: 'bg-cyan-500', text: 'text-cyan-400',
+        tagBg: 'bg-cyan-500/20 text-cyan-400',
     },
 ];
 
@@ -103,21 +135,21 @@ export default function VoiceActivityLauncher({ roomName, activeActivity, setAct
         dragRef.current = {
             startX: clientX,
             startY: clientY,
-            originX: rect.left + rect.width / 2,
-            originY: rect.top + rect.height / 2,
+            originX: rect.left,
+            originY: rect.top,
         };
 
         const onMove = (e) => {
+            if (e.cancelable) e.preventDefault();
             const cx = e.touches ? e.touches[0].clientX : e.clientX;
             const cy = e.touches ? e.touches[0].clientY : e.clientY;
             const { startX, startY, originX, originY } = dragRef.current;
             const newX = originX + (cx - startX);
             const newY = originY + (cy - startY);
-            // Clamp within viewport
-            const halfW = (pillRef.current?.offsetWidth ?? 160) / 2;
-            const halfH = (pillRef.current?.offsetHeight ?? 40) / 2;
-            const clampedX = Math.max(halfW + 8, Math.min(window.innerWidth - halfW - 8, newX));
-            const clampedY = Math.max(halfH + 8, Math.min(window.innerHeight - halfH - 8, newY));
+
+            // Loose clamping to allow movement across entire viewport
+            const clampedX = Math.max(-50, Math.min(window.innerWidth - 50, newX));
+            const clampedY = Math.max(0, Math.min(window.innerHeight - 50, newY));
             setPillPos({ x: clampedX, y: clampedY });
         };
 
@@ -151,32 +183,37 @@ export default function VoiceActivityLauncher({ roomName, activeActivity, setAct
     // ── Fullscreen active activity ──────────────────────────────────────────
     if (activeActivity && activeActivity !== 'dj') {
         if (!minimized) {
-            return (
+            return createPortal(
                 <>
                     {/* Fullscreen wrapper */}
                     <div className="fixed inset-0 z-[10020] bg-[#04040f] overflow-hidden flex flex-col">
-                        {activeActivity === 'holdem'    && <HoldemTable   {...commonProps} />}
-                        {activeActivity === 'raid'      && <BossRaid      {...commonProps} />}
-                        {activeActivity === 'connect4'  && <Connect4Game  {...commonProps} />}
-                        {activeActivity === 'snake'     && <SnakeDuelGame {...commonProps} />}
-                        {activeActivity === 'tetris'    && <TetrisDuelGame {...commonProps} />}
+                        {activeActivity === 'poker' && <PokerGame   {...commonProps} />}
+                        {activeActivity === 'connect4' && <Connect4Game  {...commonProps} />}
+                        {activeActivity === 'snake' && <SnakeDuelGame {...commonProps} />}
+                        {activeActivity === 'tetris' && <TetrisDuelGame {...commonProps} />}
                         {activeActivity === 'starboard' && <Starboard     {...commonProps} />}
+                        {activeActivity === 'asteroid-battle' && <AsteroidBattleGame {...commonProps} />}
+                        {activeActivity === 'blackjack' && <BlackjackGame {...commonProps} />}
+                        {activeActivity === 'chess' && <ChessGame {...commonProps} />}
                     </div>
 
                     {/* Floating minimize button — fixed so it stays on top of any z-index inside the wrapper */}
-                    <div className="fixed bottom-5 right-5 z-[10025] flex items-center gap-2">
-                        <motion.button
-                            initial={{ opacity: 0, y: 12, scale: 0.9 }}
-                            animate={{ opacity: 1, y: 0, scale: 1 }}
-                            transition={{ delay: 0.6, type: 'spring', damping: 20 }}
-                            onClick={() => setMinimized(true)}
-                            className="flex items-center gap-1.5 px-3 py-2 rounded-full bg-black/70 border border-white/15 text-white/50 hover:text-white text-[10px] font-black uppercase tracking-widest backdrop-blur-xl transition-all hover:bg-black/90 shadow-2xl active:scale-95"
-                        >
-                            <Minimize2 size={11} />
-                            Minimizar
-                        </motion.button>
-                    </div>
-                </>
+                    {activeActivity !== 'starboard' && (
+                        <div className="fixed bottom-5 right-5 z-[10025] flex items-center gap-2">
+                            <motion.button
+                                initial={{ opacity: 0, y: 12, scale: 0.9 }}
+                                animate={{ opacity: 1, y: 0, scale: 1 }}
+                                transition={{ delay: 0.6, type: 'spring', damping: 20 }}
+                                onClick={() => setMinimized(true)}
+                                className="flex items-center gap-1.5 px-3 py-2 rounded-full bg-black/70 border border-white/15 text-white/50 hover:text-white text-[10px] font-black uppercase tracking-widest backdrop-blur-xl transition-all hover:bg-black/90 shadow-2xl active:scale-95"
+                            >
+                                <Minimize2 size={11} />
+                                Minimizar
+                            </motion.button>
+                        </div>
+                    )}
+                </>,
+                document.body
             );
         }
 
@@ -185,26 +222,29 @@ export default function VoiceActivityLauncher({ roomName, activeActivity, setAct
         const Icon = actData?.icon || Gamepad2;
 
         const pillStyle = pillPos
-            ? { position: 'fixed', left: pillPos.x, top: pillPos.y, transform: 'translate(-50%, -50%)', zIndex: 10020 }
-            : { position: 'fixed', bottom: 80, left: '50%', transform: 'translateX(-50%)', zIndex: 10020 };
+            ? { position: 'fixed', left: pillPos.x, top: pillPos.y, zIndex: 10020 }
+            : { position: 'fixed', bottom: 100, left: '50%', transform: 'translateX(-50%)', zIndex: 10020 };
 
-        return (
+        return createPortal(
             <motion.div
                 ref={pillRef}
                 initial={{ opacity: 0, scale: 0.85 }}
                 animate={{ opacity: 1, scale: 1 }}
-                style={pillStyle}
+                style={{ ...pillStyle, touchAction: 'none' }}
                 className="flex items-center gap-3 px-4 py-2.5 bg-[#07071a]/95 border border-white/15 rounded-2xl backdrop-blur-xl shadow-2xl select-none touch-none"
             >
                 {/* Drag handle */}
                 <div
                     className="flex items-center gap-1.5 cursor-grab active:cursor-grabbing pr-1 border-r border-white/10"
                     onMouseDown={(e) => { e.preventDefault(); startDrag(e.clientX, e.clientY); }}
-                    onTouchStart={(e) => { e.preventDefault(); startDrag(e.touches[0].clientX, e.touches[0].clientY); }}
+                    onTouchStart={(e) => {
+                        // No preventDefault here to allow actual clicks on buttons inside
+                        startDrag(e.touches[0].clientX, e.touches[0].clientY);
+                    }}
                 >
                     {/* grip dots */}
                     <div className="flex flex-col gap-[3px]">
-                        {[0,1,2].map(i => (
+                        {[0, 1, 2].map(i => (
                             <div key={i} className="flex gap-[3px]">
                                 <div className="w-[3px] h-[3px] rounded-full bg-white/25" />
                                 <div className="w-[3px] h-[3px] rounded-full bg-white/25" />
@@ -232,7 +272,8 @@ export default function VoiceActivityLauncher({ roomName, activeActivity, setAct
                 >
                     <X size={12} />
                 </button>
-            </motion.div>
+            </motion.div>,
+            document.body
         );
     }
 
@@ -310,11 +351,10 @@ export default function VoiceActivityLauncher({ roomName, activeActivity, setAct
                                         <button
                                             key={tag}
                                             onClick={() => setActiveTag(tag)}
-                                            className={`flex-shrink-0 px-3 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest transition-all ${
-                                                activeTag === tag
-                                                    ? 'bg-purple-500 text-white shadow-[0_0_12px_rgba(168,85,247,0.35)]'
-                                                    : 'bg-white/5 text-white/40 hover:bg-white/10 hover:text-white/70 border border-white/10'
-                                            }`}
+                                            className={`flex-shrink-0 px-3 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest transition-all ${activeTag === tag
+                                                ? 'bg-purple-500 text-white shadow-[0_0_12px_rgba(168,85,247,0.35)]'
+                                                : 'bg-white/5 text-white/40 hover:bg-white/10 hover:text-white/70 border border-white/10'
+                                                }`}
                                         >
                                             {tag}
                                             {tag === 'Todos' && (

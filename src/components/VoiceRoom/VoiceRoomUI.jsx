@@ -23,7 +23,12 @@ import EnergyReactor from '../VoiceActivities/EnergyReactor';
 import VoiceFXMenu from './VoiceFXMenu';
 import toast from 'react-hot-toast';
 
-const VoiceServicePlugin = registerPlugin('VoiceService');
+let VoiceServicePlugin;
+try {
+    VoiceServicePlugin = registerPlugin('VoiceService');
+} catch (e) {
+    // Already registered or error
+}
 
 const LIVEKIT_URL = "wss://danspace-76f5bceh.livekit.cloud";
 
@@ -149,21 +154,66 @@ export default function VoiceRoomUI({
 
     useEffect(() => {
         const handleOpenActivity = (e) => {
-            if (e.detail) setActiveActivity(e.detail);
+            if (e.detail) handleSetActiveActivity(e.detail);
         };
         window.addEventListener('voice:open_activity', handleOpenActivity);
         return () => window.removeEventListener('voice:open_activity', handleOpenActivity);
-    }, []);
+    }, [roomName, userName]);
+
+    useEffect(() => {
+        if (!roomName || !isOpen) return;
+        const chanName = `activity-sync-${roomName.toLowerCase().replace(/[^a-z0-9]/g, '-')}`;
+        const channel = supabase.channel(chanName);
+
+        channel.on('broadcast', { event: 'start_activity' }, ({ payload }) => {
+            if (payload.activityId !== activeActivity) {
+                setActiveActivity(payload.activityId);
+                toast(`🔥 ${payload.sender} inició ${payload.activityId}`, {
+                    icon: '🎮',
+                    style: { background: '#020617', color: '#fff', border: '1px solid #334155' }
+                });
+            }
+        })
+            .on('broadcast', { event: 'activity_sync_req' }, () => {
+                if (activeActivity) {
+                    channel.send({
+                        type: 'broadcast',
+                        event: 'start_activity',
+                        payload: { activityId: activeActivity, sender: 'Sistema (Sync)' }
+                    });
+                }
+            })
+            .subscribe((status) => {
+                if (status === 'SUBSCRIBED') {
+                    // Request current activity state from anyone present
+                    channel.send({ type: 'broadcast', event: 'activity_sync_req', payload: {} });
+                }
+            });
+
+        return () => { supabase.removeChannel(channel); };
+    }, [roomName, isOpen, activeActivity]);
+
+    const handleSetActiveActivity = (id) => {
+        setActiveActivity(id);
+        if (id && roomName) {
+            const chanName = `activity-sync-${roomName.toLowerCase().replace(/[^a-z0-9]/g, '-')}`;
+            supabase.channel(chanName).send({
+                type: 'broadcast',
+                event: 'start_activity',
+                payload: { activityId: id, sender: userName || 'Alguien' }
+            });
+        }
+    };
 
     // ⚠️ Este hook DEBE ir antes del early return para respetar las Rules of Hooks
     useEffect(() => {
         if (!token) return;
-        if (Capacitor.isNativePlatform()) {
+        if (Capacitor.isNativePlatform() && VoiceServicePlugin) {
             VoiceServicePlugin.start().catch(() => { });
         }
         window.dispatchEvent(new CustomEvent('voice:connect'));
         return () => {
-            if (Capacitor.isNativePlatform()) {
+            if (Capacitor.isNativePlatform() && VoiceServicePlugin) {
                 VoiceServicePlugin.stop().catch(() => { });
             }
             window.dispatchEvent(new CustomEvent('voice:disconnect'));
@@ -217,7 +267,7 @@ export default function VoiceRoomUI({
                 onExpand={onExpand}
                 onLeave={onLeave}
                 activeActivity={activeActivity}
-                setActiveActivity={setActiveActivity}
+                setActiveActivity={handleSetActiveActivity}
                 activeTab={activeTab}
                 setActiveTab={setActiveTab}
                 isFullView={isFullView}

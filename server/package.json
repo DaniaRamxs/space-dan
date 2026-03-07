@@ -1,0 +1,21 @@
+{
+  "name": "server",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.mjs",
+    "dev": "node --watch index.mjs"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "@colyseus/schema": "^3.0.76",
+    "chess.js": "^1.4.0",
+    "colyseus": "^0.16.5",
+    "express": "^5.2.1",
+    "http": "^0.0.1-security",
+    "ws": "^8.19.0"
+  }
+}
