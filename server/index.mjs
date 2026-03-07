@@ -42,26 +42,36 @@ gameServer.define("asteroid-battle", AsteroidBattleRoom).filterBy(['roomName']);
 gameServer.define("chess", ChessRoom).filterBy(['roomName']);
 gameServer.define("pixel-galaxy", PixelGalaxyRoom).filterBy(['roomName']);
 
-// At this point Colyseus has replaced the server's 'request' listener with its own
-// (via attachMatchMakingRoutes). Wrap it to guarantee CORS headers on every response,
-// especially the OPTIONS preflight that the browser sends first.
-const colyseusHandler = server.listeners("request")[0];
+const listeners = server.listeners("request");
+console.log(`[CORS] listeners after Server init: ${listeners.length}`);
+const colyseusHandler = listeners[0];
 server.removeAllListeners("request");
 server.on("request", (req, res) => {
     const origin = req.headers["origin"] || "*";
-    res.setHeader("Access-Control-Allow-Origin", origin);
-    res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
-    res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
-    res.setHeader("Access-Control-Allow-Credentials", "true");
+    console.log(`[REQ] ${req.method} ${req.url} | origin: ${origin}`);
 
-    // Answer the preflight immediately — no need to bother Colyseus
     if (req.method === "OPTIONS") {
-        res.statusCode = 204;
+        console.log(`[CORS] → 204 preflight`);
+        res.writeHead(204, {
+            "Access-Control-Allow-Origin": origin,
+            "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+            "Access-Control-Allow-Headers": "Content-Type, Authorization",
+            "Access-Control-Allow-Credentials": "true",
+            "Access-Control-Max-Age": "86400",
+        });
         res.end();
         return;
     }
 
-    colyseusHandler(req, res);
+    res.setHeader("Access-Control-Allow-Origin", origin);
+    res.setHeader("Access-Control-Allow-Credentials", "true");
+
+    if (typeof colyseusHandler === "function") {
+        colyseusHandler(req, res);
+    } else {
+        console.error("[CORS] colyseusHandler missing — falling back to express");
+        app(req, res);
+    }
 });
 
 server.listen(port, () => {
