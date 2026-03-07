@@ -673,12 +673,6 @@ function ScreenShareToggle() {
     const handleToggle = async () => {
         if (!localParticipant) return;
 
-        // Verificación básica de soporte para móviles/Capacitor
-        if (Capacitor.isNativePlatform()) {
-            toast.error('La transmisión de pantalla no está disponible en la versión móvil aún');
-            return;
-        }
-
         try {
             await localParticipant.setScreenShareEnabled(!isScreenShareEnabled);
         } catch (err) {

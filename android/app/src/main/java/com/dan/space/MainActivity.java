@@ -2,15 +2,32 @@ package com.dan.space;
 
 import android.os.Handler;
 import android.os.Looper;
+import android.webkit.PermissionRequest;
+import android.webkit.WebChromeClient;
+import android.webkit.WebView;
 import com.getcapacitor.BridgeActivity;
 
-public class Mn                                  ainActivity extends BridgeActivity {
+public class MainActivity extends BridgeActivity {
 
     @Override
     public void onCreate(android.os.Bundle savedInstanceState) {
         registerPlugin(VoiceServicePlugin.class);
         registerPlugin(RadioServicePlugin.class);
         super.onCreate(savedInstanceState);
+
+        // Habilitar soporte para compartir pantalla (getDisplayMedia) en la WebView
+        getBridge().getWebView().setWebChromeClient(new WebChromeClient() {
+            @Override
+            public void onPermissionRequest(final PermissionRequest request) {
+                MainActivity.this.runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        // Conceder automáticamente si son permisos multimedia solicitados por la WebView
+                        request.grant(request.getResources());
+                    }
+                });
+            }
+        });
     }
 
     /**
