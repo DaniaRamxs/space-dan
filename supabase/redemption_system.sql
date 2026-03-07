@@ -23,16 +23,30 @@ CREATE OR REPLACE FUNCTION public.check_redemption_eligibility(p_user_id uuid)
 RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER AS $$
 DECLARE
     v_total_debt integer;
+    v_balance    integer;
     v_last_played timestamptz;
     v_cooldown interval := interval '24 hours';
 BEGIN
-    -- Verificar deuda activa
+    -- 1. Verificar deuda activa
     SELECT COALESCE(SUM(remaining_debt), 0) INTO v_total_debt
     FROM public.user_loans
     WHERE user_id = p_user_id AND status = 'active';
 
     IF v_total_debt <= 0 THEN
         RETURN jsonb_build_object('eligible', false, 'reason', 'no_debt');
+    END IF;
+
+    -- 2. Safety Check: Si el usuario tiene suficiente balance para pagar, no es elegible.
+    -- Esto previene la pérdida accidental de balances grandes por deudas pequeñas.
+    SELECT balance INTO v_balance FROM public.profiles WHERE id = p_user_id;
+    IF v_balance >= v_total_debt THEN
+        RETURN jsonb_build_object(
+            'eligible', false, 
+            'reason', 'solvent', 
+            'debt', v_total_debt, 
+            'balance', v_balance,
+            'message', 'No necesitas redención. Tienes suficiente balance para saldar tu deuda.'
+        );
     END IF;
 
     -- Verificar cooldown
@@ -52,7 +66,8 @@ BEGIN
 
     RETURN jsonb_build_object(
         'eligible', true, 
-        'debt', v_total_debt
+        'debt', v_total_debt,
+        'balance', v_balance
     );
 END;
 $$;
@@ -66,6 +81,7 @@ CREATE OR REPLACE FUNCTION public.process_redemption_result(
 RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER AS $$
 DECLARE
     v_total_debt integer;
+    v_balance_before integer;
     v_new_balance integer := 0;
 BEGIN
     -- 1. Obtener deuda actual
@@ -75,6 +91,12 @@ BEGIN
 
     IF v_total_debt <= 0 THEN
         RETURN jsonb_build_object('success', false, 'reason', 'no_debt');
+    END IF;
+
+    -- 2. Safety Check: Si el balance es mayor que la deuda, bloquear redención
+    SELECT balance INTO v_balance_before FROM public.profiles WHERE id = p_user_id;
+    IF v_balance_before >= v_total_debt THEN
+        RETURN jsonb_build_object('success', false, 'reason', 'solvent', 'message', 'Balance superior a la deuda. Paga tu deuda normalmente.');
     END IF;
 
     -- 2. Registrar en historial
@@ -95,9 +117,9 @@ BEGIN
             stellar_pact_active = false
         WHERE id = p_user_id;
 
-        -- Registrar transacción de vaciado
+        -- Registrar transacción de vaciado con el monto exacto perdido
         INSERT INTO public.transactions (user_id, amount, balance_after, type, description)
-        VALUES (p_user_id, 0, 0, 'purchase', 'Redención Estelar: Deuda eliminada, balance reiniciado.');
+        VALUES (p_user_id, -v_balance_before, 0, 'purchase', 'Redención Estelar: Sacrificio de balance para eliminar deuda de ' || v_total_debt);
 
         RETURN jsonb_build_object(
             'success', true, 

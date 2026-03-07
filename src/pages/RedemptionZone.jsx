@@ -16,9 +16,18 @@ export default function RedemptionZone() {
     const [loading, setLoading] = useState(false);
     const [finalMessage, setFinalMessage] = useState('');
     const [resultType, setResultType] = useState(null); // 'win', 'lose'
+    const [eligibility, setEligibility] = useState(null);
 
     // Minigame states
     const [gameResult, setGameResult] = useState(null); // 'pending', 'win', 'lose'
+
+    useEffect(() => {
+        const fetchEligibility = async () => {
+            const res = await redemptionService.checkEligibility();
+            setEligibility(res);
+        };
+        fetchEligibility();
+    }, []);
 
     const handleGameOver = async (isWin) => {
         if (!isWin) {
@@ -75,15 +84,28 @@ export default function RedemptionZone() {
                     </motion.div>
 
                     <div className="p-6 bg-white/[0.03] border border-white/10 rounded-3xl space-y-6">
-                        <div className="flex items-center gap-4 text-left">
-                            <div className="w-8 h-8 rounded-full bg-rose-500/20 flex items-center justify-center text-rose-400 font-bold">!</div>
-                            <p className="text-[10px] text-white/60 font-medium uppercase tracking-widest">Si pierdes una sola prueba, el juego termina.</p>
+                        <div className="space-y-4 text-left">
+                            <div className="flex items-center gap-4">
+                                <div className="w-8 h-8 rounded-full bg-rose-500/20 flex items-center justify-center text-rose-400 font-bold">!</div>
+                                <p className="text-[10px] text-white/60 font-medium uppercase tracking-widest">Si pierdes una sola prueba, el juego termina.</p>
+                            </div>
+
+                            {eligibility && (
+                                <div className="p-4 rounded-2xl bg-rose-500/5 border border-rose-500/20 space-y-2">
+                                    <p className="text-[10px] font-black text-rose-500 uppercase tracking-widest">EL PRECIO DEL COSMOS:</p>
+                                    <p className="text-[11px] text-white/80 leading-relaxed font-medium">
+                                        Al ganar, tu deuda de <strong className="text-rose-400">◈ {eligibility.debt?.toLocaleString()}</strong> será eliminada, pero tu balance actual de <strong className="text-rose-400">◈ {eligibility.balance?.toLocaleString()}</strong> se reseteará a <strong className="text-white">0</strong>.
+                                    </p>
+                                </div>
+                            )}
                         </div>
+
                         <button
                             onClick={() => setGameState('playing')}
-                            className="w-full py-4 bg-white text-black font-black uppercase tracking-widest rounded-2xl hover:scale-[1.02] active:scale-95 transition-all"
+                            disabled={!eligibility?.eligible}
+                            className={`w-full py-4 font-black uppercase tracking-widest rounded-2xl transition-all ${!eligibility?.eligible ? 'bg-white/5 text-white/10 cursor-not-allowed' : 'bg-white text-black hover:scale-[1.02] active:scale-95'}`}
                         >
-                            Comenzar Sacrificio
+                            {eligibility?.eligible ? 'Comenzar Sacrificio' : 'No elegible'}
                         </button>
                     </div>
                 </div>
@@ -210,10 +232,10 @@ function MemoryGame({ onFinish }) {
                         whileTap={{ scale: 0.9 }}
                         onClick={() => handleClick(i)}
                         className={`aspect-square rounded-2xl border transition-all duration-300 ${stage === 'memorize' && pattern.includes(i)
-                                ? 'bg-cyan-400 border-cyan-300 shadow-[0_0_20px_rgba(34,211,238,0.4)]'
-                                : userInput.includes(i)
-                                    ? 'bg-cyan-400/40 border-cyan-400/60'
-                                    : 'bg-white/[0.03] border-white/5 hover:border-white/20'
+                            ? 'bg-cyan-400 border-cyan-300 shadow-[0_0_20px_rgba(34,211,238,0.4)]'
+                            : userInput.includes(i)
+                                ? 'bg-cyan-400/40 border-cyan-400/60'
+                                : 'bg-white/[0.03] border-white/5 hover:border-white/20'
                             }`}
                     />
                 ))}
@@ -274,8 +296,8 @@ function VoidPathGame({ onFinish }) {
                         <div
                             key={i}
                             className={`w-4 rounded-full transition-all duration-300 ${i === activeIdx
-                                    ? 'h-16 bg-white shadow-[0_0_20px_rgba(255,255,255,0.3)]'
-                                    : i < activeIdx ? 'h-4 bg-white/10' : 'h-8 bg-white/10'
+                                ? 'h-16 bg-white shadow-[0_0_20px_rgba(255,255,255,0.3)]'
+                                : i < activeIdx ? 'h-4 bg-white/10' : 'h-8 bg-white/10'
                                 }`}
                         />
                     ))}
@@ -325,10 +347,10 @@ function FinalPortalGame({ onFinish }) {
                         whileHover={selected === null ? { y: -10, scale: 1.05 } : {}}
                         onClick={() => selected === null && handleChoose(i)}
                         className={`group relative aspect-[3/4] rounded-[2rem] border overflow-hidden transition-all duration-700 ${selected === i
-                                ? 'border-white bg-white/10'
-                                : selected !== null
-                                    ? 'border-white/5 bg-transparent opacity-20 filter grayscale'
-                                    : 'border-white/10 bg-white/[0.02] hover:border-white/30'
+                            ? 'border-white bg-white/10'
+                            : selected !== null
+                                ? 'border-white/5 bg-transparent opacity-20 filter grayscale'
+                                : 'border-white/10 bg-white/[0.02] hover:border-white/30'
                             }`}
                     >
                         <div className={`absolute inset-x-0 bottom-0 top-1/2 bg-gradient-to-t from-black/60 to-transparent transition-opacity ${selected === i ? 'opacity-0' : 'opacity-100'}`} />
