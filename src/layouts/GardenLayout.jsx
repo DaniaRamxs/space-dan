@@ -304,7 +304,14 @@ export default function GardenLayout({ children }) {
                       {ownProfile?.display_name || user?.email?.split('@')[0] || 'Viajero'}
                       {ownProfile?.is_stellar_citizen && <span title="Ciudadano Estelar" className="text-amber-400">👑</span>}
                     </div>
-                    <div className="hubUserLevel">Nivel Estelar {ownProfile?.level || 1}</div>
+                    <div className="hubUserLevel flex items-center gap-2">
+                      <span>Nivel Estelar {ownProfile?.level || 1}</span>
+                      {ownProfile?.prestige_level > 0 && (
+                        <span className="text-[8px] px-1.5 py-0.5 rounded bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 font-black">
+                          RENACER ×{ownProfile.prestige_level}
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
                 <div className="hubUserActions">

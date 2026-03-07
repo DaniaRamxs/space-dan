@@ -1120,6 +1120,23 @@ export default function GlobalChat() {
                 break;
             }
 
+            case '/renacer':
+                if (args[0] === 'confirmar') {
+                    const { data: res } = await supabase.rpc('prestige_user', { p_user_id: user.id });
+                    if (res?.success) {
+                        response = `<div class="bot-card">\n<div class="bot-card-label">✨ RENACIMIENTO COMPLETADO</div>\n<div class="bot-card-answer bot-answer-yes bot-text-center"><strong>Has renacido con éxito</strong></div>\n<div class="bot-card-footer">Tu nivel ha sido reiniciado a 1.\n\nRenacimientos totales: <strong>${res.prestige_level}</strong>\n\nBonus actuales:\n<strong>+${res.xp_bonus}% XP</strong>\n<strong>+${res.starlys_bonus}% Starlys</strong>\n\nTu viaje estelar comienza nuevamente.</div>\n</div>`;
+                    } else {
+                        if (res?.reason === 'level_too_low') {
+                            response = `⚠️ **Nivel insuficiente:** Necesitas ser nivel 50 para renacer (Nivel actual: ${res.current_level || 'N/A'}).`;
+                        } else {
+                            response = '❌ Error al procesar el renacimiento.';
+                        }
+                    }
+                } else {
+                    response = `<div class="bot-card">\n<div class="bot-card-label">✨ RENACIMIENTO STELAR (PRESTIGE)</div>\n<div class="bot-card-answer bot-answer-maybe bot-text-center"><strong>¿Estás a punto de renacer?</strong></div>\n<div class="bot-card-footer">Tu nivel estelar se reiniciará a 1 y perderás tu progreso actual.\n\nA cambio obtendrás bonus permanentes de experiencia y starlys.\n\n¿Deseas continuar?\n\nEscribe <strong>/renacer confirmar</strong> para realizar el sacrificio estelar.</div>\n</div>`;
+                }
+                break;
+
             // ── /invertir ─────────────────────────────────────────────
             case '/invertir': {
                 const invAmt = parseInt(args[0]);

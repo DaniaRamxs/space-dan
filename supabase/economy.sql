@@ -252,6 +252,7 @@ LANGUAGE plpgsql SECURITY DEFINER AS $$
 DECLARE
   v_new_balance   integer;
   v_daily_earned  integer;
+  v_prestige      integer;
   -- Límites diarios anti-abuse por tipo
   v_daily_cap     integer := CASE p_type
     WHEN 'page_visit'   THEN 10000   -- máx 10k/día por visitar páginas
@@ -261,6 +262,13 @@ DECLARE
     ELSE NULL
   END;
 BEGIN
+  -- Obtener multiplicador de renacimiento
+  SELECT COALESCE(prestige_level, 0) INTO v_prestige FROM public.profiles WHERE id = p_user_id;
+
+  -- Aplicar bonus de Renacimiento (+5% por nivel acumulable)
+  IF v_prestige > 0 THEN
+    p_amount := floor(p_amount * (1 + (v_prestige * 0.05)));
+  END IF;
   -- Solo tipos válidos para ganar coins
   IF p_type NOT IN ('achievement','daily_bonus','game_reward','page_visit','admin_grant','community_reward','migration') THEN
     RAISE EXCEPTION 'Tipo inválido para award_coins: %', p_type;

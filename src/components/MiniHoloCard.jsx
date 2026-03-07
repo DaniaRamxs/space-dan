@@ -75,6 +75,23 @@ const MiniHoloCard = memo(({ profile }) => {
                     </div>
                 </div>
 
+                {fullProfile?.prestige_level > 0 && (
+                    <div className="w-full grid grid-cols-2 gap-2 mt-1">
+                        <div className="bg-cyan-500/5 border border-cyan-500/10 rounded-xl p-2 text-center">
+                            <div className="text-[10px] font-black text-cyan-400">
+                                {fullProfile.prestige_level} 🌀
+                            </div>
+                            <p className="text-[6px] font-black text-white/20 uppercase tracking-widest mt-0.5">Renacimientos</p>
+                        </div>
+                        <div className="bg-amber-500/5 border border-amber-500/10 rounded-xl p-2 text-center">
+                            <div className="text-[8px] font-black text-amber-500 flex flex-col items-center">
+                                <span>+{fullProfile.prestige_level * 10}% XP</span>
+                                <span>+{fullProfile.prestige_level * 5}% STARLYS</span>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
                 {fullProfile?.is_stellar_citizen && (
                     <div className="w-full flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-lg bg-amber-500/10 border border-amber-500/20 mt-1">
                         <ShieldCheck size={12} className="text-amber-500" />
