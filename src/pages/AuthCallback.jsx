@@ -22,25 +22,30 @@ export default function AuthCallback() {
                     if (exchangeError) {
                         console.error('[AuthCallback] Error en intercambio:', exchangeError.message);
                     } else if (exchangeData?.session) {
-                        console.log('[AuthCallback] Intercambio exitoso, sesión obtenida.');
+                        console.log('[AuthCallback] Intercambio exitoso, sesión ID:', exchangeData.session.user.id);
                     }
                 }
 
-                // Darle un respiro al estado de Supabase para propagar la sesión
-                const { data, error } = await supabase.auth.getSession();
+                // Esperar a que Supabase confirme la persistencia
+                let sessionCheck = await supabase.auth.getSession();
 
-                if (error) throw error;
+                // Reintento rápido si falló (a veces hay lag en la escritura a storage en producción)
+                if (!sessionCheck.data.session && code) {
+                    await new Promise(r => setTimeout(r, 800));
+                    sessionCheck = await supabase.auth.getSession();
+                }
 
-                if (data?.session) {
-                    console.log('[AuthCallback] Sesión confirmada. Redirigiendo...');
-                    // Pequeño delay opcional para asegurar que Contexts se enteren
-                    setTimeout(() => navigate('/posts', { replace: true }), 500);
+                if (sessionCheck.data?.session) {
+                    console.log('[AuthCallback] Sesión lista. Redirigiendo a /posts...');
+                    // Redirigimos, y gracias a los nuevos guards en App.jsx, 
+                    // si aún está cargando el estado de React, el usuario verá el loader.
+                    setTimeout(() => navigate('/posts', { replace: true }), 300);
                 } else {
-                    console.warn('[AuthCallback] No se encontró sesión tras el intercambio.');
+                    console.warn('[AuthCallback] No se detectó sesión activa tras intercambio.');
                     navigate('/posts', { replace: true });
                 }
             } catch (err) {
-                console.error('[AuthCallback] Error crítico:', err.message || err);
+                console.error('[AuthCallback] Fallo crítico en el flujo:', err.message || err);
                 navigate('/posts', { replace: true });
             }
         };

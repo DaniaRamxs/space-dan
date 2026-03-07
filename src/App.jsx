@@ -453,7 +453,11 @@ function AnimatedRoutes() {
         <Route path="/afinidad" element={<Layout><AffinityPage /></Layout>} />
         <Route path="/" element={<Navigate to="/posts" replace />} />
         <Route path="/explorar" element={<Layout><ExplorePage /></Layout>} />
-        <Route path="/posts" element={user ? <Layout><PostsPage /></Layout> : <Layout><LoginGate /></Layout>} />
+        <Route path="/posts" element={
+          loading ? <Layout><FallbackLoader /></Layout> :
+            user ? <Layout><PostsPage /></Layout> :
+              <Layout><LoginGate /></Layout>
+        } />
         <Route path="/transmission/:postId" element={<Layout><PostDetailPage /></Layout>} />
         <Route path="/bulletin" element={<Layout><BulletinPage /></Layout>} />
         <Route path="/games" element={<Layout><GamesPage /></Layout>} />
@@ -481,7 +485,11 @@ function AnimatedRoutes() {
         <Route path="/@:username" element={<Layout><ProfileRedesign /></Layout>} />
         <Route path="/:username" element={<Layout><ProfileRedesign /></Layout>} />
         <Route path="/profile/:userId" element={<Layout><ProfileRedesign /></Layout>} />
-        <Route path="/profile" element={user ? <Layout><ProfileRedesign /></Layout> : <Layout><LoginGate /></Layout>} />
+        <Route path="/profile" element={
+          loading ? <Layout><FallbackLoader /></Layout> :
+            user ? <Layout><ProfileRedesign /></Layout> :
+              <Layout><LoginGate /></Layout>
+        } />
         <Route path="*" element={<RouteNotFoundRedirect />} />
       </Routes>
     </AnimatePresence>
