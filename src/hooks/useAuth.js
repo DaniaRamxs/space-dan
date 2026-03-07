@@ -25,12 +25,19 @@ export default function useAuth() {
 
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(({ data: { session }, error }) => {
+      if (error) {
+        console.warn('[useAuth] Error recuperando sesión inicial:', error.message);
+        // Si el error es de refresh token o similar, forzamos un logout para limpiar
+        if (error.message.includes('refresh_token') || error.status === 400) {
+          supabase.auth.signOut();
+        }
+      }
       setSession(session);
       if (!session) setProfileLoading(false);
       setLoading(false);
     }).catch(err => {
-      console.error('[useAuth] getSession error:', err);
+      console.error('[useAuth] Error crítico en getSession:', err);
       setProfileLoading(false);
       setLoading(false);
     });
@@ -189,7 +196,15 @@ export default function useAuth() {
 
   const loginWithGoogle = () => loginWithProvider('google');
   const loginWithDiscord = () => loginWithProvider('discord');
-  const logout = () => supabase.auth.signOut();
+  const logout = async () => {
+    try {
+      await supabase.auth.signOut();
+    } catch (e) {
+      // Fallback: clear local storage if sign out fails
+      localStorage.removeItem('sb-dwhobtphhacmoogullxk-auth-token');
+      window.location.href = '/';
+    }
+  };
 
   const deleteAccount = async () => {
     try {
