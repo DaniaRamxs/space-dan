@@ -46,12 +46,20 @@ const listeners = server.listeners("request");
 console.log(`[CORS] listeners after Server init: ${listeners.length}`);
 const colyseusHandler = listeners[0];
 server.removeAllListeners("request");
+const ALLOWED_ORIGINS = [
+    "https://www.joinspacely.com",
+    "https://joinspacely.com",
+    "http://localhost:5173",
+    "http://localhost:3000",
+];
+
 server.on("request", (req, res) => {
-    const origin = req.headers["origin"] || "*";
-    console.log(`[REQ] ${req.method} ${req.url} | origin: ${origin}`);
+    const reqOrigin = req.headers["origin"];
+    const origin = ALLOWED_ORIGINS.includes(reqOrigin) ? reqOrigin : ALLOWED_ORIGINS[0];
+    console.log(`[REQ] ${req.method} ${req.url} | origin: ${reqOrigin || "none"}`);
 
     if (req.method === "OPTIONS") {
-        console.log(`[CORS] → 204 preflight`);
+        console.log(`[CORS] → 204 preflight for ${req.url}`);
         res.writeHead(204, {
             "Access-Control-Allow-Origin": origin,
             "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
