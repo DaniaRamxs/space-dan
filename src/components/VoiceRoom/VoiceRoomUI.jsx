@@ -27,9 +27,19 @@ const VoiceServicePlugin = registerPlugin('VoiceService');
 
 const LIVEKIT_URL = "wss://danspace-76f5bceh.livekit.cloud";
 
-const joinSound = new Audio('/sounds/room_join.mp3'); // We'll use dummy src, actually fallbacks below if file doesn't exist
-const leaveSound = new Audio('/sounds/room_leave.mp3');
-const micOnSound = new Audio('/sounds/mic_on.mp3');
+const createSafeAudio = (path) => {
+    // We don't initialize src here to avoid immediate 404 in console if files are missing.
+    // The current implementation uses playSyntheticSound as primary or fallback.
+    const audio = new Audio();
+    // Only set src if we actually want to TRY to use the file.
+    // Since we are seeing 404s, it's safer to not even try until files exist.
+    // audio.src = path; 
+    return audio;
+};
+
+const joinSound = createSafeAudio('/sounds/room_join.mp3');
+const leaveSound = createSafeAudio('/sounds/room_leave.mp3');
+const micOnSound = createSafeAudio('/sounds/mic_on.mp3');
 
 joinSound.volume = 0.3;
 leaveSound.volume = 0.3;
