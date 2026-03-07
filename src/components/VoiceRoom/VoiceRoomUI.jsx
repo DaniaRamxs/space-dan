@@ -11,7 +11,7 @@ import {
     useTracks,
 } from '@livekit/components-react';
 import { Track } from 'livekit-client';
-import { Mic, MicOff, LogOut, Users, Radio, X, ChevronDown, ChevronUp, MessageSquare, Send, Gamepad2, Music, Flame, Volume2, VolumeX, Monitor, MonitorOff } from 'lucide-react';
+import { Mic, MicOff, LogOut, Users, Radio, X, ChevronDown, ChevronUp, MessageSquare, Send, Gamepad2, Music, Flame, Volume2, VolumeX, Monitor, MonitorOff, Maximize2, Minimize2, Tv, Tv2 } from 'lucide-react';
 import { supabase } from '../../supabaseClient';
 import { getNicknameClass } from '../../utils/user';
 import { getFrameStyle } from '../../utils/styles';
@@ -107,6 +107,8 @@ export default function VoiceRoomUI({
     const [activeTab, setActiveTab] = useState('participants'); // participants, chat
     const [activeActivity, setActiveActivity] = useState(null);
     const [jukeboxEverStarted, setJukeboxEverStarted] = useState(false);
+    const [isFullView, setIsFullView] = useState(false);
+    const [isTheaterMode, setIsTheaterMode] = useState(false);
     const roomRef = useRef(roomName);
 
     useEffect(() => {
@@ -208,10 +210,39 @@ export default function VoiceRoomUI({
             <RoomAudioRenderer />
             <VoiceActivityTracker />
 
-            {/* Mini-barra flotante cuando el panel está minimizado */}
-            {!isOpen && <MinimizedBar roomName={roomName} onExpand={onExpand} onLeave={onLeave} />}
+            <VoiceRoomInner
+                roomName={roomName}
+                isOpen={isOpen}
+                onMinimize={onMinimize}
+                onExpand={onExpand}
+                onLeave={onLeave}
+                activeActivity={activeActivity}
+                setActiveActivity={setActiveActivity}
+                activeTab={activeTab}
+                setActiveTab={setActiveTab}
+                isFullView={isFullView}
+                setIsFullView={setIsFullView}
+                isTheaterMode={isTheaterMode}
+                setIsTheaterMode={setIsTheaterMode}
+                jukeboxEverStarted={jukeboxEverStarted}
+            />
+        </LiveKitRoom>
+    );
+}
 
-            {/* Panel completo: AnimatePresence DENTRO del portal para que funcione correctamente */}
+function VoiceRoomInner({
+    roomName, isOpen, onMinimize, onExpand, onLeave,
+    activeActivity, setActiveActivity, activeTab, setActiveTab,
+    isFullView, setIsFullView, isTheaterMode, setIsTheaterMode,
+    jukeboxEverStarted
+}) {
+    const screenTracks = useTracks([Track.Source.ScreenShare]);
+
+    return (
+        <>
+            {/* Mini-barra flotante cuando el panel está minimizado */}
+            {!isOpen && <MinimizedBar roomName={roomName} onExpand={onExpand} border onLeave={onLeave} />}
+
             {createPortal(
                 <>
                     {/* JukeboxDJ fuera del bloque isOpen para que la música no se corte al minimizar el panel */}
@@ -224,6 +255,7 @@ export default function VoiceRoomUI({
                         />
                     )}
 
+                    {/* Panel completo: AnimatePresence DENTRO del portal para que funcione correctamente */}
                     <AnimatePresence>
                         {isOpen && (
                             <div key="voice-panel-root" className="fixed inset-0 z-[10000] flex items-center justify-center p-4 overflow-hidden">
@@ -245,10 +277,10 @@ export default function VoiceRoomUI({
                                         pointerEvents: activeActivity === 'dj' ? 'none' : 'auto'
                                     }}
                                     exit={{ opacity: 0, y: 30, scale: 0.95 }}
-                                    className="relative w-full max-w-md bg-[#050518] border border-white/10 rounded-[3rem] shadow-[0_30px_100px_rgba(0,0,0,0.8)] overflow-hidden flex flex-col max-h-[90vh]"
+                                    className={`relative bg-[#050518] border border-white/10 shadow-[0_30px_100px_rgba(0,0,0,0.8)] overflow-hidden flex flex-col transition-all duration-500 ${isFullView ? 'w-full h-[100dvh] max-w-none max-h-none rounded-none' : 'w-full max-w-md rounded-[3rem] max-h-[90vh]'}`}
                                     onClick={e => e.stopPropagation()}
                                 >
-                                    <header className="flex flex-col p-6 sm:p-8 border-b border-white/5 bg-white/[0.02]">
+                                    <header className={`flex flex-col p-6 sm:p-8 border-b border-white/5 bg-white/[0.02] transition-all duration-500 ${isTheaterMode && isFullView ? 'opacity-0 -translate-y-full absolute pointer-events-none' : 'relative opacity-100'}`}>
                                         <div className="flex items-center justify-between mb-6">
                                             <div className="flex items-center gap-4">
                                                 <div className="w-12 h-12 rounded-2xl bg-cyan-500/10 flex items-center justify-center border border-cyan-500/20">
@@ -263,6 +295,24 @@ export default function VoiceRoomUI({
                                                 </div>
                                             </div>
                                             <div className="flex items-center gap-2">
+                                                <button
+                                                    onClick={() => {
+                                                        const next = !isFullView;
+                                                        setIsFullView(next);
+                                                        if (!next) setIsTheaterMode(false); // Reset theater when closing full
+                                                        try {
+                                                            if (next) {
+                                                                if (document.documentElement.requestFullscreen) document.documentElement.requestFullscreen();
+                                                            } else {
+                                                                if (document.fullscreenElement && document.exitFullscreen) document.exitFullscreen();
+                                                            }
+                                                        } catch (err) { }
+                                                    }}
+                                                    title={isFullView ? "Vista reducida" : "Pantalla Completa"}
+                                                    className="w-10 h-10 rounded-xl bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 hover:bg-cyan-500/20 active:scale-95 transition-all flex items-center justify-center"
+                                                >
+                                                    {isFullView ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
+                                                </button>
                                                 <button
                                                     onClick={onMinimize}
                                                     title="Minimizar"
@@ -294,47 +344,99 @@ export default function VoiceRoomUI({
                                             </button>
                                         </div>
                                     </header>
-                                    <div className="flex-1 overflow-y-auto p-6 sm:p-8 no-scrollbar relative min-h-[300px]">
+                                    <div className={`flex-1 overflow-y-auto no-scrollbar relative min-h-[300px] transition-all duration-500 ${isTheaterMode && isFullView ? 'p-0 h-full' : 'p-6 sm:p-8'}`}>
                                         {/* REACTOR DE ENERGÍA COLECTIVA */}
-                                        <EnergyReactor roomName={roomName} />
+                                        <div className={`${isTheaterMode && isFullView ? 'hidden' : 'block'}`}>
+                                            <EnergyReactor roomName={roomName} />
+                                        </div>
 
                                         {/* PANEL DE PANTALLA COMPARTIDA (NUEVO) */}
-                                        <ScreenSharePanel />
+                                        <ScreenSharePanel isTheater={isTheaterMode && isFullView && !activeActivity} onToggleTheater={() => setIsTheaterMode(!isTheaterMode)} />
 
                                         {/* El JukeboxDJ persistente se renderiza a nivel del root del portal para evitar cortes de audio. */}
 
-                                        {activeActivity && activeActivity !== 'dj' ? (
-                                            <VoiceActivityLauncher roomName={roomName} activeActivity={activeActivity} setActiveActivity={setActiveActivity} />
-                                        ) : !activeActivity ? (
+                                        {(!isTheaterMode || !isFullView) ? (
                                             <>
-                                                {activeTab === 'participants' ? <ParticipantsList /> : <ChatPanel />}
-                                                <div className="mt-8 relative z-10 bottom-0 left-0 w-full">
-                                                    <VoiceActivityLauncher roomName={roomName} activeActivity={activeActivity} setActiveActivity={setActiveActivity} />
-                                                </div>
+                                                {activeActivity && activeActivity !== 'dj' ? (
+                                                    <VoiceActivityLauncher
+                                                        roomName={roomName}
+                                                        activeActivity={activeActivity}
+                                                        setActiveActivity={setActiveActivity}
+                                                        isTheater={false}
+                                                        isFullView={isFullView}
+                                                        onToggleTheater={() => {
+                                                            setIsTheaterMode(true);
+                                                            if (!isFullView) setIsFullView(true);
+                                                        }}
+                                                    />
+                                                ) : !activeActivity ? (
+                                                    <>
+                                                        {activeTab === 'participants' ? <ParticipantsList /> : <ChatPanel />}
+                                                        <div className="mt-8 relative z-10 bottom-0 left-0 w-full">
+                                                            <VoiceActivityLauncher roomName={roomName} activeActivity={activeActivity} setActiveActivity={setActiveActivity} />
+                                                        </div>
+                                                    </>
+                                                ) : (
+                                                    /* Si es 'dj', el Jukebox se encarga de mostrarse en modo completo sobre este espacio */
+                                                    <div className="h-full flex flex-col items-center justify-center opacity-20 pointer-events-none">
+                                                        <Music size={40} className="mb-4" />
+                                                        <p className="text-[10px] font-black uppercase tracking-widest">Actividad activa: Jukebox DJ</p>
+                                                    </div>
+                                                )}
                                             </>
                                         ) : (
-                                            /* Si es 'dj', el Jukebox se encarga de mostrarse en modo completo sobre este espacio */
-                                            <div className="h-full flex flex-col items-center justify-center opacity-20 pointer-events-none">
-                                                <Music size={40} className="mb-4" />
-                                                <p className="text-[10px] font-black uppercase tracking-widest">Actividad activa: Jukebox DJ</p>
-                                            </div>
+                                            <>
+                                                {activeActivity && activeActivity !== 'dj' && (
+                                                    <VoiceActivityLauncher
+                                                        roomName={roomName}
+                                                        activeActivity={activeActivity}
+                                                        setActiveActivity={setActiveActivity}
+                                                        isTheater={true}
+                                                        isFullView={isFullView}
+                                                        onToggleTheater={() => setIsTheaterMode(false)}
+                                                    />
+                                                )}
+                                            </>
                                         )}
                                     </div>
-                                    <footer className="p-6 sm:p-8 bg-black/40 border-t border-white/5 flex items-center justify-center gap-6">
-                                        <VoiceFXMenu />
-                                        <div className="flex items-center gap-4">
-                                            <MuteToggle />
-                                            <ScreenShareToggle />
+                                    <footer className={`p-6 sm:p-8 bg-black/40 border-t border-white/5 flex items-center justify-center gap-6 transition-all duration-500 ${isTheaterMode && isFullView ? 'bg-transparent border-none' : 'relative'}`}>
+                                        <div className={`${isTheaterMode && isFullView ? 'fixed bottom-4 left-1/2 -translate-x-1/2 z-[100] flex gap-4 backdrop-blur-md bg-black/20 p-4 rounded-full border border-white/10' : 'flex items-center gap-6'}`}>
+                                            <VoiceFXMenu />
+                                            <div className="flex items-center gap-4">
+                                                <MuteToggle />
+                                                <ScreenShareToggle />
+                                                {/* Botón de Modo Cine: Ahora visible siempre que haya una transmisión (propia o ajena) */}
+                                                {screenTracks.length > 0 && (
+                                                    <button
+                                                        onClick={() => {
+                                                            const nextTheater = !isTheaterMode;
+                                                            setIsTheaterMode(nextTheater);
+                                                            // Si activamos el modo cine pero no estamos en vista completa, lo forzamos
+                                                            if (nextTheater && !isFullView) {
+                                                                setIsFullView(true);
+                                                                try {
+                                                                    if (document.documentElement.requestFullscreen) {
+                                                                        document.documentElement.requestFullscreen();
+                                                                    }
+                                                                } catch (err) { }
+                                                            }
+                                                        }}
+                                                        className={`w-14 h-14 rounded-full flex items-center justify-center transition-all ${isTheaterMode ? 'bg-cyan-500 text-black shadow-[0_0_20px_rgba(34,211,238,0.5)] scale-110' : 'bg-white/5 text-white/40 border border-white/10 hover:bg-white/10'}`}
+                                                        title="Modo Cine"
+                                                    >
+                                                        {isTheaterMode ? <Tv2 size={24} /> : <Tv size={24} />}
+                                                    </button>
+                                                )}
+                                            </div>
                                         </div>
                                     </footer>
                                 </motion.div>
                             </div>
                         )}
                     </AnimatePresence>
-                </>,
-                document.body
-            )}
-        </LiveKitRoom>
+                </>
+                , document.body)}
+        </>
     );
 }
 
@@ -596,34 +698,45 @@ function ScreenShareToggle() {
     );
 }
 
-function ScreenSharePanel() {
+function ScreenSharePanel({ isTheater, onToggleTheater }) {
     const screenTracks = useTracks([Track.Source.ScreenShare]);
 
     if (screenTracks.length === 0) return null;
 
     return (
-        <div className="mb-8 space-y-4">
-            <div className="flex items-center gap-2 mb-2">
-                <div className="w-1.5 h-1.5 rounded-full bg-cyan-500 animate-pulse" />
-                <span className="text-[9px] font-black uppercase tracking-widest text-cyan-400">Transmisiones de Pantalla</span>
-            </div>
+        <div className={`transition-all duration-500 ${isTheater ? 'h-full w-full mb-0' : 'mb-8'}`}>
+            {!isTheater && (
+                <div className="flex items-center gap-2 mb-4">
+                    <div className="w-1.5 h-1.5 rounded-full bg-cyan-500 animate-pulse" />
+                    <span className="text-[9px] font-black uppercase tracking-widest text-cyan-400">Transmisiones de Pantalla</span>
+                </div>
+            )}
 
-            <div className="grid grid-cols-1 gap-4">
+            <div className={`grid gap-4 ${isTheater ? 'grid-cols-1 h-full' : 'grid-cols-1'}`}>
                 {screenTracks.map((trackRef) => (
                     <motion.div
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, scale: 1 }}
                         key={trackRef.participant.sid}
-                        className="bg-black rounded-3xl overflow-hidden border border-white/10 relative group aspect-video"
+                        className={`bg-black overflow-hidden border border-white/10 relative group transition-all duration-500 ${isTheater ? 'h-full w-full rounded-none border-none' : 'rounded-3xl aspect-video'}`}
                     >
-                        <VideoTrack trackRef={trackRef} className="w-full h-full object-contain" />
+                        <VideoTrack trackRef={trackRef} className={`w-full h-full ${isTheater ? 'object-contain' : 'object-contain'}`} />
 
-                        <div className="absolute top-4 left-4 flex items-center gap-3">
+                        <div className={`absolute top-4 left-4 flex items-center gap-3 transition-opacity ${isTheater ? 'opacity-0 group-hover:opacity-100' : 'opacity-100'}`}>
                             <div className="bg-black/80 backdrop-blur-md px-3 py-1.5 rounded-xl border border-white/10 flex items-center gap-2">
                                 <span className="text-[10px] font-black text-white uppercase tracking-wider">{trackRef.participant.identity}</span>
                                 <div className="px-1.5 py-0.5 rounded bg-red-500 text-[7px] font-black text-white uppercase animate-pulse">Live</div>
                             </div>
                         </div>
+
+                        {isTheater && (
+                            <button
+                                onClick={onToggleTheater}
+                                className="absolute top-4 right-4 z-10 w-10 h-10 rounded-full bg-black/60 backdrop-blur-md text-white/40 border border-white/10 hover:text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                            >
+                                <Minimize2 size={16} />
+                            </button>
+                        )}
 
                         <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-4">
                             <p className="text-[9px] font-black text-white/60 uppercase tracking-widest">Compartiendo: {trackRef.participant.name || 'Piloto'}</p>

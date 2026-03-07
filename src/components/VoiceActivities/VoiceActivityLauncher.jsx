@@ -5,20 +5,32 @@ import HoldemTable from './HoldemTable';
 import CosmicDraw from './CosmicDraw';
 import BossRaid from './BossRaid';
 import JukeboxDJ from './JukeboxDJ';
+import Connect4Game from './Connect4Game';
+import SnakeDuelGame from './SnakeDuelGame';
+import TetrisDuelGame from './TetrisDuelGame';
+import { Zap, Tv, Tv2, Smartphone } from 'lucide-react';
 
 const ACTIVITIES = [
+    { id: 'connect4', name: 'Cosmic 4', icon: <Gamepad2 size={24} />, description: 'Duelo 1vs1. Gana 150◈', colorBorder: 'border-purple-500/20', colorBg: 'bg-purple-500/10', colorHover: 'hover:bg-purple-500/20', colorText: 'text-purple-400', disabled: false },
+    { id: 'snake', name: 'Snake Duel', icon: <Zap size={24} />, description: 'Duelo 1vs1. Supervivencia', colorBorder: 'border-emerald-500/20', colorBg: 'bg-emerald-500/10', colorHover: 'hover:bg-emerald-500/20', colorText: 'text-emerald-400', disabled: false },
+    { id: 'tetris', name: 'Tetris Duel', icon: <Gamepad2 size={24} />, description: 'Duelo 1vs1. Competitivo', colorBorder: 'border-blue-500/20', colorBg: 'bg-blue-500/10', colorHover: 'hover:bg-blue-500/20', colorText: 'text-blue-400', disabled: false },
     { id: 'holdem', name: "Texas Hold'em", icon: <Gamepad2 size={24} />, description: 'Póker de mesa. 500◈ Buy-in', colorBorder: 'border-rose-500/20', colorBg: 'bg-rose-500/10', colorHover: 'hover:bg-rose-500/20', colorText: 'text-rose-400' },
     { id: 'draw', name: 'Dibuja y Adivina', icon: <Palette size={24} />, description: 'Pizarra compartida. Gana ◈', colorBorder: 'border-cyan-500/20', colorBg: 'bg-cyan-500/10', colorHover: 'hover:bg-cyan-500/20', colorText: 'text-cyan-400', disabled: false },
     { id: 'raid', name: 'Boss Raid', icon: <Skull size={24} />, description: 'Evento Co-op Multijugador', colorBorder: 'border-emerald-500/20', colorBg: 'bg-emerald-500/10', colorHover: 'hover:bg-emerald-500/20', colorText: 'text-emerald-400', disabled: false },
     { id: 'dj', name: 'Jukebox DJ', icon: <Music size={24} />, description: 'Música V.I.P Sincronizada', colorBorder: 'border-amber-500/20', colorBg: 'bg-amber-500/10', colorHover: 'hover:bg-amber-500/20', colorText: 'text-amber-400', disabled: false },
 ];
 
-export default function VoiceActivityLauncher({ roomName, activeActivity, setActiveActivity }) {
+export default function VoiceActivityLauncher({ roomName, activeActivity, setActiveActivity, isTheater, isFullView, onToggleTheater }) {
     const [isOpen, setIsOpen] = useState(false);
 
-    if (activeActivity === 'holdem') return <HoldemTable roomName={roomName} onClose={() => setActiveActivity(null)} />;
-    if (activeActivity === 'draw') return <CosmicDraw roomName={roomName} onClose={() => setActiveActivity(null)} />;
-    if (activeActivity === 'raid') return <BossRaid roomName={roomName} onClose={() => setActiveActivity(null)} />;
+    const commonProps = { roomName, isTheater, isFullView, onToggleTheater, onClose: () => setActiveActivity(null) };
+
+    if (activeActivity === 'holdem') return <HoldemTable {...commonProps} />;
+    if (activeActivity === 'draw') return <CosmicDraw {...commonProps} />;
+    if (activeActivity === 'raid') return <BossRaid {...commonProps} />;
+    if (activeActivity === 'connect4') return <Connect4Game {...commonProps} />;
+    if (activeActivity === 'snake') return <SnakeDuelGame {...commonProps} />;
+    if (activeActivity === 'tetris') return <TetrisDuelGame {...commonProps} />;
     if (activeActivity === 'dj') return null; // El padre (VoiceRoomUI) lo maneja para persistencia.
 
     return (

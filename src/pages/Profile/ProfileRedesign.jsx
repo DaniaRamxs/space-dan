@@ -257,7 +257,7 @@ export default function ProfileRedesignPage() {
     const [activeTab, setActiveTab] = useState('identity');
     const [showConfig, setShowConfig] = useState(false);
     const [showComposer, setShowComposer] = useState(false);
-    const [stats, setStats] = useState({ stars: 0, echoes: 0, age: 0 });
+    const [stats, setStats] = useState({ stars: 0, echoes: 0, age: 0, c4Wins: 0, c4Losses: 0, snakeWins: 0, snakeLosses: 0, tetrisWins: 0, tetrisLosses: 0 });
     const [openEchoAsStar, setOpenEchoAsStar] = useState(false);
 
     useEffect(() => {
@@ -344,7 +344,17 @@ export default function ProfileRedesignPage() {
                 const diffTime = Math.abs(new Date() - createdAt);
                 const ageDays = Math.max(1, Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1);
 
-                setStats({ stars: totalStars, echoes: totalEchoes, age: ageDays });
+                setStats({
+                    stars: totalStars,
+                    echoes: totalEchoes,
+                    age: ageDays,
+                    c4Wins: prof.connect4_wins || 0,
+                    c4Losses: prof.connect4_losses || 0,
+                    snakeWins: prof.snake_wins || 0,
+                    snakeLosses: prof.snake_losses || 0,
+                    tetrisWins: prof.tetris_wins || 0,
+                    tetrisLosses: prof.tetris_losses || 0
+                });
             });
         } catch (e) {
             console.error('Profile load error:', e);
@@ -515,6 +525,14 @@ export default function ProfileRedesignPage() {
                                                 <div className="flex items-center justify-between group">
                                                     <span className="text-[11px] font-black text-white/40 uppercase">Resonancia</span>
                                                     <span className="text-2xl font-black text-violet-400 italic">{profile?.streak || 0}D</span>
+                                                </div>
+                                                <div className="flex items-center justify-between group">
+                                                    <span className="text-[11px] font-black text-white/40 uppercase">Duelos</span>
+                                                    <div className="flex items-center gap-3">
+                                                        <span className="text-2xl font-black text-amber-400 italic" title="Conecta 4">{stats.c4Wins}W</span>
+                                                        <span className="text-2xl font-black text-emerald-400 italic" title="Snake Duel">{stats.snakeWins}S</span>
+                                                        <span className="text-2xl font-black text-blue-400 italic" title="Tetris Duel">{stats.tetrisWins}T</span>
+                                                    </div>
                                                 </div>
                                                 <div className="pt-4 border-t border-white/5">
                                                     <div className="flex items-center justify-between mb-4">
