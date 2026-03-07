@@ -21,9 +21,7 @@ app.use(cors());
 app.use(express.json());
 app.get("/health", (_, res) => res.send("Server is alive!"));
 
-// Create the HTTP server first, then pass it directly to the transport.
-// This ensures Colyseus attaches its matchmaking routes (with built-in CORS)
-// to the same server that Express uses — not to an internal empty server.
+// Pass the HTTP server directly to the transport so Colyseus uses the same server
 const server = http.createServer(app);
 
 const gameServer = new Server({
@@ -44,6 +42,28 @@ gameServer.define("asteroid-battle", AsteroidBattleRoom).filterBy(['roomName']);
 gameServer.define("chess", ChessRoom).filterBy(['roomName']);
 gameServer.define("pixel-galaxy", PixelGalaxyRoom).filterBy(['roomName']);
 
-gameServer.listen(port).then(() => {
+// At this point Colyseus has replaced the server's 'request' listener with its own
+// (via attachMatchMakingRoutes). Wrap it to guarantee CORS headers on every response,
+// especially the OPTIONS preflight that the browser sends first.
+const colyseusHandler = server.listeners("request")[0];
+server.removeAllListeners("request");
+server.on("request", (req, res) => {
+    const origin = req.headers["origin"] || "*";
+    res.setHeader("Access-Control-Allow-Origin", origin);
+    res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+    res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+    res.setHeader("Access-Control-Allow-Credentials", "true");
+
+    // Answer the preflight immediately — no need to bother Colyseus
+    if (req.method === "OPTIONS") {
+        res.statusCode = 204;
+        res.end();
+        return;
+    }
+
+    colyseusHandler(req, res);
+});
+
+server.listen(port, () => {
     console.log(`[Colyseus Server] Battle station active at port ${port}`);
 });
