@@ -15,6 +15,7 @@ CREATE TABLE IF NOT EXISTS public.redemption_history (
 
 -- RLS
 ALTER TABLE public.redemption_history ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Users can view their own redemption history" ON public.redemption_history;
 CREATE POLICY "Users can view their own redemption history" ON public.redemption_history
     FOR SELECT USING (auth.uid() = user_id);
 
