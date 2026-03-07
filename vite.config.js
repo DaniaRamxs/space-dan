@@ -3,6 +3,7 @@ import react from '@vitejs/plugin-react'
 import { AccessToken } from 'livekit-server-sdk'
 
 export default defineConfig(({ mode }) => {
+  // eslint-disable-next-line no-undef
   const env = loadEnv(mode, process.cwd(), '');
 
   return {
@@ -17,12 +18,12 @@ export default defineConfig(({ mode }) => {
         output: {
           // Separar vendors grandes en chunks propios para mejor caché
           manualChunks: {
-            'react-core':    ['react', 'react-dom', 'react-router-dom'],
-            'framer':        ['framer-motion'],
-            'supabase':      ['@supabase/supabase-js'],
-            'livekit':       ['livekit-client', '@livekit/components-react'],
-            'giphy':         ['@giphy/js-fetch-api', '@giphy/react-components'],
-            'markdown':      ['react-markdown', 'remark-gfm', 'rehype-raw', 'rehype-sanitize'],
+            'react-core': ['react', 'react-dom', 'react-router-dom'],
+            'framer': ['framer-motion'],
+            'supabase': ['@supabase/supabase-js'],
+            'livekit': ['livekit-client', '@livekit/components-react'],
+            'giphy': ['@giphy/js-fetch-api', '@giphy/react-components'],
+            'markdown': ['react-markdown', 'remark-gfm', 'rehype-raw', 'rehype-sanitize'],
           },
         },
       },

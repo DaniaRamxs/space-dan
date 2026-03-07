@@ -8,36 +8,36 @@ export default function AuthCallback() {
     useEffect(() => {
         const handleAuthCallback = async () => {
             try {
-                // Check if there's a code in the URL (PKCE flow)
                 const params = new URLSearchParams(window.location.search);
                 const code = params.get('code');
 
                 if (code) {
-                    console.log('[AuthCallback] Code detected, exchanging for session...');
-                    const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
+                    console.log('[AuthCallback] Intercambiando código...');
+                    const { data: exchangeData, error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
+
                     if (exchangeError) {
-                        console.warn('[AuthCallback] Exchange warning (might be already handled):', exchangeError.message);
+                        console.error('[AuthCallback] Error en intercambio:', exchangeError.message);
+                        // Si falla pero ya hay sesión, ignoramos
+                    } else if (exchangeData?.session) {
+                        console.log('[AuthCallback] Intercambio exitoso, sesión obtenida.');
                     }
                 }
 
+                // Darle un respiro al estado de Supabase para propagar la sesión
                 const { data, error } = await supabase.auth.getSession();
 
-                if (error) {
-                    console.error('[AuthCallback] Error getting session:', error.message);
-                    navigate('/posts', { replace: true });
-                    return;
-                }
+                if (error) throw error;
 
                 if (data?.session) {
-                    console.log('[AuthCallback] Session detected, redirecting to /posts');
-                    // Use replace to avoid keeping the callback in history
-                    navigate('/posts', { replace: true });
+                    console.log('[AuthCallback] Sesión confirmada. Redirigiendo...');
+                    // Pequeño delay opcional para asegurar que Contexts se enteren
+                    setTimeout(() => navigate('/posts', { replace: true }), 500);
                 } else {
-                    console.log('[AuthCallback] No session found, redirecting to login/home');
-                    navigate('/posts', { replace: true }); // LoginGate is handled by /posts route if no user
+                    console.warn('[AuthCallback] No se encontró sesión tras el intercambio.');
+                    navigate('/posts', { replace: true });
                 }
             } catch (err) {
-                console.error('[AuthCallback] Auth error:', err.message || err);
+                console.error('[AuthCallback] Error crítico:', err.message || err);
                 navigate('/posts', { replace: true });
             }
         };

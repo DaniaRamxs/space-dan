@@ -132,9 +132,12 @@ export default function useAuth() {
 
 
   const getRedirectUrl = () => {
-    // Usamos siempre el dominio principal como redirect para asegurar consistencia
-    // entre Web y Capacitor, tal como se configuró en el dashboard de Supabase.
-    return 'https://joinspacely.com/auth/callback';
+    if (Capacitor.isNativePlatform()) {
+      return 'https://joinspacely.com/auth/callback';
+    }
+    // Para Desarrollo Web (localhost) o Producción Web, usamos el origen actual.
+    // Esto asegura que la sesión se guarde en el almacenamiento correcto (origen).
+    return `${window.location.origin}/auth/callback`;
   };
 
   const loginWithProvider = async (provider) => {
