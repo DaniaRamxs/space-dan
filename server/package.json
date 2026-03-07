@@ -12,6 +12,7 @@
   "description": "",
   "dependencies": {
     "@colyseus/schema": "^3.0.76",
+    "@colyseus/ws-transport": "^0.16.5",
     "chess.js": "^1.4.0",
     "colyseus": "^0.16.5",
     "express": "^5.2.1",
