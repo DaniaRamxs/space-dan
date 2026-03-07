@@ -12,9 +12,12 @@ import { AsteroidBattleRoom } from "./rooms/AsteroidBattleRoom.mjs";
 import { ChessRoom } from "./rooms/ChessRoom.mjs";
 import { PixelGalaxyRoom } from "./rooms/PixelGalaxyRoom.mjs";
 
+import cors from "cors";
+
 const port = process.env.PORT || 2567;
 const app = express();
 
+app.use(cors());
 app.use(express.json());
 
 const server = http.createServer(app);
