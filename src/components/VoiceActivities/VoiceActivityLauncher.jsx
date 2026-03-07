@@ -10,6 +10,7 @@ import Starboard from './Starboard';
 import AsteroidBattleGame from './AsteroidBattleGame';
 import BlackjackGame from './Blackjack/BlackjackGame';
 import ChessGame from './Chess/ChessGame';
+import PixelGalaxyGame from './PixelGalaxy/PixelGalaxyGame';
 
 const ACTIVITIES = [
     {
@@ -99,6 +100,17 @@ const ACTIVITIES = [
         hover: 'hover:bg-emerald-500/10 hover:border-emerald-500/50',
         accent: 'bg-emerald-500', text: 'text-emerald-400',
         tagBg: 'bg-emerald-500/20 text-emerald-400',
+    },
+    {
+        id: 'pixel-galaxy', name: 'Pixel Galaxy', tag: 'Co-op',
+        mode: 'colyseus',
+        icon: Sparkles,
+        description: 'Construye una galaxia pixel art en tiempo real',
+        reward: null,
+        border: 'border-purple-500/30', bg: 'bg-purple-500/5',
+        hover: 'hover:bg-purple-500/10 hover:border-purple-500/50',
+        accent: 'bg-purple-500', text: 'text-purple-400',
+        tagBg: 'bg-purple-500/20 text-purple-400',
     },
     {
         id: 'asteroid-battle', name: 'Asteroid Battle', tag: 'Duelo',
@@ -195,6 +207,7 @@ export default function VoiceActivityLauncher({ roomName, activeActivity, setAct
                         {activeActivity === 'asteroid-battle' && <AsteroidBattleGame {...commonProps} />}
                         {activeActivity === 'blackjack' && <BlackjackGame {...commonProps} />}
                         {activeActivity === 'chess' && <ChessGame {...commonProps} />}
+                        {activeActivity === 'pixel-galaxy' && <PixelGalaxyGame {...commonProps} />}
                     </div>
 
                     {/* Floating minimize button — fixed so it stays on top of any z-index inside the wrapper */}

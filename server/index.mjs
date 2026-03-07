@@ -10,6 +10,7 @@ import { PokerRoom } from "./rooms/PokerRoom.mjs";
 import { StarboardRoom } from "./rooms/StarboardRoom.mjs";
 import { AsteroidBattleRoom } from "./rooms/AsteroidBattleRoom.mjs";
 import { ChessRoom } from "./rooms/ChessRoom.mjs";
+import { PixelGalaxyRoom } from "./rooms/PixelGalaxyRoom.mjs";
 
 const port = process.env.PORT || 2567;
 const app = express();
@@ -31,6 +32,7 @@ gameServer.define("poker", PokerRoom).filterBy(['roomName']);
 gameServer.define("starboard", StarboardRoom).filterBy(['roomName']);
 gameServer.define("asteroid-battle", AsteroidBattleRoom).filterBy(['roomName']);
 gameServer.define("chess", ChessRoom).filterBy(['roomName']);
+gameServer.define("pixel-galaxy", PixelGalaxyRoom).filterBy(['roomName']);
 
 // start server
 gameServer.listen(port);
