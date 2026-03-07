@@ -24,6 +24,8 @@ const RANDOM_PIECE = () => {
     return keys[Math.floor(Math.random() * keys.length)];
 };
 
+const INITIAL_DROP_SPEED = 800;
+
 export default function TetrisDuelGame({ roomName, onClose, isTheater, onToggleTheater }) {
     const { user, profile } = useAuthContext();
     const { localParticipant } = useLocalParticipant();
@@ -45,6 +47,19 @@ export default function TetrisDuelGame({ roomName, onClose, isTheater, onToggleT
     const channelRef = useRef(null);
     const gameLoopRef = useRef(null);
     const boardRef = useRef(myBoard);
+
+    // Leader selection
+    const allParticipants = useMemo(() => {
+        if (!localParticipant) return participants;
+        return [localParticipant, ...participants];
+    }, [localParticipant, participants]);
+
+    const sortedParticipants = useMemo(() => {
+        return [...allParticipants].sort((a, b) => (a.identity || '').localeCompare(b.identity || ''));
+    }, [allParticipants]);
+
+    const leaderIdentity = useMemo(() => sortedParticipants[0]?.identity, [sortedParticipants]);
+    const isLeader = localParticipant?.identity === leaderIdentity;
 
     // Sync ref
     useEffect(() => { boardRef.current = myBoard; }, [myBoard]);
@@ -176,7 +191,7 @@ export default function TetrisDuelGame({ roomName, onClose, isTheater, onToggleT
     // Game loop
     useEffect(() => {
         if (gameState === 'playing' && myPlayerKey) {
-            gameLoopRef.current = setInterval(drop, 800);
+            gameLoopRef.current = setInterval(drop, INITIAL_DROP_SPEED);
             return () => clearInterval(gameLoopRef.current);
         }
     }, [gameState, piece, myPlayerKey]);
@@ -201,7 +216,7 @@ export default function TetrisDuelGame({ roomName, onClose, isTheater, onToggleT
     // Realtime Sync
     useEffect(() => {
         if (!roomName || !user) return;
-        const channel = supabase.channel(`tetris-${roomName.toLowerCase()}`);
+        const channel = supabase.channel(`tetris-${roomName.toLowerCase().replace(/[^a-z0-9]/g, '-')}`);
         channelRef.current = channel;
 
         channel
@@ -237,12 +252,23 @@ export default function TetrisDuelGame({ roomName, onClose, isTheater, onToggleT
                 if (payload.countdown !== undefined) setCountdown(payload.countdown);
             })
             .on('broadcast', { event: 'tetris_sync_req' }, () => {
-                if (myPlayerKey) {
-                    broadcastEvent('tetris_update_players', { players, gameState });
-                    broadcastEvent('tetris_board_sync', { player: myPlayerKey, board: boardRef.current });
+                if (isLeader) {
+                    broadcastEvent('tetris_update_players', { players, gameState, countdown });
+                    if (myPlayerKey) {
+                        broadcastEvent('tetris_board_sync', { player: myPlayerKey, board: boardRef.current });
+                    }
                 }
             })
-            .subscribe();
+            .on('broadcast', { event: 'tetris_start_countdown' }, () => {
+                if (isLeader && gameState === 'lobby' && !countdown) {
+                    startCountdown();
+                }
+            })
+            .subscribe((status) => {
+                if (status === 'SUBSCRIBED') {
+                    broadcastEvent('tetris_sync_req', {});
+                }
+            });
 
         return () => { supabase.removeChannel(channel); };
     }, [roomName, user, myPlayerKey, players, gameState]);
@@ -261,24 +287,31 @@ export default function TetrisDuelGame({ roomName, onClose, isTheater, onToggleT
         broadcastEvent('tetris_update_players', { players: newPlayers, gameState: 'lobby' });
 
         if (newPlayers.p1 && newPlayers.p2) {
-            let count = 3;
-            setCountdown(count);
-            const timer = setInterval(() => {
-                count--;
-                setCountdown(count);
-                if (count === 0) {
-                    clearInterval(timer);
-                    setGameState('playing');
-                    setCountdown(null);
-                    setMyBoard(Array(ROWS).fill(null).map(() => Array(COLS).fill(0)));
-                    setOpponentBoard(Array(ROWS).fill(null).map(() => Array(COLS).fill(0)));
-                    if (myPlayerKey) spawnPiece();
-                    broadcastEvent('tetris_update_players', { players: newPlayers, gameState: 'playing', countdown: null });
-                }
-            }, 1000);
+            broadcastEvent('tetris_start_countdown', {});
         } else if (pos === 1) {
             toast(`🧊 @${playerData.name} ha lanzado un Tetris Duel.`, { style: { background: '#080b14', color: '#60a5fa', border: '1px solid rgba(96,165,250,0.2)' }, icon: '🕹️' });
         }
+    };
+
+    const startCountdown = () => {
+        let count = 3;
+        setCountdown(count);
+        broadcastEvent('tetris_update_players', { players, gameState: 'lobby', countdown: count });
+
+        const timer = setInterval(() => {
+            count--;
+            setCountdown(count);
+            broadcastEvent('tetris_update_players', { players, gameState: 'lobby', countdown: count });
+
+            if (count === 0) {
+                clearInterval(timer);
+                setGameState('playing');
+                setCountdown(null);
+                setMyBoard(Array(ROWS).fill(null).map(() => Array(COLS).fill(0)));
+                setOpponentBoard(Array(ROWS).fill(null).map(() => Array(COLS).fill(0)));
+                broadcastEvent('tetris_update_players', { players, gameState: 'playing', countdown: null });
+            }
+        }, 1000);
     };
 
     useEffect(() => {
@@ -336,62 +369,75 @@ export default function TetrisDuelGame({ roomName, onClose, isTheater, onToggleT
             className={`w-full relative transition-all duration-700 ${isTheater ? 'fixed inset-0 z-[50] flex flex-col md:flex-row items-center justify-center bg-[#050518] p-4 landscape:flex-row gap-8 overflow-y-auto' : 'bg-[#050518]/95 backdrop-blur-xl border border-blue-500/20 rounded-[2.5rem] p-6 mt-4 shadow-[0_40px_100px_rgba(59,130,246,0.3)]'}`}
         >
             <div className="absolute right-6 top-6 flex items-center gap-3 z-30">
-                <button onClick={onToggleTheater} className={`p-2 rounded-full transition-all ${isTheater ? 'bg-blue-500 text-white shadow-[0_0_15px_rgba(59,130,246,0.5)]' : 'bg-white/5 text-white/30 hover:text-white'}`}>
+                <button onClick={onToggleTheater} className={`p-2 rounded-full transition-all ${isTheater ? 'bg-blue-500 text-white shadow-[0_0_15px_rgba(59,130,246,0.5)]' : 'bg-white/5 text-white/30 hover:text-white hover:bg-white/10'}`}>
                     {isTheater ? <Tv2 size={18} /> : <Tv size={18} />}
                 </button>
-                <button onClick={onClose} className="text-white/30 hover:text-white bg-white/5 p-2 rounded-full"><X size={16} /></button>
+                <button onClick={onClose} className="text-white/30 hover:text-white bg-white/5 p-2 rounded-full transition-all hover:bg-white/10"><X size={16} /></button>
             </div>
 
-            <div className={`flex flex-col items-center gap-8 w-full ${isTheater ? 'max-w-4xl' : ''}`}>
-                <div className="text-center">
-                    <h2 className="text-xl font-black text-white uppercase tracking-[0.3em] flex items-center gap-2 justify-center">
+            <div className={`flex flex-col items-center gap-8 w-full ${isTheater ? 'fixed inset-0 z-[40] flex flex-col md:flex-row items-center justify-center bg-[#050518] p-4 sm:p-8 landscape:flex-row' : ''}`}>
+                <div className={`text-center ${isTheater ? 'md:hidden absolute top-12 left-1/2 -translate-x-1/2' : ''}`}>
+                    <h2 className="text-xl font-black text-white uppercase tracking-[0.3em] flex items-center justify-center gap-2">
                         <span className="text-blue-400">Tetris</span> Duel
                     </h2>
                     <p className="text-[10px] font-black text-white/20 uppercase tracking-widest mt-1">Supervivencia • Envia basura al rival</p>
                 </div>
 
-                <div className="flex flex-col md:flex-row items-center gap-8 w-full justify-center">
+                <div className={`flex flex-col md:flex-row items-center gap-6 md:gap-12 w-full justify-center ${isTheater ? 'md:scale-90 lg:scale-100' : ''}`}>
                     {/* My Board */}
                     <div className="flex flex-col items-center gap-4">
-                        <div className="flex items-center gap-3 mb-2">
-                            <div className="w-8 h-8 rounded-lg overflow-hidden border-2 border-blue-500">
-                                {players.p1 ? <img src={players.p1.avatar} className="w-full h-full" /> : <div className="bg-white/5 w-full h-full" />}
+                        <div className={`flex items-center gap-3 mb-2 p-3 rounded-2xl border transition-all ${myPlayerKey === 'p1' ? 'border-blue-500/40 bg-blue-500/5' : 'border-white/5 bg-black/20'}`}>
+                            <div className="w-10 h-10 rounded-xl overflow-hidden border-2 border-blue-500">
+                                {players.p1 ? <img src={players.p1.avatar} className="w-full h-full object-cover" /> : <div className="bg-white/5 w-full h-full" />}
                             </div>
-                            <span className="text-[10px] font-black text-white uppercase tracking-widest">{players.p1?.name || (gameState === 'lobby' ? 'Esperando' : '---')}</span>
-                            {gameState === 'lobby' && !players.p1 && <button onClick={() => joinGame(1)} className="bg-white text-black px-3 py-1 rounded text-[8px] font-black uppercase">Unirse</button>}
+                            <div className="flex flex-col overflow-hidden max-w-[80px]">
+                                <span className="text-[10px] font-black text-white uppercase truncate">{players.p1?.name || 'Vacio'}</span>
+                                {gameState === 'lobby' && !players.p1 && <button onClick={() => joinGame(1)} className="mt-1 bg-blue-500 text-white px-2 py-0.5 rounded text-[8px] font-black uppercase">Unirse</button>}
+                            </div>
                         </div>
-                        <div className="h-[400px] w-[200px]">
+                        <div className={`relative transition-all duration-700 ${isTheater ? 'h-[360px] w-[180px] sm:h-[400px] sm:w-[200px] md:h-[450px] md:w-[225px]' : 'h-[320px] w-[160px]'}`}>
                             {renderBoard(myBoard, true)}
                         </div>
                     </div>
 
-                    <div className="text-white/20 font-black italic scale-150 hidden md:block">VS</div>
+                    {!isTheater && <div className="text-white/20 font-black italic scale-150 hidden md:block">VS</div>}
 
                     {/* Opponent Board */}
                     <div className="flex flex-col items-center gap-4">
-                        <div className="flex items-center gap-3 mb-2">
-                            <div className="w-8 h-8 rounded-lg overflow-hidden border-2 border-rose-500">
-                                {players.p2 ? <img src={players.p2.avatar} className="w-full h-full" /> : <div className="bg-white/5 w-full h-full" />}
+                        <div className={`flex items-center gap-3 mb-2 p-3 rounded-2xl border transition-all ${myPlayerKey === 'p2' ? 'border-rose-500/40 bg-rose-500/5' : 'border-white/5 bg-black/20'}`}>
+                            <div className="w-10 h-10 rounded-xl overflow-hidden border-2 border-rose-500">
+                                {players.p2 ? <img src={players.p2.avatar} className="w-full h-full object-cover" /> : <div className="bg-white/5 w-full h-full" />}
                             </div>
-                            <span className="text-[10px] font-black text-white uppercase tracking-widest">{players.p2?.name || (gameState === 'lobby' ? 'Esperando' : '---')}</span>
-                            {gameState === 'lobby' && !players.p2 && <button onClick={() => joinGame(2)} className="bg-white text-black px-3 py-1 rounded text-[8px] font-black uppercase">Unirse</button>}
+                            <div className="flex flex-col overflow-hidden max-w-[80px]">
+                                <span className="text-[10px] font-black text-white uppercase truncate">{players.p2?.name || 'Vacio'}</span>
+                                {gameState === 'lobby' && !players.p2 && <button onClick={() => joinGame(2)} className="mt-1 bg-rose-500 text-white px-2 py-0.5 rounded text-[8px] font-black uppercase">Unirse</button>}
+                            </div>
                         </div>
-                        <div className="h-[400px] w-[200px]">
+                        <div className={`relative transition-all duration-700 ${isTheater ? 'h-[360px] w-[180px] sm:h-[400px] sm:w-[200px] md:h-[450px] md:w-[225px]' : 'h-[320px] w-[160px] opacity-60 scale-95'}`}>
                             {renderBoard(opponentBoard)}
                         </div>
                     </div>
                 </div>
 
                 {/* Controls Mobile */}
-                {gameState === 'playing' && myPlayerKey && (
-                    <div className="grid grid-cols-4 gap-4 w-full max-w-sm mt-4">
-                        <button onPointerDown={() => handleMove({ x: -1, y: 0 })} className="h-14 bg-white/5 rounded-2xl flex items-center justify-center active:bg-blue-500/40"><ChevronLeft className="text-white" /></button>
-                        <button onPointerDown={handleRotate} className="h-14 bg-white/10 rounded-2xl flex items-center justify-center active:bg-purple-500/40"><RotateCcw className="text-white" /></button>
-                        <button onPointerDown={drop} className="h-14 bg-white/5 rounded-2xl flex items-center justify-center active:bg-blue-500/40"><ChevronDown className="text-white" /></button>
-                        <button onPointerDown={() => handleMove({ x: 1, y: 0 })} className="h-14 bg-white/5 rounded-2xl flex items-center justify-center active:bg-blue-500/40"><ChevronRight className="text-white" /></button>
-                        <button onPointerDown={hardDrop} className="col-span-4 h-12 bg-white/5 rounded-xl flex items-center justify-center text-[10px] font-black uppercase tracking-[0.3em] text-blue-400 border border-blue-500/20 active:bg-blue-500/20">Caida Rápida</button>
-                    </div>
-                )}
+                <div className={`flex flex-col items-center gap-4 w-full max-w-sm ${isTheater ? 'md:absolute md:bottom-12 md:left-1/2 md:-translate-x-1/2' : ''}`}>
+                    {gameState === 'playing' && myPlayerKey && (
+                        <div className="grid grid-cols-4 gap-3 w-full px-4">
+                            <button onPointerDown={(e) => { e.preventDefault(); handleMove({ x: -1, y: 0 }); }} className="h-16 bg-white/10 rounded-2xl flex items-center justify-center active:bg-blue-500 active:scale-95 transition-all"><ChevronLeft className="text-white" size={32} /></button>
+                            <button onPointerDown={(e) => { e.preventDefault(); handleRotate(); }} className="h-16 bg-white/10 rounded-2xl flex items-center justify-center active:bg-purple-500 active:scale-95 transition-all"><RotateCcw className="text-white" size={32} /></button>
+                            <button onPointerDown={(e) => { e.preventDefault(); drop(); }} className="h-16 bg-white/10 rounded-2xl flex items-center justify-center active:bg-blue-500 active:scale-95 transition-all"><ChevronDown className="text-white" size={32} /></button>
+                            <button onPointerDown={(e) => { e.preventDefault(); handleMove({ x: 1, y: 0 }); }} className="h-16 bg-white/10 rounded-2xl flex items-center justify-center active:bg-blue-500 active:scale-95 transition-all"><ChevronRight className="text-white" size={32} /></button>
+                            <button onPointerDown={(e) => { e.preventDefault(); hardDrop(); }} className="col-span-4 h-14 bg-blue-500/20 rounded-2xl flex items-center justify-center text-[10px] font-black uppercase tracking-[0.3em] text-blue-400 border border-blue-500/30 active:bg-blue-500 active:text-white transition-all">Caída Rápida</button>
+                        </div>
+                    )}
+
+                    {isTheater && (
+                        <div className="flex items-center gap-2 px-4 py-2 bg-white/5 rounded-full border border-white/10 animate-pulse md:hidden mt-2">
+                            <Smartphone className="text-blue-400 rotate-90" size={14} />
+                            <span className="text-[8px] font-black text-white/30 uppercase tracking-widest">Gira tu pantalla para mejor vista</span>
+                        </div>
+                    )}
+                </div>
             </div>
 
             <AnimatePresence>
