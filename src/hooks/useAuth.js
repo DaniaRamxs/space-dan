@@ -131,20 +131,18 @@ export default function useAuth() {
 
 
   const getRedirectUrl = () => {
-    const { hostname, origin } = window.location;
-    const isLocal = hostname === 'localhost' || hostname === '127.0.0.1';
+    const { origin, hostname } = window.location;
 
-    if (isLocal) {
-      const url = `${origin}/auth/callback`;
-      console.log('[Auth] Usando dirección de retorno local:', url);
-      return url;
-    }
-
+    // Si estamos en nativo, forzamos siempre la URL de producción
     if (Capacitor.isNativePlatform()) {
       return 'https://joinspacely.com/auth/callback';
     }
 
-    return 'https://joinspacely.com/auth/callback';
+    // Para cualquier entorno web (localhost, IPs locales o producción), 
+    // usamos el origen actual para que la sesión se guarde en este dominio.
+    const url = `${origin}/auth/callback`;
+    console.log('[Auth] Redirección configurada a:', url);
+    return url;
   };
 
   const loginWithProvider = async (provider) => {

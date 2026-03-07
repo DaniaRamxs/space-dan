@@ -1,23 +1,26 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
 
 export default function AuthCallback() {
     const navigate = useNavigate();
+    const hasExchanged = useRef(false);
 
     useEffect(() => {
         const handleAuthCallback = async () => {
+            if (hasExchanged.current) return;
+
             try {
                 const params = new URLSearchParams(window.location.search);
                 const code = params.get('code');
 
                 if (code) {
+                    hasExchanged.current = true;
                     console.log('[AuthCallback] Intercambiando código...');
                     const { data: exchangeData, error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
 
                     if (exchangeError) {
                         console.error('[AuthCallback] Error en intercambio:', exchangeError.message);
-                        // Si falla pero ya hay sesión, ignoramos
                     } else if (exchangeData?.session) {
                         console.log('[AuthCallback] Intercambio exitoso, sesión obtenida.');
                     }

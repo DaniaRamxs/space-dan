@@ -33,8 +33,9 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     storage: Capacitor.isNativePlatform() ? capacitorStorage : localStorage,
     autoRefreshToken: true,
     persistSession: true,
-    // On native we exchange the code manually via appUrlOpen, don't scan the WebView URL
-    detectSessionInUrl: !Capacitor.isNativePlatform(),
+    // Deshabilitamos el escaneo automático de la URL porque lo manejamos manualmente
+    // en AuthCallback.jsx (Web) y main.jsx (Nativo) para evitar errores de intercambio doble.
+    detectSessionInUrl: false,
     flowType: 'pkce',
   },
 });
