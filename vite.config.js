@@ -8,6 +8,9 @@ export default defineConfig(({ mode }) => {
 
   return {
     plugins: [react()],
+    optimizeDeps: {
+      include: ['konva', 'react-konva'],
+    },
     worker: {
       format: 'es',
     },
@@ -24,6 +27,7 @@ export default defineConfig(({ mode }) => {
             'livekit': ['livekit-client', '@livekit/components-react'],
             'giphy': ['@giphy/js-fetch-api', '@giphy/react-components'],
             'markdown': ['react-markdown', 'remark-gfm', 'rehype-raw', 'rehype-sanitize'],
+            'konva': ['konva', 'react-konva', 'use-image'],
           },
         },
       },

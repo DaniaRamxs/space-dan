@@ -588,11 +588,10 @@ export default function Starboard({ roomName, onClose }) {
                             key={c}
                             onClick={() => { setColor(c); if (tool === TOOLS.ERASER) setTool(TOOLS.PENCIL); }}
                             style={{ backgroundColor: c }}
-                            className={`w-5 h-5 rounded-full border-2 transition-all flex-shrink-0 ${
-                                color === c && tool !== TOOLS.ERASER
+                            className={`w-5 h-5 rounded-full border-2 transition-all flex-shrink-0 ${color === c && tool !== TOOLS.ERASER
                                     ? 'border-white scale-125 shadow-[0_0_8px_rgba(255,255,255,0.5)]'
                                     : 'border-transparent opacity-60 hover:opacity-100 hover:scale-110'
-                            }`}
+                                }`}
                         />
                     ))}
                     {/* Custom color picker */}
@@ -661,11 +660,10 @@ function ToolBtn({ active, onClick, icon, title, variant }) {
         <button
             onClick={onClick}
             title={title}
-            className={`w-9 h-9 flex items-center justify-center rounded-xl transition-all ${
-                active
+            className={`w-9 h-9 flex items-center justify-center rounded-xl transition-all ${active
                     ? 'bg-cyan-500 text-black shadow-[0_0_10px_rgba(6,214,160,0.35)] scale-105'
                     : `text-white/40 ${variantClass} active:scale-95`
-            }`}
+                }`}
         >
             {icon}
         </button>
