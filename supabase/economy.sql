@@ -128,7 +128,7 @@ CREATE TABLE IF NOT EXISTS public.transactions (
                  'investment_profit', 'investment_loss', 'insurance_claim',
                  'blackjack_win', 'blackjack_loss', 'bet_win', 'bet_loss',
                  'slots_win', 'slots_loss', 'rob_success', 'rob_penalty',
-                 'duel_win', 'duel_loss', 'game_loss', 'casino_bet', 'casino_win'
+                 'duel_win', 'duel_loss', 'game_loss', 'casino_bet', 'casino_win', 'activity', 'reactor_injection'
                )),
   reference_id text        DEFAULT NULL, -- id del logro, item, transfer, etc.
   description  text        DEFAULT NULL,

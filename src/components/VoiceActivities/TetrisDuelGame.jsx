@@ -37,6 +37,12 @@ export default function TetrisDuelGame({ roomName, onClose, isTheater, onToggleT
     const [winner, setWinner] = useState(null);
     const [countdown, setCountdown] = useState(null);
 
+    const myPlayerKey = useMemo(() => {
+        if (players.p1?.identity === localParticipant?.identity) return 'p1';
+        if (players.p2?.identity === localParticipant?.identity) return 'p2';
+        return null;
+    }, [players, localParticipant]);
+
     // Boards
     const [p1Board, setP1Board] = useState(Array(ROWS).fill(null).map(() => Array(COLS).fill(0)));
     const [p2Board, setP2Board] = useState(Array(ROWS).fill(null).map(() => Array(COLS).fill(0)));
@@ -67,12 +73,6 @@ export default function TetrisDuelGame({ roomName, onClose, isTheater, onToggleT
 
     // Sync ref
     useEffect(() => { boardRef.current = myBoard; }, [myBoard]);
-
-    const myPlayerKey = useMemo(() => {
-        if (players.p1?.identity === localParticipant?.identity) return 'p1';
-        if (players.p2?.identity === localParticipant?.identity) return 'p2';
-        return null;
-    }, [players, localParticipant]);
 
     const broadcastEvent = useCallback((event, payload) => {
         if (!channelRef.current) return;
