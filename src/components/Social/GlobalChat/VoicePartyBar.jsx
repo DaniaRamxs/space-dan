@@ -18,33 +18,52 @@ export default function VoicePartyBar({ activeParticipants = [], onJoin, onCreat
     };
 
     return (
-        <div className="border-b border-white/10 relative z-10">
-            {/* Barra principal siempre visible */}
-            <div className={`p-3 px-4 bg-gradient-to-r from-purple-900/40 to-cyan-900/40 backdrop-blur-xl flex items-center justify-between transition-all ${!isExpanded && 'hover:from-purple-900/50 hover:to-cyan-900/50'}`}>
+        <div className="border-b border-white/10 relative z-10 transition-all duration-300">
+            {/* Barra principal siempre visible y clicable para acción rápida */}
+            <div
+                onClick={() => {
+                    if (isExpanded) return; // Si está expandido, dejamos que los botones internos manejen los clics
+                    onJoin();
+                }}
+                className={`p-3 px-4 bg-gradient-to-r from-purple-900/40 to-cyan-900/40 backdrop-blur-xl flex items-center justify-between cursor-pointer group active:opacity-70 transition-all ${!isExpanded && 'hover:from-purple-900/60 hover:to-cyan-900/60'}`}
+            >
                 <div className="flex items-center gap-3">
                     <div className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${isActive ? 'bg-cyan-400 text-black shadow-[0_0_15px_rgba(34,211,238,0.5)]' : 'bg-white/10 text-white/40 border border-white/10'}`}>
                         {isActive ? <Mic size={20} className="animate-pulse" /> : <Radio size={20} />}
                     </div>
                     <div className="flex flex-col">
-                        <span className={`text-[10px] font-black uppercase tracking-[0.2em] ${isActive ? 'text-cyan-400' : 'text-white/40'}`}>
+                        <span className={`text-[9px] font-black uppercase tracking-[0.2em] ${isActive ? 'text-cyan-400' : 'text-white/40'}`}>
                             {isActive ? 'Transmisión Activa' : 'Sala de Voz'}
                         </span>
-                        <h4 className="text-xs font-bold text-white/90">{currentRoom || 'Sala Galáctica'}</h4>
+                        <h4 className="text-xs font-bold text-white/90 truncate max-w-[120px] sm:max-w-none">
+                            {currentRoom || 'Sala Galáctica'}
+                        </h4>
                     </div>
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-3">
+                    {/* Indicador rápido de acción */}
+                    {!isActive && (
+                        <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-cyan-500/10 border border-cyan-500/20 text-[9px] font-black text-cyan-400 uppercase tracking-widest group-hover:bg-cyan-500/20 transition-all">
+                            Unirse
+                        </div>
+                    )}
+
                     <div className="flex items-center gap-1.5 text-white/40">
                         <Users size={12} />
                         <span className="text-[10px] font-black">{totalOnline}</span>
                     </div>
+
                     <button
-                        onClick={() => setIsExpanded(v => !v)}
-                        className="w-8 h-8 rounded-full bg-white/5 border border-white/10 flex items-center justify-center hover:bg-white/10 active:scale-95 transition-all"
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            setIsExpanded(v => !v);
+                        }}
+                        className="w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center hover:bg-white/10 active:scale-95 transition-all text-white/40"
                     >
                         {isExpanded
-                            ? <ChevronUp size={14} className="text-white/60" />
-                            : <ChevronDown size={14} className="text-white/60" />}
+                            ? <ChevronUp size={16} />
+                            : <ChevronDown size={16} />}
                     </button>
                 </div>
             </div>

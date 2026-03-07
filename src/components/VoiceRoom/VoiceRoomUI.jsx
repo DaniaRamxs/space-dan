@@ -544,9 +544,20 @@ function MuteIndicator({ participant }) {
 
 function MuteToggle() {
     const { isMicrophoneEnabled, localParticipant } = useLocalParticipant();
+
+    const handleToggle = async () => {
+        if (!localParticipant) return;
+        try {
+            await localParticipant.setMicrophoneEnabled(!isMicrophoneEnabled);
+        } catch (err) {
+            console.error('[Voice] Error toggling mic:', err);
+            toast.error('No se pudo acceder al micrófono');
+        }
+    };
+
     return (
         <button
-            onClick={() => localParticipant.setMicrophoneEnabled(!isMicrophoneEnabled)}
+            onClick={handleToggle}
             className={`w-14 h-14 rounded-full flex items-center justify-center transition-all shadow-xl ${isMicrophoneEnabled ? 'bg-white/90 text-black hover:bg-white scale-110' : 'bg-rose-500/20 text-rose-400 border border-rose-500/40 hover:bg-rose-500/30'}`}
         >
             {isMicrophoneEnabled ? <Mic size={24} /> : <MicOff size={24} />}
@@ -557,11 +568,28 @@ function MuteToggle() {
 function ScreenShareToggle() {
     const { isScreenShareEnabled, localParticipant } = useLocalParticipant();
 
+    const handleToggle = async () => {
+        if (!localParticipant) return;
+
+        // Verificación básica de soporte para móviles/Capacitor
+        if (Capacitor.isNativePlatform()) {
+            toast.error('La transmisión de pantalla no está disponible en la versión móvil aún');
+            return;
+        }
+
+        try {
+            await localParticipant.setScreenShareEnabled(!isScreenShareEnabled);
+        } catch (err) {
+            console.error('[Voice] Error toggling screen share:', err);
+            toast.error('No se pudo iniciar la transmisión de pantalla');
+        }
+    };
+
     return (
         <button
-            onClick={() => localParticipant.setScreenShareEnabled(!isScreenShareEnabled)}
+            onClick={handleToggle}
             className={`w-14 h-14 rounded-full flex items-center justify-center transition-all shadow-xl ${isScreenShareEnabled ? 'bg-cyan-500 text-black scale-110 shadow-cyan-500/20' : 'bg-white/5 text-white/40 border border-white/10 hover:bg-white/10'}`}
-            title={isScreenShareEnabled ? 'Dejar de compartir pantalla' : 'Compartir pantalla'}
+            title={isScreenShareEnabled ? 'Dejar de compartir pantalla' : 'Transmitir Pantalla'}
         >
             {isScreenShareEnabled ? <MonitorOff size={24} /> : <Monitor size={24} />}
         </button>
