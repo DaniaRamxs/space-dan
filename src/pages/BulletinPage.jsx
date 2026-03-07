@@ -3,6 +3,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import MarkdownGuide from '../components/Social/MarkdownGuide';
 import LevelGuide from '../components/Social/LevelGuide';
 import ApkDownload from '../components/ApkDownload';
+import StellarScrollBg from '../components/Effects/StellarScrollBg';
+import MeteoriteEntrance from '../components/Effects/MeteoriteEntrance';
 
 const bulletinPosts = [
   { id: 1, date: "2026-01-03", title: "Primer boletín", text: "Hola, estreno el boletín.", tags: ["general"] },
@@ -117,6 +119,7 @@ const bulletinPosts = [
   { id: 117, date: "2026-03-05", title: "Rediseño de Economía de Tienda 📉📈", text: "Reescalamos todos los precios de la Tienda de Spacely para adaptarnos a los estándares actuales de Starlys. Los ítems cosméticos ahora siguen una progresión de precio justa, desde básicos en decenas de miles hasta míticos por 15 Millones. También ajustamos los retornos de reciclaje de cofres para asegurar que seguir probando suerte (Gacha) sea rentable incluso si te tocan artículos repetidos.", tags: ["update", "economía", "gamificación"] },
   { id: 118, date: "2026-03-05", title: "Fix: Errores Visuales en Colección", text: "Se resolvió el error 400 Bad Request que aparecía en la sección de 'Colección' de los perfiles públicos. La incongruencia de atributos en la base de datos se depuró para una respuesta ágil y limpia del servidor.", tags: ["fix", "performance"] },
   { id: 119, date: "2026-03-06", title: "Retiro definitivo de Screensaver", text: "El sistema de screensaver fue eliminado por completo de la app web y de Android. Tambien se retiraron sus referencias del catalogo de tienda y sincronizaciones para que no vuelva a activarse.", tags: ["update", "fix", "mobile"] },
+  { id: 120, date: "2026-03-06", title: "🚀 Optimización Masiva de Rendimiento (PC)", text: "Implementamos una serie de optimizaciones enfocadas en eliminar cuellos de botella que provocaban lag durante la navegación y exploración. Se optimizaron los filtros de desenfoque (blur), se limitó el fondo estelar a 30 FPS, se mejoró la aceleración por hardware en el layout y se refinaron las transiciones entre páginas para una experiencia inmediata y fluida.", tags: ["performance", "update", "tecnología"] },
 ];
 
 const PAGE_SIZE = 10;
@@ -169,6 +172,7 @@ export default function BulletinPage() {
 
   return (
     <main className="w-full max-w-2xl mx-auto min-h-screen pb-64 text-white font-sans flex flex-col pt-6 md:pt-10 px-0 md:px-4 relative overflow-y-auto">
+      <StellarScrollBg />
 
       {/* Header - Now visible on mobile */}
       <motion.div
@@ -271,56 +275,57 @@ export default function BulletinPage() {
               {shown.map((post, i) => {
                 const isNew = i === 0 && !search && !activeTag;
                 return (
-                  <motion.article
-                    key={post.id}
-                    initial={{ opacity: 0, x: -8 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: Math.min(i * 0.03, 0.2) }}
-                    className="flex gap-5 pb-6 group"
-                  >
-                    {/* Dot */}
-                    <div className="flex flex-col items-center shrink-0 pt-1">
-                      <div className={`w-[10px] h-[10px] rounded-full border-2 mt-0.5 transition-all group-hover:scale-125 ${isNew
-                        ? 'bg-cyan-500 border-cyan-400 shadow-[0_0_8px_rgba(6,182,212,0.6)]'
-                        : 'bg-[#070710] border-white/20 group-hover:border-cyan-500/50'
-                        }`} />
-                    </div>
-
-                    {/* Contenido */}
-                    <div className="flex-1 min-w-0 bg-[#070710] border border-white/[0.05] rounded-2xl px-4 py-3.5
-                                    hover:border-white/10 hover:bg-[#090912] transition-all">
-                      {/* Meta */}
-                      <div className="flex items-center gap-2 flex-wrap mb-1.5">
-                        <span className="text-[9px] font-mono text-white/20 shrink-0">{post.date}</span>
-                        {isNew && (
-                          <span className="text-[7px] font-black text-cyan-400 bg-cyan-400/10 border border-cyan-400/30 px-1.5 py-0.5 rounded-full uppercase tracking-widest">
-                            nuevo
-                          </span>
-                        )}
-                        <div className="flex gap-1 flex-wrap">
-                          {post.tags?.map(tag => (
-                            <button
-                              key={tag}
-                              onClick={() => reset({ tag: activeTag === tag ? null : tag })}
-                              className={`text-[7px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-full border transition-all hover:scale-105 ${tagColor(tag)}`}
-                            >
-                              #{tag}
-                            </button>
-                          ))}
-                        </div>
+                  <MeteoriteEntrance key={post.id}>
+                    <motion.article
+                      initial={{ opacity: 0, x: -8 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: Math.min(i * 0.03, 0.2) }}
+                      className="flex gap-5 pb-6 group"
+                    >
+                      {/* Dot */}
+                      <div className="flex flex-col items-center shrink-0 pt-1">
+                        <div className={`w-[10px] h-[10px] rounded-full border-2 mt-0.5 transition-all group-hover:scale-125 ${isNew
+                          ? 'bg-cyan-500 border-cyan-400 shadow-[0_0_8px_rgba(6,182,212,0.6)]'
+                          : 'bg-[#070710] border-white/20 group-hover:border-cyan-500/50'
+                          }`} />
                       </div>
 
-                      {/* Título */}
-                      <p className="text-sm font-black text-white/90 leading-snug mb-1 uppercase tracking-tight">
-                        {post.title}
-                      </p>
+                      {/* Contenido */}
+                      <div className="flex-1 min-w-0 bg-[#070710] border border-white/[0.05] rounded-2xl px-4 py-3.5
+                                      hover:border-white/10 hover:bg-[#090912] transition-all">
+                        {/* Meta */}
+                        <div className="flex items-center gap-2 flex-wrap mb-1.5">
+                          <span className="text-[9px] font-mono text-white/20 shrink-0">{post.date}</span>
+                          {isNew && (
+                            <span className="text-[7px] font-black text-cyan-400 bg-cyan-400/10 border border-cyan-400/30 px-1.5 py-0.5 rounded-full uppercase tracking-widest">
+                              nuevo
+                            </span>
+                          )}
+                          <div className="flex gap-1 flex-wrap">
+                            {post.tags?.map(tag => (
+                              <button
+                                key={tag}
+                                onClick={() => reset({ tag: activeTag === tag ? null : tag })}
+                                className={`text-[7px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-full border transition-all hover:scale-105 ${tagColor(tag)}`}
+                              >
+                                #{tag}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
 
-                      {/* Texto */}
-                      <p className="text-xs text-white/40 leading-relaxed">
-                        {post.text}
-                      </p>
-                    </div>
-                  </motion.article>
+                        {/* Título */}
+                        <p className="text-sm font-black text-white/90 leading-snug mb-1 uppercase tracking-tight">
+                          {post.title}
+                        </p>
+
+                        {/* Texto */}
+                        <p className="text-xs text-white/40 leading-relaxed">
+                          {post.text}
+                        </p>
+                      </div>
+                    </motion.article>
+                  </MeteoriteEntrance>
                 );
               })}
             </AnimatePresence>
@@ -345,5 +350,3 @@ export default function BulletinPage() {
     </main>
   );
 }
-
-

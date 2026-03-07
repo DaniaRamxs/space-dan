@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../supabaseClient';
 import { Zap, Flame, X, User, Orbit, Plus, Minus, Move, Sparkles } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { animate as animeAnim } from 'animejs';
 
 export default function StellarMap() {
     const canvasRef = useRef(null);
@@ -10,6 +11,22 @@ export default function StellarMap() {
     const [selectedUser, setSelectedUser] = useState(null);
     const [loading, setLoading] = useState(true);
     const [hoveredUser, setHoveredUser] = useState(null);
+    const shootingStarsRef = useRef([]);
+    const haloRef = useRef({ id: null, radius: 0 });
+    const nebulas = useMemo(() => {
+        const colors = [
+            'rgba(49, 46, 129, 0.08)', // Deep Indigo
+            'rgba(88, 28, 135, 0.08)', // Deep Purple
+            'rgba(30, 58, 138, 0.08)', // Deep Blue
+            'rgba(83, 21, 67, 0.08)',  // Deep Pink
+        ];
+        return Array.from({ length: 4 }).map((_, i) => ({
+            x: (i % 2) * 100 - 50,
+            y: Math.floor(i / 2) * 100 - 50,
+            radius: 300 + Math.random() * 200,
+            color: colors[i % colors.length]
+        }));
+    }, []);
     const navigate = useNavigate();
 
     // Camera State
@@ -30,10 +47,18 @@ export default function StellarMap() {
             const x = Math.cos(angle) * distance;
             const y = Math.sin(angle) * distance;
 
-            const size = Math.max(2, (u.level || 1) * 0.8 + 2);
+            let size = Math.max(2, (u.level || 1) * 0.8 + 2);
+            if (!Number.isFinite(size) || Number.isNaN(size)) size = 2;
+            size = Math.min(50, size); // Cap físico para evitar supernovas (Fix Fatal)
+
+            const balance = u.balance || u.starlys || 0;
+            let brightness = Math.min(Math.log10(Math.max(0, balance) + 1), 4);
+            if (!Number.isFinite(brightness) || Number.isNaN(brightness)) brightness = 0;
+
             const pulseSpeed = 0.02 + (u.activity_level || 1) * 0.005;
 
             let starColor = u.activity_level > 10 ? '#a78bfa' : '#22d3ee';
+            if (u.is_online) starColor = '#00ffa3'; // En línea (Verde Neón)
             if (u.xp_boost) starColor = '#facc15';
             if (u.is_playing) {
                 const mood = u.music_mood?.toLowerCase() || '';
@@ -42,14 +67,18 @@ export default function StellarMap() {
                 if (mood.includes('introspección') || mood.includes('melancólica')) starColor = '#6366f1';
             }
 
+            const isRich = balance > 10000;
+
             return {
                 ...u,
                 baseX: x,
                 baseY: y,
                 size,
+                brightness,
+                isRich,
                 pulseSpeed,
                 pulseOffset: seed * Math.PI,
-                color: starColor,
+                color: starColor || '#fff',
             };
         });
     }, [mapData]);
@@ -95,15 +124,30 @@ export default function StellarMap() {
             const centerX = window.innerWidth / 2 + cameraRef.current.x;
             const centerY = window.innerHeight / 2 + cameraRef.current.y;
 
-            // 0. Background Starfield (Parallax)
+            // 0. Background Nebulas (Atmospheric)
+            nebulas.forEach(neb => {
+                const nx = (window.innerWidth / 2) + (neb.x * 5) + (cameraRef.current.x * 0.05);
+                const ny = (window.innerHeight / 2) + (neb.y * 5) + (cameraRef.current.y * 0.05);
+
+                const grad = ctx.createRadialGradient(nx, ny, 0, nx, ny, neb.radius);
+                grad.addColorStop(0, neb.color);
+                grad.addColorStop(1, 'transparent');
+
+                ctx.fillStyle = grad;
+                ctx.beginPath();
+                ctx.arc(nx, ny, neb.radius, 0, Math.PI * 2);
+                ctx.fill();
+            });
+
+            // 0.1 Background Starfield (Parallax)
             ctx.fillStyle = 'white';
             const starfieldCount = 200;
             for (let i = 0; i < starfieldCount; i++) {
-                const s = (i * 137.5) % 1; // Pseudo-randomness
                 const px = ((i * 123.456) + cameraRef.current.x * 0.2) % window.innerWidth;
                 const py = ((i * 654.321) + cameraRef.current.y * 0.2) % window.innerHeight;
                 const size = (i % 3) * 0.5;
-                const op = 0.1 + (Math.sin(time * 0.001 + i) * 0.1);
+                // respiracion del fondo (twinkle)
+                const op = 0.05 + (Math.sin(time * 0.0005 + i) * 0.05);
                 ctx.globalAlpha = op;
                 ctx.beginPath();
                 ctx.arc(px < 0 ? px + window.innerWidth : px, py < 0 ? py + window.innerHeight : py, size, 0, Math.PI * 2);
@@ -111,23 +155,33 @@ export default function StellarMap() {
             }
             ctx.globalAlpha = 1.0;
 
+            // 0.1 Shooting Stars (Using Ref for performance)
+            shootingStarsRef.current.forEach(ss => {
+                ctx.strokeStyle = `rgba(255, 255, 255, ${ss.opacity})`;
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.moveTo(ss.x, ss.y);
+                ctx.lineTo(ss.x - ss.vx * 10, ss.y - ss.vy * 10);
+                ctx.stroke();
+            });
+
             // 1. Draw Hall of Fame
             if (mapData.hall_of_fame?.length) {
-                const stationPulse = 1 + Math.sin(time * 0.001) * 0.1;
+                const stationPulse = 1 + Math.sin(time * 0.0008) * 0.15; // Pulso del nucleo central
                 const radius = 60 * currentZoom * stationPulse;
 
-                ctx.strokeStyle = 'rgba(167, 139, 250, 0.1)';
+                ctx.strokeStyle = 'rgba(167, 139, 250, 0.15)';
                 ctx.lineWidth = 1;
                 ctx.beginPath();
                 ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
                 ctx.stroke();
 
-                const grad = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, 40 * currentZoom);
-                grad.addColorStop(0, 'rgba(167, 139, 250, 0.2)');
+                const grad = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, 50 * currentZoom * stationPulse);
+                grad.addColorStop(0, 'rgba(167, 139, 250, 0.3)');
                 grad.addColorStop(1, 'transparent');
                 ctx.fillStyle = grad;
                 ctx.beginPath();
-                ctx.arc(centerX, centerY, 40 * currentZoom, 0, Math.PI * 2);
+                ctx.arc(centerX, centerY, 50 * currentZoom * stationPulse, 0, Math.PI * 2);
                 ctx.fill();
 
                 mapData.hall_of_fame.forEach((h, i) => {
@@ -154,11 +208,14 @@ export default function StellarMap() {
                 star.screenX = x;
                 star.screenY = y;
 
-                // Outer Glow
-                const glowSize = star.size * pulse * 6 * Math.min(2, currentZoom);
+                // Outer Glow (Detallado y suavizado para evitar saturación - Fix Supernova)
+                const baseGlow = 15 + (star.brightness * 12);
+                const glowSize = baseGlow * pulse * Math.min(1.5, currentZoom);
                 const gradient = ctx.createRadialGradient(x, y, 0, x, y, glowSize);
-                gradient.addColorStop(0, star.color);
-                gradient.addColorStop(0.2, star.color + '44');
+
+                // Usamos colores con mucha transparencia desde el origen (0)
+                gradient.addColorStop(0, star.color + '88'); // Max 50% opacidad en el centro
+                gradient.addColorStop(0.3, star.color + '33'); // 20% opacidad
                 gradient.addColorStop(1, 'transparent');
 
                 ctx.fillStyle = gradient;
@@ -166,14 +223,41 @@ export default function StellarMap() {
                 ctx.arc(x, y, glowSize, 0, Math.PI * 2);
                 ctx.fill();
 
+                // Halo suave para usuarios ricos (Req 8)
+                if (star.isRich) {
+                    ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+                    ctx.lineWidth = 1;
+                    ctx.beginPath();
+                    ctx.arc(x, y, (star.size + 4) * currentZoom, 0, Math.PI * 2);
+                    ctx.stroke();
+
+                    // Brillo extra del halo
+                    const haloGrad = ctx.createRadialGradient(x, y, star.size * currentZoom, x, y, (star.size + 8) * currentZoom);
+                    haloGrad.addColorStop(0, 'rgba(255, 255, 255, 0.1)');
+                    haloGrad.addColorStop(1, 'transparent');
+                    ctx.fillStyle = haloGrad;
+                    ctx.fill();
+                }
+
+                // Halo al tocar estrellas
+                if (haloRef.current.id === star.id) {
+                    ctx.strokeStyle = `rgba(255, 255, 255, ${1 - haloRef.current.radius / 50})`;
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    ctx.arc(x, y, haloRef.current.radius * currentZoom, 0, Math.PI * 2);
+                    ctx.stroke();
+                }
+
                 // Core
+                // Twinkle de estrellas (Req 1)
+                const twinkle = 0.8 + Math.sin(time * 0.003 + star.pulseOffset) * 0.2;
+                ctx.globalAlpha = twinkle;
                 ctx.fillStyle = '#fff';
-                ctx.shadowBlur = 10 * currentZoom;
-                ctx.shadowColor = star.color;
+                // Eliminamos shadowBlur por ser la causa probable del "pantalla blanca" y mal rendimiento
                 ctx.beginPath();
                 ctx.arc(x, y, (star.size / 2) * Math.min(1.2, currentZoom), 0, Math.PI * 2);
                 ctx.fill();
-                ctx.shadowBlur = 0; // Reset shadow
+                ctx.globalAlpha = 1.0;
 
                 // Label (High quality)
                 if (currentZoom > 1.2 || (hoveredUser?.id === star.id)) {
@@ -193,13 +277,35 @@ export default function StellarMap() {
                 }
             });
 
+            // Update shooting stars in Ref (Performance Fix)
+            shootingStarsRef.current = shootingStarsRef.current.map(ss => ({
+                ...ss,
+                x: ss.x + ss.vx,
+                y: ss.y + ss.vy,
+                opacity: ss.opacity - 0.02
+            })).filter(ss => ss.opacity > 0);
+
             animationFrame = requestAnimationFrame(animate);
         };
+
+        // Periodically spawn shooting stars (Ref-based)
+        const shootingStarInterval = setInterval(() => {
+            if (Math.random() > 0.7) {
+                shootingStarsRef.current.push({
+                    x: Math.random() * window.innerWidth,
+                    y: Math.random() * window.innerHeight * 0.5,
+                    vx: 15 + Math.random() * 10,
+                    vy: 5 + Math.random() * 5,
+                    opacity: 1
+                });
+            }
+        }, 3000);
 
         animate(0);
         return () => {
             window.removeEventListener('resize', resize);
             cancelAnimationFrame(animationFrame);
+            clearInterval(shootingStarInterval);
         };
     }, [stars, hoveredUser, mapData]);
 
@@ -208,6 +314,20 @@ export default function StellarMap() {
         isDragging.current = true;
         const pos = e.touches ? e.touches[0] : e;
         lastPos.current = { x: pos.clientX, y: pos.clientY };
+    };
+
+    const handleSelectStar = (star) => {
+        setSelectedUser(star);
+        // Halo effect animation (Req 4)
+        haloRef.current = { id: star.id, radius: 0 };
+        animeAnim(haloRef.current, {
+            radius: 50,
+            duration: 600,
+            easing: 'easeOutQuart',
+            complete: () => {
+                haloRef.current.id = null;
+            }
+        });
     };
 
     const handleMove = (e) => {
@@ -262,7 +382,7 @@ export default function StellarMap() {
                 onTouchStart={handleStart}
                 onTouchMove={handleMove}
                 onTouchEnd={handleEnd}
-                onClick={() => hoveredUser && setSelectedUser(hoveredUser)}
+                onClick={() => hoveredUser && handleSelectStar(hoveredUser)}
                 className="w-full h-full cursor-grab active:cursor-grabbing"
             />
 
@@ -278,6 +398,7 @@ export default function StellarMap() {
                         <div className="glass-panel p-4 sm:p-6 border border-white/10 rounded-3xl pointer-events-auto">
                             <h1 className="text-xl sm:text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-violet-400 uppercase tracking-tighter">MAPA ESTELAR</h1>
                             <div className="hidden sm:block mt-4 space-y-2">
+                                <LegendItem color="bg-[#00ffa3]" label="En Línea" />
                                 <LegendItem color="bg-cyan-400" label="Explorador" />
                                 <LegendItem color="bg-yellow-400" label="Boost Activo" />
                             </div>

@@ -154,7 +154,7 @@ export default function GardenLayout({ children }) {
             </div>
           </header>
 
-          <div className="gardenContent">{children}</div>
+          <div className="gardenContent" style={{ contain: 'layout paint', transform: 'translateZ(0)' }}>{children}</div>
 
           {/* Botón flotante de Chat (Desktop Fast Access) */}
           {!isFixedLayout && !isNative && (
@@ -333,20 +333,10 @@ export default function GardenLayout({ children }) {
                 className="hubGrid"
               >
                 {[
-                  { to: '/tienda-galactica', icon: '💎', label: 'Tienda Galáctica', className: 'hub-item-premium' },
-                  { to: '/pase-estelar', icon: '🎫', label: 'Pase Estelar', className: 'hub-item-premium' },
-                  { to: '/posts', icon: '🌌', label: 'Feed Social' },
-                  { to: '/chat', icon: '💬', label: 'Chat Global', badge: activeChatters > 0 ? `${activeChatters} Activos` : null, isLive: activeChatters > 0 },
-                  { to: '/bulletin', icon: '📰', label: 'Noticias' },
-                  { to: '/logros', icon: '🏆', label: 'Logros' },
-                  { to: '/leaderboard', icon: '🌎', label: 'Rankings' },
-                  { to: '/cartas', icon: '✉️', label: 'Mensajes' },
+                  { to: '/explorar', icon: '🧭', label: 'Explorar Centro', className: 'hub-item-premium' },
                   { to: '/cabina', icon: '🚀', label: 'Cabina' },
-                  { to: '/guestbook', icon: '📖', label: 'Libro' },
-                  { to: '/arquitectura', icon: '🏗️', label: 'Arquitectura' },
-                  { to: '/banco', icon: '🏦', label: 'Banco' },
-                  !isNative && { to: '/desktop', icon: '💻', label: 'Desktop' },
-                ].filter(Boolean).map((item) => (
+                  { to: '/cartas', icon: '✉️', label: 'Mensajería' },
+                ].map((item) => (
                   <motion.div
                     key={item.to}
                     variants={{

@@ -1,52 +1,53 @@
-import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import React, { useEffect, useRef } from 'react';
+import { animate } from 'animejs';
 
 export default function ClickRipple() {
-    const [ripples, setRipples] = useState([]);
+    const containerRef = useRef(null);
 
     useEffect(() => {
         const handleClick = (e) => {
-            const newRipple = {
-                id: Date.now(),
-                x: e.clientX,
-                y: e.clientY,
-            };
-            setRipples((prev) => [...prev, newRipple]);
-            setTimeout(() => {
-                setRipples((prev) => prev.filter(r => r.id !== newRipple.id));
-            }, 800);
+            if (!containerRef.current) return;
+
+            const ripple = document.createElement('div');
+            const size = 60;
+
+            ripple.style.position = 'absolute';
+            ripple.style.left = `${e.clientX - size / 2}px`;
+            ripple.style.top = `${e.clientY - size / 2}px`;
+            ripple.style.width = `${size}px`;
+            ripple.style.height = `${size}px`;
+            ripple.style.borderRadius = '50%';
+            ripple.style.border = '1px solid rgba(0, 229, 255, 0.4)';
+            ripple.style.background = 'radial-gradient(circle, rgba(0, 229, 255, 0.1) 0%, transparent 70%)';
+            ripple.style.pointerEvents = 'none';
+            ripple.style.opacity = '0.5';
+            ripple.style.zIndex = '999999';
+            ripple.style.willChange = 'transform, opacity';
+
+            containerRef.current.appendChild(ripple);
+
+            animate(ripple, {
+                scale: [0, 3],
+                opacity: [0.6, 0],
+                duration: 800,
+                easing: 'easeOutQuart',
+                complete: () => {
+                    if (ripple.parentNode) {
+                        ripple.parentNode.removeChild(ripple);
+                    }
+                }
+            });
         };
 
-        window.addEventListener('mousedown', handleClick);
+        window.addEventListener('mousedown', handleClick, { passive: true });
         return () => window.removeEventListener('mousedown', handleClick);
     }, []);
 
     return (
-        <div className="fixed inset-0 pointer-events-none z-[100000]">
-            <AnimatePresence>
-                {ripples.map(r => (
-                    <motion.div
-                        key={r.id}
-                        initial={{ opacity: 0.5, scale: 0 }}
-                        animate={{ opacity: 0, scale: 2.5 }}
-                        exit={{ opacity: 0 }}
-                        transition={{ duration: 0.8, ease: "easeOut" }}
-                        style={{
-                            position: 'absolute',
-                            left: r.x,
-                            top: r.y,
-                            width: 60,
-                            height: 60,
-                            marginLeft: -30,
-                            marginTop: -30,
-                            borderRadius: '50%',
-                            border: '1px solid rgba(0, 229, 255, 0.4)',
-                            background: 'radial-gradient(circle, rgba(0, 229, 255, 0.1) 0%, transparent 70%)',
-                            pointerEvents: 'none'
-                        }}
-                    />
-                ))}
-            </AnimatePresence>
-        </div>
+        <div
+            ref={containerRef}
+            className="fixed inset-0 pointer-events-none z-[100000]"
+            style={{ contain: 'strict' }}
+        />
     );
 }

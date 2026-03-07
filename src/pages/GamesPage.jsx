@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, Suspense, lazy, useMemo, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import { animate as animeAnimate, stagger } from 'animejs';
 import { Maximize2, Minimize2 } from 'lucide-react';
 import { Capacitor } from '@capacitor/core';
 import { unlockAchievement } from '../hooks/useAchievements';
@@ -264,6 +265,22 @@ export default function GamesPage() {
     }
   }, [user, lbKey]);
 
+  // Anime.js Staggered Entrance (Optimization)
+  useEffect(() => {
+    if (!openId) {
+      const timeout = setTimeout(() => {
+        animeAnimate('.game-card-anim', {
+          opacity: [0, 1],
+          translateY: [20, 0],
+          delay: stagger(30, { start: 100 }),
+          duration: 600,
+          easing: 'easeOutQuart'
+        });
+      }, 50);
+      return () => clearTimeout(timeout);
+    }
+  }, [openId, filterCat, searchTerm]);
+
   useEffect(() => {
     const handleResize = () => {
       const width = window.innerWidth;
@@ -410,11 +427,9 @@ export default function GamesPage() {
     const isPlayed = playedSet.has(game.id);
     const stats = userStats.find(s => s.game_id === game.id);
     return (
-      <motion.div
+      <div
         key={game.id}
-        whileHover={{ y: -5, boxShadow: '0 10px 20px rgba(0,0,0,0.3)' }}
-        whileTap={{ scale: 0.95 }}
-        className={`gameCard ${getTierClass(stats?.game_level || 0)}`}
+        className={`game-card-anim gameCard ${getTierClass(stats?.game_level || 0)} opacity-0`}
         onClick={() => handleToggle(game.id)}
         style={{ border: isPlayed ? '1px solid rgba(255,255,255,0.05)' : '1px dotted var(--accent)', transition: 'all 0.2s', padding: 16 }}
       >
@@ -428,7 +443,7 @@ export default function GamesPage() {
         <span className="gameCardIcon" style={{ filter: 'drop-shadow(0 4px 6px rgba(0,0,0,0.2))' }}>{game.icon}</span>
         <span className="gameCardTitle">{game.title}</span>
         <span style={{ fontSize: '0.6rem', opacity: 0.4, textTransform: 'uppercase', letterSpacing: 0.5 }}>{game.category} • 🟢 12 online</span>
-      </motion.div>
+      </div>
     );
   };
 

@@ -17,6 +17,9 @@ import { CATEGORIES } from '../../constants/categories';
 import { getUserDisplayName, getNicknameClass } from '../../utils/user';
 import { Eye, Repeat2, MessageSquare, ChevronRight } from 'lucide-react';
 
+import GravityField from '../Effects/GravityField';
+import { StardustEntrance } from '../Effects/CosmicProvider';
+
 // Configuración de sanitize para permitir nuestras clases sd-* en la preview
 const sanitizeSchema = {
     ...defaultSchema,
@@ -83,13 +86,17 @@ const ActivityCard = memo(({ post, onUpdate, onNewPost, onHeightChange }) => {
     const hasLongContent = (post.content || '').split('\n').length > 6 || (post.content || '').length > 400;
     const catMeta = getCategoryMeta(post.category);
 
+    const reactions = post.reactions_metadata || { total_count: 0 };
+    const totalReactions = parseInt(reactions.total_count) || 0;
+    const popularityIntensity = Math.min(10, Math.floor(totalReactions / 5));
+
     return (
-        <>
+        <StardustEntrance delay={Math.random() * 300}>
             <motion.div
                 initial={{ opacity: 0, scale: 0.98 }}
                 animate={{ opacity: 1, scale: 1 }}
                 layout
-                className="postCard mb-4 cursor-pointer"
+                className="postCard mb-4 cursor-pointer relative"
                 onClick={() => {
                     if (post.isOptimistic) return;
                     if (!isExpanded && hasLongContent) {
@@ -100,6 +107,8 @@ const ActivityCard = memo(({ post, onUpdate, onNewPost, onHeightChange }) => {
                 }}
                 role="article"
             >
+                <GravityField isActive={totalReactions > 5} intensity={popularityIntensity} />
+
                 <div className="flex gap-4">
                     {/* AVATAR */}
                     <Link
@@ -228,7 +237,7 @@ const ActivityCard = memo(({ post, onUpdate, onNewPost, onHeightChange }) => {
                     setShowShareModal(false);
                 }}
             />
-        </>
+        </StardustEntrance>
     );
 });
 export default ActivityCard;

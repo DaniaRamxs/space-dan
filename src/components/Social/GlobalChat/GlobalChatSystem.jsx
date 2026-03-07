@@ -93,7 +93,7 @@ export default function GlobalChat() {
     // Sidebar: Cargar eventos recientes y estadísticas
     useEffect(() => {
         const loadSidebarData = async () => {
-            const evs = await cosmicEventsService.getRecentCosmicEvents(5);
+            const evs = await cosmicEventsService.getUniverseEvents(5);
             setRecentCosmicEvents(evs);
 
             // Stats ficticias o reales
@@ -1592,7 +1592,7 @@ export default function GlobalChat() {
                             <Palette size={18} />
                         </button>
                         <button
-                            onClick={() => navigate('/mapa-estelar')}
+                            onClick={() => navigate('/universo')}
                             className="p-2.5 bg-white/5 border border-white/10 rounded-xl text-cyan-400 hover:bg-cyan-400/10 hover:border-cyan-400/30 transition-all active:scale-95"
                             title="Mapa Estelar"
                         >

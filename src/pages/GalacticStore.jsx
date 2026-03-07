@@ -1,6 +1,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { animate as animeAnimate, stagger } from 'animejs';
 import { stellarStoreService } from '../services/stellarStoreService';
 import { supabase } from '../supabaseClient';
 import { useAuthContext } from '../contexts/AuthContext';
@@ -56,6 +57,23 @@ export default function GalacticStore() {
             setLoading(false);
         }
     };
+
+    // Anime.js Staggered Entrance (Optimization)
+    useEffect(() => {
+        if (!loading && products.length > 0) {
+            const timeout = setTimeout(() => {
+                animeAnimate('.product-card-anim', {
+                    opacity: [0, 1],
+                    translateY: [40, 0],
+                    scale: [0.95, 1],
+                    delay: stagger(40, { start: 200 }),
+                    duration: 1000,
+                    easing: 'easeOutElastic(1, .8)'
+                });
+            }, 100);
+            return () => clearTimeout(timeout);
+        }
+    }, [loading, products]);
 
     const loadPayPalScript = () => {
         if (window.paypal) return;
@@ -409,11 +427,8 @@ function ProductCard({ product, onSelect, onPreview, delay }) {
     const isPass = product.id === 'stellar_pass';
 
     return (
-        <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay }}
-            className={`group relative flex flex-col h-full bg-[#070710]/40 backdrop-blur-md border ${isEmpire ? 'border-amber-500/30' : isPass ? 'border-cyan-500/30' : 'border-white/5'} rounded-[2.5rem] p-8 hover:border-white/20 transition-all duration-500 overflow-hidden shadow-2xl`}
+        <div
+            className={`product-card-anim group relative flex flex-col h-full bg-[#070710]/40 backdrop-blur-md border ${isEmpire ? 'border-amber-500/30' : isPass ? 'border-cyan-500/30' : 'border-white/5'} rounded-[2.5rem] p-8 hover:border-white/20 transition-all duration-500 overflow-hidden shadow-2xl opacity-0`}
         >
             {isPass && <div className="absolute top-8 right-8 bg-cyan-500 text-black text-[8px] font-black px-3 py-1 rounded-full shadow-[0_0_15px_rgba(6,182,212,0.5)] z-20 animate-bounce">TEMPORADA 1</div>}
 
@@ -476,7 +491,7 @@ function ProductCard({ product, onSelect, onPreview, delay }) {
                     </div>
                 </div>
             </div>
-        </motion.div>
+        </div>
     );
 }
 

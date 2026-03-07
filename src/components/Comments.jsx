@@ -83,6 +83,12 @@ export default function Comments({ postId }) {
     e.preventDefault();
     if (!text.trim() || !user || sending) return;
     setSending(true);
+    if (window.triggerRadioSignal && e.nativeEvent instanceof MouseEvent) {
+      window.triggerRadioSignal(e.nativeEvent.clientX, e.nativeEvent.clientY);
+    } else if (window.triggerRadioSignal) {
+      // Fallback a coordenadas del centro si fue con teclado
+      window.triggerRadioSignal(window.innerWidth / 2, window.innerHeight / 2);
+    }
     handleTyping(false);
 
     await supabase.from('comments').insert({

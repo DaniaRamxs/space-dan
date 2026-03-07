@@ -8,7 +8,7 @@ public class MainActivity extends BridgeActivity {
 
     @Override
     public void onCreate(android.os.Bundle savedInstanceState) {
-        registerPlugin(VoiceServicePlugin.class);l.ñ
+        registerPlugin(VoiceServicePlugin.class);
         registerPlugin(RadioServicePlugin.class);
         super.onCreate(savedInstanceState);
     }
@@ -20,6 +20,7 @@ public class MainActivity extends BridgeActivity {
      * para que se ejecute DESPUÉS de que el ciclo de pausa termine, evitando
      * el conflicto de estado que causaba el crash.
      */
+
     @Override
     public void onPause() {
         super.onPause();
@@ -44,3 +45,4 @@ public class MainActivity extends BridgeActivity {
         }
     }
 }
+

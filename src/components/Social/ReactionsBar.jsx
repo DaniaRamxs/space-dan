@@ -25,6 +25,11 @@ export default function ReactionsBar({ post, onUpdate }) {
         toggleReaction(type);
         setShowPicker(false);
 
+        if (isAdding && window.triggerSupernova && event) {
+            const rect = event.currentTarget.getBoundingClientRect();
+            window.triggerSupernova(rect.x + rect.width / 2, rect.y + rect.height / 2);
+        }
+
         if (isAdding && window.triggerLikeStar && event) {
             const rect = event.currentTarget.getBoundingClientRect();
             if (window.triggerLikeStar) window.triggerLikeStar(rect, 'starlys-counter', REACTION_CONFIG[type]?.icon || '✨');

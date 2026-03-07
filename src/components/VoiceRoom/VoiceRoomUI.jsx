@@ -7,8 +7,11 @@ import {
     useLocalParticipant,
     RoomAudioRenderer,
     useChat,
+    VideoTrack,
+    useTracks,
 } from '@livekit/components-react';
-import { Mic, MicOff, LogOut, Users, Radio, X, ChevronDown, ChevronUp, MessageSquare, Send, Gamepad2, Music, Flame, Volume2, VolumeX } from 'lucide-react';
+import { Track } from 'livekit-client';
+import { Mic, MicOff, LogOut, Users, Radio, X, ChevronDown, ChevronUp, MessageSquare, Send, Gamepad2, Music, Flame, Volume2, VolumeX, Monitor, MonitorOff } from 'lucide-react';
 import { supabase } from '../../supabaseClient';
 import { getNicknameClass } from '../../utils/user';
 import { getFrameStyle } from '../../utils/styles';
@@ -285,6 +288,9 @@ export default function VoiceRoomUI({
                                         {/* REACTOR DE ENERGÍA COLECTIVA */}
                                         <EnergyReactor roomName={roomName} />
 
+                                        {/* PANEL DE PANTALLA COMPARTIDA (NUEVO) */}
+                                        <ScreenSharePanel />
+
                                         {/* El JukeboxDJ persistente se renderiza a nivel del root del portal para evitar cortes de audio. */}
 
                                         {activeActivity && activeActivity !== 'dj' ? (
@@ -306,7 +312,10 @@ export default function VoiceRoomUI({
                                     </div>
                                     <footer className="p-6 sm:p-8 bg-black/40 border-t border-white/5 flex items-center justify-center gap-6">
                                         <VoiceFXMenu />
-                                        <MuteToggle />
+                                        <div className="flex items-center gap-4">
+                                            <MuteToggle />
+                                            <ScreenShareToggle />
+                                        </div>
                                     </footer>
                                 </motion.div>
                             </div>
@@ -532,5 +541,58 @@ function MuteToggle() {
         >
             {isMicrophoneEnabled ? <Mic size={24} /> : <MicOff size={24} />}
         </button>
+    );
+}
+
+function ScreenShareToggle() {
+    const { isScreenShareEnabled, localParticipant } = useLocalParticipant();
+
+    return (
+        <button
+            onClick={() => localParticipant.setScreenShareEnabled(!isScreenShareEnabled)}
+            className={`w-14 h-14 rounded-full flex items-center justify-center transition-all shadow-xl ${isScreenShareEnabled ? 'bg-cyan-500 text-black scale-110 shadow-cyan-500/20' : 'bg-white/5 text-white/40 border border-white/10 hover:bg-white/10'}`}
+            title={isScreenShareEnabled ? 'Dejar de compartir pantalla' : 'Compartir pantalla'}
+        >
+            {isScreenShareEnabled ? <MonitorOff size={24} /> : <Monitor size={24} />}
+        </button>
+    );
+}
+
+function ScreenSharePanel() {
+    const screenTracks = useTracks([Track.Source.ScreenShare]);
+
+    if (screenTracks.length === 0) return null;
+
+    return (
+        <div className="mb-8 space-y-4">
+            <div className="flex items-center gap-2 mb-2">
+                <div className="w-1.5 h-1.5 rounded-full bg-cyan-500 animate-pulse" />
+                <span className="text-[9px] font-black uppercase tracking-widest text-cyan-400">Transmisiones de Pantalla</span>
+            </div>
+
+            <div className="grid grid-cols-1 gap-4">
+                {screenTracks.map((trackRef) => (
+                    <motion.div
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        key={trackRef.participant.sid}
+                        className="bg-black rounded-3xl overflow-hidden border border-white/10 relative group aspect-video"
+                    >
+                        <VideoTrack trackRef={trackRef} className="w-full h-full object-contain" />
+
+                        <div className="absolute top-4 left-4 flex items-center gap-3">
+                            <div className="bg-black/80 backdrop-blur-md px-3 py-1.5 rounded-xl border border-white/10 flex items-center gap-2">
+                                <span className="text-[10px] font-black text-white uppercase tracking-wider">{trackRef.participant.identity}</span>
+                                <div className="px-1.5 py-0.5 rounded bg-red-500 text-[7px] font-black text-white uppercase animate-pulse">Live</div>
+                            </div>
+                        </div>
+
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-4">
+                            <p className="text-[9px] font-black text-white/60 uppercase tracking-widest">Compartiendo: {trackRef.participant.name || 'Piloto'}</p>
+                        </div>
+                    </motion.div>
+                ))}
+            </div>
+        </div>
     );
 }

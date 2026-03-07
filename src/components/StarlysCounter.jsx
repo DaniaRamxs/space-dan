@@ -1,18 +1,46 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
+import { animate } from 'animejs';
 
 const chars = "0123456789$#@%&*";
 
 export default function StarlysCounter({ value, className }) {
     const [displayValue, setDisplayValue] = useState(value);
     const [scrambled, setScrambled] = useState("");
-    const [showParticles, setShowParticles] = useState(false);
     const prevValue = useRef(value);
+    const containerRef = useRef(null);
+
+    const spawnParticles = () => {
+        if (!containerRef.current) return;
+
+        for (let i = 0; i < 12; i++) {
+            const particle = document.createElement('span');
+            particle.innerHTML = ['✨', '◈', '⭐', '💎'][Math.floor(Math.random() * 4)];
+            particle.style.position = 'absolute';
+            particle.style.pointerEvents = 'none';
+            particle.style.fontSize = '12px';
+            particle.style.left = '50%';
+            particle.style.top = '50%';
+            particle.style.zIndex = '50';
+
+            containerRef.current.appendChild(particle);
+
+            animate(particle, {
+                translateX: (Math.random() - 0.5) * 120,
+                translateY: -80 - Math.random() * 100,
+                rotate: Math.random() * 720,
+                scale: [0.5, 1.5, 0],
+                opacity: [1, 0],
+                duration: 1500 + Math.random() * 1000,
+                easing: 'easeOutQuart',
+                complete: () => particle.remove()
+            });
+        }
+    };
 
     useEffect(() => {
         if (value > prevValue.current) {
-            setShowParticles(true);
-            setTimeout(() => setShowParticles(false), 2000);
+            spawnParticles();
 
             // Scramble effect
             let iterations = 0;
@@ -36,7 +64,7 @@ export default function StarlysCounter({ value, className }) {
     }, [value]);
 
     return (
-        <div id="starlys-counter" className={`relative inline-flex items-center ${className} font-mono`}>
+        <div id="starlys-counter" ref={containerRef} className={`relative inline-flex items-center ${className} font-mono`}>
             <motion.span
                 key={value}
                 initial={{ opacity: 0.5, y: 5 }}
@@ -48,27 +76,6 @@ export default function StarlysCounter({ value, className }) {
                     {scrambled || displayValue.toLocaleString()}
                 </span>
             </motion.span>
-
-            <AnimatePresence>
-                {showParticles && Array.from({ length: 6 }).map((_, i) => (
-                    <motion.span
-                        key={i}
-                        initial={{ opacity: 1, y: 0, x: 0, scale: 0.5 }}
-                        animate={{
-                            opacity: 0,
-                            y: -60 - Math.random() * 40,
-                            x: (Math.random() - 0.5) * 60,
-                            rotate: Math.random() * 360,
-                            scale: 1.2
-                        }}
-                        exit={{ opacity: 0 }}
-                        transition={{ duration: 1.5, ease: "easeOut" }}
-                        className="absolute text-yellow-400 text-xs pointer-events-none"
-                    >
-                        ⭐
-                    </motion.span>
-                ))}
-            </AnimatePresence>
         </div>
     );
 }

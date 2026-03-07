@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import { animate as animeAnimate, stagger } from 'animejs';
 import {
     Box, Package, Shield, User, Sparkles, MessageSquare,
     Radio, Layout, ChevronLeft, Search, Filter, CheckCircle2,
@@ -131,6 +132,26 @@ export default function InventoryPage() {
         return result;
     }, [ownedItems, ownedCollectibles, activeTab, activeRarity, searchQuery]);
 
+    // Anime.js Staggered Entrance (Optimization)
+    useEffect(() => {
+        if (!loading && currentItems.length > 0) {
+            // Un pequeño delay para asegurar que el DOM está listo
+            const timeout = setTimeout(() => {
+                animeAnimate('.inventory-card-anim', {
+                    opacity: [0, 1],
+                    translateY: [40, 0],
+                    rotateZ: [-2, 0],
+                    scale: [0.95, 1],
+                    delay: stagger(30, { start: 100 }),
+                    duration: 1000,
+                    easing: 'easeOutElastic(1, .8)'
+                });
+            }, 50);
+            return () => clearTimeout(timeout);
+        }
+    }, [loading, activeTab, activeRarity, searchQuery]);
+
+
     const stats = useMemo(() => {
         return {
             total: ownedItems.length + ownedCollectibles.length,
@@ -248,10 +269,8 @@ export default function InventoryPage() {
                             {[...Array(10)].map((_, i) => <InventorySkeleton key={i} />)}
                         </div>
                     ) : currentItems.length > 0 ? (
-                        <motion.div
+                        <div
                             key="grid"
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
                             className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6"
                         >
                             {currentItems.map((item, idx) => (
@@ -263,7 +282,7 @@ export default function InventoryPage() {
                                     onAction={() => handleEquipAction(item)}
                                 />
                             ))}
-                        </motion.div>
+                        </div>
                     ) : (
                         <motion.div
                             key="empty"
@@ -317,9 +336,8 @@ function InventoryCard({ item, onAction, profile, user }) {
     const kind = item.kind || 'standard';
 
     return (
-        <motion.div
-            layout
-            className={`group relative h-full flex flex-col bg-white/[0.02] border rounded-[2.5rem] p-6 transition-all duration-300 ${borderClass} hover:bg-white/[0.04] overflow-hidden`}
+        <div
+            className={`inventory-card-anim group relative h-full flex flex-col bg-white/[0.02] border rounded-[2.5rem] p-6 transition-all duration-300 ${borderClass} hover:bg-white/[0.04] overflow-hidden opacity-0`}
         >
             {/* Background rarity glow */}
             <div className={`absolute -top-24 -right-24 w-48 h-48 rounded-full blur-[100px] opacity-0 group-hover:opacity-20 transition-opacity pointer-events-none bg-current ${rarityClass.split(' ')[0]}`} />
@@ -380,7 +398,7 @@ function InventoryCard({ item, onAction, profile, user }) {
                     </div>
                 </div>
             )}
-        </motion.div>
+        </div>
     );
 }
 

@@ -10,78 +10,64 @@ import { Capacitor } from '@capacitor/core'
 // Aplicar tema antes del render
 loadSavedTheme()
 
-const PUSH_TOKEN_KEY = 'spacely_push_token'
+const ONE_SIGNAL_SUB_KEY = 'spacely_onesignal_subscription_id'
+const ONE_SIGNAL_ID_KEY = 'spacely_onesignal_id'
 
-async function savePushToken(tokenValue) {
-  if (!tokenValue) return
-
-  try {
-    localStorage.setItem(PUSH_TOKEN_KEY, tokenValue)
-  } catch {
-    // Ignore local storage failures on strict/private environments.
-  }
-
-  try {
-    const { data } = await supabase.auth.getUser()
-    const userId = data?.user?.id
-    if (!userId) return
-
-    // Optional: only persists when `user_push_tokens` table exists in Supabase.
-    await supabase.from('user_push_tokens').upsert(
-      {
-        user_id: userId,
-        token: tokenValue,
-        platform: Capacitor.getPlatform(),
-        updated_at: new Date().toISOString(),
-      },
-      { onConflict: 'token' }
-    )
-  } catch (err) {
-    console.warn('[Push] No se pudo guardar token en Supabase:', err)
-  }
+function waitForDeviceReady() {
+  if (window.cordova?.platformId) return Promise.resolve()
+  return new Promise((resolve) => {
+    document.addEventListener('deviceready', () => resolve(), { once: true })
+  })
 }
 
-async function initPushNotifications() {
+async function initOneSignal() {
   if (!Capacitor.isNativePlatform()) return
 
+  const oneSignalAppId = import.meta.env.VITE_ONESIGNAL_APP_ID
+  if (!oneSignalAppId) {
+    console.warn('[OneSignal] Falta VITE_ONESIGNAL_APP_ID en .env')
+    return
+  }
+
   try {
-    const { PushNotifications } = await import('@capacitor/push-notifications')
+    await waitForDeviceReady()
+    const oneSignal = window.plugins?.OneSignal
 
-    const perm = await PushNotifications.checkPermissions()
-    let receive = perm.receive
-
-    if (receive === 'prompt') {
-      const request = await PushNotifications.requestPermissions()
-      receive = request.receive
-    }
-
-    if (receive !== 'granted') {
-      console.warn('[Push] Permiso de notificaciones no concedido')
+    if (!oneSignal) {
+      console.warn('[OneSignal] Plugin no disponible en runtime nativo')
       return
     }
 
-    await PushNotifications.register()
+    oneSignal.initialize(oneSignalAppId)
 
-    PushNotifications.addListener('registration', ({ value }) => {
-      console.log('[Push] Token registrado:', value)
-      savePushToken(value)
+    oneSignal.Notifications.addEventListener('click', (event) => {
+      window.dispatchEvent(new CustomEvent('native-push-action', { detail: event }))
     })
 
-    PushNotifications.addListener('registrationError', (error) => {
-      console.error('[Push] Error de registro:', error)
+    const canRequest = await oneSignal.Notifications.canRequestPermission().catch(() => false)
+    if (canRequest) {
+      await oneSignal.Notifications.requestPermission(true).catch(() => {})
+    }
+
+    const { data } = await supabase.auth.getUser()
+    if (data?.user?.id) {
+      oneSignal.login(data.user.id)
+    }
+
+    supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user?.id) {
+        oneSignal.login(session.user.id)
+      } else {
+        oneSignal.logout()
+      }
     })
 
-    PushNotifications.addListener('pushNotificationReceived', (notification) => {
-      console.log('[Push] Notificacion recibida:', notification)
-      window.dispatchEvent(new CustomEvent('native-push-received', { detail: notification }))
-    })
-
-    PushNotifications.addListener('pushNotificationActionPerformed', (action) => {
-      console.log('[Push] Notificacion abierta:', action)
-      window.dispatchEvent(new CustomEvent('native-push-action', { detail: action }))
-    })
+    const oneSignalId = await oneSignal.User.getOnesignalId().catch(() => null)
+    const subscriptionId = await oneSignal.User.pushSubscription.getIdAsync().catch(() => null)
+    if (oneSignalId) localStorage.setItem(ONE_SIGNAL_ID_KEY, oneSignalId)
+    if (subscriptionId) localStorage.setItem(ONE_SIGNAL_SUB_KEY, subscriptionId)
   } catch (err) {
-    console.warn('[Push] No se pudo inicializar Push Notifications:', err)
+    console.warn('[OneSignal] No se pudo inicializar:', err)
   }
 }
 
@@ -193,10 +179,7 @@ async function requestPermissions() {
     } catch { /* usuario denegó */ }
   }
 
-  // Notificaciones (Android 13+ / API 33+)
-  if ('Notification' in window && Notification.permission === 'default') {
-    await Notification.requestPermission().catch(() => {});
-  }
+  // Permiso de notificaciones se solicita desde OneSignal.
 }
 
 // Inicializar auth solo si estamos en nativo
@@ -208,7 +191,7 @@ if (Capacitor.isNativePlatform()) {
     // Pedir permisos tras el splash screen (≈700ms) + margen
     setTimeout(requestPermissions, 1200);
   });
-  setTimeout(initPushNotifications, 1400);
+  setTimeout(initOneSignal, 1400);
 }
 
 // Service Worker habilitado para caché de assets (mejora carga en móvil y PC)

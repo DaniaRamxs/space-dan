@@ -2,6 +2,7 @@ import React, { useEffect, useCallback, useRef, useState } from 'react';
 import { useActivityFeed } from '../../hooks/useActivityFeed';
 import ActivityCard from './ActivityCard';
 import CosmicEventCard from './CosmicEventCard';
+import MeteoriteEntrance from '../Effects/MeteoriteEntrance';
 import { PostSkeleton } from '../Skeletons/Skeleton';
 import LivenessSignals from './LivenessSignals';
 import { cosmicEventsService } from '../../services/cosmicEventsService';
@@ -100,14 +101,17 @@ export default function ActivityFeed({ userId, filter = 'all', category = null }
                     <div className="flex flex-col divide-y divide-white/[0.03]">
                         {mixedFeed.map((item) =>
                             item.kind === 'universe_event' ? (
-                                <CosmicEventCard key={`univ-${item.id}`} event={item} />
+                                <MeteoriteEntrance key={`univ-${item.id}`}>
+                                    <CosmicEventCard event={item} />
+                                </MeteoriteEntrance>
                             ) : (
-                                <ActivityCard
-                                    key={item.id}
-                                    post={item}
-                                    onUpdate={handleUpdatePost}
-                                    onNewPost={handleNewPost}
-                                />
+                                <MeteoriteEntrance key={item.id}>
+                                    <ActivityCard
+                                        post={item}
+                                        onUpdate={handleUpdatePost}
+                                        onNewPost={handleNewPost}
+                                    />
+                                </MeteoriteEntrance>
                             )
                         )}
                     </div>

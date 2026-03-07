@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { animate as anime, stagger } from 'animejs';
+import { animate, stagger } from 'animejs';
 
 const SatelliteNotification = ({ active = false }) => {
     const satellitesCount = 3;
@@ -14,7 +14,7 @@ const SatelliteNotification = ({ active = false }) => {
             const radius = 18 + (i * 4);
             const duration = 3000 + (i * 1500);
 
-            animations.push(anime(el, {
+            animations.push(animate(el, {
                 duration: duration,
                 loop: true,
                 easing: 'linear',
@@ -32,7 +32,7 @@ const SatelliteNotification = ({ active = false }) => {
 
     useEffect(() => {
         if (active) {
-            anime('.notif-sat-unit', {
+            animate('.notif-sat-unit', {
                 scale: [1, 2.5, 1],
                 backgroundColor: ['#fff', '#00e5ff', '#fff'],
                 boxShadow: ['0 0 0px #fff', '0 0 15px #00e5ff', '0 0 0px #fff'],

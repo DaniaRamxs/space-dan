@@ -7,6 +7,7 @@ import ChatActivityCard from '../components/Social/ChatActivityCard';
 import GlobalChatPreview from '../components/Social/GlobalChatPreview';
 import { CATEGORIES } from '../constants/categories';
 import { Globe, MessageSquare } from 'lucide-react';
+import StellarScrollBg from '../components/Effects/StellarScrollBg';
 
 export default function PostsPage() {
   const { user } = useAuthContext();
@@ -19,6 +20,7 @@ export default function PostsPage() {
 
   return (
     <main className="w-full max-w-2xl mx-auto min-h-screen pb-32 text-white font-sans flex flex-col pt-6 md:pt-10 px-0 md:px-4 relative">
+      <StellarScrollBg />
 
       {/* Header Minimalista */}
       <motion.div

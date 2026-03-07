@@ -1,5 +1,5 @@
-import React, { useCallback } from 'react';
-import { animate as anime } from 'animejs';
+import { useCallback } from 'react';
+import { animate } from 'animejs';
 
 const StarsLiker = () => {
     const triggerStar = useCallback((sourceRect, targetId = 'starlys-counter', emoji = '⭐') => {
@@ -29,7 +29,7 @@ const StarsLiker = () => {
         });
         document.body.appendChild(star);
 
-        anime(star, {
+        animate(star, {
             translateX: targetRect.left - sourceRect.left,
             translateY: targetRect.top - sourceRect.top,
             scale: [1, 2, 0.5],
@@ -40,7 +40,7 @@ const StarsLiker = () => {
             onComplete: () => {
                 star.remove();
                 if (targetEl) {
-                    anime(targetEl, {
+                    animate(targetEl, {
                         scale: [1, 1.3, 1],
                         duration: 300,
                         easing: 'outQuad'

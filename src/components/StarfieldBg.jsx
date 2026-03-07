@@ -1,18 +1,24 @@
 import { useEffect, useRef, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { cosmicEventsService } from '../services/cosmicEventsService';
 
 const isMobile = () => window.innerWidth < 768 || ('ontouchstart' in window);
 const STAR_COUNT = isMobile() ? 60 : 150;
 const NEBULA_COUNT = isMobile() ? 1 : 3;
-const FRAME_INTERVAL = isMobile() ? 1000 / 30 : 1000 / 60;
-
+const FRAME_INTERVAL = 1000 / 30; // 30 FPS constant for low-power background
 const STAR_THEME = { r: 255, g: 255, b: 255, nebula: 'rgba(139, 92, 246, 0.05)' };
 
 export default function StarfieldBg() {
   const canvasRef = useRef(null);
+  const location = useLocation();
   const [event, setEvent] = useState(null);
 
+  const isHeavyRoute = location.pathname.startsWith('/game/') ||
+    location.pathname === '/universo' ||
+    location.pathname === '/explorar';
+
   useEffect(() => {
+    if (isHeavyRoute) return;
     const checkEvent = async () => {
       const active = await cosmicEventsService.getActiveEvent();
       setEvent(active);
@@ -20,10 +26,12 @@ export default function StarfieldBg() {
     checkEvent();
     const interval = setInterval(checkEvent, 60000);
     return () => clearInterval(interval);
-  }, []);
+  }, [isHeavyRoute]);
 
   useEffect(() => {
+    if (isHeavyRoute) return;
     const canvas = canvasRef.current;
+    if (!canvas) return;
     const ctx = canvas.getContext('2d');
     const theme = STAR_THEME;
 
@@ -165,6 +173,8 @@ export default function StarfieldBg() {
     };
   }, [event]);
 
+  if (isHeavyRoute) return null;
+
   return (
     <canvas
       ref={canvasRef}
@@ -175,10 +185,9 @@ export default function StarfieldBg() {
         left: 0,
         width: '100%',
         height: '100%',
-        zIndex: -2,
+        zIndex: -3,
         pointerEvents: 'none',
         display: 'block',
-        backgroundColor: '#030308',
       }}
     />
   );

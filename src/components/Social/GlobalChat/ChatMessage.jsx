@@ -1,5 +1,5 @@
-import { memo } from 'react';
-import { motion } from 'framer-motion';
+import { memo, useEffect, useRef } from 'react';
+import { animate } from 'animejs';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeRaw from 'rehype-raw';
@@ -50,21 +50,44 @@ export const parseLinksToImages = (text) => {
 
 const ChatMessage = memo(({ message, isMe, isOnline, userPresence, onProfileClick, onReply, isGrouped = false }) => {
     const { author, content, is_vip, created_at, reactions, reply } = message;
+    const msgRef = useRef(null);
+
+    useEffect(() => {
+        if (msgRef.current) {
+            animate(msgRef.current, {
+                opacity: [0, 1],
+                translateX: [isMe ? 20 : -20, 0],
+                duration: 400,
+                easing: 'easeOutQuart'
+            });
+
+            if (is_vip) {
+                animate(msgRef.current.querySelector('.chat-message-bubble'), {
+                    boxShadow: [
+                        '0 0 0px rgba(245, 158, 11, 0)',
+                        '0 0 20px rgba(245, 158, 11, 0.3)',
+                        '0 0 0px rgba(245, 158, 11, 0)'
+                    ],
+                    duration: 3000,
+                    loop: true,
+                    easing: 'easeInOutSine'
+                });
+            }
+        }
+    }, [isMe, is_vip]);
 
     // Fallback author for safety
     const safeAuthor = author || { username: 'Viajero', id: message.user_id };
 
     const handleCopy = () => {
         navigator.clipboard.writeText(content);
-        // Podríamos disparar un mini-toast aquí si fuera necesario
     };
 
     return (
-        <motion.div
-            initial={{ opacity: 0, x: isMe ? 20 : -20 }}
-            animate={{ opacity: 1, x: 0 }}
+        <div
+            ref={msgRef}
             className={`flex gap-3 group/msg ${isMe ? 'flex-row-reverse' : 'flex-row'} items-start 
-                ${isGrouped ? 'mt-[-8px]' : 'mt-2'}`}
+                ${isGrouped ? 'mt-[-8px]' : 'mt-2'} opacity-0`}
         >
             {/* Avatar + Frame — Solo si NO está agrupado */}
             <div className={`relative shrink-0 w-8 sm:w-10 mt-1 transition-opacity duration-300 ${isGrouped ? 'opacity-0 pointer-events-none h-0' : 'opacity-100'}`}>
@@ -256,7 +279,7 @@ const ChatMessage = memo(({ message, isMe, isOnline, userPresence, onProfileClic
                     </div>
                 )}
             </div>
-        </motion.div>
+        </div>
     );
 }, (prev, next) => {
     return (
