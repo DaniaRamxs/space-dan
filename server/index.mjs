@@ -41,7 +41,7 @@ gameServer.define("chess", ChessRoom).filterBy(['roomName']);
 gameServer.define("pixel-galaxy", PixelGalaxyRoom).filterBy(['roomName']);
 
 const server = http.createServer(app);
-gameServer.attach({ server });
+gameServer.attach({ server, app });
 
 server.listen(port, () => {
     console.log(`[Colyseus Server] Battle station active at port ${port}`);
