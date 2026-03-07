@@ -14,8 +14,6 @@ import { PixelGalaxyRoom } from "./rooms/PixelGalaxyRoom.mjs";
 
 import cors from "cors";
 
-import { listen } from "@colyseus/tools";
-
 // Just define the rooms here, let @colyseus/tools handle the server setup
 const port = process.env.PORT || 2567;
 const app = express();
