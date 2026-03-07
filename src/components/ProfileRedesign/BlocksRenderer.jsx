@@ -57,11 +57,17 @@ export const BlocksRenderer = ({ blocks, userId, isOwn, onEdit, profileData }) =
                 return (
                     <div className="p-6 md:p-12 rounded-3xl md:rounded-[2.5rem] bg-white/[0.02] border border-white/5 space-y-6">
                         <span className="text-[10px] font-black text-white/20 uppercase tracking-widest italic">Métricas Vitales</span>
-                        <div className="grid grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
+                        <div className={`grid gap-6 md:gap-8 ${profileData?.prestige_level > 0 ? 'grid-cols-2 lg:grid-cols-4' : 'grid-cols-2 lg:grid-cols-3'}`}>
                             <div className="space-y-1">
                                 <div className="text-[9px] uppercase font-black text-white/30">Nivel</div>
                                 <div className="text-xl md:text-3xl font-black text-white italic truncate">LVL {level}</div>
                             </div>
+                            {profileData?.prestige_level > 0 && (
+                                <div className="space-y-1">
+                                    <div className="text-[9px] uppercase font-black text-cyan-400">Renacer</div>
+                                    <div className="text-xl md:text-3xl font-black text-white italic truncate">×{profileData.prestige_level}</div>
+                                </div>
+                            )}
                             <div className="space-y-1">
                                 <div className="text-[9px] uppercase font-black text-white/30">Starlys</div>
                                 <div className="text-xl md:text-3xl font-black text-cyan-400 italic truncate">◈ {balance.toLocaleString()}</div>

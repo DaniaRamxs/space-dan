@@ -350,7 +350,7 @@ export default function PublicProfilePage() {
   // GAMER STATS CALCULATION
   const totalXp = Math.floor(Math.max(0, (profile?.balance || 0) + (unlockedAchs.length * 150) + (gameRanks.length * 200) + ((cabinStats?.total_focus_minutes || 0) * 2)));
   const baseLevel = Math.max(1, Math.floor(0.1 * Math.sqrt(totalXp)));
-  const level = baseLevel;
+  const level = profile?.level || baseLevel;
   const nextLevelXp = Math.floor(Math.pow((level + 1) / 0.1, 2));
   const prevLevelXp = Math.floor(Math.pow(level / 0.1, 2));
   const currentXpProgress = totalXp - prevLevelXp;
@@ -713,8 +713,14 @@ function ProfileContent({
                   );
                 })()}
 
-                <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 px-4 py-1.5 rounded-full bg-white text-black text-[10px] font-black uppercase tracking-widest shadow-xl z-50">
-                  LVL {level}
+                <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 px-4 py-1.5 rounded-full bg-white text-black text-[10px] font-black uppercase tracking-[0.2em] shadow-[0_10px_30px_rgba(255,255,255,0.3)] z-50 flex items-center gap-2 border border-white/20 scale-105">
+                  <span>LVL {level}</span>
+                  {profile?.prestige_level > 0 && (
+                    <div className="flex items-center gap-1 pl-1.5 border-l border-black/10">
+                      <span className="text-[11px]">🌀</span>
+                      <span className="text-[9px] font-black">{profile.prestige_level}</span>
+                    </div>
+                  )}
                 </div>
 
                 {/* Mood Thought Bubble */}
@@ -845,6 +851,35 @@ function ProfileContent({
                     {followCounts.following}
                   </button>
                 </div>
+                {profile?.prestige_level > 0 && (
+                  <div className="pt-8 border-t border-white/5 space-y-4">
+                    <div className="p-5 rounded-[2rem] bg-gradient-to-br from-cyan-500/10 via-indigo-500/5 to-purple-500/10 border border-cyan-500/20 shadow-[0_0_20px_rgba(34,211,238,0.05)] relative overflow-hidden group">
+                      <div className="absolute top-0 right-0 w-24 h-24 bg-cyan-400/5 blur-3xl rounded-full translate-x-12 -translate-y-12"></div>
+                      <div className="relative z-10 space-y-4">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <span className="text-xl">🌀</span>
+                            <div className="flex flex-col">
+                              <span className="text-[9px] font-black uppercase tracking-[0.2em] text-cyan-400">Renacimiento</span>
+                              <span className="text-[8px] font-bold text-white/30 uppercase tracking-[0.3em]">Nivel {profile.prestige_level}</span>
+                            </div>
+                          </div>
+                          <div className="text-2xl font-black italic text-white/10 group-hover:text-cyan-400/20 transition-colors">×{profile.prestige_level}</div>
+                        </div>
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between text-[10px] font-bold">
+                            <span className="text-white/40">BONUS XP</span>
+                            <span className="text-cyan-400">+{profile.prestige_level * 10}%</span>
+                          </div>
+                          <div className="flex items-center justify-between text-[10px] font-bold">
+                            <span className="text-white/40">BONUS STARLYS</span>
+                            <span className="text-amber-500">+{profile.prestige_level * 5}%</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
                 {topGlobalRank !== 'N/A' && (
                   <div className="flex justify-between items-end">
                     <span className="text-micro opacity-40 uppercase tracking-widest">Posición Global</span>

@@ -53,8 +53,7 @@ const ArquitecturaPage = lazy(() => import("./pages/ArquitecturaPage"));
 const ProjectsPage = lazy(() => import("./pages/ProjectsPage"));
 const AchievementsPage = lazy(() => import("./pages/AchievementsPage"));
 const ShopPage = lazy(() => import("./pages/ShopPage"));
-const ProfileOwn = lazy(() => import("./pages/Profile/ProfileOwn"));
-const ProfilePublic = lazy(() => import("./pages/Profile/ProfilePublic"));
+const ProfileRedesign = lazy(() => import("./pages/Profile/ProfileRedesign"));
 const SpaceCabinPage = lazy(() => import("./pages/SpaceCabinPage"));
 const OrbitLettersPage = lazy(() => import("./pages/OrbitLettersPage"));
 const VaultPage = lazy(() => import("./pages/VaultPage"));
@@ -220,8 +219,8 @@ function AnimatedRoutes() {
         <Route path="/guestbook" element={<Layout><GuestbookPage /></Layout>} />
         <Route path="/desktop" element={<Layout><DesktopPage /></Layout>} />
         <Route path="/spotify-callback" element={<Suspense fallback={null}><SpotifyCallback /></Suspense>} />
-        <Route path="/@:username" element={<Layout><ProfilePublic /></Layout>} />
-        <Route path="/profile" element={user ? <Layout><ProfileOwn /></Layout> : <Layout><LoginGate /></Layout>} />
+        <Route path="/@:username" element={<Layout><ProfileRedesign /></Layout>} />
+        <Route path="/profile" element={user ? <Layout><ProfileRedesign /></Layout> : <Layout><LoginGate /></Layout>} />
         <Route path="*" element={<Navigate to="/posts" replace />} />
       </Routes>
     </AnimatePresence>

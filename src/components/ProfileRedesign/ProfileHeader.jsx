@@ -158,6 +158,24 @@ export const ProfileHeader = ({ profile, theme, isOwn, isFollowing, onFollow, on
                             <div className="absolute bottom-3 right-3 w-5 h-5 rounded-full border-[3px] border-[#04040a] bg-green-500 shadow-[0_0_15px_rgba(34,197,94,0.6)] z-30" />
                         )}
                     </motion.div>
+
+                    {/* Indicador de Nivel Estelar */}
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ delay: 0.8, type: 'spring' }}
+                        className="absolute -bottom-2 left-1/2 -translate-x-1/2 z-40"
+                    >
+                        <div className="px-5 py-1.5 rounded-full bg-white text-black text-[10px] font-black uppercase tracking-[0.2em] shadow-[0_10px_30px_rgba(255,255,255,0.3)] flex items-center gap-2 border border-white/20">
+                            <span>LVL {profile.level || 1}</span>
+                            {profile.prestige_level > 0 && (
+                                <div className="flex items-center gap-1.5 pl-2 border-l border-black/10">
+                                    <span className="text-[12px] animate-spin-slow">🌀</span>
+                                    <span className="text-[10px] font-black">{profile.prestige_level}</span>
+                                </div>
+                            )}
+                        </div>
+                    </motion.div>
                 </div>
 
                 {/* Información del Universo */}

@@ -268,15 +268,26 @@ export default function ProfileRedesignPage() {
         setLoading(true);
         setNotFound(false);
         try {
-            const cleanUsername = username.startsWith('@') ? username.slice(1) : username;
+            let prof = null;
 
-            const { data: prof, error: profError } = await supabase
-                .from('profiles')
-                .select('*')
-                .ilike('username', cleanUsername)
-                .maybeSingle();
+            if (!username && user) {
+                const { data } = await supabase
+                    .from('profiles')
+                    .select('*')
+                    .eq('id', user.id)
+                    .single();
+                prof = data;
+            } else if (username) {
+                const cleanUsername = username.startsWith('@') ? username.slice(1) : username;
+                const { data } = await supabase
+                    .from('profiles')
+                    .select('*')
+                    .ilike('username', cleanUsername)
+                    .maybeSingle();
+                prof = data;
+            }
 
-            if (profError || !prof) {
+            if (!prof) {
                 setNotFound(true);
                 setLoading(false);
                 return;
@@ -296,7 +307,11 @@ export default function ProfileRedesignPage() {
             ]);
 
             if (levelData.status === 'fulfilled') {
-                setProfile(prev => ({ ...prev, level: levelData.value.level }));
+                setProfile(prev => ({
+                    ...prev,
+                    level: prev.level || levelData.value.level,
+                    xp: levelData.value.xp
+                }));
             }
             setTheme(themeData.status === 'fulfilled' ? themeData.value : newProfileService.getDefaultTheme(prof.id));
             setBlocks(blocksData.status === 'fulfilled' ? blocksData.value : []);
