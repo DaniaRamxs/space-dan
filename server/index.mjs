@@ -17,8 +17,19 @@ import cors from "cors";
 const port = process.env.PORT || 2567;
 const app = express();
 
-app.use(cors());
+// Very permissive CORS for matchmaking
+app.use(cors({
+    origin: '*',
+    methods: ['GET', 'POST', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+    credentials: true,
+}));
+app.options('*', cors()); // Explicitly handle pre-flight requests
+
 app.use(express.json());
+
+// Add a simple health check route
+app.get("/health", (req, res) => res.send("Server is alive!"));
 
 const server = http.createServer(app);
 const gameServer = new Server({
