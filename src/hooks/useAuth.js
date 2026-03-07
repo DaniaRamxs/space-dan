@@ -42,7 +42,6 @@ export default function useAuth() {
       setLoading(false);
     });
 
-
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
       if (!session) {
@@ -132,12 +131,20 @@ export default function useAuth() {
 
 
   const getRedirectUrl = () => {
+    const { hostname, origin } = window.location;
+    const isLocal = hostname === 'localhost' || hostname === '127.0.0.1';
+
+    if (isLocal) {
+      const url = `${origin}/auth/callback`;
+      console.log('[Auth] Usando dirección de retorno local:', url);
+      return url;
+    }
+
     if (Capacitor.isNativePlatform()) {
       return 'https://joinspacely.com/auth/callback';
     }
-    // Para Desarrollo Web (localhost) o Producción Web, usamos el origen actual.
-    // Esto asegura que la sesión se guarde en el almacenamiento correcto (origen).
-    return `${window.location.origin}/auth/callback`;
+
+    return 'https://joinspacely.com/auth/callback';
   };
 
   const loginWithProvider = async (provider) => {

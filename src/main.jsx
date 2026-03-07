@@ -46,7 +46,7 @@ async function initOneSignal() {
 
     const canRequest = await oneSignal.Notifications.canRequestPermission().catch(() => false)
     if (canRequest) {
-      await oneSignal.Notifications.requestPermission(true).catch(() => {})
+      await oneSignal.Notifications.requestPermission(true).catch(() => { })
     }
 
     const { data } = await supabase.auth.getUser()
@@ -209,3 +209,12 @@ createRoot(document.getElementById('root')).render(
     <App />
   </StrictMode>
 )
+
+// Purga de Service Workers en localhost para evitar redirecciones de dominio persistentes
+if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.getRegistrations().then(regs => {
+      regs.forEach(reg => reg.unregister().then(() => console.log('[Dev] SW purgado para evitar redirecciones de caché')));
+    });
+  }
+}
