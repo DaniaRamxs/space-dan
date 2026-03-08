@@ -35,13 +35,18 @@ export class AsteroidBattleRoom extends GameRoom {
 
         this.onMessage("input", (client, message) => {
             if (this.state.phase !== "playing") return;
+
             const player = this.state.players.get(client.sessionId);
             if (!player || player.hp <= 0 || player.lives <= 0) return;
 
-            const { keys, rotation } = message;
+            const keys = message.keys || message;
+            const rotation = message.rotation ?? player.rotation;
+
             player.rotation = rotation;
 
-            let dx = 0, dy = 0;
+            let dx = 0;
+            let dy = 0;
+
             if (keys.w) dy -= 1;
             if (keys.s) dy += 1;
             if (keys.a) dx -= 1;
@@ -64,12 +69,15 @@ export class AsteroidBattleRoom extends GameRoom {
 
             const bullet = new Bullet();
             bullet.id = `b_${client.sessionId}_${Date.now()}`;
-            bullet.userId = client.sessionId;
+            bullet.owner = client.sessionId
             bullet.x = player.x;
             bullet.y = player.y;
             bullet.vx = Math.cos(player.rotation) * BULLET_SPEED;
             bullet.vy = Math.sin(player.rotation) * BULLET_SPEED;
-            this.state.bullets.push(bullet);
+            const shooter = this.state.players.get(b.owner);
+            if (shooter) {
+                shooter.score += ast.size * 50;
+            }
         });
 
         this.setSimulationInterval((dt) => this.update(dt), 16);
@@ -109,7 +117,7 @@ export class AsteroidBattleRoom extends GameRoom {
 
     spawnAsteroid() {
         if (this.state.asteroids.size >= MAX_ASTEROIDS) return;
-        const id = `ast_${Date.now()}`;
+        const id = `ast_${Date.now()}_${Math.random()}`
         const side = Math.floor(Math.random() * 4);
         let x, y;
         if (side === 0) { x = 0; y = Math.random() * WORLD_HEIGHT; }
