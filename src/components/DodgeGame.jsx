@@ -13,6 +13,21 @@ const PLAYER_SPD = 4;
 const ENEMY_R = 7;
 const MAX_ENEMIES = 18;
 const SPAWN_MS = 1500;
+const FRAME_MS = 1000 / 60; // cap a 60fps
+
+// Pre-render la grilla una sola vez
+function buildGridCanvas() {
+  const offscreen = document.createElement('canvas');
+  offscreen.width = CANVAS_W;
+  offscreen.height = CANVAS_H;
+  const ctx = offscreen.getContext('2d');
+  ctx.strokeStyle = 'rgba(0, 229, 255, 0.05)';
+  ctx.lineWidth = 1;
+  for (let i = 0; i < CANVAS_W; i += 40) { ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, CANVAS_H); ctx.stroke(); }
+  for (let i = 0; i < CANVAS_H; i += 40) { ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(CANVAS_W, i); ctx.stroke(); }
+  return offscreen;
+}
+let gridCanvas = null;
 
 function spawnEnemy(px, py, score) {
   const edge = Math.floor(Math.random() * 4);
@@ -45,6 +60,7 @@ function DodgeGameInner() {
     enemies: [], keys: {}, score: 0,
     lastSpawn: 0, lastTick: 0
   });
+  const lastFrameRef = useRef(0);
 
   const collides = (e, px, py) => {
     const nearX = Math.max(px - PLAYER_SZ / 2, Math.min(e.x, px + PLAYER_SZ / 2));
@@ -54,32 +70,25 @@ function DodgeGameInner() {
     return dx * dx + dy * dy < ENEMY_R * ENEMY_R;
   };
 
-  const draw = useCallback((ctx, s, now) => {
+  const draw = useCallback((ctx, s) => {
     // Trail effect
     ctx.fillStyle = 'rgba(5, 5, 8, 0.2)';
     ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
 
-    // Grid details
-    ctx.strokeStyle = 'rgba(0, 229, 255, 0.05)';
-    ctx.lineWidth = 1;
-    for (let i = 0; i < CANVAS_W; i += 40) { ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, CANVAS_H); ctx.stroke(); }
-    for (let i = 0; i < CANVAS_H; i += 40) { ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(CANVAS_W, i); ctx.stroke(); }
+    // Grilla pre-cacheada (sin recalcular cada frame)
+    if (!gridCanvas) gridCanvas = buildGridCanvas();
+    ctx.drawImage(gridCanvas, 0, 0);
 
     if (status === 'PLAYING') {
-      const pulse = Math.sin(now / 200) * 5;
-      // Player
-      ctx.shadowBlur = 15 + pulse;
-      ctx.shadowColor = '#ff00ff';
+      // Player (sin shadowBlur)
       ctx.fillStyle = '#ff00ff';
       ctx.beginPath();
       ctx.roundRect(s.px - PLAYER_SZ / 2, s.py - PLAYER_SZ / 2, PLAYER_SZ, PLAYER_SZ, 4);
       ctx.fill();
 
-      // Enemies
+      // Enemies (sin shadowBlur)
+      ctx.fillStyle = '#00e5ff';
       s.enemies.forEach(e => {
-        ctx.shadowBlur = 10;
-        ctx.shadowColor = '#00e5ff';
-        ctx.fillStyle = '#00e5ff';
         ctx.beginPath();
         ctx.arc(e.x, e.y, ENEMY_R, 0, Math.PI * 2);
         ctx.fill();
@@ -103,6 +112,11 @@ function DodgeGameInner() {
     let animId;
 
     const loop = (now) => {
+      animId = requestAnimationFrame(loop);
+      // Cap a 60fps
+      if (now - lastFrameRef.current < FRAME_MS) return;
+      lastFrameRef.current = now;
+
       const s = stateRef.current;
       if (status === 'PLAYING') {
         // Player Movement
@@ -146,8 +160,7 @@ function DodgeGameInner() {
           }
         });
       }
-      draw(ctx, s, now);
-      animId = requestAnimationFrame(loop);
+      draw(ctx, s);
     };
 
     animId = requestAnimationFrame(loop);

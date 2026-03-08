@@ -4,7 +4,8 @@ import { GameImmersiveLayout } from '../core/GameImmersiveLayout';
 import { ArcadeShell } from './ArcadeShell';
 import { useArcadeSystems } from '../hooks/useArcadeSystems';
 
-const W = 400;
+const W = 4
+const FRAME_MS = 1000 / 60;
 const H = 400;
 const TARGET_R = 80;
 const MAX_ROUNDS = 10;
@@ -71,10 +72,7 @@ function PerfectTapInner() {
             ctx.lineWidth = 2;
 
             // Subtle glow
-            ctx.shadowColor = '#00e5ff';
-            ctx.shadowBlur = 10;
             ctx.stroke();
-            ctx.shadowBlur = 0;
         }
 
         // Draw Message

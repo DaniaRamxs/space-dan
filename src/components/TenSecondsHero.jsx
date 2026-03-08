@@ -4,7 +4,8 @@ import { GameImmersiveLayout } from '../core/GameImmersiveLayout';
 import { ArcadeShell } from './ArcadeShell';
 import { useArcadeSystems } from '../hooks/useArcadeSystems';
 
-const W = 400;
+const W = 4
+const FRAME_MS = 1000 / 60;
 const H = 700;
 const PLAYER_R = 15;
 const PLAY_TIME = 10; // strictly 10 seconds
@@ -77,13 +78,10 @@ function TenSecondsHeroInner() {
         // Draw Obstacles
         for (const ob of s.obstacles) {
             ctx.fillStyle = '#ff1744';
-            ctx.shadowColor = '#ff1744';
-            ctx.shadowBlur = 15 + intensity * 20;
             ctx.fillRect(ob.x, ob.y, ob.w, ob.h);
 
             // Core
             ctx.fillStyle = '#fff';
-            ctx.shadowBlur = 0;
             ctx.fillRect(ob.x + 2, ob.y + 2, ob.w - 4, ob.h - 4);
         }
 
@@ -95,8 +93,6 @@ function TenSecondsHeroInner() {
         const tilt = (s.p.vx > 0 ? 1 : -1) * 0.2;
         ctx.rotate(tilt);
 
-        ctx.shadowColor = '#00e5ff';
-        ctx.shadowBlur = 20 + intensity * 15;
         ctx.fillStyle = '#00e5ff';
 
         ctx.beginPath();
@@ -107,7 +103,6 @@ function TenSecondsHeroInner() {
         ctx.fill();
 
         ctx.fillStyle = '#fff';
-        ctx.shadowBlur = 0;
         ctx.beginPath();
         ctx.moveTo(0, -PLAYER_R + 5);
         ctx.lineTo(PLAYER_R / 2, PLAYER_R / 2);

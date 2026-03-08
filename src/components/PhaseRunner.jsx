@@ -6,6 +6,7 @@ import { useArcadeSystems } from '../hooks/useArcadeSystems';
 
 const W = 400;
 const H = 700;
+const FRAME_MS = 1000 / 60;
 const PLAYER_SIZE = 24;
 const OBSTACLE_H = 30;
 const SPEED_BASE = 500; // pixels per second down
@@ -38,6 +39,7 @@ function PhaseRunnerInner() {
 
     const canvasRef = useRef(null);
     const rafRef = useRef(null);
+    const lastFrameRef = useRef(0);
 
     const {
         particles, floatingTexts, scoreControls,
@@ -90,12 +92,9 @@ function PhaseRunnerInner() {
 
             if (isActivePhase) {
                 // Lethal obstacle (matches your phase) -> Solid and Bright
-                ctx.shadowColor = ctx.fillStyle;
-                ctx.shadowBlur = 15;
                 ctx.globalAlpha = 1;
             } else {
                 // Harmless obstacle (different phase) -> Ghostly, dashed outline
-                ctx.shadowBlur = 0;
                 ctx.globalAlpha = 0.15;
             }
 
@@ -110,7 +109,6 @@ function PhaseRunnerInner() {
                 ctx.setLineDash([]);
             }
 
-            ctx.shadowBlur = 0;
             ctx.globalAlpha = 1;
 
             if (isActivePhase) {
@@ -121,8 +119,6 @@ function PhaseRunnerInner() {
 
         // Draw Player Ship (Diamond)
         ctx.fillStyle = activeColor;
-        ctx.shadowColor = activeColor;
-        ctx.shadowBlur = 20;
 
         // Player Diamond
         ctx.beginPath();
@@ -134,7 +130,6 @@ function PhaseRunnerInner() {
         ctx.fill();
 
         ctx.fillStyle = '#fff';
-        ctx.shadowBlur = 0;
         ctx.beginPath();
         ctx.moveTo(s.px, s.y - PLAYER_SIZE / 2);
         ctx.lineTo(s.px + PLAYER_SIZE / 2, s.y);
@@ -164,6 +159,9 @@ function PhaseRunnerInner() {
     }, []);
 
     const tick = useCallback((time) => {
+        rafRef.current = requestAnimationFrame(tick);
+        if (time - lastFrameRef.current < FRAME_MS) return;
+        lastFrameRef.current = time;
         const s = stateRef.current;
         if (!s.lastTime) s.lastTime = time;
         let dt = (time - s.lastTime) / 1000;
@@ -172,7 +170,6 @@ function PhaseRunnerInner() {
 
         if (statusRef.current === 'IDLE' || statusRef.current === 'DEAD') {
             draw();
-            rafRef.current = requestAnimationFrame(tick);
             return;
         }
 
@@ -262,7 +259,6 @@ function PhaseRunnerInner() {
         }
 
         draw();
-        rafRef.current = requestAnimationFrame(tick);
     }, [draw, saveScore, triggerHaptic, spawnParticles, triggerFloatingText, animateScore]);
 
     const handlePointerDown = (e) => {

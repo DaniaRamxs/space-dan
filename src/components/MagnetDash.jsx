@@ -6,6 +6,7 @@ import { useArcadeSystems } from '../hooks/useArcadeSystems';
 
 const W = 800;
 const H = 400; // Landscape orientation for a dash game
+const FRAME_MS = 1000 / 60;
 const PLAYER_R = 15;
 const OBSTACLE_R = 20;
 
@@ -35,6 +36,7 @@ function MagnetDashInner() {
 
     const canvasRef = useRef(null);
     const rafRef = useRef(null);
+    const lastFrameRef = useRef(0);
 
     const {
         particles, floatingTexts, scoreControls,
@@ -80,12 +82,9 @@ function MagnetDashInner() {
 
         // Draw Player (Circle with sign)
         ctx.fillStyle = pColor;
-        ctx.shadowColor = pColor;
-        ctx.shadowBlur = 15;
         ctx.beginPath();
         ctx.arc(s.p.x, s.p.y, PLAYER_R, 0, Math.PI * 2);
         ctx.fill();
-        ctx.shadowBlur = 0;
 
         ctx.fillStyle = '#111';
         ctx.font = '900 20px "Outfit"';
@@ -142,6 +141,9 @@ function MagnetDashInner() {
     }, []);
 
     const tick = useCallback((time) => {
+        rafRef.current = requestAnimationFrame(tick);
+        if (time - lastFrameRef.current < FRAME_MS) return;
+        lastFrameRef.current = time;
         const s = stateRef.current;
         if (!s.lastTime) s.lastTime = time;
         let dt = (time - s.lastTime) / 1000;
@@ -150,7 +152,6 @@ function MagnetDashInner() {
 
         if (statusRef.current === 'IDLE' || statusRef.current === 'DEAD') {
             draw();
-            rafRef.current = requestAnimationFrame(tick);
             return;
         }
 
@@ -247,7 +248,6 @@ function MagnetDashInner() {
         }
 
         draw();
-        rafRef.current = requestAnimationFrame(tick);
     }, [draw, saveScore, triggerHaptic, spawnParticles, triggerFloatingText, animateScore]);
 
     const handleDeath = useCallback((x, y) => {

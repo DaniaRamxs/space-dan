@@ -199,13 +199,7 @@ function SnakeGameInner() {
                   : isFood ? C_FOOD
                     : 'transparent',
               borderRadius: isFood ? '50%' : isSnake ? 5 : 2,
-              boxShadow: isHead
-                ? `0 0 14px ${C_HEAD}, 0 0 28px rgba(255,255,255,0.3)`
-                : isFood
-                  ? `0 0 14px ${C_FOOD}, 0 0 6px ${C_FOOD}88`
-                  : isSnake
-                    ? `0 0 6px ${C_SNAKE}88`
-                    : 'none',
+              boxShadow: 'none',
               transform: isFood ? 'scale(0.82)' : 'scale(1)',
               opacity: isSnake || isFood ? 1 : 0,
               margin: 1,

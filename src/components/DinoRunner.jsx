@@ -8,6 +8,8 @@ import { MobileControls } from './MobileControls';
 const W = 380;
 const H = 200;
 
+const FRAME_MS = 1000 / 60; // cap a 60fps
+
 const GROUND_Y = 160;
 const DINO_W = 30;
 const DINO_H = 40;
@@ -37,8 +39,6 @@ function randInt(min, max) {
 
 function drawDino(ctx, x, y, frame, onGround) {
   ctx.fillStyle = C_DINO;
-  ctx.shadowColor = C_DINO;
-  ctx.shadowBlur = 15;
 
   // Body
   ctx.fillRect(x + 1, y + 14, 19, 13);
@@ -72,13 +72,10 @@ function drawDino(ctx, x, y, frame, onGround) {
   }
 
   // Eye
-  ctx.shadowBlur = 0;
   ctx.fillStyle = '#0b0b1a';
   ctx.beginPath();
   ctx.arc(x + 25, y + 6, 2.5, 0, Math.PI * 2);
   ctx.fill();
-
-  ctx.shadowBlur = 0;
 }
 
 function makeObstacle() {
@@ -110,6 +107,7 @@ function DinoRunnerInner() {
   const canvasRef = useRef(null);
   const stateRef = useRef(null);
   const rafRef = useRef(null);
+  const lastFrameRef = useRef(0);
   const [best, saveScore] = useHighScore('dino');
   const [score, setScore] = useState(0);
   const [status, setStatus] = useState('IDLE');
@@ -149,10 +147,8 @@ function DinoRunnerInner() {
     ctx.lineTo(W, GROUND_Y);
     ctx.stroke();
 
-    // Obstacles with glow
+    // Obstacles
     ctx.fillStyle = C_OBS;
-    ctx.shadowBlur = 10;
-    ctx.shadowColor = C_OBS;
     for (const obs of s.obstacles) {
       ctx.beginPath();
       if (ctx.roundRect) ctx.roundRect(obs.x, GROUND_Y - obs.h, obs.w, obs.h, 4);
@@ -162,11 +158,16 @@ function DinoRunnerInner() {
 
     // Dino
     drawDino(ctx, DINO_X, s.dinoY, s.frame, s.onGround);
-
-    ctx.shadowBlur = 0;
   }, []);
 
-  const tick = useCallback(() => {
+  const tick = useCallback((now) => {
+    // Cap a 60fps para evitar lag en monitores de alta frecuencia
+    if (now - lastFrameRef.current < FRAME_MS) {
+      rafRef.current = requestAnimationFrame(tick);
+      return;
+    }
+    lastFrameRef.current = now;
+
     const s = stateRef.current;
     if (s.phase !== 'PLAYING') {
       draw();

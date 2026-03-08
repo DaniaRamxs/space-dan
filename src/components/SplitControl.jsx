@@ -5,7 +5,8 @@ import { GameImmersiveLayout } from '../core/GameImmersiveLayout';
 import { ArcadeShell } from './ArcadeShell';
 import { useArcadeSystems } from '../hooks/useArcadeSystems';
 
-const W = 400;
+const W = 4
+const FRAME_MS = 1000 / 60;
 const H = 600;
 const LANE_W = 100;
 const PLAYER_SIZE = 30;
@@ -76,10 +77,7 @@ function SplitControlInner() {
         const remainingDist = TARGET_DIST - s.distance;
         if (remainingDist < H && remainingDist > -100) {
             ctx.fillStyle = '#39ff14';
-            ctx.shadowColor = '#39ff14';
-            ctx.shadowBlur = 15;
             ctx.fillRect(0, remainingDist, W, 10);
-            ctx.shadowBlur = 0;
 
             ctx.fillStyle = '#fff';
             ctx.font = '900 24px "Outfit"';
@@ -94,21 +92,16 @@ function SplitControlInner() {
             const x = laneX + (LANE_W - OBSTACLE_H) / 2;
 
             ctx.fillStyle = '#ff1744';
-            ctx.shadowColor = '#ff1744';
-            ctx.shadowBlur = 10;
             ctx.fillRect(x, ob.y, OBSTACLE_H, OBSTACLE_H);
 
             // Core
             ctx.fillStyle = '#fff';
-            ctx.shadowBlur = 0;
             ctx.fillRect(x + 4, ob.y + 4, OBSTACLE_H - 8, OBSTACLE_H - 8);
         }
 
         // Draw Player A (Cyan)
         const ax = s.pA.lane * LANE_W + (LANE_W - PLAYER_SIZE) / 2;
         ctx.fillStyle = '#00e5ff';
-        ctx.shadowColor = '#00e5ff';
-        ctx.shadowBlur = 15;
         // Triangle pointing up
         ctx.beginPath();
         ctx.moveTo(ax + PLAYER_SIZE / 2, s.pA.y);
@@ -120,8 +113,6 @@ function SplitControlInner() {
         // Draw Player B (Magenta)
         const bx = (W / 2) + s.pB.lane * LANE_W + (LANE_W - PLAYER_SIZE) / 2;
         ctx.fillStyle = '#ff00ff';
-        ctx.shadowColor = '#ff00ff';
-        ctx.shadowBlur = 15;
         // Triangle pointing up
         ctx.beginPath();
         ctx.moveTo(bx + PLAYER_SIZE / 2, s.pB.y);
@@ -130,7 +121,6 @@ function SplitControlInner() {
         ctx.closePath();
         ctx.fill();
 
-        ctx.shadowBlur = 0;
 
         // Draw exhaust
         if (statusRef.current === 'PLAYING') {

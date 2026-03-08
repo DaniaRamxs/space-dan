@@ -8,6 +8,7 @@ import { MobileControls } from './MobileControls';
 
 const W = 400;
 const H = 500;
+const FRAME_MS = 1000 / 60;
 const COLORS = {
   bg: 'transparent',
   cyan: '#00e5ff',
@@ -70,6 +71,7 @@ function SpaceInvadersInner() {
   const rafRef = useRef(null);
   const keysRef = useRef({});
   const frameRef = useRef(0);
+  const lastFrameRef = useRef(0);
 
   const [best, saveScore] = useHighScore('invaders');
   const [score, setScore] = useState(0);
@@ -102,8 +104,6 @@ function SpaceInvadersInner() {
   }
 
   const drawShip = useCallback((ctx, x, y) => {
-    ctx.shadowBlur = 15;
-    ctx.shadowColor = COLORS.cyan;
     ctx.fillStyle = COLORS.cyan;
     ctx.beginPath();
     ctx.moveTo(x + SHIP_W / 2, y);
@@ -112,8 +112,7 @@ function SpaceInvadersInner() {
     ctx.closePath();
     ctx.fill();
 
-    // Glowing cockpit
-    ctx.shadowBlur = 0;
+    // Cockpit
     ctx.fillStyle = COLORS.white + '66';
     ctx.fillRect(x + SHIP_W / 2 - 2, y + 4, 4, 6);
   }, []);
@@ -134,60 +133,52 @@ function SpaceInvadersInner() {
       if (sh.hp <= 0) continue;
       const alpha = sh.hp / 12;
       ctx.fillStyle = COLORS.shield + Math.floor(alpha * 255).toString(16).padStart(2, '0');
-      ctx.shadowBlur = 10 * alpha;
-      ctx.shadowColor = COLORS.shield;
       ctx.beginPath();
       if (ctx.roundRect) ctx.roundRect(sh.x, sh.y, SHIELD_W, SHIELD_H, 6);
       else ctx.rect(sh.x, sh.y, SHIELD_W, SHIELD_H);
       ctx.fill();
 
       // HP bar
-      ctx.shadowBlur = 0;
       ctx.fillStyle = 'rgba(255,255,255,0.2)';
       ctx.fillRect(sh.x, sh.y + SHIELD_H - 4, SHIELD_W * alpha, 4);
     }
 
-    // Invaders with premium glow
+    // Invaders
     ctx.font = `${INVADER_W}px serif`;
-    ctx.shadowBlur = 12;
     for (const inv of s.invaders) {
       if (!inv.alive) continue;
       ctx.fillStyle = COLORS.magenta;
-      ctx.shadowColor = COLORS.magenta;
       ctx.fillText(inv.type, inv.x + INVADER_W / 2, inv.y + INVADER_H / 2);
     }
-    ctx.shadowBlur = 0;
 
     // Ship
     drawShip(ctx, s.shipX, SHIP_Y);
 
     // Bullets (Player)
     ctx.fillStyle = COLORS.cyan;
-    ctx.shadowBlur = 15;
-    ctx.shadowColor = COLORS.cyan;
     for (const b of s.bullets) {
       ctx.fillRect(b.x - BULLET_W / 2, b.y, BULLET_W, BULLET_H);
     }
 
     // Bullets (Enemies)
     ctx.fillStyle = COLORS.magenta;
-    ctx.shadowColor = COLORS.magenta;
     for (const b of s.enemyBullets) {
       ctx.beginPath();
       ctx.arc(b.x, b.y, 4, 0, Math.PI * 2);
       ctx.fill();
     }
-    ctx.shadowBlur = 0;
   }, [drawShip]);
 
-  const tick = useCallback(() => {
+  const tick = useCallback((now) => {
+    rafRef.current = requestAnimationFrame(tick);
+    if (now - lastFrameRef.current < FRAME_MS) return;
+    lastFrameRef.current = now;
     const s = stateRef.current;
     if (!s) return;
     frameRef.current++;
 
     if (s.phase !== 'PLAYING') {
       draw();
-      rafRef.current = requestAnimationFrame(tick);
       return;
     }
 
@@ -315,7 +306,6 @@ function SpaceInvadersInner() {
     }
 
     draw();
-    rafRef.current = requestAnimationFrame(tick);
   }, [draw, spawnParticles, triggerFloatingText, animateScore, triggerHaptic, saveScore]);
 
   const start = useCallback(() => {

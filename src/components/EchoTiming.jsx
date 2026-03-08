@@ -6,6 +6,7 @@ import { useArcadeSystems } from '../hooks/useArcadeSystems';
 
 const W = 400;
 const H = 400;
+const FRAME_MS = 1000 / 60;
 const TARGET_R = 140;
 const MAX_ROUNDS = 10;
 
@@ -36,6 +37,7 @@ function EchoTimingInner() {
 
     const canvasRef = useRef(null);
     const rafRef = useRef(null);
+    const lastFrameRef = useRef(0);
 
     const {
         particles, floatingTexts, scoreControls,
@@ -68,10 +70,7 @@ function EchoTimingInner() {
             ctx.arc(CX, CY, Math.max(0, s.ringR), 0, Math.PI * 2);
             ctx.strokeStyle = '#fff';
             ctx.lineWidth = 3;
-            ctx.shadowColor = '#fff';
-            ctx.shadowBlur = 10;
             ctx.stroke();
-            ctx.shadowBlur = 0;
 
             // Center dot
             ctx.beginPath();
@@ -90,10 +89,7 @@ function EchoTimingInner() {
             ctx.arc(CX, CY, Math.max(0, s.ringR), 0, Math.PI * 2);
             ctx.strokeStyle = s.resultColor;
             ctx.lineWidth = 3;
-            ctx.shadowColor = s.resultColor;
-            ctx.shadowBlur = 15;
             ctx.stroke();
-            ctx.shadowBlur = 0;
 
             // Result Text inside Canvas
             ctx.fillStyle = s.resultColor;
@@ -110,6 +106,9 @@ function EchoTimingInner() {
     }, []);
 
     const tick = useCallback((time) => {
+        rafRef.current = requestAnimationFrame(tick);
+        if (time - lastFrameRef.current < FRAME_MS) return;
+        lastFrameRef.current = time;
         const s = stateRef.current;
         if (!s.lastTime) s.lastTime = time;
         let dt = (time - s.lastTime) / 1000;
@@ -119,7 +118,6 @@ function EchoTimingInner() {
 
         if (statusRef.current === 'IDLE' || statusRef.current === 'DONE') {
             draw();
-            rafRef.current = requestAnimationFrame(tick);
             return;
         }
 
@@ -139,7 +137,6 @@ function EchoTimingInner() {
         }
 
         draw();
-        rafRef.current = requestAnimationFrame(tick);
     }, [draw]);
 
     const nextRound = useCallback(() => {

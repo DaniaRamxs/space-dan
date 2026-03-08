@@ -6,6 +6,7 @@ import { useArcadeSystems } from '../hooks/useArcadeSystems';
 
 const W = 400;
 const H = 700;
+const FRAME_MS = 1000 / 60;
 const PLAYER_SIZE = 24;
 const GRAVITY_MAG = 4500; // Horizontal gravity (px/s^2)
 const OBSTACLE_H = 30;
@@ -30,6 +31,7 @@ function GravityFlipInner() {
     const canvasRef = useRef(null);
     const rafRef = useRef(null);
     const stateRef = useRef(makeState());
+    const lastFrameRef = useRef(0);
 
     const {
         particles, floatingTexts, scoreControls,
@@ -90,15 +92,12 @@ function GravityFlipInner() {
             grad.addColorStop(1, 'rgba(255, 23, 68, 0.3)');
 
             ctx.fillStyle = grad;
-            ctx.shadowColor = '#ff1744';
-            ctx.shadowBlur = 15;
             ctx.fillRect(ob.x, ob.y, ob.w, ob.h);
 
             ctx.strokeStyle = '#ff1744';
             ctx.lineWidth = 2;
             ctx.strokeRect(ob.x, ob.y, ob.w, ob.h);
         }
-        ctx.shadowBlur = 0;
 
         // Draw player trail
         ctx.fillStyle = s.p.gravity < 0 ? 'rgba(0, 229, 255, 0.2)' : 'rgba(255, 0, 255, 0.2)';
@@ -106,8 +105,6 @@ function GravityFlipInner() {
 
         // Draw player
         ctx.fillStyle = s.p.gravity < 0 ? '#00e5ff' : '#ff00ff';
-        ctx.shadowColor = ctx.fillStyle;
-        ctx.shadowBlur = 20;
 
         // Player is a diamond/rocket shape
         ctx.beginPath();
@@ -124,11 +121,13 @@ function GravityFlipInner() {
 
         ctx.fillStyle = '#fff';
         ctx.fillRect(px - 3, py - 3, 6, 6);
-        ctx.shadowBlur = 0;
 
     }, []);
 
     const tick = useCallback((time) => {
+        rafRef.current = requestAnimationFrame(tick);
+        if (time - lastFrameRef.current < FRAME_MS) return;
+        lastFrameRef.current = time;
         const s = stateRef.current;
         if (!s.lastTime) s.lastTime = time;
         const dt = Math.min((time - s.lastTime) / 1000, 0.1); // cap dt
@@ -210,7 +209,6 @@ function GravityFlipInner() {
         }
 
         draw();
-        rafRef.current = requestAnimationFrame(tick);
     }, [draw, score, saveScore, triggerHaptic, spawnParticles, triggerFloatingText, animateScore]);
 
     const start = useCallback(() => {

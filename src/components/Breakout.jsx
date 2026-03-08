@@ -7,6 +7,7 @@ import { MobileControls } from './MobileControls';
 
 const W = 400;
 const H = 500;
+const FRAME_MS = 1000 / 60;
 const COLORS = {
   bg: 'transparent',
   cyan: '#00e5ff',
@@ -49,6 +50,7 @@ function BreakoutInner() {
   const mouseXRef = useRef(W / 2);
   const frameRef = useRef(0);
   const lastTimeRef = useRef(0);
+  const lastFrameRef = useRef(0);
 
   const [best, saveScore] = useHighScore('breakout');
   const [score, setScore] = useState(0);
@@ -109,19 +111,16 @@ function BreakoutInner() {
 
     ctx.clearRect(0, 0, W, H);
 
-    // Bricks with improved glow and depth
+    // Bricks
     for (const b of s.bricks) {
       if (!b.alive) continue;
       ctx.fillStyle = b.color;
-      ctx.shadowBlur = 12;
-      ctx.shadowColor = b.color;
 
       ctx.beginPath();
       if (ctx.roundRect) ctx.roundRect(b.x, b.y, BRICK_W, BRICK_H, 4);
       else ctx.rect(b.x, b.y, BRICK_W, BRICK_H);
       ctx.fill();
 
-      ctx.shadowBlur = 0;
       ctx.fillStyle = 'rgba(255,255,255,0.25)';
       ctx.fillRect(b.x + 2, b.y + 2, BRICK_W - 4, 3);
     }
@@ -140,30 +139,27 @@ function BreakoutInner() {
 
     // Paddle
     ctx.fillStyle = COLORS.cyan;
-    ctx.shadowBlur = 20;
-    ctx.shadowColor = COLORS.cyan;
     ctx.beginPath();
     if (ctx.roundRect) ctx.roundRect(s.paddleX, PADDLE_Y, PADDLE_W, PADDLE_H, 6);
     else ctx.rect(s.paddleX, PADDLE_Y, PADDLE_W, PADDLE_H);
     ctx.fill();
 
     // Paddle reflection
-    ctx.shadowBlur = 0;
     ctx.fillStyle = COLORS.white + '44';
     ctx.fillRect(s.paddleX + 10, PADDLE_Y + 2, PADDLE_W - 20, 2);
 
     // Ball
     ctx.fillStyle = COLORS.white;
-    ctx.shadowBlur = 20;
-    ctx.shadowColor = COLORS.white;
     ctx.beginPath();
     ctx.arc(s.ball.x, s.ball.y, BALL_R, 0, Math.PI * 2);
     ctx.fill();
-    ctx.shadowBlur = 0;
 
   }, []);
 
   const tick = useCallback((timestamp) => {
+    rafRef.current = requestAnimationFrame(tick);
+    if (timestamp - lastFrameRef.current < FRAME_MS) return;
+    lastFrameRef.current = timestamp;
     const s = stateRef.current;
     if (!s) return;
     frameRef.current++;
@@ -173,7 +169,6 @@ function BreakoutInner() {
 
     if (s.phase !== 'PLAYING') {
       draw();
-      rafRef.current = requestAnimationFrame(tick);
       return;
     }
 
@@ -196,7 +191,6 @@ function BreakoutInner() {
         keysRef.current['launch'] = false;
       }
       draw();
-      rafRef.current = requestAnimationFrame(tick);
       return;
     }
 
@@ -281,7 +275,6 @@ function BreakoutInner() {
     });
 
     draw();
-    rafRef.current = requestAnimationFrame(tick);
   }, [draw, launchBall, internalParticles, spawnParticles, triggerFloatingText, animateScore, triggerHaptic, saveScore]);
 
   const start = useCallback(() => {

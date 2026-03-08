@@ -11,6 +11,7 @@ const BASKET_H = 12;
 const BASKET_Y = CANVAS_H - 40;
 const BASKET_SPD = 6;
 const BALL_R = 10;
+const FRAME_MS = 1000 / 60; // cap a 60fps
 
 function randomNeon() {
   const colors = ['#ff6eb4', '#00e5ff', '#39ff14', '#bf5fff', '#ff9500', '#ff3131'];
@@ -37,6 +38,7 @@ function CatchGameInner() {
   const [lives, setLives] = useState(3);
 
   const canvasRef = useRef(null);
+  const lastFrameRef = useRef(0);
   const stateRef = useRef({
     basketX: CANVAS_W / 2 - BASKET_W / 2,
     balls: [],
@@ -54,25 +56,19 @@ function CatchGameInner() {
     const s = stateRef.current;
     ctx.clearRect(0, 0, CANVAS_W, CANVAS_H);
 
-    // Balls
+    // Balls (sin shadowBlur)
     s.balls.forEach(b => {
       ctx.beginPath();
       ctx.arc(b.x, b.y, BALL_R, 0, Math.PI * 2);
       ctx.fillStyle = b.color;
-      ctx.shadowColor = b.color;
-      ctx.shadowBlur = 10;
       ctx.fill();
-      ctx.shadowBlur = 0;
     });
 
-    // Basket
+    // Basket (sin shadowBlur)
     ctx.fillStyle = '#ff6eb4';
-    ctx.shadowColor = '#ff6eb4';
-    ctx.shadowBlur = 15;
     ctx.beginPath();
     ctx.roundRect(s.basketX, BASKET_Y, BASKET_W, BASKET_H, 6);
     ctx.fill();
-    ctx.shadowBlur = 0;
   }, []);
 
   const start = useCallback(() => {
@@ -96,6 +92,11 @@ function CatchGameInner() {
     let raf;
 
     const loop = (now) => {
+      raf = requestAnimationFrame(loop);
+      // Cap a 60fps
+      if (now - lastFrameRef.current < FRAME_MS) return;
+      lastFrameRef.current = now;
+
       const s = stateRef.current;
       if (status === 'PLAYING') {
         if (s.keys['ArrowLeft'] || s.keys['a']) s.basketX = Math.max(0, s.basketX - BASKET_SPD);
@@ -142,7 +143,6 @@ function CatchGameInner() {
         s.balls = remaining;
       }
       draw(ctx);
-      raf = requestAnimationFrame(loop);
     };
 
     raf = requestAnimationFrame(loop);

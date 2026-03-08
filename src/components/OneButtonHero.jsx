@@ -4,7 +4,8 @@ import { GameImmersiveLayout } from '../core/GameImmersiveLayout';
 import { ArcadeShell } from './ArcadeShell';
 import { useArcadeSystems } from '../hooks/useArcadeSystems';
 
-const W = 800;
+const W = 8
+const FRAME_MS = 1000 / 60;
 const H = 400;
 const PLAYER_SIZE = 30;
 const GRAVITY_MAG = 2200; // pixels per second squared
@@ -90,8 +91,6 @@ function OneButtonHeroInner() {
             grad.addColorStop(1, 'rgba(255, 23, 68, 0.2)');
 
             ctx.fillStyle = grad;
-            ctx.shadowColor = '#ff1744';
-            ctx.shadowBlur = 10;
             ctx.fillRect(ob.x, ob.y, OBSTACLE_W, ob.h);
 
             // Cyber border
@@ -99,7 +98,6 @@ function OneButtonHeroInner() {
             ctx.lineWidth = 2;
             ctx.strokeRect(ob.x, ob.y, OBSTACLE_W, ob.h);
         }
-        ctx.shadowBlur = 0;
 
         // Draw player trail
         ctx.fillStyle = s.p.gravity > 0 ? 'rgba(0, 229, 255, 0.2)' : 'rgba(255, 0, 255, 0.2)';
@@ -107,8 +105,6 @@ function OneButtonHeroInner() {
 
         // Draw player
         ctx.fillStyle = s.p.gravity > 0 ? '#00e5ff' : '#ff00ff';
-        ctx.shadowColor = ctx.fillStyle;
-        ctx.shadowBlur = 20;
 
         // Slight squish effect based on vertical velocity
         const squish = Math.min(Math.abs(s.p.vy) / 100, 10);
@@ -118,7 +114,6 @@ function OneButtonHeroInner() {
         ctx.fillRect(s.p.x + (PLAYER_SIZE - renderW) / 2, s.p.y, renderW, renderH);
         ctx.fillStyle = '#fff';
         ctx.fillRect(s.p.x + (PLAYER_SIZE - renderW) / 2 + 4, s.p.y + 4, 8, 8);
-        ctx.shadowBlur = 0;
 
     }, []);
 

@@ -7,6 +7,7 @@ import { MobileControls } from './MobileControls';
 
 const W = 320;
 const H = 480;
+const FRAME_MS = 1000 / 60;
 const BIRD_X = 60;
 const BIRD_R = 14;
 const GRAVITY = 0.25;
@@ -46,6 +47,7 @@ function FlappyBirdInner() {
   const canvasRef = useRef(null);
   const stateRef = useRef(null);
   const rafRef = useRef(null);
+  const lastFrameRef = useRef(0);
   const [best, saveScore] = useHighScore('flappy');
   const [score, setScore] = useState(0);
   const [status, setStatus] = useState('IDLE');
@@ -75,9 +77,6 @@ function FlappyBirdInner() {
 
     ctx.clearRect(0, 0, W, H);
 
-    // Pipes with premium glow
-    ctx.shadowBlur = 15;
-    ctx.shadowColor = C_PIPE;
     ctx.fillStyle = C_PIPE;
     for (const pipe of s.pipes) {
       // Top Pipe
@@ -94,25 +93,22 @@ function FlappyBirdInner() {
       ctx.fill();
     }
 
-    // Bird with vibrant glow
-    ctx.shadowBlur = 20;
-    ctx.shadowColor = C_BIRD;
     ctx.fillStyle = C_BIRD;
     ctx.beginPath();
     ctx.arc(BIRD_X, s.birdY, BIRD_R, 0, Math.PI * 2);
     ctx.fill();
 
     // Bird Eye
-    ctx.shadowBlur = 0;
     ctx.fillStyle = '#0b0b1a';
     ctx.beginPath();
     ctx.arc(BIRD_X + 6, s.birdY - 3, 3, 0, Math.PI * 2);
     ctx.fill();
-
-    ctx.shadowBlur = 0;
   }, []);
 
-  const tick = useCallback(() => {
+  const tick = useCallback((now) => {
+    rafRef.current = requestAnimationFrame(tick);
+    if (now - lastFrameRef.current < FRAME_MS) return;
+    lastFrameRef.current = now;
     const s = stateRef.current;
     if (s.phase !== 'PLAYING') {
       draw();
@@ -155,7 +151,6 @@ function FlappyBirdInner() {
     }
 
     draw();
-    rafRef.current = requestAnimationFrame(tick);
   }, [draw, saveScore, animateScore, triggerFloatingText, triggerHaptic, spawnParticles]);
 
   const handleInteract = useCallback(() => {

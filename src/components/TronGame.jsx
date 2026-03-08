@@ -9,6 +9,7 @@ import { MobileControls } from './MobileControls';
 const GRID = 16;
 const C_P1 = '#00e5ff'; // Cyan
 const C_P2 = '#ff00ff'; // Magenta
+const FRAME_MS = 1000 / 60;
 
 function makeGrid() {
     return Array.from({ length: GRID }, () => Array(GRID).fill(0));
@@ -65,6 +66,7 @@ function TronGameInner() {
     const rafRef = useRef(null);
     const keysRef = useRef({});
     const cellRef = useRef(20);
+    const lastFrameRef = useRef(0);
 
     const [best, saveScore] = useHighScore('tron');
     const [status, setStatus] = useState('IDLE');
@@ -105,28 +107,22 @@ function TronGameInner() {
             ctx.beginPath(); ctx.moveTo(0, i * C); ctx.lineTo(GW, i * C); ctx.stroke();
         }
 
-        // Trails with Glow
+        // Trails
         for (let y = 0; y < GRID; y++) {
             for (let x = 0; x < GRID; x++) {
                 const v = s.grid[y][x];
                 if (!v) continue;
                 const color = v === 1 ? C_P1 : C_P2;
-                ctx.shadowBlur = 12;
-                ctx.shadowColor = color;
                 ctx.fillStyle = `${color}dd`;
                 ctx.beginPath();
                 ctx.roundRect(x * C + 2, y * C + 2, C - 4, C - 4, 3);
                 ctx.fill();
             }
         }
-        ctx.shadowBlur = 0;
 
         // Heads (Light Cycles)
-        const pulse = Math.sin(now / 150) * 5;
         const drawHead = (p, color) => {
             ctx.fillStyle = '#fff';
-            ctx.shadowColor = color;
-            ctx.shadowBlur = 20 + pulse;
             ctx.beginPath();
             ctx.roundRect(p.x * C + 1, p.y * C + 1, C - 2, C - 2, 4);
             ctx.fill();
@@ -134,7 +130,6 @@ function TronGameInner() {
             ctx.strokeStyle = color;
             ctx.lineWidth = 2;
             ctx.stroke();
-            ctx.shadowBlur = 0;
         };
 
         if (s.phase === 'PLAYING') {
@@ -144,6 +139,9 @@ function TronGameInner() {
     }, []);
 
     const tick = useCallback((now) => {
+        rafRef.current = requestAnimationFrame(tick);
+        if (now - lastFrameRef.current < FRAME_MS) return;
+        lastFrameRef.current = now;
         const s = stateRef.current;
         if (!s || s.phase !== 'PLAYING') return;
 
@@ -204,7 +202,6 @@ function TronGameInner() {
         }
 
         draw(now);
-        rafRef.current = requestAnimationFrame(tick);
     }, [draw, triggerHaptic, triggerFloatingText, spawnParticles, animateScore, saveScore, best]);
 
     const start = useCallback(() => {

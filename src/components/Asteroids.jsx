@@ -8,6 +8,7 @@ import { MobileControls } from './MobileControls';
 
 const W = 400;
 const H = 400;
+const FRAME_MS = 1000 / 60;
 const COLORS = {
   bg: 'transparent',
   cyan: '#00e5ff',
@@ -69,6 +70,7 @@ function AsteroidsInner() {
   const rafRef = useRef(null);
   const keysRef = useRef({});
   const frameRef = useRef(0);
+  const lastFrameRef = useRef(0);
 
   const [best, saveScore] = useHighScore('asteroids');
   const [score, setScore] = useState(0);
@@ -99,8 +101,6 @@ function AsteroidsInner() {
     ctx.translate(x, y);
     ctx.rotate(angle);
     ctx.strokeStyle = color;
-    ctx.shadowColor = color;
-    ctx.shadowBlur = 15;
     ctx.lineWidth = 1.8;
     ctx.beginPath();
     ctx.moveTo(verts[0].x, verts[0].y);
@@ -113,7 +113,6 @@ function AsteroidsInner() {
     ctx.fill();
 
     ctx.restore();
-    ctx.shadowBlur = 0;
   }, []);
 
   const drawShip = useCallback((ctx, ship) => {
@@ -121,8 +120,6 @@ function AsteroidsInner() {
     ctx.translate(ship.x, ship.y);
     ctx.rotate(ship.angle);
     ctx.strokeStyle = COLORS.cyan;
-    ctx.shadowColor = COLORS.cyan;
-    ctx.shadowBlur = 20;
     ctx.lineWidth = 2.5;
     ctx.beginPath();
     ctx.moveTo(SHIP_SIZE, 0);
@@ -137,7 +134,6 @@ function AsteroidsInner() {
     ctx.fillRect(-2, -2, 4, 4);
 
     ctx.restore();
-    ctx.shadowBlur = 0;
   }, []);
 
   const draw = useCallback(() => {
@@ -180,15 +176,12 @@ function AsteroidsInner() {
 
     // Bullets
     ctx.strokeStyle = COLORS.yellow;
-    ctx.shadowColor = COLORS.yellow;
-    ctx.shadowBlur = 12;
     ctx.lineWidth = 2.5;
     for (const b of s.bullets) {
       ctx.beginPath();
       ctx.arc(b.x, b.y, 2, 0, Math.PI * 2);
       ctx.stroke();
     }
-    ctx.shadowBlur = 0;
 
     ctx.globalCompositeOperation = 'source-over';
 
@@ -216,14 +209,17 @@ function AsteroidsInner() {
     }
   }, []);
 
-  const tick = useCallback(() => {
+  const tick = useCallback((now) => {
+    rafRef.current = requestAnimationFrame(tick);
+    if (now - lastFrameRef.current < FRAME_MS) return;
+    lastFrameRef.current = now;
+
     const s = stateRef.current;
     if (!s) return;
     frameRef.current++;
 
     if (s.phase !== 'PLAYING') {
       draw();
-      rafRef.current = requestAnimationFrame(tick);
       return;
     }
 
@@ -358,7 +354,6 @@ function AsteroidsInner() {
     s.thrustParticles = s.thrustParticles.filter(p => { p.x += p.vx; p.y += p.vy; p.life -= p.decay; return p.life > 0; });
 
     draw();
-    rafRef.current = requestAnimationFrame(tick);
   }, [draw, internalExplosion, animateScore, triggerHaptic, triggerFloatingText, spawnParticles, saveScore]);
 
   const start = useCallback(() => {

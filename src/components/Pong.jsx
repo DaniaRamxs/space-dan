@@ -6,6 +6,7 @@ import useHighScore from '../hooks/useHighScore';
 
 const W = 600;
 const H = 400;
+const FRAME_MS = 1000 / 60;
 const COLORS = {
   bg: 'transparent',
   cyan: '#00e5ff',
@@ -24,6 +25,7 @@ function PongInner() {
   const stateRef = useRef(null);
   const rafRef = useRef(null);
   const mouseRef = useRef(H / 2);
+  const lastFrameRef = useRef(0);
 
   const [best, saveScore] = useHighScore('pong');
   const [score, setScore] = useState(0);
@@ -82,34 +84,30 @@ function PongInner() {
 
     // Ball
     ctx.fillStyle = COLORS.white;
-    ctx.shadowBlur = 20;
-    ctx.shadowColor = COLORS.white;
     ctx.beginPath();
     ctx.arc(s.ball.x, s.ball.y, BALL_R_VAL, 0, Math.PI * 2);
     ctx.fill();
-    ctx.shadowBlur = 0;
     ctx.globalCompositeOperation = 'source-over';
 
     // Player Paddle
     ctx.fillStyle = COLORS.cyan;
-    ctx.shadowBlur = 15;
-    ctx.shadowColor = COLORS.cyan;
     ctx.fillRect(10, s.playerY, PADDLE_W, PADDLE_H);
 
     // AI Paddle
     ctx.fillStyle = COLORS.magenta;
-    ctx.shadowColor = COLORS.magenta;
     ctx.fillRect(W - 10 - PADDLE_W, s.aiY, PADDLE_W, PADDLE_H);
-    ctx.shadowBlur = 0;
   }, [BALL_R_VAL]);
 
-  const tick = useCallback(() => {
+  const tick = useCallback((now) => {
+    rafRef.current = requestAnimationFrame(tick);
+    if (now - lastFrameRef.current < FRAME_MS) return;
+    lastFrameRef.current = now;
+
     const s = stateRef.current;
     if (!s) return;
 
     if (s.phase !== 'PLAYING') {
       draw();
-      rafRef.current = requestAnimationFrame(tick);
       return;
     }
 
@@ -182,7 +180,6 @@ function PongInner() {
     }
 
     draw();
-    rafRef.current = requestAnimationFrame(tick);
   }, [draw, triggerHaptic, spawnParticles, triggerFloatingText, animateScore, BALL_R_VAL]);
 
   const resetBall = (s, dir) => {
