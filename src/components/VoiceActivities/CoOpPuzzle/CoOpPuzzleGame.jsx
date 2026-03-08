@@ -302,7 +302,7 @@ export default function CoOpPuzzleGame({ roomName, onClose }) {
 
                         <div className="flex items-center gap-3 bg-white/5 rounded-xl px-4 py-2 border border-white/5">
                             <Users size={14} className="text-white/20" />
-                            <span className="text-[10px] font-black text-white/60">{state.players.size} en línea</span>
+                            <span className="text-[10px] font-black text-white/60">{state.players?.size || 0} en línea</span>
                         </div>
                     </div>
                 </div>
@@ -359,8 +359,8 @@ export default function CoOpPuzzleGame({ roomName, onClose }) {
                                                 key={d.label}
                                                 onClick={() => handleSetup(d)}
                                                 className={`py-2.5 rounded-xl text-[10px] font-black transition-all border ${state.rows === d.rows
-                                                        ? 'bg-emerald-500 text-black border-emerald-400'
-                                                        : 'bg-white/5 border-white/5 text-white/40 hover:bg-white/10 hover:text-white'
+                                                    ? 'bg-emerald-500 text-black border-emerald-400'
+                                                    : 'bg-white/5 border-white/5 text-white/40 hover:bg-white/10 hover:text-white'
                                                     }`}
                                             >
                                                 {d.label}
@@ -461,7 +461,7 @@ export default function CoOpPuzzleGame({ roomName, onClose }) {
                     <div className="flex items-center gap-2">
                         <Settings2 size={14} className="text-white/20" />
                         <span className="text-[9px] font-black uppercase tracking-widest text-white/40">
-                            Piezas: {state.pieces.size} ({state.rows}x{state.cols})
+                            Piezas: {state.pieces?.size || 0} ({state.rows}x{state.cols})
                         </span>
                     </div>
                 </div>

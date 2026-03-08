@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Gamepad2, Skull, Music, Zap, Coins, Layers, PenLine, Sparkles, Minimize2, Maximize2, Smartphone, Rocket, Crosshair, Image as ImageIcon } from 'lucide-react';
+import { X, Gamepad2, Skull, Music, Zap, Coins, Layers, PenLine, Sparkles, Minimize2, Maximize2, Smartphone, Rocket, Crosshair, Image as ImageIcon, Dices } from 'lucide-react';
 import PokerGame from './PokerGame';
 import Connect4Game from './Connect4Game';
 import SnakeDuelGame from './SnakeDuelGame';
@@ -12,6 +12,7 @@ import BlackjackGame from './Blackjack/BlackjackGame';
 import ChessGame from './Chess/ChessGame';
 import PixelGalaxyGame from './PixelGalaxy/PixelGalaxyGame';
 import CoOpPuzzleGame from './CoOpPuzzle/CoOpPuzzleGame';
+import LudoGame from './Ludo/LudoGame';
 
 const ACTIVITIES = [
     {
@@ -135,6 +136,17 @@ const ACTIVITIES = [
         accent: 'bg-emerald-500', text: 'text-emerald-400',
         tagBg: 'bg-emerald-500/20 text-emerald-400',
     },
+    {
+        id: 'ludo', name: 'Ludo Classic', tag: 'Duelo',
+        mode: 'colyseus',
+        icon: Dices,
+        description: 'Ludo tradicional multinivel para hasta 4 jugadores',
+        reward: 'Puntos',
+        border: 'border-amber-500/30', bg: 'bg-amber-500/5',
+        hover: 'hover:bg-amber-500/10 hover:border-amber-500/50',
+        accent: 'bg-amber-500', text: 'text-amber-400',
+        tagBg: 'bg-amber-500/20 text-amber-400',
+    },
 ];
 
 const ALL_TAGS = ['Todos', 'Duelo', 'Co-op', 'Social', 'Casino', 'Musica'];
@@ -221,6 +233,7 @@ export default function VoiceActivityLauncher({ roomName, activeActivity, setAct
                         {activeActivity === 'chess' && <ChessGame {...commonProps} />}
                         {activeActivity === 'pixel-galaxy' && <PixelGalaxyGame {...commonProps} />}
                         {activeActivity === 'puzzle' && <CoOpPuzzleGame {...commonProps} />}
+                        {activeActivity === 'ludo' && <LudoGame {...commonProps} />}
                     </div>
 
                     {/* Floating minimize button — fixed so it stays on top of any z-index inside the wrapper */}

@@ -191,19 +191,19 @@ export default function BlackjackGame({ roomName, onClose }) {
                     <div className="flex gap-3">
                         {state.gameState === "waiting" ? (
                             <div className="flex flex-col gap-3">
-                                {state.players.size < 2 && (
+                                {state.players?.size < 2 && (
                                     <p className="text-[9px] font-black text-rose-400 uppercase tracking-widest text-center animate-pulse">
                                         Se necesitan al menos 2 jugadores
                                     </p>
                                 )}
                                 <button
                                     onClick={() => room.send("bet")}
-                                    disabled={myPlayer?.status === "betting" || state.players.size < 2}
+                                    disabled={myPlayer?.status === "betting" || (state?.players?.size ?? 0) < 2}
                                     className={`px-10 py-4 rounded-2xl font-black uppercase tracking-[0.2em] text-[11px] transition-all flex flex-col items-center gap-1 ${myPlayer?.status === "betting"
-                                            ? 'bg-emerald-500/20 border border-emerald-500/20 text-emerald-400'
-                                            : (state.players.size < 2
-                                                ? 'bg-white/5 border border-white/10 text-white/20'
-                                                : 'bg-rose-500 text-black shadow-[0_10px_30px_rgba(244,63,94,0.3)] hover:scale-105 active:scale-95')
+                                        ? 'bg-emerald-500/20 border border-emerald-500/20 text-emerald-400'
+                                        : ((state?.players?.size ?? 0) < 2
+                                            ? 'bg-white/5 border border-white/10 text-white/20'
+                                            : 'bg-rose-500 text-black shadow-[0_10px_30px_rgba(244,63,94,0.3)] hover:scale-105 active:scale-95')
                                         }`}
                                 >
                                     <span>{myPlayer?.status === "betting" ? "¡Listo!" : "Unirse y Apostar"}</span>
@@ -240,7 +240,7 @@ export default function BlackjackGame({ roomName, onClose }) {
                         <div className="hidden lg:flex items-center gap-3 px-4 py-2 rounded-2xl bg-white/5 border border-white/10">
                             <Info size={14} className="text-white/20" />
                             <span className="text-[9px] font-black uppercase tracking-widest text-white/30 whitespace-nowrap">
-                                {state.gameState === "waiting" && (state.players.size < 2 ? "Esperando jugadores..." : "Esperando apuestas...")}
+                                {state.gameState === "waiting" && ((state?.players?.size ?? 0) < 2 ? "Esperando jugadores..." : "Esperando apuestas...")}
                                 {state.gameState === "dealing" && "Repartiendo..."}
                                 {state.gameState === "player_turn" && `Turno de: ${state.players?.get?.(state.currentTurn)?.name || '...'}`}
                                 {state.gameState === "dealer_turn" && "Turno del Dealer..."}
