@@ -164,6 +164,8 @@ const ActivityCard = memo(({ post, onUpdate, onNewPost, onHeightChange }) => {
                                 className="w-full h-full object-cover"
                                 alt={post.author?.username}
                                 loading="lazy"
+                                width="40"
+                                height="40"
                             />
                         </div>
                     </Link>

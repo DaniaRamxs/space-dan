@@ -1,18 +1,21 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, lazy, Suspense } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Gamepad2, Skull, Music, Zap, Coins, Layers, PenLine, Sparkles, Minimize2, Maximize2, Smartphone, Rocket, Crosshair, Image as ImageIcon, Dices } from 'lucide-react';
-import PokerGame from './PokerGame';
-import Connect4Game from './Connect4Game';
-import SnakeDuelGame from './SnakeDuelGame';
-import TetrisDuelGame from './TetrisDuelGame';
-import Starboard from './Starboard';
-import AsteroidBattleGame from './AsteroidBattleGame';
-import BlackjackGame from './Blackjack/BlackjackGame';
-import ChessGame from './Chess/ChessGame';
-import PixelGalaxyGame from './PixelGalaxy/PixelGalaxyGame';
-import CoOpPuzzleGame from './CoOpPuzzle/CoOpPuzzleGame';
-import LudoGame from './Ludo/LudoGame';
+
+// Lazy: cada juego se carga solo cuando el usuario lo abre
+// LudoGame usa Phaser (~1MB) — critical lazy-load
+const PokerGame         = lazy(() => import('./PokerGame'));
+const Connect4Game      = lazy(() => import('./Connect4Game'));
+const SnakeDuelGame     = lazy(() => import('./SnakeDuelGame'));
+const TetrisDuelGame    = lazy(() => import('./TetrisDuelGame'));
+const Starboard         = lazy(() => import('./Starboard'));
+const AsteroidBattleGame = lazy(() => import('./AsteroidBattleGame'));
+const BlackjackGame     = lazy(() => import('./Blackjack/BlackjackGame'));
+const ChessGame         = lazy(() => import('./Chess/ChessGame'));
+const PixelGalaxyGame   = lazy(() => import('./PixelGalaxy/PixelGalaxyGame'));
+const CoOpPuzzleGame    = lazy(() => import('./CoOpPuzzle/CoOpPuzzleGame'));
+const LudoGame          = lazy(() => import('./Ludo/LudoGame')); // Phaser 3
 
 const ACTIVITIES = [
     {
@@ -223,17 +226,23 @@ export default function VoiceActivityLauncher({ roomName, activeActivity, setAct
                 <>
                     {/* Fullscreen wrapper */}
                     <div className="fixed inset-0 z-[10020] bg-[#04040f] overflow-hidden flex flex-col">
-                        {activeActivity === 'poker' && <PokerGame   {...commonProps} />}
-                        {activeActivity === 'connect4' && <Connect4Game  {...commonProps} />}
-                        {activeActivity === 'snake' && <SnakeDuelGame {...commonProps} />}
-                        {activeActivity === 'tetris' && <TetrisDuelGame {...commonProps} />}
-                        {activeActivity === 'starboard' && <Starboard     {...commonProps} />}
-                        {activeActivity === 'asteroid-battle' && <AsteroidBattleGame {...commonProps} />}
-                        {activeActivity === 'blackjack' && <BlackjackGame {...commonProps} />}
-                        {activeActivity === 'chess' && <ChessGame {...commonProps} />}
-                        {activeActivity === 'pixel-galaxy' && <PixelGalaxyGame {...commonProps} />}
-                        {activeActivity === 'puzzle' && <CoOpPuzzleGame {...commonProps} />}
-                        {activeActivity === 'ludo' && <LudoGame {...commonProps} />}
+                        <Suspense fallback={
+                            <div className="flex-1 flex items-center justify-center">
+                                <div className="w-8 h-8 border-2 border-cyan-500/20 border-t-cyan-500 rounded-full animate-spin" />
+                            </div>
+                        }>
+                            {activeActivity === 'poker' && <PokerGame   {...commonProps} />}
+                            {activeActivity === 'connect4' && <Connect4Game  {...commonProps} />}
+                            {activeActivity === 'snake' && <SnakeDuelGame {...commonProps} />}
+                            {activeActivity === 'tetris' && <TetrisDuelGame {...commonProps} />}
+                            {activeActivity === 'starboard' && <Starboard     {...commonProps} />}
+                            {activeActivity === 'asteroid-battle' && <AsteroidBattleGame {...commonProps} />}
+                            {activeActivity === 'blackjack' && <BlackjackGame {...commonProps} />}
+                            {activeActivity === 'chess' && <ChessGame {...commonProps} />}
+                            {activeActivity === 'pixel-galaxy' && <PixelGalaxyGame {...commonProps} />}
+                            {activeActivity === 'puzzle' && <CoOpPuzzleGame {...commonProps} />}
+                            {activeActivity === 'ludo' && <LudoGame {...commonProps} />}
+                        </Suspense>
                     </div>
 
                     {/* Floating minimize button — fixed so it stays on top of any z-index inside the wrapper */}

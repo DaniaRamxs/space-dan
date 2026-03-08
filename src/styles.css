@@ -2147,7 +2147,7 @@ textarea,
 .gardenContent {
   flex: 1;
   width: 100%;
-  min-height: 0;
+  min-height: 60vh; /* evita CLS cuando el contenido de la ruta cambia durante auth loading */
   overflow-y: visible;
   overflow-x: hidden;
   -webkit-overflow-scrolling: touch;

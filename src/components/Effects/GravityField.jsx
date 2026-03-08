@@ -7,8 +7,8 @@ import { animate, random, stagger } from 'animejs';
  */
 const GravityField = ({ intensity = 0, isActive = false }) => {
     const containerRef = useRef(null);
+    const animRef = useRef(null);
     const starCount = Math.min(12, Math.floor(intensity * 3));
-
 
     useEffect(() => {
         if (!isActive || starCount === 0 || !containerRef.current) return;
@@ -35,8 +35,8 @@ const GravityField = ({ intensity = 0, isActive = false }) => {
             stars.push(star);
         }
 
-        // Animación de atracción
-        animate(stars, {
+        // Animación de atracción — guardar instancia para cancelar en cleanup
+        animRef.current = animate(stars, {
             translateX: 0,
             translateY: 0,
             opacity: [0, 0.6, 0],
@@ -48,6 +48,11 @@ const GravityField = ({ intensity = 0, isActive = false }) => {
         });
 
         return () => {
+            // Cancelar la animación antes de remover los nodos para evitar memory leak
+            if (animRef.current) {
+                try { animRef.current.pause(); } catch (_) { /* ignore */ }
+                animRef.current = null;
+            }
             stars.forEach(s => s.remove());
         };
     }, [isActive, starCount]);

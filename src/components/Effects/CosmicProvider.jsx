@@ -190,6 +190,7 @@ export const CosmicProvider = ({ children }) => {
 // Componente para Efecto 5: Aparición con polvo estelar
 export const StardustEntrance = ({ children, delay = 0 }) => {
     const containerRef = React.useRef(null);
+    const animRef = React.useRef(null);
     const [visible, setVisible] = useState(false);
 
     useEffect(() => {
@@ -205,7 +206,7 @@ export const StardustEntrance = ({ children, delay = 0 }) => {
             particles.push(p);
         }
 
-        animate(particles, {
+        animRef.current = animate(particles, {
             translateX: () => random(-120, 120),
             translateY: () => random(-120, 120),
             opacity: [0, 1, 0],
@@ -221,7 +222,15 @@ export const StardustEntrance = ({ children, delay = 0 }) => {
 
         // Fail-safe
         const timeout = setTimeout(() => setVisible(true), 2500 + delay);
-        return () => clearTimeout(timeout);
+        return () => {
+            clearTimeout(timeout);
+            // Cancelar animación y liberar referencias a los nodos DOM
+            if (animRef.current) {
+                try { animRef.current.pause(); } catch (_) { /* ignore */ }
+                animRef.current = null;
+            }
+            particles.forEach(p => { if (p.parentNode) p.remove(); });
+        };
     }, [delay]);
 
     return (

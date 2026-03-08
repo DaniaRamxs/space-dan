@@ -1,6 +1,6 @@
 
 // v2.8.0 - Discord Mode: Channels & Multi-Room Support 📡🛰️
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, lazy, Suspense } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuthContext } from '../../../contexts/AuthContext';
@@ -13,17 +13,28 @@ import { supabase } from '../../../supabaseClient';
 import ChatMessage, { parseMentions } from './ChatMessage';
 import ChatInput from './ChatInput';
 import VoicePartyBar from './VoicePartyBar';
-import VoiceRoomUI from '../../VoiceRoom/VoiceRoomUI';
 import HoloCard from '../../HoloCard';
 import { useUniverse } from '../../../contexts/UniverseContext';
 import { missionService } from '../../../services/missionService';
-import MissionsPanel from '../MissionsPanel';
-import StellarCalendar from '../StellarCalendar';
-import BadgePicker from '../BadgePicker';
 import { Trophy, Map, Calendar, Palette } from 'lucide-react';
 import ChatSidebar from './ChatSidebar';
 import { cosmicEventsService } from '../../../services/cosmicEventsService';
 import '../../../styles/GlobalChat.css';
+
+// Lazy: solo se cargan cuando el usuario los abre (no al entrar al chat)
+const VoiceRoomUI  = lazy(() => import('../../VoiceRoom/VoiceRoomUI'));
+const MissionsPanel  = lazy(() => import('../MissionsPanel'));
+const StellarCalendar = lazy(() => import('../StellarCalendar'));
+const BadgePicker    = lazy(() => import('../BadgePicker'));
+
+// Spinner reutilizable para los Suspense del chat
+function ChatSpinner() {
+    return (
+        <div className="flex items-center justify-center p-8">
+            <div className="w-6 h-6 border-2 border-cyan-500/20 border-t-cyan-500 rounded-full animate-spin" />
+        </div>
+    );
+}
 
 const HYPERBOT = {
     id: '00000000-0000-0000-0000-000000000bb1',
@@ -1761,27 +1772,41 @@ export default function GlobalChat() {
 
             <AnimatePresence>
                 {selectedProfile && <HoloCard key="holocard" profile={selectedProfile} onClose={() => setSelectedProfile(null)} />}
-                {showMissions && <MissionsPanel onClose={() => setShowMissions(false)} />}
-                {showCalendar && <StellarCalendar onClose={() => setShowCalendar(false)} />}
-                {showBadgePicker && <BadgePicker onClose={() => setShowBadgePicker(false)} />}
+                {showMissions && (
+                    <Suspense key="missions" fallback={<ChatSpinner />}>
+                        <MissionsPanel onClose={() => setShowMissions(false)} />
+                    </Suspense>
+                )}
+                {showCalendar && (
+                    <Suspense key="calendar" fallback={<ChatSpinner />}>
+                        <StellarCalendar onClose={() => setShowCalendar(false)} />
+                    </Suspense>
+                )}
+                {showBadgePicker && (
+                    <Suspense key="badges" fallback={<ChatSpinner />}>
+                        <BadgePicker onClose={() => setShowBadgePicker(false)} />
+                    </Suspense>
+                )}
             </AnimatePresence>
 
             {/* VoiceRoomUI fuera de AnimatePresence para evitar desmontaje accidental */}
             {hasJoinedVoice && (
-                <VoiceRoomUI
-                    key="voice-room"
-                    roomName={voiceRoomName}
-                    isOpen={showVoiceRoom}
-                    onMinimize={() => setShowVoiceRoom(false)}
-                    onExpand={() => setShowVoiceRoom(true)}
-                    onLeave={handleLeaveVoice}
-                    onConnected={() => { setInVoiceRoom(true); updatePresence({ inVoice: true, voiceRoom: voiceRoomName }); }}
-                    userAvatar={userProfile?.avatar_url}
-                    nicknameStyle={userProfile?.equipped_nickname_style}
-                    frameId={userProfile?.frame_item_id}
-                    userName={userProfile?.username}
-                    activityLevel={userProfile?.activity_level}
-                />
+                <Suspense fallback={<ChatSpinner />}>
+                    <VoiceRoomUI
+                        key="voice-room"
+                        roomName={voiceRoomName}
+                        isOpen={showVoiceRoom}
+                        onMinimize={() => setShowVoiceRoom(false)}
+                        onExpand={() => setShowVoiceRoom(true)}
+                        onLeave={handleLeaveVoice}
+                        onConnected={() => { setInVoiceRoom(true); updatePresence({ inVoice: true, voiceRoom: voiceRoomName }); }}
+                        userAvatar={userProfile?.avatar_url}
+                        nicknameStyle={userProfile?.equipped_nickname_style}
+                        frameId={userProfile?.frame_item_id}
+                        userName={userProfile?.username}
+                        activityLevel={userProfile?.activity_level}
+                    />
+                </Suspense>
             )}
         </div>
     );

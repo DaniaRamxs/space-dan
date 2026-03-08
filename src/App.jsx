@@ -249,10 +249,20 @@ function DomainGuard() {
   return null; // Simplified reconstruction
 }
 
+// Loader para Suspense global (lazy chunks) — fixed, cubre pantalla completa
 function FallbackLoader() {
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-[#030308] z-[9999]">
       <div className="w-10 h-10 border-2 border-cyan-500/20 border-t-cyan-500 rounded-full animate-spin" />
+    </div>
+  );
+}
+
+// Loader en flujo para rutas con auth guard — reserva espacio evitando CLS
+function RouteLoader() {
+  return (
+    <div className="flex items-center justify-center min-h-[60vh]">
+      <div className="w-8 h-8 border-2 border-cyan-500/20 border-t-cyan-500 rounded-full animate-spin" />
     </div>
   );
 }
@@ -369,6 +379,20 @@ function MusicSyncTracker() {
   return null;
 }
 
+// Prefetch de las rutas más visitadas después de que la app carga
+function RoutePrefetcher() {
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      import('./pages/PostsPage').catch(() => {});
+      import('./pages/GamesPage').catch(() => {});
+      import('./pages/GlobalChatPage').catch(() => {});
+      import('./pages/SpaceCabinPage').catch(() => {});
+    }, 3000);
+    return () => clearTimeout(timer);
+  }, []);
+  return null;
+}
+
 function LoginGate({ message = "Necesitas iniciar sesión para ver esta sección." }) {
   const { loginWithGoogle, loginWithDiscord } = useAuthContext();
   return (
@@ -457,7 +481,7 @@ function AnimatedRoutes() {
         <Route path="/" element={<Navigate to="/posts" replace />} />
         <Route path="/explorar" element={<Layout><ExplorePage /></Layout>} />
         <Route path="/posts" element={
-          loading ? <Layout><FallbackLoader /></Layout> :
+          loading ? <Layout><RouteLoader /></Layout> :
             user ? <Layout><PostsPage /></Layout> :
               <Layout><LoginGate /></Layout>
         } />
@@ -489,7 +513,7 @@ function AnimatedRoutes() {
         <Route path="/:username" element={<Layout><ProfileRedesign /></Layout>} />
         <Route path="/profile/:userId" element={<Layout><ProfileRedesign /></Layout>} />
         <Route path="/profile" element={
-          loading ? <Layout><FallbackLoader /></Layout> :
+          loading ? <Layout><RouteLoader /></Layout> :
             user ? <Layout><ProfileRedesign /></Layout> :
               <Layout><LoginGate /></Layout>
         } />
@@ -614,6 +638,7 @@ export default function App() {
               <CosmicEventBanner />
               <PresenceTracker />
               <MusicSyncTracker />
+              <RoutePrefetcher />
               <StellarOnboarding />
               <RedemptionInvite />
               <TycoonInvite />

@@ -211,6 +211,21 @@ createRoot(document.getElementById('root')).render(
   </StrictMode>
 )
 
+// Core Web Vitals — reporte no bloqueante, solo en producción
+if (import.meta.env.PROD) {
+  import('web-vitals').then(({ onCLS, onINP, onLCP, onFCP, onTTFB }) => {
+    const report = ({ name, value, rating }) => {
+      // En producción: loguea en consola. Para enviar a analytics, reemplaza con fetch/supabase.
+      console.debug(`[Vitals] ${name}: ${Math.round(value)}ms (${rating})`);
+    };
+    onCLS(report);
+    onINP(report);
+    onLCP(report);
+    onFCP(report);
+    onTTFB(report);
+  }).catch(() => {});
+}
+
 // Purga de Service Workers en localhost para evitar redirecciones de dominio persistentes
 if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
   if ('serviceWorker' in navigator) {

@@ -1,9 +1,15 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { animate, set } from 'animejs';
 
+const isMobile = () => 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+const prefersReducedMotion = () =>
+    typeof window !== 'undefined' &&
+    window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
 /**
- * MeteoriteEntrance: Componente que aplica una animación de entrada tipo "meteorito"
- * usando Anime.js cuando el elemento entra en el viewport.
+ * MeteoriteEntrance: animación de entrada tipo "meteorito" cuando el elemento
+ * entra al viewport. En móvil usa una animación más ligera (400ms fade+slide).
+ * Respeta prefers-reduced-motion (sólo fade sin translate/rotate).
  */
 const MeteoriteEntrance = ({ children }) => {
     const elementRef = useRef(null);
@@ -17,7 +23,7 @@ const MeteoriteEntrance = ({ children }) => {
                     animateEntry();
                 }
             },
-            { threshold: 0.1 }
+            { threshold: 0.05 }
         );
 
         if (elementRef.current) {
@@ -30,18 +36,37 @@ const MeteoriteEntrance = ({ children }) => {
     const animateEntry = () => {
         if (!elementRef.current) return;
 
-        // Animación de entrada tipo meteorito
-        // 1. Inicia fuera de pantalla (arriba y diagonal)
-        // 2. Movimiento rápido
-        // 3. Desaceleración
-        // 4. Rebote final
+        if (prefersReducedMotion()) {
+            // Solo fade, sin movimiento
+            set(elementRef.current, { opacity: 0 });
+            animate(elementRef.current, {
+                opacity: [0, 1],
+                duration: 200,
+                easing: 'linear',
+            });
+            return;
+        }
 
+        if (isMobile()) {
+            // Animación ligera para móvil: sin rotate, menos desplazamiento, 400ms
+            set(elementRef.current, { opacity: 0, translateY: -30, scale: 0.97 });
+            animate(elementRef.current, {
+                opacity: [0, 1],
+                translateY: [-30, 0],
+                scale: [0.97, 1],
+                duration: 400,
+                easing: 'easeOutQuad',
+            });
+            return;
+        }
+
+        // Desktop: animación completa original
         set(elementRef.current, {
             opacity: 0,
             translateY: -100,
             translateX: -30,
             rotate: -5,
-            scale: 0.95
+            scale: 0.95,
         });
 
         animate(elementRef.current, {
@@ -51,7 +76,7 @@ const MeteoriteEntrance = ({ children }) => {
             rotate: [-5, 0],
             scale: [0.95, 1],
             duration: 1200,
-            easing: 'easeOutElastic(1, .8)', // Proporciona el rebote y la desaceleración
+            easing: 'easeOutElastic(1, .8)',
             delay: 100,
         });
     };

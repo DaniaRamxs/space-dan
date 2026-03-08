@@ -39,6 +39,7 @@ export default function WelcomeExperience() {
                     }}
                     transition={{ duration: 1, ease: "easeInOut" }}
                     className="fixed inset-0 z-[100000] bg-black text-white flex items-center justify-center overflow-hidden"
+                    style={{ willChange: 'opacity' }}
                 >
                     {/* Background Galaxy (fade in on step 3) */}
                     <AnimatePresence>

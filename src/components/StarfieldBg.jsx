@@ -3,9 +3,25 @@ import { useLocation } from 'react-router-dom';
 import { cosmicEventsService } from '../services/cosmicEventsService';
 
 const isMobile = () => window.innerWidth < 768 || ('ontouchstart' in window);
-const STAR_COUNT = isMobile() ? 60 : 150;
-const NEBULA_COUNT = isMobile() ? 1 : 3;
-const FRAME_INTERVAL = 1000 / 30; // 30 FPS constant for low-power background
+
+// Detección de dispositivo low-end (≤4 núcleos o ≤2GB RAM)
+const isLowEnd = () => {
+  const cores = navigator.hardwareConcurrency ?? 4;
+  const mem = navigator.deviceMemory ?? 4; // API experimental, no en todos los browsers
+  return cores <= 4 || mem <= 2;
+};
+
+function getStarConfig() {
+  const mobile = isMobile();
+  const lowEnd = isLowEnd();
+  if (mobile && lowEnd) return { stars: 30, nebulas: 0, fps: 20 };
+  if (mobile) return { stars: 60, nebulas: 1, fps: 30 };
+  if (lowEnd) return { stars: 80, nebulas: 1, fps: 30 };
+  return { stars: 150, nebulas: 3, fps: 60 };
+}
+
+const { stars: STAR_COUNT, nebulas: NEBULA_COUNT, fps } = getStarConfig();
+const FRAME_INTERVAL = 1000 / fps;
 const STAR_THEME = { r: 255, g: 255, b: 255, nebula: 'rgba(139, 92, 246, 0.05)' };
 
 export default function StarfieldBg() {
@@ -164,12 +180,25 @@ export default function StarfieldBg() {
     resize();
     window.addEventListener('resize', resize, { passive: true });
     if (!mobile) window.addEventListener('mousemove', onMouseMove, { passive: true });
+
+    // Page Visibility API: pausar RAF cuando la pestaña está oculta
+    const onVisibilityChange = () => {
+      if (document.hidden) {
+        cancelAnimationFrame(raf);
+      } else {
+        lastFrameTime = 0;
+        raf = requestAnimationFrame(draw);
+      }
+    };
+    document.addEventListener('visibilitychange', onVisibilityChange);
+
     raf = requestAnimationFrame(draw);
 
     return () => {
       cancelAnimationFrame(raf);
       window.removeEventListener('resize', resize);
       if (!mobile) window.removeEventListener('mousemove', onMouseMove);
+      document.removeEventListener('visibilitychange', onVisibilityChange);
     };
   }, [event]);
 

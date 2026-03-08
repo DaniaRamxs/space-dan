@@ -1,15 +1,28 @@
-// Simple Intelligent Cache for Activity Feed
-const feedCache = new Map();
-
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { activityService } from '../services/activityService';
 import { useAuthContext } from '../contexts/AuthContext';
+
+// Bounded cache: max 5 keys (LRU), max 50 items per feed
+const MAX_CACHE_ENTRIES = 5;
+const MAX_FEED_ITEMS = 50;
+const feedCache = new Map();
+
+function setCacheEntry(key, value) {
+    if (feedCache.has(key)) {
+        feedCache.delete(key); // refresh insertion order (LRU)
+    } else if (feedCache.size >= MAX_CACHE_ENTRIES * 2) {
+        // Evict the oldest entry
+        const oldest = feedCache.keys().next().value;
+        feedCache.delete(oldest);
+    }
+    feedCache.set(key, value);
+}
 
 export function useActivityFeed(filter = 'all', initialLimit = 15, category = null, targetUserId = null) {
     const { user } = useAuthContext();
     const cacheKey = `${filter}-${category || 'null'}-${targetUserId || 'global'}`;
 
-    // 1. INTENTIONAL UI: Start with cached data if available
+    // Start with cached data if available for instant display
     const [feed, setFeed] = useState(() => feedCache.get(cacheKey) || []);
     const [loading, setLoading] = useState(!feedCache.has(cacheKey));
     const [loadingMore, setLoadingMore] = useState(false);
@@ -32,25 +45,23 @@ export function useActivityFeed(filter = 'all', initialLimit = 15, category = nu
 
             let newFeed = [];
             if (isInitial) {
-                newFeed = data;
-                offsetRef.current = data.length;
+                newFeed = data.slice(0, MAX_FEED_ITEMS);
+                offsetRef.current = newFeed.length;
+                setFeed(newFeed);
+                setCacheEntry(cacheKey, newFeed);
+                setCacheEntry(`${cacheKey}-offset`, offsetRef.current);
             } else {
                 setFeed(prev => {
                     const combined = [...prev, ...data];
-                    newFeed = Array.from(new Map(combined.map(item => [item.id, item])).values());
+                    const deduped = Array.from(new Map(combined.map(item => [item.id, item])).values());
+                    newFeed = deduped.slice(0, MAX_FEED_ITEMS);
                     return newFeed;
                 });
                 offsetRef.current += data.length;
             }
 
-            if (isInitial) {
-                setFeed(newFeed);
-                // 2. PERSISTENCE: Save to cache
-                feedCache.set(cacheKey, newFeed);
-                feedCache.set(`${cacheKey}-offset`, offsetRef.current);
-            }
-
-            setHasMore(data.length === initialLimit);
+            // Stop loading more if we hit the item cap or got fewer results than requested
+            setHasMore(data.length === initialLimit && (offsetRef.current < MAX_FEED_ITEMS));
         } catch (err) {
             console.error('[useActivityFeed] Error:', err);
         } finally {
@@ -60,8 +71,6 @@ export function useActivityFeed(filter = 'all', initialLimit = 15, category = nu
     }, [user, filter, initialLimit, category, targetUserId, cacheKey]);
 
     useEffect(() => {
-        // Only load if we don't have enough cached data or if explicitly requested
-        // For simplicity, we refresh initial feed on mount/param change but keep old data visible
         loadFeed(true);
     }, [filter, category, user?.id, targetUserId, loadFeed]);
 
@@ -69,7 +78,6 @@ export function useActivityFeed(filter = 'all', initialLimit = 15, category = nu
         if (!loadingMore && hasMore && !loading) loadFeed(false);
     }, [loadingMore, hasMore, loading, loadFeed]);
 
-    // 3. EXPOSE PREFETCH: Allow external components to trigger a fetch
     const prefetch = useCallback(() => {
         if (!feedCache.has(cacheKey)) {
             loadFeed(true);

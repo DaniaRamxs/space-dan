@@ -1,9 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef, useMemo, useCallback, lazy, Suspense } from 'react';
 import { NavLink, Link, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from 'framer-motion';
 import KonamiEasterEgg from "../components/KonamiEasterEgg.jsx";
 import { SpacelyLogo } from "../components/SpacelyLogo.jsx";
-import GlobalChatPage from "../pages/GlobalChatPage.jsx";
+
+// Lazy: sólo se carga cuando el usuario abre el overlay de chat (no en cada página)
+const GlobalChatPage = lazy(() => import('../pages/GlobalChatPage.jsx'));
 
 import RadioPlayer from "../components/RadioPlayer.jsx";
 import AuthWidget from "../components/AuthWidget.jsx";
@@ -12,7 +14,6 @@ import NotificationBell from "../components/NotificationBell.jsx";
 import StarlysCounter from "../components/StarlysCounter.jsx";
 import { useAuthContext } from "../contexts/AuthContext";
 import { useUniverse } from "../contexts/UniverseContext";
-import { useRef, useMemo } from 'react';
 import { Capacitor } from '@capacitor/core';
 
 const PERSONAL_PATHS = ['/kinnies', '/tests', '/universo', '/dreamscape'];
@@ -33,9 +34,7 @@ export default function GardenLayout({ children }) {
     ).length;
   }, [onlineUsers]);
 
-  const closeMenu = () => {
-    setMobileMenuOpen(false);
-  };
+  const closeMenu = useCallback(() => setMobileMenuOpen(false), []);
 
   // Close HUB & scroll to top on every navigation
   useEffect(() => {
@@ -68,8 +67,14 @@ export default function GardenLayout({ children }) {
     return () => { mounted = false; };
   }, [user?.id, claimDaily, canClaimDaily]);
 
-  const isFixedLayout = FIXED_LAYOUT_PATHS.some(p => location.pathname.startsWith(p));
-  const isGameRoute = location.pathname.startsWith('/game/');
+  const isFixedLayout = useMemo(
+    () => FIXED_LAYOUT_PATHS.some(p => location.pathname.startsWith(p)),
+    [location.pathname]
+  );
+  const isGameRoute = useMemo(
+    () => location.pathname.startsWith('/game/'),
+    [location.pathname]
+  );
 
   if (isGameRoute) {
     return (
@@ -148,7 +153,7 @@ export default function GardenLayout({ children }) {
               <div className="topbarActions">
                 <NotificationBell />
                 <NavLink to="/profile" className="topbarUser">
-                  <img src={ownProfile?.avatar_url || '/default-avatar.png'} alt="" className="topbarAvatar" />
+                  <img src={ownProfile?.avatar_url || '/default-avatar.png'} alt="" className="topbarAvatar" width="36" height="36" />
                 </NavLink>
               </div>
             </div>
@@ -223,7 +228,13 @@ export default function GardenLayout({ children }) {
                     </button>
                   </div>
                   <div className="flex-1 overflow-hidden">
-                    <GlobalChatPage />
+                    <Suspense fallback={
+                      <div className="flex-1 flex items-center justify-center h-full">
+                        <div className="w-6 h-6 border-2 border-cyan-500/20 border-t-cyan-500 rounded-full animate-spin" />
+                      </div>
+                    }>
+                      <GlobalChatPage />
+                    </Suspense>
                   </div>
                 </motion.div>
               </div>
@@ -298,6 +309,8 @@ export default function GardenLayout({ children }) {
                     src={ownProfile?.avatar_url || '/default-avatar.png'}
                     alt=""
                     className="hubAvatar"
+                    width="80"
+                    height="80"
                   />
                   <div className="hubUserDetails">
                     <div className="hubUserName flex items-center gap-2">

@@ -101,17 +101,21 @@ export default function ActivityFeed({ userId, filter = 'all', category = null }
                     <div className="flex flex-col divide-y divide-white/[0.03]">
                         {mixedFeed.map((item) =>
                             item.kind === 'universe_event' ? (
-                                <MeteoriteEntrance key={`univ-${item.id}`}>
-                                    <CosmicEventCard event={item} />
-                                </MeteoriteEntrance>
+                                <div key={`univ-${item.id}`} className="feed-item">
+                                    <MeteoriteEntrance>
+                                        <CosmicEventCard event={item} />
+                                    </MeteoriteEntrance>
+                                </div>
                             ) : (
-                                <MeteoriteEntrance key={item.id}>
-                                    <ActivityCard
-                                        post={item}
-                                        onUpdate={handleUpdatePost}
-                                        onNewPost={handleNewPost}
-                                    />
-                                </MeteoriteEntrance>
+                                <div key={item.id} className="feed-item">
+                                    <MeteoriteEntrance>
+                                        <ActivityCard
+                                            post={item}
+                                            onUpdate={handleUpdatePost}
+                                            onNewPost={handleNewPost}
+                                        />
+                                    </MeteoriteEntrance>
+                                </div>
                             )
                         )}
                     </div>

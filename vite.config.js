@@ -1,13 +1,59 @@
 ﻿import { defineConfig, loadEnv } from 'vite'
 import react from '@vitejs/plugin-react'
 import { AccessToken } from 'livekit-server-sdk'
+import { VitePWA } from 'vite-plugin-pwa'
 
 export default defineConfig(({ mode }) => {
   // eslint-disable-next-line no-undef
   const env = loadEnv(mode, process.cwd(), '');
+  const isProd = mode === 'production';
 
   return {
-    plugins: [react()],
+    plugins: [
+      react(),
+      // Service Worker solo en producción (evita problemas en dev/Capacitor)
+      isProd && VitePWA({
+        registerType: 'autoUpdate',
+        injectRegister: 'auto',
+        workbox: {
+          // Precaché: JS, CSS, HTML, fuentes e íconos
+          globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2}'],
+          // No precachear chunks grandes (livekit, konva) — se cachean en runtime
+          globIgnores: ['**/livekit-*.js', '**/konva-*.js'],
+          runtimeCaching: [
+            {
+              // API Supabase: network-first con fallback a caché 5 min
+              urlPattern: /^https:\/\/.*\.supabase\.co\/.*/i,
+              handler: 'NetworkFirst',
+              options: {
+                cacheName: 'supabase-api',
+                expiration: { maxEntries: 60, maxAgeSeconds: 300 },
+                networkTimeoutSeconds: 5,
+              },
+            },
+            {
+              // Avatares e imágenes: cache-first (cambian poco)
+              urlPattern: /\.(png|jpg|jpeg|webp|gif|svg)$/i,
+              handler: 'CacheFirst',
+              options: {
+                cacheName: 'images',
+                expiration: { maxEntries: 100, maxAgeSeconds: 60 * 60 * 24 * 7 },
+              },
+            },
+          ],
+        },
+        manifest: {
+          name: 'Space-Dan',
+          short_name: 'SpaceDan',
+          theme_color: '#050510',
+          background_color: '#050510',
+          display: 'standalone',
+          icons: [
+            { src: '/favicon.ico', sizes: '64x64', type: 'image/x-icon' },
+          ],
+        },
+      }),
+    ].filter(Boolean),
     optimizeDeps: {
       include: ['konva', 'react-konva'],
     },

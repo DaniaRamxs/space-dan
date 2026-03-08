@@ -526,7 +526,9 @@ export default function ShopPage() {
           ) : filteredItems.length > 0 ? (
             <div className="max-w-7xl mx-auto px-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
               {filteredItems.map(item => (
-                <ItemCard key={item.id} item={item} onBuy={handleBuy} onUnequip={handleUnequip} onPreview={() => setActivePreview(item)} isEquipped={isItemEquipped(item)} owned={hasPurchased(item.id)} />
+                <div key={item.id} className="feed-item">
+                  <ItemCard item={item} onBuy={handleBuy} onUnequip={handleUnequip} onPreview={() => setActivePreview(item)} isEquipped={isItemEquipped(item)} owned={hasPurchased(item.id)} />
+                </div>
               ))}
             </div>
           ) : (
@@ -742,6 +744,7 @@ function ItemCard({ item, onBuy, onUnequip, onPreview, isEquipped, owned, featur
               <img
                 src={profile?.avatar_url || '/dan_profile.jpg'}
                 alt="Preview"
+                loading="lazy"
                 className="w-[85%] h-[85%] object-cover rounded-full border border-white/10 shadow-lg"
               />
             </div>
@@ -758,6 +761,7 @@ function ItemCard({ item, onBuy, onUnequip, onPreview, isEquipped, owned, featur
               <img
                 src={profile?.avatar_url || '/dan_profile.jpg'}
                 alt="Mini Avatar"
+                loading="lazy"
                 className="w-full h-full object-cover opacity-80"
               />
             </div>
