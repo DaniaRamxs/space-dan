@@ -32,6 +32,7 @@ export default function PokerGame({ roomName, onClose, isTheater, onToggleTheate
         const joinGame = async () => {
             try {
                 const pokerRoom = await client.joinOrCreate("poker", {
+                    userId: user?.id,
                     name: profile?.username || "Piloto",
                     avatar: profile?.avatar_url || "/default-avatar.png",
                     roomName: roomName

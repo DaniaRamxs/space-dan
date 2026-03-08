@@ -19,6 +19,7 @@ export default function Connect4Game({ roomName, onClose, isTheater, onToggleThe
         const joinGame = async () => {
             try {
                 const c4Room = await client.joinOrCreate("connect4", {
+                    userId: user?.id,
                     name: profile?.username || user?.email?.split('@')[0] || "Anon",
                     avatar: profile?.avatar_url || "/default-avatar.png",
                     roomName: roomName

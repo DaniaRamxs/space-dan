@@ -14,22 +14,22 @@ const UNICODE_PIECES = {
 };
 
 const END_REASON_LABELS = {
-    checkmate:             'Jaque Mate',
-    stalemate:             'Ahogado',
-    resign:                'Renuncia',
-    timeout:               'Tiempo Agotado',
-    abandoned:             'Abandono',
-    repetition:            'Triple Repetición',
+    checkmate: 'Jaque Mate',
+    stalemate: 'Ahogado',
+    resign: 'Renuncia',
+    timeout: 'Tiempo Agotado',
+    abandoned: 'Abandono',
+    repetition: 'Triple Repetición',
     insufficient_material: 'Material Insuficiente',
-    fifty_moves:           'Regla de 50 Movimientos',
+    fifty_moves: 'Regla de 50 Movimientos',
 };
 
 const CLOCK_OPTIONS = [
     { mode: 'none', label: 'Sin reloj' },
-    { mode: '1',    label: '1 min' },
-    { mode: '3',    label: '3 min' },
-    { mode: '5',    label: '5 min' },
-    { mode: '10',   label: '10 min' },
+    { mode: '1', label: '1 min' },
+    { mode: '3', label: '3 min' },
+    { mode: '5', label: '5 min' },
+    { mode: '10', label: '10 min' },
 ];
 
 function formatTime(secs) {
@@ -45,16 +45,16 @@ export default function ChessGame({ roomName, onClose, isTheater, onToggleTheate
     const { user, profile } = useAuthContext();
 
     // Colyseus
-    const [room, setRoom]           = useState(null);
-    const [state, setState]         = useState(null);
+    const [room, setRoom] = useState(null);
+    const [state, setState] = useState(null);
     const [connecting, setConnecting] = useState(true);
-    const [tick, setTick]           = useState(0);
+    const [tick, setTick] = useState(0);
 
     // Board interaction
-    const [selected, setSelected]         = useState(null);   // square string e.g. "e2"
+    const [selected, setSelected] = useState(null);   // square string e.g. "e2"
     const [legalTargets, setLegalTargets] = useState([]);     // array of square strings
     const [promotionPend, setPromotionPend] = useState(null); // { from, to }
-    const [moveHistory, setMoveHistory]   = useState([]);
+    const [moveHistory, setMoveHistory] = useState([]);
 
     // Local chess instance for legal-move calculations (never authoritative)
     const localChess = useRef(new Chess());
@@ -67,8 +67,9 @@ export default function ChessGame({ roomName, onClose, isTheater, onToggleTheate
         const join = async () => {
             try {
                 const r = await client.joinOrCreate('chess', {
-                    name:     profile?.username || user?.email?.split('@')[0] || 'Anon',
-                    avatar:   profile?.avatar_url || '/default-avatar.png',
+                    userId: user?.id,
+                    name: profile?.username || user?.email?.split('@')[0] || 'Anon',
+                    avatar: profile?.avatar_url || '/default-avatar.png',
                     roomName,
                 });
 
@@ -101,12 +102,12 @@ export default function ChessGame({ roomName, onClose, isTheater, onToggleTheate
             mounted = false;
             if (activeRoom) activeRoom.leave();
         };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     function syncLocalChess(s) {
         if (s?.fen) {
-            try { localChess.current.load(s.fen); } catch (_) {}
+            try { localChess.current.load(s.fen); } catch (_) { }
         }
     }
 
@@ -120,12 +121,12 @@ export default function ChessGame({ roomName, onClose, isTheater, onToggleTheate
     const myColor = useMemo(() => {
         if (!state || !room) return null;
         return state.players?.get(room.sessionId)?.color ?? null;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [state, room, tick]);
 
-    const isFlipped    = myColor === 'black';
-    const isSpectator  = !myColor || myColor === 'spectator';
-    const isMyTurn     = !isSpectator && (
+    const isFlipped = myColor === 'black';
+    const isSpectator = !myColor || myColor === 'spectator';
+    const isMyTurn = !isSpectator && (
         (myColor === 'white' && state?.turn === 'w') ||
         (myColor === 'black' && state?.turn === 'b')
     );
@@ -134,12 +135,12 @@ export default function ChessGame({ roomName, onClose, isTheater, onToggleTheate
     const handleSquareClick = useCallback((sq) => {
         if (!isMyTurn || state?.gameState !== 'playing') return;
 
-        const chess      = localChess.current;
-        const board      = chess.board();
-        const fileIdx    = sq.charCodeAt(0) - 97;          // a=0 … h=7
-        const rankIdx    = parseInt(sq[1]) - 1;             // 1-8 → 0-7
-        const fenRow     = 7 - rankIdx;                     // board[0] = rank 8
-        const clickedPc  = board[fenRow][fileIdx];
+        const chess = localChess.current;
+        const board = chess.board();
+        const fileIdx = sq.charCodeAt(0) - 97;          // a=0 … h=7
+        const rankIdx = parseInt(sq[1]) - 1;             // 1-8 → 0-7
+        const fenRow = 7 - rankIdx;                     // board[0] = rank 8
+        const clickedPc = board[fenRow][fileIdx];
         const myColorLetter = myColor === 'white' ? 'w' : 'b';
 
         // Already have a selection
@@ -213,7 +214,7 @@ export default function ChessGame({ roomName, onClose, isTheater, onToggleTheate
     }
 
     // ── Board-level data ──────────────────────────────────────────────────────
-    const chess     = localChess.current;
+    const chess = localChess.current;
     const boardData = chess.board(); // [rank8..rank1][fileA..fileH]
 
     let checkSquare = null;
@@ -231,15 +232,15 @@ export default function ChessGame({ roomName, onClose, isTheater, onToggleTheate
 
     const whitePlayer = state.white ? state.players?.get(state.white) : null;
     const blackPlayer = state.black ? state.players?.get(state.black) : null;
-    const showClock   = state.clockMode !== 'none';
+    const showClock = state.clockMode !== 'none';
 
     // Top player is opponent from my perspective
-    const topPlayer     = isFlipped ? whitePlayer : blackPlayer;
-    const bottomPlayer  = isFlipped ? blackPlayer : whitePlayer;
-    const topTimeLeft   = isFlipped ? state.whiteTime : state.blackTime;
+    const topPlayer = isFlipped ? whitePlayer : blackPlayer;
+    const bottomPlayer = isFlipped ? blackPlayer : whitePlayer;
+    const topTimeLeft = isFlipped ? state.whiteTime : state.blackTime;
     const bottomTimeLeft = isFlipped ? state.blackTime : state.whiteTime;
-    const topActive     = isFlipped ? (state.turn === 'w') : (state.turn === 'b');
-    const bottomActive  = isFlipped ? (state.turn === 'b') : (state.turn === 'w');
+    const topActive = isFlipped ? (state.turn === 'w') : (state.turn === 'b');
+    const bottomActive = isFlipped ? (state.turn === 'b') : (state.turn === 'w');
 
     return (
         <div className="flex-1 flex flex-col bg-[#070b14] text-white overflow-hidden min-h-0">
@@ -391,7 +392,7 @@ export default function ChessGame({ roomName, onClose, isTheater, onToggleTheate
 function WaitingLobby({ state, room, myColor, onSetClock }) {
     const whitePlayer = state.white ? state.players?.get(state.white) : null;
     const blackPlayer = state.black ? state.players?.get(state.black) : null;
-    const bothReady   = state.white && state.black;
+    const bothReady = state.white && state.black;
 
     return (
         <motion.div
@@ -411,7 +412,7 @@ function WaitingLobby({ state, room, myColor, onSetClock }) {
             <div className="grid grid-cols-2 gap-3">
                 {[
                     { label: 'Blancas', color: 'white', player: whitePlayer, piece: '♔', accent: 'border-amber-200/30 bg-amber-50/5' },
-                    { label: 'Negras',  color: 'black', player: blackPlayer, piece: '♚', accent: 'border-stone-500/30 bg-stone-500/5' },
+                    { label: 'Negras', color: 'black', player: blackPlayer, piece: '♚', accent: 'border-stone-500/30 bg-stone-500/5' },
                 ].map(({ label, color, player, piece, accent }) => (
                     <div key={color} className={`rounded-2xl border p-3 flex flex-col items-center gap-2 ${accent}`}>
                         <span className="text-xl select-none">{piece}</span>
@@ -455,11 +456,10 @@ function WaitingLobby({ state, room, myColor, onSetClock }) {
                             <button
                                 key={mode}
                                 onClick={() => onSetClock(mode)}
-                                className={`px-3 py-1.5 rounded-full text-[8px] font-black uppercase tracking-widest border transition-all ${
-                                    state.clockMode === mode
+                                className={`px-3 py-1.5 rounded-full text-[8px] font-black uppercase tracking-widest border transition-all ${state.clockMode === mode
                                         ? 'bg-emerald-500 border-emerald-400 text-black shadow-[0_0_12px_rgba(16,185,129,0.35)]'
                                         : 'bg-white/5 border-white/10 text-white/40 hover:bg-white/10 hover:text-white/70'
-                                }`}
+                                    }`}
                             >
                                 {label}
                             </button>
@@ -514,13 +514,12 @@ function PlayerRow({ player, timeLeft, showClock, isActive, isMe, isTop }) {
 
             {/* Clock */}
             {showClock && (
-                <div className={`flex-shrink-0 font-black tabular-nums text-sm px-2.5 py-1 rounded-lg border transition-all duration-300 ${
-                    isActive
+                <div className={`flex-shrink-0 font-black tabular-nums text-sm px-2.5 py-1 rounded-lg border transition-all duration-300 ${isActive
                         ? lowTime
                             ? 'text-red-400 border-red-500/40 bg-red-500/10 shadow-[0_0_10px_rgba(239,68,68,0.2)]'
                             : 'text-white border-emerald-500/30 bg-emerald-500/10'
                         : 'text-white/20 border-white/5 bg-white/5'
-                }`}>
+                    }`}>
                     {formatTime(timeLeft)}
                 </div>
             )}
@@ -531,8 +530,8 @@ function PlayerRow({ player, timeLeft, showClock, isActive, isMe, isTop }) {
 // ─── ChessBoard ───────────────────────────────────────────────────────────────
 
 function ChessBoard({ boardData, flipped, selected, legalTargets, lastFrom, lastTo, checkSquare, onSquareClick, disabled }) {
-    const files = flipped ? ['h','g','f','e','d','c','b','a'] : ['a','b','c','d','e','f','g','h'];
-    const ranks = flipped ? ['1','2','3','4','5','6','7','8'] : ['8','7','6','5','4','3','2','1'];
+    const files = flipped ? ['h', 'g', 'f', 'e', 'd', 'c', 'b', 'a'] : ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
+    const ranks = flipped ? ['1', '2', '3', '4', '5', '6', '7', '8'] : ['8', '7', '6', '5', '4', '3', '2', '1'];
 
     const squares = [];
     for (let vRow = 0; vRow < 8; vRow++) {
@@ -540,22 +539,22 @@ function ChessBoard({ boardData, flipped, selected, legalTargets, lastFrom, last
             // Map visual position → FEN board position
             const fenRow = flipped ? 7 - vRow : vRow;
             const fenCol = flipped ? 7 - vCol : vCol;
-            const piece  = boardData[fenRow][fenCol];
+            const piece = boardData[fenRow][fenCol];
 
             // Square name
             const fileChar = String.fromCharCode(97 + (flipped ? 7 - vCol : vCol));
-            const rankNum  = flipped ? vRow + 1 : 8 - vRow;
-            const sq       = fileChar + rankNum;
+            const rankNum = flipped ? vRow + 1 : 8 - vRow;
+            const sq = fileChar + rankNum;
 
             // Light / dark
-            const fileIdx  = flipped ? 7 - vCol : vCol;
-            const rankIdx  = rankNum - 1; // 0-based
-            const isLight  = (fileIdx + rankIdx) % 2 !== 0;
+            const fileIdx = flipped ? 7 - vCol : vCol;
+            const rankIdx = rankNum - 1; // 0-based
+            const isLight = (fileIdx + rankIdx) % 2 !== 0;
 
-            const isSelected  = selected === sq;
-            const isTarget    = legalTargets.includes(sq);
-            const isLastMove  = lastFrom === sq || lastTo === sq;
-            const isCheck     = checkSquare === sq;
+            const isSelected = selected === sq;
+            const isTarget = legalTargets.includes(sq);
+            const isLastMove = lastFrom === sq || lastTo === sq;
+            const isCheck = checkSquare === sq;
             const showFileLabel = vRow === 7;
             const showRankLabel = vCol === 0;
 
@@ -600,7 +599,7 @@ function ChessSquare({ sq, piece, isLight, isSelected, isTarget, isLastMove, isC
     }
 
     const isWhitePiece = piece?.color === 'w';
-    const pieceChar    = piece
+    const pieceChar = piece
         ? UNICODE_PIECES[isWhitePiece ? piece.type.toUpperCase() : piece.type]
         : null;
 
@@ -615,11 +614,10 @@ function ChessSquare({ sq, piece, isLight, isSelected, isTarget, isLastMove, isC
                     key={`${sq}-${pieceChar}`}
                     initial={{ scale: 0.85 }}
                     animate={{ scale: 1 }}
-                    className={`z-10 leading-none pointer-events-none text-[clamp(14px,4.5vmin,40px)] ${
-                        isWhitePiece
+                    className={`z-10 leading-none pointer-events-none text-[clamp(14px,4.5vmin,40px)] ${isWhitePiece
                             ? 'text-[#fffdf0] [text-shadow:0_2px_4px_rgba(0,0,0,0.9),0_1px_2px_rgba(0,0,0,0.8)]'
                             : 'text-[#1a1008] [text-shadow:0_1px_2px_rgba(255,255,255,0.15)]'
-                    }`}
+                        }`}
                     style={{ userSelect: 'none' }}
                 >
                     {pieceChar}
@@ -705,12 +703,12 @@ function PromotionPicker({ color, onPick }) {
 // ─── GameOverOverlay ──────────────────────────────────────────────────────────
 
 function GameOverOverlay({ state, myColor, whitePlayer, blackPlayer, onRematch, onClose }) {
-    const isDraw    = state.winner === 'draw';
-    const iWon      = !isDraw && state.winner === myColor;
+    const isDraw = state.winner === 'draw';
+    const iWon = !isDraw && state.winner === myColor;
     const isSpectator = !myColor || myColor === 'spectator';
 
     const winnerPlayer = state.winner === 'white' ? whitePlayer : blackPlayer;
-    const reason       = END_REASON_LABELS[state.endReason] || state.endReason;
+    const reason = END_REASON_LABELS[state.endReason] || state.endReason;
 
     return (
         <motion.div

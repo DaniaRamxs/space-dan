@@ -31,12 +31,10 @@ export default class GameRoom extends Room {
     }
 
     async onJoin(client, options) {
-        const { userId, username, avatar } = options;
-
-        if (!userId) {
-            client.leave();
-            return;
-        }
+        // Fallback to client.sessionId if userId is missing
+        const userId = options.userId || client.sessionId;
+        const username = options.username || options.name || "Anon";
+        const avatar = options.avatar || "/default-avatar.png";
 
         // Check for existing player with same userId to prevent duplicates on refresh
         let existingPlayer = null;

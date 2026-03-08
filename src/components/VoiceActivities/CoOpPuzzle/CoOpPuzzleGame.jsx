@@ -32,6 +32,7 @@ export default function CoOpPuzzleGame({ roomName, onClose }) {
         const joinGame = async () => {
             try {
                 const puzzleRoom = await client.joinOrCreate("puzzle", {
+                    userId: user?.id,
                     name: profile?.username || user?.displayName || "Anon",
                     avatar: profile?.avatar_url || "/default-avatar.png",
                     roomName: roomName

@@ -75,6 +75,7 @@ export default function PixelGalaxyGame({ roomName, onClose, isTheater, onToggle
         const join = async () => {
             try {
                 const r = await client.joinOrCreate('pixel-galaxy', {
+                    userId: user?.id,
                     name: profile?.username || user?.email?.split('@')[0] || 'Anon',
                     avatar: profile?.avatar_url || '/default-avatar.png',
                     roomName,
@@ -540,8 +541,8 @@ export default function PixelGalaxyGame({ roomName, onClose, isTheater, onToggle
                                             onClick={() => { setSelectedColor(color); setIsEraser(false); if (window.innerWidth <= 768) setMenuOpen(false); }}
                                             style={{ backgroundColor: color }}
                                             className={`aspect-square rounded-lg border-2 transition-all ${selectedColor === color && !isEraser
-                                                    ? 'border-white scale-110 shadow-[0_0_15px_rgba(255,255,255,0.2)]'
-                                                    : 'border-white/5 hover:border-white/20'
+                                                ? 'border-white scale-110 shadow-[0_0_15px_rgba(255,255,255,0.2)]'
+                                                : 'border-white/5 hover:border-white/20'
                                                 }`}
                                         />
                                     ))}
@@ -561,8 +562,8 @@ export default function PixelGalaxyGame({ roomName, onClose, isTheater, onToggle
                                         <button
                                             onClick={() => setIsEraser(e => !e)}
                                             className={`p-2 rounded-xl border transition-all ${isEraser
-                                                    ? 'bg-rose-500 text-white border-rose-400 shadow-[0_0_15px_rgba(244,63,94,0.3)]'
-                                                    : 'bg-white/5 border-white/10 text-white/30 hover:text-white hover:bg-white/10'
+                                                ? 'bg-rose-500 text-white border-rose-400 shadow-[0_0_15px_rgba(244,63,94,0.3)]'
+                                                : 'bg-white/5 border-white/10 text-white/30 hover:text-white hover:bg-white/10'
                                                 }`}
                                             title="Borrador"
                                         >
@@ -675,8 +676,8 @@ function BottomToolbar({ selectedColor, setSelectedColor, isEraser, setIsEraser,
                             onClick={() => { setSelectedColor(color); setIsEraser(false); }}
                             style={{ backgroundColor: color }}
                             className={`w-6 h-6 flex-shrink-0 rounded border transition-all ${selectedColor === color && !isEraser
-                                    ? 'border-white scale-110'
-                                    : 'border-white/15 hover:scale-105'
+                                ? 'border-white scale-110'
+                                : 'border-white/15 hover:scale-105'
                                 }`}
                         />
                     ))}
@@ -687,8 +688,8 @@ function BottomToolbar({ selectedColor, setSelectedColor, isEraser, setIsEraser,
                     <button
                         onClick={() => setIsEraser(e => !e)}
                         className={`p-2 rounded-lg border transition-all ${isEraser
-                                ? 'bg-red-500/20 border-red-500/40 text-red-400'
-                                : 'bg-white/5 border-white/10 text-white/40 hover:text-white'
+                            ? 'bg-red-500/20 border-red-500/40 text-red-400'
+                            : 'bg-white/5 border-white/10 text-white/40 hover:text-white'
                             }`}
                     >
                         <Eraser size={14} />
@@ -721,8 +722,8 @@ function BottomToolbar({ selectedColor, setSelectedColor, isEraser, setIsEraser,
                                     onClick={() => { setSelectedColor(color); setIsEraser(false); setExpanded(false); }}
                                     style={{ backgroundColor: color }}
                                     className={`aspect-square rounded border transition-all ${selectedColor === color && !isEraser
-                                            ? 'border-white scale-110 shadow-md'
-                                            : 'border-white/10 hover:scale-105 hover:border-white/30'
+                                        ? 'border-white scale-110 shadow-md'
+                                        : 'border-white/10 hover:scale-105 hover:border-white/30'
                                         }`}
                                 />
                             ))}

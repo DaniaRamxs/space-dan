@@ -15,10 +15,10 @@ export default function BlackjackGame({ roomName, onClose }) {
         const joinGame = async () => {
             try {
                 const bjRoom = await client.joinOrCreate("blackjack", {
+                    userId: user?.id || profile?.id,
                     name: profile?.username || user?.email?.split('@')[0] || "Anon",
                     avatar: profile?.avatar_url || "/default-avatar.png",
                     roomName: roomName,
-                    dbId: user?.id || profile?.id
                 });
                 setRoom(bjRoom);
                 setState(bjRoom.state);

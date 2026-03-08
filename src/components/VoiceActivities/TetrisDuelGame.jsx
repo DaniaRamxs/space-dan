@@ -29,6 +29,7 @@ export default function TetrisDuelGame({ roomName, onClose, isTheater, onToggleT
         const joinGame = async () => {
             try {
                 const tetrisRoom = await client.joinOrCreate("tetris", {
+                    userId: user?.id,
                     name: profile?.username || user?.email?.split('@')[0] || "Anon",
                     avatar: profile?.avatar_url || "/default-avatar.png",
                     roomName: roomName

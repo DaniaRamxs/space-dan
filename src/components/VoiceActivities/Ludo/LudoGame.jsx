@@ -19,6 +19,7 @@ export default function LudoGame({ roomName, onClose }) {
         const joinGame = async () => {
             try {
                 const ludoRoom = await client.joinOrCreate("ludo", {
+                    userId: user?.id,
                     name: profile?.username || user?.displayName || "Anon",
                     avatar: profile?.avatar_url || "/default-avatar.png",
                     roomName: roomName
