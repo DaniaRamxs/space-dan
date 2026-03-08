@@ -18,6 +18,7 @@ export class Player extends Schema {
         this.score = 0;
         this.bet = 0;
         this.status = "waiting";
+        this.roundWins = 0;
     }
 }
 defineTypes(Player, {
@@ -27,7 +28,9 @@ defineTypes(Player, {
     cards: [Card],
     score: "number",
     bet: "number",
-    status: "string"
+    status: "string",
+    roundWins: "number",
+    dbId: "string"
 });
 
 export class BlackjackState extends Schema {
@@ -37,11 +40,17 @@ export class BlackjackState extends Schema {
         this.dealer = new Player("dealer", "Dealer", "/dealer-avatar.png");
         this.players = new MapSchema();
         this.currentTurn = "";
+        this.roundsPlayed = 0;
+        this.maxRounds = 10;
+        this.pot = 0;
     }
 }
 defineTypes(BlackjackState, {
     gameState: "string",
     dealer: Player,
     players: { map: Player },
-    currentTurn: "string"
+    currentTurn: "string",
+    roundsPlayed: "number",
+    maxRounds: "number",
+    pot: "number"
 });

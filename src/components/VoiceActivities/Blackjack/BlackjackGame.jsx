@@ -17,7 +17,8 @@ export default function BlackjackGame({ roomName, onClose }) {
                 const bjRoom = await client.joinOrCreate("blackjack", {
                     name: profile?.username || user?.email?.split('@')[0] || "Anon",
                     avatar: profile?.avatar_url || "/default-avatar.png",
-                    roomName: roomName
+                    roomName: roomName,
+                    dbId: user?.id || profile?.id
                 });
                 setRoom(bjRoom);
                 setState(bjRoom.state);
@@ -64,19 +65,42 @@ export default function BlackjackGame({ roomName, onClose }) {
     return (
         <div className="flex-1 flex flex-col relative bg-[#070b14] overflow-hidden text-white font-sans">
             {/* Table Header */}
-            <div className="flex-shrink-0 flex items-center justify-between p-4 border-b border-white/5 bg-black/20 backdrop-blur-md">
-                <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-xl bg-rose-500/20 border border-rose-500/30 flex items-center justify-center">
-                        <Coins size={16} className="text-rose-400" />
+            <div className="flex-shrink-0 flex items-center justify-between p-4 border-b border-white/5 bg-black/20 backdrop-blur-md z-50">
+                <div className="flex items-center gap-6">
+                    <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-xl bg-rose-500/20 border border-rose-500/30 flex items-center justify-center">
+                            <Coins size={16} className="text-rose-400" />
+                        </div>
+                        <div>
+                            <h2 className="text-[11px] font-black uppercase tracking-widest leading-none">Blackjack Tournament</h2>
+                            <p className="text-[8px] text-white/30 uppercase tracking-widest mt-1">Gana el que sume más victorias en 10 rondas</p>
+                        </div>
                     </div>
-                    <div>
-                        <h2 className="text-[11px] font-black uppercase tracking-widest leading-none">Blackjack Table</h2>
-                        <p className="text-[8px] text-white/30 uppercase tracking-widest mt-1">Sala: {roomName}</p>
+
+                    {/* Tournament Progress */}
+                    <div className="hidden md:flex flex-col gap-1.5 min-w-[120px]">
+                        <div className="flex justify-between items-center text-[8px] font-black uppercase tracking-[0.2em] text-white/40">
+                            <span>Ronda {state.roundsPlayed}/{state.maxRounds}</span>
+                            <span className="text-rose-400">{Math.round((state.roundsPlayed / state.maxRounds) * 100)}%</span>
+                        </div>
+                        <div className="h-1 bg-white/5 rounded-full overflow-hidden border border-white/5">
+                            <motion.div
+                                animate={{ width: `${(state.roundsPlayed / state.maxRounds) * 100}%` }}
+                                className="h-full bg-rose-500 shadow-[0_0_10px_rgba(244,63,94,0.5)]"
+                            />
+                        </div>
                     </div>
                 </div>
-                <button onClick={onClose} className="p-2 text-white/20 hover:text-white transition-colors">
-                    <X size={18} />
-                </button>
+
+                <div className="flex items-center gap-4">
+                    <div className="bg-amber-500/10 border border-amber-500/20 px-4 py-2 rounded-xl flex items-center gap-3">
+                        <div className="w-2 h-2 rounded-full bg-amber-500 animate-pulse shadow-[0_0_8px_#f59e0b]" />
+                        <span className="text-[10px] font-black text-amber-400 uppercase tracking-widest whitespace-nowrap">Pozo: {state.pot} ◈</span>
+                    </div>
+                    <button onClick={onClose} className="p-2 text-white/20 hover:text-white transition-colors">
+                        <X size={18} />
+                    </button>
+                </div>
             </div>
 
             {/* Game Table (Green Felt Style) */}
@@ -105,11 +129,47 @@ export default function BlackjackGame({ roomName, onClose }) {
                 </div>
 
                 {/* Player Seats */}
-                <div className="w-full max-w-4xl grid grid-cols-3 sm:grid-cols-6 gap-4">
+                <div className="w-full max-w-4xl grid grid-cols-3 sm:grid-cols-6 gap-4 relative">
                     {state.players && Array.from(state.players.values()).map((p) => (
-                        <PlayerSeat key={p.id} player={p} isCurrent={state.currentTurn === p.id} />
+                        <PlayerSeat key={p.id} player={p} isCurrent={state.currentTurn === p.id} isMe={p.id === room.sessionId} />
                     ))}
                 </div>
+
+                {/* Tournament End Celebration Overlay */}
+                <AnimatePresence>
+                    {state.gameState === "tournament_finished" && (
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.8 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.8 }}
+                            className="absolute inset-0 z-50 flex items-center justify-center p-6"
+                        >
+                            <div className="bg-[#050518]/90 border border-amber-500/20 p-12 rounded-[4rem] shadow-2xl backdrop-blur-2xl flex flex-col items-center text-center max-w-md w-full relative overflow-hidden">
+                                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-amber-500 to-transparent" />
+                                <Play size={64} className="text-amber-400 mb-6 rotate-[-90deg] drop-shadow-[0_0_20px_rgba(245,158,11,0.4)]" />
+                                <h3 className="text-2xl font-black text-white uppercase tracking-[0.2em] mb-2">Final del Torneo</h3>
+                                <p className="text-[11px] text-amber-500 font-bold uppercase tracking-[0.3em] mb-8">El pozo de {state.pot} ◈ ha sido repartido</p>
+
+                                <div className="space-y-3 w-full">
+                                    {Array.from(state.players.values())
+                                        .sort((a, b) => b.roundWins - a.roundWins)
+                                        .slice(0, 3)
+                                        .map((p, i) => (
+                                            <div key={p.id} className={`flex items-center gap-4 p-4 rounded-3xl border ${i === 0 ? 'bg-amber-500/10 border-amber-500/20' : 'bg-white/5 border-white/5'}`}>
+                                                <span className={`text-xl font-black ${i === 0 ? 'text-amber-400' : 'text-white/20'}`}>{i + 1}</span>
+                                                <img src={p.avatar} className="w-10 h-10 rounded-xl border border-white/10" alt="" />
+                                                <div className="text-left flex-1">
+                                                    <p className="text-[11px] font-black text-white uppercase truncate">@{p.name}</p>
+                                                    <p className="text-[8px] font-bold text-white/30 uppercase tracking-widest">{p.roundWins} Victorias</p>
+                                                </div>
+                                            </div>
+                                        ))}
+                                </div>
+                                <p className="mt-10 text-[8px] text-white/20 uppercase tracking-[0.4em] font-black italic">Iniciando nuevo torneo en breve...</p>
+                            </div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
             </div>
 
             {/* Game Controls Bar */}
@@ -131,11 +191,21 @@ export default function BlackjackGame({ roomName, onClose }) {
                     <div className="flex gap-3">
                         {state.gameState === "waiting" ? (
                             <button
-                                onClick={() => room.send("bet", { amount: 100 })}
-                                className="px-8 py-3 rounded-2xl bg-rose-500 text-black font-black uppercase tracking-[0.2em] text-[11px] shadow-[0_10px_30px_rgba(244,63,94,0.3)] hover:scale-105 active:scale-95 transition-all"
+                                onClick={() => room.send("bet")}
+                                disabled={myPlayer?.status === "betting"}
+                                className={`px-10 py-4 rounded-2xl font-black uppercase tracking-[0.2em] text-[11px] transition-all flex flex-col items-center gap-1 ${myPlayer?.status === "betting"
+                                        ? 'bg-emerald-500/20 border border-emerald-500/20 text-emerald-400'
+                                        : 'bg-rose-500 text-black shadow-[0_10px_30px_rgba(244,63,94,0.3)] hover:scale-105 active:scale-95'
+                                    }`}
                             >
-                                Apostar 100 ◈
+                                <span>{myPlayer?.status === "betting" ? "Apuesta Lista" : "Pagar Ronda"}</span>
+                                <span className="text-[8px] opacity-60">100 ◈</span>
                             </button>
+                        ) : state.gameState === "tournament_finished" ? (
+                            <div className="px-8 py-3 rounded-2xl bg-white/5 border border-white/10 text-[10px] font-black text-white/20 uppercase tracking-widest flex items-center gap-3">
+                                <div className="w-2 h-2 rounded-full bg-white/20 animate-pulse" />
+                                Fin del Torneo
+                            </div>
                         ) : (
                             <>
                                 <ControlButton
@@ -151,13 +221,6 @@ export default function BlackjackGame({ roomName, onClose }) {
                                     onClick={() => room.send("stand")}
                                     disabled={!isMyTurn || state.gameState !== "player_turn"}
                                     color="white"
-                                />
-                                <ControlButton
-                                    label="Double"
-                                    description="x2"
-                                    onClick={() => room.send("double")}
-                                    disabled={!isMyTurn || state.gameState !== "player_turn" || (myPlayer?.cards?.length ?? 0) !== 2}
-                                    color="amber"
                                 />
                             </>
                         )}
@@ -180,24 +243,44 @@ export default function BlackjackGame({ roomName, onClose }) {
     );
 }
 
-function PlayerSeat({ player, isCurrent }) {
+function PlayerSeat({ player, isCurrent, isMe }) {
     const statusColor = player.status === 'win' ? 'text-emerald-400' : player.status === 'lose' || player.status === 'bust' ? 'text-rose-400' : 'text-cyan-400';
 
     return (
-        <div className={`flex flex-col items-center gap-2 p-3 rounded-2xl transition-all ${isCurrent ? 'bg-white/10 ring-1 ring-rose-500/30' : 'bg-transparent'}`}>
-            <div className="relative group">
-                <img src={player.avatar} className={`w-10 h-10 rounded-xl border object-cover ${isCurrent ? 'border-rose-500' : 'border-white/10 opacity-60'}`} alt="U" />
-                {player.status === "win" && <div className="absolute -top-2 -right-2 bg-emerald-500 rounded-full p-1 shadow-lg shadow-emerald-500/20"><Play size={10} className="text-black rotate-[-90deg]" /></div>}
-            </div>
-            <div className="flex flex-col items-center">
-                <span className={`text-[9px] font-black uppercase tracking-widest mb-1 ${isCurrent ? 'text-white' : 'text-white/20'}`}>{player?.name?.substring(0, 6) || "Anon"}</span>
-                <div className="flex gap-1">
-                    {player?.cards?.map((c, i) => (
-                        <div key={i} className="w-4 h-6 bg-white/10 rounded-sm border border-white/5" />
-                    ))}
+        <div className={`flex flex-col items-center gap-3 p-4 rounded-3xl transition-all relative ${isCurrent ? 'bg-white/10 ring-1 ring-rose-500/30 shadow-[0_0_30px_rgba(0,0,0,0.4)]' : 'bg-black/20 opacity-80'}`}>
+            {/* Round Wins Badge */}
+            {player.roundWins > 0 && (
+                <div className="absolute -top-1 -right-1 bg-amber-500 border-2 border-[#070b14] px-1.5 py-0.5 rounded-lg text-[9px] font-black text-black z-20 shadow-xl">
+                    {player.roundWins}W
                 </div>
-                {(player?.score || 0) > 0 && <span className={`text-[10px] font-black mt-2 ${statusColor}`}>{player.score}</span>}
-                <span className="text-[7px] text-white/30 font-bold uppercase mt-1">Bet {player?.bet || 0}</span>
+            )}
+
+            <div className="relative group">
+                <img src={player.avatar} className={`w-12 h-12 rounded-2xl border-2 object-cover transition-all ${isCurrent ? 'border-rose-500 scale-110 shadow-[0_0_15px_rgba(244,63,94,0.3)]' : 'border-white/10 opacity-40'}`} alt="U" />
+                {player.status === "win" && <div className="absolute -top-2 -right-2 bg-emerald-500 rounded-full p-1.5 shadow-lg shadow-emerald-500/40 border-2 border-[#070b14]"><Play size={10} className="text-black rotate-[-90deg]" /></div>}
+            </div>
+
+            <div className="flex flex-col items-center w-full min-w-0">
+                <span className={`text-[9px] font-black uppercase tracking-widest mb-1 truncate w-full text-center ${isCurrent ? 'text-white' : 'text-white/20'}`}>
+                    {isMe ? "Tú" : player.name.substring(0, 8)}
+                </span>
+
+                {/* Visual Cards representation */}
+                <div className="flex gap-0.5 h-6">
+                    {player?.cards?.length > 0 ? (
+                        player.cards.map((_, i) => (
+                            <div key={i} className="w-3.5 h-5 bg-white rounded-sm border border-neutral-200" />
+                        ))
+                    ) : (
+                        <div className="w-8 h-1 bg-white/5 rounded-full mt-2" />
+                    )}
+                </div>
+
+                {player.score > 0 && (
+                    <div className={`mt-2 px-2 py-0.5 rounded-lg text-[10px] font-black bg-black/40 border ${statusColor === 'text-emerald-400' ? 'border-emerald-500/30' : statusColor === 'text-rose-400' ? 'border-rose-500/30' : 'border-white/10'} ${statusColor}`}>
+                        {player.score}
+                    </div>
+                )}
             </div>
         </div>
     );
