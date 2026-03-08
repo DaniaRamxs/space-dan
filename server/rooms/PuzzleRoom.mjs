@@ -62,24 +62,13 @@ export class PuzzleRoom extends GameRoom {
         });
     }
 
-    async onJoin(client, options) {
-        await super.onJoin(client, options);
-        if (!this.state.hostId) {
-            this.state.hostId = client.sessionId;
-        }
-    }
-
     handlePlayerDefeatOnLeave(player) {
-        // Co-op: just release pieces
+        // Co-op: just release pieces held by the leaving player
         this.state.pieces.forEach(p => {
             if (p.heldBy === player.sessionId) p.heldBy = "";
         });
-
-        // Reassign host if necessary
-        if (this.state.hostId === player.sessionId) {
-            const nextHost = this.state.players.keys().next().value;
-            this.state.hostId = nextHost || "";
-        }
+        // Host transfer is handled by GameRoom base class
+        super.handlePlayerDefeatOnLeave(player);
     }
 
     checkSnap(piece) {

@@ -40,7 +40,6 @@ export class PuzzleState extends BaseGameState {
         this.isCompleted = false;
         this.startTime = 0;
         this.completeTime = 0;
-        this.hostId = "";
     }
 }
 type("string")(PuzzleState.prototype, "imageUri");
@@ -51,4 +50,3 @@ type("number")(PuzzleState.prototype, "progress");
 type("boolean")(PuzzleState.prototype, "isCompleted");
 type("number")(PuzzleState.prototype, "startTime");
 type("number")(PuzzleState.prototype, "completeTime");
-type("string")(PuzzleState.prototype, "hostId");

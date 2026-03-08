@@ -176,7 +176,7 @@ export default function CoOpPuzzleGame({ roomName, onClose }) {
             ctx.strokeRect(-dw / 2, -dh / 2, dw, dh);
             if (p.heldBy) {
                 const holder = state.players?.get?.(p.heldBy);
-                if (holder) { ctx.fillStyle = 'white'; ctx.font = 'bold 10px Inter'; ctx.textAlign = 'center'; ctx.fillText(holder.name, 0, -dh / 2 - 5); }
+                if (holder) { ctx.fillStyle = 'white'; ctx.font = 'bold 10px Inter'; ctx.textAlign = 'center'; ctx.fillText(holder.username, 0, -dh / 2 - 5); }
             }
             ctx.restore();
         });

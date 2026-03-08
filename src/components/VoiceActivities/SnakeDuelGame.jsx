@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Trophy, Play, RotateCcw, User, UserPlus, Zap, Tv2, Info, ChevronUp, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
+import { X, Trophy, Play, RotateCcw, User, UserPlus, Zap, Tv2, Info, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, Crown } from 'lucide-react';
 import { client } from '../../services/colyseusClient';
 import { useAuthContext } from '../../contexts/AuthContext';
 import toast from 'react-hot-toast';
@@ -30,6 +30,7 @@ export default function SnakeDuelGame({ roomName, onClose, isTheater, onToggleTh
                     countdown: snakeRoom.state.countdown,
                     winner: snakeRoom.state.winner,
                     apple: snakeRoom.state.apple,
+                    hostId: snakeRoom.state.hostId,
                     players: snakeRoom.state.players ? Array.from(snakeRoom.state.players.values()) : []
                 });
                 setConnecting(false);
@@ -40,6 +41,7 @@ export default function SnakeDuelGame({ roomName, onClose, isTheater, onToggleTh
                         countdown: newState.countdown,
                         winner: newState.winner,
                         apple: newState.apple,
+                        hostId: newState.hostId,
                         players: Array.from(newState.players.values())
                     });
                     setTick(t => t + 1);
@@ -145,6 +147,7 @@ export default function SnakeDuelGame({ roomName, onClose, isTheater, onToggleTh
                             slot={i + 1}
                             player={p}
                             isMe={room.sessionId === p.sessionId}
+                            isHost={p.sessionId === state.hostId}
                             onJoin={handleJoin}
                             phase={state.phase}
                             compact={!isTheater}
@@ -268,7 +271,7 @@ export default function SnakeDuelGame({ roomName, onClose, isTheater, onToggleTh
     );
 }
 
-function PlayerCard({ slot, player, isMe, onJoin, phase, compact, color }) {
+function PlayerCard({ slot, player, isMe, isHost, onJoin, phase, compact, color }) {
     const isP1 = slot === 1;
     const accentColor = color === 'rose' ? 'rose' : 'emerald';
     const isActive = !!player;
@@ -300,9 +303,12 @@ function PlayerCard({ slot, player, isMe, onJoin, phase, compact, color }) {
             </div>
 
             <div className="text-left lg:text-center flex-1 min-w-0">
-                <p className={`text-[7px] sm:text-[8px] font-black uppercase tracking-[0.3em] mb-0.5 sm:mb-1 ${isActive ? styles.textAccent : 'text-white/20'}`}>
-                    PILOTO {slot}
-                </p>
+                <div className="flex items-center gap-1 mb-0.5 sm:mb-1">
+                    <p className={`text-[7px] sm:text-[8px] font-black uppercase tracking-[0.3em] ${isActive ? styles.textAccent : 'text-white/20'}`}>
+                        PILOTO {slot}
+                    </p>
+                    {isHost && isActive && <Crown size={9} className="text-amber-400 flex-shrink-0" />}
+                </div>
                 <p className={`text-[10px] sm:text-[11px] font-black uppercase truncate ${isActive ? 'text-white' : 'text-white/20'}`}>
                     {player?.username || 'VACIÓ'}
                 </p>

@@ -31,6 +31,7 @@ export class BaseGameState extends Schema {
         this.countdown = 0;
         this.winner = "";
         this.gameData = "";
+        this.hostId = "";
     }
 }
 type("string")(BaseGameState.prototype, "phase");
@@ -39,3 +40,4 @@ type("number")(BaseGameState.prototype, "countdown");
 type("string")(BaseGameState.prototype, "winner");
 type({ map: "boolean" })(BaseGameState.prototype, "rematchVotes");
 type("string")(BaseGameState.prototype, "gameData");
+type("string")(BaseGameState.prototype, "hostId");

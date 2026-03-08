@@ -62,6 +62,11 @@ export default class GameRoom extends Room {
             this.state.players.set(client.sessionId, player);
         }
 
+        // Assign host to the first player who joins
+        if (!this.state.hostId) {
+            this.state.hostId = client.sessionId;
+        }
+
         // Check if we can start countdown
         if (this.state.phase === "waiting" && this.state.players.size >= this.maxPlayers) {
             this.startCountdown();
@@ -92,6 +97,12 @@ export default class GameRoom extends Room {
     }
 
     handlePlayerDefeatOnLeave(leavingPlayer) {
+        // Transfer host if the host left
+        if (this.state.hostId === leavingPlayer.sessionId) {
+            const nextHost = this.state.players.keys().next().value;
+            this.state.hostId = nextHost || "";
+        }
+
         // If the game is playing and someone leaves permanently, end it
         if (this.state.phase === "playing" && this.state.players.size < this.maxPlayers) {
             // Find the winner (remaining player)
