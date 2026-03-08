@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Play, Coins, User, Shield, Info } from 'lucide-react';
+import { X, Play, Coins, User, Shield, Info, Crown } from 'lucide-react';
 import { client } from '../../../services/colyseusClient';
 import { useAuthContext } from '../../../contexts/AuthContext';
 import toast from 'react-hot-toast';
@@ -12,6 +12,7 @@ export default function BlackjackGame({ roomName, onClose }) {
     const [connecting, setConnecting] = useState(true);
 
     useEffect(() => {
+        let activeRoom = null;
         const joinGame = async () => {
             try {
                 const bjRoom = await client.joinOrCreate("blackjack", {
@@ -20,6 +21,7 @@ export default function BlackjackGame({ roomName, onClose }) {
                     avatar: profile?.avatar_url || "/default-avatar.png",
                     roomName: roomName,
                 });
+                activeRoom = bjRoom;
                 setRoom(bjRoom);
                 setState(bjRoom.state);
                 setConnecting(false);
@@ -43,7 +45,7 @@ export default function BlackjackGame({ roomName, onClose }) {
         };
 
         joinGame();
-        return () => { if (room) room.leave(); };
+        return () => { if (activeRoom) activeRoom.leave(); };
     }, []);
 
     const [tick, setTick] = useState(0); // Dummy state to force rerender
@@ -131,7 +133,7 @@ export default function BlackjackGame({ roomName, onClose }) {
                 {/* Player Seats */}
                 <div className="w-full max-w-4xl grid grid-cols-3 sm:grid-cols-6 gap-4 relative">
                     {state.players && Array.from(state.players.values()).map((p) => (
-                        <PlayerSeat key={p.id} player={p} isCurrent={state.currentTurn === p.id} isMe={p.id === room.sessionId} />
+                        <PlayerSeat key={p.id} player={p} isCurrent={state.currentTurn === p.id} isMe={p.id === room.sessionId} isHost={p.id === state.hostId} />
                     ))}
                 </div>
 
@@ -159,7 +161,10 @@ export default function BlackjackGame({ roomName, onClose }) {
                                                 <span className={`text-xl font-black ${i === 0 ? 'text-amber-400' : 'text-white/20'}`}>{i + 1}</span>
                                                 <img src={p.avatar} className="w-10 h-10 rounded-xl border border-white/10" alt="" />
                                                 <div className="text-left flex-1">
-                                                    <p className="text-[11px] font-black text-white uppercase truncate">@{p.name}</p>
+                                                    <p className="text-[11px] font-black text-white uppercase truncate flex items-center gap-1">
+                                                        {p.id === state.hostId && <Crown size={9} className="text-amber-400 flex-shrink-0" />}
+                                                        @{p.username}
+                                                    </p>
                                                     <p className="text-[8px] font-bold text-white/30 uppercase tracking-widest">{p.roundWins} Victorias</p>
                                                 </div>
                                             </div>
@@ -242,7 +247,7 @@ export default function BlackjackGame({ roomName, onClose }) {
                             <span className="text-[9px] font-black uppercase tracking-widest text-white/30 whitespace-nowrap">
                                 {state.gameState === "waiting" && ((state?.players?.size ?? 0) < 2 ? "Esperando jugadores..." : "Esperando apuestas...")}
                                 {state.gameState === "dealing" && "Repartiendo..."}
-                                {state.gameState === "player_turn" && `Turno de: ${state.players?.get?.(state.currentTurn)?.name || '...'}`}
+                                {state.gameState === "player_turn" && `Turno de: ${state.players?.get?.(state.currentTurn)?.username || '...'}`}
                                 {state.gameState === "dealer_turn" && "Turno del Dealer..."}
                                 {state.gameState === "finished" && "Ronda finalizada"}
                             </span>
@@ -260,7 +265,7 @@ export default function BlackjackGame({ roomName, onClose }) {
     );
 }
 
-function PlayerSeat({ player, isCurrent, isMe }) {
+function PlayerSeat({ player, isCurrent, isMe, isHost }) {
     const statusColor = player.status === 'win' ? 'text-emerald-400' : player.status === 'lose' || player.status === 'bust' ? 'text-rose-400' : 'text-cyan-400';
 
     return (
@@ -278,8 +283,9 @@ function PlayerSeat({ player, isCurrent, isMe }) {
             </div>
 
             <div className="flex flex-col items-center w-full min-w-0">
-                <span className={`text-[9px] font-black uppercase tracking-widest mb-1 truncate w-full text-center ${isCurrent ? 'text-white' : 'text-white/20'}`}>
-                    {isMe ? "Tú" : player.name.substring(0, 8)}
+                <span className={`text-[9px] font-black uppercase tracking-widest mb-1 truncate w-full text-center flex items-center justify-center gap-1 ${isCurrent ? 'text-white' : 'text-white/20'}`}>
+                    {isHost && <Crown size={8} className="text-amber-400 flex-shrink-0" />}
+                    {isMe ? "Tú" : player.username?.substring(0, 8) || "Anon"}
                 </span>
 
                 {/* Visual Cards representation */}

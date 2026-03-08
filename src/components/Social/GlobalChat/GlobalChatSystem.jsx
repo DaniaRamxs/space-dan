@@ -358,6 +358,7 @@ export default function GlobalChat() {
         const getHandValue = (hand) => {
             let val = 0; let aces = 0;
             for (const c of hand) {
+                if (!c || typeof c !== 'string') continue;
                 const s = c.substring(0, c.length - 1);
                 if (s === 'A') { aces++; val += 11; }
                 else if (['J', 'Q', 'K'].includes(s)) val += 10;
@@ -434,7 +435,7 @@ export default function GlobalChat() {
 
             case '/bet':
                 const betAmt = parseInt(args[0]);
-                const betLimit = profile?.stellar_pact_active ? 100 : 1000000;
+                const betLimit = userProfile?.stellar_pact_active ? 100 : 1000000;
                 if (isNaN(betAmt) || betAmt < 10) {
                     response = '❌ Uso: `/bet 50`. (Mín. 10 ◈).';
                 } else if (betAmt > betLimit) {
@@ -461,7 +462,7 @@ export default function GlobalChat() {
                     break;
                 }
                 const bjBet = parseInt(args[0]);
-                const bjLimit = profile?.stellar_pact_active ? 100 : 1000000;
+                const bjLimit = userProfile?.stellar_pact_active ? 100 : 1000000;
                 if (isNaN(bjBet) || bjBet < 10) {
                     response = '❌ Uso: `/blackjack <monto>`. (Mín. 10 ◈).';
                     break;
@@ -619,7 +620,7 @@ export default function GlobalChat() {
 
             case '/slots':
                 const slotsAmt = parseInt(args[0]);
-                const slotsLimit = profile?.stellar_pact_active ? 50 : 1000000;
+                const slotsLimit = userProfile?.stellar_pact_active ? 50 : 1000000;
                 if (isNaN(slotsAmt) || slotsAmt < 10) {
                     response = '🎰 Uso: `/slots 50`. (Mín. 10 ◈).';
                 } else if (slotsAmt > slotsLimit) {

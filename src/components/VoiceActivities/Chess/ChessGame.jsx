@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Clock, Trophy, RotateCcw, Flag, Eye, Tv2, ChevronRight } from 'lucide-react';
+import { X, Clock, Trophy, RotateCcw, Flag, Eye, Tv2, ChevronRight, Crown } from 'lucide-react';
 import { Chess } from 'chess.js';
 import { client } from '../../../services/colyseusClient';
 import { useAuthContext } from '../../../contexts/AuthContext';
@@ -426,8 +426,9 @@ function WaitingLobby({ state, room, myColor, onSetClock }) {
                                     className="w-8 h-8 rounded-full border border-white/10"
                                     alt=""
                                 />
-                                <p className="text-[9px] font-black text-white truncate max-w-[80px] text-center">
-                                    @{player.name}
+                                <p className="text-[9px] font-black text-white truncate max-w-[80px] text-center flex items-center gap-1 justify-center">
+                                    {player.sessionId === state.hostId && <Crown size={8} className="text-amber-400 flex-shrink-0" />}
+                                    @{player.username}
                                 </p>
                                 {myColor === color && (
                                     <span className="text-[7px] font-black uppercase tracking-widest px-1.5 py-0.5 bg-white text-black rounded-md">
@@ -457,8 +458,8 @@ function WaitingLobby({ state, room, myColor, onSetClock }) {
                                 key={mode}
                                 onClick={() => onSetClock(mode)}
                                 className={`px-3 py-1.5 rounded-full text-[8px] font-black uppercase tracking-widest border transition-all ${state.clockMode === mode
-                                        ? 'bg-emerald-500 border-emerald-400 text-black shadow-[0_0_12px_rgba(16,185,129,0.35)]'
-                                        : 'bg-white/5 border-white/10 text-white/40 hover:bg-white/10 hover:text-white/70'
+                                    ? 'bg-emerald-500 border-emerald-400 text-black shadow-[0_0_12px_rgba(16,185,129,0.35)]'
+                                    : 'bg-white/5 border-white/10 text-white/40 hover:bg-white/10 hover:text-white/70'
                                     }`}
                             >
                                 {label}
@@ -499,7 +500,7 @@ function PlayerRow({ player, timeLeft, showClock, isActive, isMe, isTop }) {
             <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-1.5">
                     <p className={`text-[10px] font-black uppercase truncate transition-colors ${isActive ? 'text-white' : 'text-white/30'}`}>
-                        @{player?.name || '...'}
+                        @{player?.username || '...'}
                     </p>
                     {isMe && (
                         <span className="text-[6px] font-black uppercase tracking-widest px-1.5 py-0.5 bg-white text-black rounded-md flex-shrink-0">
@@ -515,10 +516,10 @@ function PlayerRow({ player, timeLeft, showClock, isActive, isMe, isTop }) {
             {/* Clock */}
             {showClock && (
                 <div className={`flex-shrink-0 font-black tabular-nums text-sm px-2.5 py-1 rounded-lg border transition-all duration-300 ${isActive
-                        ? lowTime
-                            ? 'text-red-400 border-red-500/40 bg-red-500/10 shadow-[0_0_10px_rgba(239,68,68,0.2)]'
-                            : 'text-white border-emerald-500/30 bg-emerald-500/10'
-                        : 'text-white/20 border-white/5 bg-white/5'
+                    ? lowTime
+                        ? 'text-red-400 border-red-500/40 bg-red-500/10 shadow-[0_0_10px_rgba(239,68,68,0.2)]'
+                        : 'text-white border-emerald-500/30 bg-emerald-500/10'
+                    : 'text-white/20 border-white/5 bg-white/5'
                     }`}>
                     {formatTime(timeLeft)}
                 </div>
@@ -615,8 +616,8 @@ function ChessSquare({ sq, piece, isLight, isSelected, isTarget, isLastMove, isC
                     initial={{ scale: 0.85 }}
                     animate={{ scale: 1 }}
                     className={`z-10 leading-none pointer-events-none text-[clamp(14px,4.5vmin,40px)] ${isWhitePiece
-                            ? 'text-[#fffdf0] [text-shadow:0_2px_4px_rgba(0,0,0,0.9),0_1px_2px_rgba(0,0,0,0.8)]'
-                            : 'text-[#1a1008] [text-shadow:0_1px_2px_rgba(255,255,255,0.15)]'
+                        ? 'text-[#fffdf0] [text-shadow:0_2px_4px_rgba(0,0,0,0.9),0_1px_2px_rgba(0,0,0,0.8)]'
+                        : 'text-[#1a1008] [text-shadow:0_1px_2px_rgba(255,255,255,0.15)]'
                         }`}
                     style={{ userSelect: 'none' }}
                 >
@@ -742,7 +743,7 @@ function GameOverOverlay({ state, myColor, whitePlayer, blackPlayer, onRematch, 
                                 {isSpectator ? 'Victoria' : iWon ? '¡Victoria!' : 'Derrota'}
                             </p>
                             <h3 className="text-3xl font-black uppercase tracking-wide text-white mb-1">
-                                {winnerPlayer ? `@${winnerPlayer.name}` : state.winner}
+                                {winnerPlayer ? `@${winnerPlayer.username}` : state.winner}
                             </h3>
                             <p className="text-[9px] text-white/30 uppercase tracking-widest">{reason}</p>
                         </div>

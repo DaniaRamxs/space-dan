@@ -29,6 +29,7 @@ export default function PokerGame({ roomName, onClose, isTheater, onToggleTheate
     const [tick, setTick] = useState(0);
 
     useEffect(() => {
+        let activeRoom = null;
         const joinGame = async () => {
             try {
                 const pokerRoom = await client.joinOrCreate("poker", {
@@ -38,6 +39,7 @@ export default function PokerGame({ roomName, onClose, isTheater, onToggleTheate
                     roomName: roomName
                 });
 
+                activeRoom = pokerRoom;
                 setRoom(pokerRoom);
                 setState(pokerRoom.state);
                 setConnecting(false);
@@ -55,7 +57,7 @@ export default function PokerGame({ roomName, onClose, isTheater, onToggleTheate
         };
 
         joinGame();
-        return () => { if (room) room.leave(); };
+        return () => { if (activeRoom) activeRoom.leave(); };
     }, []);
 
     const handleJoinSeat = async (seatIdx) => {
@@ -203,7 +205,7 @@ export default function PokerGame({ roomName, onClose, isTheater, onToggleTheate
                                             )}
                                         </div>
                                         <div className="flex flex-col items-center">
-                                            <span className="text-[9px] font-black uppercase text-white tracking-widest truncate max-w-[80px]">{player.name}</span>
+                                            <span className="text-[9px] font-black uppercase text-white tracking-widest truncate max-w-[80px]">{player.username}</span>
                                             <span className="text-[8px] font-bold text-emerald-400">◈{player.stack}</span>
                                         </div>
                                     </motion.div>

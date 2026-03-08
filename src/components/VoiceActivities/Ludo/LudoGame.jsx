@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Users, Trophy, Dice6, Dices, Info, MessageCircle, Play } from 'lucide-react';
+import { X, Users, Trophy, Dice6, Dices, Info, MessageCircle, Play, Crown } from 'lucide-react';
 import Phaser from 'phaser';
 import LudoScene from './LudoScene';
 import { client } from '../../../services/colyseusClient';
@@ -16,6 +16,7 @@ export default function LudoGame({ roomName, onClose }) {
     const phaserGameRef = useRef(null);
 
     useEffect(() => {
+        let activeRoom = null;
         const joinGame = async () => {
             try {
                 const ludoRoom = await client.joinOrCreate("ludo", {
@@ -24,6 +25,7 @@ export default function LudoGame({ roomName, onClose }) {
                     avatar: profile?.avatar_url || "/default-avatar.png",
                     roomName: roomName
                 });
+                activeRoom = ludoRoom;
                 setRoom(ludoRoom);
                 setState(ludoRoom.state);
                 setConnecting(false);
@@ -59,7 +61,7 @@ export default function LudoGame({ roomName, onClose }) {
 
         return () => {
             if (phaserGameRef.current) phaserGameRef.current.destroy(true);
-            if (room) room.leave();
+            if (activeRoom) activeRoom.leave();
         };
     }, []);
 
@@ -103,6 +105,7 @@ export default function LudoGame({ roomName, onClose }) {
                             <div key={p.id} className={`relative group transition-transform hover:scale-110 z-10`}>
                                 <img src={p.avatar} className={`w-8 h-8 rounded-full border-2 ${p.id === state.currentTurn ? 'border-amber-500 shadow-[0_0_10px_#f59e0b]' : 'border-white/10'}`} alt="" />
                                 {p.id === state.currentTurn && <div className="absolute -top-1 -right-1 w-2 h-2 bg-amber-500 rounded-full animate-ping" />}
+                                {p.id === state.hostId && <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-black rounded-full flex items-center justify-center border border-amber-500/50"><Crown size={8} className="text-amber-400" /></div>}
                             </div>
                         ))}
                     </div>
@@ -133,7 +136,7 @@ export default function LudoGame({ roomName, onClose }) {
                                     <>
                                         <img src={state.players.get(state.currentTurn)?.avatar} className="w-10 h-10 rounded-xl border border-amber-500 shadow-lg shadow-amber-500/20" alt="" />
                                         <span className="text-sm font-black text-white uppercase truncate max-w-[120px]">
-                                            {isMyTurn ? "TU TURNO" : `@${state.players.get(state.currentTurn)?.name}`}
+                                            {isMyTurn ? "TU TURNO" : `@${state.players.get(state.currentTurn)?.username}`}
                                         </span>
                                     </>
                                 )}
@@ -186,7 +189,7 @@ export default function LudoGame({ roomName, onClose }) {
                                 <div key={p.id} className="flex items-center justify-between text-[10px]">
                                     <div className="flex items-center gap-2">
                                         <div className={`w-2 h-2 rounded-full ${p.color === 'red' ? 'bg-red-500' : p.color === 'blue' ? 'bg-blue-500' : p.color === 'green' ? 'bg-green-500' : 'bg-yellow-500'}`} />
-                                        <span className="font-bold text-white/60 truncate max-w-[100px]">{p.name}</span>
+                                        <span className="font-bold text-white/60 truncate max-w-[100px]">{p.username}</span>
                                     </div>
                                     <div className="flex gap-1">
                                         {p.pieces && p.pieces.map((pc, i) => (

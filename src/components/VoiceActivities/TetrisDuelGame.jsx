@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Trophy, User, Zap, Tv2, Info, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, Smartphone } from 'lucide-react';
+import { X, Trophy, User, Zap, Tv2, Info, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, Smartphone, Crown } from 'lucide-react';
 import { client } from '../../services/colyseusClient';
 import { useAuthContext } from '../../contexts/AuthContext';
 import toast from 'react-hot-toast';
@@ -26,6 +26,7 @@ export default function TetrisDuelGame({ roomName, onClose, isTheater, onToggleT
     const [tick, setTick] = useState(0);
 
     useEffect(() => {
+        let activeRoom = null;
         const joinGame = async () => {
             try {
                 const tetrisRoom = await client.joinOrCreate("tetris", {
@@ -35,6 +36,7 @@ export default function TetrisDuelGame({ roomName, onClose, isTheater, onToggleT
                     roomName: roomName
                 });
 
+                activeRoom = tetrisRoom;
                 setRoom(tetrisRoom);
                 setState(tetrisRoom.state);
                 setConnecting(false);
@@ -52,7 +54,7 @@ export default function TetrisDuelGame({ roomName, onClose, isTheater, onToggleT
         };
 
         joinGame();
-        return () => { if (room) room.leave(); };
+        return () => { if (activeRoom) activeRoom.leave(); };
     }, []);
 
     const handleInput = (dir) => {
@@ -141,6 +143,7 @@ export default function TetrisDuelGame({ roomName, onClose, isTheater, onToggleT
                         slot={1}
                         player={state.players?.get?.(state.p1)}
                         isMe={room.sessionId === state.p1}
+                        isHost={state.p1 === state.hostId}
                         onJoin={() => handleJoin(1)}
                         onLeave={handleLeaveSlot}
                         gameState={state.gameState}
@@ -152,6 +155,7 @@ export default function TetrisDuelGame({ roomName, onClose, isTheater, onToggleT
                         slot={2}
                         player={state.players?.get?.(state.p2)}
                         isMe={room.sessionId === state.p2}
+                        isHost={state.p2 === state.hostId}
                         onJoin={() => handleJoin(2)}
                         onLeave={handleLeaveSlot}
                         gameState={state.gameState}
@@ -270,7 +274,7 @@ function Board({ board, piece, gameState, isP1 }) {
     );
 }
 
-function PlayerCard({ slot, player, isMe, onJoin, onLeave, gameState, compact, color }) {
+function PlayerCard({ slot, player, isMe, isHost, onJoin, onLeave, gameState, compact, color }) {
     const isP1 = slot === 1;
     const isActive = !!player;
     const styles = isP1 ? {
@@ -293,7 +297,10 @@ function PlayerCard({ slot, player, isMe, onJoin, onLeave, gameState, compact, c
             </div>
             <div className="flex-1 min-w-0 text-left lg:text-center">
                 <p className={`text-[7px] font-black uppercase tracking-widest ${isActive ? styles.textAccent : 'text-white/20'}`}>PILOTO {slot}</p>
-                <p className={`text-[9px] font-black uppercase truncate ${isActive ? 'text-white' : 'text-white/10'}`}>{player?.name || 'VACIÓ'}</p>
+                <p className={`text-[9px] font-black uppercase truncate flex items-center gap-1 ${isActive ? 'text-white' : 'text-white/10'}`}>
+                    {isHost && player && <Crown size={8} className="text-amber-400 flex-shrink-0" />}
+                    {player?.name || 'VACIÓ'}
+                </p>
             </div>
             {gameState === 'lobby' && (
                 <div className="flex">

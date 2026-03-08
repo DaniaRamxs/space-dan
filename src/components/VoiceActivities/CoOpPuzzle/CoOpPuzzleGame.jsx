@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Users, Image as ImageIcon, RotateCw, Timer, Settings2, Upload, Play, Trophy, ChevronDown, ChevronUp } from 'lucide-react';
+import { X, Users, Image as ImageIcon, RotateCw, Timer, Settings2, Upload, Play, Trophy, ChevronDown, ChevronUp, Crown } from 'lucide-react';
 import { client } from '../../../services/colyseusClient';
 import { useAuthContext } from '../../../contexts/AuthContext';
 import toast from 'react-hot-toast';
@@ -29,6 +29,7 @@ export default function CoOpPuzzleGame({ roomName, onClose }) {
 
     // ── Setup Room ──
     useEffect(() => {
+        let activeRoom = null;
         const joinGame = async () => {
             try {
                 const puzzleRoom = await client.joinOrCreate("puzzle", {
@@ -37,6 +38,7 @@ export default function CoOpPuzzleGame({ roomName, onClose }) {
                     avatar: profile?.avatar_url || "/default-avatar.png",
                     roomName: roomName
                 });
+                activeRoom = puzzleRoom;
                 setRoom(puzzleRoom);
                 setState(puzzleRoom.state);
                 setConnecting(false);
@@ -57,7 +59,7 @@ export default function CoOpPuzzleGame({ roomName, onClose }) {
             }
         };
         joinGame();
-        return () => { if (room) room.leave(); };
+        return () => { if (activeRoom) activeRoom.leave(); };
     }, []);
 
     // ── Load Image ──
@@ -346,8 +348,8 @@ export default function CoOpPuzzleGame({ roomName, onClose }) {
                                 {state.players && Array.from(state.players.values()).map(p => (
                                     <div key={p.id} className="flex items-center gap-2 p-2 rounded-xl bg-white/5 border border-white/5">
                                         <img src={p.avatar} className="w-5 h-5 rounded-lg border border-white/10" alt="" />
-                                        <span className="text-[9px] font-bold text-white/60 truncate">@{p.name}</span>
-                                        {p.id === state.hostId && <div className="ml-auto w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />}
+                                        <span className="text-[9px] font-bold text-white/60 truncate">@{p.username}</span>
+                                        {p.id === state.hostId && <Crown size={9} className="ml-auto text-amber-400 flex-shrink-0" />}
                                     </div>
                                 ))}
                             </div>

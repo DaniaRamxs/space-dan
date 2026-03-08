@@ -275,7 +275,7 @@ export default function PixelGalaxyGame({ roomName, onClose, isTheater, onToggle
             const pixel = stateRef.current.pixels.get(key);
             if (pixel) {
                 const player = stateRef.current.players?.get(pixel.userId);
-                setTooltip({ sx: e.clientX, sy: e.clientY, text: `@${player?.name || '?'}` });
+                setTooltip({ sx: e.clientX, sy: e.clientY, text: `@${player?.username || '?'}` });
             } else {
                 setTooltip(null);
             }
@@ -600,7 +600,7 @@ export default function PixelGalaxyGame({ roomName, onClose, isTheater, onToggle
                                                     className="w-6 h-6 rounded-lg border border-white/10 flex-shrink-0"
                                                     alt=""
                                                 />
-                                                <p className="text-[10px] font-black text-white/80 truncate flex-1 min-w-0">@{p.name}</p>
+                                                <p className="text-[10px] font-black text-white/80 truncate flex-1 min-w-0">@{p.username}</p>
                                                 <span className="text-[9px] font-black text-purple-400">
                                                     {p.contributions}
                                                 </span>
@@ -618,7 +618,7 @@ export default function PixelGalaxyGame({ roomName, onClose, isTheater, onToggle
                                         {state.players && [...state.players.values()].map((p) => (
                                             <div key={p.id} className="flex items-center gap-2 bg-purple-500/10 border border-purple-500/20 rounded-lg px-2 py-1">
                                                 <div className="w-1 h-1 rounded-full bg-emerald-400 animate-pulse" />
-                                                <span className="text-[9px] font-black text-white/40 uppercase tracking-tighter">{p.name}</span>
+                                                <span className="text-[9px] font-black text-white/40 uppercase tracking-tighter">{p.username}</span>
                                             </div>
                                         ))}
                                     </div>

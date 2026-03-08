@@ -15,6 +15,7 @@ export default function SnakeDuelGame({ roomName, onClose, isTheater, onToggleTh
     const [tick, setTick] = useState(0);
 
     useEffect(() => {
+        let activeRoom = null;
         const joinGame = async () => {
             try {
                 const snakeRoom = await client.joinOrCreate("snake", {
@@ -24,6 +25,7 @@ export default function SnakeDuelGame({ roomName, onClose, isTheater, onToggleTh
                     roomName: roomName
                 });
 
+                activeRoom = snakeRoom;
                 setRoom(snakeRoom);
                 setState({
                     phase: snakeRoom.state.phase,
@@ -55,7 +57,7 @@ export default function SnakeDuelGame({ roomName, onClose, isTheater, onToggleTh
         };
 
         joinGame();
-        return () => { if (room) room.leave(); };
+        return () => { if (activeRoom) activeRoom.leave(); };
     }, [roomName]);
 
     const handleInput = (direction) => {

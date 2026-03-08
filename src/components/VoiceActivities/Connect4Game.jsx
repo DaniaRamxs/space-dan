@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Trophy, Play, RotateCcw, User, UserPlus, Tv2, Smartphone, Gamepad2, Info } from 'lucide-react';
+import { X, Trophy, Play, RotateCcw, User, UserPlus, Tv2, Smartphone, Gamepad2, Info, Crown } from 'lucide-react';
 import { client } from '../../services/colyseusClient';
 import { useAuthContext } from '../../contexts/AuthContext';
 import toast from 'react-hot-toast';
@@ -16,6 +16,7 @@ export default function Connect4Game({ roomName, onClose, isTheater, onToggleThe
     const [tick, setTick] = useState(0);
 
     useEffect(() => {
+        let activeRoom = null;
         const joinGame = async () => {
             try {
                 const c4Room = await client.joinOrCreate("connect4", {
@@ -25,6 +26,7 @@ export default function Connect4Game({ roomName, onClose, isTheater, onToggleThe
                     roomName: roomName
                 });
 
+                activeRoom = c4Room;
                 setRoom(c4Room);
                 setState(c4Room.state);
                 setConnecting(false);
@@ -46,7 +48,7 @@ export default function Connect4Game({ roomName, onClose, isTheater, onToggleThe
         };
 
         joinGame();
-        return () => { if (room) room.leave(); };
+        return () => { if (activeRoom) activeRoom.leave(); };
     }, []);
 
     if (connecting || !state || !room) {
@@ -128,6 +130,7 @@ export default function Connect4Game({ roomName, onClose, isTheater, onToggleThe
                         slot={1}
                         player={state.players?.get?.(state.p1)}
                         isActive={state.currentTurn === state.p1 && state.gameState === 'playing'}
+                        isHost={state.p1 === state.hostId}
                         onJoin={() => handleJoin(1)}
                         onLeave={handleLeaveSlot}
                         isMe={room.sessionId === state.p1}
@@ -146,6 +149,7 @@ export default function Connect4Game({ roomName, onClose, isTheater, onToggleThe
                         slot={2}
                         player={state.players?.get?.(state.p2)}
                         isActive={state.currentTurn === state.p2 && state.gameState === 'playing'}
+                        isHost={state.p2 === state.hostId}
                         onJoin={() => handleJoin(2)}
                         onLeave={handleLeaveSlot}
                         isMe={room.sessionId === state.p2}
@@ -236,7 +240,7 @@ export default function Connect4Game({ roomName, onClose, isTheater, onToggleThe
                                         <Trophy size={80} className={`mb-6 p-4 rounded-3xl bg-white/5 ${state.winner === 1 ? 'text-rose-500' : 'text-amber-500'}`} />
                                         <h3 className="text-[12px] font-black uppercase tracking-[0.5em] text-white/40 mb-2">Victoria Detectada</h3>
                                         <p className="text-4xl font-black uppercase tracking-widest text-white mb-8">
-                                            @{state.players?.get?.(state.winner === 1 ? state.p1 : state.p2)?.name || 'Anónimo'}
+                                            @{state.players?.get?.(state.winner === 1 ? state.p1 : state.p2)?.username || 'Anónimo'}
                                         </p>
                                     </div>
                                 )}
@@ -267,7 +271,7 @@ export default function Connect4Game({ roomName, onClose, isTheater, onToggleThe
                     <Info size={14} className="text-white/20" />
                     <span className="text-[9px] font-black uppercase tracking-[0.2em] text-white/40">
                         {state.gameState === 'lobby' && "Esperando retadores..."}
-                        {state.gameState === 'playing' && `Duelo en curso · Turno de @${state.players?.get?.(state.currentTurn)?.name || '...'}`}
+                        {state.gameState === 'playing' && `Duelo en curso · Turno de @${state.players?.get?.(state.currentTurn)?.username || '...'}`}
                         {state.gameState === 'finished' && "Partida finalizada"}
                     </span>
                 </div>
@@ -282,7 +286,7 @@ export default function Connect4Game({ roomName, onClose, isTheater, onToggleThe
     );
 }
 
-function PlayerCard({ slot, player, isActive, onJoin, onLeave, isMe, gameState, compact }) {
+function PlayerCard({ slot, player, isActive, isHost, onJoin, onLeave, isMe, gameState, compact }) {
     const isP1 = slot === 1;
 
     // Explicit classes for Tailwind JIT
@@ -326,8 +330,9 @@ function PlayerCard({ slot, player, isActive, onJoin, onLeave, isMe, gameState, 
                 <p className={`text-[7px] sm:text-[8px] font-black uppercase tracking-[0.3em] mb-0.5 sm:mb-1 ${isActive ? styles.textAccent : 'text-white/20'}`}>
                     P{slot} · {isP1 ? 'Alfa' : 'Beta'}
                 </p>
-                <p className={`text-[10px] sm:text-[11px] font-black uppercase truncate ${isActive ? 'text-white' : 'text-white/20'}`}>
-                    {player?.name || 'Esperando...'}
+                <p className={`text-[10px] sm:text-[11px] font-black uppercase truncate flex items-center gap-1 ${isActive ? 'text-white' : 'text-white/20'}`}>
+                    {isHost && player && <Crown size={8} className="text-amber-400 flex-shrink-0" />}
+                    {player?.username || 'Esperando...'}
                 </p>
             </div>
 

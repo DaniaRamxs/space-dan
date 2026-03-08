@@ -3,7 +3,7 @@ import { client } from '../../services/colyseusClient';
 import { useAuthContext } from '../../contexts/AuthContext';
 import { useLocalParticipant } from '@livekit/components-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Crosshair, Trophy, Heart, Zap, X, Move, Rocket, Timer } from 'lucide-react';
+import { Crosshair, Trophy, Heart, Zap, X, Move, Rocket, Timer, Crown } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 const WORLD_WIDTH = 1200;
@@ -23,6 +23,7 @@ export default function AsteroidBattleGame({ roomName, onClose }) {
     const joystickRef = useRef({ active: false, x: 0, y: 0 });
 
     useEffect(() => {
+        let activeRoom = null;
         const connect = async () => {
             try {
                 const r = await client.joinOrCreate("asteroid-battle", {
@@ -30,6 +31,7 @@ export default function AsteroidBattleGame({ roomName, onClose }) {
                     name: profile?.username || user?.user_metadata?.username || "Pilot",
                     color: profile?.accent_color || "#0ea5e9"
                 });
+                activeRoom = r;
                 setRoom(r);
                 setMyId(r.sessionId);
                 setConnecting(false);
@@ -39,7 +41,8 @@ export default function AsteroidBattleGame({ roomName, onClose }) {
                     asteroids: Array.from(s.asteroids.values()),
                     bullets: Array.from(s.bullets.values()),
                     timeLeft: s.timeLeft,
-                    phase: s.phase
+                    phase: s.phase,
+                    hostId: s.hostId
                 }));
             } catch (e) {
                 console.error(e);
@@ -47,7 +50,7 @@ export default function AsteroidBattleGame({ roomName, onClose }) {
             }
         };
         connect();
-        return () => { if (room) room.leave(); };
+        return () => { if (activeRoom) activeRoom.leave(); };
     }, [roomName]);
 
     // Loop for sending inputs
@@ -395,7 +398,10 @@ export default function AsteroidBattleGame({ roomName, onClose }) {
                                 <div className="flex items-center gap-4 truncate">
                                     <span className={`text-[10px] font-black ${i < 3 ? 'text-amber-400' : 'text-white/20'}`}>{i + 1}</span>
                                     <div className="flex flex-col">
-                                        <span className={`text-[11px] font-black truncate uppercase tracking-widest ${p.id === myId ? 'text-cyan-400' : 'text-white'}`}>{p.name}</span>
+                                        <span className={`text-[11px] font-black truncate uppercase tracking-widest flex items-center gap-1 ${p.id === myId ? 'text-cyan-400' : 'text-white'}`}>
+                                            {p.sessionId === state.hostId && <Crown size={8} className="text-amber-400 flex-shrink-0" />}
+                                            {p.name}
+                                        </span>
                                         <span className="text-[8px] font-black text-white/30 uppercase">{p.lives} VIDAS</span>
                                     </div>
                                 </div>
