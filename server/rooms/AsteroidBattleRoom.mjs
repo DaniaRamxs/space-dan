@@ -16,21 +16,29 @@ export class AsteroidBattleRoom extends Room {
 
         // Message handlers
         this.onMessage("join_game", (client, options) => {
-            if (this.state.players.size >= 4) return;
-            if (this.state.players.has(client.sessionId)) return;
+            let player = this.state.players.get(client.sessionId);
 
-            const player = new Player().assign({
-                id: client.sessionId,
-                name: options.name || "Pilot",
+            // If player doesn't exist, create new one if there's space
+            if (!player) {
+                if (this.state.players.size >= 4) return;
+                player = new Player().assign({
+                    id: client.sessionId,
+                    name: options.name || "Pilot",
+                    color: options.color || "#0ea5e9",
+                    score: 0,
+                });
+                this.state.players.set(client.sessionId, player);
+            }
+
+            // Reset player stats for (re)joining
+            player.assign({
                 x: Math.random() * WORLD_WIDTH,
                 y: Math.random() * WORLD_HEIGHT,
                 rotation: 0,
                 hp: 100,
-                score: 0,
-                color: options.color || "#0ea5e9",
-                lives: INITIAL_LIVES
+                lives: INITIAL_LIVES,
+                score: 0 // Reset score on full restart
             });
-            this.state.players.set(client.sessionId, player);
 
             // Auto start game if it was lobby
             if (this.state.gameStatus === "lobby") {

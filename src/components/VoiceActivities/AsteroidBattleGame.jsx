@@ -256,9 +256,9 @@ export default function AsteroidBattleGame({ roomName, onClose }) {
         <div className="flex-1 flex flex-col bg-[#020617] h-full overflow-hidden relative font-sans select-none">
             <style>{styles}</style>
 
-            {/* Join Overlay / Game Finished */}
+            {/* Join Overlay / Game Finished / Out of Lives */}
             <AnimatePresence>
-                {(isSpectating || state?.gameStatus === 'finished') && (
+                {(isSpectating || state?.gameStatus === 'finished' || (myPlayer && myPlayer.lives <= 0)) && (
                     <motion.div
                         initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
                         className="absolute inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-md pointer-events-none"
@@ -282,7 +282,14 @@ export default function AsteroidBattleGame({ roomName, onClose }) {
                                             </div>
                                         </div>
                                     </div>
-                                    <button onClick={handleJoin} className="w-full py-5 bg-white text-black font-black uppercase tracking-widest rounded-2xl hover:bg-cyan-400 transition-all active:scale-95">Re-entrar al Combate</button>
+                                    <button onClick={handleJoin} className="w-full py-5 bg-white text-black font-black uppercase tracking-widest rounded-2xl hover:bg-cyan-400 transition-all active:scale-95">Reiniciar Partida</button>
+                                </>
+                            ) : myPlayer && myPlayer.lives <= 0 ? (
+                                <>
+                                    <X size={64} className="text-rose-500 mb-6 drop-shadow-[0_0_20px_rgba(244,63,94,0.4)]" />
+                                    <h3 className="text-2xl font-black text-rose-500 uppercase tracking-[0.2em] mb-4">Misión Fallida</h3>
+                                    <p className="text-[10px] text-white/40 uppercase tracking-widest mb-8">Has perdido todas tus unidades</p>
+                                    <button onClick={handleJoin} className="w-full py-5 bg-rose-600 text-white font-black uppercase tracking-widest rounded-2xl hover:bg-rose-500 transition-all active:scale-95">Re-intentar Despegue</button>
                                 </>
                             ) : (
                                 <>
@@ -321,16 +328,51 @@ export default function AsteroidBattleGame({ roomName, onClose }) {
                 </div>
             </div>
 
-            {/* HUD Left - Player Score */}
+            {/* HUD Left - Player Stats (Score, HP, Lives) */}
             {!isSpectating && (
-                <div className="absolute top-6 left-6 flex flex-col gap-3 z-30 pointer-events-none">
-                    <div className="flex items-center gap-5 bg-black/70 backdrop-blur-2xl border border-white/10 p-6 rounded-[2.5rem] shadow-2xl min-w-[200px]">
-                        <div className="w-14 h-14 rounded-2xl bg-cyan-500/20 flex items-center justify-center border border-cyan-500/20 shadow-[0_0_20px_rgba(6,182,212,0.1)]">
-                            <Zap size={28} className="text-cyan-400" />
+                <div className="absolute top-6 left-6 flex flex-col gap-4 z-30 pointer-events-none max-w-[280px]">
+                    {/* Score Panel */}
+                    <div className="flex items-center gap-4 bg-black/70 backdrop-blur-2xl border border-white/10 p-4 rounded-[2rem] shadow-2xl">
+                        <div className="w-10 h-10 rounded-xl bg-cyan-500/20 flex items-center justify-center border border-cyan-500/20 shadow-[0_0_15px_rgba(6,182,212,0.1)]">
+                            <Zap size={20} className="text-cyan-400" />
                         </div>
                         <div>
-                            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/40 mb-1">Tu Puntuación</p>
-                            <p className="text-3xl font-black text-white leading-none tracking-tighter">{myPlayer?.score || 0}</p>
+                            <p className="text-[8px] font-black uppercase tracking-[0.2em] text-white/40">Puntuación</p>
+                            <p className="text-xl font-black text-white leading-none tracking-tight">{myPlayer?.score || 0}</p>
+                        </div>
+                    </div>
+
+                    {/* Integrated HP & Lives Panel */}
+                    <div className="bg-black/70 backdrop-blur-2xl border border-white/10 p-4 rounded-[2rem] shadow-2xl flex flex-col gap-3">
+                        {/* HP Bar */}
+                        <div className="space-y-2">
+                            <div className="flex justify-between items-center text-[8px] font-black uppercase tracking-widest text-white/60">
+                                <div className="flex items-center gap-2">
+                                    <Heart size={10} className={`fill-current ${myPlayer?.hp > 30 ? 'text-rose-500' : 'text-rose-600 animate-pulse'}`} />
+                                    <span>Integridad</span>
+                                </div>
+                                <span className={myPlayer?.hp <= 30 ? 'text-rose-500' : 'text-white'}>{Math.ceil(myPlayer?.hp || 0)}%</span>
+                            </div>
+                            <div className="w-full h-2 bg-black/40 border border-white/5 rounded-full overflow-hidden">
+                                <motion.div
+                                    initial={{ width: '100%' }}
+                                    animate={{ width: `${myPlayer?.hp || 0}%` }}
+                                    className={`h-full rounded-full ${myPlayer?.hp > 30 ? 'bg-cyan-500' : 'bg-rose-500'}`}
+                                />
+                            </div>
+                        </div>
+
+                        {/* Lives Icons */}
+                        <div className="flex items-center gap-2 pt-1 border-t border-white/5">
+                            {[...Array(3)].map((_, i) => (
+                                <Rocket
+                                    key={i}
+                                    size={14}
+                                    className={`transition-all ${i < (myPlayer?.lives || 0) ? 'text-cyan-400' : 'text-white/5'}`}
+                                    strokeWidth={i < (myPlayer?.lives || 0) ? 3 : 1}
+                                />
+                            ))}
+                            <span className="ml-auto text-[7px] font-black text-white/30 uppercase tracking-widest leading-none">Vidas</span>
                         </div>
                     </div>
                 </div>
@@ -364,46 +406,18 @@ export default function AsteroidBattleGame({ roomName, onClose }) {
                 </div>
             </div>
 
-            {/* HUD Bottom Center - HP & Lives */}
+            {/* Alerts Center */}
             {!isSpectating && (
-                <div className="absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-6 z-30 pointer-events-none">
-                    {/* Lives Counter */}
-                    <div className="flex items-center gap-4 bg-black/60 px-6 py-3 rounded-full border border-white/10 backdrop-blur-xl">
-                        {[...Array(3)].map((_, i) => (
-                            <Rocket
-                                key={i}
-                                size={18}
-                                className={`transition-all ${i < (myPlayer?.lives || 0) ? 'text-cyan-400' : 'text-white/5'}`}
-                                strokeWidth={i < (myPlayer?.lives || 0) ? 3 : 1}
-                            />
-                        ))}
-                        <span className="ml-2 text-[10px] font-black text-white/50 uppercase tracking-widest">Naves Restantes</span>
-                    </div>
-
-                    {/* HP Bar */}
-                    <div className="flex flex-col items-center gap-3">
-                        <div className="flex items-center gap-3">
-                            <Heart size={16} className={`fill-current ${myPlayer?.hp > 30 ? 'text-rose-500' : 'text-rose-600 animate-pulse'}`} />
-                            <span className="text-[11px] font-black text-white uppercase tracking-[0.4em]">Integridad Nave: {Math.ceil(myPlayer?.hp || 0)}%</span>
-                        </div>
-                        <div className="w-96 h-4 bg-black/80 border border-white/20 rounded-full overflow-hidden backdrop-blur-md shadow-[0_0_30px_rgba(0,0,0,0.5)] p-0.5">
-                            <motion.div
-                                initial={{ width: '100%' }}
-                                animate={{ width: `${myPlayer?.hp || 0}%` }}
-                                className={`h-full rounded-full ${myPlayer?.hp > 30 ? 'bg-gradient-to-r from-cyan-400 via-blue-500 to-indigo-600 shadow-[0_0_15px_rgba(6,182,212,0.4)]' : 'bg-rose-500'}`}
-                            />
-                        </div>
-                    </div>
-
+                <div className="absolute top-24 left-1/2 -translate-x-1/2 z-30 pointer-events-none flex flex-col items-center">
                     <AnimatePresence>
                         {myPlayer?.hp <= 0 && myPlayer?.lives > 0 && (
-                            <motion.p initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }} className="text-[12px] font-black uppercase tracking-[0.5em] text-rose-500 animate-pulse mt-2 p-4 rounded-3xl bg-rose-500/10 border border-rose-500/20 backdrop-blur-xl">
+                            <motion.p initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="text-[10px] font-black uppercase tracking-[0.4em] text-rose-500 animate-pulse p-3 rounded-2xl bg-rose-500/10 border border-rose-500/20 backdrop-blur-xl">
                                 Alerta: Nave Destruida · Re-generando...
                             </motion.p>
                         )}
                         {myPlayer?.lives <= 0 && (
-                            <motion.p initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="text-[12px] font-black uppercase tracking-[0.5em] text-rose-600 mt-2 p-4 rounded-3xl bg-black border border-rose-600/40 backdrop-blur-xl">
-                                Game Over · Sin Vidas Restantes
+                            <motion.p initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="text-[10px] font-black uppercase tracking-[0.4em] text-rose-600 p-3 rounded-2xl bg-black/80 border border-rose-600/40 backdrop-blur-xl shadow-2xl">
+                                Batalla Finalizada · Sin Vidas
                             </motion.p>
                         )}
                     </AnimatePresence>
