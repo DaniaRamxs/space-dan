@@ -111,6 +111,12 @@ export default function VoiceRoomUI({
     const [error, setError] = useState(null);
     const [activeTab, setActiveTab] = useState('participants'); // participants, chat
     const [activeActivity, setActiveActivity] = useState(null);
+    const activeActivityRef = useRef(null);
+    const syncChannelRef = useRef(null);
+
+    useEffect(() => {
+        activeActivityRef.current = activeActivity;
+    }, [activeActivity]);
     const [jukeboxEverStarted, setJukeboxEverStarted] = useState(false);
     const [isFullView, setIsFullView] = useState(false);
     const [isTheaterMode, setIsTheaterMode] = useState(false);
@@ -164,44 +170,61 @@ export default function VoiceRoomUI({
         if (!roomName || !isOpen) return;
         const chanName = `activity-sync-${roomName.toLowerCase().replace(/[^a-z0-9]/g, '-')}`;
         const channel = supabase.channel(chanName);
+        syncChannelRef.current = channel;
 
-        channel.on('broadcast', { event: 'start_activity' }, ({ payload }) => {
-            if (payload.activityId !== activeActivity) {
-                setActiveActivity(payload.activityId);
-                toast(`🔥 ${payload.sender} inició ${payload.activityId}`, {
-                    icon: '🎮',
-                    style: { background: '#020617', color: '#fff', border: '1px solid #334155' }
-                });
-            }
-        })
+        channel
+            .on('broadcast', { event: 'start_activity' }, ({ payload }) => {
+                const current = activeActivityRef.current;
+                if (payload.activityId && payload.activityId !== current) {
+                    setActiveActivity(payload.activityId);
+                    toast(`🔥 ${payload.sender} inició ${payload.activityId}`, {
+                        icon: '🎮',
+                        style: { background: '#020617', color: '#fff', border: '1px solid #334155' }
+                    });
+                }
+            })
+            .on('broadcast', { event: 'stop_activity' }, () => {
+                setActiveActivity(null);
+            })
             .on('broadcast', { event: 'activity_sync_req' }, () => {
-                if (activeActivity) {
+                const current = activeActivityRef.current;
+                if (current) {
                     channel.send({
                         type: 'broadcast',
                         event: 'start_activity',
-                        payload: { activityId: activeActivity, sender: 'Sistema (Sync)' }
+                        payload: { activityId: current, sender: 'Sistema (Sync)' }
                     });
                 }
             })
             .subscribe((status) => {
                 if (status === 'SUBSCRIBED') {
-                    // Request current activity state from anyone present
                     channel.send({ type: 'broadcast', event: 'activity_sync_req', payload: {} });
                 }
             });
 
-        return () => { supabase.removeChannel(channel); };
-    }, [roomName, isOpen, activeActivity]);
+        return () => {
+            syncChannelRef.current = null;
+            supabase.removeChannel(channel);
+        };
+    }, [roomName, isOpen]);
 
     const handleSetActiveActivity = (id) => {
         setActiveActivity(id);
-        if (id && roomName) {
-            const chanName = `activity-sync-${roomName.toLowerCase().replace(/[^a-z0-9]/g, '-')}`;
-            supabase.channel(chanName).send({
-                type: 'broadcast',
-                event: 'start_activity',
-                payload: { activityId: id, sender: userName || 'Alguien' }
-            });
+        const channel = syncChannelRef.current;
+        if (channel) {
+            if (id) {
+                channel.send({
+                    type: 'broadcast',
+                    event: 'start_activity',
+                    payload: { activityId: id, sender: userName || 'Alguien' }
+                });
+            } else {
+                channel.send({
+                    type: 'broadcast',
+                    event: 'stop_activity',
+                    payload: { sender: userName || 'Alguien' }
+                });
+            }
         }
     };
 

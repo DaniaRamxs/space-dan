@@ -107,7 +107,7 @@ export default function PokerGame({ roomName, onClose, isTheater, onToggleTheate
     }
 
     const myPlayer = state.players?.get ? state.players.get(room.sessionId) : null;
-    const isMeTurn = state.currentTurn === myPlayer?.seatIdx && state.gameState === 'betting';
+    const isMeTurn = state.currentTurn === myPlayer?.seatIdx && state.phase === 'betting';
     const seatedCount = state.players?.forEach ? Array.from(state.players.values()).length : 0;
 
     return (
@@ -180,7 +180,7 @@ export default function PokerGame({ roomName, onClose, isTheater, onToggleTheate
                     {SEAT_POSITIONS.map((pos, i) => {
                         const sessionId = state.seats?.[i];
                         const player = (sessionId && state.players?.get) ? state.players.get(sessionId) : null;
-                        const isTurn = state.currentTurn === i && state.gameState === 'betting';
+                        const isTurn = state.currentTurn === i && state.phase === 'betting';
                         const isMe = sessionId === room?.sessionId;
 
                         return (
@@ -210,7 +210,7 @@ export default function PokerGame({ roomName, onClose, isTheater, onToggleTheate
                                         </div>
                                     </motion.div>
                                 ) : (
-                                    state.gameState === 'lobby' && !myPlayer ? (
+                                    state.phase === 'lobby' && !myPlayer ? (
                                         <button
                                             onClick={() => handleJoinSeat(i)}
                                             className="w-12 h-12 rounded-full bg-white/5 border-2 border-dashed border-white/20 hover:border-emerald-500/50 hover:bg-emerald-500/10 transition-all flex items-center justify-center group"
@@ -279,11 +279,11 @@ export default function PokerGame({ roomName, onClose, isTheater, onToggleTheate
                                 <ActionBtn label={`Call ${BIG_BLIND}◈`} onClick={() => handleAction('call', BIG_BLIND)} color="emerald" />
                                 <ActionBtn label={`Raise ${BIG_BLIND * 2}◈`} onClick={() => handleAction('raise', BIG_BLIND * 2)} color="amber" />
                             </>
-                        ) : myPlayer && state.gameState === 'betting' ? (
+                        ) : myPlayer && state.phase === 'betting' ? (
                             <div className="px-6 py-3 rounded-2xl bg-white/5 border border-white/10 animate-pulse">
                                 <span className="text-[10px] font-black uppercase tracking-[0.3em] text-white/30 text-center block">Esperando turno de otros pilotos...</span>
                             </div>
-                        ) : state.gameState === 'lobby' ? (
+                        ) : state.phase === 'lobby' ? (
                             <div className="flex items-center gap-4">
                                 {myPlayer && (
                                     <>
@@ -293,7 +293,7 @@ export default function PokerGame({ roomName, onClose, isTheater, onToggleTheate
                                 )}
                                 {!myPlayer && <span className="text-[10px] font-black uppercase tracking-widest text-white/20 italic">Selecciona un asiento vacío en la mesa para jugar</span>}
                             </div>
-                        ) : state.gameState === 'showdown' ? (
+                        ) : state.phase === 'showdown' ? (
                             <button onClick={handleNextRound} className="px-8 py-3 rounded-2xl bg-emerald-500 text-white font-black uppercase tracking-widest text-[10px] hover:scale-105 active:scale-95 transition-all shadow-xl">
                                 {state.bettingRound < 3 ? "Siguiente Ronda" : "Showdown Final"}
                             </button>
@@ -301,7 +301,7 @@ export default function PokerGame({ roomName, onClose, isTheater, onToggleTheate
                     </div>
 
                     {/* Reset Button (Debug/Admin) */}
-                    {state.gameState !== 'lobby' && (
+                    {state.phase !== 'lobby' && (
                         <button onClick={handleReset} className="p-3 rounded-xl bg-white/5 text-white/20 hover:text-white/40 border border-white/5">
                             <Layout size={16} />
                         </button>

@@ -82,7 +82,7 @@ export default function TetrisDuelGame({ roomName, onClose, isTheater, onToggleT
         };
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [room, state?.gameState]);
+    }, [room, state?.phase]);
 
     if (connecting || !state || !room) {
         return (
@@ -159,7 +159,7 @@ export default function TetrisDuelGame({ roomName, onClose, isTheater, onToggleT
                         isHost={state.p1 === state.hostId}
                         onJoin={() => handleJoin(1)}
                         onLeave={handleLeaveSlot}
-                        gameState={state.gameState}
+                        gameState={state.phase}
                         compact={!isTheater}
                         color="blue"
                     />
@@ -171,7 +171,7 @@ export default function TetrisDuelGame({ roomName, onClose, isTheater, onToggleT
                         isHost={state.p2 === state.hostId}
                         onJoin={() => handleJoin(2)}
                         onLeave={handleLeaveSlot}
-                        gameState={state.gameState}
+                        gameState={state.phase}
                         compact={!isTheater}
                         color="rose"
                     />
@@ -183,14 +183,14 @@ export default function TetrisDuelGame({ roomName, onClose, isTheater, onToggleT
                         <div className="text-[10px] font-black uppercase tracking-widest text-blue-400/60 mb-2 flex items-center gap-2">
                             Board 1 {state.p1 === room.sessionId && <span className="px-1.5 py-0.5 bg-blue-500 text-white rounded text-[8px]">Tú</span>}
                         </div>
-                        <Board board={state.board1} piece={state.p1Piece} gameState={state.gameState} isP1={true} players={state.players} pId={state.p1} />
+                        <Board board={state.board1} piece={state.p1Piece} gameState={state.phase} isP1={true} players={state.players} pId={state.p1} />
                     </div>
 
                     <div className={`flex flex-col items-center gap-4 transition-all ${isMeInGame && room.sessionId === state.p1 ? 'scale-75 opacity-40 order-2' : 'scale-100 order-1'}`}>
                         <div className="text-[10px] font-black uppercase tracking-widest text-rose-400/60 mb-2 flex items-center gap-2">
                             Board 2 {state.p2 === room.sessionId && <span className="px-1.5 py-0.5 bg-rose-500 text-white rounded text-[8px]">Tú</span>}
                         </div>
-                        <Board board={state.board2} piece={state.p2Piece} gameState={state.gameState} isP1={false} players={state.players} pId={state.p2} />
+                        <Board board={state.board2} piece={state.p2Piece} gameState={state.phase} isP1={false} players={state.players} pId={state.p2} />
                     </div>
                 </div>
 
@@ -206,7 +206,7 @@ export default function TetrisDuelGame({ roomName, onClose, isTheater, onToggleT
                             <Trophy size={64} className="text-yellow-400 mb-6 drop-shadow-[0_0_30px_rgba(250,204,21,0.5)]" />
                             <h3 className="text-[10px] font-black uppercase tracking-[0.5em] text-white/40 mb-2">Duelo Finalizado</h3>
                             <p className="text-2xl font-black uppercase tracking-widest text-white mb-8">
-                                @{state.players?.get?.(state.winner)?.username || 'EMPATE'} GANA
+                                @{Array.from(state.players?.values() || []).find(p => p.userId === state.winner)?.username || 'GANADOR'} GANA
                             </p>
                             <div className="flex gap-4">
                                 <button onClick={handleReset} className="px-8 py-3 rounded-2xl bg-white text-black font-black uppercase tracking-widest text-[10px] hover:scale-105 transition-all">Revancha</button>

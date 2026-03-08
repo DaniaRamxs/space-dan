@@ -59,12 +59,39 @@ export class Connect4Room extends GameRoom {
             }
         });
 
+        this.onMessage("join_game", (client) => {
+            if (this.state.phase !== "waiting" && this.state.phase !== "lobby") return;
+            const player = this.state.players.get(client.sessionId);
+            if (!player || player.isParticipating) return;
+
+            // Auto-assign to available slot
+            if (this.state.p1 === "") {
+                this.state.p1 = client.sessionId;
+                player.isParticipating = true;
+            } else if (this.state.p2 === "") {
+                this.state.p2 = client.sessionId;
+                player.isParticipating = true;
+            }
+
+            if (this.state.p1 !== "" && this.state.p2 !== "") {
+                this.startCountdown();
+            }
+        });
+
         this.onMessage("reset", (client) => {
             this.resetGame();
             if (this.state.p1 && this.state.p2) {
                 this.startCountdown();
             }
         });
+    }
+
+    onPlayerLeave(player) {
+        if (this.state.p1 === player.sessionId) this.state.p1 = "";
+        if (this.state.p2 === player.sessionId) this.state.p2 = "";
+        if (this.state.phase === "playing") {
+            this.resetGame();
+        }
     }
 
     onResetGame() {

@@ -144,6 +144,7 @@ export default class GameRoom extends Room {
 
         if (consented && canRemoveImmediately) {
             this.state.players.delete(client.sessionId);
+            this.onPlayerLeave(player);
             this.handlePlayerDefeatOnLeave(player);
             console.log(`[GameRoom] Player left (consented): ${player.username}`);
         } else {
@@ -153,9 +154,6 @@ export default class GameRoom extends Room {
                 // We always allow reconnection for participating players, even if consented (e.g. Activity UI closed)
                 await this.allowReconnection(client, this.reconnectionTimeout);
 
-                // If they reconnected via Colyseus's standard reconnect(), the client object is updated
-                // But if they came back via joinOrCreate, my onJoin already handled it.
-                // We check if the player is still in the map and if it's the SAME session ID.
                 if (this.state.players.has(client.sessionId)) {
                     player.isConnected = true;
                     console.log(`[GameRoom] Player reconnected successfully: ${player.username}`);
@@ -164,6 +162,7 @@ export default class GameRoom extends Room {
                 // If the timeout expires AND they haven't re-joined via my onJoin logic (which would have swapped the session)
                 if (this.state.players.get(client.sessionId) === player) {
                     this.state.players.delete(client.sessionId);
+                    this.onPlayerLeave(player);
                     this.handlePlayerDefeatOnLeave(player);
                     console.log(`[GameRoom] Player reconnection timeout: ${player.username}`);
                 }
@@ -300,6 +299,8 @@ export default class GameRoom extends Room {
     handlePlayerInput(client, data) { }
 
     onResetGame() { }
+
+    onPlayerLeave(player) { }
 
     onDispose() {
 

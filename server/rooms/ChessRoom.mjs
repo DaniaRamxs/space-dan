@@ -133,6 +133,14 @@ export class ChessRoom extends GameRoom {
         }, 1000);
     }
 
+    onPlayerLeave(player) {
+        if (this.state.whiteSid === player.sessionId) this.state.whiteSid = "";
+        if (this.state.blackSid === player.sessionId) this.state.blackSid = "";
+        if (this.state.phase === "playing") {
+            this.resetGame();
+        }
+    }
+
     onResetGame() {
         if (this.clockInterval) clearInterval(this.clockInterval);
         // Swap colors for rematch

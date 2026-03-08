@@ -59,7 +59,7 @@ export default function BossRaid({ roomName, onClose }) {
     const laserDamage = 500;
 
     // Core Game State
-    const [gameState, setGameState] = useState('lobby'); // lobby, playing, won, lost
+    const [phase, setPhase] = useState('lobby'); // lobby, playing, won, lost
     const [timeLeft, setTimeLeft] = useState(300); // 5 minutos = 300s
     const [currentBoss, setCurrentBoss] = useState(BOSS_TYPES[0]);
     const [currentHp, setCurrentHp] = useState(BOSS_TYPES[0].hp);
@@ -81,7 +81,7 @@ export default function BossRaid({ roomName, onClose }) {
 
         channel
             .on('broadcast', { event: 'raid_state_update' }, ({ payload }) => {
-                setGameState(payload.state);
+                setPhase(payload.state);
                 if (payload.timeLeft !== undefined) setTimeLeft(payload.timeLeft);
                 if (payload.boss) setCurrentBoss(payload.boss);
                 if (payload.currentHp !== undefined) setCurrentHp(payload.currentHp);
@@ -99,7 +99,7 @@ export default function BossRaid({ roomName, onClose }) {
 
     // --- 2. Cronómetro Maestro (Solo el Host) ---
     useEffect(() => {
-        if (!isHost || gameState !== 'playing' || timeLeft <= 0 || currentHp <= 0) return;
+        if (!isHost || phase !== 'playing' || timeLeft <= 0 || currentHp <= 0) return;
 
         const timer = setInterval(() => {
             setTimeLeft(prev => {
@@ -121,7 +121,7 @@ export default function BossRaid({ roomName, onClose }) {
 
     // Verificar Victoria (Cualquiera comprueba la vida localmente, pero idealmente el líder cierra)
     useEffect(() => {
-        if (gameState === 'playing' && currentHp <= 0 && !isDead) {
+        if (phase === 'playing' && currentHp <= 0 && !isDead) {
             setIsDead(true);
             triggerBossDeath();
         }
@@ -144,7 +144,7 @@ export default function BossRaid({ roomName, onClose }) {
         const totalParticipants = Math.max(1, participants.length + 1); // +1 por mi
         const scaledHp = randBoss.hp + (totalParticipants * 2000);
 
-        setGameState('playing');
+        setPhase('playing');
         setTimeLeft(300); // 5 min
         setCurrentBoss(randBoss);
         setCurrentHp(scaledHp);
@@ -172,7 +172,7 @@ export default function BossRaid({ roomName, onClose }) {
     };
 
     const handleLocalAttack = async (type = 'basic') => {
-        if (gameState !== 'playing' || currentHp <= 0) return;
+        if (phase !== 'playing' || currentHp <= 0) return;
 
         // Throttling o coste
         let dmgDealt = 0;
@@ -217,7 +217,7 @@ export default function BossRaid({ roomName, onClose }) {
     };
 
     const triggerBossDeath = async () => {
-        setGameState('won');
+        setPhase('won');
 
         // Reparto de botín! Cada uno cobra según su daño y solo su propio daño local para no duplicar SQL
         const myDamageRecord = damageMap[user.id];
@@ -236,7 +236,7 @@ export default function BossRaid({ roomName, onClose }) {
 
     const endRaid = (win) => {
         const nextState = win ? 'won' : 'lost';
-        setGameState(nextState);
+        setPhase(nextState);
         broadcastState({ state: nextState });
     };
 
@@ -261,9 +261,9 @@ export default function BossRaid({ roomName, onClose }) {
     return (
         <motion.div
             initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }}
-            className={`w-full backdrop-blur-xl border rounded-[2rem] p-4 sm:p-6 mt-4 relative overflow-hidden transition-colors duration-1000 ${gameState === 'lobby' ? 'bg-[#050518]/95 border-emerald-500/20 shadow-[0_30px_60px_rgba(16,185,129,0.1)]' :
-                gameState === 'playing' ? `${bc.containerBg} shadow-[inset_0_0_100px_rgba(200,0,0,0.1)]` :
-                    gameState === 'won' ? 'bg-emerald-950/90 border-emerald-500/50 shadow-[0_0_80px_rgba(16,185,129,0.3)]' :
+            className={`w-full backdrop-blur-xl border rounded-[2rem] p-4 sm:p-6 mt-4 relative overflow-hidden transition-colors duration-1000 ${phase === 'lobby' ? 'bg-[#050518]/95 border-emerald-500/20 shadow-[0_30px_60px_rgba(16,185,129,0.1)]' :
+                phase === 'playing' ? `${bc.containerBg} shadow-[inset_0_0_100px_rgba(200,0,0,0.1)]` :
+                    phase === 'won' ? 'bg-emerald-950/90 border-emerald-500/50 shadow-[0_0_80px_rgba(16,185,129,0.3)]' :
                         'bg-rose-950/90 border-rose-500/50'
                 }`}
         >
@@ -272,28 +272,28 @@ export default function BossRaid({ roomName, onClose }) {
             </button>
 
             {/* Cabecera Táctica */}
-            <div className={`flex flex-wrap justify-between items-center mb-6 gap-2 pr-10 border-b pb-4 ${gameState === 'playing' ? bc.headerBorder : 'border-white/10'}`}>
+            <div className={`flex flex-wrap justify-between items-center mb-6 gap-2 pr-10 border-b pb-4 ${phase === 'playing' ? bc.headerBorder : 'border-white/10'}`}>
                 <div className="flex items-center gap-3">
-                    <div className={`p-2 rounded-xl border ${gameState === 'lobby' || gameState === 'won' ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : bc.iconBox}`}>
+                    <div className={`p-2 rounded-xl border ${phase === 'lobby' || phase === 'won' ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : bc.iconBox}`}>
                         <Skull size={20} />
                     </div>
                     <div>
                         <h3 className="text-white font-black uppercase tracking-widest text-[10px] sm:text-xs">Boss Raid Co-op</h3>
-                        {gameState === 'playing' && <p className={`${bc.text} text-[9px] uppercase tracking-[0.2em] font-bold`}>{currentBoss.name}</p>}
+                        {phase === 'playing' && <p className={`${bc.text} text-[9px] uppercase tracking-[0.2em] font-bold`}>{currentBoss.name}</p>}
                     </div>
                 </div>
 
-                <div className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border font-black text-xs ${gameState === 'playing' ? (timeLeft < 60 ? 'text-rose-400 border-rose-500/30 bg-rose-500/10 animate-[pulse_0.5s_infinite]' : `${bc.timer} shadow-[inset_0_0_10px_rgba(255,255,255,0.05)]`)
+                <div className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border font-black text-xs ${phase === 'playing' ? (timeLeft < 60 ? 'text-rose-400 border-rose-500/30 bg-rose-500/10 animate-[pulse_0.5s_infinite]' : `${bc.timer} shadow-[inset_0_0_10px_rgba(255,255,255,0.05)]`)
                     : 'text-white/40 border-white/10'
                     }`}>
                     <ShieldAlert size={14} />
-                    {gameState === 'playing' ? formatTime(timeLeft) : '0:00'}
+                    {phase === 'playing' ? formatTime(timeLeft) : '0:00'}
                 </div>
             </div>
 
             {/* Zonas Dinámicas: Lobby, Combate, Derrota, Victoria */}
             <AnimatePresence mode="wait">
-                {gameState === 'lobby' && (
+                {phase === 'lobby' && (
                     <motion.div key="lobby" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="text-center py-6">
                         <div className="relative w-24 h-24 mx-auto mb-6">
                             <div className="absolute inset-0 border-[3px] border-dashed border-emerald-500/30 rounded-full animate-[spin_10s_linear_infinite]" />
@@ -318,7 +318,7 @@ export default function BossRaid({ roomName, onClose }) {
                     </motion.div>
                 )}
 
-                {gameState === 'playing' && (
+                {phase === 'playing' && (
                     <motion.div key="combat" initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }} className="flex flex-col items-center">
                         {/* Monstruo Interactivo */}
                         <div className="relative mb-6">
@@ -375,7 +375,7 @@ export default function BossRaid({ roomName, onClose }) {
                     </motion.div>
                 )}
 
-                {gameState === 'won' && (
+                {phase === 'won' && (
                     <motion.div key="won" initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} className="text-center py-8">
                         <div className="relative w-24 h-24 mx-auto mb-4">
                             <div className="absolute inset-0 bg-emerald-500/20 rounded-full blur-xl animate-pulse" />
@@ -424,7 +424,7 @@ export default function BossRaid({ roomName, onClose }) {
                     </motion.div>
                 )}
 
-                {gameState === 'lost' && (
+                {phase === 'lost' && (
                     <motion.div key="lost" initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} className="text-center py-8">
                         <div className="relative w-24 h-24 mx-auto mb-4">
                             <div className="absolute inset-0 bg-rose-500/20 rounded-full blur-xl animate-pulse" />
@@ -449,7 +449,7 @@ export default function BossRaid({ roomName, onClose }) {
             </AnimatePresence>
 
             {/* Tabla de Daño Flotante (DPS Meter) */}
-            {gameState === 'playing' && sortedPlayers.length > 0 && (
+            {phase === 'playing' && sortedPlayers.length > 0 && (
                 <div className="mt-8 pt-5 border-t border-white/5">
                     <div className="flex items-center justify-between mb-4">
                         <div className="flex items-center gap-2">

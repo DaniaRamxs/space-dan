@@ -343,7 +343,7 @@ function PlayerCard({ slot, player, isActive, isHost, onJoin, onLeave, isMe, gam
                             onClick={onJoin}
                             className={`px-3 lg:w-full py-1.5 sm:py-2.5 rounded-lg sm:rounded-xl text-[8px] sm:text-[9px] font-black uppercase tracking-widest transition-all ${styles.btn}`}
                         >
-                            Entrar
+                            Unirse
                         </button>
                     ) : isMe ? (
                         <button

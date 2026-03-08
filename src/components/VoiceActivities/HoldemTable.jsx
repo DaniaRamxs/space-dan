@@ -14,14 +14,14 @@ const VALUES = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A'
 
 // Posiciones de los 8 asientos alrededor del óvalo (% del contenedor)
 const SEAT_POSITIONS = [
-    { x: 50,  y: 90 },   // 0: abajo-centro
-    { x: 75,  y: 80 },   // 1: abajo-derecha
-    { x: 94,  y: 53 },   // 2: derecha
-    { x: 78,  y: 14 },   // 3: arriba-derecha
-    { x: 50,  y: 4  },   // 4: arriba-centro
-    { x: 22,  y: 14 },   // 5: arriba-izquierda
-    { x: 6,   y: 53 },   // 6: izquierda
-    { x: 25,  y: 80 },   // 7: abajo-izquierda
+    { x: 50, y: 90 },   // 0: abajo-centro
+    { x: 75, y: 80 },   // 1: abajo-derecha
+    { x: 94, y: 53 },   // 2: derecha
+    { x: 78, y: 14 },   // 3: arriba-derecha
+    { x: 50, y: 4 },   // 4: arriba-centro
+    { x: 22, y: 14 },   // 5: arriba-izquierda
+    { x: 6, y: 53 },   // 6: izquierda
+    { x: 25, y: 80 },   // 7: abajo-izquierda
 ];
 
 function createDeck() {
@@ -40,7 +40,7 @@ export default function HoldemTable({ roomName, onClose, isTheater, onToggleThea
     const { localParticipant } = useLocalParticipant();
     const participants = useParticipants();
 
-    const [gameState, setGameState] = useState('lobby');
+    const [phase, setPhase] = useState('lobby');
     // seats: Array(8) — null = vacío, objeto = jugador sentado
     const [seats, setSeats] = useState(Array(MAX_SEATS).fill(null));
     const [pot, setPot] = useState(0);
@@ -52,11 +52,11 @@ export default function HoldemTable({ roomName, onClose, isTheater, onToggleThea
     const [deckRef] = useState({ current: [] });
 
     const channelRef = useRef(null);
-    const syncRef = useRef({ gameState, seats, pot, communityCards, currentTurn, lastAction, bettingRound });
+    const syncRef = useRef({ phase, seats, pot, communityCards, currentTurn, lastAction, bettingRound });
 
     useEffect(() => {
-        syncRef.current = { gameState, seats, pot, communityCards, currentTurn, lastAction, bettingRound };
-    }, [gameState, seats, pot, communityCards, currentTurn, lastAction, bettingRound]);
+        syncRef.current = { phase, seats, pot, communityCards, currentTurn, lastAction, bettingRound };
+    }, [phase, seats, pot, communityCards, currentTurn, lastAction, bettingRound]);
 
     // Leader (host)
     const allParticipants = useMemo(() => {
@@ -73,7 +73,7 @@ export default function HoldemTable({ roomName, onClose, isTheater, onToggleThea
     const mySeatIdx = seats.findIndex(s => s?.identity === localParticipant?.identity);
     const isSeated = mySeatIdx >= 0;
     const seatedPlayers = seats.map((s, i) => s ? { ...s, seatIdx: i } : null).filter(Boolean);
-    const isMyTurn = currentTurn === mySeatIdx && gameState === 'betting';
+    const isMyTurn = currentTurn === mySeatIdx && phase === 'betting';
 
     // Realtime
     useEffect(() => {
@@ -85,7 +85,7 @@ export default function HoldemTable({ roomName, onClose, isTheater, onToggleThea
 
         channel
             .on('broadcast', { event: 'holdem_state' }, ({ payload }) => {
-                if (payload.gameState !== undefined) setGameState(payload.gameState);
+                if (payload.phase !== undefined) setPhase(payload.phase);
                 if (payload.seats !== undefined) setSeats(payload.seats);
                 if (payload.pot !== undefined) setPot(payload.pot);
                 if (payload.communityCards !== undefined) setCommunityCards(payload.communityCards);
@@ -152,10 +152,10 @@ export default function HoldemTable({ roomName, onClose, isTheater, onToggleThea
         deckRef.current = deck.slice(idx);
         const firstTurn = seatedPlayers[0].seatIdx;
         const updates = {
-            gameState: 'betting', seats: newSeats, pot: 0, communityCards: [],
+            phase: 'betting', seats: newSeats, pot: 0, communityCards: [],
             currentTurn: firstTurn, lastAction: { name: 'Dealer', action: 'Nueva mano' }, bettingRound: 0,
         };
-        setGameState('betting'); setSeats(newSeats); setPot(0); setCommunityCards([]);
+        setPhase('betting'); setSeats(newSeats); setPot(0); setCommunityCards([]);
         setCurrentTurn(firstTurn); setLastAction(updates.lastAction); setBettingRound(0); setMyCards([]);
         broadcast('holdem_state', updates);
     };
@@ -168,7 +168,7 @@ export default function HoldemTable({ roomName, onClose, isTheater, onToggleThea
         if (round === 1) newCards = d.slice(0, 3);
         else if (round === 2) newCards = [...communityCards, d[3]];
         else if (round === 3) newCards = [...communityCards, d[4]];
-        else { broadcast('holdem_state', { gameState: 'showdown' }); setGameState('showdown'); return; }
+        else { broadcast('holdem_state', { phase: 'showdown' }); setPhase('showdown'); return; }
 
         const activeIdx = seatedPlayers.find(p => !p.folded)?.seatIdx ?? seatedPlayers[0].seatIdx;
         const roundNames = ['', 'Flop', 'Turn', 'River'];
@@ -196,8 +196,8 @@ export default function HoldemTable({ roomName, onClose, isTheater, onToggleThea
     };
 
     const resetTable = () => {
-        const updates = { gameState: 'lobby', seats: Array(MAX_SEATS).fill(null), pot: 0, communityCards: [], currentTurn: null, lastAction: null, bettingRound: 0 };
-        setGameState('lobby'); setSeats(updates.seats); setPot(0); setCommunityCards([]);
+        const updates = { phase: 'lobby', seats: Array(MAX_SEATS).fill(null), pot: 0, communityCards: [], currentTurn: null, lastAction: null, bettingRound: 0 };
+        setPhase('lobby'); setSeats(updates.seats); setPot(0); setCommunityCards([]);
         setCurrentTurn(null); setLastAction(null); setBettingRound(0); setMyCards([]);
         broadcast('holdem_state', updates);
     };
@@ -213,7 +213,7 @@ export default function HoldemTable({ roomName, onClose, isTheater, onToggleThea
             className={`w-full relative ${isTheater
                 ? 'h-full bg-[#04120a] flex flex-col'
                 : 'bg-[#050510]/95 backdrop-blur-3xl border border-rose-500/20 rounded-[2.5rem] mt-4 shadow-[0_40px_100px_rgba(0,0,0,0.8)] overflow-hidden'
-            }`}
+                }`}
         >
             {/* ── Header ── */}
             <div className={`flex-shrink-0 flex items-center justify-between ${isTheater ? 'px-5 sm:px-8 py-4' : 'px-5 sm:px-7 py-4 border-b border-white/5'}`}>
@@ -244,7 +244,7 @@ export default function HoldemTable({ roomName, onClose, isTheater, onToggleThea
 
             {/* ── Mesa ── */}
             <div className={`${isTheater ? 'flex-1 relative overflow-hidden px-3 sm:px-8 lg:px-16 py-2' : 'relative'}`}
-                 style={!isTheater ? { paddingBottom: '64%' } : undefined}>
+                style={!isTheater ? { paddingBottom: '64%' } : undefined}>
 
                 <div className={isTheater ? 'absolute inset-0' : 'absolute inset-0'}>
                     {/* Fieltro de la mesa */}
@@ -270,7 +270,7 @@ export default function HoldemTable({ roomName, onClose, isTheater, onToggleThea
                                         <span className={`text-xs sm:text-base leading-none ${getCardColor(c.s)}`}>{c.s}</span>
                                     </motion.div>
                                 ))
-                                : [1,2,3,4,5].map(i => (
+                                : [1, 2, 3, 4, 5].map(i => (
                                     <div key={i} className="w-7 h-10 sm:w-10 sm:h-14 bg-emerald-900/50 rounded-md border border-white/5" />
                                 ))
                             }
@@ -310,10 +310,9 @@ export default function HoldemTable({ roomName, onClose, isTheater, onToggleThea
                                         className={`flex flex-col items-center gap-0.5 ${player.folded ? 'opacity-35 grayscale' : ''}`}
                                     >
                                         {/* Avatar */}
-                                        <div className={`relative w-9 h-9 sm:w-11 sm:h-11 lg:w-13 lg:h-13 rounded-full border-2 overflow-hidden bg-black/60 transition-all ${
-                                            isTurn ? 'border-amber-400 shadow-[0_0_18px_rgba(245,158,11,0.6)] scale-110' :
+                                        <div className={`relative w-9 h-9 sm:w-11 sm:h-11 lg:w-13 lg:h-13 rounded-full border-2 overflow-hidden bg-black/60 transition-all ${isTurn ? 'border-amber-400 shadow-[0_0_18px_rgba(245,158,11,0.6)] scale-110' :
                                             isMe ? 'border-rose-400 shadow-[0_0_10px_rgba(244,63,94,0.3)]' : 'border-white/20'
-                                        }`}>
+                                            }`}>
                                             <img src={player.avatar || '/default_user_blank.png'} alt="" className="w-full h-full object-cover" />
                                             {isTurn && <div className="absolute inset-0 rounded-full border-2 border-amber-300/60 animate-ping" />}
                                         </div>
@@ -368,7 +367,7 @@ export default function HoldemTable({ roomName, onClose, isTheater, onToggleThea
                                         <span className={`text-lg sm:text-xl leading-none ${getCardColor(c.s)}`}>{c.s}</span>
                                     </motion.div>
                                 )) : (
-                                    [0,1].map(i => (
+                                    [0, 1].map(i => (
                                         <div key={i} className="w-11 sm:w-14 bg-rose-950/40 border-2 border-rose-500/20 rounded-lg flex items-center justify-center" style={{ height: '60px' }}>
                                             <span className="text-rose-500/20 text-lg">?</span>
                                         </div>
