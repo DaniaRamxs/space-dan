@@ -2,42 +2,58 @@ import { Room } from "colyseus";
 import { BaseGameState, Player } from "../schema/BaseGameState.mjs";
 
 export default class GameRoom extends Room {
-    // Subclasses should override these
-    maxPlayers = 2; // Default limit
-    reconnectionTimeout = 20; // 20 seconds window
-    autoDispose = true;
+
+    maxPlayers = 2;
+    reconnectionTimeout = 20;
 
     async onCreate(options) {
+
         this.setState(new BaseGameState());
+
         this.autoDispose = true;
 
-        // Message Handlers
-        this.onMessage("rematch", (client) => {
-            const player = this.state.players.get(client.sessionId);
-            if (player) {
-                this.state.rematchVotes.set(player.userId, true);
-                this.handleRematchLogic();
-            }
-        });
+        /* ========================
+           INPUT HANDLER
+        ======================== */
 
         this.onMessage("player_input", (client, data) => {
-            if (this.state.phase === "playing") {
-                this.handlePlayerInput(client, data);
-            }
+
+            if (this.state.phase !== "playing") return;
+
+            this.handlePlayerInput(client, data);
+
         });
 
-        // Initialize specific game setup
+        /* ========================
+           REMATCH
+        ======================== */
+
+        this.onMessage("rematch", (client) => {
+
+            const player = this.state.players.get(client.sessionId);
+            if (!player) return;
+
+            this.state.rematchVotes.set(player.userId, true);
+
+            this.handleRematchLogic();
+
+        });
+
         this.initializeGame(options);
     }
 
+    /* ========================
+       PLAYER JOIN
+    ======================== */
+
     async onJoin(client, options) {
-        // Fallback to client.sessionId if userId is missing
+
         const userId = options.userId || client.sessionId;
-        const username = options.username || options.name || "Anon";
+        const username = options.username || "Anon";
         const avatar = options.avatar || "/default-avatar.png";
 
-        // Check for existing player with same userId to prevent duplicates on refresh
         let existingPlayer = null;
+
         for (let p of this.state.players.values()) {
             if (p.userId === userId) {
                 existingPlayer = p;
@@ -46,144 +62,206 @@ export default class GameRoom extends Room {
         }
 
         if (existingPlayer) {
-            // Manual reconnection / Duplicated tab behavior
-            // We transfer the state to the new session
+
             this.state.players.delete(existingPlayer.sessionId);
+
             existingPlayer.sessionId = client.sessionId;
             existingPlayer.isConnected = true;
+
             this.state.players.set(client.sessionId, existingPlayer);
+
         } else {
-            // New player
+
             const player = this.createPlayer(client, options);
+
             player.userId = userId;
-            player.username = username || "Anon";
-            player.avatar = avatar || "/default-avatar.png";
+            player.username = username;
+            player.avatar = avatar;
             player.sessionId = client.sessionId;
+            player.isConnected = true;
+
             this.state.players.set(client.sessionId, player);
+
         }
 
-        // Assign host to the first player who joins
         if (!this.state.hostId) {
             this.state.hostId = client.sessionId;
         }
 
-        // Check if we can start countdown
         if (this.state.phase === "waiting" && this.state.players.size >= this.maxPlayers) {
             this.startCountdown();
         }
     }
 
+    /* ========================
+       PLAYER LEAVE
+    ======================== */
+
     async onLeave(client, consented) {
+
         const player = this.state.players.get(client.sessionId);
         if (!player) return;
 
         player.isConnected = false;
 
         if (consented) {
-            // User explicitly left
+
             this.state.players.delete(client.sessionId);
+
             this.handlePlayerDefeatOnLeave(player);
+
         } else {
-            // Accidental disconnect: window of reconnection
+
             try {
+
                 await this.allowReconnection(client, this.reconnectionTimeout);
+
                 player.isConnected = true;
-            } catch (e) {
-                // Permanently lost
+
+            } catch {
+
                 this.state.players.delete(client.sessionId);
+
                 this.handlePlayerDefeatOnLeave(player);
+
             }
+
         }
     }
+
+    /* ========================
+       PLAYER LEAVE LOGIC
+    ======================== */
 
     handlePlayerDefeatOnLeave(leavingPlayer) {
-        // Transfer host if the host left
+
         if (this.state.hostId === leavingPlayer.sessionId) {
+
             const nextHost = this.state.players.keys().next().value;
+
             this.state.hostId = nextHost || "";
+
         }
 
-        // If the game is playing and someone leaves permanently, end it
         if (this.state.phase === "playing" && this.state.players.size < this.maxPlayers) {
-            // Find the winner (remaining player)
-            for (let winnerCandidate of this.state.players.values()) {
-                this.endGame(winnerCandidate.userId);
+
+            for (let p of this.state.players.values()) {
+
+                this.endGame(p.userId);
+
                 break;
+
             }
+
         }
     }
 
+    /* ========================
+       PHASE SYSTEM
+    ======================== */
+
     setPhase(phase) {
+
         this.state.phase = phase;
-        console.log(`[GameRoom] Entering phase: ${phase}`);
+
+        console.log(`[GameRoom] phase → ${phase}`);
+
     }
 
     startCountdown() {
+
         if (this.state.phase === "countdown") return;
 
         this.setPhase("countdown");
+
         this.state.countdown = 3;
 
         const timer = setInterval(() => {
+
             this.state.countdown--;
+
             if (this.state.countdown <= 0) {
+
                 clearInterval(timer);
+
                 this.setPhase("playing");
+
             }
+
         }, 1000);
+
     }
 
     endGame(winnerId) {
+
         this.state.winner = winnerId;
+
         this.setPhase("finished");
+
     }
 
-    resetGame() {
-        this.state.winner = "";
-        this.state.rematchVotes.clear();
-        this.state.countdown = 0;
-        this.state.gameData = "";
+    /* ========================
+       RESET GAME
+    ======================== */
 
-        // Reset player specific logic if needed
+    resetGame() {
+
+        this.state.winner = "";
+
+        this.state.rematchVotes.clear();
+
+        this.state.countdown = 0;
+
         this.state.players.forEach(p => {
+
             p.score = 0;
+
             p.isReady = false;
+
         });
 
         this.setPhase("waiting");
 
-        // Custom reset for subclasses
         this.onResetGame();
+
     }
+
+    /* ========================
+       REMATCH SYSTEM
+    ======================== */
 
     handleRematchLogic() {
-        const votes = this.state.rematchVotes.size;
-        const totalPlayers = this.state.players.size;
 
-        if (votes >= totalPlayers && totalPlayers >= this.maxPlayers) {
+        const votes = this.state.rematchVotes.size;
+        const total = this.state.players.size;
+
+        if (votes >= total && total >= this.maxPlayers) {
+
             this.resetGame();
+
             this.startCountdown();
+
         }
+
     }
 
-    // --- Hooks for Subclasses ---
+    /* ========================
+       HOOKS PARA SUBCLASES
+    ======================== */
+
     createPlayer(client, options) {
         return new Player();
     }
 
-    initializeGame(options) {
-        // Setup initial board, logic, intervals
-    }
+    initializeGame(options) { }
 
-    onResetGame() {
-        // Additional cleanup for subclasses
-    }
+    handlePlayerInput(client, data) { }
 
-    handlePlayerInput(client, data) {
-        // Process moves
-    }
+    onResetGame() { }
 
     onDispose() {
-        console.log("Room disposed.");
+
+        console.log("Room disposed");
+
     }
 }
