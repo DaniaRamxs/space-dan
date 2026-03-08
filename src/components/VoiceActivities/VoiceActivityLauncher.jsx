@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Gamepad2, Skull, Music, Zap, Coins, Layers, PenLine, Sparkles, Minimize2, Maximize2, Smartphone, Rocket, Crosshair } from 'lucide-react';
+import { X, Gamepad2, Skull, Music, Zap, Coins, Layers, PenLine, Sparkles, Minimize2, Maximize2, Smartphone, Rocket, Crosshair, Image as ImageIcon } from 'lucide-react';
 import PokerGame from './PokerGame';
 import Connect4Game from './Connect4Game';
 import SnakeDuelGame from './SnakeDuelGame';
