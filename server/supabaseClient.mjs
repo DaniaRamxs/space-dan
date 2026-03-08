@@ -11,13 +11,18 @@ import { fileURLToPath } from "url";
 import path from "path";
 import { createClient } from "@supabase/supabase-js";
 
-// Apunta al .env de la raíz del monorepo (un nivel arriba de /server)
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-dotenv.config({ path: path.join(__dirname, "..", ".env") });
+// In production (Railway), variables are directly in process.env.
+// dotenv is only needed for local dev.
+dotenv.config();
 
-// Accept both VITE_-prefixed (local dev) and plain names (Railway/production)
-const SUPABASE_URL = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
-const SUPABASE_KEY = process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
+const SUPABASE_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY;
+
+console.log("[Supabase Check]", {
+    hasUrl: !!SUPABASE_URL,
+    hasKey: !!SUPABASE_KEY,
+    urlValue: SUPABASE_URL ? SUPABASE_URL.substring(0, 15) + "..." : "missing"
+});
 
 if (!SUPABASE_URL || !SUPABASE_KEY) {
     console.warn("[Supabase] ⚠  Variables no encontradas — persistencia desactivada");
