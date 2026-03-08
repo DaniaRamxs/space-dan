@@ -26,6 +26,8 @@ export class BaseGameState extends Schema {
     constructor() {
         super();
         this.phase = "waiting";
+        this.players = new MapSchema();
+        this.rematchVotes = new MapSchema();
         this.countdown = 0;
         this.winner = "";
         this.gameData = "";
