@@ -12,6 +12,7 @@ import { StarboardRoom } from "./rooms/StarboardRoom.mjs";
 import { AsteroidBattleRoom } from "./rooms/AsteroidBattleRoom.mjs";
 import { ChessRoom } from "./rooms/ChessRoom.mjs";
 import { PixelGalaxyRoom } from "./rooms/PixelGalaxyRoom.mjs";
+import { PuzzleRoom } from "./rooms/PuzzleRoom.mjs";
 
 const port = process.env.PORT || 2567;
 const app = express();
@@ -40,6 +41,7 @@ gameServer.define("starboard", StarboardRoom).filterBy(['roomName']);
 gameServer.define("asteroid-battle", AsteroidBattleRoom).filterBy(['roomName']);
 gameServer.define("chess", ChessRoom).filterBy(['roomName']);
 gameServer.define("pixel-galaxy", PixelGalaxyRoom).filterBy(['roomName']);
+gameServer.define("puzzle", PuzzleRoom).filterBy(['roomName']);
 
 server.listen(port, () => {
     console.log(`[Colyseus Server] Listening on port ${port}`);

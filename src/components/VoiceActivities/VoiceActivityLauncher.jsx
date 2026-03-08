@@ -11,6 +11,7 @@ import AsteroidBattleGame from './AsteroidBattleGame';
 import BlackjackGame from './Blackjack/BlackjackGame';
 import ChessGame from './Chess/ChessGame';
 import PixelGalaxyGame from './PixelGalaxy/PixelGalaxyGame';
+import CoOpPuzzleGame from './CoOpPuzzle/CoOpPuzzleGame';
 
 const ACTIVITIES = [
     {
@@ -123,6 +124,17 @@ const ACTIVITIES = [
         accent: 'bg-cyan-500', text: 'text-cyan-400',
         tagBg: 'bg-cyan-500/20 text-cyan-400',
     },
+    {
+        id: 'puzzle', name: 'Co-Op Puzzle', tag: 'Co-op',
+        mode: 'colyseus',
+        icon: ImageIcon,
+        description: 'Resuelve rompecabezas en equipo con fotos reales',
+        reward: 'Social',
+        border: 'border-emerald-500/30', bg: 'bg-emerald-500/5',
+        hover: 'hover:bg-emerald-500/10 hover:border-emerald-500/50',
+        accent: 'bg-emerald-500', text: 'text-emerald-400',
+        tagBg: 'bg-emerald-500/20 text-emerald-400',
+    },
 ];
 
 const ALL_TAGS = ['Todos', 'Duelo', 'Co-op', 'Social', 'Casino', 'Musica'];
@@ -208,6 +220,7 @@ export default function VoiceActivityLauncher({ roomName, activeActivity, setAct
                         {activeActivity === 'blackjack' && <BlackjackGame {...commonProps} />}
                         {activeActivity === 'chess' && <ChessGame {...commonProps} />}
                         {activeActivity === 'pixel-galaxy' && <PixelGalaxyGame {...commonProps} />}
+                        {activeActivity === 'puzzle' && <CoOpPuzzleGame {...commonProps} />}
                     </div>
 
                     {/* Floating minimize button — fixed so it stays on top of any z-index inside the wrapper */}
