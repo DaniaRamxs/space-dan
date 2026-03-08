@@ -1,16 +1,16 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Eraser, Trash2, ZoomIn, ZoomOut, Home, Users, Trophy, Tv2 } from 'lucide-react';
+import { X, Eraser, Trash2, ZoomIn, ZoomOut, Home, Users, Trophy, Tv2, Menu, Palette } from 'lucide-react';
 import { client } from '../../../services/colyseusClient';
 import { useAuthContext } from '../../../contexts/AuthContext';
 import toast from 'react-hot-toast';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const CANVAS_W    = 128;
-const CANVAS_H    = 128;
-const ZOOM_MIN    = 1;
-const ZOOM_MAX    = 24;
+const CANVAS_W = 128;
+const CANVAS_H = 128;
+const ZOOM_MIN = 1;
+const ZOOM_MAX = 24;
 const COOLDOWN_MS = 1000;
 
 const PALETTE = [
@@ -32,50 +32,51 @@ export default function PixelGalaxyGame({ roomName, onClose, isTheater, onToggle
     const { user, profile } = useAuthContext();
 
     // ── Colyseus ────────────────────────────────────────────────────────────
-    const [room, setRoom]         = useState(null);
-    const [state, setState]       = useState(null);
+    const [room, setRoom] = useState(null);
+    const [state, setState] = useState(null);
     const [connecting, setConnect] = useState(true);
-    const [tick, setTick]         = useState(0);
-    const stateRef                = useRef(null); // mutable ref for canvas draw
+    const [tick, setTick] = useState(0);
+    const stateRef = useRef(null); // mutable ref for canvas draw
 
     // ── Canvas ──────────────────────────────────────────────────────────────
-    const canvasRef   = useRef(null);
+    const canvasRef = useRef(null);
     const containerRef = useRef(null);
 
     // zoom / pan as both refs (for draw) and state (for re-render trigger)
     const zoomRef = useRef(4);
-    const panRef  = useRef({ x: 0, y: 0 });
+    const panRef = useRef({ x: 0, y: 0 });
     const [zoom, _setZoom] = useState(4);
-    const [pan,  _setPan]  = useState({ x: 0, y: 0 });
+    const [pan, _setPan] = useState({ x: 0, y: 0 });
 
     function setZoom(z) { zoomRef.current = z; _setZoom(z); }
-    function setPan(p)  { panRef.current  = p; _setPan(p);  }
+    function setPan(p) { panRef.current = p; _setPan(p); }
 
     // ── Interaction ─────────────────────────────────────────────────────────
     const [selectedColor, setSelectedColor] = useState('#8b5cf6');
-    const [isEraser,      setIsEraser]      = useState(false);
-    const [hoverPos,      setHoverPos]      = useState(null);  // { x, y } virtual
-    const [tooltip,       setTooltip]       = useState(null);  // { sx, sy, text }
-    const [cooldownUntil, setCooldown]      = useState(0);
-    const [onlineCount,   setOnlineCount]   = useState(0);
+    const [isEraser, setIsEraser] = useState(false);
+    const [hoverPos, setHoverPos] = useState(null);  // { x, y } virtual
+    const [tooltip, setTooltip] = useState(null);  // { sx, sy, text }
+    const [cooldownUntil, setCooldown] = useState(0);
+    const [onlineCount, setOnlineCount] = useState(0);
+    const [menuOpen, setMenuOpen] = useState(window.innerWidth > 768); // Open by default on desktop
 
     // pointer tracking
-    const isDragging      = useRef(false);
-    const dragMoved       = useRef(false);
-    const lastPointer     = useRef({ x: 0, y: 0 });
-    const lastPinchDist   = useRef(0);
+    const isDragging = useRef(false);
+    const dragMoved = useRef(false);
+    const lastPointer = useRef({ x: 0, y: 0 });
+    const lastPinchDist = useRef(0);
     const canvasInitialized = useRef(false);
 
     // ── Colyseus connection ──────────────────────────────────────────────────
     useEffect(() => {
-        let mounted  = true;
+        let mounted = true;
         let activeRoom = null;
 
         const join = async () => {
             try {
                 const r = await client.joinOrCreate('pixel-galaxy', {
-                    name:     profile?.username || user?.email?.split('@')[0] || 'Anon',
-                    avatar:   profile?.avatar_url || '/default-avatar.png',
+                    name: profile?.username || user?.email?.split('@')[0] || 'Anon',
+                    avatar: profile?.avatar_url || '/default-avatar.png',
                     roomName,
                 });
                 if (!mounted) { r.leave(); return; }
@@ -104,24 +105,24 @@ export default function PixelGalaxyGame({ roomName, onClose, isTheater, onToggle
 
         join();
         return () => { mounted = false; if (activeRoom) activeRoom.leave(); };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     // ── Initialize canvas size + zoom/pan on mount ───────────────────────────
     useEffect(() => {
         if (canvasInitialized.current) return;
-        const canvas    = canvasRef.current;
+        const canvas = canvasRef.current;
         const container = containerRef.current;
         if (!canvas || !container) return;
 
-        const w = container.clientWidth  || 500;
+        const w = container.clientWidth || 500;
         const h = container.clientHeight || 500;
-        canvas.width  = w;
+        canvas.width = w;
         canvas.height = h;
 
         const fitZ = Math.max(ZOOM_MIN, Math.min(8, Math.floor(Math.min(w, h) / CANVAS_W * 0.82)));
-        const px   = (w - CANVAS_W * fitZ) / 2;
-        const py   = (h - CANVAS_H * fitZ) / 2;
+        const px = (w - CANVAS_W * fitZ) / 2;
+        const py = (h - CANVAS_H * fitZ) / 2;
         setZoom(fitZ);
         setPan({ x: px, y: py });
 
@@ -131,7 +132,7 @@ export default function PixelGalaxyGame({ roomName, onClose, isTheater, onToggle
     // ── Canvas draw ──────────────────────────────────────────────────────────
     useEffect(() => {
         draw();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [tick, zoom, pan, hoverPos, selectedColor, isEraser, cooldownUntil]);
 
     const draw = useCallback(() => {
@@ -180,7 +181,7 @@ export default function PixelGalaxyGame({ roomName, onClose, isTheater, onToggle
         // ── Grid lines at high zoom ──────────────────────────────────────────
         if (zoomRef.current >= 8) {
             ctx.strokeStyle = 'rgba(255,255,255,0.035)';
-            ctx.lineWidth   = 1 / zoomRef.current;
+            ctx.lineWidth = 1 / zoomRef.current;
             for (let x = 0; x <= CANVAS_W; x++) {
                 ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, CANVAS_H); ctx.stroke();
             }
@@ -194,18 +195,18 @@ export default function PixelGalaxyGame({ roomName, onClose, isTheater, onToggle
         if (hp && hp.x >= 0 && hp.x < CANVAS_W && hp.y >= 0 && hp.y < CANVAS_H) {
             const onCd = Date.now() < cooldownUntil;
             ctx.globalAlpha = onCd ? 0.2 : 0.65;
-            ctx.fillStyle   = isEraser ? '#ff3333' : selectedColor;
+            ctx.fillStyle = isEraser ? '#ff3333' : selectedColor;
             ctx.fillRect(hp.x, hp.y, 1, 1);
             ctx.globalAlpha = 1;
             // cursor outline
             ctx.strokeStyle = isEraser ? 'rgba(255,80,80,0.7)' : 'rgba(255,255,255,0.65)';
-            ctx.lineWidth   = 1.5 / zoomRef.current;
+            ctx.lineWidth = 1.5 / zoomRef.current;
             ctx.strokeRect(hp.x, hp.y, 1, 1);
         }
 
         // ── Canvas border glow ───────────────────────────────────────────────
         ctx.strokeStyle = 'rgba(108,92,231,0.4)';
-        ctx.lineWidth   = 2 / zoomRef.current;
+        ctx.lineWidth = 2 / zoomRef.current;
         ctx.strokeRect(-0.5, -0.5, CANVAS_W + 1, CANVAS_H + 1);
 
         ctx.restore();
@@ -216,10 +217,10 @@ export default function PixelGalaxyGame({ roomName, onClose, isTheater, onToggle
         const rect = canvasRef.current?.getBoundingClientRect();
         if (!rect) return null;
         // Account for CSS ↔ canvas pixel ratio
-        const sx = canvasRef.current.width  / rect.width;
+        const sx = canvasRef.current.width / rect.width;
         const sy = canvasRef.current.height / rect.height;
         const dx = (clientX - rect.left) * sx;
-        const dy = (clientY - rect.top)  * sy;
+        const dy = (clientY - rect.top) * sy;
         return {
             x: Math.floor((dx - panRef.current.x) / zoomRef.current),
             y: Math.floor((dy - panRef.current.y) / zoomRef.current),
@@ -228,8 +229,8 @@ export default function PixelGalaxyGame({ roomName, onClose, isTheater, onToggle
 
     const applyZoomToward = useCallback((delta, cx, cy) => {
         const newZoom = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, zoomRef.current * delta));
-        const ratio   = newZoom / zoomRef.current;
-        const newPan  = {
+        const ratio = newZoom / zoomRef.current;
+        const newPan = {
             x: cx - (cx - panRef.current.x) * ratio,
             y: cy - (cy - panRef.current.y) * ratio,
         };
@@ -258,8 +259,8 @@ export default function PixelGalaxyGame({ roomName, onClose, isTheater, onToggle
     // ── Mouse events ─────────────────────────────────────────────────────────
     const handleMouseDown = (e) => {
         if (e.button !== 0) return;
-        isDragging.current  = true;
-        dragMoved.current   = false;
+        isDragging.current = true;
+        dragMoved.current = false;
         lastPointer.current = { x: e.clientX, y: e.clientY };
     };
 
@@ -269,8 +270,8 @@ export default function PixelGalaxyGame({ roomName, onClose, isTheater, onToggle
 
         // Tooltip: look up pixel owner
         if (v && stateRef.current?.pixels) {
-            const key    = `${v.x}_${v.y}`;
-            const pixel  = stateRef.current.pixels.get(key);
+            const key = `${v.x}_${v.y}`;
+            const pixel = stateRef.current.pixels.get(key);
             if (pixel) {
                 const player = stateRef.current.players?.get(pixel.userId);
                 setTooltip({ sx: e.clientX, sy: e.clientY, text: `@${player?.name || '?'}` });
@@ -306,7 +307,7 @@ export default function PixelGalaxyGame({ roomName, onClose, isTheater, onToggle
         const rect = canvasRef.current?.getBoundingClientRect();
         if (!rect) return;
         const cx = (e.clientX - rect.left) * (canvasRef.current.width / rect.width);
-        const cy = (e.clientY - rect.top)  * (canvasRef.current.height / rect.height);
+        const cy = (e.clientY - rect.top) * (canvasRef.current.height / rect.height);
         applyZoomToward(e.deltaY > 0 ? 0.85 : 1.15, cx, cy);
     };
 
@@ -315,11 +316,11 @@ export default function PixelGalaxyGame({ roomName, onClose, isTheater, onToggle
         e.preventDefault();
         if (e.touches.length === 1) {
             const t = e.touches[0];
-            isDragging.current  = true;
-            dragMoved.current   = false;
+            isDragging.current = true;
+            dragMoved.current = false;
             lastPointer.current = { x: t.clientX, y: t.clientY };
         } else if (e.touches.length === 2) {
-            isDragging.current    = false;
+            isDragging.current = false;
             lastPinchDist.current = pinchDist(e.touches);
         }
     };
@@ -327,7 +328,7 @@ export default function PixelGalaxyGame({ roomName, onClose, isTheater, onToggle
     const handleTouchMove = (e) => {
         e.preventDefault();
         if (e.touches.length === 1 && isDragging.current) {
-            const t  = e.touches[0];
+            const t = e.touches[0];
             const dx = t.clientX - lastPointer.current.x;
             const dy = t.clientY - lastPointer.current.y;
             if (Math.abs(dx) > 3 || Math.abs(dy) > 3) dragMoved.current = true;
@@ -336,15 +337,15 @@ export default function PixelGalaxyGame({ roomName, onClose, isTheater, onToggle
             _setPan(newPan);
             lastPointer.current = { x: t.clientX, y: t.clientY };
         } else if (e.touches.length === 2) {
-            const dist  = pinchDist(e.touches);
+            const dist = pinchDist(e.touches);
             const delta = lastPinchDist.current ? dist / lastPinchDist.current : 1;
             lastPinchDist.current = dist;
             const midX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
             const midY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
-            const rect  = canvasRef.current?.getBoundingClientRect();
+            const rect = canvasRef.current?.getBoundingClientRect();
             if (!rect) return;
-            const cx = (midX - rect.left) * (canvasRef.current.width  / rect.width);
-            const cy = (midY - rect.top)  * (canvasRef.current.height / rect.height);
+            const cx = (midX - rect.left) * (canvasRef.current.width / rect.width);
+            const cy = (midY - rect.top) * (canvasRef.current.height / rect.height);
             applyZoomToward(delta, cx, cy);
         }
     };
@@ -364,14 +365,14 @@ export default function PixelGalaxyGame({ roomName, onClose, isTheater, onToggle
     }
 
     // ── Zoom button helpers ───────────────────────────────────────────────────
-    const zoomIn  = () => { const nz = Math.min(ZOOM_MAX, zoomRef.current + (zoomRef.current < 4 ? 1 : 2)); setZoom(nz); };
+    const zoomIn = () => { const nz = Math.min(ZOOM_MAX, zoomRef.current + (zoomRef.current < 4 ? 1 : 2)); setZoom(nz); };
     const zoomOut = () => { const nz = Math.max(ZOOM_MIN, zoomRef.current - (zoomRef.current <= 4 ? 1 : 2)); setZoom(nz); };
     const resetView = () => {
-        const canvas    = canvasRef.current;
+        const canvas = canvasRef.current;
         const container = containerRef.current;
         if (!canvas || !container) return;
-        const w  = canvas.width;
-        const h  = canvas.height;
+        const w = canvas.width;
+        const h = canvas.height;
         const fz = Math.max(ZOOM_MIN, Math.min(8, Math.floor(Math.min(w, h) / CANVAS_W * 0.82)));
         setZoom(fz);
         setPan({ x: (w - CANVAS_W * fz) / 2, y: (h - CANVAS_H * fz) / 2 });
@@ -409,21 +410,24 @@ export default function PixelGalaxyGame({ roomName, onClose, isTheater, onToggle
         <div className="flex-1 flex flex-col bg-[#02020a] text-white overflow-hidden min-h-0">
 
             {/* ── Header ── */}
-            <div className="flex-shrink-0 flex items-center justify-between px-4 py-3 border-b border-white/5 bg-black/30 backdrop-blur-md">
+            <div className="flex-shrink-0 flex items-center justify-between px-4 py-3 border-b border-white/5 bg-black/30 backdrop-blur-md z-50">
                 <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-xl bg-purple-500/20 border border-purple-500/30 flex items-center justify-center text-base select-none">
-                        ✦
-                    </div>
+                    <button
+                        onClick={() => setMenuOpen(!menuOpen)}
+                        className={`p-2 rounded-xl transition-all ${menuOpen ? 'bg-purple-500/20 text-purple-400' : 'text-white/40 hover:text-white hover:bg-white/5'}`}
+                    >
+                        <Menu size={20} />
+                    </button>
                     <div>
                         <h2 className="text-[11px] font-black uppercase tracking-widest leading-none">Pixel Galaxy</h2>
                         <p className="text-[8px] text-white/30 uppercase tracking-widest mt-0.5">
-                            {state.totalPixels} píxeles · {onlineCount} en línea · Sala: {roomName}
+                            {state.totalPixels} píxeles · {onlineCount} en línea
                         </p>
                     </div>
                 </div>
                 <div className="flex items-center gap-2">
                     {onToggleTheater && (
-                        <button onClick={onToggleTheater} className="p-2 text-white/20 hover:text-white transition-colors">
+                        <button onClick={onToggleTheater} className="p-2 text-white/20 hover:text-white transition-colors" title="Modo Cine">
                             <Tv2 size={16} />
                         </button>
                     )}
@@ -515,100 +519,120 @@ export default function PixelGalaxyGame({ roomName, onClose, isTheater, onToggle
                     </div>
                 </div>
 
-                {/* ── Sidebar (theater mode) ── */}
-                {isTheater && (
-                    <div className="w-56 xl:w-64 flex-shrink-0 border-l border-white/5 bg-black/30 flex flex-col overflow-hidden">
-
-                        {/* Color palette */}
-                        <div className="flex-shrink-0 p-3 border-b border-white/5">
-                            <p className="text-[7px] font-black uppercase tracking-widest text-white/25 mb-2">Paleta Galáctica</p>
-                            <div className="grid grid-cols-6 gap-1">
-                                {PALETTE.map((color) => (
-                                    <button
-                                        key={color}
-                                        onClick={() => { setSelectedColor(color); setIsEraser(false); }}
-                                        style={{ backgroundColor: color }}
-                                        className={`aspect-square rounded-md border transition-all ${
-                                            selectedColor === color && !isEraser
-                                                ? 'border-white scale-110 shadow-lg'
-                                                : 'border-white/10 hover:scale-105 hover:border-white/30'
-                                        }`}
-                                    />
-                                ))}
-                            </div>
-                            {/* Current color + tools */}
-                            <div className="flex items-center gap-2 mt-2">
-                                <div
-                                    style={{ backgroundColor: selectedColor }}
-                                    className="w-7 h-7 rounded-lg border border-white/20 flex-shrink-0 shadow-inner"
-                                />
-                                <span className="text-[8px] font-black text-white/30 uppercase tracking-widest flex-1">
-                                    {selectedColor}
-                                </span>
-                                <button
-                                    onClick={() => setIsEraser(e => !e)}
-                                    className={`p-1.5 rounded-lg border transition-all ${
-                                        isEraser
-                                            ? 'bg-red-500/20 border-red-500/40 text-red-400'
-                                            : 'bg-white/5 border-white/10 text-white/30 hover:text-white hover:bg-white/10'
-                                    }`}
-                                >
-                                    <Eraser size={12} />
-                                </button>
-                                <button
-                                    onClick={handleClearMine}
-                                    className="p-1.5 rounded-lg border bg-white/5 border-white/10 text-white/30 hover:text-red-400 hover:bg-red-500/10 hover:border-red-500/20 transition-all"
-                                    title="Borrar todos mis píxeles"
-                                >
-                                    <Trash2 size={12} />
-                                </button>
-                            </div>
-                        </div>
-
-                        {/* Leaderboard */}
-                        <div className="flex-1 overflow-y-auto p-3">
-                            <p className="text-[7px] font-black uppercase tracking-widest text-white/25 mb-2 flex items-center gap-1.5">
-                                <Trophy size={9} /> Constructores
-                            </p>
-                            <div className="space-y-1.5">
-                                {leaderboard.length === 0 && (
-                                    <p className="text-[8px] text-white/15 uppercase tracking-widest">Sin datos aún</p>
-                                )}
-                                {leaderboard.map((p, i) => (
-                                    <div key={p.id} className="flex items-center gap-2">
-                                        <span className={`text-[8px] font-black w-4 text-right flex-shrink-0 ${i === 0 ? 'text-amber-400' : i === 1 ? 'text-stone-300' : i === 2 ? 'text-amber-700' : 'text-white/20'}`}>
-                                            {i + 1}
-                                        </span>
-                                        <img
-                                            src={p.avatar || '/default_user_blank.png'}
-                                            className="w-5 h-5 rounded-full flex-shrink-0"
-                                            alt=""
+                {/* ── Sidebar (Menu) ── */}
+                <AnimatePresence>
+                    {menuOpen && (
+                        <motion.div
+                            initial={{ width: 0, opacity: 0, x: 20 }}
+                            animate={{ width: window.innerWidth > 768 ? (isTheater ? 256 : 240) : '100%', opacity: 1, x: 0 }}
+                            exit={{ width: 0, opacity: 0, x: 20 }}
+                            className={`flex-shrink-0 border-l border-white/5 bg-black/40 backdrop-blur-2xl flex flex-col overflow-hidden z-40 ${window.innerWidth <= 768 ? 'absolute inset-y-0 right-0' : 'relative'}`}
+                        >
+                            {/* Color palette */}
+                            <div className="flex-shrink-0 p-4 border-b border-white/5">
+                                <p className="text-[8px] font-black uppercase tracking-[0.2em] text-white/25 mb-4 flex items-center gap-2">
+                                    <Palette size={10} /> Paleta Galáctica
+                                </p>
+                                <div className="grid grid-cols-6 gap-2">
+                                    {PALETTE.map((color) => (
+                                        <button
+                                            key={color}
+                                            onClick={() => { setSelectedColor(color); setIsEraser(false); if (window.innerWidth <= 768) setMenuOpen(false); }}
+                                            style={{ backgroundColor: color }}
+                                            className={`aspect-square rounded-lg border-2 transition-all ${selectedColor === color && !isEraser
+                                                    ? 'border-white scale-110 shadow-[0_0_15px_rgba(255,255,255,0.2)]'
+                                                    : 'border-white/5 hover:border-white/20'
+                                                }`}
                                         />
-                                        <p className="text-[9px] font-black text-white/70 truncate flex-1 min-w-0">
-                                            @{p.name}
-                                        </p>
-                                        <span className="text-[8px] font-black text-purple-400 flex-shrink-0">
-                                            {p.contributions}px
-                                        </span>
+                                    ))}
+                                </div>
+
+                                {/* Current color + tools */}
+                                <div className="flex items-center gap-3 mt-5 p-2 bg-white/5 rounded-2xl border border-white/5">
+                                    <div
+                                        style={{ backgroundColor: selectedColor }}
+                                        className="w-8 h-8 rounded-xl border border-white/10 flex-shrink-0 shadow-lg"
+                                    />
+                                    <div className="flex-1 min-w-0">
+                                        <p className="text-[7px] font-black text-white/20 uppercase tracking-widest">Color Actual</p>
+                                        <p className="text-[9px] font-black text-white/60 uppercase font-mono">{selectedColor}</p>
                                     </div>
-                                ))}
+                                    <div className="flex gap-1">
+                                        <button
+                                            onClick={() => setIsEraser(e => !e)}
+                                            className={`p-2 rounded-xl border transition-all ${isEraser
+                                                    ? 'bg-rose-500 text-white border-rose-400 shadow-[0_0_15px_rgba(244,63,94,0.3)]'
+                                                    : 'bg-white/5 border-white/10 text-white/30 hover:text-white hover:bg-white/10'
+                                                }`}
+                                            title="Borrador"
+                                        >
+                                            <Eraser size={14} />
+                                        </button>
+                                        <button
+                                            onClick={() => { handleClearMine(); setMenuOpen(false); }}
+                                            className="p-2 rounded-xl border bg-white/5 border-white/10 text-white/30 hover:text-rose-400 hover:bg-rose-500/10 hover:border-rose-500/20 transition-all"
+                                            title="Limpiar mis píxeles"
+                                        >
+                                            <Trash2 size={14} />
+                                        </button>
+                                    </div>
+                                </div>
                             </div>
 
-                            {/* Online players */}
-                            <p className="text-[7px] font-black uppercase tracking-widest text-white/25 mt-4 mb-2 flex items-center gap-1.5">
-                                <Users size={9} /> En línea
-                            </p>
-                            <div className="flex flex-wrap gap-1.5">
-                                {state.players && [...state.players.values()].map((p) => (
-                                    <div key={p.id} className="flex items-center gap-1 bg-white/5 border border-white/10 rounded-full px-1.5 py-0.5">
-                                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                                        <span className="text-[7px] font-black text-white/50">{p.name}</span>
+                            {/* Leaderboard */}
+                            <div className="flex-1 overflow-y-auto p-4 space-y-6 scrollbar-thin scrollbar-thumb-white/10">
+                                <div>
+                                    <p className="text-[8px] font-black uppercase tracking-[0.2em] text-white/25 mb-4 flex items-center gap-2">
+                                        <Trophy size={10} className="text-amber-400" /> Top Constructores
+                                    </p>
+                                    <div className="space-y-2">
+                                        {leaderboard.length === 0 && (
+                                            <p className="text-[9px] text-white/10 uppercase tracking-widest italic py-4 text-center">Iniciando registro...</p>
+                                        )}
+                                        {leaderboard.map((p, i) => (
+                                            <div key={p.id} className="flex items-center gap-3 p-2 rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 transition-colors">
+                                                <span className={`text-[9px] font-black w-4 text-center ${i === 0 ? 'text-amber-400' : i === 1 ? 'text-stone-300' : i === 2 ? 'text-amber-700' : 'text-white/20'}`}>
+                                                    {i + 1}
+                                                </span>
+                                                <img
+                                                    src={p.avatar || '/default_user_blank.png'}
+                                                    className="w-6 h-6 rounded-lg border border-white/10 flex-shrink-0"
+                                                    alt=""
+                                                />
+                                                <p className="text-[10px] font-black text-white/80 truncate flex-1 min-w-0">@{p.name}</p>
+                                                <span className="text-[9px] font-black text-purple-400">
+                                                    {p.contributions}
+                                                </span>
+                                            </div>
+                                        ))}
                                     </div>
-                                ))}
+                                </div>
+
+                                {/* Online players */}
+                                <div>
+                                    <p className="text-[8px] font-black uppercase tracking-[0.2em] text-white/25 mb-3 flex items-center gap-2">
+                                        <Users size={10} /> Pilotos Activos ({onlineCount})
+                                    </p>
+                                    <div className="flex flex-wrap gap-2">
+                                        {state.players && [...state.players.values()].map((p) => (
+                                            <div key={p.id} className="flex items-center gap-2 bg-purple-500/10 border border-purple-500/20 rounded-lg px-2 py-1">
+                                                <div className="w-1 h-1 rounded-full bg-emerald-400 animate-pulse" />
+                                                <span className="text-[9px] font-black text-white/40 uppercase tracking-tighter">{p.name}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
                             </div>
-                        </div>
-                    </div>
-                )}
+
+                            {/* Footer hint */}
+                            <div className="p-4 border-t border-white/5">
+                                <p className="text-[7px] text-white/10 uppercase tracking-[0.3em] text-center font-black">
+                                    Modo: {roomName.toUpperCase()}
+                                </p>
+                            </div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
             </div>
 
             {/* ── Bottom toolbar (compact, non-theater) ── */}
@@ -639,9 +663,8 @@ function BottomToolbar({ selectedColor, setSelectedColor, isEraser, setIsEraser,
                 <button
                     onClick={() => setExpanded(e => !e)}
                     style={{ backgroundColor: selectedColor }}
-                    className={`w-8 h-8 rounded-lg border-2 flex-shrink-0 transition-all ${
-                        expanded ? 'border-white scale-110' : 'border-white/30 hover:border-white/60'
-                    }`}
+                    className={`w-8 h-8 rounded-lg border-2 flex-shrink-0 transition-all ${expanded ? 'border-white scale-110' : 'border-white/30 hover:border-white/60'
+                        }`}
                 />
 
                 {/* Quick palette (6 colors) */}
@@ -651,11 +674,10 @@ function BottomToolbar({ selectedColor, setSelectedColor, isEraser, setIsEraser,
                             key={color}
                             onClick={() => { setSelectedColor(color); setIsEraser(false); }}
                             style={{ backgroundColor: color }}
-                            className={`w-6 h-6 flex-shrink-0 rounded border transition-all ${
-                                selectedColor === color && !isEraser
+                            className={`w-6 h-6 flex-shrink-0 rounded border transition-all ${selectedColor === color && !isEraser
                                     ? 'border-white scale-110'
                                     : 'border-white/15 hover:scale-105'
-                            }`}
+                                }`}
                         />
                     ))}
                 </div>
@@ -664,11 +686,10 @@ function BottomToolbar({ selectedColor, setSelectedColor, isEraser, setIsEraser,
                 <div className="flex items-center gap-1 ml-auto flex-shrink-0">
                     <button
                         onClick={() => setIsEraser(e => !e)}
-                        className={`p-2 rounded-lg border transition-all ${
-                            isEraser
+                        className={`p-2 rounded-lg border transition-all ${isEraser
                                 ? 'bg-red-500/20 border-red-500/40 text-red-400'
                                 : 'bg-white/5 border-white/10 text-white/40 hover:text-white'
-                        }`}
+                            }`}
                     >
                         <Eraser size={14} />
                     </button>
@@ -699,11 +720,10 @@ function BottomToolbar({ selectedColor, setSelectedColor, isEraser, setIsEraser,
                                     key={color}
                                     onClick={() => { setSelectedColor(color); setIsEraser(false); setExpanded(false); }}
                                     style={{ backgroundColor: color }}
-                                    className={`aspect-square rounded border transition-all ${
-                                        selectedColor === color && !isEraser
+                                    className={`aspect-square rounded border transition-all ${selectedColor === color && !isEraser
                                             ? 'border-white scale-110 shadow-md'
                                             : 'border-white/10 hover:scale-105 hover:border-white/30'
-                                    }`}
+                                        }`}
                                 />
                             ))}
                         </div>
