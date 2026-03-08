@@ -2,23 +2,30 @@ import { Schema, ArraySchema, MapSchema, type } from "@colyseus/schema";
 import { BaseGameState, Player as BasePlayer } from "./BaseGameState.mjs";
 
 export class TetrisPlayer extends BasePlayer {
-    @type(["number"]) board = new ArraySchema(); // 1D array representing 10x20 board (rows*10 + col)
-    @type("number") score = 0;
-    @type("number") linesCleared = 0;
-    @type("number") level = 1;
-    @type("string") currentPieceType = "";
-    @type("string") nextPieceType = "";
-    @type("number") garbageLinesQueue = 0; // Lines to be added on next move
-}
-
-export class TetrisState extends BaseGameState {
-    @type({ map: TetrisPlayer }) players = new MapSchema();
-
-    // Global duel config
-    @type("number") boardWidth = 10;
-    @type("number") boardHeight = 20;
-
     constructor() {
         super();
+        this.board = new ArraySchema();
+        this.score = 0;
+        this.linesCleared = 0;
+        this.level = 1;
+        this.currentPieceType = "";
+        this.nextPieceType = "";
+        this.garbageLinesQueue = 0;
     }
 }
+type(["number"])(TetrisPlayer.prototype, "board");
+type("number")(TetrisPlayer.prototype, "linesCleared");
+type("number")(TetrisPlayer.prototype, "level");
+type("string")(TetrisPlayer.prototype, "currentPieceType");
+type("string")(TetrisPlayer.prototype, "nextPieceType");
+type("number")(TetrisPlayer.prototype, "garbageLinesQueue");
+
+export class TetrisState extends BaseGameState {
+    constructor() {
+        super();
+        this.boardWidth = 10;
+        this.boardHeight = 20;
+    }
+}
+type("number")(TetrisState.prototype, "boardWidth");
+type("number")(TetrisState.prototype, "boardHeight");

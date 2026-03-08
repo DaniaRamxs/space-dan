@@ -1,3 +1,4 @@
+import "dotenv/config";
 import express from "express";
 import http from "http";
 import cors from "cors";
@@ -18,7 +19,16 @@ import { LudoRoom } from "./rooms/LudoRoom.mjs";
 const port = process.env.PORT || 2567;
 const app = express();
 
-app.use(cors());
+app.use(cors({
+    origin: [
+        "https://www.joinspacely.com",
+        "https://joinspacely.com",
+        "http://localhost:5173"
+    ],
+    credentials: true
+}));
+
+app.options("*path", cors());
 app.use(express.json());
 
 app.get("/health", (_, res) => res.send("Server is alive!"));

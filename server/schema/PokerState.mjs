@@ -1,67 +1,42 @@
-import { Schema, defineTypes, MapSchema, ArraySchema } from "@colyseus/schema";
+import { Schema, ArraySchema, MapSchema, type } from "@colyseus/schema";
+import { BaseGameState, Player as BasePlayer } from "./BaseGameState.mjs";
 
-export class PokerCard extends Schema {
-    constructor(v = "", s = "") {
-        super();
-        this.v = v;
-        this.s = s;
-    }
-}
-defineTypes(PokerCard, {
-    v: "string",
-    s: "string"
-});
+export class PokerCard extends Schema { }
+type("string")(PokerCard.prototype, "v");
+type("string")(PokerCard.prototype, "s");
 
-export class PokerPlayer extends Schema {
-    constructor(id, identity, name, avatar, seatIdx) {
+export class PokerPlayer extends BasePlayer {
+    constructor() {
         super();
-        this.id = id;
-        this.identity = identity;
-        this.name = name;
-        this.avatar = avatar;
-        this.seatIdx = seatIdx;
         this.stack = 500;
         this.bet = 0;
         this.folded = false;
         this.cards = new ArraySchema();
     }
 }
-defineTypes(PokerPlayer, {
-    id: "string",
-    identity: "string",
-    name: "string",
-    avatar: "string",
-    seatIdx: "number",
-    stack: "number",
-    bet: "number",
-    folded: "boolean",
-    cards: [PokerCard]
-});
+type("number")(PokerPlayer.prototype, "seatIdx");
+type("number")(PokerPlayer.prototype, "stack");
+type("number")(PokerPlayer.prototype, "bet");
+type("boolean")(PokerPlayer.prototype, "folded");
+type([PokerCard])(PokerPlayer.prototype, "cards");
 
-export class PokerState extends Schema {
+export class PokerState extends BaseGameState {
     constructor() {
         super();
-        this.gameState = "lobby"; // lobby, betting, showdown
-        this.players = new MapSchema();
-        this.seats = new ArraySchema(); // Array of sessionId strings or empty strings
+        this.seats = new ArraySchema();
         for (let i = 0; i < 8; i++) this.seats.push("");
-
         this.pot = 0;
         this.communityCards = new ArraySchema();
-        this.currentTurn = -1; // seatIndex
+        this.currentTurnIdx = -1;
         this.lastAction = "";
-        this.bettingRound = 0; // 0=preflop, 1=flop, 2=turn, 3=river
+        this.bettingRound = 0;
         this.winnerMessage = "";
     }
 }
-defineTypes(PokerState, {
-    gameState: "string",
-    players: { map: PokerPlayer },
-    seats: ["string"],
-    pot: "number",
-    communityCards: [PokerCard],
-    currentTurn: "number",
-    lastAction: "string",
-    bettingRound: "number",
-    winnerMessage: "string"
-});
+type(["string"])(PokerState.prototype, "seats");
+type("number")(PokerState.prototype, "pot");
+type([PokerCard])(PokerState.prototype, "communityCards");
+type("number")(PokerState.prototype, "currentTurnIdx");
+type("string")(PokerState.prototype, "lastAction");
+type("number")(PokerState.prototype, "bettingRound");
+type("string")(PokerState.prototype, "winnerMessage");

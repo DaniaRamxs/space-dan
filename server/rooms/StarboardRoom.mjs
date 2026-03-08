@@ -1,8 +1,10 @@
-import { Room } from "colyseus";
-import { StarboardState, StarboardPlayer, StarboardObject } from "../schema/StarboardState.mjs";
+import GameRoom from "./GameRoom.mjs";
+import { StarboardState, StarboardObject } from "../schema/StarboardState.mjs";
 
-export class StarboardRoom extends Room {
-    onCreate(options) {
+export class StarboardRoom extends GameRoom {
+    maxPlayers = 25;
+
+    initializeGame(options) {
         this.setState(new StarboardState());
 
         this.onMessage("cursor", (client, message) => {
@@ -10,21 +12,18 @@ export class StarboardRoom extends Room {
             if (player) {
                 player.nx = message.nx;
                 player.ny = message.ny;
-                player.color = message.color;
             }
         });
 
         this.onMessage("obj_add", (client, message) => {
-            console.log(`[Starboard] Add Object from ${client.sessionId}:`, message.tool);
-            const obj = new StarboardObject(message);
+            const obj = new StarboardObject();
+            obj.assign(message);
             this.state.objects.set(obj.id, obj);
         });
 
         this.onMessage("obj_update", (client, message) => {
             const obj = this.state.objects.get(message.id);
-            if (obj) {
-                obj.assign(message);
-            }
+            if (obj) obj.assign(message);
         });
 
         this.onMessage("obj_delete", (client, message) => {
@@ -36,15 +35,7 @@ export class StarboardRoom extends Room {
         });
     }
 
-    onJoin(client, options) {
-        this.state.players.set(client.sessionId, new StarboardPlayer(
-            options.userId || client.sessionId,
-            options.name || "Invitado",
-            options.color || "#ffffff"
-        ));
-    }
-
-    onLeave(client) {
-        this.state.players.delete(client.sessionId);
+    async onJoin(client, options) {
+        await super.onJoin(client, options);
     }
 }

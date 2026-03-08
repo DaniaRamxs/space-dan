@@ -1,89 +1,50 @@
-import { Schema, defineTypes, MapSchema, ArraySchema } from "@colyseus/schema";
+import { Schema, ArraySchema, MapSchema, type } from "@colyseus/schema";
+import { BaseGameState, Player as BasePlayer } from "./BaseGameState.mjs";
 
 export class StarboardObject extends Schema {
-    constructor(data = {}) {
+    constructor() {
         super();
-        this.assign(data);
+        this.points = new ArraySchema();
     }
 
     assign(data) {
-        if (data.id !== undefined) this.id = data.id;
-        if (data.tool !== undefined) this.tool = data.tool;
-        if (data.layerId !== undefined) this.layerId = data.layerId;
-        if (data.userId !== undefined) this.userId = data.userId;
-        if (data.x !== undefined) this.x = data.x;
-        if (data.y !== undefined) this.y = data.y;
-        if (data.width !== undefined) this.width = data.width;
-        if (data.height !== undefined) this.height = data.height;
-        if (data.stroke !== undefined) this.stroke = data.stroke;
-        if (data.strokeWidth !== undefined) this.strokeWidth = data.strokeWidth;
-        if (data.fill !== undefined) this.fill = data.fill;
-        if (data.points) {
-            if (!this.points) this.points = new ArraySchema();
-            else this.points.clear();
-            data.points.forEach(p => this.points.push(p));
-        } else if (!this.points) {
-            this.points = new ArraySchema();
-        }
-        if (data.text !== undefined) this.text = data.text;
-        if (data.src !== undefined) this.src = data.src;
-        if (data.tension !== undefined) this.tension = data.tension;
-        if (data.lineCap !== undefined) this.lineCap = data.lineCap;
-        if (data.lineJoin !== undefined) this.lineJoin = data.lineJoin;
-        if (data.globalCompositeOperation !== undefined) this.globalCompositeOperation = data.globalCompositeOperation;
-        if (data.fontSize !== undefined) this.fontSize = data.fontSize;
-        if (data.fontStyle !== undefined) this.fontStyle = data.fontStyle;
+        Object.keys(data).forEach(key => {
+            if (key === 'points' && Array.isArray(data[key])) {
+                this.points = new ArraySchema(...data[key]);
+            } else if (data[key] !== undefined) {
+                this[key] = data[key];
+            }
+        });
     }
 }
-defineTypes(StarboardObject, {
-    id: "string",
-    tool: "string",
-    layerId: "string",
-    userId: "string",
-    x: "number",
-    y: "number",
-    width: "number",
-    height: "number",
-    stroke: "string",
-    strokeWidth: "number",
-    fill: "string",
-    points: ["number"],
-    text: "string",
-    src: "string",
-    tension: "number",
-    lineCap: "string",
-    lineJoin: "string",
-    globalCompositeOperation: "string",
-    fontSize: "number",
-    fontStyle: "string",
-});
+type("string")(StarboardObject.prototype, "id");
+type("string")(StarboardObject.prototype, "tool");
+type("string")(StarboardObject.prototype, "layerId");
+type("string")(StarboardObject.prototype, "userId");
+type("number")(StarboardObject.prototype, "x");
+type("number")(StarboardObject.prototype, "y");
+type("number")(StarboardObject.prototype, "width");
+type("number")(StarboardObject.prototype, "height");
+type("string")(StarboardObject.prototype, "stroke");
+type("number")(StarboardObject.prototype, "strokeWidth");
+type("string")(StarboardObject.prototype, "fill");
+type(["number"])(StarboardObject.prototype, "points");
+type("string")(StarboardObject.prototype, "text");
+type("string")(StarboardObject.prototype, "src");
+type("number")(StarboardObject.prototype, "tension");
+type("string")(StarboardObject.prototype, "lineCap");
+type("string")(StarboardObject.prototype, "lineJoin");
+type("string")(StarboardObject.prototype, "globalCompositeOperation");
+type("number")(StarboardObject.prototype, "fontSize");
+type("string")(StarboardObject.prototype, "fontStyle");
 
-export class StarboardPlayer extends Schema {
-    constructor(id, name, color) {
-        super();
-        this.id = id;
-        this.name = name;
-        this.color = color;
-        this.nx = 0;
-        this.ny = 0;
-    }
-}
-defineTypes(StarboardPlayer, {
-    id: "string",
-    name: "string",
-    color: "string",
-    nx: "number",
-    ny: "number",
-});
+export class StarboardPlayer extends BasePlayer { }
 
-export class StarboardState extends Schema {
+export class StarboardState extends BaseGameState {
     constructor() {
         super();
         this.objects = new MapSchema();
-        this.players = new MapSchema();
+        this.phase = "playing";
     }
 }
-defineTypes(StarboardState, {
-    objects: { map: StarboardObject },
-    players: { map: StarboardPlayer },
-});
+type({ map: StarboardObject })(StarboardState.prototype, "objects");

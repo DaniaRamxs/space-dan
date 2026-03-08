@@ -2,18 +2,24 @@ import { Schema, ArraySchema, MapSchema, type } from "@colyseus/schema";
 import { BaseGameState, Player as BasePlayer } from "./BaseGameState.mjs";
 
 export class Piece extends Schema {
-    @type("string") id;
-    @type("string") color;
-    @type("number") index;
-    @type("number") position = -1; // -1 = Base
-    @type("string") status = "base"; // base, path, home, finished
+    constructor() {
+        super();
+        this.position = -1;
+        this.status = "base";
+    }
 }
+type("string")(Piece.prototype, "id");
+type("string")(Piece.prototype, "color");
+type("number")(Piece.prototype, "index");
+type("number")(Piece.prototype, "position");
+type("string")(Piece.prototype, "status");
 
 export class Player extends BasePlayer {
-    @type("string") color;
-    @type([Piece]) pieces = new ArraySchema();
+    constructor() {
+        super();
+        this.pieces = new ArraySchema();
+    }
 
-    // Initialize pieces when color is set
     initPieces() {
         this.pieces = new ArraySchema();
         for (let i = 0; i < 4; i++) {
@@ -25,12 +31,22 @@ export class Player extends BasePlayer {
         }
     }
 }
+type([Piece])(Player.prototype, "pieces");
 
 export class LudoState extends BaseGameState {
-    @type("string") currentTurn = "";
-    @type("number") diceValue = 0;
-    @type(["string"]) winners = new ArraySchema();
-    @type("boolean") lastRollWasSix = false;
-    @type("boolean") waitingForMove = false;
-    @type(["string"]) turnOrder = new ArraySchema();
+    constructor() {
+        super();
+        this.currentTurn = "";
+        this.diceValue = 0;
+        this.winners = new ArraySchema();
+        this.lastRollWasSix = false;
+        this.waitingForMove = false;
+        this.turnOrder = new ArraySchema();
+    }
 }
+type("string")(LudoState.prototype, "currentTurn");
+type("number")(LudoState.prototype, "diceValue");
+type(["string"])(LudoState.prototype, "winners");
+type("boolean")(LudoState.prototype, "lastRollWasSix");
+type("boolean")(LudoState.prototype, "waitingForMove");
+type(["string"])(LudoState.prototype, "turnOrder");

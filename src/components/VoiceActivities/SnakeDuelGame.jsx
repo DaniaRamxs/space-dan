@@ -5,7 +5,7 @@ import { client } from '../../services/colyseusClient';
 import { useAuthContext } from '../../contexts/AuthContext';
 import toast from 'react-hot-toast';
 
-const GRID_SIZE = 20;
+const GRID_SIZE = 40; // Updated to match server
 
 export default function SnakeDuelGame({ roomName, onClose, isTheater, onToggleTheater }) {
     const { user, profile } = useAuthContext();
@@ -18,17 +18,24 @@ export default function SnakeDuelGame({ roomName, onClose, isTheater, onToggleTh
         const joinGame = async () => {
             try {
                 const snakeRoom = await client.joinOrCreate("snake", {
+                    userId: user?.id,
                     name: profile?.username || user?.email?.split('@')[0] || "Anon",
                     avatar: profile?.avatar_url || "/default-avatar.png",
                     roomName: roomName
                 });
 
                 setRoom(snakeRoom);
-                setState(snakeRoom.state);
+                setState({ ...snakeRoom.state });
                 setConnecting(false);
 
                 snakeRoom.onStateChange((newState) => {
-                    setState(newState);
+                    setState({
+                        phase: newState.phase,
+                        countdown: newState.countdown,
+                        winner: newState.winner,
+                        apple: newState.apple,
+                        players: Array.from(newState.players.values())
+                    });
                     setTick(t => t + 1);
                 });
 
@@ -41,10 +48,10 @@ export default function SnakeDuelGame({ roomName, onClose, isTheater, onToggleTh
 
         joinGame();
         return () => { if (room) room.leave(); };
-    }, []);
+    }, [roomName]);
 
     const handleInput = (direction) => {
-        if (!room || state?.gameState !== 'playing') return;
+        if (!room || state?.phase !== 'playing') return;
         room.send("input", { direction });
     };
 
@@ -60,7 +67,7 @@ export default function SnakeDuelGame({ roomName, onClose, isTheater, onToggleTh
         };
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [room, state?.gameState]);
+    }, [room, state?.phase]);
 
     if (connecting || !state || !room) {
         return (
@@ -73,22 +80,18 @@ export default function SnakeDuelGame({ roomName, onClose, isTheater, onToggleTh
         );
     }
 
-    const isMeInGame = room.sessionId === state.p1 || room.sessionId === state.p2;
+    const myPlayer = state.players?.find(p => p.sessionId === room.sessionId);
+    const isMeInGame = !!myPlayer;
 
-    const handleJoin = (slot) => {
-        room.send("join_slot", {
-            slot,
+    const handleJoin = () => {
+        room.send("join_game", {
             name: profile?.username || "Piloto",
             avatar: profile?.avatar_url
         });
     };
 
-    const handleLeaveSlot = () => {
-        room.send("leave_slot");
-    };
-
-    const handleReset = () => {
-        room.send("reset");
+    const handleRematch = () => {
+        room.send("rematch");
     };
 
     return (
@@ -130,32 +133,23 @@ export default function SnakeDuelGame({ roomName, onClose, isTheater, onToggleTh
                     flex ${isTheater ? 'flex-row lg:flex-col' : 'flex-row justify-center'} 
                     gap-4 sm:gap-6 items-center overflow-x-auto no-scrollbar
                 `}>
-                    <PlayerCard
-                        slot={1}
-                        player={state.players?.get?.(state.p1)}
-                        isMe={room.sessionId === state.p1}
-                        onJoin={() => handleJoin(1)}
-                        onLeave={handleLeaveSlot}
-                        gameState={state.gameState}
-                        compact={!isTheater}
-                        color="rose"
-                    />
-                    <div className={`
-                        ${isTheater ? 'h-10 lg:h-px w-px lg:w-full' : 'h-10 w-px'} 
-                        bg-white/10 relative flex items-center justify-center flex-shrink-0
-                    `}>
-                        <span className="absolute bg-[#0b0b1a] px-2 text-[10px] font-black italic text-white/20">VS</span>
-                    </div>
-                    <PlayerCard
-                        slot={2}
-                        player={state.players?.get?.(state.p2)}
-                        isMe={room.sessionId === state.p2}
-                        onJoin={() => handleJoin(2)}
-                        onLeave={handleLeaveSlot}
-                        gameState={state.gameState}
-                        compact={!isTheater}
-                        color="emerald"
-                    />
+                    {state.players.map((p, i) => (
+                        <PlayerCard
+                            key={p.sessionId}
+                            slot={i + 1}
+                            player={p}
+                            isMe={room.sessionId === p.sessionId}
+                            onJoin={handleJoin}
+                            phase={state.phase}
+                            compact={!isTheater}
+                            color={i === 0 ? "rose" : "emerald"}
+                        />
+                    ))}
+                    {state.players.length < 2 && (
+                        <div className="flex items-center justify-center p-4 border-2 border-dashed border-white/5 rounded-3xl w-full">
+                            <p className="text-[8px] font-black uppercase text-white/20">Esperando Rival...</p>
+                        </div>
+                    )}
                 </div>
 
                 {/* Grid area */}
@@ -169,9 +163,9 @@ export default function SnakeDuelGame({ roomName, onClose, isTheater, onToggleTh
                                 ))}
                             </div>
 
-                            {/* Snakes & Food */}
+                            {/* Snakes & Apple */}
                             <div className="absolute inset-0">
-                                {state.food && (
+                                {state.apple && (
                                     <motion.div
                                         animate={{
                                             scale: [1, 1.2, 1],
@@ -180,37 +174,27 @@ export default function SnakeDuelGame({ roomName, onClose, isTheater, onToggleTh
                                         transition={{ repeat: Infinity, duration: 2 }}
                                         className="absolute bg-yellow-400 rounded-lg shadow-[0_0_15px_rgba(250,204,21,0.6)] z-10"
                                         style={{
-                                            left: `${(state.food.x / GRID_SIZE) * 100}%`,
-                                            top: `${(state.food.y / GRID_SIZE) * 100}%`,
+                                            left: `${(state.apple.x / GRID_SIZE) * 100}%`,
+                                            top: `${(state.apple.y / GRID_SIZE) * 100}%`,
                                             width: `${100 / GRID_SIZE}%`, height: `${100 / GRID_SIZE}%`
                                         }}
                                     >
                                         <div className="absolute inset-0 bg-white/40 rounded-lg" />
                                     </motion.div>
                                 )}
-                                {state.snake1?.map((seg, i) => (
-                                    <div
-                                        key={`s1-${i}`}
-                                        className="absolute bg-rose-500 rounded-sm shadow-[0_0_10px_rgba(244,63,94,0.4)]"
-                                        style={{
-                                            left: `${(seg.x / GRID_SIZE) * 100}%`,
-                                            top: `${(seg.y / GRID_SIZE) * 100}%`,
-                                            width: `${100 / GRID_SIZE}%`, height: `${100 / GRID_SIZE}%`,
-                                            opacity: 1 - (i / state.snake1.length) * 0.6
-                                        }}
-                                    />
-                                ))}
-                                {state.snake2?.map((seg, i) => (
-                                    <div
-                                        key={`s2-${i}`}
-                                        className="absolute bg-emerald-500 rounded-sm shadow-[0_0_10px_rgba(16,185,129,0.4)]"
-                                        style={{
-                                            left: `${(seg.x / GRID_SIZE) * 100}%`,
-                                            top: `${(seg.y / GRID_SIZE) * 100}%`,
-                                            width: `${100 / GRID_SIZE}%`, height: `${100 / GRID_SIZE}%`,
-                                            opacity: 1 - (i / state.snake2.length) * 0.6
-                                        }}
-                                    />
+                                {state.players.map((p, pi) => (
+                                    p.segments?.map((seg, i) => (
+                                        <div
+                                            key={`${p.sessionId}-${pi}-${i}`}
+                                            className={`absolute rounded-sm shadow-[0_0_10px_rgba(0,0,0,0.4)] ${pi === 0 ? 'bg-rose-500 shadow-rose-500/40' : 'bg-emerald-500 shadow-emerald-500/40'}`}
+                                            style={{
+                                                left: `${(seg.x / GRID_SIZE) * 100}%`,
+                                                top: `${(seg.y / GRID_SIZE) * 100}%`,
+                                                width: `${100 / GRID_SIZE}%`, height: `${100 / GRID_SIZE}%`,
+                                                opacity: 1 - (i / p.segments.length) * 0.6
+                                            }}
+                                        />
+                                    ))
                                 ))}
                             </div>
                         </div>
@@ -230,18 +214,18 @@ export default function SnakeDuelGame({ roomName, onClose, isTheater, onToggleTh
                                 </motion.div>
                             )}
 
-                            {state.gameState === 'finished' && (
+                            {state.phase === 'finished' && (
                                 <motion.div
                                     initial={{ opacity: 0 }} animate={{ opacity: 1 }}
                                     className="absolute inset-0 bg-[#050510]/90 backdrop-blur-xl flex flex-col items-center justify-center p-6 rounded-[2rem] z-50 text-center"
                                 >
-                                    <Trophy size={60} className={`mb-6 p-4 rounded-3xl bg-white/5 ${state.winner === 'draw' ? 'text-white/20' : state.winner === state.p1 ? 'text-rose-500' : 'text-emerald-500'}`} />
+                                    <Trophy size={60} className={`mb-6 p-4 rounded-3xl bg-white/5 ${state.winner === 'draw' ? 'text-white/20' : 'text-emerald-500'}`} />
                                     <h3 className="text-[10px] font-black uppercase tracking-[0.5em] text-white/40 mb-2">Combate Finalizado</h3>
                                     <p className="text-2xl font-black uppercase tracking-widest text-white mb-8">
-                                        {state.winner === 'draw' ? 'EMPATE TÉCNICO' : `@${state.players?.get?.(state.winner)?.name || 'Anónimo'} GANA`}
+                                        {state.winner === 'draw' ? 'EMPATE TÉCNICO' : `@${state.players?.find(p => p.userId === state.winner)?.username || 'Piloto'} GANA`}
                                     </p>
                                     <div className="flex gap-4">
-                                        <button onClick={handleReset} className="px-8 py-3 rounded-2xl bg-white text-black font-black uppercase tracking-widest text-[10px] hover:scale-105 transition-all">Revancha</button>
+                                        <button onClick={handleRematch} className="px-8 py-3 rounded-2xl bg-white text-black font-black uppercase tracking-widest text-[10px] hover:scale-105 transition-all">Revancha</button>
                                         <button onClick={onClose} className="px-6 py-3 rounded-2xl bg-white/5 border border-white/10 text-white/40 font-black uppercase tracking-widest text-[10px]">Salir</button>
                                     </div>
                                 </motion.div>
@@ -250,7 +234,7 @@ export default function SnakeDuelGame({ roomName, onClose, isTheater, onToggleTh
                     </div>
 
                     {/* D-Pad for Mobile */}
-                    {state.gameState === 'playing' && isMeInGame && (
+                    {state.phase === 'playing' && isMeInGame && (
                         <div className="mt-8 grid grid-cols-3 gap-2 sm:hidden">
                             <div />
                             <DPadBtn icon={ChevronUp} onClick={() => handleInput('UP')} />
@@ -268,9 +252,9 @@ export default function SnakeDuelGame({ roomName, onClose, isTheater, onToggleTh
                 <div className="flex items-center gap-3">
                     <Info size={14} className="text-white/20" />
                     <span className="text-[9px] font-black uppercase tracking-[0.2em] text-white/40">
-                        {state.gameState === 'lobby' && "Esperando rivales..."}
-                        {state.gameState === 'playing' && "Duelo de Resistencia en curso"}
-                        {state.gameState === 'finished' && "Partida finalizada"}
+                        {state.phase === 'waiting' && "Esperando rivales..."}
+                        {state.phase === 'playing' && "Duelo de Resistencia en curso"}
+                        {state.phase === 'finished' && "Partida finalizada"}
                     </span>
                 </div>
             </div>
@@ -278,10 +262,10 @@ export default function SnakeDuelGame({ roomName, onClose, isTheater, onToggleTh
     );
 }
 
-function PlayerCard({ slot, player, isMe, onJoin, onLeave, gameState, compact, color }) {
+function PlayerCard({ slot, player, isMe, onJoin, phase, compact, color }) {
     const isP1 = slot === 1;
     const accentColor = color === 'rose' ? 'rose' : 'emerald';
-    const isActive = player !== undefined && player !== null;
+    const isActive = !!player;
 
     const styles = isP1 ? {
         borderActive: 'border-rose-500 bg-rose-500/5 shadow-[0_0_30px_rgba(244,63,94,0.15)]',
@@ -314,19 +298,9 @@ function PlayerCard({ slot, player, isMe, onJoin, onLeave, gameState, compact, c
                     PILOTO {slot}
                 </p>
                 <p className={`text-[10px] sm:text-[11px] font-black uppercase truncate ${isActive ? 'text-white' : 'text-white/20'}`}>
-                    {player?.name || 'VACIÓ'}
+                    {player?.username || 'VACIÓ'}
                 </p>
             </div>
-
-            {gameState === 'lobby' && (
-                <div className="flex gap-2">
-                    {!player ? (
-                        <button onClick={onJoin} className={`px-3 py-1.5 rounded-lg text-[8px] font-black uppercase tracking-widest ${styles.btn}`}>Entrar</button>
-                    ) : isMe ? (
-                        <button onClick={onLeave} className="px-3 py-1.5 rounded-lg text-[8px] font-black uppercase tracking-widest bg-white/5 border border-white/10 text-white/50">Salir</button>
-                    ) : null}
-                </div>
-            )}
         </div>
     );
 }

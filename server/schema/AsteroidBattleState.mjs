@@ -1,53 +1,47 @@
-import { Schema, defineTypes, MapSchema, ArraySchema } from "@colyseus/schema";
+import { Schema, ArraySchema, MapSchema, type } from "@colyseus/schema";
+import { BaseGameState, Player as BasePlayer } from "./BaseGameState.mjs";
 
 export class Bullet extends Schema { }
-defineTypes(Bullet, {
-    id: "string",
-    userId: "string",
-    x: "number",
-    y: "number",
-    vx: "number",
-    vy: "number"
-});
+type("string")(Bullet.prototype, "id");
+type("string")(Bullet.prototype, "userId");
+type("number")(Bullet.prototype, "x");
+type("number")(Bullet.prototype, "y");
+type("number")(Bullet.prototype, "vx");
+type("number")(Bullet.prototype, "vy");
 
 export class Asteroid extends Schema { }
-defineTypes(Asteroid, {
-    id: "string",
-    x: "number",
-    y: "number",
-    vx: "number",
-    vy: "number",
-    size: "number",
-    hp: "number"
-});
+type("string")(Asteroid.prototype, "id");
+type("number")(Asteroid.prototype, "x");
+type("number")(Asteroid.prototype, "y");
+type("number")(Asteroid.prototype, "vx");
+type("number")(Asteroid.prototype, "vy");
+type("number")(Asteroid.prototype, "size");
+type("number")(Asteroid.prototype, "hp");
 
-export class Player extends Schema { }
-defineTypes(Player, {
-    id: "string",
-    name: "string",
-    x: "number",
-    y: "number",
-    rotation: "number",
-    hp: "number",
-    score: "number",
-    color: "string",
-    lives: "number"
-});
-
-export class AsteroidBattleState extends Schema {
+export class AsteroidPlayer extends BasePlayer {
     constructor() {
         super();
-        this.players = new MapSchema();
-        this.asteroids = new MapSchema();
-        this.bullets = new ArraySchema();
-        this.timeLeft = 300; // 5 minutes default
-        this.gameStatus = "lobby"; // lobby, playing, finished
+        this.hp = 100;
+        this.lives = 3;
+        this.x = 0;
+        this.y = 0;
+        this.rotation = 0;
     }
 }
-defineTypes(AsteroidBattleState, {
-    players: { map: Player },
-    asteroids: { map: Asteroid },
-    bullets: [Bullet],
-    timeLeft: "number",
-    gameStatus: "string"
-});
+type("number")(AsteroidPlayer.prototype, "hp");
+type("number")(AsteroidPlayer.prototype, "lives");
+type("number")(AsteroidPlayer.prototype, "x");
+type("number")(AsteroidPlayer.prototype, "y");
+type("number")(AsteroidPlayer.prototype, "rotation");
+
+export class AsteroidBattleState extends BaseGameState {
+    constructor() {
+        super();
+        this.timeLeft = 300;
+        this.asteroids = new MapSchema();
+        this.bullets = new ArraySchema();
+    }
+}
+type("number")(AsteroidBattleState.prototype, "timeLeft");
+type({ map: Asteroid })(AsteroidBattleState.prototype, "asteroids");
+type([Bullet])(AsteroidBattleState.prototype, "bullets");

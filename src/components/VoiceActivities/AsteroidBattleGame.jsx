@@ -3,7 +3,7 @@ import { client } from '../../services/colyseusClient';
 import { useAuthContext } from '../../contexts/AuthContext';
 import { useLocalParticipant } from '@livekit/components-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Crosshair, Trophy, Heart, Zap, X, Move, Rocket, Timer, ShieldInfo } from 'lucide-react';
+import { Crosshair, Trophy, Heart, Zap, X, Move, Rocket, Timer } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 const WORLD_WIDTH = 1200;
@@ -39,7 +39,7 @@ export default function AsteroidBattleGame({ roomName, onClose }) {
                     asteroids: Array.from(s.asteroids.values()),
                     bullets: Array.from(s.bullets.values()),
                     timeLeft: s.timeLeft,
-                    gameStatus: s.gameStatus
+                    phase: s.phase
                 }));
             } catch (e) {
                 console.error(e);
@@ -54,7 +54,7 @@ export default function AsteroidBattleGame({ roomName, onClose }) {
     useEffect(() => {
         if (!room) return;
         const interval = setInterval(() => {
-            const myPlayer = state?.players?.find(p => p.id === myId);
+            const myPlayer = state?.players?.find(p => p.sessionId === myId);
             if (!myPlayer) return;
 
             const canvas = canvasRef.current;
@@ -239,7 +239,7 @@ export default function AsteroidBattleGame({ roomName, onClose }) {
         );
     }
 
-    const myPlayer = state?.players?.find(p => p.id === myId);
+    const myPlayer = state?.players?.find(p => p.sessionId === myId);
     const sortedPlayers = [...(state?.players || [])].sort((a, b) => b.score - a.score);
     const isSpectating = !myPlayer;
     const canJoin = isSpectating && (state?.players?.length || 0) < 4;
@@ -258,7 +258,7 @@ export default function AsteroidBattleGame({ roomName, onClose }) {
 
             {/* Join Overlay / Game Finished / Out of Lives */}
             <AnimatePresence>
-                {(isSpectating || state?.gameStatus === 'finished' || (myPlayer && myPlayer.lives <= 0)) && (
+                {(isSpectating || state?.phase === 'finished' || (myPlayer && myPlayer.lives <= 0)) && (
                     <motion.div
                         initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
                         className="absolute inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-md pointer-events-none"
@@ -266,7 +266,7 @@ export default function AsteroidBattleGame({ roomName, onClose }) {
                         <div className="bg-[#050518]/90 border border-white/10 p-12 rounded-[4rem] shadow-2xl flex flex-col items-center pointer-events-auto max-w-sm w-full text-center relative overflow-hidden">
                             <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-cyan-500 to-transparent" />
 
-                            {state?.gameStatus === 'finished' ? (
+                            {state?.phase === 'finished' ? (
                                 <>
                                     <Trophy size={64} className="text-amber-400 mb-6 drop-shadow-[0_0_20px_rgba(251,191,36,0.4)]" />
                                     <h3 className="text-2xl font-black text-white uppercase tracking-[0.2em] mb-4">Batalla Finalizada</h3>
@@ -391,7 +391,7 @@ export default function AsteroidBattleGame({ roomName, onClose }) {
                     </div>
                     <div className="space-y-4">
                         {sortedPlayers.map((p, i) => (
-                            <div key={p.id} className={`flex justify-between items-center p-4 rounded-3xl border transition-all ${p.id === myId ? 'bg-cyan-500/10 border-cyan-500/30' : 'bg-white/5 border-transparent'}`}>
+                            <div key={p.sessionId} className={`flex justify-between items-center p-4 rounded-3xl border transition-all ${p.sessionId === myId ? 'bg-cyan-500/10 border-cyan-500/30' : 'bg-white/5 border-transparent'}`}>
                                 <div className="flex items-center gap-4 truncate">
                                     <span className={`text-[10px] font-black ${i < 3 ? 'text-amber-400' : 'text-white/20'}`}>{i + 1}</span>
                                     <div className="flex flex-col">

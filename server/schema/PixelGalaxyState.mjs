@@ -1,50 +1,27 @@
-import { Schema, defineTypes, MapSchema } from "@colyseus/schema";
+import { Schema, MapSchema, type } from "@colyseus/schema";
+import { BaseGameState, Player as BasePlayer } from "./BaseGameState.mjs";
 
-// ─── PixelEntry ───────────────────────────────────────────────────────────────
-export class PixelEntry extends Schema {
-    constructor(x, y, color, userId) {
-        super();
-        this.x      = x;
-        this.y      = y;
-        this.color  = color;
-        this.userId = userId;
-    }
-}
-defineTypes(PixelEntry, {
-    x:      "number",
-    y:      "number",
-    color:  "string",
-    userId: "string"
-});
+export class PixelEntry extends Schema { }
+type("number")(PixelEntry.prototype, "x");
+type("number")(PixelEntry.prototype, "y");
+type("string")(PixelEntry.prototype, "color");
+type("string")(PixelEntry.prototype, "userId");
 
-// ─── PixelPlayer ──────────────────────────────────────────────────────────────
-export class PixelPlayer extends Schema {
-    constructor(id, name, avatar) {
+export class PixelPlayer extends BasePlayer {
+    constructor() {
         super();
-        this.id            = id;
-        this.name          = name;
-        this.avatar        = avatar;
         this.contributions = 0;
     }
 }
-defineTypes(PixelPlayer, {
-    id:            "string",
-    name:          "string",
-    avatar:        "string",
-    contributions: "number"
-});
+type("number")(PixelPlayer.prototype, "contributions");
 
-// ─── PixelGalaxyState ─────────────────────────────────────────────────────────
-export class PixelGalaxyState extends Schema {
+export class PixelGalaxyState extends BaseGameState {
     constructor() {
         super();
-        this.pixels      = new MapSchema(); // key: "x_y" → PixelEntry
-        this.players     = new MapSchema(); // key: sessionId → PixelPlayer
+        this.pixels = new MapSchema();
         this.totalPixels = 0;
+        this.phase = "playing"; // Continuous game
     }
 }
-defineTypes(PixelGalaxyState, {
-    pixels:      { map: PixelEntry },
-    players:     { map: PixelPlayer },
-    totalPixels: "number"
-});
+type({ map: PixelEntry })(PixelGalaxyState.prototype, "pixels");
+type("number")(PixelGalaxyState.prototype, "totalPixels");

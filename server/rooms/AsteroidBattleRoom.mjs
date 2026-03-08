@@ -1,62 +1,45 @@
-import { Room } from "colyseus";
-import { AsteroidBattleState, Player, Asteroid, Bullet } from "../schema/AsteroidBattleState.mjs";
+import GameRoom from "./GameRoom.mjs";
+import { AsteroidBattleState, Asteroid, Bullet } from "../schema/AsteroidBattleState.mjs";
 
 const WORLD_WIDTH = 1200;
 const WORLD_HEIGHT = 700;
-const PLAYER_SPEED = 6.5; // Significantly increased speed
-const BULLET_SPEED = 12; // Also faster bullets to match
-const ASTEROID_SPAWN_INTERVAL = 2000; // slightly faster spawn
+const PLAYER_SPEED = 6.5;
+const BULLET_SPEED = 12;
+const ASTEROID_SPAWN_INTERVAL = 2000;
 const MAX_ASTEROIDS = 18;
 const INITIAL_LIVES = 3;
 
-export class AsteroidBattleRoom extends Room {
-    onCreate(options) {
+export class AsteroidBattleRoom extends GameRoom {
+    maxPlayers = 4;
+
+    initializeGame(options) {
         this.setState(new AsteroidBattleState());
-        this.maxClients = 20;
 
-        // Message handlers
         this.onMessage("join_game", (client, options) => {
-            let player = this.state.players.get(client.sessionId);
+            const player = this.state.players.get(client.sessionId);
+            if (!player) return;
 
-            // If player doesn't exist, create new one if there's space
-            if (!player) {
-                if (this.state.players.size >= 4) return;
-                player = new Player().assign({
-                    id: client.sessionId,
-                    name: options.name || "Pilot",
-                    color: options.color || "#0ea5e9",
-                    score: 0,
-                });
-                this.state.players.set(client.sessionId, player);
-            }
+            player.color = options.color || "#0ea5e9";
+            player.x = Math.random() * WORLD_WIDTH;
+            player.y = Math.random() * WORLD_HEIGHT;
+            player.hp = 100;
+            player.lives = INITIAL_LIVES;
+            player.score = 0;
 
-            // Reset player stats for (re)joining
-            player.assign({
-                x: Math.random() * WORLD_WIDTH,
-                y: Math.random() * WORLD_HEIGHT,
-                rotation: 0,
-                hp: 100,
-                lives: INITIAL_LIVES,
-                score: 0 // Reset score on full restart
-            });
-
-            // Auto start game if it was lobby
-            if (this.state.gameStatus === "lobby") {
-                this.state.gameStatus = "playing";
-                this.state.timeLeft = 300; // 5 minutes
+            if (this.state.phase === "waiting" && this.state.players.size >= 2) {
+                this.startCountdown();
             }
         });
 
         this.onMessage("input", (client, message) => {
-            if (this.state.gameStatus !== "playing") return;
+            if (this.state.phase !== "playing") return;
             const player = this.state.players.get(client.sessionId);
             if (!player || player.hp <= 0 || player.lives <= 0) return;
 
             const { keys, rotation } = message;
             player.rotation = rotation;
 
-            let dx = 0;
-            let dy = 0;
+            let dx = 0, dy = 0;
             if (keys.w) dy -= 1;
             if (keys.s) dy += 1;
             if (keys.a) dx -= 1;
@@ -73,56 +56,53 @@ export class AsteroidBattleRoom extends Room {
         });
 
         this.onMessage("shoot", (client) => {
-            if (this.state.gameStatus !== "playing") return;
+            if (this.state.phase !== "playing") return;
             const player = this.state.players.get(client.sessionId);
             if (!player || player.hp <= 0 || player.lives <= 0) return;
 
-            const bulletId = `b_${client.sessionId}_${Date.now()}`;
-            const vx = Math.cos(player.rotation) * BULLET_SPEED;
-            const vy = Math.sin(player.rotation) * BULLET_SPEED;
-
-            const bullet = new Bullet().assign({
-                id: bulletId,
-                userId: client.sessionId,
-                x: player.x,
-                y: player.y,
-                vx,
-                vy
-            });
+            const bullet = new Bullet();
+            bullet.id = `b_${client.sessionId}_${Date.now()}`;
+            bullet.userId = client.sessionId;
+            bullet.x = player.x;
+            bullet.y = player.y;
+            bullet.vx = Math.cos(player.rotation) * BULLET_SPEED;
+            bullet.vy = Math.sin(player.rotation) * BULLET_SPEED;
             this.state.bullets.push(bullet);
         });
 
-        // Simulation Loop
-        this.setSimulationInterval((deltaTime) => this.update(deltaTime), 16);
+        this.setSimulationInterval((dt) => this.update(dt), 16);
 
-        // Timer Interval
         this.clock.setInterval(() => {
-            if (this.state.gameStatus === "playing") {
+            if (this.state.phase === "playing") {
                 this.state.timeLeft--;
-                if (this.state.timeLeft <= 0) {
-                    this.state.gameStatus = "finished";
-                }
+                if (this.state.timeLeft <= 0) this.endGame(this.getHighestScorer());
             }
         }, 1000);
 
-        // Spawn Interval
         this.clock.setInterval(() => {
-            if (this.state.gameStatus === "playing") {
-                this.spawnAsteroid();
-            }
+            if (this.state.phase === "playing") this.spawnAsteroid();
         }, ASTEROID_SPAWN_INTERVAL);
     }
 
-    onJoin(client, options) {
-        console.log(`[AsteroidBattle] Client connected: ${client.sessionId}`);
+    getHighestScorer() {
+        let top = null;
+        this.state.players.forEach(p => {
+            if (!top || p.score > top.score) top = p;
+        });
+        return top ? top.userId : "None";
     }
 
-    onLeave(client) {
-        this.state.players.delete(client.sessionId);
-        if (this.state.players.size === 0) {
-            this.state.gameStatus = "lobby";
-            this.state.timeLeft = 300;
-        }
+    onResetGame() {
+        this.state.asteroids.clear();
+        this.state.bullets.clear();
+        this.state.timeLeft = 300;
+        this.state.players.forEach(p => {
+            p.hp = 100;
+            p.lives = INITIAL_LIVES;
+            p.score = 0;
+            p.x = Math.random() * WORLD_WIDTH;
+            p.y = Math.random() * WORLD_HEIGHT;
+        });
     }
 
     spawnAsteroid() {
@@ -138,51 +118,44 @@ export class AsteroidBattleRoom extends Room {
         const angle = Math.random() * Math.PI * 2;
         const speed = 0.8 + Math.random() * 1.8;
 
-        const asteroid = new Asteroid().assign({
-            id, x, y,
-            vx: Math.cos(angle) * speed,
-            vy: Math.sin(angle) * speed,
-            size: 3,
-            hp: 60
-        });
+        const asteroid = new Asteroid();
+        asteroid.id = id;
+        asteroid.x = x;
+        asteroid.y = y;
+        asteroid.vx = Math.cos(angle) * speed;
+        asteroid.vy = Math.sin(angle) * speed;
+        asteroid.size = 3;
+        asteroid.hp = 60;
         this.state.asteroids.set(id, asteroid);
     }
 
-    update(deltaTime) {
-        if (this.state.gameStatus !== "playing") return;
+    update(dt) {
+        if (this.state.phase !== "playing") return;
 
-        // 1. Asteroids
-        this.state.asteroids.forEach((ast) => {
-            ast.x += ast.vx;
-            ast.y += ast.vy;
+        this.state.asteroids.forEach(ast => {
+            ast.x += ast.vx; ast.y += ast.vy;
             ast.x = (ast.x + WORLD_WIDTH) % WORLD_WIDTH;
             ast.y = (ast.y + WORLD_HEIGHT) % WORLD_HEIGHT;
         });
 
-        // 2. Bullets
         for (let i = this.state.bullets.length - 1; i >= 0; i--) {
             const b = this.state.bullets[i];
-            b.x += b.vx;
-            b.y += b.vy;
+            b.x += b.vx; b.y += b.vy;
 
             if (b.x < -50 || b.x > WORLD_WIDTH + 50 || b.y < -50 || b.y > WORLD_HEIGHT + 50) {
-                this.state.bullets.splice(i, 1);
-                continue;
+                this.state.bullets.splice(i, 1); continue;
             }
 
             let hit = false;
-            this.state.asteroids.forEach((ast, astId) => {
+            this.state.asteroids.forEach((ast, id) => {
                 if (hit) return;
                 const radius = ast.size * 20;
-                const distSq = (b.x - ast.x) ** 2 + (b.y - ast.y) ** 2;
-                if (distSq < radius * radius) {
-                    ast.hp -= 20;
-                    this.state.bullets.splice(i, 1);
-                    hit = true;
+                if (Math.hypot(b.x - ast.x, b.y - ast.y) < radius) {
+                    ast.hp -= 20; this.state.bullets.splice(i, 1); hit = true;
                     if (ast.hp <= 0) {
-                        const shooter = this.state.players.get(b.userId);
-                        if (shooter) shooter.score += ast.size * 50;
-                        this.destroyAsteroid(astId);
+                        const s = this.state.players.get(b.userId);
+                        if (s) s.score += ast.size * 50;
+                        this.destroyAsteroid(id);
                     }
                 }
             });
@@ -190,14 +163,11 @@ export class AsteroidBattleRoom extends Room {
             if (!hit) {
                 this.state.players.forEach((p, sid) => {
                     if (hit || sid === b.userId || p.hp <= 0 || p.lives <= 0) return;
-                    const distSq = (b.x - p.x) ** 2 + (b.y - p.y) ** 2;
-                    if (distSq < 400) {
-                        p.hp -= 20; // more damage for faster pace
-                        this.state.bullets.splice(i, 1);
-                        hit = true;
+                    if (Math.hypot(b.x - p.x, b.y - p.y) < 20) {
+                        p.hp -= 20; this.state.bullets.splice(i, 1); hit = true;
                         if (p.hp <= 0) {
-                            const shooter = this.state.players.get(b.userId);
-                            if (shooter) shooter.score += 500;
+                            const s = this.state.players.get(b.userId);
+                            if (s) s.score += 500;
                             this.handlePlayerDeath(sid);
                         }
                     }
@@ -205,14 +175,11 @@ export class AsteroidBattleRoom extends Room {
             }
         }
 
-        // 3. Player vs Asteroid
         this.state.players.forEach((p, sid) => {
             if (p.hp <= 0 || p.lives <= 0) return;
-            this.state.asteroids.forEach((ast) => {
-                const radius = ast.size * 20 + 15;
-                const distSq = (p.x - ast.x) ** 2 + (p.y - ast.y) ** 2;
-                if (distSq < radius * radius) {
-                    p.hp -= 1.5; // continuous collision damage
+            this.state.asteroids.forEach(ast => {
+                if (Math.hypot(p.x - ast.x, p.y - ast.y) < (ast.size * 20 + 15)) {
+                    p.hp -= 1.5;
                     if (p.hp <= 0) this.handlePlayerDeath(sid);
                 }
             });
@@ -222,8 +189,7 @@ export class AsteroidBattleRoom extends Room {
     handlePlayerDeath(sid) {
         const p = this.state.players.get(sid);
         if (p && p.lives > 0) {
-            p.lives--;
-            p.hp = 0;
+            p.lives--; p.hp = 0;
             if (p.lives > 0) {
                 this.clock.setTimeout(() => {
                     if (this.state.players.has(sid)) {
@@ -242,15 +208,13 @@ export class AsteroidBattleRoom extends Room {
         if (ast && ast.size > 1) {
             for (let i = 0; i < 2; i++) {
                 const sid = `${id}_sub_${Date.now()}_${i}`;
+                const sub = new Asteroid();
+                sub.id = sid; sub.x = ast.x; sub.y = ast.y;
                 const angle = Math.random() * Math.PI * 2;
                 const speed = 1.5 + Math.random() * 2;
-                const sub = new Asteroid().assign({
-                    id: sid, x: ast.x, y: ast.y,
-                    vx: Math.cos(angle) * speed,
-                    vy: Math.sin(angle) * speed,
-                    size: ast.size - 1,
-                    hp: 20
-                });
+                sub.vx = Math.cos(angle) * speed;
+                sub.vy = Math.sin(angle) * speed;
+                sub.size = ast.size - 1; sub.hp = 20;
                 this.state.asteroids.set(sid, sub);
             }
         }
