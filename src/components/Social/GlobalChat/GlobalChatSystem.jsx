@@ -1653,7 +1653,7 @@ export default function GlobalChat() {
                 <div className="chat-messages-container flex-1 min-h-0 relative">
                     {/* Voice Bar - Highly Visible */}
                     <VoicePartyBar
-                        activeParticipants={Object.values(onlineUsers)}
+                        activeParticipants={onlineUsers ? Object.values(onlineUsers) : []}
                         onJoin={() => { setHasJoinedVoice(true); setShowVoiceRoom(true); }}
                         onCreateRoom={handleCreateVoiceRoom}
                         isActive={inVoiceRoom}

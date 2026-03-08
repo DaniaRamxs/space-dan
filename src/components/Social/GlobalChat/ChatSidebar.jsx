@@ -2,7 +2,7 @@ import { motion } from 'framer-motion';
 import { Users, Zap, Trophy, BarChart3, Star, Clock } from 'lucide-react';
 import { memo } from 'react';
 
-const ChatSidebar = memo(({ onlineUsers, recentEvents, channelStats }) => {
+const ChatSidebar = memo(({ onlineUsers = {}, recentEvents = [], channelStats = {} }) => {
     const activeUserList = Object.values(onlineUsers).slice(0, 15);
 
     return (
