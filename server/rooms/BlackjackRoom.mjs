@@ -153,7 +153,7 @@ export class BlackjackRoom extends Room {
     }
 
     checkStartRound() {
-        if (this.state.players.size < 1) return;
+        if (this.state.players.size < 2) return; // Mínimo 2 jugadores para torneo
         const allBet = Array.from(this.state.players.values()).every(p => p.status === "betting");
         if (allBet) {
             this.startRound();

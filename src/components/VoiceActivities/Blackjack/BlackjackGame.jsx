@@ -190,17 +190,26 @@ export default function BlackjackGame({ roomName, onClose }) {
                     {/* Actions */}
                     <div className="flex gap-3">
                         {state.gameState === "waiting" ? (
-                            <button
-                                onClick={() => room.send("bet")}
-                                disabled={myPlayer?.status === "betting"}
-                                className={`px-10 py-4 rounded-2xl font-black uppercase tracking-[0.2em] text-[11px] transition-all flex flex-col items-center gap-1 ${myPlayer?.status === "betting"
-                                        ? 'bg-emerald-500/20 border border-emerald-500/20 text-emerald-400'
-                                        : 'bg-rose-500 text-black shadow-[0_10px_30px_rgba(244,63,94,0.3)] hover:scale-105 active:scale-95'
-                                    }`}
-                            >
-                                <span>{myPlayer?.status === "betting" ? "Apuesta Lista" : "Pagar Ronda"}</span>
-                                <span className="text-[8px] opacity-60">100 ◈</span>
-                            </button>
+                            <div className="flex flex-col gap-3">
+                                {state.players.size < 2 && (
+                                    <p className="text-[9px] font-black text-rose-400 uppercase tracking-widest text-center animate-pulse">
+                                        Se necesitan al menos 2 jugadores
+                                    </p>
+                                )}
+                                <button
+                                    onClick={() => room.send("bet")}
+                                    disabled={myPlayer?.status === "betting" || state.players.size < 2}
+                                    className={`px-10 py-4 rounded-2xl font-black uppercase tracking-[0.2em] text-[11px] transition-all flex flex-col items-center gap-1 ${myPlayer?.status === "betting"
+                                            ? 'bg-emerald-500/20 border border-emerald-500/20 text-emerald-400'
+                                            : (state.players.size < 2
+                                                ? 'bg-white/5 border border-white/10 text-white/20'
+                                                : 'bg-rose-500 text-black shadow-[0_10px_30px_rgba(244,63,94,0.3)] hover:scale-105 active:scale-95')
+                                        }`}
+                                >
+                                    <span>{myPlayer?.status === "betting" ? "¡Listo!" : "Unirse y Apostar"}</span>
+                                    <span className="text-[8px] opacity-60">100 ◈</span>
+                                </button>
+                            </div>
                         ) : state.gameState === "tournament_finished" ? (
                             <div className="px-8 py-3 rounded-2xl bg-white/5 border border-white/10 text-[10px] font-black text-white/20 uppercase tracking-widest flex items-center gap-3">
                                 <div className="w-2 h-2 rounded-full bg-white/20 animate-pulse" />
@@ -226,16 +235,24 @@ export default function BlackjackGame({ roomName, onClose }) {
                         )}
                     </div>
 
-                    {/* Round Status */}
-                    <div className="hidden lg:flex items-center gap-3 px-4 py-2 rounded-2xl bg-white/5 border border-white/10">
-                        <Info size={14} className="text-white/20" />
-                        <span className="text-[9px] font-black uppercase tracking-widest text-white/30 whitespace-nowrap">
-                            {state.gameState === "waiting" && "Esperando apuestas..."}
-                            {state.gameState === "dealing" && "Repartiendo..."}
-                            {state.gameState === "player_turn" && `Turno de: ${state.players?.get?.(state.currentTurn)?.name || '...'}`}
-                            {state.gameState === "dealer_turn" && "Turno del Dealer..."}
-                            {state.gameState === "finished" && "Ronda finalizada"}
-                        </span>
+                    {/* Round Status & Exit */}
+                    <div className="flex flex-col sm:flex-row items-center gap-4">
+                        <div className="hidden lg:flex items-center gap-3 px-4 py-2 rounded-2xl bg-white/5 border border-white/10">
+                            <Info size={14} className="text-white/20" />
+                            <span className="text-[9px] font-black uppercase tracking-widest text-white/30 whitespace-nowrap">
+                                {state.gameState === "waiting" && (state.players.size < 2 ? "Esperando jugadores..." : "Esperando apuestas...")}
+                                {state.gameState === "dealing" && "Repartiendo..."}
+                                {state.gameState === "player_turn" && `Turno de: ${state.players?.get?.(state.currentTurn)?.name || '...'}`}
+                                {state.gameState === "dealer_turn" && "Turno del Dealer..."}
+                                {state.gameState === "finished" && "Ronda finalizada"}
+                            </span>
+                        </div>
+                        <button
+                            onClick={onClose}
+                            className="bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 px-6 py-3 rounded-2xl text-[10px] font-black text-rose-500 uppercase tracking-widest transition-all"
+                        >
+                            Abandonar Mesa
+                        </button>
                     </div>
                 </div>
             </div>
