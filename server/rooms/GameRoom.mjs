@@ -54,7 +54,7 @@ export default class GameRoom extends Room {
             this.state.players.set(client.sessionId, existingPlayer);
         } else {
             // New player
-            const player = new Player();
+            const player = this.createPlayer(client, options);
             player.userId = userId;
             player.username = username || "Anon";
             player.avatar = avatar || "/default-avatar.png";
@@ -156,6 +156,10 @@ export default class GameRoom extends Room {
     }
 
     // --- Hooks for Subclasses ---
+    createPlayer(client, options) {
+        return new Player();
+    }
+
     initializeGame(options) {
         // Setup initial board, logic, intervals
     }

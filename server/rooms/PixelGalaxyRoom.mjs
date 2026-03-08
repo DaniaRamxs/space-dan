@@ -1,5 +1,5 @@
 import GameRoom from "./GameRoom.mjs";
-import { PixelGalaxyState, PixelEntry } from "../schema/PixelGalaxyState.mjs";
+import { PixelGalaxyState, PixelPlayer, PixelEntry } from "../schema/PixelGalaxyState.mjs";
 import { supabase } from "../supabaseClient.mjs";
 
 const CANVAS_W = 128;
@@ -9,6 +9,8 @@ const HEX_RE = /^#[0-9a-fA-F]{6}$/;
 
 export class PixelGalaxyRoom extends GameRoom {
     maxPlayers = 50;
+
+    createPlayer() { return new PixelPlayer(); }
 
     async initializeGame(options) {
         this.setState(new PixelGalaxyState());

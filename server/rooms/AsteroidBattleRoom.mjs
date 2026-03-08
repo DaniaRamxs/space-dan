@@ -1,5 +1,5 @@
 import GameRoom from "./GameRoom.mjs";
-import { AsteroidBattleState, Asteroid, Bullet } from "../schema/AsteroidBattleState.mjs";
+import { AsteroidBattleState, AsteroidPlayer, Asteroid, Bullet } from "../schema/AsteroidBattleState.mjs";
 
 const WORLD_WIDTH = 1200;
 const WORLD_HEIGHT = 700;
@@ -11,6 +11,8 @@ const INITIAL_LIVES = 3;
 
 export class AsteroidBattleRoom extends GameRoom {
     maxPlayers = 4;
+
+    createPlayer() { return new AsteroidPlayer(); }
 
     initializeGame(options) {
         this.setState(new AsteroidBattleState());

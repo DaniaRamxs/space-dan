@@ -5,6 +5,8 @@ import { ArraySchema } from "@colyseus/schema";
 export class TetrisRoom extends GameRoom {
     maxPlayers = 2; // Strict 1v1
 
+    createPlayer() { return new TetrisPlayer(); }
+
     initializeGame(options) {
         this.setState(new TetrisState());
 

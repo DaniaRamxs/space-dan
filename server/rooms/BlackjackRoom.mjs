@@ -10,6 +10,8 @@ const ROUND_BET = 100;
 export class BlackjackRoom extends GameRoom {
     maxPlayers = 6;
 
+    createPlayer() { return new Player(); }
+
     initializeGame(options) {
         this.setState(new BlackjackState());
         this.deck = [];

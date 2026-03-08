@@ -1,9 +1,11 @@
 import GameRoom from "./GameRoom.mjs";
 import { Chess } from "chess.js";
-import { ChessState } from "../schema/ChessState.mjs";
+import { ChessState, ChessPlayer } from "../schema/ChessState.mjs";
 
 export class ChessRoom extends GameRoom {
     maxPlayers = 2; // Althoughroom can have 14 clients, only 2 are active players
+
+    createPlayer() { return new ChessPlayer(); }
 
     initializeGame(options) {
         this.setState(new ChessState());

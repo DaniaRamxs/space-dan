@@ -4,6 +4,8 @@ import { SnakeState, SnakePlayer, Coordinate } from "../schema/SnakeState.mjs";
 export class SnakeRoom extends GameRoom {
     maxPlayers = 2;
 
+    createPlayer() { return new SnakePlayer(); }
+
     initializeGame(options) {
         this.setState(new SnakeState());
 

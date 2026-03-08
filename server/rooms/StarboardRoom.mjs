@@ -1,8 +1,10 @@
 import GameRoom from "./GameRoom.mjs";
-import { StarboardState, StarboardObject } from "../schema/StarboardState.mjs";
+import { StarboardState, StarboardPlayer, StarboardObject } from "../schema/StarboardState.mjs";
 
 export class StarboardRoom extends GameRoom {
     maxPlayers = 25;
+
+    createPlayer() { return new StarboardPlayer(); }
 
     initializeGame(options) {
         this.setState(new StarboardState());

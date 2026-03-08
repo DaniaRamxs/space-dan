@@ -12,6 +12,8 @@ const START_POSITIONS = {
 export class LudoRoom extends GameRoom {
     maxPlayers = 4;
 
+    createPlayer() { return new Player(); }
+
     initializeGame(options) {
         this.setState(new LudoState());
 

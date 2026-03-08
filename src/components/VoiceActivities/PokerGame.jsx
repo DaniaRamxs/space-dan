@@ -246,7 +246,7 @@ export default function PokerGame({ roomName, onClose, isTheater, onToggleTheate
                     {myPlayer && (
                         <div className="flex items-center gap-6 pr-6 border-r border-white/10">
                             <div className="flex gap-2">
-                                {myPlayer.cards.length > 0 ? myPlayer.cards.map((card, i) => (
+                                {myPlayer.cards?.length > 0 ? myPlayer.cards.map((card, i) => (
                                     <motion.div
                                         key={i}
                                         initial={{ y: 20, opacity: 0 }}
