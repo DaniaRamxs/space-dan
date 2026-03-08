@@ -149,7 +149,7 @@ export default function CoOpPuzzleGame({ roomName, onClose }) {
 
         // Find piece under mouse (topmost first)
         let found = null;
-        state.pieces.forEach((p) => {
+        state.pieces?.forEach((p) => {
             if (p.isLocked) return;
             if (normalizedX >= p.x && normalizedX <= p.x + p.width &&
                 normalizedY >= p.y && normalizedY <= p.y + p.height) {
@@ -211,7 +211,7 @@ export default function CoOpPuzzleGame({ roomName, onClose }) {
         const dh = canvasSize.height / state.rows;
 
         // Sort: locked on bottom, active on top
-        const sortedPieces = Array.from(state.pieces.values()).sort((a, b) => {
+        const sortedPieces = Array.from(state.pieces?.values() || []).sort((a, b) => {
             if (a.isLocked && !b.isLocked) return -1;
             if (!a.isLocked && b.isLocked) return 1;
             return 0;
@@ -245,7 +245,7 @@ export default function CoOpPuzzleGame({ roomName, onClose }) {
             ctx.strokeRect(-dw / 2, -dh / 2, dw, dh);
 
             if (p.heldBy) {
-                const holder = state.players.get(p.heldBy);
+                const holder = state.players?.get?.(p.heldBy);
                 if (holder) {
                     ctx.fillStyle = 'white';
                     ctx.font = 'bold 10px Inter';
@@ -386,10 +386,10 @@ export default function CoOpPuzzleGame({ roomName, onClose }) {
                         <div>
                             <p className="text-[8px] font-black uppercase tracking-[0.2em] text-white/20 mb-3">Colaboradores</p>
                             <div className="space-y-2">
-                                {[...state.players.values()].map(p => (
+                                {state.players && Array.from(state.players.values()).map(p => (
                                     <div key={p.id} className="flex items-center gap-3 p-2 rounded-xl bg-white/5 border border-white/5">
                                         <img src={p.avatar} className="w-6 h-6 rounded-lg border border-white/10" alt="" />
-                                        <span className="text-[10px] font-bold text-white/60 truncate truncate">@{p.name}</span>
+                                        <span className="text-[10px] font-bold text-white/60 truncate">@{p.name}</span>
                                         {p.id === state.hostId && <div className="ml-auto w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" title="Host" />}
                                     </div>
                                 ))}

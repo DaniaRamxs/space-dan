@@ -150,9 +150,13 @@ export default class LudoScene extends Phaser.Scene {
     }
 
     updatePieces() {
+        if (!this.state?.players) return;
         this.state.players.forEach(player => {
+            if (!player.pieces) return;
             player.pieces.forEach(piece => {
                 const sprite = this.pieceSprites.get(piece.id);
+                if (!sprite) return; // Pieces might be added later
+
                 const pos = this.getGridPosition(player.color, piece.position, piece.index);
 
                 this.tweens.add({
