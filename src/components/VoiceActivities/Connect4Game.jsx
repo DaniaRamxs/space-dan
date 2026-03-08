@@ -79,7 +79,7 @@ export default function Connect4Game({ roomName, onClose, isTheater, onToggleThe
     };
 
     const handleDrop = (col) => {
-        if (!isMyTurn || state.gameState !== 'playing') return;
+        if (!isMyTurn || state.phase !== 'playing') return;
         room.send("drop", { col });
     };
 
@@ -129,12 +129,12 @@ export default function Connect4Game({ roomName, onClose, isTheater, onToggleThe
                     <PlayerCard
                         slot={1}
                         player={state.players?.get?.(state.p1)}
-                        isActive={state.currentTurn === state.p1 && state.gameState === 'playing'}
+                        isActive={state.currentTurn === state.p1 && state.phase === 'playing'}
                         isHost={state.p1 === state.hostId}
                         onJoin={() => handleJoin(1)}
                         onLeave={handleLeaveSlot}
                         isMe={room.sessionId === state.p1}
-                        gameState={state.gameState}
+                        gameState={state.phase}
                         compact={!isTheater}
                     />
 
@@ -148,12 +148,12 @@ export default function Connect4Game({ roomName, onClose, isTheater, onToggleThe
                     <PlayerCard
                         slot={2}
                         player={state.players?.get?.(state.p2)}
-                        isActive={state.currentTurn === state.p2 && state.gameState === 'playing'}
+                        isActive={state.currentTurn === state.p2 && state.phase === 'playing'}
                         isHost={state.p2 === state.hostId}
                         onJoin={() => handleJoin(2)}
                         onLeave={handleLeaveSlot}
                         isMe={room.sessionId === state.p2}
-                        gameState={state.gameState}
+                        gameState={state.phase}
                         compact={!isTheater}
                     />
                 </div>
@@ -176,7 +176,7 @@ export default function Connect4Game({ roomName, onClose, isTheater, onToggleThe
                                                 >
                                                     <button
                                                         onClick={() => handleDrop(c)}
-                                                        disabled={!isMyTurn || state.gameState !== 'playing'}
+                                                        disabled={!isMyTurn || state.phase !== 'playing'}
                                                         className="absolute inset-0 z-10 w-full h-full rounded-full cursor-pointer disabled:cursor-default"
                                                     />
 
@@ -204,7 +204,7 @@ export default function Connect4Game({ roomName, onClose, isTheater, onToggleThe
                         </div>
 
                         {/* Drop Hints */}
-                        {isMyTurn && state.gameState === 'playing' && (
+                        {isMyTurn && state.phase === 'playing' && (
                             <div className="absolute -top-12 sm:-top-16 inset-x-6 flex justify-between pointer-events-none">
                                 {Array.from({ length: COLS }).map((_, c) => (
                                     <div key={c} className="w-10 sm:w-14 lg:w-16 flex justify-center">
@@ -222,7 +222,7 @@ export default function Connect4Game({ roomName, onClose, isTheater, onToggleThe
 
                 {/* Overlays (Win / Lobby) */}
                 <AnimatePresence>
-                    {state.gameState === 'finished' && (
+                    {state.phase === 'finished' && (
                         <motion.div
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
@@ -270,9 +270,9 @@ export default function Connect4Game({ roomName, onClose, isTheater, onToggleThe
                 <div className="flex items-center gap-3">
                     <Info size={14} className="text-white/20" />
                     <span className="text-[9px] font-black uppercase tracking-[0.2em] text-white/40">
-                        {state.gameState === 'lobby' && "Esperando retadores..."}
-                        {state.gameState === 'playing' && `Duelo en curso · Turno de @${state.players?.get?.(state.currentTurn)?.username || '...'}`}
-                        {state.gameState === 'finished' && "Partida finalizada"}
+                        {(state.phase === 'lobby' || state.phase === 'waiting') && "Esperando retadores..."}
+                        {state.phase === 'playing' && `Duelo en curso · Turno de @${state.players?.get?.(state.currentTurn)?.username || '...'}`}
+                        {state.phase === 'finished' && "Partida finalizada"}
                     </span>
                 </div>
                 {!isTheater && (
@@ -336,7 +336,7 @@ function PlayerCard({ slot, player, isActive, isHost, onJoin, onLeave, isMe, gam
                 </p>
             </div>
 
-            {gameState === 'lobby' && (
+            {(gameState === 'lobby' || gameState === 'waiting') && (
                 <div className="flex gap-2 lg:w-full lg:mt-4">
                     {!player ? (
                         <button

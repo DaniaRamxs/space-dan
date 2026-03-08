@@ -10,7 +10,11 @@ export class Connect4State extends BaseGameState {
         this.board = new ArraySchema();
         for (let i = 0; i < 42; i++) this.board.push(0);
         this.currentTurnSid = "";
+        this.p1 = "";
+        this.p2 = "";
     }
 }
 type(["number"])(Connect4State.prototype, "board");
 type("string")(Connect4State.prototype, "currentTurnSid");
+type("string")(Connect4State.prototype, "p1");
+type("string")(Connect4State.prototype, "p2");

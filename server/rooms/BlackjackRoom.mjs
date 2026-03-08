@@ -257,6 +257,11 @@ export class BlackjackRoom extends GameRoom {
         }, 10000);
     }
 
+    onPlayerRejoined(player, oldSessionId) {
+        if (this.state.currentTurn === oldSessionId) this.state.currentTurn = player.sessionId;
+        console.log(`[BlackjackRoom] Updated session IDs for rejoining player ${player.username}`);
+    }
+
     onResetGame() {
         // Extra cleanup if needed
     }

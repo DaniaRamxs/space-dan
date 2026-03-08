@@ -168,6 +168,15 @@ export class LudoRoom extends GameRoom {
         });
     }
 
+    onPlayerRejoined(player, oldSessionId) {
+        if (this.state.currentTurn === oldSessionId) this.state.currentTurn = player.sessionId;
+        const turnIndex = this.state.turnOrder.indexOf(oldSessionId);
+        if (turnIndex !== -1) {
+            this.state.turnOrder[turnIndex] = player.sessionId;
+        }
+        console.log(`[LudoRoom] Updated session IDs for rejoining player ${player.username}`);
+    }
+
     nextTurn() {
         if (this.state.turnOrder.length === 0) return;
         const currentIndex = this.state.turnOrder.indexOf(this.state.currentTurn);

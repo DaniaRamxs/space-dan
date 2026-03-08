@@ -257,4 +257,11 @@ export class AsteroidBattleRoom extends GameRoom {
 
     }
 
+    onPlayerRejoined(player, oldSessionId) {
+        this.state.bullets.forEach(b => {
+            if (b.userId === oldSessionId) b.userId = player.sessionId;
+        });
+        console.log(`[AsteroidBattleRoom] Updated bullet ownership for rejoining player ${player.username}`);
+    }
+
 }

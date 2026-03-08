@@ -119,6 +119,15 @@ export class PokerRoom extends GameRoom {
         }
     }
 
+    onPlayerRejoined(player, oldSessionId) {
+        for (let i = 0; i < 8; i++) {
+            if (this.state.seats[i] === oldSessionId) {
+                this.state.seats[i] = player.sessionId;
+            }
+        }
+        console.log(`[PokerRoom] Updated session IDs for rejoining player ${player.username}`);
+    }
+
     onResetGame() {
         this.state.pot = 0;
         this.state.communityCards.clear();

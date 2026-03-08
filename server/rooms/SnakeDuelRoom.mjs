@@ -1,4 +1,4 @@
-import { Room } from "colyseus";
+import GameRoom from "./GameRoom.mjs";
 import { SnakeDuelState, SnakePlayer, Point } from "../schema/SnakeDuelState.mjs";
 
 const GRID_SIZE = 20;
@@ -10,15 +10,16 @@ const DIRECTIONS = {
     RIGHT: { x: 1, y: 0 }
 };
 
-export class SnakeDuelRoom extends Room {
-    onCreate(options) {
+export class SnakeDuelRoom extends GameRoom {
+    maxPlayers = 2;
+
+    initializeGame(options) {
         this.setState(new SnakeDuelState());
-        this.maxClients = 50;
         this.tickCount = 0;
 
         this.onMessage("join_slot", (client, message) => {
             const { slot, name, avatar } = message;
-            if (this.state.gameState !== "lobby") return;
+            if (this.state.phase !== "waiting" && this.state.phase !== "lobby") return;
             if (this.state.p1 === client.sessionId || this.state.p2 === client.sessionId) return;
 
             if (slot === 1 && !this.state.p1) {
@@ -35,18 +36,12 @@ export class SnakeDuelRoom extends Room {
         });
 
         this.onMessage("leave_slot", (client) => {
-            if (this.state.gameState !== "lobby") return;
-            if (this.state.p1 === client.sessionId) {
-                this.state.p1 = "";
-                this.state.players.delete(client.sessionId);
-            } else if (this.state.p2 === client.sessionId) {
-                this.state.p2 = "";
-                this.state.players.delete(client.sessionId);
-            }
+            if (this.state.phase !== "waiting" && this.state.phase !== "lobby") return;
+            this.handlePlayerExit(client);
         });
 
         this.onMessage("input", (client, message) => {
-            if (this.state.gameState !== "playing") return;
+            if (this.state.phase !== "playing") return;
             const { direction } = message;
 
             if (client.sessionId === this.state.p1) {
@@ -63,8 +58,41 @@ export class SnakeDuelRoom extends Room {
         this.onMessage("reset", (client) => {
             if (client.sessionId === this.state.p1 || client.sessionId === this.state.p2) {
                 this.resetGame();
+                if (this.state.p1 && this.state.p2) {
+                    this.startCountdown();
+                }
             }
         });
+    }
+
+    handlePlayerExit(client) {
+        const sid = client.sessionId;
+        if (sid === this.state.p1) {
+            this.state.p1 = "";
+            this.state.players.delete(sid);
+        } else if (sid === this.state.p2) {
+            this.state.p2 = "";
+            this.state.players.delete(sid);
+        }
+        if (this.state.phase === "playing") {
+            const winnerId = (sid === this.state.p1) ? this.state.p2 : this.state.p1;
+            this.endGame(winnerId);
+        }
+    }
+
+    onLeave(client, consented) {
+        super.onLeave(client, consented);
+    }
+
+    handlePlayerDefeatOnLeave(player) {
+        super.handlePlayerDefeatOnLeave(player);
+        this.handlePlayerExit({ sessionId: player.sessionId });
+    }
+
+    onPlayerRejoined(player, oldSessionId) {
+        if (this.state.p1 === oldSessionId) this.state.p1 = player.sessionId;
+        if (this.state.p2 === oldSessionId) this.state.p2 = player.sessionId;
+        console.log(`[SnakeDuelRoom] Updated session IDs for rejoining player ${player.username}`);
     }
 
     isValidMove(current, next) {
@@ -75,19 +103,17 @@ export class SnakeDuelRoom extends Room {
         return true;
     }
 
-    startCountdown() {
-        this.state.countdown = 3;
-        const interval = this.clock.setInterval(() => {
-            this.state.countdown--;
-            if (this.state.countdown === 0) {
-                interval.clear();
-                this.startGame();
-            }
-        }, 1000);
+    setPhase(phase) {
+        super.setPhase(phase);
+        if (phase === "playing") {
+            this.startGame();
+        } else {
+            this.setSimulationInterval(null);
+        }
     }
 
     startGame() {
-        this.state.gameState = "playing";
+        this.state.phase = "playing";
         this.state.countdown = -1;
         this.tickCount = 0;
         this.state.winner = "";
@@ -132,7 +158,7 @@ export class SnakeDuelRoom extends Room {
     }
 
     update() {
-        if (this.state.gameState !== "playing") return;
+        if (this.state.phase !== "playing") return;
 
         const head1 = { x: this.state.snake1[0].x + DIRECTIONS[this.state.direction1].x, y: this.state.snake1[0].y + DIRECTIONS[this.state.direction1].y };
         const head2 = { x: this.state.snake2[0].x + DIRECTIONS[this.state.direction2].x, y: this.state.snake2[0].y + DIRECTIONS[this.state.direction2].y };
@@ -151,17 +177,16 @@ export class SnakeDuelRoom extends Room {
 
         if (p1Loses && p2Loses) {
             this.state.winner = "draw";
-            this.state.gameState = "finished";
+            this.setPhase("finished");
         } else if (p1Loses) {
             this.state.winner = this.state.p2;
-            this.state.gameState = "finished";
+            this.setPhase("finished");
         } else if (p2Loses) {
             this.state.winner = this.state.p1;
-            this.state.gameState = "finished";
+            this.setPhase("finished");
         }
 
-        if (this.state.gameState === "finished") {
-            this.setSimulationInterval(null);
+        if (this.state.phase === "finished") {
             return;
         }
 
@@ -191,24 +216,12 @@ export class SnakeDuelRoom extends Room {
         }
     }
 
-    onLeave(client) {
-        if (this.state.p1 === client.sessionId) {
-            this.state.p1 = "";
-            this.state.players.delete(client.sessionId);
-            if (this.state.gameState === "playing") this.resetGame();
-        } else if (this.state.p2 === client.sessionId) {
-            this.state.p2 = "";
-            this.state.players.delete(client.sessionId);
-            if (this.state.gameState === "playing") this.resetGame();
-        }
-    }
-
-    resetGame() {
-        this.state.gameState = "lobby";
+    onResetGame() {
         this.state.winner = "";
         this.state.countdown = -1;
         this.state.snake1.clear();
         this.state.snake2.clear();
         this.setSimulationInterval(null);
+        this.setPhase("waiting");
     }
 }

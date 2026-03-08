@@ -147,6 +147,12 @@ export class ChessRoom extends GameRoom {
         if (bp) bp.color = "black";
     }
 
+    onPlayerRejoined(player, oldSessionId) {
+        if (this.state.whiteSid === oldSessionId) this.state.whiteSid = player.sessionId;
+        if (this.state.blackSid === oldSessionId) this.state.blackSid = player.sessionId;
+        console.log(`[ChessRoom] Updated session IDs for rejoining player ${player.username}`);
+    }
+
     onDispose() {
         if (this.clockInterval) clearInterval(this.clockInterval);
     }

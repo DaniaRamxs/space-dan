@@ -139,7 +139,7 @@ export default function BlackjackGame({ roomName, onClose }) {
 
                 {/* Tournament End Celebration Overlay */}
                 <AnimatePresence>
-                    {state.gameState === "tournament_finished" && (
+                    {state.phase === "tournament_finished" && (
                         <motion.div
                             initial={{ opacity: 0, scale: 0.8 }}
                             animate={{ opacity: 1, scale: 1 }}
@@ -194,7 +194,7 @@ export default function BlackjackGame({ roomName, onClose }) {
 
                     {/* Actions */}
                     <div className="flex gap-3">
-                        {state.gameState === "waiting" ? (
+                        {state.phase === "waiting" ? (
                             <div className="flex flex-col gap-3">
                                 {state.players?.size < 2 && (
                                     <p className="text-[9px] font-black text-rose-400 uppercase tracking-widest text-center animate-pulse">
@@ -215,7 +215,7 @@ export default function BlackjackGame({ roomName, onClose }) {
                                     <span className="text-[8px] opacity-60">100 ◈</span>
                                 </button>
                             </div>
-                        ) : state.gameState === "tournament_finished" ? (
+                        ) : state.phase === "tournament_finished" ? (
                             <div className="px-8 py-3 rounded-2xl bg-white/5 border border-white/10 text-[10px] font-black text-white/20 uppercase tracking-widest flex items-center gap-3">
                                 <div className="w-2 h-2 rounded-full bg-white/20 animate-pulse" />
                                 Fin del Torneo
@@ -226,14 +226,14 @@ export default function BlackjackGame({ roomName, onClose }) {
                                     label="Hit"
                                     description="Carta +"
                                     onClick={() => room.send("hit")}
-                                    disabled={!isMyTurn || state.gameState !== "player_turn"}
+                                    disabled={!isMyTurn || state.phase !== "player_turn"}
                                     color="cyan"
                                 />
                                 <ControlButton
                                     label="Stand"
                                     description="Me planto"
                                     onClick={() => room.send("stand")}
-                                    disabled={!isMyTurn || state.gameState !== "player_turn"}
+                                    disabled={!isMyTurn || state.phase !== "player_turn"}
                                     color="white"
                                 />
                             </>
@@ -245,11 +245,11 @@ export default function BlackjackGame({ roomName, onClose }) {
                         <div className="hidden lg:flex items-center gap-3 px-4 py-2 rounded-2xl bg-white/5 border border-white/10">
                             <Info size={14} className="text-white/20" />
                             <span className="text-[9px] font-black uppercase tracking-widest text-white/30 whitespace-nowrap">
-                                {state.gameState === "waiting" && ((state?.players?.size ?? 0) < 2 ? "Esperando jugadores..." : "Esperando apuestas...")}
-                                {state.gameState === "dealing" && "Repartiendo..."}
-                                {state.gameState === "player_turn" && `Turno de: ${state.players?.get?.(state.currentTurn)?.username || '...'}`}
-                                {state.gameState === "dealer_turn" && "Turno del Dealer..."}
-                                {state.gameState === "finished" && "Ronda finalizada"}
+                                {state.phase === "waiting" && ((state?.players?.size ?? 0) < 2 ? "Esperando jugadores..." : "Esperando apuestas...")}
+                                {state.phase === "dealing" && "Repartiendo..."}
+                                {state.phase === "player_turn" && `Turno de: ${state.players?.get?.(state.currentTurn)?.username || '...'}`}
+                                {state.phase === "dealer_turn" && "Turno del Dealer..."}
+                                {state.phase === "finished" && "Ronda finalizada"}
                             </span>
                         </div>
                         <button

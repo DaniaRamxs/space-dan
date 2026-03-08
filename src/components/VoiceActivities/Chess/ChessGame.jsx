@@ -220,7 +220,7 @@ export default function ChessGame({ roomName, onClose, isTheater, onToggleTheate
     const boardData = chess.board(); // [rank8..rank1][fileA..fileH]
 
     let checkSquare = null;
-    if (state.inCheck && state.gameState === 'playing') {
+    if (state.inCheck && state.phase === 'playing') {
         outer: for (let r = 0; r < 8; r++) {
             for (let c = 0; c < 8; c++) {
                 const p = boardData[r][c];
@@ -374,7 +374,7 @@ export default function ChessGame({ roomName, onClose, isTheater, onToggleTheate
 
             {/* ── Game over overlay ── */}
             <AnimatePresence>
-                {state.gameState === 'finished' && (
+                {state.phase === 'finished' && (
                     <GameOverOverlay
                         state={state}
                         myColor={myColor}

@@ -83,21 +83,26 @@ export class TetrisDuelRoom extends GameRoom {
     }
 
     onLeave(client, consented) {
-        this.handlePlayerExit(client);
         super.onLeave(client, consented);
     }
 
-    handlePlayerExit(client) {
-        const player = this.state.players.get(client.sessionId);
-        if (!player) return;
+    handlePlayerDefeatOnLeave(player) {
+        super.handlePlayerDefeatOnLeave(player);
 
-        if (client.sessionId === this.state.p1) this.state.p1 = "";
-        if (client.sessionId === this.state.p2) this.state.p2 = "";
+        const sid = player.sessionId;
+        if (sid === this.state.p1) this.state.p1 = "";
+        if (sid === this.state.p2) this.state.p2 = "";
 
         if (this.state.gameState === "playing") {
-            const winnerId = (client.sessionId === this.state.p1) ? this.state.p2 : this.state.p1;
+            const winnerId = (sid === this.state.p1) ? this.state.p2 : this.state.p1;
             this.endGame(winnerId);
         }
+    }
+
+    onPlayerRejoined(player, oldSessionId) {
+        if (this.state.p1 === oldSessionId) this.state.p1 = player.sessionId;
+        if (this.state.p2 === oldSessionId) this.state.p2 = player.sessionId;
+        console.log(`[TetrisDuelRoom] Updated session IDs for rejoining player ${player.username}`);
     }
 
     onResetGame() {

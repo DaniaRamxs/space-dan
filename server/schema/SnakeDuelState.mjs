@@ -25,7 +25,7 @@ defineTypes(SnakePlayer, {
 export class SnakeDuelState extends Schema {
     constructor() {
         super();
-        this.gameState = "lobby"; // lobby, playing, finished
+        this.phase = "waiting"; // lobby/waiting, playing, finished
         this.players = new MapSchema();
         this.p1 = ""; // sessionId
         this.p2 = ""; // sessionId
@@ -41,7 +41,7 @@ export class SnakeDuelState extends Schema {
     }
 }
 defineTypes(SnakeDuelState, {
-    gameState: "string",
+    phase: "string",
     players: { map: SnakePlayer },
     p1: "string",
     p2: "string",

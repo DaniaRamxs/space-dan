@@ -58,7 +58,7 @@ export default function TetrisDuelGame({ roomName, onClose, isTheater, onToggleT
     }, []);
 
     const handleInput = (dir) => {
-        if (!room || state?.gameState !== 'playing') return;
+        if (!room || state?.phase !== 'playing') return;
         try {
             if (room.connection && room.connection.isOpen) {
                 room.send("move", { dir });
@@ -71,7 +71,7 @@ export default function TetrisDuelGame({ roomName, onClose, isTheater, onToggleT
     // Keyboard
     useEffect(() => {
         const handleKeyDown = (e) => {
-            if (state?.gameState !== 'playing') return;
+            if (state?.phase !== 'playing') return;
             switch (e.key) {
                 case 'ArrowLeft': case 'a': handleInput('LEFT'); break;
                 case 'ArrowRight': case 'd': handleInput('RIGHT'); break;
@@ -201,7 +201,7 @@ export default function TetrisDuelGame({ roomName, onClose, isTheater, onToggleT
                             <motion.span initial={{ scale: 0.5 }} animate={{ scale: 1 }} exit={{ scale: 1.5 }} className="text-9xl font-black italic text-blue-400 drop-shadow-[0_0_30px_rgba(59,130,246,0.5)]">{state.countdown}</motion.span>
                         </motion.div>
                     )}
-                    {state.gameState === 'finished' && (
+                    {state.phase === 'finished' && (
                         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="absolute inset-0 bg-[#050510]/90 backdrop-blur-xl z-50 flex flex-col items-center justify-center p-8 text-center">
                             <Trophy size={64} className="text-yellow-400 mb-6 drop-shadow-[0_0_30px_rgba(250,204,21,0.5)]" />
                             <h3 className="text-[10px] font-black uppercase tracking-[0.5em] text-white/40 mb-2">Duelo Finalizado</h3>
@@ -222,12 +222,12 @@ export default function TetrisDuelGame({ roomName, onClose, isTheater, onToggleT
                 <div className="flex items-center gap-3">
                     <Info size={14} className="text-white/20" />
                     <span className="text-[9px] font-black uppercase tracking-[0.2em] text-white/40">
-                        {state.gameState === 'lobby' && "Esperando rivales..."}
-                        {state.gameState === 'playing' && "Sincronización en curso"}
+                        {state.phase === 'lobby' && "Esperando rivales..."}
+                        {state.phase === 'playing' && "Sincronización en curso"}
                     </span>
                 </div>
 
-                {state.gameState === 'playing' && isMeInGame && (
+                {state.phase === 'playing' && isMeInGame && (
                     <div className="flex gap-2">
                         <DPadBtn icon={ChevronLeft} onClick={() => handleInput('LEFT')} />
                         <DPadBtn icon={RotateCcw} onClick={() => handleInput('ROTATE')} className="bg-purple-500/10 text-purple-400 border-purple-500/20" />

@@ -97,6 +97,13 @@ export class Connect4Room extends GameRoom {
         this.state.currentTurnSid = sids[(currentIndex + 1) % 2];
     }
 
+    onPlayerRejoined(player, oldSessionId) {
+        if (this.state.p1 === oldSessionId) this.state.p1 = player.sessionId;
+        if (this.state.p2 === oldSessionId) this.state.p2 = player.sessionId;
+        if (this.state.currentTurnSid === oldSessionId) this.state.currentTurnSid = player.sessionId;
+        console.log(`[Connect4Room] Updated session IDs for rejoining player ${player.username}`);
+    }
+
     checkWinner(r, c, color) {
         const directions = [[0, 1], [1, 0], [1, 1], [1, -1]];
         for (const [dr, dc] of directions) {
