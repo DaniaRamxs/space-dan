@@ -129,7 +129,9 @@ export default class LudoScene extends Phaser.Scene {
     }
 
     createPieces() {
+        if (!this.state?.players) return;
         this.state.players.forEach(player => {
+            if (!player.pieces) return;
             player.pieces.forEach((piece, index) => {
                 const sprite = this.add.circle(0, 0, this.tileSize / 3, COLORS[player.color]);
                 sprite.setStrokeStyle(2, 0xffffff);

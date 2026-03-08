@@ -128,10 +128,14 @@ export default function LudoGame({ roomName, onClose }) {
                         <div className="text-center space-y-2">
                             <p className="text-[10px] font-black text-white/20 uppercase tracking-[0.2em]">Turno de</p>
                             <div className="flex items-center justify-center gap-3">
-                                <img src={state.players.get(state.currentTurn)?.avatar} className="w-10 h-10 rounded-xl border border-amber-500 shadow-lg shadow-amber-500/20" alt="" />
-                                <span className="text-sm font-black text-white uppercase truncate max-w-[120px]">
-                                    {isMyTurn ? "TU TURNO" : `@${state.players.get(state.currentTurn)?.name}`}
-                                </span>
+                                {state.players?.get?.(state.currentTurn) && (
+                                    <>
+                                        <img src={state.players.get(state.currentTurn)?.avatar} className="w-10 h-10 rounded-xl border border-amber-500 shadow-lg shadow-amber-500/20" alt="" />
+                                        <span className="text-sm font-black text-white uppercase truncate max-w-[120px]">
+                                            {isMyTurn ? "TU TURNO" : `@${state.players.get(state.currentTurn)?.name}`}
+                                        </span>
+                                    </>
+                                )}
                             </div>
                         </div>
 
