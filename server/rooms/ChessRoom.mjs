@@ -12,6 +12,28 @@ export class ChessRoom extends GameRoom {
         this.chess = new Chess();
         this.clockInterval = null;
 
+        this.onMessage("join_game", (client, message) => {
+            if (this.state.phase !== "waiting" && this.state.phase !== "lobby") return;
+
+            const player = this.state.players.get(client.sessionId);
+            if (!player || player.isParticipating) return;
+
+            // side preference or auto
+            if (!this.state.whiteSid) {
+                this.state.whiteSid = client.sessionId;
+                player.color = "white";
+                player.isParticipating = true;
+            } else if (!this.state.blackSid) {
+                this.state.blackSid = client.sessionId;
+                player.color = "black";
+                player.isParticipating = true;
+            }
+
+            if (this.state.whiteSid && this.state.blackSid) {
+                this.startCountdown();
+            }
+        });
+
         this.onMessage("move", (client, message) => {
             if (this.state.phase !== "playing") return;
             this.handleMove(client, message);
@@ -29,7 +51,7 @@ export class ChessRoom extends GameRoom {
         this.onMessage("set_clock", (client, message) => {
             if (this.state.phase !== "waiting") return;
             const player = this.state.players.get(client.sessionId);
-            if (!player || player.color === "spectator") return;
+            if (!player || !player.isParticipating) return;
             const mode = ["none", "1", "3", "5", "10"].includes(message.mode) ? message.mode : "none";
             this.state.clockMode = mode;
             const secs = (parseInt(mode) || 0) * 60;
@@ -40,22 +62,7 @@ export class ChessRoom extends GameRoom {
 
     async onJoin(client, options) {
         await super.onJoin(client, options);
-        const player = this.state.players.get(client.sessionId);
-
-        // Color assignment
-        if (!this.state.whiteSid) {
-            this.state.whiteSid = client.sessionId;
-            player.color = "white";
-        } else if (!this.state.blackSid) {
-            this.state.blackSid = client.sessionId;
-            player.color = "black";
-        } else {
-            player.color = "spectator";
-        }
-
-        if (this.state.whiteSid && this.state.blackSid && this.state.phase === "waiting") {
-            this.startCountdown();
-        }
+        console.log(`[ChessRoom] Client ${client.sessionId} joined as spectator`);
     }
 
     setPhase(phase) {

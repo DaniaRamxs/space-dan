@@ -133,7 +133,7 @@ export default function BlackjackGame({ roomName, onClose }) {
                 {/* Player Seats */}
                 <div className="w-full max-w-4xl grid grid-cols-3 sm:grid-cols-6 gap-4 relative">
                     {state.players && Array.from(state.players.values()).map((p) => (
-                        <PlayerSeat key={p.id} player={p} isCurrent={state.currentTurn === p.id} isMe={p.id === room.sessionId} isHost={p.id === state.hostId} />
+                        <PlayerSeat key={p.sessionId} player={p} isCurrent={state.currentTurn === p.sessionId} isMe={p.sessionId === room.sessionId} isHost={p.sessionId === state.hostId} />
                     ))}
                 </div>
 
@@ -157,12 +157,12 @@ export default function BlackjackGame({ roomName, onClose }) {
                                         .sort((a, b) => b.roundWins - a.roundWins)
                                         .slice(0, 3)
                                         .map((p, i) => (
-                                            <div key={p.id} className={`flex items-center gap-4 p-4 rounded-3xl border ${i === 0 ? 'bg-amber-500/10 border-amber-500/20' : 'bg-white/5 border-white/5'}`}>
+                                            <div key={p.sessionId} className={`flex items-center gap-4 p-4 rounded-3xl border ${i === 0 ? 'bg-amber-500/10 border-amber-500/20' : 'bg-white/5 border-white/5'}`}>
                                                 <span className={`text-xl font-black ${i === 0 ? 'text-amber-400' : 'text-white/20'}`}>{i + 1}</span>
                                                 <img src={p.avatar} className="w-10 h-10 rounded-xl border border-white/10" alt="" />
                                                 <div className="text-left flex-1">
                                                     <p className="text-[11px] font-black text-white uppercase truncate flex items-center gap-1">
-                                                        {p.id === state.hostId && <Crown size={9} className="text-amber-400 flex-shrink-0" />}
+                                                        {p.sessionId === state.hostId && <Crown size={9} className="text-amber-400 flex-shrink-0" />}
                                                         @{p.username}
                                                     </p>
                                                     <p className="text-[8px] font-bold text-white/30 uppercase tracking-widest">{p.roundWins} Victorias</p>

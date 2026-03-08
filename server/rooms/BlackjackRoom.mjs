@@ -19,12 +19,13 @@ export class BlackjackRoom extends GameRoom {
 
         this.onMessage("bet", async (client, message) => {
             const player = this.state.players.get(client.sessionId);
-            if (player && this.state.phase === "waiting") {
+            if (player && (this.state.phase === "waiting" || this.state.phase === "lobby")) {
                 if (player.status === "betting") return;
 
                 const success = await this.deductPlayerBalance(player.userId, ROUND_BET);
 
                 if (success) {
+                    player.isParticipating = true;
                     player.bet = ROUND_BET;
                     player.status = "betting";
                     this.state.pot += ROUND_BET;
@@ -112,8 +113,9 @@ export class BlackjackRoom extends GameRoom {
     }
 
     checkStartRound() {
-        if (this.state.players.size < 2) return;
-        const allBet = Array.from(this.state.players.values()).every(p => p.status === "betting");
+        const participating = Array.from(this.state.players.values()).filter(p => p.isParticipating);
+        if (participating.length < 2) return;
+        const allBet = participating.every(p => p.status === "betting");
         if (allBet) {
             this.setPhase("playing");
             this.startRound();
@@ -123,15 +125,18 @@ export class BlackjackRoom extends GameRoom {
     async startRound() {
         this.createDeck();
         this.state.players.forEach(p => {
-            p.cards = new ArraySchema();
-            p.score = 0;
-            p.status = "playing";
+            if (p.isParticipating) {
+                p.cards = new ArraySchema();
+                p.score = 0;
+                p.status = "playing";
+            }
         });
         this.state.dealer.cards = new ArraySchema();
         this.state.dealer.score = 0;
 
         for (let i = 0; i < 2; i++) {
             for (const player of this.state.players.values()) {
+                if (!player.isParticipating) continue;
                 await this.delay(300);
                 this.dealCard(player);
             }

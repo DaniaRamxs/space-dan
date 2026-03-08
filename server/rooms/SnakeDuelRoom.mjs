@@ -13,7 +13,7 @@ const DIRECTIONS = {
 export class SnakeDuelRoom extends Room {
     onCreate(options) {
         this.setState(new SnakeDuelState());
-        this.maxClients = 10;
+        this.maxClients = 50;
         this.tickCount = 0;
 
         this.onMessage("join_slot", (client, message) => {

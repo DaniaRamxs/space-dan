@@ -237,7 +237,7 @@ export default function VoiceActivityLauncher({ roomName, activeActivity, setAct
                     </div>
 
                     {/* Floating minimize button — fixed so it stays on top of any z-index inside the wrapper */}
-                    {activeActivity !== 'starboard' && (
+                    {activeActivity !== 'starboard' && activeActivity !== 'ludo' && (
                         <div className="fixed bottom-5 right-5 z-[10025] flex items-center gap-2">
                             <motion.button
                                 initial={{ opacity: 0, y: 12, scale: 0.9 }}

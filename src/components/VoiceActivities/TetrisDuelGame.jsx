@@ -31,7 +31,7 @@ export default function TetrisDuelGame({ roomName, onClose, isTheater, onToggleT
             try {
                 const tetrisRoom = await client.joinOrCreate("tetris", {
                     userId: user?.id,
-                    name: profile?.username || user?.email?.split('@')[0] || "Anon",
+                    username: profile?.username || user?.email?.split('@')[0] || "Anon",
                     avatar: profile?.avatar_url || "/default-avatar.png",
                     roomName: roomName
                 });
@@ -59,7 +59,13 @@ export default function TetrisDuelGame({ roomName, onClose, isTheater, onToggleT
 
     const handleInput = (dir) => {
         if (!room || state?.gameState !== 'playing') return;
-        room.send("move", { dir });
+        try {
+            if (room.connection && room.connection.isOpen) {
+                room.send("move", { dir });
+            }
+        } catch (e) {
+            console.error("Failed to send input", e);
+        }
     };
 
     // Keyboard
@@ -92,15 +98,22 @@ export default function TetrisDuelGame({ roomName, onClose, isTheater, onToggleT
     const isMeInGame = room.sessionId === state.p1 || room.sessionId === state.p2;
 
     const handleJoin = (slot) => {
-        room.send("join_slot", {
-            slot,
-            name: profile?.username || "Piloto",
-            avatar: profile?.avatar_url
-        });
+        if (room?.connection?.isOpen) {
+            room.send("join_slot", {
+                slot,
+                username: profile?.username || "Piloto",
+                avatar: profile?.avatar_url
+            });
+        }
     };
 
-    const handleLeaveSlot = () => { room.send("leave_slot"); };
-    const handleReset = () => { room.send("reset"); };
+    const handleLeaveSlot = () => {
+        if (room?.connection?.isOpen) room.send("leave_slot");
+    };
+
+    const handleReset = () => {
+        if (room?.connection?.isOpen) room.send("reset");
+    };
 
     return (
         <div className="flex-1 flex flex-col relative bg-[#050510] overflow-hidden text-white font-sans">
@@ -167,11 +180,17 @@ export default function TetrisDuelGame({ roomName, onClose, isTheater, onToggleT
                 {/* Boards (Gameplay) */}
                 <div className="flex-1 flex flex-row items-center justify-center p-4 sm:p-8 gap-4 sm:gap-8 lg:gap-16 perspective-1000">
                     <div className={`flex flex-col items-center gap-4 transition-all ${isMeInGame && room.sessionId === state.p2 ? 'scale-75 opacity-40 order-2' : 'scale-100 order-1'}`}>
-                        <Board board={state.board1} piece={state.p1Piece} gameState={state.gameState} isP1={true} />
+                        <div className="text-[10px] font-black uppercase tracking-widest text-blue-400/60 mb-2 flex items-center gap-2">
+                            Board 1 {state.p1 === room.sessionId && <span className="px-1.5 py-0.5 bg-blue-500 text-white rounded text-[8px]">Tú</span>}
+                        </div>
+                        <Board board={state.board1} piece={state.p1Piece} gameState={state.gameState} isP1={true} players={state.players} pId={state.p1} />
                     </div>
 
                     <div className={`flex flex-col items-center gap-4 transition-all ${isMeInGame && room.sessionId === state.p1 ? 'scale-75 opacity-40 order-2' : 'scale-100 order-1'}`}>
-                        <Board board={state.board2} piece={state.p2Piece} gameState={state.gameState} isP1={false} />
+                        <div className="text-[10px] font-black uppercase tracking-widest text-rose-400/60 mb-2 flex items-center gap-2">
+                            Board 2 {state.p2 === room.sessionId && <span className="px-1.5 py-0.5 bg-rose-500 text-white rounded text-[8px]">Tú</span>}
+                        </div>
+                        <Board board={state.board2} piece={state.p2Piece} gameState={state.gameState} isP1={false} players={state.players} pId={state.p2} />
                     </div>
                 </div>
 
@@ -187,7 +206,7 @@ export default function TetrisDuelGame({ roomName, onClose, isTheater, onToggleT
                             <Trophy size={64} className="text-yellow-400 mb-6 drop-shadow-[0_0_30px_rgba(250,204,21,0.5)]" />
                             <h3 className="text-[10px] font-black uppercase tracking-[0.5em] text-white/40 mb-2">Duelo Finalizado</h3>
                             <p className="text-2xl font-black uppercase tracking-widest text-white mb-8">
-                                @{state.players?.get?.(state.winner)?.name || 'EMPATE'} GANA
+                                @{state.players?.get?.(state.winner)?.username || 'EMPATE'} GANA
                             </p>
                             <div className="flex gap-4">
                                 <button onClick={handleReset} className="px-8 py-3 rounded-2xl bg-white text-black font-black uppercase tracking-widest text-[10px] hover:scale-105 transition-all">Revancha</button>
@@ -222,13 +241,15 @@ export default function TetrisDuelGame({ roomName, onClose, isTheater, onToggleT
     );
 }
 
-function Board({ board, piece, gameState, isP1 }) {
+function Board({ board, piece, gameState, isP1, players, pId }) {
     const grid = Array.from({ length: ROWS }, () => Array(COLS).fill("0"));
 
     // Fill board
     if (board && typeof board.forEach === 'function') {
         board.forEach((color, i) => {
-            grid[Math.floor(i / COLS)][i % COLS] = color;
+            const r = Math.floor(i / COLS);
+            const c = i % COLS;
+            if (r < ROWS && c < COLS) grid[r][c] = color;
         });
     }
 
@@ -249,7 +270,7 @@ function Board({ board, piece, gameState, isP1 }) {
                         const bx = x + piece.get("x");
                         const by = y + piece.get("y");
                         if (by >= 0 && by < ROWS && bx >= 0 && bx < COLS) {
-                            grid[by][bx] = tetromino.color.replace('bg-', '');
+                            grid[by][bx] = typeIndex; // Store type index for color mapping
                         }
                     }
                 });
@@ -260,16 +281,31 @@ function Board({ board, piece, gameState, isP1 }) {
     return (
         <div className="relative p-1 rounded-2xl bg-black/40 border-4 border-white/5 shadow-2xl overflow-hidden backdrop-blur-sm">
             <div className="grid grid-cols-10 gap-0.5" style={{ width: 'min(35vw, 150px)', aspectRatio: '1/2' }}>
-                {grid.map((row, y) => row.map((color, x) => (
-                    <div
-                        key={`${y}-${x}`}
-                        className={`w-full h-full rounded-[2px] transition-colors duration-100 ${color === "0" ? 'bg-white/5' :
-                            color === "zinc" ? 'bg-zinc-600 border border-zinc-400' :
-                                `bg-${color}-500 border border-${color}-300 shadow-[inset_0_0_8px_rgba(255,255,255,0.2)]`
-                            }`}
-                    />
-                )))}
+                {grid.map((row, y) => row.map((cell, x) => {
+                    let className = "w-full h-full rounded-[2px] transition-colors duration-100 ";
+
+                    if (cell === "0") {
+                        className += "bg-white/5";
+                    } else if (cell === "block") {
+                        className += isP1 ? "bg-blue-500/40 border border-blue-400/30" : "bg-rose-500/40 border border-rose-400/30";
+                    } else if (typeof cell === 'number') {
+                        const t = TETROMINOS[cell];
+                        className += `${t.color} border ${t.border} ${t.shadow} shadow-[inset_0_0_8px_rgba(255,255,255,0.2)]`;
+                    } else if (typeof cell === 'string') {
+                        // Fallback handle for string colors if any
+                        className += cell.startsWith('bg-') ? cell : `bg-${cell}-500`;
+                    }
+
+                    return <div key={`${y}-${x}`} className={className} />;
+                }))}
             </div>
+
+            {/* Visual indicator if player is present */}
+            {!pId && (
+                <div className="absolute inset-0 flex items-center justify-center bg-black/40 backdrop-blur-[2px]">
+                    <span className="text-[8px] font-black uppercase tracking-widest text-white/20">Esperando...</span>
+                </div>
+            )}
         </div>
     );
 }
@@ -299,7 +335,7 @@ function PlayerCard({ slot, player, isMe, isHost, onJoin, onLeave, gameState, co
                 <p className={`text-[7px] font-black uppercase tracking-widest ${isActive ? styles.textAccent : 'text-white/20'}`}>PILOTO {slot}</p>
                 <p className={`text-[9px] font-black uppercase truncate flex items-center gap-1 ${isActive ? 'text-white' : 'text-white/10'}`}>
                     {isHost && player && <Crown size={8} className="text-amber-400 flex-shrink-0" />}
-                    {player?.name || 'VACIÓ'}
+                    {player?.username || 'VACÍO'}
                 </p>
             </div>
             {gameState === 'lobby' && (

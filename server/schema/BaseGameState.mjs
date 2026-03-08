@@ -5,6 +5,7 @@ export class Player extends Schema {
         super();
         this.isConnected = true;
         this.isReady = false;
+        this.isParticipating = false;
         this.score = 0;
         this.color = "#ffffff";
         this.nx = 0;
@@ -17,6 +18,7 @@ type("string")(Player.prototype, "username");
 type("string")(Player.prototype, "avatar");
 type("boolean")(Player.prototype, "isConnected");
 type("boolean")(Player.prototype, "isReady");
+type("boolean")(Player.prototype, "isParticipating");
 type("number")(Player.prototype, "score");
 type("string")(Player.prototype, "color");
 type("number")(Player.prototype, "nx");

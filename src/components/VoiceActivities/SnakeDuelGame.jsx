@@ -93,8 +93,9 @@ export default function SnakeDuelGame({ roomName, onClose, isTheater, onToggleTh
     const myPlayer = state.players?.find(p => p.sessionId === room.sessionId);
     const isMeInGame = !!myPlayer;
 
-    const handleJoin = () => {
-        room.send("join_game", {
+    const handleJoin = (slot) => {
+        room.send("join_slot", {
+            slot,
             name: profile?.username || "Piloto",
             avatar: profile?.avatar_url
         });
@@ -143,24 +144,23 @@ export default function SnakeDuelGame({ roomName, onClose, isTheater, onToggleTh
                     flex ${isTheater ? 'flex-row lg:flex-col' : 'flex-row justify-center'} 
                     gap-4 sm:gap-6 items-center overflow-x-auto no-scrollbar
                 `}>
-                    {state.players.map((p, i) => (
-                        <PlayerCard
-                            key={p.sessionId}
-                            slot={i + 1}
-                            player={p}
-                            isMe={room.sessionId === p.sessionId}
-                            isHost={p.sessionId === state.hostId}
-                            onJoin={handleJoin}
-                            phase={state.phase}
-                            compact={!isTheater}
-                            color={i === 0 ? "rose" : "emerald"}
-                        />
-                    ))}
-                    {state.players.length < 2 && (
-                        <div className="flex items-center justify-center p-4 border-2 border-dashed border-white/5 rounded-3xl w-full">
-                            <p className="text-[8px] font-black uppercase text-white/20">Esperando Rival...</p>
-                        </div>
-                    )}
+                    {[1, 2].map(slot => {
+                        const sessionId = slot === 1 ? state.p1 : state.p2;
+                        const p = state.players.find(player => player.sessionId === sessionId);
+                        return (
+                            <PlayerCard
+                                key={slot}
+                                slot={slot}
+                                player={p}
+                                isMe={room.sessionId === sessionId}
+                                isHost={sessionId === state.hostId}
+                                onJoin={() => handleJoin(slot)}
+                                phase={state.phase}
+                                compact={!isTheater}
+                                color={slot === 1 ? "rose" : "emerald"}
+                            />
+                        );
+                    })}
                 </div>
 
                 {/* Grid area */}
@@ -312,9 +312,18 @@ function PlayerCard({ slot, player, isMe, isHost, onJoin, phase, compact, color 
                     {isHost && isActive && <Crown size={9} className="text-amber-400 flex-shrink-0" />}
                 </div>
                 <p className={`text-[10px] sm:text-[11px] font-black uppercase truncate ${isActive ? 'text-white' : 'text-white/20'}`}>
-                    {player?.username || 'VACIÓ'}
+                    {player?.username || player?.name || 'VACIÓ'}
                 </p>
             </div>
+
+            {!player && (
+                <button
+                    onClick={onJoin}
+                    className={`px-3 py-1.5 rounded-lg text-[8px] font-black uppercase tracking-widest ${styles.btn}`}
+                >
+                    Unirse
+                </button>
+            )}
         </div>
     );
 }

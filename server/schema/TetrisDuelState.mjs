@@ -1,17 +1,17 @@
 import { Schema, defineTypes, MapSchema, ArraySchema } from "@colyseus/schema";
 
 export class TetrisPlayer extends Schema {
-    constructor(id, name, avatar, slot) {
+    constructor(id, username, avatar, slot) {
         super();
         this.id = id;
-        this.name = name;
+        this.username = username;
         this.avatar = avatar;
         this.slot = slot;
     }
 }
 defineTypes(TetrisPlayer, {
     id: "string",
-    name: "string",
+    username: "string",
     avatar: "string",
     slot: "number"
 });

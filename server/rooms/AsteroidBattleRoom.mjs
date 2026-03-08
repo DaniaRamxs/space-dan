@@ -31,6 +31,10 @@ export class AsteroidBattleRoom extends GameRoom {
             const player = this.state.players.get(client.sessionId);
             if (!player) return;
 
+            player.isParticipating = true;
+            player.username = data.username || player.username || "Pilot";
+            player.color = data.color || player.color || "#0ea5e9";
+
             player.x = Math.random() * WORLD_WIDTH;
             player.y = Math.random() * WORLD_HEIGHT;
 
@@ -38,9 +42,10 @@ export class AsteroidBattleRoom extends GameRoom {
             player.lives = 3;
             player.score = 0;
 
-            player.input = { w: false, a: false, s: false, d: false };
+            player.input = { keys: { w: false, a: false, s: false, d: false }, rotation: 0 };
 
-            if (this.state.phase === "waiting" && this.state.players.size >= 1) {
+            const participating = Array.from(this.state.players.values()).filter(p => p.isParticipating);
+            if (this.state.phase === "waiting" && participating.length >= 1) {
                 this.setPhase("playing");
             }
 
@@ -95,6 +100,22 @@ export class AsteroidBattleRoom extends GameRoom {
             }
         }, ASTEROID_SPAWN_INTERVAL);
 
+        // Timer countdown
+        this.clock.setInterval(() => {
+            if (this.state.phase === "playing" && this.state.timeLeft > 0) {
+                this.state.timeLeft--;
+                if (this.state.timeLeft <= 0) {
+                    this.endGameByTime();
+                }
+            }
+        }, 1000);
+
+    }
+
+    endGameByTime() {
+        const players = Array.from(this.state.players.values()).filter(p => p.isParticipating);
+        const winner = players.sort((a, b) => b.score - a.score)[0];
+        this.endGame(winner ? winner.userId : "");
     }
 
     /* =========================
@@ -105,11 +126,18 @@ export class AsteroidBattleRoom extends GameRoom {
 
         if (this.state.phase !== "playing") return;
 
+        // Auto-spawn if low on asteroids
+        if (this.state.asteroids.size < MAX_ASTEROIDS / 2) {
+            this.spawnAsteroid();
+        }
+
         /* PLAYER MOVEMENT */
 
         this.state.players.forEach(player => {
 
-            const k = player.input;
+            if (!player.isParticipating) return;
+
+            const k = player.input?.keys;
             if (!k) return;
 
             let dx = 0;
@@ -121,13 +149,12 @@ export class AsteroidBattleRoom extends GameRoom {
             if (k.d) dx += 1;
 
             if (dx !== 0 || dy !== 0) {
-
                 const mag = Math.sqrt(dx * dx + dy * dy);
-
                 player.x += (dx / mag) * PLAYER_SPEED;
                 player.y += (dy / mag) * PLAYER_SPEED;
-
             }
+
+            player.rotation = player.input.rotation || 0;
 
             player.x = (player.x + WORLD_WIDTH) % WORLD_WIDTH;
             player.y = (player.y + WORLD_HEIGHT) % WORLD_HEIGHT;
@@ -135,35 +162,67 @@ export class AsteroidBattleRoom extends GameRoom {
         });
 
         /* BULLETS */
-
         for (let i = this.state.bullets.length - 1; i >= 0; i--) {
-
             const b = this.state.bullets[i];
-
             b.x += b.vx;
             b.y += b.vy;
 
-            if (
-                b.x < -50 ||
-                b.x > WORLD_WIDTH + 50 ||
-                b.y < -50 ||
-                b.y > WORLD_HEIGHT + 50
-            ) {
-                this.state.bullets.splice(i, 1);
+            // Collision with Asteroids
+            let hit = false;
+            for (let [astId, ast] of this.state.asteroids.entries()) {
+                const dx = b.x - ast.x;
+                const dy = b.y - ast.y;
+                const distSq = dx * dx + dy * dy;
+                const radius = ast.size * 20;
+
+                if (distSq < radius * radius) {
+                    ast.hp -= 20;
+                    hit = true;
+
+                    const player = this.state.players.get(b.userId);
+                    if (player) player.score += 10;
+
+                    if (ast.hp <= 0) {
+                        this.state.asteroids.delete(astId);
+                        if (player) player.score += 50;
+                    }
+                    break;
+                }
             }
 
+            if (hit || b.x < -50 || b.x > WORLD_WIDTH + 50 || b.y < -50 || b.y > WORLD_HEIGHT + 50) {
+                this.state.bullets.splice(i, 1);
+            }
         }
 
         /* ASTEROIDS */
-
         this.state.asteroids.forEach(ast => {
-
             ast.x += ast.vx;
             ast.y += ast.vy;
 
             ast.x = (ast.x + WORLD_WIDTH) % WORLD_WIDTH;
             ast.y = (ast.y + WORLD_HEIGHT) % WORLD_HEIGHT;
 
+            // Collision with Players
+            this.state.players.forEach(p => {
+                if (!p.isParticipating || p.hp <= 0) return;
+                const dx = p.x - ast.x;
+                const dy = p.y - ast.y;
+                const distSq = dx * dx + dy * dy;
+                const radius = ast.size * 20;
+
+                if (distSq < (radius + 15) * (radius + 15)) {
+                    p.hp -= 0.5; // Damage over time while touching
+                    if (p.hp <= 0) {
+                        p.lives--;
+                        if (p.lives > 0) {
+                            p.hp = 100;
+                            p.x = Math.random() * WORLD_WIDTH;
+                            p.y = Math.random() * WORLD_HEIGHT;
+                        }
+                    }
+                }
+            });
         });
 
     }

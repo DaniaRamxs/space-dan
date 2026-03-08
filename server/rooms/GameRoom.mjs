@@ -11,6 +11,7 @@ export default class GameRoom extends Room {
         this.setState(new BaseGameState());
 
         this.autoDispose = true;
+        this.maxClients = 50;
 
         /* ========================
            INPUT HANDLER
@@ -25,13 +26,33 @@ export default class GameRoom extends Room {
         });
 
         /* ========================
+           JOIN GAME
+        ======================== */
+
+        this.onMessage("join_game", (client, options) => {
+            const player = this.state.players.get(client.sessionId);
+            if (!player || player.isParticipating) return;
+
+            const activePlayers = Array.from(this.state.players.values()).filter(p => p.isParticipating);
+            if (activePlayers.length >= this.maxPlayers) return;
+
+            player.isParticipating = true;
+            console.log(`[GameRoom] ${player.username} is participating`);
+
+            const currentParticipating = Array.from(this.state.players.values()).filter(p => p.isParticipating);
+            if (this.state.phase === "waiting" && currentParticipating.length >= this.maxPlayers) {
+                this.startCountdown();
+            }
+        });
+
+        /* ========================
            REMATCH
         ======================== */
 
         this.onMessage("rematch", (client) => {
 
             const player = this.state.players.get(client.sessionId);
-            if (!player) return;
+            if (!player || !player.isParticipating) return;
 
             this.state.rematchVotes.set(player.userId, true);
 
@@ -86,10 +107,6 @@ export default class GameRoom extends Room {
 
         if (!this.state.hostId) {
             this.state.hostId = client.sessionId;
-        }
-
-        if (this.state.phase === "waiting" && this.state.players.size >= this.maxPlayers) {
-            this.startCountdown();
         }
     }
 

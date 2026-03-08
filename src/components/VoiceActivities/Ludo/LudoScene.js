@@ -130,34 +130,44 @@ export default class LudoScene extends Phaser.Scene {
 
     createPieces() {
         if (!this.state?.players) return;
-        this.state.players.forEach(player => {
-            if (!player.pieces) return;
-            player.pieces.forEach((piece, index) => {
-                const sprite = this.add.circle(0, 0, this.tileSize / 3, COLORS[player.color]);
-                sprite.setStrokeStyle(2, 0xffffff);
-                sprite.setInteractive({ useHandCursor: true });
-                sprite.setData('index', index);
-                sprite.setData('color', player.color);
-
-                sprite.on('pointerdown', () => {
-                    if (this.room.sessionId === player.id) {
-                        this.room.send("move_piece", { index });
-                    }
-                });
-
-                this.pieceSprites.set(piece.id, sprite);
-            });
+        this.state.players.forEach((player, sessionId) => {
+            this.ensurePlayerPieces(player, sessionId);
         });
         this.updatePieces();
     }
 
+    ensurePlayerPieces(player, sessionId) {
+        if (!player.pieces) return;
+
+        player.pieces.forEach((piece, index) => {
+            if (this.pieceSprites.has(piece.id)) return;
+
+            const sprite = this.add.circle(0, 0, this.tileSize / 3, COLORS[player.color] || COLORS.white);
+            sprite.setStrokeStyle(2, 0xffffff);
+            sprite.setInteractive({ useHandCursor: true });
+            sprite.setData('index', index);
+            sprite.setData('color', player.color);
+
+            sprite.on('pointerdown', () => {
+                if (this.room.sessionId === sessionId) {
+                    this.room.send("move_piece", { index });
+                }
+            });
+
+            this.pieceSprites.set(piece.id, sprite);
+        });
+    }
+
     updatePieces() {
         if (!this.state?.players) return;
-        this.state.players.forEach(player => {
+        this.state.players.forEach((player, sessionId) => {
+            // Ensure pieces exist if they were added later (e.g. player joined)
+            this.ensurePlayerPieces(player, sessionId);
+
             if (!player.pieces) return;
             player.pieces.forEach(piece => {
                 const sprite = this.pieceSprites.get(piece.id);
-                if (!sprite) return; // Pieces might be added later
+                if (!sprite) return;
 
                 const pos = this.getGridPosition(player.color, piece.position, piece.index);
 
@@ -170,7 +180,7 @@ export default class LudoScene extends Phaser.Scene {
                 });
 
                 // Highlight if it can move
-                const isMyTurn = this.state.currentTurn === player.id;
+                const isMyTurn = this.state.currentTurn === sessionId;
                 const canMove = isMyTurn && this.state.waitingForMove && this.canMove(piece);
                 sprite.setAlpha(canMove ? 1 : 0.7);
                 if (canMove) {

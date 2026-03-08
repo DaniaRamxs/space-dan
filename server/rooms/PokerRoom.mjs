@@ -25,11 +25,13 @@ export class PokerRoom extends GameRoom {
 
             const player = this.state.players.get(client.sessionId);
             if (player) {
+                player.isParticipating = true;
                 player.seatIdx = seatIdx;
                 this.state.seats[seatIdx] = client.sessionId;
             }
 
-            if (this.state.players.size >= 2) {
+            const participating = Array.from(this.state.players.values()).filter(p => p.isParticipating);
+            if (participating.length >= 2) {
                 this.startCountdown();
             }
         });

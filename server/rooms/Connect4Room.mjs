@@ -7,11 +7,42 @@ export class Connect4Room extends GameRoom {
     initializeGame(options) {
         this.setState(new Connect4State());
 
+        this.onMessage("join_slot", (client, message) => {
+            if (this.state.phase !== "waiting" && this.state.phase !== "lobby") return;
+            const { slot } = message;
+
+            if (slot === 1 && this.state.p1 !== "") return;
+            if (slot === 2 && this.state.p2 !== "") return;
+
+            const player = this.state.players.get(client.sessionId);
+            if (!player) return;
+
+            player.isParticipating = true;
+            if (slot === 1) this.state.p1 = client.sessionId;
+            else this.state.p2 = client.sessionId;
+
+            if (this.state.p1 && this.state.p2) {
+                this.startCountdown();
+            }
+        });
+
+        this.onMessage("leave_slot", (client) => {
+            const player = this.state.players.get(client.sessionId);
+            if (player) player.isParticipating = false;
+
+            if (this.state.p1 === client.sessionId) this.state.p1 = "";
+            if (this.state.p2 === client.sessionId) this.state.p2 = "";
+
+            this.resetGame();
+        });
+
         this.onMessage("drop", (client, { col }) => {
             if (this.state.phase !== "playing") return;
             if (this.state.currentTurnSid !== client.sessionId) return;
 
             const player = this.state.players.get(client.sessionId);
+            if (!player || !player.isParticipating) return;
+
             const row = this.getAvailableRow(col);
 
             if (row !== -1) {
@@ -25,6 +56,13 @@ export class Connect4Room extends GameRoom {
                 } else {
                     this.switchTurn();
                 }
+            }
+        });
+
+        this.onMessage("reset", (client) => {
+            this.resetGame();
+            if (this.state.p1 && this.state.p2) {
+                this.startCountdown();
             }
         });
     }

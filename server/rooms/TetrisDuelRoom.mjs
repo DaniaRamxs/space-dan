@@ -1,107 +1,118 @@
-import { Room } from "colyseus";
+import GameRoom from "./GameRoom.mjs";
 import { TetrisDuelState, TetrisPlayer } from "../schema/TetrisDuelState.mjs";
 
 const COLS = 10;
 const ROWS = 20;
 
-export class TetrisDuelRoom extends Room {
+// SHAPES definition for collision detection on server
+const SHAPES = [
+    [[0, 0, 0, 0], [1, 1, 1, 1], [0, 0, 0, 0], [0, 0, 0, 0]], // I
+    [[1, 0, 0], [1, 1, 1], [0, 0, 0]],                         // J
+    [[0, 0, 1], [1, 1, 1], [0, 0, 0]],                         // L
+    [[1, 1], [1, 1]],                                         // O
+    [[0, 1, 1], [1, 1, 0], [0, 0, 0]],                         // S
+    [[0, 1, 0], [1, 1, 1], [0, 0, 0]],                         // T
+    [[1, 1, 0], [0, 1, 1], [0, 0, 0]]                          // Z
+];
 
-    maxClients = 2;
+export class TetrisDuelRoom extends GameRoom {
 
-    onCreate() {
+    maxPlayers = 2;
 
+    initializeGame(options) {
         this.setState(new TetrisDuelState());
 
-        this.onMessage("move", (client, message) => {
+        this.onMessage("join_slot", (client, message) => {
+            if (this.state.gameState !== "lobby" && this.state.phase !== "waiting") return;
 
+            const slot = message.slot;
+            if (slot === 1 && this.state.p1 !== "") return;
+            if (slot === 2 && this.state.p2 !== "") return;
+
+            const player = new TetrisPlayer(
+                client.sessionId,
+                message.username || "Player",
+                message.avatar || "",
+                slot
+            );
+
+            this.state.players.set(client.sessionId, player);
+
+            if (slot === 1) this.state.p1 = client.sessionId;
+            else if (slot === 2) this.state.p2 = client.sessionId;
+
+            if (this.state.p1 !== "" && this.state.p2 !== "") {
+                this.startCountdown();
+            }
+        });
+
+        this.onMessage("leave_slot", (client) => {
+            this.handlePlayerExit(client);
+        });
+
+        this.onMessage("move", (client, message) => {
             if (this.state.gameState !== "playing") return;
 
             const player = this.state.players.get(client.sessionId);
             if (!player) return;
 
-            const board = player.slot === 1 ? this.state.board1 : this.state.board2;
-            const piece = player.slot === 1 ? this.state.p1Piece : this.state.p2Piece;
+            const slot = player.slot;
+            const board = slot === 1 ? this.state.board1 : this.state.board2;
+            const piece = slot === 1 ? this.state.p1Piece : this.state.p2Piece;
 
             const dir = message.dir;
-
             if (dir === "LEFT") this.tryMove(board, piece, -1, 0);
             if (dir === "RIGHT") this.tryMove(board, piece, 1, 0);
             if (dir === "DOWN") this.tryMove(board, piece, 0, 1);
             if (dir === "ROTATE") this.rotatePiece(board, piece);
             if (dir === "DROP") this.hardDrop(board, piece);
-
         });
 
+        this.onMessage("reset", (client) => {
+            if (client.sessionId === this.state.p1 || client.sessionId === this.state.p2) {
+                this.resetGame();
+                if (this.state.p1 !== "" && this.state.p2 !== "") {
+                    this.startCountdown();
+                }
+            }
+        });
     }
-
-    /* ===============================
-       JOIN
-    =============================== */
 
     onJoin(client, options) {
-
-        const slot = this.state.players.size === 0 ? 1 : 2;
-
-        const player = new TetrisPlayer(
-            client.sessionId,
-            options.name || "Player",
-            options.avatar || "",
-            slot
-        );
-
-        this.state.players.set(client.sessionId, player);
-
-        if (slot === 1) this.state.p1 = client.sessionId;
-        else this.state.p2 = client.sessionId;
-
-        if (this.state.players.size === 2) {
-            this.startCountdown();
-        }
-
+        super.onJoin(client, options);
     }
 
-    onLeave(client) {
+    onLeave(client, consented) {
+        this.handlePlayerExit(client);
+        super.onLeave(client, consented);
+    }
 
-        this.state.players.delete(client.sessionId);
+    handlePlayerExit(client) {
+        const player = this.state.players.get(client.sessionId);
+        if (!player) return;
 
         if (client.sessionId === this.state.p1) this.state.p1 = "";
         if (client.sessionId === this.state.p2) this.state.p2 = "";
 
-        this.resetGame();
-
+        if (this.state.gameState === "playing") {
+            const winnerId = (client.sessionId === this.state.p1) ? this.state.p2 : this.state.p1;
+            this.endGame(winnerId);
+        }
     }
 
-    /* ===============================
-       COUNTDOWN
-    =============================== */
-
-    startCountdown() {
-
-        this.state.gameState = "countdown";
-        this.state.countdown = 3;
-
-        const interval = this.clock.setInterval(() => {
-
-            this.state.countdown--;
-
-            if (this.state.countdown <= 0) {
-
-                interval.clear();
-                this.startGame();
-
-            }
-
-        }, 1000);
-
+    onResetGame() {
+        this.state.gameState = "lobby";
+        this.state.countdown = -1;
+        this.state.winner = "";
+        this.clearBoard(this.state.board1);
+        this.clearBoard(this.state.board2);
+        this.state.p1Piece.clear();
+        this.state.p2Piece.clear();
     }
-
-    /* ===============================
-       START GAME
-    =============================== */
 
     startGame() {
-
         this.state.gameState = "playing";
+        this.setPhase("playing");
 
         this.clearBoard(this.state.board1);
         this.clearBoard(this.state.board2);
@@ -110,132 +121,164 @@ export class TetrisDuelRoom extends Room {
         this.spawnPiece(this.state.p2Piece);
 
         this.setSimulationInterval(() => this.gravityTick(), 800);
-
     }
-
-    /* ===============================
-       GRAVITY
-    =============================== */
 
     gravityTick() {
-
         if (this.state.gameState !== "playing") return;
-
         this.tryMove(this.state.board1, this.state.p1Piece, 0, 1, true);
         this.tryMove(this.state.board2, this.state.p2Piece, 0, 1, true);
-
     }
 
-    /* ===============================
-       MOVEMENT
-    =============================== */
-
     tryMove(board, piece, dx, dy, gravity = false) {
+        if (piece.size === 0) return false;
 
         const next = {
-            x: piece.x + dx,
-            y: piece.y + dy,
-            type: piece.type,
-            rotation: piece.rotation
+            x: piece.get("x") + dx,
+            y: piece.get("y") + dy,
+            type: piece.get("type"),
+            rotation: piece.get("rotation")
         };
 
         if (!this.checkCollision(board, next)) {
-
-            piece.x = next.x;
-            piece.y = next.y;
-
+            piece.set("x", next.x);
+            piece.set("y", next.y);
             return true;
-
         } else if (gravity && dy === 1) {
-
             this.lockPiece(board, piece);
-            this.spawnPiece(piece);
-
+            this.clearLines(board);
+            if (!this.spawnPiece(piece, board)) {
+                // Game Over for this player
+                const winnerId = (piece === this.state.p1Piece) ? this.state.p2 : this.state.p1;
+                this.endGame(winnerId);
+            }
         }
-
         return false;
-
     }
 
     rotatePiece(board, piece) {
+        if (piece.size === 0) return;
 
         const next = {
-            x: piece.x,
-            y: piece.y,
-            type: piece.type,
-            rotation: (piece.rotation + 1) % 4
+            x: piece.get("x"),
+            y: piece.get("y"),
+            type: piece.get("type"),
+            rotation: (piece.get("rotation") + 1) % 4
         };
 
         if (!this.checkCollision(board, next)) {
-            piece.rotation = next.rotation;
+            piece.set("rotation", next.rotation);
         }
-
     }
 
     hardDrop(board, piece) {
+        if (piece.size === 0) return;
 
         while (this.tryMove(board, piece, 0, 1)) { }
-
         this.lockPiece(board, piece);
-        this.spawnPiece(piece);
-
+        this.clearLines(board);
+        if (!this.spawnPiece(piece, board)) {
+            const winnerId = (piece === this.state.p1Piece) ? this.state.p2 : this.state.p1;
+            this.endGame(winnerId);
+        }
     }
 
-    /* ===============================
-       PIECES
-    =============================== */
+    spawnPiece(piece, board = null) {
+        const type = Math.floor(Math.random() * SHAPES.length);
+        const spawnData = { x: 3, y: 0, type, rotation: 0 };
 
-    spawnPiece(piece) {
+        if (board && this.checkCollision(board, spawnData)) {
+            return false;
+        }
 
-        piece.x = 3;
-        piece.y = 0;
-        piece.type = Math.floor(Math.random() * 7);
-        piece.rotation = 0;
-
+        piece.set("x", spawnData.x);
+        piece.set("y", spawnData.y);
+        piece.set("type", spawnData.type);
+        piece.set("rotation", spawnData.rotation);
+        return true;
     }
 
     lockPiece(board, piece) {
+        const x = piece.get("x");
+        const y = piece.get("y");
+        const rotation = piece.get("rotation");
+        const type = piece.get("type");
 
-        const index = piece.y * COLS + piece.x;
+        let shape = SHAPES[type];
+        if (!shape) return;
 
-        if (index >= 0 && index < board.length) {
-            board[index] = "block";
+        for (let i = 0; i < rotation; i++) {
+            shape = shape[0].map((_, index) => shape.map(col => col[index]).reverse());
         }
 
+        shape.forEach((row, py) => {
+            row.forEach((val, px) => {
+                if (val) {
+                    const bx = x + px;
+                    const by = y + py;
+                    if (by >= 0 && by < ROWS && bx >= 0 && bx < COLS) {
+                        board[by * COLS + bx] = "block";
+                    }
+                }
+            });
+        });
     }
 
-    /* ===============================
-       BOARD
-    =============================== */
+    clearLines(board) {
+        for (let y = ROWS - 1; y >= 0; y--) {
+            let full = true;
+            for (let x = 0; x < COLS; x++) {
+                if (board[y * COLS + x] === "0") {
+                    full = false;
+                    break;
+                }
+            }
+            if (full) {
+                // Shift lines down
+                for (let yy = y; yy > 0; yy--) {
+                    for (let x = 0; x < COLS; x++) {
+                        board[yy * COLS + x] = board[(yy - 1) * COLS + x];
+                    }
+                }
+                for (let x = 0; x < COLS; x++) {
+                    board[x] = "0";
+                }
+                y++; // Check same line again
+            }
+        }
+    }
 
     clearBoard(board) {
-
         for (let i = 0; i < ROWS * COLS; i++) {
             board[i] = "0";
         }
-
     }
 
     checkCollision(board, piece) {
+        const { x, y, type, rotation } = piece;
+        let shape = SHAPES[type];
+        if (!shape) return true;
 
-        if (piece.x < 0) return true;
-        if (piece.x >= COLS) return true;
-        if (piece.y >= ROWS) return true;
+        for (let i = 0; i < rotation; i++) {
+            shape = shape[0].map((_, index) => shape.map(col => col[index]).reverse());
+        }
 
+        for (let py = 0; py < shape.length; py++) {
+            for (let px = 0; px < shape[py].length; px++) {
+                if (shape[py][px]) {
+                    const bx = x + px;
+                    const by = y + py;
+                    if (bx < 0 || bx >= COLS || by >= ROWS) return true;
+                    if (by >= 0 && board[by * COLS + bx] !== "0") return true;
+                }
+            }
+        }
         return false;
-
     }
 
-    /* ===============================
-       RESET
-    =============================== */
-
-    resetGame() {
-
-        this.state.gameState = "lobby";
-        this.state.countdown = -1;
-        this.state.winner = "";
-
+    endGame(winnerId) {
+        this.state.gameState = "finished";
+        this.state.winner = winnerId;
+        this.setPhase("finished");
+        this.setSimulationInterval(null);
     }
-
 }

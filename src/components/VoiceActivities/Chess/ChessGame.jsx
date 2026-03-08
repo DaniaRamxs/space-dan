@@ -68,7 +68,7 @@ export default function ChessGame({ roomName, onClose, isTheater, onToggleTheate
             try {
                 const r = await client.joinOrCreate('chess', {
                     userId: user?.id,
-                    name: profile?.username || user?.email?.split('@')[0] || 'Anon',
+                    username: profile?.username || user?.email?.split('@')[0] || 'Anon',
                     avatar: profile?.avatar_url || '/default-avatar.png',
                     roomName,
                 });
@@ -119,9 +119,11 @@ export default function ChessGame({ roomName, onClose, isTheater, onToggleTheate
 
     // ── Derived values ────────────────────────────────────────────────────────
     const myColor = useMemo(() => {
-        if (!state || !room) return null;
-        return state.players?.get(room.sessionId)?.color ?? null;
-        // eslint-disable-next-line react-hooks/exhaustive-deps
+        if (!state || !room || !state.players) return null;
+        for (let p of state.players.values()) {
+            if (p.sessionId === room.sessionId) return p.color;
+        }
+        return null;
     }, [state, room, tick]);
 
     const isFlipped = myColor === 'black';
@@ -133,7 +135,7 @@ export default function ChessGame({ roomName, onClose, isTheater, onToggleTheate
 
     // ── Board interaction ─────────────────────────────────────────────────────
     const handleSquareClick = useCallback((sq) => {
-        if (!isMyTurn || state?.gameState !== 'playing') return;
+        if (!isMyTurn || state?.phase !== 'playing') return;
 
         const chess = localChess.current;
         const board = chess.board();
@@ -186,7 +188,7 @@ export default function ChessGame({ roomName, onClose, isTheater, onToggleTheate
     }, [promotionPend, room]);
 
     const handleResign = () => {
-        if (!room || state?.gameState !== 'playing') return;
+        if (!room || state?.phase !== 'playing') return;
         room.send('resign');
     };
 
@@ -230,8 +232,8 @@ export default function ChessGame({ roomName, onClose, isTheater, onToggleTheate
         }
     }
 
-    const whitePlayer = state.white ? state.players?.get(state.white) : null;
-    const blackPlayer = state.black ? state.players?.get(state.black) : null;
+    const whitePlayer = state.whiteSid ? state.players?.get(state.whiteSid) : null;
+    const blackPlayer = state.blackSid ? state.players?.get(state.blackSid) : null;
     const showClock = state.clockMode !== 'none';
 
     // Top player is opponent from my perspective
@@ -282,7 +284,7 @@ export default function ChessGame({ roomName, onClose, isTheater, onToggleTheate
                 {/* Board column */}
                 <div className="flex-1 flex flex-col items-center justify-center p-3 sm:p-4 gap-2 min-h-0 overflow-auto">
 
-                    {state.gameState === 'waiting' ? (
+                    {state.phase === 'waiting' ? (
                         <WaitingLobby
                             state={state}
                             room={room}
@@ -296,7 +298,7 @@ export default function ChessGame({ roomName, onClose, isTheater, onToggleTheate
                                 player={topPlayer}
                                 timeLeft={topTimeLeft}
                                 showClock={showClock}
-                                isActive={topActive && state.gameState === 'playing'}
+                                isActive={topActive && state.phase === 'playing'}
                                 isTop
                             />
 
@@ -311,7 +313,7 @@ export default function ChessGame({ roomName, onClose, isTheater, onToggleTheate
                                     lastTo={state.lastTo}
                                     checkSquare={checkSquare}
                                     onSquareClick={handleSquareClick}
-                                    disabled={!isMyTurn || state.gameState !== 'playing'}
+                                    disabled={!isMyTurn || state.phase !== 'playing'}
                                 />
                             </div>
 
@@ -320,12 +322,12 @@ export default function ChessGame({ roomName, onClose, isTheater, onToggleTheate
                                 player={bottomPlayer}
                                 timeLeft={bottomTimeLeft}
                                 showClock={showClock}
-                                isActive={bottomActive && state.gameState === 'playing'}
+                                isActive={bottomActive && state.phase === 'playing'}
                                 isMe
                             />
 
                             {/* Compact resign (non-theater) */}
-                            {!isTheater && !isSpectator && state.gameState === 'playing' && (
+                            {!isTheater && !isSpectator && state.phase === 'playing' && (
                                 <div className="flex items-center justify-between w-full max-w-sm px-1 pt-1">
                                     <span className={`text-[9px] font-black uppercase tracking-widest transition-colors ${isMyTurn ? 'text-emerald-400' : 'text-white/20'}`}>
                                         {isMyTurn ? '▶ Tu turno' : '⏳ Esperando...'}
@@ -343,10 +345,10 @@ export default function ChessGame({ roomName, onClose, isTheater, onToggleTheate
                 </div>
 
                 {/* Side panel (theater mode) */}
-                {isTheater && state.gameState !== 'waiting' && (
+                {isTheater && state.phase !== 'waiting' && (
                     <div className="w-full lg:w-60 xl:w-72 flex-shrink-0 border-t lg:border-t-0 lg:border-l border-white/5 bg-black/20 flex flex-col min-h-0">
                         <MoveHistoryPanel moves={moveHistory} />
-                        {!isSpectator && state.gameState === 'playing' && (
+                        {!isSpectator && state.phase === 'playing' && (
                             <div className="flex-shrink-0 p-3 border-t border-white/5 flex flex-col gap-2">
                                 <div className={`text-center text-[9px] font-black uppercase tracking-widest py-2 rounded-lg ${isMyTurn ? 'text-emerald-400 bg-emerald-500/10' : 'text-white/20 bg-white/5'}`}>
                                     {isMyTurn ? '▶ Tu turno' : '⏳ Rival pensando...'}
@@ -390,9 +392,9 @@ export default function ChessGame({ roomName, onClose, isTheater, onToggleTheate
 // ─── WaitingLobby ─────────────────────────────────────────────────────────────
 
 function WaitingLobby({ state, room, myColor, onSetClock }) {
-    const whitePlayer = state.white ? state.players?.get(state.white) : null;
-    const blackPlayer = state.black ? state.players?.get(state.black) : null;
-    const bothReady = state.white && state.black;
+    const whitePlayer = state.whiteSid ? state.players?.get(state.whiteSid) : null;
+    const blackPlayer = state.blackSid ? state.players?.get(state.blackSid) : null;
+    const bothReady = state.whiteSid && state.blackSid;
 
     return (
         <motion.div
@@ -437,9 +439,16 @@ function WaitingLobby({ state, room, myColor, onSetClock }) {
                                 )}
                             </div>
                         ) : (
-                            <div className="flex flex-col items-center gap-1">
-                                <div className="w-8 h-8 rounded-full border border-dashed border-white/10 bg-white/5" />
-                                <p className="text-[8px] text-white/20 uppercase tracking-widest">Vacío</p>
+                            <div className="flex flex-col items-center gap-2">
+                                <div className="w-8 h-8 rounded-full border border-dashed border-white/10 bg-white/5 flex items-center justify-center">
+                                    <span className="text-white/10 text-xs text-center leading-none">?</span>
+                                </div>
+                                <button
+                                    onClick={() => room.send("join_game", { side: color })}
+                                    className="px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white text-[8px] font-black uppercase tracking-widest transition-all border border-white/10"
+                                >
+                                    Sentarse
+                                </button>
                             </div>
                         )}
                     </div>

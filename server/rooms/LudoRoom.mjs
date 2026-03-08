@@ -17,6 +17,31 @@ export class LudoRoom extends GameRoom {
     initializeGame(options) {
         this.setState(new LudoState());
 
+        this.onMessage("join_game", (client, message) => {
+            if (this.state.phase !== "waiting" && this.state.phase !== "lobby") return;
+
+            const player = this.state.players.get(client.sessionId);
+            if (!player || player.isParticipating) return;
+
+            const activePlayers = Array.from(this.state.players.values()).filter(p => p.isParticipating);
+            if (activePlayers.length >= this.maxPlayers) return;
+
+            player.isParticipating = true;
+
+            const usedColors = Array.from(this.state.players.values())
+                .filter(p => p.isParticipating && p.color)
+                .map(p => p.color);
+
+            const availableColor = COLORS.find(c => !usedColors.includes(c));
+            player.color = availableColor || "red";
+            player.initPieces();
+            this.state.turnOrder.push(client.sessionId);
+
+            if (this.state.turnOrder.length >= 2) {
+                this.startCountdown();
+            }
+        });
+
         this.onMessage("roll_dice", (client) => {
             if (this.state.currentTurn !== client.sessionId) return;
             if (this.state.waitingForMove) return;
@@ -51,26 +76,8 @@ export class LudoRoom extends GameRoom {
     }
 
     async onJoin(client, options) {
-        // Use base join logic
         await super.onJoin(client, options);
-
-        const player = this.state.players.get(client.sessionId);
-        // If it's a new player (just joined, not reconnected)
-        if (!player.color) {
-            const usedColors = Array.from(this.state.players.values())
-                .map(p => p.color)
-                .filter(c => !!c);
-
-            const availableColor = COLORS.find(c => !usedColors.includes(c));
-            player.color = availableColor || "red";
-            player.initPieces();
-            this.state.turnOrder.push(client.sessionId);
-        }
-
-        // Auto start if enough players
-        if (this.state.phase === "waiting" && this.state.players.size >= 2) {
-            this.startCountdown();
-        }
+        console.log(`[LudoRoom] Client ${client.sessionId} joined as spectator`);
     }
 
     onResetGame() {
