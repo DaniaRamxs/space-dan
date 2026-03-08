@@ -73,6 +73,7 @@ const GalacticStore = lazy(() => import("./pages/GalacticStore"));
 const StellarPassPage = lazy(() => import("./pages/StellarPassPage"));
 const InventoryPage = lazy(() => import("./pages/InventoryPage"));
 const ExplorePage = lazy(() => import("./pages/ExplorePage"));
+const DownloadPage = lazy(() => import("./pages/DownloadPage"));
 const SpotifyCallback = lazy(() => import("./pages/SpotifyCallback"));
 const AuthCallback = lazy(() => import("./pages/AuthCallback"));
 
@@ -383,10 +384,10 @@ function MusicSyncTracker() {
 function RoutePrefetcher() {
   useEffect(() => {
     const timer = setTimeout(() => {
-      import('./pages/PostsPage').catch(() => {});
-      import('./pages/GamesPage').catch(() => {});
-      import('./pages/GlobalChatPage').catch(() => {});
-      import('./pages/SpaceCabinPage').catch(() => {});
+      import('./pages/PostsPage').catch(() => { });
+      import('./pages/GamesPage').catch(() => { });
+      import('./pages/GlobalChatPage').catch(() => { });
+      import('./pages/SpaceCabinPage').catch(() => { });
     }, 3000);
     return () => clearTimeout(timer);
   }, []);
@@ -479,6 +480,8 @@ function AnimatedRoutes() {
         <Route path="/onboarding" element={<Layout><OnboardingPage /></Layout>} />
         <Route path="/afinidad" element={<Layout><AffinityPage /></Layout>} />
         <Route path="/" element={<Navigate to="/posts" replace />} />
+        <Route path="/descargar" element={<Layout><DownloadPage /></Layout>} />
+        <Route path="/download" element={<Layout><DownloadPage /></Layout>} />
         <Route path="/explorar" element={<Layout><ExplorePage /></Layout>} />
         <Route path="/posts" element={
           loading ? <Layout><RouteLoader /></Layout> :

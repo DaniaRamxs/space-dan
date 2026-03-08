@@ -7,6 +7,9 @@ export default defineConfig(({ mode }) => {
   // eslint-disable-next-line no-undef
   const env = loadEnv(mode, process.cwd(), '');
   const isProd = mode === 'production';
+  // En Tauri dev, el host se inyecta via variable de entorno
+  // eslint-disable-next-line no-undef
+  const tauriHost = process.env.TAURI_DEV_HOST;
 
   return {
     plugins: [
@@ -81,6 +84,8 @@ export default defineConfig(({ mode }) => {
     server: {
       port: 5173,
       strictPort: true,
+      // Tauri necesita conocer el host para establecer su canal IPC
+      host: tauriHost || 'localhost',
       configureServer(server) {
         server.middlewares.use((req, res, next) => {
           // Log para debug directo en la consola de la terminal

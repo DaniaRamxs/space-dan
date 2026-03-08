@@ -356,6 +356,7 @@ export default function GardenLayout({ children }) {
                   { to: '/explorar', icon: '🧭', label: 'Explorar Centro', className: 'hub-item-premium' },
                   { to: '/cabina', icon: '🚀', label: 'Cabina' },
                   { to: '/cartas', icon: '✉️', label: 'Mensajería' },
+                  { to: '/download', icon: '💻', label: 'Descargar App' },
                 ].map((item) => (
                   <motion.div
                     key={item.to}

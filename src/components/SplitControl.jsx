@@ -5,9 +5,9 @@ import { GameImmersiveLayout } from '../core/GameImmersiveLayout';
 import { ArcadeShell } from './ArcadeShell';
 import { useArcadeSystems } from '../hooks/useArcadeSystems';
 
-const W = 4
-const FRAME_MS = 1000 / 60;
+const W = 400;
 const H = 600;
+const FRAME_MS = 1000 / 60;
 const LANE_W = 100;
 const PLAYER_SIZE = 30;
 const OBSTACLE_H = 40;
@@ -38,6 +38,7 @@ function SplitControlInner() {
     const rafRef = useRef(null);
     const stateRef = useRef(makeState());
     const statusRef = useRef('IDLE');
+    const lastFrameRef = useRef(0);
 
     const {
         particles, floatingTexts, scoreControls,
@@ -134,6 +135,9 @@ function SplitControlInner() {
     }, []);
 
     const tick = useCallback((time) => {
+        rafRef.current = requestAnimationFrame(tick);
+        if (time - lastFrameRef.current < FRAME_MS) return;
+        lastFrameRef.current = time;
         const s = stateRef.current;
         if (!s.lastTime) s.lastTime = time;
         let dt = (time - s.lastTime) / 1000;
@@ -142,7 +146,6 @@ function SplitControlInner() {
 
         if (statusRef.current === 'IDLE' || statusRef.current === 'DEAD' || statusRef.current === 'WIN') {
             draw();
-            rafRef.current = requestAnimationFrame(tick);
             return;
         }
 
@@ -256,7 +259,6 @@ function SplitControlInner() {
         }
 
         draw();
-        rafRef.current = requestAnimationFrame(tick);
     }, [draw, saveScore, triggerHaptic, spawnParticles, triggerFloatingText]);
 
     const handleLeftTap = (e) => {

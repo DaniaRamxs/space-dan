@@ -24,3 +24,9 @@ dist-ssr
 *.sln
 *.sw?
 *.apk
+
+# Tauri
+src-tauri/target/
+src-tauri/.tauri/
+src-tauri/gen/android/
+src-tauri/gen/apple/

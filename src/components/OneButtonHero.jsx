@@ -4,9 +4,9 @@ import { GameImmersiveLayout } from '../core/GameImmersiveLayout';
 import { ArcadeShell } from './ArcadeShell';
 import { useArcadeSystems } from '../hooks/useArcadeSystems';
 
-const W = 8
-const FRAME_MS = 1000 / 60;
+const W = 800;
 const H = 400;
+const FRAME_MS = 1000 / 60;
 const PLAYER_SIZE = 30;
 const GRAVITY_MAG = 2200; // pixels per second squared
 const OBSTACLE_W = 50;
@@ -29,6 +29,7 @@ function OneButtonHeroInner() {
     const canvasRef = useRef(null);
     const rafRef = useRef(null);
     const stateRef = useRef(makeState());
+    const lastFrameRef = useRef(0);
 
     const {
         particles, floatingTexts, scoreControls,
@@ -118,6 +119,9 @@ function OneButtonHeroInner() {
     }, []);
 
     const tick = useCallback((time) => {
+        rafRef.current = requestAnimationFrame(tick);
+        if (time - lastFrameRef.current < FRAME_MS) return;
+        lastFrameRef.current = time;
         const s = stateRef.current;
         if (!s.lastTime) s.lastTime = time;
         const dt = Math.min((time - s.lastTime) / 1000, 0.1); // cap dt
@@ -203,7 +207,6 @@ function OneButtonHeroInner() {
         }
 
         draw();
-        rafRef.current = requestAnimationFrame(tick);
     }, [draw, score, saveScore, triggerHaptic, spawnParticles, triggerFloatingText, animateScore]);
 
     const start = useCallback(() => {

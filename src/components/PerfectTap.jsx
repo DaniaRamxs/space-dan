@@ -4,9 +4,9 @@ import { GameImmersiveLayout } from '../core/GameImmersiveLayout';
 import { ArcadeShell } from './ArcadeShell';
 import { useArcadeSystems } from '../hooks/useArcadeSystems';
 
-const W = 4
-const FRAME_MS = 1000 / 60;
+const W = 400;
 const H = 400;
+const FRAME_MS = 1000 / 60;
 const TARGET_R = 80;
 const MAX_ROUNDS = 10;
 
@@ -36,6 +36,7 @@ function PerfectTapInner() {
 
     const canvasRef = useRef(null);
     const rafRef = useRef(null);
+    const lastFrameRef = useRef(0);
 
     const {
         particles, floatingTexts, scoreControls,
@@ -87,6 +88,9 @@ function PerfectTapInner() {
     }, []);
 
     const tick = useCallback((time) => {
+        rafRef.current = requestAnimationFrame(tick);
+        if (time - lastFrameRef.current < FRAME_MS) return;
+        lastFrameRef.current = time;
         const s = stateRef.current;
         if (!s.lastTime) s.lastTime = time;
         let dt = (time - s.lastTime) / 1000;
@@ -106,7 +110,6 @@ function PerfectTapInner() {
         }
 
         draw();
-        rafRef.current = requestAnimationFrame(tick);
     }, [draw]);
 
     const nextRound = useCallback(() => {

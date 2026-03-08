@@ -894,6 +894,7 @@ function ContextMenu({ x, y, onClose, onOpen }) {
 // ─── DESKTOP ICONS ───────────────────────────────────────────
 const ICONS = [
     { id: 'readme', icon: '📄', label: 'README.txt' },
+    { id: 'installer', icon: '🛰️', label: 'Spacely App' },
     { id: 'posts', icon: '📁', label: 'Mis escritos' },
     { id: 'games', icon: '🕹️', label: 'Arcade.exe' },
     { id: 'music', icon: '🎵', label: 'WinAmp' },
@@ -962,7 +963,11 @@ export default function DesktopPage() {
         const prev = lastTap.current[id] || 0;
         lastTap.current[id] = now;
         if (now - prev < 400) {
-            openWindow(id);
+            if (id === 'installer') {
+                navigate('/download');
+            } else {
+                openWindow(id);
+            }
             lastTap.current[id] = 0;
         }
     };

@@ -29,7 +29,9 @@
       "Bash(grep:*)",
       "Bash(xargs -I {} sh -c 'echo \"\"=== {} ===\"\" && head -1 {} | grep -o \"\"import\\\\|// \"\" || true')",
       "Bash(done)",
-      "Bash(wc:*)"
+      "Bash(wc:*)",
+      "Bash(rustc:*)",
+      "Bash(cargo --version:*)"
     ]
   }
 }
