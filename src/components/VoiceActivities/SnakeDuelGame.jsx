@@ -30,7 +30,7 @@ export default function SnakeDuelGame({ roomName, onClose, isTheater, onToggleTh
                     countdown: snakeRoom.state.countdown,
                     winner: snakeRoom.state.winner,
                     apple: snakeRoom.state.apple,
-                    players: Array.from(snakeRoom.state.players.values())
+                    players: snakeRoom.state.players ? Array.from(snakeRoom.state.players.values()) : []
                 });
                 setConnecting(false);
 
