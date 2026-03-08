@@ -159,8 +159,9 @@ export default function GlobalChat() {
         setLoading(true);
         try {
             const data = await chatService.getRecentMessages(50, chanId);
-            setMessages(data);
-            data.forEach(m => processedIds.current.add(m.id));
+            const msgs = Array.isArray(data) ? data : [];
+            setMessages(msgs);
+            msgs.forEach(m => processedIds.current.add(m.id));
         } catch (err) {
             console.error('[GlobalChat] Load Error:', err);
         } finally {
