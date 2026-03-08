@@ -1,67 +1,36 @@
-import { Schema, defineTypes, ArraySchema, MapSchema } from "@colyseus/schema";
+import { Schema, ArraySchema, MapSchema, type } from "@colyseus/schema";
+import { BaseGameState, Player as BasePlayer } from "./BaseGameState.mjs";
 
 export class Piece extends Schema {
-    constructor(id, color, index) {
-        super();
-        this.id = id;
-        this.color = color;
-        this.index = index;
-        this.position = -1; // -1 = Base
-        this.status = "base"; // base, path, home, finished
-    }
+    @type("string") id;
+    @type("string") color;
+    @type("number") index;
+    @type("number") position = -1; // -1 = Base
+    @type("string") status = "base"; // base, path, home, finished
 }
 
-defineTypes(Piece, {
-    id: "string",
-    color: "string",
-    index: "number",
-    position: "number",
-    status: "string"
-});
+export class Player extends BasePlayer {
+    @type("string") color;
+    @type([Piece]) pieces = new ArraySchema();
 
-export class Player extends Schema {
-    constructor(id, name, avatar, color) {
-        super();
-        this.id = id;
-        this.name = name;
-        this.avatar = avatar;
-        this.color = color;
+    // Initialize pieces when color is set
+    initPieces() {
         this.pieces = new ArraySchema();
         for (let i = 0; i < 4; i++) {
-            this.pieces.push(new Piece(`${color}_${i}`, color, i));
+            const p = new Piece();
+            p.id = `${this.color}_${i}`;
+            p.color = this.color;
+            p.index = i;
+            this.pieces.push(p);
         }
     }
 }
 
-defineTypes(Player, {
-    id: "string",
-    name: "string",
-    avatar: "string",
-    color: "string",
-    pieces: [Piece]
-});
-
-export class LudoState extends Schema {
-    constructor() {
-        super();
-        this.players = new MapSchema();
-        this.currentTurn = ""; // sessionId
-        this.diceValue = 0;
-        this.gameState = "waiting"; // waiting, playing, finished
-        this.winners = new ArraySchema();
-        this.lastRollWasSix = false;
-        this.waitingForMove = false;
-        this.turnOrder = new ArraySchema(); // sessionId list
-    }
+export class LudoState extends BaseGameState {
+    @type("string") currentTurn = "";
+    @type("number") diceValue = 0;
+    @type(["string"]) winners = new ArraySchema();
+    @type("boolean") lastRollWasSix = false;
+    @type("boolean") waitingForMove = false;
+    @type(["string"]) turnOrder = new ArraySchema();
 }
-
-defineTypes(LudoState, {
-    players: { map: Player },
-    currentTurn: "string",
-    diceValue: "number",
-    gameState: "string",
-    winners: ["string"],
-    lastRollWasSix: "boolean",
-    waitingForMove: "boolean",
-    turnOrder: ["string"]
-});

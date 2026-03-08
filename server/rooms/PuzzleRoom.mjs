@@ -1,13 +1,13 @@
-import { Room } from "colyseus";
+import GameRoom from "./GameRoom.mjs";
 import { PuzzleState, Player, Piece } from "../schema/PuzzleState.mjs";
 
-export class PuzzleRoom extends Room {
-    onCreate(options) {
+export class PuzzleRoom extends GameRoom {
+    maxPlayers = 12;
+
+    initializeGame(options) {
         this.setState(new PuzzleState());
-        this.maxClients = 12;
 
         this.onMessage("setup_puzzle", (client, message) => {
-            // Only host can setup or if no host defined
             if (this.state.hostId && this.state.hostId !== client.sessionId) return;
 
             this.state.imageUri = message.imageUri;
@@ -19,7 +19,7 @@ export class PuzzleRoom extends Room {
             this.state.startTime = Date.now();
             this.state.completeTime = 0;
 
-            const pieceWidth = 100; // Normalized size for state, client scales
+            const pieceWidth = 100;
             const pieceHeight = 100;
 
             for (let r = 0; r < this.state.rows; r++) {
@@ -31,12 +31,12 @@ export class PuzzleRoom extends Room {
                     this.state.pieces.set(id, piece);
                 }
             }
+            this.setPhase("playing");
         });
 
         this.onMessage("move_piece", (client, message) => {
             const piece = this.state.pieces.get(message.id);
             if (piece && !piece.isLocked) {
-                // Anyone can move if not locked, but let's track who's holding it
                 if (piece.heldBy === "" || piece.heldBy === client.sessionId) {
                     piece.x = message.x;
                     piece.y = message.y;
@@ -62,24 +62,21 @@ export class PuzzleRoom extends Room {
         });
     }
 
-    onJoin(client, options) {
-        console.log(`[Puzzle] ${options.name} joined`);
-        const player = new Player(client.sessionId, options.name, options.avatar);
-        this.state.players.set(client.sessionId, player);
-
+    async onJoin(client, options) {
+        await super.onJoin(client, options);
         if (!this.state.hostId) {
             this.state.hostId = client.sessionId;
         }
     }
 
-    onLeave(client) {
-        this.state.players.delete(client.sessionId);
+    handlePlayerDefeatOnLeave(player) {
+        // Co-op: just release pieces
         this.state.pieces.forEach(p => {
-            if (p.heldBy === client.sessionId) p.heldBy = "";
+            if (p.heldBy === player.sessionId) p.heldBy = "";
         });
 
-        if (this.state.hostId === client.sessionId) {
-            // Assign new host
+        // Reassign host if necessary
+        if (this.state.hostId === player.sessionId) {
             const nextHost = this.state.players.keys().next().value;
             this.state.hostId = nextHost || "";
         }
@@ -87,8 +84,7 @@ export class PuzzleRoom extends Room {
 
     checkSnap(piece) {
         if (piece.isLocked) return;
-
-        const snapThreshold = 20; // Tolerance in pixels
+        const snapThreshold = 20;
         const dist = Math.sqrt(
             Math.pow(piece.x - piece.targetX, 2) +
             Math.pow(piece.y - piece.targetY, 2)
@@ -115,6 +111,7 @@ export class PuzzleRoom extends Room {
         if (this.state.progress === 100 && !this.state.isCompleted) {
             this.state.isCompleted = true;
             this.state.completeTime = Date.now();
+            this.endGame("Team"); // Base logic for completion
             this.broadcast("puzzle_complete", {
                 time: (this.state.completeTime - this.state.startTime) / 1000,
                 winner: "Team"

@@ -1,43 +1,17 @@
-import { Schema, defineTypes, ArraySchema, MapSchema } from "@colyseus/schema";
+import { Schema, ArraySchema, MapSchema, type } from "@colyseus/schema";
+import { BaseGameState, Player as BasePlayer } from "./BaseGameState.mjs";
 
-export class Connect4Player extends Schema {
-    constructor(id, name, avatar, slot) {
-        super();
-        this.id = id;
-        this.name = name;
-        this.avatar = avatar;
-        this.slot = slot; // 1 or 2
-    }
+export class Connect4Player extends BasePlayer {
+    @type("number") colorIndex; // 1 (Red), 2 (Yellow)
 }
-defineTypes(Connect4Player, {
-    id: "string",
-    name: "string",
-    avatar: "string",
-    slot: "number"
-});
 
-export class Connect4State extends Schema {
+export class Connect4State extends BaseGameState {
+    @type(["number"]) board = new ArraySchema(); // 42 slots (7x6)
+    @type({ map: Connect4Player }) players = new MapSchema();
+    @type("string") currentTurnSid = "";
+
     constructor() {
         super();
-        this.gameState = "lobby"; // lobby, playing, finished
-        this.board = new ArraySchema();
-        // Initialize 7 columns * 6 rows = 42 cells as a flat array
-        for (let i = 0; i < 42; i++) {
-            this.board.push(0);
-        }
-        this.players = new MapSchema();
-        this.currentTurn = ""; // sessionId of the player whose turn it is
-        this.p1 = ""; // sessionId of player 1
-        this.p2 = ""; // sessionId of player 2
-        this.winner = 0; // 0: none, 1: p1, 2: p2, 3: draw
+        for (let i = 0; i < 42; i++) this.board.push(0);
     }
 }
-defineTypes(Connect4State, {
-    gameState: "string",
-    board: ["number"],
-    players: { map: Connect4Player },
-    currentTurn: "string",
-    p1: "string",
-    p2: "string",
-    winner: "number"
-});

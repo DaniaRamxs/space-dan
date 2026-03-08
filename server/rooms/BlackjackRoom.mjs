@@ -1,26 +1,26 @@
-import { Room } from "colyseus";
+import GameRoom from "./GameRoom.mjs";
 import { BlackjackState, Player, Card } from "../schema/BlackjackState.mjs";
 import { ArraySchema } from "@colyseus/schema";
 import { supabase } from "../supabaseClient.mjs";
 
 const SUITS = ["hearts", "diamonds", "clubs", "spades"];
 const RANKS = ["A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"];
-const ROUND_BET = 100; // Standard bet per round
+const ROUND_BET = 100;
 
-export class BlackjackRoom extends Room {
-    onCreate(options) {
+export class BlackjackRoom extends GameRoom {
+    maxPlayers = 6;
+
+    initializeGame(options) {
         this.setState(new BlackjackState());
-        this.maxClients = 6;
         this.deck = [];
         this.createDeck();
 
         this.onMessage("bet", async (client, message) => {
             const player = this.state.players.get(client.sessionId);
-            if (player && this.state.gameState === "waiting") {
+            if (player && this.state.phase === "waiting") {
                 if (player.status === "betting") return;
 
-                // Validate and Deduct Starlys from Supabase
-                const success = await this.deductPlayerBalance(player.dbId, ROUND_BET);
+                const success = await this.deductPlayerBalance(player.userId, ROUND_BET);
 
                 if (success) {
                     player.bet = ROUND_BET;
@@ -34,7 +34,7 @@ export class BlackjackRoom extends Room {
         });
 
         this.onMessage("hit", (client) => {
-            if (this.state.gameState !== "player_turn" || this.state.currentTurn !== client.sessionId) return;
+            if (this.state.phase !== "playing" || this.state.currentTurn !== client.sessionId) return;
             const player = this.state.players.get(client.sessionId);
             this.dealCard(player);
             if (player.score > 21) {
@@ -44,72 +44,29 @@ export class BlackjackRoom extends Room {
         });
 
         this.onMessage("stand", (client) => {
-            if (this.state.gameState !== "player_turn" || this.state.currentTurn !== client.sessionId) return;
+            if (this.state.phase !== "playing" || this.state.currentTurn !== client.sessionId) return;
             const player = this.state.players.get(client.sessionId);
             player.status = "stay";
             this.nextTurn();
         });
     }
 
-    onJoin(client, options) {
-        console.log(`[Blackjack] ${options.name} joined`);
-        const player = new Player(
-            client.sessionId,
-            options.name || "Anon",
-            options.avatar || "/default-avatar.png"
-        );
-        player.dbId = options.dbId; // Crucial for transactions
-        this.state.players.set(client.sessionId, player);
-    }
-
-    onLeave(client) {
-        const player = this.state.players.get(client.sessionId);
-        if (player) {
-            console.log(`[Blackjack] ${player.name} left`);
-            // If it's their turn, skip it
-            if (this.state.currentTurn === client.sessionId) {
-                this.nextTurn();
-            }
-            // Optional: Should we remove them if tournament is active?
-            // "Gana mas veces en 10 rondas" -> if they leave, they lose their chance.
-            this.state.players.delete(client.sessionId);
-        }
-    }
-
-    // --- Economy Helpers ---
-    async deductPlayerBalance(dbId, amount) {
-        if (!supabase || !dbId) return true; // Fail-safe if DB disabled
-
+    // Economy Logic (Reusing and making userId-centric)
+    async deductPlayerBalance(userId, amount) {
+        if (!supabase || !userId) return true;
         try {
-            // Check balance first
-            const { data: profile } = await supabase
-                .from('profiles')
-                .select('balance')
-                .eq('id', dbId)
-                .single();
-
+            const { data: profile } = await supabase.from('profiles').select('balance').eq('id', userId).single();
             if (!profile || profile.balance < amount) return false;
 
-            // Use the transaction-logger function if available, or manual update
-            const { data, error } = await supabase.rpc('award_activity_xp', {
-                p_user_id: dbId,
-                p_xp: 0 // We reuse award_activity_xp logic or just manual update
-            });
-
-            // Actually, we need to subtract. Let's do it manually with a transaction log if possible.
             const { error: txError } = await supabase.from('transactions').insert({
-                user_id: dbId,
+                user_id: userId,
                 amount: -amount,
                 type: 'casino_bet',
                 description: 'Apuesta Blackjack Tournament',
                 balance_after: profile.balance - amount
             });
 
-            const { error: upError } = await supabase
-                .from('profiles')
-                .update({ balance: profile.balance - amount })
-                .eq('id', dbId);
-
+            const { error: upError } = await supabase.from('profiles').update({ balance: profile.balance - amount }).eq('id', userId);
             return !txError && !upError;
         } catch (e) {
             console.error("[Blackjack Economy Error]", e);
@@ -117,11 +74,11 @@ export class BlackjackRoom extends Room {
         }
     }
 
-    async awardTournamentWinner(dbId, amount) {
-        if (!supabase || !dbId) return;
+    async awardTournamentWinner(userId, amount) {
+        if (!supabase || !userId) return;
         try {
             await supabase.rpc('award_coins', {
-                p_user_id: dbId,
+                p_user_id: userId,
                 p_amount: amount,
                 p_type: 'game_reward',
                 p_description: 'Premio Pozo Blackjack (10 Rondas)'
@@ -131,7 +88,7 @@ export class BlackjackRoom extends Room {
         }
     }
 
-    // --- Game Logic ---
+    // --- Card Helpers ---
     createDeck() {
         this.deck = [];
         for (const suit of SUITS) {
@@ -153,17 +110,16 @@ export class BlackjackRoom extends Room {
     }
 
     checkStartRound() {
-        if (this.state.players.size < 2) return; // Mínimo 2 jugadores para torneo
+        if (this.state.players.size < 2) return;
         const allBet = Array.from(this.state.players.values()).every(p => p.status === "betting");
         if (allBet) {
+            this.setPhase("playing");
             this.startRound();
         }
     }
 
     async startRound() {
-        this.state.gameState = "dealing";
         this.createDeck();
-
         this.state.players.forEach(p => {
             p.cards = new ArraySchema();
             p.score = 0;
@@ -181,7 +137,6 @@ export class BlackjackRoom extends Room {
             this.dealCard(this.state.dealer, i === 1);
         }
 
-        this.state.gameState = "player_turn";
         this.nextTurn();
     }
 
@@ -226,7 +181,6 @@ export class BlackjackRoom extends Room {
     }
 
     async dealerTurn() {
-        this.state.gameState = "dealer_turn";
         if (this.state.dealer.cards[1]) this.state.dealer.cards[1].isHidden = false;
         this.calculateScore(this.state.dealer);
 
@@ -239,27 +193,23 @@ export class BlackjackRoom extends Room {
     }
 
     async finishRound() {
-        this.state.gameState = "finished";
         this.state.roundsPlayed++;
 
         this.state.players.forEach(p => {
-            let win = false;
             if (p.status === "bust") p.status = "lose";
             else if (this.state.dealer.score > 21 || p.score > this.state.dealer.score) {
                 p.status = "win";
-                p.roundWins++; // Tournament Tracker
-                win = true;
+                p.roundWins++;
             }
             else if (p.score === this.state.dealer.score) p.status = "draw";
             else p.status = "lose";
         });
 
-        // Check Tournament End
         if (this.state.roundsPlayed >= this.state.maxRounds) {
             await this.processTournamentEnd();
         } else {
             this.clock.setTimeout(() => {
-                this.state.gameState = "waiting";
+                this.setPhase("waiting");
                 this.state.players.forEach(p => {
                     p.bet = 0;
                     p.status = "waiting";
@@ -270,7 +220,7 @@ export class BlackjackRoom extends Room {
     }
 
     async processTournamentEnd() {
-        this.state.gameState = "tournament_finished";
+        this.setPhase("finished");
 
         let winners = [];
         let maxWins = -1;
@@ -287,22 +237,21 @@ export class BlackjackRoom extends Room {
         if (winners.length > 0 && this.state.pot > 0) {
             const prizePerWinner = Math.floor(this.state.pot / winners.length);
             for (const winner of winners) {
-                await this.awardTournamentWinner(winner.dbId, prizePerWinner);
+                await this.awardTournamentWinner(winner.userId, prizePerWinner);
             }
+            this.state.winner = winners[0].userId; // Just for display
         }
 
         this.clock.setTimeout(() => {
-            // Full Reset
+            this.resetGame();
             this.state.roundsPlayed = 0;
             this.state.pot = 0;
-            this.state.gameState = "waiting";
-            this.state.players.forEach(p => {
-                p.roundWins = 0;
-                p.bet = 0;
-                p.status = "waiting";
-                p.cards = new ArraySchema();
-            });
-        }, 10000); // 10s to celebrate
+            this.state.players.forEach(p => p.roundWins = 0);
+        }, 10000);
+    }
+
+    onResetGame() {
+        // Extra cleanup if needed
     }
 
     delay(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }

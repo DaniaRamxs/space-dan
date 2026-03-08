@@ -1,4 +1,4 @@
-import { Room } from "colyseus";
+import GameRoom from "./GameRoom.mjs";
 import { LudoState, Player, Piece } from "../schema/LudoState.mjs";
 
 const COLORS = ["red", "green", "yellow", "blue"];
@@ -9,10 +9,11 @@ const START_POSITIONS = {
     "blue": 39
 };
 
-export class LudoRoom extends Room {
-    onCreate(options) {
+export class LudoRoom extends GameRoom {
+    maxPlayers = 4;
+
+    initializeGame(options) {
         this.setState(new LudoState());
-        this.maxClients = 4;
 
         this.onMessage("roll_dice", (client) => {
             if (this.state.currentTurn !== client.sessionId) return;
@@ -22,12 +23,10 @@ export class LudoRoom extends Room {
             this.state.diceValue = roll;
             this.state.lastRollWasSix = (roll === 6);
 
-            // Check if player can move any piece
             const player = this.state.players.get(client.sessionId);
             const canMove = player.pieces.some(p => this.canPieceMove(p, roll));
 
             if (!canMove) {
-                // Skip turn after a delay
                 this.clock.setTimeout(() => {
                     this.nextTurn();
                 }, 1500);
@@ -49,44 +48,58 @@ export class LudoRoom extends Room {
         });
     }
 
-    onJoin(client, options) {
-        if (this.state.players.size >= 4) return;
+    async onJoin(client, options) {
+        // Use base join logic
+        await super.onJoin(client, options);
 
-        const color = COLORS[this.state.players.size];
-        const player = new Player(client.sessionId, options.name || "Player", options.avatar || "", color);
-        this.state.players.set(client.sessionId, player);
-        this.state.turnOrder.push(client.sessionId);
+        const player = this.state.players.get(client.sessionId);
+        // If it's a new player (just joined, not reconnected)
+        if (!player.color) {
+            const usedColors = Array.from(this.state.players.values())
+                .map(p => p.color)
+                .filter(c => !!c);
 
-        if (this.state.players.size >= 2 && this.state.gameState === "waiting") {
-            this.state.gameState = "playing";
+            const availableColor = COLORS.find(c => !usedColors.includes(c));
+            player.color = availableColor || "red";
+            player.initPieces();
+            this.state.turnOrder.push(client.sessionId);
+        }
+
+        // Auto start if enough players
+        if (this.state.phase === "waiting" && this.state.players.size >= 2) {
+            this.startCountdown();
+        }
+    }
+
+    onResetGame() {
+        this.state.diceValue = 0;
+        this.state.winners.clear();
+        this.state.waitingForMove = false;
+        this.state.lastRollWasSix = false;
+
+        // Redraw pieces for all
+        this.state.players.forEach(p => p.initPieces());
+
+        // Set first turn
+        if (this.state.turnOrder.length > 0) {
             this.state.currentTurn = this.state.turnOrder[0];
         }
     }
 
-    onLeave(client) {
-        this.state.players.delete(client.sessionId);
-        const index = this.state.turnOrder.indexOf(client.sessionId);
-        if (index > -1) this.state.turnOrder.splice(index, 1);
-
-        if (this.state.currentTurn === client.sessionId) {
-            this.nextTurn();
-        }
-
-        if (this.state.players.size < 2 && this.state.gameState === "playing") {
-            this.state.gameState = "waiting";
+    // Overriding setPhase to handle Ludo start
+    setPhase(phase) {
+        super.setPhase(phase);
+        if (phase === "playing") {
+            if (!this.state.currentTurn && this.state.turnOrder.length > 0) {
+                this.state.currentTurn = this.state.turnOrder[0];
+            }
         }
     }
 
     canPieceMove(piece, roll) {
         if (piece.status === "finished") return false;
-
-        if (piece.status === "base") {
-            return roll === 6;
-        }
-
-        // Home path check
+        if (piece.status === "base") return roll === 6;
         if (piece.position + roll > 57) return false;
-
         return true;
     }
 
@@ -103,7 +116,6 @@ export class LudoRoom extends Room {
             }
         }
 
-        // Handle Capture
         if (piece.status === "path") {
             this.checkCapture(player, piece);
         }
@@ -112,18 +124,16 @@ export class LudoRoom extends Room {
 
         // Check Winner
         if (player.pieces.every(p => p.status === "finished")) {
-            if (!this.state.winners.includes(player.id)) {
-                this.state.winners.push(player.id);
+            if (!this.state.winners.includes(player.userId)) {
+                this.state.winners.push(player.userId);
             }
             if (this.state.winners.length >= this.state.players.size - 1) {
-                this.state.gameState = "finished";
+                this.endGame(this.state.winners[0]); // First winner is absolute winner
                 return;
             }
         }
 
-        // Extra turn if roll was 6, otherwise next turn
         if (this.state.lastRollWasSix && piece.status !== "finished") {
-            // Roll again
             this.state.diceValue = 0;
         } else {
             this.nextTurn();
@@ -132,29 +142,25 @@ export class LudoRoom extends Room {
 
     checkCapture(movingPlayer, piece) {
         const absPos = (START_POSITIONS[movingPlayer.color] + piece.position) % 52;
-
-        // Safe squares (traditional: 0, 8, 13, 21, 26, 34, 39, 47)
         const safeSquares = [0, 8, 13, 21, 26, 34, 39, 47];
         if (safeSquares.includes(absPos)) return;
 
         this.state.players.forEach((otherPlayer, sessionId) => {
-            if (sessionId === movingPlayer.id) return;
+            if (sessionId === movingPlayer.sessionId) return;
 
             otherPlayer.pieces.forEach(otherPiece => {
                 if (otherPiece.status !== "path") return;
-
                 const otherAbsPos = (START_POSITIONS[otherPlayer.color] + otherPiece.position) % 52;
                 if (absPos === otherAbsPos) {
-                    // Capture!
                     otherPiece.position = -1;
                     otherPiece.status = "base";
-                    console.log(`[Ludo] ${movingPlayer.color} captured ${otherPlayer.color}`);
                 }
             });
         });
     }
 
     nextTurn() {
+        if (this.state.turnOrder.length === 0) return;
         const currentIndex = this.state.turnOrder.indexOf(this.state.currentTurn);
         const nextIndex = (currentIndex + 1) % this.state.turnOrder.length;
         this.state.currentTurn = this.state.turnOrder[nextIndex];
