@@ -5,6 +5,7 @@ import { useLocalParticipant } from '@livekit/components-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Crosshair, Trophy, Heart, Zap, X, Move, Rocket, Timer, Crown, Users } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { getLeaderboard } from '../../services/supabaseScores';
 
 const WORLD_WIDTH = 1200;
 const WORLD_HEIGHT = 700;
@@ -18,6 +19,8 @@ export default function AsteroidBattleGame({ roomName, onClose }) {
     const [myId, setMyId] = useState(null);
     const [connecting, setConnecting] = useState(true);
     const [showMobileLeaderboard, setShowMobileLeaderboard] = useState(false);
+    const [lbTab, setLbTab] = useState('match'); // 'match' or 'global'
+    const [globalLevels, setGlobalLevels] = useState([]);
 
     const keysRef = useRef({ w: false, a: false, s: false, d: false });
     const mouseRef = useRef({ x: 0, y: 0 });
@@ -50,6 +53,16 @@ export default function AsteroidBattleGame({ roomName, onClose }) {
         connect();
         return () => { if (activeRoom) activeRoom.leave(); };
     }, [roomName]);
+
+    useEffect(() => {
+        const fetchGlobal = async () => {
+            const data = await getLeaderboard('asteroid_battle', 10);
+            setGlobalLevels(data);
+        };
+        fetchGlobal();
+        // Refresh when game ends
+        if (state?.phase === 'finished') fetchGlobal();
+    }, [state?.phase]);
 
     // Loop for sending inputs
     useEffect(() => {
@@ -364,20 +377,51 @@ export default function AsteroidBattleGame({ roomName, onClose }) {
                                 <Trophy size={14} />
                                 <span className="text-[10px] font-black uppercase tracking-widest">Líderes Galácticos</span>
                             </div>
-                            <div className="space-y-3">
-                                {sortedPlayers.map((p, i) => (
-                                    <div key={p.sessionId} className="flex justify-between items-center bg-white/5 p-3 rounded-xl border border-white/5">
-                                        <div className="flex flex-col">
-                                            <span className={`text-[10px] font-black uppercase ${p.sessionId === myId ? 'text-cyan-400' : 'text-white'}`}>
-                                                {i + 1}. {p.username || "Piloto"}
-                                            </span>
-                                            <div className="flex gap-1 mt-1 opacity-40">
-                                                {[...Array(p.lives)].map((_, j) => <div key={j} className="w-1 h-1 bg-white rounded-full" />)}
+                            <div className="flex border-b border-white/5 pb-2">
+                                <button
+                                    onClick={() => setLbTab('match')}
+                                    className={`flex-1 text-[9px] font-black uppercase tracking-widest py-1 transition-colors ${lbTab === 'match' ? 'text-cyan-400' : 'text-white/40'}`}
+                                >
+                                    Partida
+                                </button>
+                                <button
+                                    onClick={() => setLbTab('global')}
+                                    className={`flex-1 text-[9px] font-black uppercase tracking-widest py-1 transition-colors ${lbTab === 'global' ? 'text-amber-400' : 'text-white/40'}`}
+                                >
+                                    Global
+                                </button>
+                            </div>
+
+                            <div className="space-y-3 max-h-[40vh] overflow-y-auto pr-1 custom-scrollbar">
+                                {lbTab === 'match' ? (
+                                    sortedPlayers.map((p, i) => (
+                                        <div key={p.sessionId} className="flex justify-between items-center bg-white/5 p-3 rounded-xl border border-white/5">
+                                            <div className="flex flex-col">
+                                                <span className={`text-[10px] font-black uppercase ${p.sessionId === myId ? 'text-cyan-400' : 'text-white'}`}>
+                                                    {i + 1}. {p.username || "Piloto"}
+                                                </span>
+                                                <div className="flex gap-1 mt-1 opacity-40">
+                                                    {[...Array(p.lives)].map((_, j) => <div key={j} className="w-1 h-1 bg-white rounded-full" />)}
+                                                </div>
                                             </div>
+                                            <span className="text-[10px] font-black text-amber-500">{p.score}</span>
                                         </div>
-                                        <span className="text-[10px] font-black text-amber-500">{p.score}</span>
-                                    </div>
-                                ))}
+                                    ))
+                                ) : (
+                                    globalLevels.map((p, i) => (
+                                        <div key={i} className="flex justify-between items-center bg-white/5 p-3 rounded-xl border border-white/5">
+                                            <div className="flex items-center gap-3">
+                                                <img src={p.avatar_url || "/default-avatar.png"} className="w-6 h-6 rounded-lg bg-white/10" alt="" />
+                                                <div className="flex flex-col">
+                                                    <span className={`text-[10px] font-black uppercase ${p.user_id === user?.id ? 'text-amber-400' : 'text-white'}`}>
+                                                        {i + 1}. {p.username || "Piloto"}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                            <span className="text-[10px] font-black text-amber-500">{p.max_score}</span>
+                                        </div>
+                                    ))
+                                )}
                             </div>
                         </div>
                     </motion.div>

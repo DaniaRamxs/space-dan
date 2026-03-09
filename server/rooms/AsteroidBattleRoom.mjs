@@ -1,5 +1,6 @@
 import GameRoom from "./GameRoom.mjs";
 import { AsteroidBattleState, AsteroidPlayer, Asteroid, Bullet } from "../schema/AsteroidBattleState.mjs";
+import { supabase } from "../supabaseClient.mjs";
 
 const WORLD_WIDTH = 1200;
 const WORLD_HEIGHT = 700;
@@ -16,6 +17,35 @@ export class AsteroidBattleRoom extends GameRoom {
 
     createPlayer() {
         return new AsteroidPlayer();
+    }
+
+    async persistScores() {
+        if (!supabase) return;
+
+        const players = Array.from(this.state.players.values())
+            .filter(p => p.isParticipating && p.score > 0);
+
+        if (players.length === 0) return;
+
+        try {
+            const { data: season } = await supabase
+                .from('seasons')
+                .select('id')
+                .eq('is_active', true)
+                .maybeSingle();
+
+            const scoreRows = players.map(p => ({
+                user_id: p.userId,
+                game_id: 'asteroid_battle',
+                score: p.score,
+                season_id: season?.id || null
+            }));
+
+            await supabase.from('scores').insert(scoreRows);
+            console.log(`[AsteroidBattleRoom] Persisted ${scoreRows.length} scores to SQL.`);
+        } catch (e) {
+            console.error("[AsteroidBattleRoom] Error persisting scores:", e);
+        }
     }
 
     initializeGame() {
@@ -115,6 +145,10 @@ export class AsteroidBattleRoom extends GameRoom {
     endGameByTime() {
         const players = Array.from(this.state.players.values()).filter(p => p.isParticipating);
         const winner = players.sort((a, b) => b.score - a.score)[0];
+
+        // Persist scores to SQL before finishing
+        this.persistScores();
+
         this.endGame(winner ? winner.userId : "");
     }
 
