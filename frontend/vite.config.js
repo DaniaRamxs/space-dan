@@ -14,79 +14,79 @@ export default defineConfig(({ mode }) => {
   return {
     plugins: [
       react(),
-      // Service Worker solo en producción (evita problemas en dev/Capacitor)
-      isProd && VitePWA({
-        registerType: 'autoUpdate',
-        injectRegister: 'auto',
-        workbox: {
-          // Precaché: JS, CSS, HTML, fuentes e íconos
-          globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2}'],
-          // No precachear chunks grandes (livekit, konva) — se cachean en runtime
-          globIgnores: ['**/livekit-*.js', '**/konva-*.js', '**/canvas-*.js', '**/games-*.js'],
-          // Limpieza agresiva de cache
-          cleanupOutdatedCaches: true,
-          skipWaiting: true,
-          clientsClaim: true,
-          runtimeCaching: [
-            {
-              // API Supabase: network-first con fallback a caché 5 min
-              urlPattern: /^https:\/\/.*\.supabase\.co\/.*/i,
-              handler: 'NetworkFirst',
-              options: {
-                cacheName: 'supabase-api',
-                expiration: { maxEntries: 60, maxAgeSeconds: 300 },
-                networkTimeoutSeconds: 5,
-              },
-            },
-            {
-              // Avatares e imágenes: cache-first (cambian poco)
-              urlPattern: /\.(png|jpg|jpeg|webp|gif|svg)$/i,
-              handler: 'CacheFirst',
-              options: {
-                cacheName: 'images',
-                expiration: { maxEntries: 100, maxAgeSeconds: 60 * 60 * 24 * 7 },
-              },
-            },
-            {
-              // Chunks de React core: stale-while-revalidate
-              urlPattern: /react-core.*\.js$/i,
-              handler: 'StaleWhileRevalidate',
-              options: {
-                cacheName: 'react-core',
-                expiration: { maxEntries: 10, maxAgeSeconds: 60 * 60 * 24 },
-              },
-            },
-            {
-              // Chunks de juegos: cache-first (cambian poco)
-              urlPattern: /games.*\.js$/i,
-              handler: 'StaleWhileRevalidate',
-              options: {
-                cacheName: 'games',
-                expiration: { maxEntries: 20, maxAgeSeconds: 60 * 60 * 24 * 7 },
-              },
-            },
-            {
-              // Fuentes: cache-first
-              urlPattern: /\.(woff|woff2|ttf|eot)$/i,
-              handler: 'CacheFirst',
-              options: {
-                cacheName: 'fonts',
-                expiration: { maxEntries: 50, maxAgeSeconds: 60 * 60 * 24 * 30 },
-              },
-            },
-          ],
-        },
-        manifest: {
-          name: 'Space-Dan',
-          short_name: 'SpaceDan',
-          theme_color: '#050510',
-          background_color: '#050510',
-          display: 'standalone',
-          icons: [
-            { src: '/favicon.ico', sizes: '64x64', type: 'image/x-icon' },
-          ],
-        },
-      }),
+      // Service Worker desactivado temporalmente para evitar bloqueos
+      // isProd && VitePWA({
+      //   registerType: 'autoUpdate',
+      //   injectRegister: 'auto',
+      //   workbox: {
+      //     // Precaché: JS, CSS, HTML, fuentes e íconos
+      //     globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2}'],
+      //     // No precachear chunks grandes (livekit, konva) — se cachean en runtime
+      //     globIgnores: ['**/livekit-*.js', '**/konva-*.js', '**/canvas-*.js', '**/games-*.js'],
+      //     // Limpieza agresiva de cache
+      //     cleanupOutdatedCaches: true,
+      //     skipWaiting: true,
+      //     clientsClaim: true,
+      //     runtimeCaching: [
+      //       {
+      //         // API Supabase: network-first con fallback a caché 5 min
+      //         urlPattern: /^https:\/\/.*\.supabase\.co\/.*/i,
+      //         handler: 'NetworkFirst',
+      //         options: {
+      //           cacheName: 'supabase-api',
+      //           expiration: { maxEntries: 60, maxAgeSeconds: 300 },
+      //           networkTimeoutSeconds: 5,
+      //         },
+      //       },
+      //       {
+      //         // Avatares e imágenes: cache-first (cambian poco)
+      //         urlPattern: /\.(png|jpg|jpeg|webp|gif|svg)$/i,
+      //         handler: 'CacheFirst',
+      //         options: {
+      //           cacheName: 'images',
+      //           expiration: { maxEntries: 100, maxAgeSeconds: 60 * 60 * 24 * 7 },
+      //         },
+      //       },
+      //       {
+      //         // Chunks de React core: stale-while-revalidate
+      //         urlPattern: /react-core.*\.js$/i,
+      //         handler: 'StaleWhileRevalidate',
+      //         options: {
+      //           cacheName: 'react-core',
+      //           expiration: { maxEntries: 10, maxAgeSeconds: 60 * 60 * 24 },
+      //         },
+      //       },
+      //       {
+      //         // Chunks de juegos: cache-first (cambian poco)
+      //         urlPattern: /games.*\.js$/i,
+      //         handler: 'StaleWhileRevalidate',
+      //         options: {
+      //           cacheName: 'games',
+      //           expiration: { maxEntries: 20, maxAgeSeconds: 60 * 60 * 24 * 7 },
+      //         },
+      //       },
+      //       {
+      //         // Fuentes: cache-first
+      //         urlPattern: /\.(woff|woff2|ttf|eot)$/i,
+      //         handler: 'CacheFirst',
+      //         options: {
+      //           cacheName: 'fonts',
+      //           expiration: { maxEntries: 50, maxAgeSeconds: 60 * 60 * 24 * 30 },
+      //         },
+      //       },
+      //     ],
+      //   },
+      //   manifest: {
+      //     name: 'Space-Dan',
+      //     short_name: 'SpaceDan',
+      //     theme_color: '#050510',
+      //     background_color: '#050510',
+      //     display: 'standalone',
+      //     icons: [
+      //       { src: '/favicon.ico', sizes: '64x64', type: 'image/x-icon' },
+      //     ],
+      //   },
+      // }),
     ].filter(Boolean),
     optimizeDeps: {
       include: ['konva', 'react-konva'],
