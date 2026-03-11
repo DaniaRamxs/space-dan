@@ -100,16 +100,19 @@ app.get("/health", (req, res) => {
 /* ---------------- MOCK AUTH MIDDLEWARE (TEMPORARY) ---------------- */
 
 // Temporary middleware to mock user authentication for testing
+// Using a valid UUID format that Supabase will accept
+const MOCK_USER_UUID = '00000000-0000-0000-0000-000000000001';
+
 app.use("/api/communities", (req, res, next) => {
   if (!req.user) {
-    req.user = { id: 'mock-user-id' }; // Mock user for testing
+    req.user = { id: MOCK_USER_UUID }; // Mock user with valid UUID
   }
   next();
 });
 
 app.use("/api/activities", (req, res, next) => {
   if (!req.user) {
-    req.user = { id: 'mock-user-id' }; // Mock user for testing
+    req.user = { id: MOCK_USER_UUID }; // Mock user with valid UUID
   }
   next();
 });
