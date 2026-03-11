@@ -49,8 +49,8 @@ export default defineConfig(({ mode }) => {
           ]
         },
         manifest: {
-          name: 'Space-Dan',
-          short_name: 'SpaceDan',
+          name: 'Spacely',
+          short_name: 'Spacely',
           theme_color: '#050510',
           background_color: '#050510',
           display: 'standalone',
