@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
  * Componente robusto de Imagen con manejo de errores y fallback.
  * Evita que el perfil crashee o muestre iconos rotos si la URL de la DB falla.
  */
-export default function SafeAvatar({ src, provider, fallback = '/default_user_blank.png', className, style, alt = "Avatar" }) {
+export default function SafeAvatar({ src, provider, fallback = '/default-avatar.svg', className, style, alt = "Avatar" }) {
     const [imgSrc, setImgSrc] = useState(src || fallback);
     const [hasError, setHasError] = useState(false);
 
@@ -19,7 +19,7 @@ export default function SafeAvatar({ src, provider, fallback = '/default_user_bl
 
     // Sincronizar si el src cambia externamente
     useEffect(() => {
-        if (src && src !== '/default-avatar.png') {
+        if (src && src !== '/default-avatar.svg') {
             setImgSrc(src);
             setHasError(false);
         } else {
