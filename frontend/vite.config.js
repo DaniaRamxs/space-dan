@@ -97,53 +97,20 @@ export default defineConfig(({ mode }) => {
     build: {
       // Reducir warnings de chunk size
       chunkSizeWarningLimit: 800,
+      // Configuración limpia sin timestamps
+      sourcemap: false,
+      manifest: false,
       rollupOptions: {
         output: {
-          // Separar vendors grandes en chunks propios para mejor caché y reducir tamaño
-          manualChunks: (id) => {
-            // Core React - siempre cargado
-            if (id.includes('react') || id.includes('react-dom') || id.includes('react-router-dom')) {
-              return 'react-core';
-            }
-            // Animaciones - cargar bajo demanda
-            if (id.includes('framer-motion')) {
-              return 'framer';
-            }
-            // Base de datos - cargar bajo demanda
-            if (id.includes('supabase')) {
-              return 'supabase';
-            }
-            // Voice/WebRTC - cargar solo en voice rooms
-            if (id.includes('livekit')) {
-              return 'livekit';
-            }
-            // Gifs - cargar solo en chat
-            if (id.includes('giphy')) {
-              return 'giphy';
-            }
-            // Markdown - cargar solo en posts
-            if (id.includes('react-markdown') || id.includes('remark') || id.includes('rehype')) {
-              return 'markdown';
-            }
-            // Canvas/Juegos - cargar solo en juegos
-            if (id.includes('konva') || id.includes('react-konva') || id.includes('use-image')) {
-              return 'canvas';
-            }
-            // Juegos individuales - chunk separado
-            if (id.includes('/components/TetrisGame') || 
-                id.includes('/components/SnakeGame') || 
-                id.includes('/components/PixelGalaxy') ||
-                id.includes('/components/AsteroidBattle')) {
-              return 'games-core';
-            }
-            // UI Components pesados
-            if (id.includes('lucide-react') || id.includes('@radix-ui')) {
-              return 'ui-vendor';
-            }
-            // Vendors generales
-            if (id.includes('node_modules')) {
-              return 'vendor';
-            }
+          // Manual chunks simple y efectivo
+          manualChunks: {
+            vendor: ["react", "react-dom"],
+            router: ["react-router-dom"],
+            supabase: ["@supabase/supabase-js"],
+            framer: ["framer-motion"],
+            livekit: ["livekit-client"],
+            canvas: ["konva", "react-konva"],
+            giphy: ["@giphy/react-components"],
           },
         },
       },

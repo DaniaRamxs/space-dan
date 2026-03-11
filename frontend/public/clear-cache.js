@@ -1,42 +1,63 @@
-// Manual cache clearing for specific chunks
+// ULTRA AGGRESSIVE CACHE CLEARING
 (function() {
   'use strict';
   
-  // Clear problematic chunks from cache
-  const problematicChunks = [
-    'games-core-C8gLOLp8.js',
-    'livekit-C9buWMbF.js',
-    'konva-BTpBkuHr.js',
-    'vendor-CxdypoD8.js',
-    'react-core-Dv6pI4Vw.js'
-  ];
+  console.log('🧹 Starting ultra aggressive cache clearing...');
   
-  // Clear ALL caches completely
+  // 1. Clear ALL caches
   if ('caches' in window) {
     caches.keys().then(function(cacheNames) {
+      console.log('📦 Found caches:', cacheNames);
       return Promise.all(
         cacheNames.map(function(cacheName) {
-          return caches.delete(cacheName).catch(() => {});
+          return caches.delete(cacheName).then(function(success) {
+            console.log('✅ Deleted cache:', cacheName, success);
+          }).catch(function(err) {
+            console.log('❌ Failed to delete cache:', cacheName, err);
+          });
         })
-      ).then(function() {
-        console.log('All caches cleared');
-      });
+      );
+    }).then(function() {
+      console.log('🎉 ALL CACHES CLEARED');
     });
   }
   
-  // Clear localStorage and sessionStorage
+  // 2. Clear ALL storage
   try {
     localStorage.clear();
     sessionStorage.clear();
+    console.log('💾 Storage cleared');
   } catch (e) {
-    console.log('Storage clear failed:', e);
+    console.log('❌ Storage clear failed:', e);
   }
   
-  // Force reload only once
-  if (!sessionStorage.getItem('cacheCleared')) {
-    sessionStorage.setItem('cacheCleared', 'true');
-    setTimeout(() => {
-      window.location.reload(true);
-    }, 500);
+  // 3. Clear IndexedDB
+  if ('indexedDB' in window) {
+    indexedDB.databases().then(function(databases) {
+      return Promise.all(
+        databases.map(function(db) {
+          return indexedDB.deleteDatabase(db.name).then(function() {
+            console.log('🗄️ Deleted IndexedDB:', db.name);
+          });
+        })
+      );
+    });
+  }
+  
+  // 4. Force reload with cache busting
+  const bustCache = function() {
+    const url = new URL(window.location);
+    url.searchParams.set('t', Date.now());
+    window.location.replace(url.toString());
+  };
+  
+  // 5. Prevent infinite reload
+  if (!sessionStorage.getItem('ultraCacheCleared')) {
+    sessionStorage.setItem('ultraCacheCleared', 'true');
+    console.log('🔄 Will reload in 1 second...');
+    setTimeout(bustCache, 1000);
+  } else {
+    console.log('✅ Cache already cleared, preventing reload');
+    sessionStorage.removeItem('ultraCacheCleared');
   }
 })();
