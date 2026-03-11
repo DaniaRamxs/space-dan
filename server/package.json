@@ -7,9 +7,9 @@
     "node": "20.x"
   },
   "scripts": {
+    "build": "echo build",
     "start": "node index.mjs",
-    "dev": "node --watch index.mjs",
-    "build": "echo 'no build step'"
+    "dev": "node --watch index.mjs"
   },
   "keywords": [],
   "author": "",
