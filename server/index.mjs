@@ -101,15 +101,25 @@ app.get("/health", (req, res) => {
 
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
+const supabaseAdmin = supabaseUrl && supabaseServiceKey
+  ? createClient(supabaseUrl, supabaseServiceKey)
+  : null;
+
+if (!supabaseAdmin) {
+  console.warn('[Auth] ⚠  SUPABASE_URL o SUPABASE_SERVICE_ROLE_KEY no definidas — auth desactivada');
+}
 
 // Middleware to validate Supabase JWT and extract user
 async function authenticateSupabase(req, res, next) {
+  if (!supabaseAdmin) {
+    return res.status(503).json({ error: 'Auth service not configured' });
+  }
+
   const authHeader = req.headers.authorization;
-  
+
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
     return res.status(401).json({ error: 'No authorization token provided' });
   }
@@ -118,7 +128,7 @@ async function authenticateSupabase(req, res, next) {
 
   try {
     const { data: { user }, error } = await supabaseAdmin.auth.getUser(token);
-    
+
     if (error || !user) {
       return res.status(401).json({ error: 'Invalid or expired token' });
     }

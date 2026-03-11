@@ -82,6 +82,8 @@ const BubbleBlast = lazy(() => import('../components/BubbleBlast'));
 
 
 const GAMES = [
+  { id: 'rhythm-dash', icon: '🎵', title: 'rhythm dash', component: RhythmDash, category: 'Arcade', isImmersive: true },
+  { id: 'bubble-blast', icon: '🫧', title: 'bubble blast', component: BubbleBlast, category: 'Puzzle', isImmersive: true },
   { id: 'snake', icon: '🐍', title: 'snake', component: SnakeGame, category: 'Arcade', isImmersive: true },
   { id: 'memory', icon: '🃏', title: 'memory', component: MemoryGame, category: 'Puzzle', isImmersive: true },
   { id: 'ttt', icon: '❌', title: 'tic tac toe', component: TicTacToe, category: 'Table', isImmersive: true },
@@ -118,8 +120,6 @@ const GAMES = [
   { id: 'phaserunner', icon: '⚡', title: 'phase runner', component: PhaseRunner, category: 'Skill', isImmersive: true },
   { id: 'magnetdash', icon: '🧲', title: 'magnet dash', component: MagnetDash, category: 'Skill', isImmersive: true },
   { id: 'echotiming', icon: '📡', title: 'echo timing', component: EchoTiming, category: 'Skill', isImmersive: true },
-  { id: 'rhythm-dash', icon: '🎵', title: 'rhythm dash', component: RhythmDash, category: 'Arcade', isImmersive: true },
-  { id: 'bubble-blast', icon: '🫧', title: 'bubble blast', component: BubbleBlast, category: 'Puzzle', isImmersive: true },
   // Casino
   { id: 'casino-blackjack', icon: '🃠', title: 'blackjack', component: CasinoBlackjack, category: 'Casino', isImmersive: true },
   { id: 'cosmic-dice', icon: '🎲', title: 'cosmic dice', component: CosmicDice, category: 'Casino', isImmersive: true },
