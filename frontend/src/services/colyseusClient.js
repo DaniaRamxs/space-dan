@@ -3,7 +3,7 @@ import * as Colyseus from "colyseus.js";
 const COLYSEUS_URL = import.meta.env.VITE_COLYSEUS_URL ||
     ((window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1")
         ? `ws://${window.location.hostname}:2567`
-        : "wss://spacely-server.up.railway.app"); // Fallback to a Railway URL pattern
+        : "wss://spacely-server-production.up.railway.app");
 
 export const client = new Colyseus.Client(COLYSEUS_URL);
 
