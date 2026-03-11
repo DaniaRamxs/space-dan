@@ -22,7 +22,7 @@ export default defineConfig(({ mode }) => {
           // Precaché: JS, CSS, HTML, fuentes e íconos
           globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2}'],
           // No precachear chunks grandes (livekit, konva) — se cachean en runtime
-          globIgnores: ['**/livekit-*.js', '**/konva-*.js'],
+          globIgnores: ['**/livekit-*.js', '**/konva-*.js', '**/games-*.js'],
           runtimeCaching: [
             {
               // API Supabase: network-first con fallback a caché 5 min
@@ -41,6 +41,33 @@ export default defineConfig(({ mode }) => {
               options: {
                 cacheName: 'images',
                 expiration: { maxEntries: 100, maxAgeSeconds: 60 * 60 * 24 * 7 },
+              },
+            },
+            {
+              // Chunks de React core: stale-while-revalidate
+              urlPattern: /react-core.*\.js$/i,
+              handler: 'StaleWhileRevalidate',
+              options: {
+                cacheName: 'react-core',
+                expiration: { maxEntries: 10, maxAgeSeconds: 60 * 60 * 24 },
+              },
+            },
+            {
+              // Chunks de juegos: cache-first (cambian poco)
+              urlPattern: /games.*\.js$/i,
+              handler: 'CacheFirst',
+              options: {
+                cacheName: 'games',
+                expiration: { maxEntries: 20, maxAgeSeconds: 60 * 60 * 24 * 7 },
+              },
+            },
+            {
+              // Fuentes: cache-first
+              urlPattern: /\.(woff|woff2|ttf|eot)$/i,
+              handler: 'CacheFirst',
+              options: {
+                cacheName: 'fonts',
+                expiration: { maxEntries: 50, maxAgeSeconds: 60 * 60 * 24 * 30 },
               },
             },
           ],
@@ -69,73 +96,50 @@ export default defineConfig(({ mode }) => {
       rollupOptions: {
         output: {
           // Separar vendors grandes en chunks propios para mejor caché y reducir tamaño
-          manualChunks: {
-            'react-core': ['react', 'react-dom', 'react-router-dom'],
-            'framer': ['framer-motion'],
-            'supabase': ['@supabase/supabase-js'],
-            'livekit': ['livekit-client', '@livekit/components-react'],
-            'giphy': ['@giphy/js-fetch-api', '@giphy/react-components'],
-            'markdown': ['react-markdown', 'remark-gfm', 'rehype-raw', 'rehype-sanitize'],
-            'konva': ['konva', 'react-konva', 'use-image'],
-            'games': [
-              'src/components/TetrisGame.jsx',
-              'src/components/SnakeGame.jsx',
-              'src/components/MemoryGame.jsx',
-              'src/components/WhackAMole.jsx',
-              'src/components/ColorMatch.jsx',
-              'src/components/ReactionTime.jsx',
-              'src/components/Game2048.jsx',
-              'src/components/Blackjack.jsx',
-              'src/components/SlidingPuzzle.jsx',
-              'src/components/Pong.jsx',
-              'src/components/SpaceInvaders.jsx',
-              'src/components/Breakout.jsx',
-              'src/components/Asteroids.jsx',
-              'src/components/FlappyBird.jsx',
-              'src/components/Minesweeper.jsx',
-              'src/components/DinoRunner.jsx',
-              'src/components/ConnectFour.jsx',
-              'src/components/SimonSays.jsx',
-              'src/components/CookieClicker.jsx',
-              'src/components/MazeGame.jsx',
-              'src/components/CatchGame.jsx',
-              'src/components/DodgeGame.jsx',
-              'src/components/TypeBlitz.jsx',
-              'src/components/TronGame.jsx',
-              'src/components/LightsOut.jsx',
-              'src/components/OneButtonHero.jsx',
-              'src/components/NeonReflex.jsx',
-              'src/components/GravityFlip.jsx',
-              'src/components/NodeChain.jsx',
-              'src/components/TenSecondsHero.jsx',
-              'src/components/PerfectTap.jsx',
-              'src/components/SplitControl.jsx',
-              'src/components/PhaseRunner.jsx',
-              'src/components/MagnetDash.jsx',
-              'src/components/EchoTiming.jsx',
-              'src/components/CasinoBlackjack.jsx',
-              'src/components/CosmicDice.jsx',
-              'src/components/AsteroidCrash.jsx',
-              'src/components/SpaceMiner.jsx',
-              'src/components/OrbitalSlots.jsx',
-              'src/components/QuantumFlip.jsx',
-              'src/components/GalaxyLadder.jsx',
-              'src/components/AlienInvasion.jsx',
-              'src/components/RocketJump.jsx',
-              'src/components/MemoryGalaxy.jsx',
-              'src/components/NebulaSniper.jsx',
-              'src/components/PulsarRoulette.jsx',
-              'src/components/HiLoCards.jsx',
-              'src/components/TimeBomb.jsx',
-              'src/components/GravityWave.jsx',
-              'src/components/CosmicWheel.jsx',
-              'src/components/StarSudoku.jsx',
-              'src/components/OraclePrediction.jsx',
-              'src/components/PowerSurge.jsx',
-              'src/components/PlanetAuction.jsx',
-              'src/components/BlackHolePull.jsx',
-              'src/components/AlienPoker.jsx'
-            ]
+          manualChunks: (id) => {
+            // Core React - siempre cargado
+            if (id.includes('react') || id.includes('react-dom') || id.includes('react-router-dom')) {
+              return 'react-core';
+            }
+            // Animaciones - cargar bajo demanda
+            if (id.includes('framer-motion')) {
+              return 'framer';
+            }
+            // Base de datos - cargar bajo demanda
+            if (id.includes('supabase')) {
+              return 'supabase';
+            }
+            // Voice/WebRTC - cargar solo en voice rooms
+            if (id.includes('livekit')) {
+              return 'livekit';
+            }
+            // Gifs - cargar solo en chat
+            if (id.includes('giphy')) {
+              return 'giphy';
+            }
+            // Markdown - cargar solo en posts
+            if (id.includes('react-markdown') || id.includes('remark') || id.includes('rehype')) {
+              return 'markdown';
+            }
+            // Canvas/Juegos - cargar solo en juegos
+            if (id.includes('konva') || id.includes('react-konva') || id.includes('use-image')) {
+              return 'canvas';
+            }
+            // Juegos individuales - chunk separado
+            if (id.includes('/components/TetrisGame') || 
+                id.includes('/components/SnakeGame') || 
+                id.includes('/components/PixelGalaxy') ||
+                id.includes('/components/AsteroidBattle')) {
+              return 'games-core';
+            }
+            // UI Components pesados
+            if (id.includes('lucide-react') || id.includes('@radix-ui')) {
+              return 'ui-vendor';
+            }
+            // Vendors generales
+            if (id.includes('node_modules')) {
+              return 'vendor';
+            }
           },
         },
       },
