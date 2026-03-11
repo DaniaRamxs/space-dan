@@ -8,7 +8,8 @@
   },
   "scripts": {
     "start": "node index.mjs",
-    "dev": "node --watch index.mjs"
+    "dev": "node --watch index.mjs",
+    "build": "echo 'no build step'"
   },
   "keywords": [],
   "author": "",
