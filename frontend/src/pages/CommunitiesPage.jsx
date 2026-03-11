@@ -49,7 +49,16 @@ export default function CommunitiesPage() {
       setCommunities(communitiesData);
       setTrendingActivities(activitiesData);
     } catch (error) {
-      console.error('[CommunitiesPage] Load error:', error);
+      if (error instanceof SyntaxError && error.message.includes("Unexpected token '<'")) {
+        console.error('[CommunitiesPage] Backend returning HTML instead of JSON. Railway may still be deploying or routes not mounted.');
+        // Use empty arrays for now - backend is not ready
+        setCommunities([]);
+        setTrendingActivities([]);
+      } else {
+        console.error('[CommunitiesPage] Load error:', error);
+        setCommunities([]);
+        setTrendingActivities([]);
+      }
     } finally {
       setLoading(false);
     }
