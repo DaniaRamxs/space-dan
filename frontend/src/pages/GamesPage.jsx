@@ -452,25 +452,64 @@ export default function GamesPage() {
       {/* Background content — unmounted while a game is running to free GPU */}
       {!openId && (<>
 
-        {/* SOCIAL HERO & GAMES HUB HEADER */}
+        {/* ARCADE HERO HEADER - RETRO FUTURISTA */}
         <div style={{
           display: 'flex', flexDirection: 'column', gap: 15, position: 'relative',
-          padding: '20px 16px', marginBottom: 20
+          padding: '20px 16px', marginBottom: 20,
+          background: 'linear-gradient(135deg, rgba(0,229,255,0.05) 0%, rgba(236,72,153,0.05) 100%)',
+          borderRadius: '24px',
+          border: '1px solid rgba(0,229,255,0.1)'
         }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div>
-              <h1 style={{ fontSize: '1.6rem', fontWeight: 900, textTransform: 'uppercase', margin: 0, color: '#fff', letterSpacing: -0.5 }}>
-                ¿A qué jugamos hoy?
-              </h1>
-              <div style={{ fontSize: '0.8rem', color: '#00e5ff', opacity: 0.9, marginTop: 4, fontWeight: 700, letterSpacing: 0.2 }}>
-                Nivel {Math.max(1, Math.floor(0.1 * Math.sqrt((profile?.balance || 0) + (userStats.length * 50))))} • #{season?.rank || '—'} Temporada {(season?.active_boosts?.night || season?.active_boosts?.weekend) && '• ⚡ Boost'}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
+                <span style={{ fontSize: '2rem', filter: 'drop-shadow(0 0 10px rgba(0,229,255,0.5))' }}>🕹️</span>
+                <h1 style={{ 
+                  fontSize: '2rem', 
+                  fontWeight: 900, 
+                  textTransform: 'uppercase', 
+                  margin: 0, 
+                  background: 'linear-gradient(135deg, #00e5ff 0%, #ec4899 100%)',
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent',
+                  letterSpacing: 2,
+                  textShadow: '0 0 20px rgba(0,229,255,0.3)'
+                }}>
+                  ARCADE
+                </h1>
+              </div>
+              <div style={{ fontSize: '0.75rem', color: '#00e5ff', opacity: 0.9, fontWeight: 700, letterSpacing: 0.5, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                <span style={{ background: 'rgba(0,229,255,0.1)', padding: '4px 10px', borderRadius: '12px', border: '1px solid rgba(0,229,255,0.2)' }}>
+                  LVL {Math.max(1, Math.floor(0.1 * Math.sqrt((profile?.balance || 0) + (userStats.length * 50))))}
+                </span>
+                <span style={{ background: 'rgba(236,72,153,0.1)', padding: '4px 10px', borderRadius: '12px', border: '1px solid rgba(236,72,153,0.2)' }}>
+                  #{season?.rank || '—'} GLOBAL
+                </span>
+                {(season?.active_boosts?.night || season?.active_boosts?.weekend) && (
+                  <span style={{ background: 'rgba(255,215,0,0.1)', padding: '4px 10px', borderRadius: '12px', border: '1px solid rgba(255,215,0,0.3)', color: '#ffd700' }}>
+                    ⚡ BOOST ACTIVO
+                  </span>
+                )}
               </div>
             </div>
             <div style={{ display: 'flex', gap: 12 }}>
               <button
                 onClick={() => setSoundOn(!soundOn)}
                 title="Efectos de Sonido"
-                style={{ background: 'rgba(255,255,255,0.05)', border: 'none', cursor: 'pointer', fontSize: '1.1rem', width: 42, height: 42, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                style={{ 
+                  background: soundOn ? 'rgba(0,229,255,0.15)' : 'rgba(255,255,255,0.05)', 
+                  border: soundOn ? '1px solid rgba(0,229,255,0.3)' : '1px solid rgba(255,255,255,0.1)',
+                  cursor: 'pointer', 
+                  fontSize: '1.1rem', 
+                  width: 42, 
+                  height: 42, 
+                  borderRadius: '50%', 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  justifyContent: 'center',
+                  transition: 'all 0.3s',
+                  boxShadow: soundOn ? '0 0 15px rgba(0,229,255,0.3)' : 'none'
+                }}
               >
                 {soundOn ? '🔊' : '🔈'}
               </button>
