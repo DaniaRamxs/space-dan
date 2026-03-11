@@ -179,6 +179,18 @@ gameServer.define("ludo", LudoRoom).filterBy(['roomName']);
 gameServer.define("beat_sound", BeatSoundRoom).filterBy(['roomName']);
 gameServer.define("live-activity", LiveActivityRoom).filterBy(['activityId']);
 
+/* ==================== 404 HANDLER ==================== */
+
+// Catch all 404s and return JSON instead of HTML
+app.use((req, res, next) => {
+  res.status(404).json({
+    error: 'Not Found',
+    path: req.path,
+    method: req.method,
+    message: 'This endpoint does not exist. Check /api/debug/routes for available routes.'
+  });
+});
+
 /* ==================== ERROR HANDLING ==================== */
 
 process.on("uncaughtException", (err) => {
