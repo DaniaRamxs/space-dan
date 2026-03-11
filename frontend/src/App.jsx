@@ -489,25 +489,89 @@ function AnimatedRoutes() {
             user ? <Layout><PostsPage /></Layout> :
               <Layout><LoginGate /></Layout>
         } />
-        <Route path="/events" element={<Layout><EventsPage /></Layout>} />
-        <Route path="/transmission/:postId" element={<Layout><PostDetailPage /></Layout>} />
-        <Route path="/bulletin" element={<Layout><BulletinPage /></Layout>} />
+        <Route path="/events" element={
+          loading ? <Layout><RouteLoader /></Layout> :
+            user ? <Layout><EventsPage /></Layout> :
+              <Layout><LoginGate /></Layout>
+        } />
+        <Route path="/transmission/:postId" element={
+          loading ? <Layout><RouteLoader /></Layout> :
+            user ? <Layout><PostDetailPage /></Layout> :
+              <Layout><LoginGate /></Layout>
+        } />
+        <Route path="/bulletin" element={
+          loading ? <Layout><RouteLoader /></Layout> :
+            user ? <Layout><BulletinPage /></Layout> :
+              <Layout><LoginGate /></Layout>
+        } />
         <Route path="/games" element={<Layout><GamesPage /></Layout>} />
         <Route path="/game/:gameId" element={<Layout><GamesPage /></Layout>} />
-        <Route path="/tienda" element={<Layout><ShopPage /></Layout>} />
-        <Route path="/banco" element={<Layout><BankPage /></Layout>} />
-        <Route path="/mercado-negro" element={<Layout><BlackMarketPage /></Layout>} />
-        <Route path="/chat" element={<Layout><GlobalChatPage /></Layout>} />
-        <Route path="/cabina" element={<Layout><SpaceCabinPage /></Layout>} />
-        <Route path="/inventory" element={<Layout><InventoryPage /></Layout>} />
-        <Route path="/logros" element={<Layout><AchievementsPage /></Layout>} />
+        <Route path="/tienda" element={
+          loading ? <Layout><RouteLoader /></Layout> :
+            user ? <Layout><ShopPage /></Layout> :
+              <Layout><LoginGate /></Layout>
+        } />
+        <Route path="/banco" element={
+          loading ? <Layout><RouteLoader /></Layout> :
+            user ? <Layout><BankPage /></Layout> :
+              <Layout><LoginGate /></Layout>
+        } />
+        <Route path="/mercado-negro" element={
+          loading ? <Layout><RouteLoader /></Layout> :
+            user ? <Layout><BlackMarketPage /></Layout> :
+              <Layout><LoginGate /></Layout>
+        } />
+        <Route path="/chat" element={
+          loading ? <Layout><RouteLoader /></Layout> :
+            user ? <Layout><GlobalChatPage /></Layout> :
+              <Layout><LoginGate /></Layout>
+        } />
+        <Route path="/cabina" element={
+          loading ? <Layout><RouteLoader /></Layout> :
+            user ? <Layout><SpaceCabinPage /></Layout> :
+              <Layout><LoginGate /></Layout>
+        } />
+        <Route path="/inventory" element={
+          loading ? <Layout><RouteLoader /></Layout> :
+            user ? <Layout><InventoryPage /></Layout> :
+              <Layout><LoginGate /></Layout>
+        } />
+        <Route path="/logros" element={
+          loading ? <Layout><RouteLoader /></Layout> :
+            user ? <Layout><AchievementsPage /></Layout> :
+              <Layout><LoginGate /></Layout>
+        } />
         <Route path="/leaderboard" element={<Layout><GlobalLeaderboardPage /></Layout>} />
-        <Route path="/tienda-galactica" element={<Layout><GalacticStore /></Layout>} />
-        <Route path="/pase-estelar" element={<Layout><StellarPassPage /></Layout>} />
-        <Route path="/vault" element={<Layout><VaultPage /></Layout>} />
-        <Route path="/cartas" element={<Layout><OrbitLettersPage /></Layout>} />
-        <Route path="/foco" element={<Layout><FocusRoom /></Layout>} />
-        <Route path="/vinculos" element={<Layout><VinculosPage /></Layout>} />
+        <Route path="/tienda-galactica" element={
+          loading ? <Layout><RouteLoader /></Layout> :
+            user ? <Layout><GalacticStore /></Layout> :
+              <Layout><LoginGate /></Layout>
+        } />
+        <Route path="/pase-estelar" element={
+          loading ? <Layout><RouteLoader /></Layout> :
+            user ? <Layout><StellarPassPage /></Layout> :
+              <Layout><LoginGate /></Layout>
+        } />
+        <Route path="/vault" element={
+          loading ? <Layout><RouteLoader /></Layout> :
+            user ? <Layout><VaultPage /></Layout> :
+              <Layout><LoginGate /></Layout>
+        } />
+        <Route path="/cartas" element={
+          loading ? <Layout><RouteLoader /></Layout> :
+            user ? <Layout><OrbitLettersPage /></Layout> :
+              <Layout><LoginGate /></Layout>
+        } />
+        <Route path="/foco" element={
+          loading ? <Layout><RouteLoader /></Layout> :
+            user ? <Layout><FocusRoom /></Layout> :
+              <Layout><LoginGate /></Layout>
+        } />
+        <Route path="/vinculos" element={
+          loading ? <Layout><RouteLoader /></Layout> :
+            user ? <Layout><VinculosPage /></Layout> :
+              <Layout><LoginGate /></Layout>
+        } />
         <Route path="/universo" element={<StellarMap />} />
         <Route path="/arquitectura" element={<Layout><ArquitecturaPage /></Layout>} />
         <Route path="/guestbook" element={<Layout><GuestbookPage /></Layout>} />
