@@ -22,7 +22,11 @@ export default defineConfig(({ mode }) => {
           // Precaché: JS, CSS, HTML, fuentes e íconos
           globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2}'],
           // No precachear chunks grandes (livekit, konva) — se cachean en runtime
-          globIgnores: ['**/livekit-*.js', '**/konva-*.js', '**/games-*.js'],
+          globIgnores: ['**/livekit-*.js', '**/konva-*.js', '**/canvas-*.js', '**/games-*.js'],
+          // Limpiar cache antigua
+          cleanupOutdatedCaches: true,
+          skipWaiting: true,
+          clientsClaim: true,
           runtimeCaching: [
             {
               // API Supabase: network-first con fallback a caché 5 min
