@@ -33,6 +33,7 @@ import { CosmicProvider, useCosmic } from "./components/Effects/CosmicProvider";
 
 // Lazy Pages
 const PostsPage = lazy(() => import("./pages/PostsPage"));
+const EventsPage = lazy(() => import("./pages/EventsPage"));
 const CreatePostPage = lazy(() => import("./pages/CreatePostPage"));
 const PostPage = lazy(() => import("./pages/PostPage"));
 const MusicPage = lazy(() => import("./pages/MusicPage"));
@@ -488,6 +489,7 @@ function AnimatedRoutes() {
             user ? <Layout><PostsPage /></Layout> :
               <Layout><LoginGate /></Layout>
         } />
+        <Route path="/events" element={<Layout><EventsPage /></Layout>} />
         <Route path="/transmission/:postId" element={<Layout><PostDetailPage /></Layout>} />
         <Route path="/bulletin" element={<Layout><BulletinPage /></Layout>} />
         <Route path="/games" element={<Layout><GamesPage /></Layout>} />
