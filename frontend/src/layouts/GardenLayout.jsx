@@ -114,6 +114,10 @@ export default function GardenLayout({ children }) {
                         <span className="text-[10px] font-black uppercase tracking-widest">Feed de Exploración</span>
                         <span className="text-[10px]">🌌</span>
                       </NavLink>
+                      <NavLink to="/communities" className={({ isActive }) => `flex items-center justify-between px-4 py-3 rounded-xl transition-all ${isActive ? 'bg-purple-500/10 text-purple-400' : 'text-white/40 hover:bg-white/5 hover:text-white'}`}>
+                        <span className="text-[10px] font-black uppercase tracking-widest">Comunidades</span>
+                        <span className="text-[10px]">🏘️</span>
+                      </NavLink>
                       <NavLink to="/chat" className={({ isActive }) => `flex items-center justify-between px-4 py-3 rounded-xl transition-all ${isActive ? 'bg-cyan-500/10 text-cyan-400' : 'text-white/40 hover:bg-white/5 hover:text-white'}`}>
                         <div className="flex flex-col">
                           <span className="text-[10px] font-black uppercase tracking-widest leading-none">Chat Global</span>
@@ -254,6 +258,10 @@ export default function GardenLayout({ children }) {
         <NavLink to="/posts" className={({ isActive }) => `mobileNavLink ${isActive ? 'active' : ''}`} end>
           <span className="mobileNavIcon icon-pulse">🌌</span>
           <span className="mobileNavLabel">Feed</span>
+        </NavLink>
+        <NavLink to="/communities" className={({ isActive }) => `mobileNavLink ${isActive ? 'active' : ''}`}>
+          <span className="mobileNavIcon">🏘️</span>
+          <span className="mobileNavLabel">Comunidades</span>
         </NavLink>
         <NavLink to="/chat" className={({ isActive }) => `mobileNavLink ${isActive ? 'active' : ''}`}>
           <div className="relative">

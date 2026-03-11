@@ -10,6 +10,7 @@ import { communitiesService } from '../services/communitiesService';
 import { liveActivitiesService } from '../services/liveActivitiesService';
 import CommunityCard from '../components/Communities/CommunityCard';
 import LiveActivityCard from '../components/Activities/LiveActivityCard';
+import CreateCommunityModal from '../components/Communities/CreateCommunityModal';
 import StellarScrollBg from '../components/Effects/StellarScrollBg';
 
 const CATEGORIES = [
@@ -27,6 +28,7 @@ export default function CommunitiesPage() {
   const [loading, setLoading] = useState(true);
   const [activeCategory, setActiveCategory] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [showCreateModal, setShowCreateModal] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -53,6 +55,11 @@ export default function CommunitiesPage() {
     }
   };
 
+  const handleCommunityCreated = (newCommunity) => {
+    setCommunities(prev => [newCommunity, ...prev]);
+    loadData();
+  };
+
   return (
     <main className="w-full max-w-6xl mx-auto min-h-screen pb-32 text-white font-sans pt-6 md:pt-10 px-4 relative">
       <StellarScrollBg />
@@ -61,14 +68,25 @@ export default function CommunitiesPage() {
       <motion.div
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
-        className="mb-8"
+        className="mb-8 flex items-start justify-between gap-4"
       >
-        <h1 className="text-4xl md:text-5xl font-black uppercase tracking-tight text-white/90 glitch-text">
-          Comunidades
-        </h1>
-        <p className="text-[10px] font-bold uppercase tracking-widest text-cyan-400/40 mt-1">
-          Descubre espacios donde algo siempre está pasando
-        </p>
+        <div>
+          <h1 className="text-4xl md:text-5xl font-black uppercase tracking-tight text-white/90 glitch-text">
+            Comunidades
+          </h1>
+          <p className="text-[10px] font-bold uppercase tracking-widest text-cyan-400/40 mt-1">
+            Descubre espacios
+          </p>
+        </div>
+        
+        <motion.button
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={() => setShowCreateModal(true)}
+          className="flex-shrink-0 px-6 py-3 bg-gradient-to-r from-purple-500/20 to-cyan-500/20 hover:from-purple-500/30 hover:to-cyan-500/30 border border-purple-500/30 rounded-xl text-xs font-black uppercase tracking-wider text-purple-300 transition-all shadow-lg"
+        >
+          + Crear Comunidad
+        </motion.button>
       </motion.div>
 
       {/* Search Bar */}
@@ -170,6 +188,13 @@ export default function CommunitiesPage() {
           </div>
         )}
       </motion.section>
+
+      {/* Create Community Modal */}
+      <CreateCommunityModal
+        isOpen={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+        onSuccess={handleCommunityCreated}
+      />
     </main>
   );
 }
