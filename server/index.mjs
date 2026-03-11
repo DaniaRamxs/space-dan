@@ -40,31 +40,6 @@ console.log(`[STARTUP] NODE_ENV: ${process.env.NODE_ENV || 'not set'}`);
 console.log(`[STARTUP] PORT from env: ${process.env.PORT || 'not set (using 2567)'}`);
 console.log(`[STARTUP] Final PORT: ${PORT}`);
 
-// Railway idle shutdown: exit after 10 min with 0 connections
-const IDLE_TIMEOUT_MS = 10 * 60 * 1000;
-let _idleTimer = null;
-let _totalConnections = 0;
-
-function onConnectionChange(delta) {
-  _totalConnections = Math.max(0, _totalConnections + delta);
-
-  if (_totalConnections === 0) {
-    // Start idle countdown
-    if (!_idleTimer) {
-      _idleTimer = setTimeout(() => {
-        console.log("[SERVER] Idle timeout reached — shutting down for Railway sleep.");
-        process.exit(0);
-      }, IDLE_TIMEOUT_MS);
-    }
-  } else {
-    // Cancel idle countdown
-    if (_idleTimer) {
-      clearTimeout(_idleTimer);
-      _idleTimer = null;
-    }
-  }
-}
-
 /* ==================== EXPRESS APP ==================== */
 
 const app = express();
@@ -109,13 +84,14 @@ app.get("/health", (req, res) => {
   const mem = process.memoryUsage();
   res.json({
     status: "ok",
-    connections: _totalConnections,
     memory: {
       rss: Math.round(mem.rss / 1048576),       // MB
       heapUsed: Math.round(mem.heapUsed / 1048576),
       heapTotal: Math.round(mem.heapTotal / 1048576),
     },
     uptime: Math.round(process.uptime()),
+    port: PORT,
+    environment: IS_PROD ? 'production' : 'development'
   });
 });
 
@@ -137,19 +113,10 @@ const gameServer = new Server({
   })
 });
 
-// Track WebSocket connections for idle shutdown
-gameServer.onShutdown(() => { console.log("[SERVER] Colyseus shutdown"); });
-
-const wss = gameServer.transport.server;
-if (wss && typeof wss.on === 'function') {
-  wss.on('connection', (ws) => {
-    onConnectionChange(+1);
-    ws.on('close', () => onConnectionChange(-1));
-  });
-}
-
-// Start idle timer immediately (will be cancelled on first connection)
-onConnectionChange(0);
+// Simple shutdown handler
+gameServer.onShutdown(() => { 
+  console.log("[SERVER] Colyseus shutdown requested"); 
+});
 
 /* ==================== ROOM DEFINITIONS ==================== */
 
@@ -179,7 +146,8 @@ process.on("unhandledRejection", (err) => {
 /* ==================== START SERVER ==================== */
 
 server.listen(PORT, () => {
-  console.log(`🚀 [SERVER] Spacely v2.2.0 | port ${PORT} | ${IS_PROD ? 'prod' : 'dev'} | idle-shutdown: ${IDLE_TIMEOUT_MS / 60000}min`);
+  console.log(`🚀 [SERVER] Spacely v2.2.0 | port ${PORT} | ${IS_PROD ? 'prod' : 'dev'} | WebSocket ready`);
+  console.log(`🌐 [SERVER] Health: http://localhost:${PORT}/health`);
 });
 
 export { app, server, gameServer };
