@@ -76,6 +76,9 @@ const PlanetAuction = lazy(() => import('../components/PlanetAuction'));
 const BlackHolePull = lazy(() => import('../components/BlackHolePull'));
 const AlienPoker = lazy(() => import('../components/AlienPoker'));
 const CasinoLeaderboard = lazy(() => import('../components/CasinoLeaderboard'));
+// New Arcade Games
+const RhythmDash = lazy(() => import('../components/RhythmDash'));
+const BubbleBlast = lazy(() => import('../components/BubbleBlast'));
 
 
 const GAMES = [
@@ -115,6 +118,8 @@ const GAMES = [
   { id: 'phaserunner', icon: '⚡', title: 'phase runner', component: PhaseRunner, category: 'Skill', isImmersive: true },
   { id: 'magnetdash', icon: '🧲', title: 'magnet dash', component: MagnetDash, category: 'Skill', isImmersive: true },
   { id: 'echotiming', icon: '📡', title: 'echo timing', component: EchoTiming, category: 'Skill', isImmersive: true },
+  { id: 'rhythm-dash', icon: '🎵', title: 'rhythm dash', component: RhythmDash, category: 'Arcade', isImmersive: true },
+  { id: 'bubble-blast', icon: '🫧', title: 'bubble blast', component: BubbleBlast, category: 'Puzzle', isImmersive: true },
   // Casino
   { id: 'casino-blackjack', icon: '🃠', title: 'blackjack', component: CasinoBlackjack, category: 'Casino', isImmersive: true },
   { id: 'cosmic-dice', icon: '🎲', title: 'cosmic dice', component: CosmicDice, category: 'Casino', isImmersive: true },
