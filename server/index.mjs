@@ -97,25 +97,43 @@ app.get("/health", (req, res) => {
   });
 });
 
-/* ---------------- MOCK AUTH MIDDLEWARE (TEMPORARY) ---------------- */
+/* ---------------- SUPABASE AUTH MIDDLEWARE ---------------- */
 
-// Temporary middleware to mock user authentication for testing
-// Using a valid UUID format that Supabase will accept
-const MOCK_USER_UUID = '00000000-0000-0000-0000-000000000001';
+import { createClient } from '@supabase/supabase-js';
 
-app.use("/api/communities", (req, res, next) => {
-  if (!req.user) {
-    req.user = { id: MOCK_USER_UUID }; // Mock user with valid UUID
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
+
+// Middleware to validate Supabase JWT and extract user
+async function authenticateSupabase(req, res, next) {
+  const authHeader = req.headers.authorization;
+  
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return res.status(401).json({ error: 'No authorization token provided' });
   }
-  next();
-});
 
-app.use("/api/activities", (req, res, next) => {
-  if (!req.user) {
-    req.user = { id: MOCK_USER_UUID }; // Mock user with valid UUID
+  const token = authHeader.substring(7); // Remove 'Bearer ' prefix
+
+  try {
+    const { data: { user }, error } = await supabaseAdmin.auth.getUser(token);
+    
+    if (error || !user) {
+      return res.status(401).json({ error: 'Invalid or expired token' });
+    }
+
+    req.user = { id: user.id, email: user.email };
+    next();
+  } catch (error) {
+    console.error('[Auth] Token validation error:', error);
+    return res.status(401).json({ error: 'Authentication failed' });
   }
-  next();
-});
+}
+
+// Apply auth middleware to protected routes
+app.use("/api/communities", authenticateSupabase);
+app.use("/api/activities", authenticateSupabase);
 
 /* ---------------- API ROUTES ---------------- */
 

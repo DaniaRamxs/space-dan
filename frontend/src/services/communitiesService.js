@@ -3,17 +3,29 @@
  * Client-side service for community operations
  */
 
+import { supabase } from '../supabaseClient';
+
 // TODO: Configure VITE_API_URL in Vercel Dashboard
 const API_URL = 'https://spacely-server-production.up.railway.app';
+
+// Helper to get auth headers
+async function getAuthHeaders() {
+  const { data: { session } } = await supabase.auth.getSession();
+  return {
+    'Content-Type': 'application/json',
+    'Authorization': session?.access_token ? `Bearer ${session.access_token}` : ''
+  };
+}
 
 export const communitiesService = {
   /**
    * Create a new community
    */
   async createCommunity({ name, slug, description, category, avatar, banner }) {
+    const headers = await getAuthHeaders();
     const response = await fetch(`${API_URL}/api/communities`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers,
       credentials: 'include',
       body: JSON.stringify({ name, slug, description, category, avatar, banner })
     });
@@ -34,7 +46,9 @@ export const communitiesService = {
     if (category) params.append('category', category);
     if (search) params.append('search', search);
 
+    const headers = await getAuthHeaders();
     const response = await fetch(`${API_URL}/api/communities?${params}`, {
+      headers,
       credentials: 'include'
     });
 
@@ -46,11 +60,13 @@ export const communitiesService = {
    * Get community by slug
    */
   async getCommunityBySlug(slug) {
+    const headers = await getAuthHeaders();
     const response = await fetch(`${API_URL}/api/communities/${slug}`, {
+      headers,
       credentials: 'include'
     });
 
-    if (!response.ok) throw new Error('Community not found');
+    if (!response.ok) throw new Error('Failed to fetch community');
     return response.json();
   },
 
@@ -58,8 +74,10 @@ export const communitiesService = {
    * Join a community
    */
   async joinCommunity(communityId) {
+    const headers = await getAuthHeaders();
     const response = await fetch(`${API_URL}/api/communities/${communityId}/join`, {
       method: 'POST',
+      headers,
       credentials: 'include'
     });
 
@@ -71,8 +89,10 @@ export const communitiesService = {
    * Leave a community
    */
   async leaveCommunity(communityId) {
+    const headers = await getAuthHeaders();
     const response = await fetch(`${API_URL}/api/communities/${communityId}/leave`, {
       method: 'POST',
+      headers,
       credentials: 'include'
     });
 
@@ -85,7 +105,9 @@ export const communitiesService = {
    */
   async getCommunityMembers(communityId, { limit = 50, offset = 0 } = {}) {
     const params = new URLSearchParams({ limit, offset });
+    const headers = await getAuthHeaders();
     const response = await fetch(`${API_URL}/api/communities/${communityId}/members?${params}`, {
+      headers,
       credentials: 'include'
     });
 
