@@ -3,7 +3,8 @@
  * Client-side service for community operations
  */
 
-const API_URL = import.meta.env.VITE_API_URL || 'https://spacely-server-production.up.railway.app';
+// TODO: Configure VITE_API_URL in Vercel Dashboard
+const API_URL = 'https://spacely-server-production.up.railway.app';
 
 export const communitiesService = {
   /**
