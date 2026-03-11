@@ -1,0 +1,5 @@
+/* App.css — estilos especificos de App, sin sobreescribir estilos globales */
+#root {
+  margin: 0;
+  padding: 0;
+}

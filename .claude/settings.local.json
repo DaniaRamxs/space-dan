@@ -1,0 +1,37 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install:*)",
+      "Bash(python scripts/with_server.py --server \"npm --prefix C:/Users/USUARIO/space-dan run dev\" --port 5173 -- python \"C:/Users/USUARIO/space-dan/test_app.py\")",
+      "Bash(pip install:*)",
+      "Bash(python -m playwright install:*)",
+      "Bash(where:*)",
+      "Bash(py --version)",
+      "Bash(/c/Users/USUARIO/AppData/Local/Python/bin/python3 -m pip install:*)",
+      "Bash(python scripts/with_server.py --server \"npm --prefix C:/Users/USUARIO/space-dan run dev\" --port 5173 -- /c/Users/USUARIO/AppData/Local/Python/bin/python3 \"C:/Users/USUARIO/space-dan/test_app.py\")",
+      "Bash(npm run build:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(git status:*)",
+      "Bash(git fetch:*)",
+      "Bash(git checkout:*)",
+      "Bash(git merge:*)",
+      "Bash(ls -la \"c:\\\\Users\\\\USUARIO\\\\space-dan\\\\src\"\" | grep -E \"^d \")",
+      "Skill(commit-commands:commit-push-pr)",
+      "Skill(commit-commands:commit-push-pr:*)",
+      "Bash(winget list:*)",
+      "Bash(npx vite build)",
+      "Bash(npx supabase functions logs:*)",
+      "Bash(npx cap sync:*)",
+      "Bash(node:*)",
+      "Bash(npx tsc:*)",
+      "Bash(grep:*)",
+      "Bash(xargs -I {} sh -c 'echo \"\"=== {} ===\"\" && head -1 {} | grep -o \"\"import\\\\|// \"\" || true')",
+      "Bash(done)",
+      "Bash(wc:*)",
+      "Bash(rustc:*)",
+      "Bash(cargo --version:*)"
+    ]
+  }
+}

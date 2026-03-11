@@ -1,0 +1,1294 @@
+/**
+ * PublicProfilePage — perfil público de cualquier usuario.
+ * Ruta: /profile/:userId
+ */
+import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
+import { useParams, Link } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
+
+import { supabase } from '../../supabaseClient';
+import { ACHIEVEMENTS } from '../../hooks/useAchievements';
+import { getUserGameRanks } from '../../services/supabaseScores';
+import { useAuthContext } from '../../contexts/AuthContext';
+import ActivityFeed from '../../components/Social/ActivityFeed';
+import EchoesSection from '../../components/Social/EchoesSection';
+import { activityService } from '../../services/activityService';
+import { PostSkeleton } from '../../components/Skeletons/Skeleton';
+import BlogPostCard from '../../components/Social/BlogPostCard';
+import { profileSocialService } from '../../services/profile_social';
+import { spotifyService } from '../../services/spotifyService';
+import { socialService } from '../../services/social';
+import { getProductivityStats } from '../../services/productivity';
+import { blogService } from '../../services/blogService';
+import { PrivateUniverse } from '../../components/PrivateUniverse';
+import { universeService } from '../../services/universe';
+import * as storeService from '../../services/store';
+import { useNavigate } from 'react-router-dom';
+import { getUserDisplayName, getNicknameClass } from '../../utils/user';
+import { UniverseProvider, useUniverse } from '../../contexts/UniverseContext.jsx';
+import SafeAvatar from '../../components/SafeAvatar';
+import { affinityService } from '../../services/affinityService';
+import '../../banner-effects.css';
+import '../../styles/NicknameStyles.css';
+
+import { getFrameStyle, getLinkedFrameStyle, getLinkedGlowClass } from '../../utils/styles';
+
+const GAME_NAMES = {
+  asteroids: 'Asteroids', tetris: 'Tetris', snake: 'Snake', pong: 'Pong',
+  memory: 'Memory', ttt: 'Tic Tac Toe', whack: 'Whack-a-Mole', color: 'Color Match',
+  reaction: 'Reaction Time', '2048': '2048', blackjack: 'Blackjack',
+  puzzle: 'Sliding Puzzle', invaders: 'Space Invaders', breakout: 'Breakout',
+  flappy: 'Flappy Bird', mines: 'Buscaminas', dino: 'Dino Runner',
+  connect4: 'Connect Four', simon: 'Simon Says', cookie: 'Cookie Clicker',
+  maze: 'Maze', catch: 'Catch Game', dodge: 'Dodge Game',
+};
+
+export default function PublicProfilePage() {
+  const { username } = useParams();
+  const { user, profile: myProfile } = useAuthContext();
+  const navigate = useNavigate();
+
+  const [profile, setProfile] = useState(null);
+  const [gameRanks, setGameRanks] = useState([]);
+  const [cabinStats, setCabinStats] = useState(null);
+  const [achIds, setAchIds] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [notFound, setNotFound] = useState(false);
+
+  // Social state
+  const [isFollowing, setIsFollowing] = useState(false);
+  const [followCounts, setFollowCounts] = useState({ followers: 0, following: 0 });
+  const [comments, setComments] = useState([]);
+  const [newComment, setNewComment] = useState('');
+  const [submittingComment, setSubmittingComment] = useState(false);
+  const [activityLabel, setActivityLabel] = useState(null);
+  const [activeTab, setActiveTab] = useState('records');
+  const [posts, setPosts] = useState([]);
+  const [partnership, setPartnership] = useState(null);
+  const [bannerItem, setBannerItem] = useState(null);
+  const [hasPendingRequest, setHasPendingRequest] = useState(false);
+  const [requestLoading, setRequestLoading] = useState(false);
+  const [affinityScore, setAffinityScore] = useState(null);
+  const [affinityCommunalities, setAffinityCommunalities] = useState([]);
+  const [affinityCategories, setAffinityCategories] = useState({});
+  const [soundState, setSoundState] = useState(null);
+  const [soundAverage, setSoundAverage] = useState(null);
+  const [musicOverlap, setMusicOverlap] = useState(null);
+
+  // Determine if it's the current user's profile based on username
+  const isOwnProfile = user && profile && user.id === profile.id;
+
+  useEffect(() => {
+    if (!username) return;
+
+    // If it doesn't start with @, it's not a profile route (likely a 404)
+    if (!username.startsWith('@')) {
+      setNotFound(true);
+      setLoading(false);
+      return;
+    }
+
+    load();
+  }, [username]);
+
+  // Dynamic Metadata
+  useEffect(() => {
+    if (profile?.username) {
+      document.title = `${profile.username} (@${profile.username}) | Spacely`;
+    } else if (notFound) {
+      document.title = `Usuario no encontrado | Spacely`;
+    }
+  }, [profile, notFound]);
+
+  async function load() {
+    let isMountedLocal = true;
+    setLoading(true);
+    setNotFound(false);
+    try {
+      // Clean username from @ (at this point we know it has it)
+      let cleanUsername = username.slice(1);
+      try { cleanUsername = decodeURIComponent(cleanUsername); } catch (e) { console.warn("Could not decode username", e); }
+
+      const { data: prof, error } = await supabase
+        .from('profiles')
+        .select(`
+          *,
+          theme_item:equipped_theme(id, metadata),
+          nick_style_item:equipped_nickname_style(id, metadata),
+          primary_role_item:equipped_primary_role(id, title, metadata),
+          secondary_role_item:equipped_secondary_role(id, title, metadata),
+          ambient_sound_item:equipped_ambient_sound(id, title, metadata),
+          banner_item:banner_item_id(id, title, metadata, preview_url),
+          frame_item:frame_item_id(id, title, metadata, preview_url)
+        `)
+        .ilike('username', cleanUsername.toLowerCase())
+        .maybeSingle();
+
+      if (!isMountedLocal) return;
+      if (error || !prof) {
+        setNotFound(true);
+        setLoading(false);
+        return;
+      }
+      setProfile(prof);
+      const targetUserId = prof.id;
+
+      const [ranks, socialInfo, profileComments, cStats, userPosts, pData, achData] = await Promise.all([
+        getUserGameRanks(targetUserId).catch(() => []),
+        profileSocialService.getFollowCounts(targetUserId).catch(() => ({ followers: 0, following: 0 })),
+        profileSocialService.getProfileComments(targetUserId).catch(() => []),
+        getProductivityStats(targetUserId).catch(() => null),
+        blogService.getUserPosts(targetUserId).catch(() => []),
+        universeService.getProfilePartnership(targetUserId).catch(() => null),
+        supabase.from('user_achievements').select('achievement_id').eq('user_id', targetUserId).then(({ data }) => data || []).catch(() => [])
+      ]);
+
+      if (!isMountedLocal) return;
+
+      setGameRanks(ranks || []);
+      setCabinStats(cStats);
+      setAchIds(achData.map(a => a.achievement_id));
+      setFollowCounts(socialInfo);
+      setComments(profileComments);
+      setPosts(userPosts);
+      setPartnership(pData);
+
+      // Calcular afinidad
+      if (user && user.id !== targetUserId && prof.affinity_completed && myProfile?.affinity_completed) {
+        Promise.all([
+          affinityService.getUserAnswers(user.id),
+          affinityService.getUserAnswers(targetUserId),
+          affinityService.getQuestions(),
+          spotifyService.getUserSoundState(user.id),
+          spotifyService.getUserSoundState(targetUserId),
+          spotifyService.getUserSoundAverage(user.id),
+          spotifyService.getUserSoundAverage(targetUserId),
+          spotifyService.getMusicOverlap(user.id, targetUserId)
+        ]).then(([myAns, targetAns, questions, mySound, targetSound, mySoundAvg, targetSoundAvg, overlap]) => {
+          if (!myAns?.length || !targetAns?.length) return;
+          const baseScore = affinityService.calculateAffinity(myAns, targetAns, questions);
+          const score = affinityService.calculateTotalAffinity(baseScore, mySoundAvg, targetSoundAvg);
+          const comms = affinityService.getAffinityCommunalities(myAns, targetAns, questions);
+          const cats = affinityService.calculateAffinityByCategory(myAns, targetAns, questions);
+
+          if (isMountedLocal) {
+            setAffinityScore(score);
+            setAffinityCommunalities(comms);
+            setAffinityCategories(cats);
+            setSoundState(targetSound);
+            setSoundAverage(targetSoundAvg);
+            setMusicOverlap(overlap);
+          }
+        }).catch(err => console.error('[Affinity/Music] Calculation error:', err));
+      } else {
+        setAffinityScore(null);
+        setAffinityCommunalities([]);
+        setAffinityCategories({});
+        // Aunque no haya test de afinidad, intentemos buscar su estado sonoro
+        spotifyService.getUserSoundState(targetUserId).then(s => {
+          if (isMountedLocal) setSoundState(s);
+        }).catch(() => { });
+        spotifyService.getUserSoundAverage(targetUserId).then(a => {
+          if (isMountedLocal) setSoundAverage(a);
+        }).catch(() => { });
+        if (user && user.id !== targetUserId) {
+          spotifyService.getMusicOverlap(user.id, targetUserId).then(o => {
+            if (isMountedLocal) setMusicOverlap(o);
+          }).catch(() => { });
+        }
+      }
+
+      if (prof.banner_item) {
+        setBannerItem(prof.banner_item);
+      } else if (prof.banner_item_id) {
+        storeService.getStoreItem(prof.banner_item_id)
+          .then(item => { if (isMountedLocal) setBannerItem(item); })
+          .catch(() => { });
+      } else {
+        setBannerItem(null);
+      }
+
+      // Activity status (non-blocking)
+      socialService.getUserActivity(targetUserId)
+        .then(label => { if (isMountedLocal) setActivityLabel(label); })
+        .catch(() => { });
+
+      if (user && user.id !== targetUserId) {
+        profileSocialService.isFollowing(targetUserId)
+          .then(following => { if (isMountedLocal) setIsFollowing(following); })
+          .catch(() => { if (isMountedLocal) setIsFollowing(false); });
+      }
+
+      if (user && user.id !== targetUserId && !pData) {
+        supabase
+          .from('partnership_requests')
+          .select('id')
+          .eq('sender_id', user.id)
+          .eq('receiver_id', targetUserId)
+          .eq('status', 'pending')
+          .maybeSingle()
+          .then(({ data }) => { if (isMountedLocal) setHasPendingRequest(!!data); });
+      }
+    } catch (err) {
+      console.error('[PublicProfilePage] load error:', err);
+      setNotFound(true);
+    } finally {
+      if (isMountedLocal) setLoading(false);
+    }
+  }
+
+  // Need to use profile.id for handleToggleFollow, handleAddComment, etc.
+  const targetUserId = profile?.id;
+
+  const handleToggleFollow = async () => {
+    if (!user || !profile?.id) return alert('Debes iniciar sesión para seguir usuarios.');
+    try {
+      const { following } = await profileSocialService.toggleFollow(profile.id);
+      setIsFollowing(following);
+      setFollowCounts(prev => ({
+        ...prev,
+        followers: prev.followers + (following ? 1 : -1),
+      }));
+    } catch (err) {
+      console.error('[handleToggleFollow]', err);
+      alert('Error en el protocolo de seguimiento: ' + (err.message || 'Desconocido'));
+    }
+  };
+
+  const handleAddComment = async (e) => {
+    e.preventDefault();
+    if (!newComment.trim() || !profile?.id) return;
+    if (!user) return alert('Debes iniciar sesión para comentar.');
+    setSubmittingComment(true);
+    try {
+      const added = await profileSocialService.addProfileComment(profile.id, newComment);
+      setComments(prev => [added, ...prev]);
+      setNewComment('');
+    } catch (err) {
+      console.error('[handleAddComment]', err);
+      alert('Error al publicar: ' + (err.message || 'Desconocido'));
+    } finally {
+      setSubmittingComment(false);
+    }
+  };
+
+  const handleSendRequest = async () => {
+    if (!user || !profile?.id) return alert('Debes iniciar sesión.');
+    setRequestLoading(true);
+    try {
+      await universeService.sendRequest(profile.id);
+      setHasPendingRequest(true);
+      alert('¡Solicitud de vínculo enviada! 🌌');
+    } catch (err) {
+      console.error('[handleSendRequest] Error:', err);
+      const msg = err?.message || err?.error_description || JSON.stringify(err);
+      // Detectar tabla inexistente
+      if (msg.includes('relation') && msg.includes('does not exist')) {
+        alert('❌ La tabla partnership_requests no existe en la base de datos.\n\nEjecuta el archivo supabase/partnership_requests.sql en el SQL Editor de Supabase.');
+      } else if (msg.includes('row-level security') || msg.includes('violates row-level')) {
+        alert('❌ Política RLS bloquea la inserción.\n\nAsegúrate de haber ejecutado las políticas en partnership_requests.sql.');
+      } else if (msg.includes('duplicate') || msg.includes('unique')) {
+        alert('Ya enviaste una solicitud a este usuario.');
+        setHasPendingRequest(true);
+      } else {
+        alert(`❌ No se pudo enviar la solicitud:\n${msg}`);
+      }
+    } finally {
+      setRequestLoading(false);
+    }
+  };
+
+
+  const handleDeleteComment = async (commentId) => {
+    if (!window.confirm('¿Eliminar este mensaje del muro?')) return;
+    try {
+      await profileSocialService.deleteComment(commentId);
+      setComments(prev => prev.filter(c => c.id !== commentId));
+    } catch (err) {
+      alert('Error al eliminar el comentario.');
+    }
+  };
+
+  if (loading) return (
+    <main className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
+      <div className="relative w-16 h-16">
+        <div className="absolute inset-0 border-4 border-cyan-500/20 rounded-full"></div>
+        <div className="absolute inset-0 border-4 border-cyan-500 rounded-full border-t-transparent animate-spin"></div>
+      </div>
+      <span className="text-cyan-500 font-black tracking-[0.3em] uppercase text-xs animate-pulse">sincronizando_perfil...</span>
+    </main>
+  );
+
+  if (notFound) return (
+    <main className="flex flex-col items-center justify-center min-h-[70vh] text-center px-6">
+      <div className="mb-8 relative">
+        <span className="text-9xl opacity-10 font-black">404</span>
+        <div className="absolute inset-0 flex items-center justify-center">
+          <span className="text-6xl">📡</span>
+        </div>
+      </div>
+      <h2 className="text-2xl font-black italic text-white mb-2 uppercase tracking-tighter">Usuario fuera de órbita</h2>
+      <p className="text-white/40 max-w-xs mb-8 text-sm">El explorador {username.startsWith('@') ? username : `@${username}`} no ha sido encontrado en nuestro sector de la galaxia.</p>
+      <div className="flex flex-col sm:flex-row gap-4">
+        <Link to="/leaderboard" className="px-8 py-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-2xl text-[10px] font-black tracking-widest uppercase transition-all">
+          ← Ver Leaderboard
+        </Link>
+        <Link to="/" className="px-8 py-3 bg-cyan-500 text-black rounded-2xl text-[10px] font-black tracking-widest uppercase transition-all hover:bg-cyan-400">
+          Volver al Inicio
+        </Link>
+      </div>
+    </main>
+  );
+
+  const unlockedAchs = ACHIEVEMENTS.filter(a => achIds.includes(a.id));
+  const joinedYear = profile.created_at ? new Date(profile.created_at).getFullYear() : null;
+  const topGames = Array.isArray(gameRanks)
+    ? [...gameRanks].sort((a, b) => (b.max_score ?? 0) - (a.max_score ?? 0)).slice(0, 6)
+    : [];
+
+  // GAMER STATS CALCULATION
+  const totalXp = Math.floor(Math.max(0, (profile?.balance || 0) + (unlockedAchs.length * 150) + (gameRanks.length * 200) + ((cabinStats?.total_focus_minutes || 0) * 2)));
+  const baseLevel = Math.max(1, Math.floor(0.1 * Math.sqrt(totalXp)));
+  const level = profile?.level || baseLevel;
+  const nextLevelXp = Math.floor(Math.pow((level + 1) / 0.1, 2));
+  const prevLevelXp = Math.floor(Math.pow(level / 0.1, 2));
+  const currentXpProgress = totalXp - prevLevelXp;
+  const levelXpRequirement = nextLevelXp - prevLevelXp;
+  const progressPercent = Math.min(100, Math.max(0, (currentXpProgress / levelXpRequirement) * 100));
+
+  const rankNames = ['Recluta Espacial', 'Explorador Novato', 'Cazador Cósmico', 'Piloto Estelar', 'Vanguardia', 'Comandante', 'Arquitecto Estelar', 'Leyenda Cósmica', 'Deidad Astral'];
+  const rankName = rankNames[Math.min(Math.floor(level / 3), rankNames.length - 1)];
+
+  const topGlobalRank = gameRanks.length > 0 ? Math.min(...gameRanks.map(r => Number(r.user_position))) : 'N/A';
+  const bestRecord = gameRanks.length > 0 ? Math.max(...gameRanks.map(g => g.max_score || 0)) : 0;
+
+  // Transformar datos para el UniverseProvider
+  const universeProfile = profile ? {
+    ...profile,
+    equipped_theme_id: profile.theme_item?.id,
+    equipped_theme_metadata: profile.theme_item?.metadata,
+    equipped_nickname_style_id: profile.nick_style_item?.id,
+    equipped_nickname_style_metadata: profile.nick_style_item?.metadata,
+    equipped_primary_role: profile.primary_role_item,
+    equipped_secondary_role: profile.secondary_role_item,
+    nick_style_item: profile.nick_style_item,
+    ambient_sound_item: profile.ambient_sound_item,
+    primary_role_item: profile.primary_role_item,
+    secondary_role_item: profile.secondary_role_item
+  } : null;
+
+  try {
+    return (
+      <UniverseProvider overrideProfile={universeProfile}>
+        <ProfileContent
+          profile={profile}
+          gameRanks={gameRanks}
+          cabinStats={cabinStats}
+          unlockedAchs={unlockedAchs}
+          followCounts={followCounts}
+          comments={comments}
+          posts={posts}
+          partnership={partnership}
+          bannerItem={bannerItem}
+          isOwnProfile={isOwnProfile}
+          isFollowing={isFollowing}
+          activityLabel={activityLabel}
+          activeTab={activeTab}
+          setActiveTab={setActiveTab}
+          handleToggleFollow={handleToggleFollow}
+          handleAddComment={handleAddComment}
+          handleDeleteComment={handleDeleteComment}
+          handleSendRequest={handleSendRequest}
+          newComment={newComment}
+          setNewComment={setNewComment}
+          submittingComment={submittingComment}
+          progressPercent={progressPercent}
+          totalXp={totalXp}
+          nextLevelXp={nextLevelXp}
+          level={level}
+          rankName={rankName}
+          topGlobalRank={topGlobalRank}
+          bestRecord={bestRecord}
+          userId={profile?.id}
+          hasPendingRequest={hasPendingRequest}
+          requestLoading={requestLoading}
+          affinityScore={affinityScore}
+          affinityCommunalities={affinityCommunalities}
+          affinityCategories={affinityCategories}
+          soundState={soundState}
+          soundAverage={soundAverage}
+          musicOverlap={musicOverlap}
+        />
+      </UniverseProvider>
+    );
+  } catch (err) {
+    console.error('[PublicProfilePage] Rendering Error:', err);
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[50vh] text-white">
+        <h2 className="text-xl font-bold mb-2">Error de Sintonización 🛰️</h2>
+        <p className="text-white/40 text-sm">{err.message}</p>
+        <button onClick={() => window.location.reload()} className="mt-4 px-6 py-2 bg-cyan-600 rounded-xl">Reintentar</button>
+      </div>
+    );
+  }
+}
+
+function ProfileContent({
+  profile, gameRanks, cabinStats, unlockedAchs, followCounts, comments, posts,
+  partnership, bannerItem, isOwnProfile, isFollowing, activityLabel, activeTab,
+  setActiveTab, handleToggleFollow, handleAddComment, handleDeleteComment,
+  handleSendRequest, newComment, setNewComment, submittingComment,
+  progressPercent, totalXp, nextLevelXp, level, rankName, topGlobalRank, bestRecord, userId,
+  hasPendingRequest, requestLoading,
+  affinityScore, affinityCommunalities, affinityCategories,
+  soundState, soundAverage, musicOverlap
+}) {
+  const { user } = useAuthContext();
+  const navigate = useNavigate();
+  const { nicknameStyle, primaryRole, secondaryRole, mood, ambientSound, isAmbientMuted, toggleAmbientMute } = useUniverse();
+  const [isSharing, setIsSharing] = useState(false);
+  const [showFollowModal, setShowFollowModal] = useState(null); // 'followers' | 'following' | null
+  const [followList, setFollowList] = useState([]);
+  const [followListLoading, setFollowListLoading] = useState(false);
+  const [liveSoundState, setLiveSoundState] = useState(soundState);
+
+  useEffect(() => { setLiveSoundState(soundState); }, [soundState]);
+
+  // Poll every 30s for live sound state updates
+  useEffect(() => {
+    if (!userId) return;
+    const interval = setInterval(async () => {
+      try {
+        const state = await spotifyService.getUserSoundState(userId);
+        if (state) setLiveSoundState(state);
+      } catch { /* silent */ }
+    }, 30000);
+    return () => clearInterval(interval);
+  }, [userId]);
+
+  const openFollowList = async (type) => {
+    setShowFollowModal(type);
+    setFollowListLoading(true);
+    setFollowList([]);
+    try {
+      const list = type === 'followers'
+        ? await profileSocialService.getFollowers(userId)
+        : await profileSocialService.getFollowing(userId);
+      setFollowList(list);
+    } catch (err) {
+      console.error('[FollowList]', err);
+    } finally {
+      setFollowListLoading(false);
+    }
+  };
+
+  const handleShare = () => {
+    const url = window.location.href;
+    navigator.clipboard.writeText(url);
+    setIsSharing(true);
+    setTimeout(() => setIsSharing(false), 2000);
+  };
+
+  const getSocialIcon = (id) => {
+    const icons = {
+      twitter: '🐦',
+      instagram: '📸',
+      github: '💻',
+      discord: '👾',
+      youtube: '📺',
+      spotify: '🎵',
+      custom: '🔗'
+    };
+    return icons[id] || '🔗';
+  };
+
+  const profileBg = profile?.equipped_items?.profile_bg || '#040408';
+
+  return (
+    <div className="min-h-screen text-white font-sans relative transition-colors duration-700" style={{ backgroundColor: profileBg }}>
+      <div className="fixed inset-0 bg-[url('/grid-pattern.png')] opacity-[0.02] pointer-events-none" />
+
+      {/* Banner Hero */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 1 }}
+        className={`h-64 md:h-80 w-full relative overflow-hidden bg-[#06060c] border-b border-white/5 transition-all duration-1000 ${bannerItem?.metadata?.animated ? 'animate-aurora' : ''}`}
+        style={{
+          backgroundImage: [
+            bannerItem?.preview_url ? `url(${bannerItem.preview_url})` : null,
+            bannerItem?.metadata?.gradient
+              ? `linear-gradient(to right, ${bannerItem.metadata.gradient.join(', ')})`
+              : (bannerItem?.metadata?.hex
+                ? `radial-gradient(circle at top right, ${bannerItem.metadata.hex}66 0%, transparent 70%)`
+                : (profile?.banner_color
+                  ? `radial-gradient(circle at top right, ${profile.banner_color}66 0%, transparent 60%)`
+                  : 'radial-gradient(circle at top right, rgba(139,92,246,0.1) 0%, transparent 60%)'
+                )
+              )
+          ].filter(Boolean).join(', '),
+          backgroundSize: bannerItem?.preview_url ? 'cover, auto' : 'auto',
+          backgroundPosition: bannerItem?.preview_url ? 'center, center' : 'center',
+        }}
+      >
+        {/* Effects Layers */}
+        {bannerItem?.metadata?.fx === 'matrix' && <div className="absolute inset-0 banner-fx-matrix opacity-60 z-10"></div>}
+        {bannerItem?.metadata?.fx === 'scanlines' && <div className="absolute inset-0 banner-fx-scanlines opacity-20"></div>}
+        {bannerItem?.metadata?.fx === 'stars' && <div className="absolute inset-0 banner-fx-stars opacity-40"></div>}
+        {bannerItem?.metadata?.fx === 'void' && <div className="absolute inset-0 banner-fx-void opacity-50"></div>}
+
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[var(--profile-bg)]" style={{ '--profile-bg': profileBg }} />
+
+        {/* Navigation Return */}
+        <div className="absolute top-8 left-8 z-50">
+          <Link to="/leaderboard" className="px-5 py-2.5 rounded-xl bg-black/40 backdrop-blur-md border border-white/10 text-[9px] font-black uppercase tracking-widest text-white/40 hover:text-white hover:bg-white/10 transition-all decoration-transparent">
+            ← REGRESAR
+          </Link>
+        </div>
+      </motion.div>
+
+      {/* Profile Container */}
+      <div className="max-w-7xl mx-auto px-6 -mt-16 md:-mt-20 relative z-10 pb-20">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-16 items-start">
+
+          {/* Affinity Indicator Overlay (if applicable) */}
+          {affinityScore !== null && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="absolute -top-32 right-8 hidden xl:flex flex-col items-end gap-3"
+            >
+              <div className="p-1 rounded-3xl bg-white/[0.03] backdrop-blur-xl border border-white/10 flex items-center gap-4 pr-6">
+                <div className="w-12 h-12 rounded-[24px] bg-gradient-to-br from-purple-500 to-cyan-500 flex items-center justify-center text-xl shadow-[0_0_20px_rgba(139,92,246,0.3)]">
+                  ⚡
+                </div>
+                <div>
+                  <div className="text-[9px] font-black text-white/40 uppercase tracking-[0.2em]">
+                    {affinityService.getAffinityNarrative(affinityScore)}
+                  </div>
+                  <div className="text-2xl font-black italic tracking-tighter text-white">{affinityScore}%</div>
+                </div>
+              </div>
+
+              {affinityCommunalities.length > 0 && (
+                <div className="flex flex-col items-end gap-1.5 px-4 animate-in fade-in slide-in-from-right-4 duration-1000">
+                  <span className="text-[8px] font-black text-white/20 uppercase tracking-widest mb-1">Coinciden en:</span>
+                  {affinityCommunalities.map((trait, i) => (
+                    <div key={i} className="flex items-center gap-2">
+                      <span className="text-[10px] text-white/60 font-medium italic text-right mb-0.5">{trait}</span>
+                      <div className="w-1 h-1 rounded-full bg-cyan-500/50" />
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Micro-affinities (Categorized) */}
+              {Object.keys(affinityCategories || {}).length > 0 && (
+                <div className="mt-4 flex flex-wrap justify-end gap-2 max-w-[280px]">
+                  {Object.entries(affinityCategories).map(([cat, val]) => {
+                    const CATEGORY_LABELS = {
+                      social: 'Social',
+                      personality: 'Personalidad',
+                      personalidad: 'Personalidad',
+                      emotional: 'Emocional',
+                      emocional: 'Emocional',
+                      emotions: 'Emocional',
+                      outlook: 'Perspectiva',
+                      perspective: 'Perspectiva',
+                      perspectiva: 'Perspectiva',
+                      work: 'Trabajo',
+                      trabajo: 'Trabajo',
+                      work_style: 'Trabajo',
+                      lifestyle: 'Estilo de Vida',
+                      life: 'Estilo de Vida',
+                      life_style: 'Estilo de Vida',
+                      values: 'Valores',
+                      valores: 'Valores',
+                      communication: 'Comunicación',
+                      comunicacion: 'Comunicación',
+                      humor: 'Humor',
+                      hobbies: 'Hobbies',
+                      interests: 'Intereses',
+                      intereses: 'Intereses',
+                      creativity: 'Creatividad',
+                      creatividad: 'Creatividad',
+                      ambition: 'Ambición',
+                      ambicion: 'Ambición',
+                      energy: 'Energía',
+                      energia: 'Energía',
+                      spirituality: 'Espiritualidad',
+                      espiritualidad: 'Espiritualidad',
+                      relationships: 'Relaciones',
+                      relaciones: 'Relaciones',
+                      mindset: 'Mentalidad',
+                      mentalidad: 'Mentalidad',
+                      music: 'Música',
+                      musica: 'Música',
+                      food: 'Comida',
+                      comida: 'Comida',
+                      politics: 'Política',
+                      politica: 'Política',
+                      travel: 'Viajes',
+                      viajes: 'Viajes',
+                      health: 'Salud',
+                      salud: 'Salud',
+                      family: 'Familia',
+                      familia: 'Familia',
+                      faith: 'Fe',
+                      religion: 'Religión',
+                      money: 'Dinero',
+                      dinero: 'Dinero',
+                      nature: 'Naturaleza',
+                      naturaleza: 'Naturaleza',
+                      art: 'Arte',
+                      arte: 'Arte',
+                      sports: 'Deportes',
+                      deportes: 'Deportes',
+                      tech: 'Tecnología',
+                      technology: 'Tecnología',
+                      tecnologia: 'Tecnología',
+                      philosophy: 'Filosofía',
+                      filosofia: 'Filosofía',
+                      adventure: 'Aventura',
+                      aventura: 'Aventura',
+                      independence: 'Independencia',
+                      security: 'Seguridad',
+                      seguridad: 'Seguridad',
+                      learning: 'Aprendizaje',
+                      growth: 'Crecimiento',
+                      crecimiento: 'Crecimiento',
+                      fun: 'Diversión',
+                      leisure: 'Ocio',
+                      routine: 'Rutina',
+                      rutina: 'Rutina',
+                      spontaneity: 'Espontaneidad',
+                      identity: 'Identidad',
+                      identidad: 'Identidad',
+                      purpose: 'Propósito',
+                      proposito: 'Propósito',
+                      behavior: 'Comportamiento',
+                      behaviour: 'Comportamiento',
+                      attitude: 'Actitud',
+                      actitud: 'Actitud',
+                      empathy: 'Empatía',
+                      empatia: 'Empatía',
+                      trust: 'Confianza',
+                      confianza: 'Confianza',
+                    };
+                    const key = cat.toLowerCase().replace(/\s+/g, '_');
+                    const label = CATEGORY_LABELS[key] || CATEGORY_LABELS[cat.toLowerCase()] || CATEGORY_LABELS[cat]
+                      || cat.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+                    return (
+                      <div key={cat} className="px-3 py-1 rounded-full bg-white/[0.03] border border-white/5 flex items-center gap-2">
+                        <span className="text-[7px] font-black uppercase tracking-widest text-white/30">{label}</span>
+                        <span className="text-[10px] font-mono font-black text-cyan-400/80">{val}%</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </motion.div>
+          )}
+
+          {/* ASIDE: Identity Sidebar */}
+          <aside className="lg:col-span-4 lg:sticky lg:top-12 space-y-12">
+            <div className="space-y-8">
+              <div className="relative w-24 h-24 md:w-40 md:h-40">
+                {/* Frame Handling */}
+                {(() => {
+                  const frameObj = getFrameStyle(profile?.frame_item_id);
+                  const frameClass = frameObj?.className || '';
+                  const isLv5 = profile?.frame_item_id === 'frame_link_lv5';
+
+                  return (
+                    <div
+                      className={`relative w-full h-full flex items-center justify-center ${frameClass} ${!(frameClass || (frameObj && (frameObj.border || frameObj.backgroundImage || frameObj.className || frameObj.boxShadow))) ? 'rounded-[30%] overflow-hidden bg-black border border-white/20' : ''}`}
+                      style={frameObj}
+                    >
+                      <div className={isLv5 ? 'marco-evolutivo-lv5-img-wrapper' : `w-full h-full rounded-[inherit] overflow-hidden`}>
+                        <SafeAvatar src={profile?.avatar_url} provider={profile?.provider} fallback="/default_user_blank.png" className="w-full h-full object-cover" />
+                      </div>
+                    </div>
+                  );
+                })()}
+
+                <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 px-4 py-1.5 rounded-full bg-white text-black text-[10px] font-black uppercase tracking-[0.2em] shadow-[0_10px_30px_rgba(255,255,255,0.3)] z-50 flex items-center gap-2 border border-white/20 scale-105">
+                  <span>LVL {level}</span>
+                  {profile?.prestige_level > 0 && (
+                    <div className="flex items-center gap-1 pl-1.5 border-l border-black/10">
+                      <span className="text-[11px]">🌀</span>
+                      <span className="text-[9px] font-black">{profile.prestige_level}</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Mood Thought Bubble */}
+                <div className="absolute -top-16 left-20 z-[60] pointer-events-none animate-bounce-subtle">
+                  <div className="relative">
+                    <div className="inline-flex max-w-[180px] items-center gap-2 rounded-2xl border border-white/20 bg-black/80 backdrop-blur-md px-4 py-2.5 text-[10px] text-white shadow-2xl ring-1 ring-white/10">
+                      <span className="text-sm leading-none drop-shadow-md">{profile?.mood_emoji || '💭'}</span>
+                      <span className="font-medium tracking-tight truncate">{profile?.mood_text?.trim() || '...'}</span>
+                    </div>
+                    {/* Comic bubble dots leading to avatar */}
+                    <div className="absolute -bottom-1 left-6 h-2.5 w-2.5 rounded-full border border-white/10 bg-black/70 shadow-xl" />
+                    <div className="absolute -bottom-4 left-3 h-1.5 w-1.5 rounded-full border border-white/10 bg-black/50 shadow-xl" />
+                  </div>
+                </div>
+
+                {/* Sound State Badge */}
+                {liveSoundState && (
+                  <div className={`absolute -bottom-6 left-1/2 -translate-x-1/2 px-4 py-1.5 rounded-full bg-black/80 backdrop-blur-xl text-[9px] font-black uppercase tracking-widest shadow-xl z-[60] flex items-center gap-2 whitespace-nowrap overflow-hidden max-w-[90%] ${liveSoundState.is_playing ? 'border border-emerald-500/30' : 'border border-white/10'}`}>
+                    <span className={`w-2 h-2 rounded-full ${liveSoundState.is_playing ? 'bg-emerald-400 animate-pulse shadow-[0_0_10px_rgba(52,211,153,0.5)]' : 'bg-white/20'}`}></span>
+                    <span className={`truncate flex-1 ${liveSoundState.is_playing ? 'text-emerald-400/90' : 'text-white/30'}`}>{liveSoundState.emotional_label || 'Sintonizando'}</span>
+                  </div>
+                )}
+              </div>
+
+              <div className="space-y-4">
+                <div className="flex items-center gap-3">
+                  <h1 className={`text-display font-black tracking-tight leading-none ${getNicknameClass(profile)} text-white uppercase`}>
+                    {getUserDisplayName(profile)}
+                  </h1>
+                  {(() => {
+                    const { onlineUsers } = useUniverse();
+                    const isOnline = profile?.id && onlineUsers[profile.id];
+                    const userPresence = onlineUsers[profile?.id];
+                    return isOnline && (
+                      <span className="orbit-status-label mt-1">
+                        <span className="orbit-status-dot" />
+                        <div className="orbit-status-ticker">
+                          <span>{userPresence?.status || 'En Órbita ✨'}</span>
+                        </div>
+                      </span>
+                    );
+                  })()}
+                </div>
+                {profile?.pronouns && (
+                  <span className="text-micro opacity-40 block uppercase tracking-widest">{profile.pronouns}</span>
+                )}
+
+
+                {/* Role Badges */}
+                {(profile?.primary_role_item || profile?.secondary_role_item) && (
+                  <div className="flex flex-wrap gap-3 pt-2">
+                    {profile?.primary_role_item && (
+                      <div className="relative group/role">
+                        <div className="absolute -inset-0.5 bg-gradient-to-r from-purple-500/50 to-cyan-500/50 rounded-full blur-sm opacity-20 group-hover:opacity-40 transition-opacity"></div>
+                        <span className="relative px-3 py-1 rounded-full bg-white/[0.03] border border-white/10 text-[9px] font-black uppercase tracking-widest text-purple-400 flex items-center gap-1.5 shadow-lg">
+                          <span>🛡️</span> {profile.primary_role_item.title}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                <p className="text-sm text-white/50 leading-relaxed italic">
+                  "{profile?.bio || 'Sin biografía estelar.'}"
+                </p>
+
+                {/* Identity Signature & Social Links */}
+                {(profile?.mbti || profile?.zodiac || (profile?.social_links && profile.social_links.length > 0)) && (
+                  <div className="pt-4 space-y-5">
+                    {/* Pills: MBTI & Zodiac */}
+                    {(profile?.mbti || profile?.zodiac) && (
+                      <div className="flex flex-wrap gap-2">
+                        {profile?.mbti && (
+                          <div className="px-3 py-1.5 rounded-lg bg-purple-500/10 border border-purple-500/20 flex items-center gap-2 group/mbti">
+                            <span className="text-[8px] font-black text-purple-400 uppercase tracking-[0.2em] opacity-50">MBTI</span>
+                            <span className="text-[10px] font-bold text-purple-300 font-mono tracking-wider">{profile.mbti}</span>
+                          </div>
+                        )}
+                        {profile?.zodiac && (
+                          <div className="px-3 py-1.5 rounded-lg bg-cyan-500/10 border border-cyan-500/20 flex items-center gap-2 group/zodiac">
+                            <span className="text-[8px] font-black text-cyan-400 uppercase tracking-[0.2em] opacity-50">Zodiaco</span>
+                            <span className="text-[10px] font-bold text-cyan-300 font-mono tracking-wider">{profile.zodiac}</span>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Social Grid */}
+                    {profile?.social_links && profile.social_links.length > 0 && (
+                      <div className="flex flex-wrap gap-2 pt-1">
+                        {profile.social_links.map((link, idx) => (
+                          <a
+                            key={idx}
+                            href={link.url.startsWith('http') ? link.url : `https://${link.url}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="w-10 h-10 rounded-xl bg-white/[0.03] border border-white/10 flex items-center justify-center text-lg hover:bg-white/10 hover:border-white/20 transition-all hover:-translate-y-1 shadow-sm"
+                            title={link.platform}
+                          >
+                            {getSocialIcon(link.platform)}
+                          </a>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Server Metrics Sidebar */}
+              <div className="space-y-6 pt-12 border-t border-white/5">
+                <div className="flex justify-between items-end">
+                  <span className="text-micro opacity-40 uppercase tracking-widest">Starlys</span>
+                  <span className="text-xl font-bold font-mono tracking-tighter">◈ {profile?.balance?.toLocaleString() || 0}</span>
+                </div>
+                <div className="flex justify-between items-end">
+                  <span className="text-micro opacity-40 uppercase tracking-widest">Racha Social</span>
+                  <span className="text-xl font-bold font-mono text-white tracking-tighter">{profile?.streak || 0}D</span>
+                </div>
+                <div className="flex justify-between items-end">
+                  <span className="text-micro opacity-40 uppercase tracking-widest">Seguidores</span>
+                  <button onClick={() => openFollowList('followers')} className="text-xl font-bold font-mono tracking-tighter hover:text-cyan-400 transition-colors">
+                    {followCounts.followers}
+                  </button>
+                </div>
+                <div className="flex justify-between items-end">
+                  <span className="text-micro opacity-40 uppercase tracking-widest">Siguiendo</span>
+                  <button onClick={() => openFollowList('following')} className="text-xl font-bold font-mono tracking-tighter hover:text-cyan-400 transition-colors">
+                    {followCounts.following}
+                  </button>
+                </div>
+                {profile?.prestige_level > 0 && (
+                  <div className="pt-8 border-t border-white/5 space-y-4">
+                    <div className="p-5 rounded-[2rem] bg-gradient-to-br from-cyan-500/10 via-indigo-500/5 to-purple-500/10 border border-cyan-500/20 shadow-[0_0_20px_rgba(34,211,238,0.05)] relative overflow-hidden group">
+                      <div className="absolute top-0 right-0 w-24 h-24 bg-cyan-400/5 blur-3xl rounded-full translate-x-12 -translate-y-12"></div>
+                      <div className="relative z-10 space-y-4">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <span className="text-xl">🌀</span>
+                            <div className="flex flex-col">
+                              <span className="text-[9px] font-black uppercase tracking-[0.2em] text-cyan-400">Renacimiento</span>
+                              <span className="text-[8px] font-bold text-white/30 uppercase tracking-[0.3em]">Nivel {profile.prestige_level}</span>
+                            </div>
+                          </div>
+                          <div className="text-2xl font-black italic text-white/10 group-hover:text-cyan-400/20 transition-colors">×{profile.prestige_level}</div>
+                        </div>
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between text-[10px] font-bold">
+                            <span className="text-white/40">BONUS XP</span>
+                            <span className="text-cyan-400">+{profile.prestige_level * 10}%</span>
+                          </div>
+                          <div className="flex items-center justify-between text-[10px] font-bold">
+                            <span className="text-white/40">BONUS STARLYS</span>
+                            <span className="text-amber-500">+{profile.prestige_level * 5}%</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                {topGlobalRank !== 'N/A' && (
+                  <div className="flex justify-between items-end">
+                    <span className="text-micro opacity-40 uppercase tracking-widest">Posición Global</span>
+                    <span className="text-xl font-bold font-mono text-cyan-400 tracking-tighter">#{topGlobalRank}</span>
+                  </div>
+                )}
+                <div className="space-y-2 pt-2">
+                  <div className="flex justify-between text-[9px] font-mono opacity-20 uppercase tracking-widest">
+                    <span>Progreso Galáctico</span>
+                    <span>{progressPercent}%</span>
+                  </div>
+                  <div className="h-1 bg-white/[0.03] rounded-full overflow-hidden">
+                    <motion.div
+                      initial={{ width: 0 }}
+                      animate={{ width: `${progressPercent}%` }}
+                      className="h-full bg-white/80"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Social Interactions */}
+              <div className="flex flex-col gap-3">
+                <div className="flex gap-3">
+                  <button
+                    onClick={handleToggleFollow}
+                    className={`flex-1 px-6 py-2.5 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${isFollowing ? 'bg-white/5 text-white/40 border border-white/10' : 'bg-white text-black hover:bg-white/90 shadow-[0_10px_20px_rgba(255,255,255,0.1)]'}`}
+                  >
+                    {isFollowing ? '✓ Siguiendo' : '+ Seguir'}
+                  </button>
+                  <Link to={`/cartas?to=${profile?.id}`} className="flex-1 px-6 py-2.5 rounded-xl bg-white/5 border border-white/10 text-[9px] font-black uppercase tracking-widest text-center text-white/60 hover:text-white hover:bg-white/10 transition-all decoration-transparent">
+                    MENSAJE
+                  </Link>
+                </div>
+                {/* Partnership Logic */}
+                {partnership ? (
+                  <div className="pt-8 border-t border-white/5 w-full">
+                    <PrivateUniverse partnership={partnership} />
+                    <div className="mt-2 text-[9px] font-black tracking-[0.3em] text-purple-400/40 uppercase text-center">Universo Vinculado</div>
+                  </div>
+                ) : (
+                  !isOwnProfile && user && (
+                    <div className="pt-8 border-t border-white/5 w-full">
+                      <button
+                        onClick={handleSendRequest}
+                        disabled={hasPendingRequest || requestLoading}
+                        className={`w-full py-3 rounded-xl text-[9px] font-black uppercase tracking-[0.4em] transition-all border ${hasPendingRequest
+                          ? 'bg-white/5 border-white/10 text-white/20 cursor-default'
+                          : 'bg-gradient-to-r from-purple-500/10 to-cyan-500/10 border-white/10 text-white/60 hover:text-white hover:border-purple-500/50 hover:from-purple-500/20 hover:to-cyan-500/20'
+                          }`}
+                      >
+                        {requestLoading ? 'Sincronizando...' : (hasPendingRequest ? 'Solicitud Pendiente ⏳' : 'Solicitar Vínculo Estelar 🌌')}
+                      </button>
+                    </div>
+                  )
+                )}
+              </div>
+            </div>
+          </aside>
+
+          {/* MAIN: Navigation & Views */}
+          <main className="lg:col-span-8 space-y-12">
+
+            {/* Bridge Prompt (Puentes) */}
+            {user && !isOwnProfile && !isFollowing && affinityScore >= 80 && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="p-6 rounded-[32px] bg-gradient-to-br from-cyan-500/10 to-purple-500/10 border border-white/10 backdrop-blur-xl relative overflow-hidden group mb-8"
+              >
+                <div className="flex flex-col gap-4 relative z-10">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-full bg-cyan-500/20 flex items-center justify-center text-xs">🌉</div>
+                    <span className="text-[10px] font-black text-cyan-400 uppercase tracking-widest">Puente de Resonancia detectado</span>
+                  </div>
+                  <p className="text-sm font-medium text-white/80 leading-relaxed italic">
+                    "Tienen una sintonía excepcional ({affinityScore}%), pero sus órbitas aún no se han cruzado."
+                  </p>
+                  <button
+                    onClick={handleToggleFollow}
+                    className="w-full sm:w-auto self-start px-8 py-4 bg-white text-black rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] transition-all hover:scale-[1.02] hover:shadow-[0_10px_30px_rgba(255,255,255,0.2)] active:scale-[0.98]"
+                  >
+                    Establecer Vínculo ✨
+                  </button>
+                </div>
+                {/* Animated background lines */}
+                <div className="absolute inset-0 opacity-20 pointer-events-none">
+                  <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-cyan-500 to-transparent animate-[shimmer_3s_infinite]" />
+                  <div className="absolute bottom-0 right-0 w-full h-[1px] bg-gradient-to-r from-transparent via-purple-500 to-transparent animate-[shimmer_3s_infinite_reverse]" />
+                </div>
+              </motion.div>
+            )}
+
+            {/* Radar Emocional v1.2 */}
+            {(liveSoundState || soundAverage || musicOverlap) && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="p-8 rounded-[32px] bg-black/40 border border-emerald-500/20 backdrop-blur-xl relative overflow-hidden group mb-8"
+              >
+                <div className="absolute top-0 right-0 px-4 py-1.5 bg-emerald-500/10 border-b border-l border-emerald-500/20 rounded-bl-2xl z-20">
+                  <span className="text-[8px] font-black text-emerald-400 uppercase tracking-[0.2em]">Radar Emocional API v1.2</span>
+                </div>
+
+                <div className="flex flex-col gap-8 relative z-10">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    {/* Frecuencia Histórica (Left Side) */}
+                    <div className="space-y-4 border-b md:border-b-0 md:border-r border-white/5 pb-6 md:pb-0 md:pr-6">
+                      {soundAverage ? (
+                        <div className="space-y-2">
+                          <h4 className="flex items-center gap-2 text-[10px] font-black text-white/40 uppercase tracking-widest">
+                            <span className="text-emerald-400">⚡</span> Frecuencia Resonante (3 Días)
+                          </h4>
+                          <div className="flex flex-col justify-center min-h-[60px]">
+                            <span className="text-2xl font-black italic tracking-tighter text-white">
+                              {spotifyService.translateAudioFeatures(soundAverage.valence, soundAverage.energy)}
+                            </span>
+                            <span className="text-[10px] font-mono text-emerald-400/50 mt-1">
+                              VALENCE: {Math.round(soundAverage.valence * 100)}% | ENERGY: {Math.round(soundAverage.energy * 100)}%
+                            </span>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="space-y-2">
+                          <h4 className="flex items-center gap-2 text-[10px] font-black text-white/40 uppercase tracking-widest">
+                            <span className="text-white/20">📡</span> Frecuencia Resonante
+                          </h4>
+                          <div className="flex flex-col justify-center min-h-[60px]">
+                            <span className="text-sm italic font-medium text-white/30">Sin historial suficiente para patrón.</span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Player & Overlaps (Right Side) */}
+                    <div className="space-y-6">
+                      {/* Discord-style Player */}
+                      {liveSoundState && (
+                        <div className="space-y-3">
+                          <h4 className="flex items-center gap-2 text-[10px] font-black text-white/40 uppercase tracking-widest">
+                            {liveSoundState.is_playing
+                              ? <><span className="text-emerald-400 animate-pulse">▶</span> Reproduciendo Ahora</>
+                              : <><span className="text-white/20">⏸</span> Última Reproducida</>
+                            }
+                          </h4>
+
+                          {/* Player Card */}
+                          <div className={`p-3.5 rounded-2xl flex gap-3 items-center transition-colors group/track ${liveSoundState.is_playing ? 'bg-emerald-500/5 border border-emerald-500/15 hover:bg-emerald-500/10' : 'bg-white/[0.02] border border-white/5 hover:bg-white/[0.04]'}`}>
+                            {/* Album Art */}
+                            <div className="shrink-0 relative">
+                              {liveSoundState.track_image_url ? (
+                                <img
+                                  src={liveSoundState.track_image_url}
+                                  alt={liveSoundState.track_name}
+                                  className="w-12 h-12 rounded-xl object-cover shadow-lg"
+                                />
+                              ) : (
+                                <div className="w-12 h-12 rounded-xl bg-emerald-500/10 flex items-center justify-center">
+                                  <span className="text-emerald-400/50 text-lg">🎵</span>
+                                </div>
+                              )}
+                              {liveSoundState.is_playing && (
+                                <div className="absolute -bottom-1 -right-1 w-3.5 h-3.5 bg-emerald-500 rounded-full border-2 border-[#06060c] shadow-[0_0_8px_rgba(52,211,153,0.6)]" />
+                              )}
+                            </div>
+
+                            {/* Track Info */}
+                            <div className="flex-1 min-w-0 space-y-0.5">
+                              <div className="text-[13px] font-bold text-white truncate leading-tight">
+                                {liveSoundState.track_name}
+                              </div>
+                              <div className="text-[10px] text-white/50 uppercase tracking-wider truncate">
+                                {liveSoundState.artist_name}
+                              </div>
+
+                              {/* Status row */}
+                              {liveSoundState.is_playing ? (
+                                <div className="flex items-center gap-1.5 pt-0.5">
+                                  {/* Waveform */}
+                                  <div className="flex items-end gap-px h-3">
+                                    {[0, 0.2, 0.05, 0.3, 0.15].map((delay, i) => (
+                                      <motion.div
+                                        key={i}
+                                        className="w-[3px] bg-emerald-400 rounded-full"
+                                        style={{ originY: 1 }}
+                                        animate={{ scaleY: [0.2, 1, 0.2] }}
+                                        transition={{ duration: 0.9, repeat: Infinity, delay, ease: 'easeInOut' }}
+                                      />
+                                    ))}
+                                  </div>
+                                  <span className="text-[8px] text-emerald-400/70 font-black uppercase tracking-widest">En vivo</span>
+                                </div>
+                              ) : (
+                                <div className="text-[8px] text-white/20 uppercase tracking-widest pt-0.5">
+                                  Última reproducida
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Spotify Link Button */}
+                            <a
+                              href={liveSoundState.track_id
+                                ? `https://open.spotify.com/track/${liveSoundState.track_id}`
+                                : `https://open.spotify.com/search/${encodeURIComponent((liveSoundState.track_name || '') + ' ' + (liveSoundState.artist_name || ''))}`
+                              }
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="shrink-0 w-9 h-9 rounded-xl bg-[#1DB954]/10 hover:bg-[#1DB954]/25 border border-[#1DB954]/20 hover:border-[#1DB954]/50 flex items-center justify-center transition-all hover:scale-110 active:scale-95"
+                              title="Abrir en Spotify"
+                            >
+                              <svg width="15" height="15" viewBox="0 0 24 24" fill="#1DB954">
+                                <path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z" />
+                              </svg>
+                            </a>
+                          </div>
+
+                          {/* Progress Bar — always visible, animated only when playing */}
+                          <div className="h-1 bg-white/5 rounded-full overflow-hidden">
+                            {liveSoundState.is_playing ? (
+                              <motion.div
+                                key={liveSoundState.track_id}
+                                className="h-full bg-gradient-to-r from-emerald-500/70 to-emerald-300/40 rounded-full"
+                                initial={{ width: '0%' }}
+                                animate={{ width: '100%' }}
+                                transition={{ duration: 210, ease: 'linear' }}
+                              />
+                            ) : (
+                              <div className="h-full w-3/4 bg-white/10 rounded-full" />
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Overlap */}
+                      {musicOverlap && (
+                        <div className="space-y-2">
+                          <h4 className="flex items-center gap-2 text-[10px] font-black text-white/40 uppercase tracking-widest">
+                            <span className="text-purple-400">🔗</span> Puente Musical
+                          </h4>
+                          <div className="p-3.5 rounded-2xl bg-purple-500/10 border border-purple-500/20 text-sm text-purple-200/80 mt-1">
+                            Sintonizaron {musicOverlap.overlap_type === 'track' ? 'esta pieza' : 'a este artista'}: <span className="text-purple-100 font-bold ml-1">{musicOverlap.reference_name}</span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Animated background layers */}
+                <div className="absolute inset-0 opacity-[0.03] pointer-events-none bg-[radial-gradient(circle_at_bottom_right,_var(--tw-gradient-stops))] from-emerald-500 via-transparent to-transparent"></div>
+                <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-emerald-500/50 to-transparent"></div>
+              </motion.div>
+            )}
+
+
+            <nav className="flex gap-8 border-b border-white/5 overflow-x-auto no-scrollbar">
+              <TabButton
+                active={activeTab === 'activity'}
+                onClick={() => setActiveTab('activity')}
+                onMouseEnter={() => profile?.id && activityService.prefetchFeed(profile.id, 'user')}
+              >
+                Actividad
+              </TabButton>
+              <TabButton active={activeTab === 'records'} onClick={() => setActiveTab('records')}>Registros</TabButton>
+              <TabButton active={activeTab === 'achievements'} onClick={() => setActiveTab('achievements')}>Logros</TabButton>
+              <TabButton active={activeTab === 'ecos'} onClick={() => setActiveTab('ecos')}>Ecos</TabButton>
+            </nav>
+
+            <div className="w-full max-w-2xl mx-auto min-h-[400px]">
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={activeTab}
+                  initial={{ opacity: 0, x: 10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -10 }}
+                  transition={{ duration: 0.2 }}
+                  className="space-y-12"
+                >
+                  {activeTab === 'activity' && (
+                    <div className="space-y-12">
+                      <ActivityFeed userId={profile?.id} filter="all" />
+                    </div>
+                  )}
+
+                  {activeTab === 'records' && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {gameRanks.length === 0 ? (
+                        <div className="col-span-2 py-20 text-center text-micro opacity-20 uppercase tracking-widest">Sin registros detectados</div>
+                      ) : (
+                        gameRanks.map(rank => (
+                          <div key={rank.game_id} className="p-8 rounded-3xl bg-white/[0.01] border border-white/5 space-y-4 hover:bg-white/[0.02] transition-all">
+                            <div className="flex justify-between items-start">
+                              <h3 className="text-micro opacity-40 uppercase tracking-widest">{GAME_NAMES[rank.game_id] || rank.game_id}</h3>
+                              <span className="text-[9px] font-mono opacity-20">RANK #{rank.user_position}</span>
+                            </div>
+                            <div className="text-3xl font-bold font-mono tracking-tighter">{(rank.max_score ?? 0).toLocaleString()}</div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  )}
+
+                  {activeTab === 'achievements' && (
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                      {unlockedAchs.length === 0 ? (
+                        <div className="col-span-4 py-20 text-center text-micro opacity-20 uppercase tracking-widest">Sin medallas sincronizadas</div>
+                      ) : (
+                        unlockedAchs.map(ach => (
+                          <div key={ach.id} className="aspect-square flex flex-col items-center justify-center p-6 rounded-3xl bg-white/[0.01] border border-white/5 text-center group transition-all hover:bg-white/[0.02]">
+                            <span className="text-4xl mb-3 grayscale group-hover:grayscale-0 transition-all duration-500 opacity-40 group-hover:opacity-100">{ach.icon}</span>
+                            <span className="text-[8px] font-black uppercase tracking-[0.2em] opacity-40">{ach.title}</span>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  )}
+
+                  {activeTab === 'ecos' && (
+                    <div className="space-y-12">
+                      <EchoesSection profileId={profile?.id} isOwnProfile={false} />
+                    </div>
+                  )}
+                </motion.div>
+              </AnimatePresence>
+            </div>
+          </main>
+        </div>
+      </div>
+
+      {/* Follow List Modal */}
+      {showFollowModal && createPortal(
+        <div className="fixed inset-0 z-[500] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={() => { setShowFollowModal(null); setFollowList([]); }} />
+          <motion.div
+            initial={{ scale: 0.95, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0.95, opacity: 0 }}
+            className="relative w-full max-w-sm bg-[#080810] border border-white/10 rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[70vh]"
+          >
+            <div className="flex items-center justify-between px-5 pt-5 pb-4 border-b border-white/5">
+              <h3 className="text-xs font-black uppercase tracking-[0.3em] text-white/70">
+                {showFollowModal === 'followers' ? 'Seguidores' : 'Siguiendo'}
+              </h3>
+              <button onClick={() => { setShowFollowModal(null); setFollowList([]); }} className="w-7 h-7 flex items-center justify-center rounded-xl bg-white/5 hover:bg-white/10 text-white/40 hover:text-rose-400 transition-all text-sm">✕</button>
+            </div>
+            <div className="overflow-y-auto flex-1 p-3 space-y-1.5">
+              {followListLoading && (
+                <div className="py-8 text-center text-white/20 text-[10px] uppercase tracking-widest">Cargando...</div>
+              )}
+              {!followListLoading && followList.length === 0 && (
+                <div className="py-8 text-center text-white/20 text-[10px] uppercase tracking-widest">
+                  {showFollowModal === 'followers' ? 'Sin seguidores aún' : 'Sin conexiones aún'}
+                </div>
+              )}
+              {followList.map(u => (
+                <button
+                  key={u.id}
+                  onClick={() => { setShowFollowModal(null); setFollowList([]); navigate(`/@${u.username}`); }}
+                  className="w-full flex items-center gap-3 p-3 rounded-2xl bg-white/[0.02] hover:bg-white/[0.06] border border-white/5 transition-all text-left"
+                >
+                  <img src={u.avatar_url || '/default_user_blank.png'} alt={u.username} className="w-9 h-9 rounded-xl object-cover border border-white/10" />
+                  <span className="text-sm font-black text-white/70">@{u.username}</span>
+                </button>
+              ))}
+            </div>
+          </motion.div>
+        </div>,
+        document.body
+      )}
+    </div>
+  );
+}
+
+// --- SUBCOMPONENTES REUTILIZABLES CON MICROINTERACCIONES ---
+
+function StatCard({ title, value, icon, highlight = 'text-white' }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true }}
+      transition={{ type: "spring", stiffness: 100, damping: 20 }}
+      whileHover={{ y: -2, backgroundColor: "rgba(255,255,255,0.03)" }}
+      className="flex flex-col items-start p-8 rounded-3xl bg-white/[0.01] border border-white/5 transition-all group/stat"
+    >
+      <span className="text-micro opacity-40 uppercase tracking-widest font-mono mb-4 group-hover/stat:opacity-60 transition-opacity">{title}</span>
+      <div className={`text-display font-bold font-mono tracking-tighter ${highlight} tabular-nums`}>
+        {value}
+      </div>
+      {icon && <div className="text-xl mt-6 opacity-20 group-hover/stat:opacity-40 transition-opacity">{icon}</div>}
+    </motion.div>
+  );
+}
+
+function TabButton({ active, onClick, onMouseEnter, children }) {
+  return (
+    <button
+      onClick={onClick}
+      onMouseEnter={onMouseEnter}
+      className={`relative py-4 text-heading font-black uppercase tracking-widest transition-all duration-300 ${active ? 'text-white' : 'text-white/20 hover:text-white/60'}`}
+    >
+      <span className="relative z-10">{children}</span>
+      {active && (
+        <motion.div
+          layoutId="activeTabIndicator"
+          className="absolute bottom-0 left-0 right-0 h-[2px] bg-white"
+          transition={{ type: "spring", stiffness: 350, damping: 35 }}
+        />
+      )}
+    </button>
+  );
+}

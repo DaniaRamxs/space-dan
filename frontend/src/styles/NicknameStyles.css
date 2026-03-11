@@ -1,0 +1,1133 @@
+/* 
+  IDENTITY STYLES: NICKNAMES
+  Enfoque: Senior Software Architect - High Performance CSS
+  Regla: 1 Nodo DOM, animaciones GPU y pseudo-elementos encapsulados.
+*/
+
+.dan-nickname {
+    position: relative;
+    display: inline-block;
+    font-weight: 850;
+    letter-spacing: -0.02em;
+    padding: 0 4px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* 🧬 ESTILO: VORTEX (Partículas contenidas) */
+.nick-style-vortex {
+    background: linear-gradient(135deg, #00f2ff 0%, #006aff 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    text-shadow: 0 0 10px rgba(0, 242, 255, 0.2);
+}
+
+.nick-style-vortex::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background-image:
+        radial-gradient(circle, #fff 0.5px, transparent 0.5px),
+        radial-gradient(circle, #00f2ff 0.5px, transparent 0.5px);
+    background-size: 8px 8px, 12px 12px;
+    mask-image: linear-gradient(to right, transparent, black, transparent);
+    animation: vortexDots 8s linear infinite;
+    opacity: 0.3;
+}
+
+@keyframes vortexDots {
+    from {
+        background-position: 0 0;
+    }
+
+    to {
+        background-position: 24px 24px;
+    }
+}
+
+/* 🛰️ ESTILO: ORBIT (Subrayado minimalista y halo soft) */
+.nick-style-orbit {
+    background: linear-gradient(90deg, #ff99cc, #99ebff);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    text-shadow: 0 0 12px rgba(255, 153, 204, 0.3);
+}
+
+.nick-style-orbit::after {
+    content: '';
+    position: absolute;
+    bottom: -1px;
+    left: 10%;
+    width: 80%;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, #ff99cc, #99ebff, transparent);
+    filter: blur(1px);
+    box-shadow: 0 0 8px rgba(153, 235, 255, 0.6);
+    animation: orbitSlideSoft 4s ease-in-out infinite;
+    border-radius: 999px;
+}
+
+@keyframes orbitSlideSoft {
+
+    0%,
+    100% {
+        transform: scaleX(0.5) translateX(-10%);
+        opacity: 0.4;
+    }
+
+    50% {
+        transform: scaleX(1.2) translateX(0%);
+        opacity: 0.8;
+    }
+}
+
+/* 💻 ESTILO: TERMINAL (Cursor parpadeante y glow verde) */
+.nick-style-terminal {
+    color: #00ff41;
+    font-family: 'JetBrains Mono', 'Courier New', monospace;
+    letter-spacing: 0.05em;
+    text-shadow: 0 0 5px rgba(0, 255, 65, 0.5);
+}
+
+.nick-style-terminal::after {
+    content: '_';
+    position: relative;
+    margin-left: 2px;
+    animation: terminalCursor 1s steps(2, start) infinite;
+    color: #00ff41;
+}
+
+@keyframes terminalCursor {
+    to {
+        visibility: hidden;
+    }
+}
+
+/* ✨ ESTILO: NEBULA (Degradado estático y resplandor suave) */
+.nick-style-nebula {
+    background: linear-gradient(45deg, #a855f7, #ec4899);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    position: relative;
+}
+
+.nick-style-nebula::before {
+    content: '';
+    position: absolute;
+    inset: -1px -6px;
+    background: linear-gradient(45deg, #a855f722, #ec489922);
+    filter: blur(8px);
+    z-index: -1;
+    border-radius: 999px;
+}
+
+/* 🎀 ESTILO: KAWAII (Pastel, brillos y rebote) */
+.nick-style-kawaii {
+    background: linear-gradient(135deg, #ff99cc 0%, #ffccff 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    filter: drop-shadow(0 0 5px rgba(255, 153, 204, 0.4));
+    animation: kawaiiBounce 2s ease-in-out infinite;
+}
+
+.nick-style-kawaii::before,
+.nick-style-kawaii::after {
+    content: '✨';
+    position: absolute;
+    font-size: 8px;
+    -webkit-text-fill-color: #fff;
+    animation: sparkleScale 1.5s ease-in-out infinite;
+}
+
+.nick-style-kawaii::before {
+    top: -5px;
+    right: -5px;
+}
+
+.nick-style-kawaii::after {
+    bottom: -2px;
+    left: -8px;
+    animation-delay: 0.7s;
+}
+
+@keyframes kawaiiBounce {
+
+    0%,
+    100% {
+        transform: translateY(0);
+    }
+
+    50% {
+        transform: translateY(-2px);
+    }
+}
+
+@keyframes sparkleScale {
+
+    0%,
+    100% {
+        transform: scale(0.5);
+        opacity: 0.5;
+    }
+
+    50% {
+        transform: scale(1.2);
+        opacity: 1;
+    }
+}
+
+/* 🦇 ESTILO: GOTH (Oscuro, aura roja y espinas) */
+.nick-style-goth {
+    color: #000;
+    text-shadow: 0 0 8px rgba(255, 0, 0, 0.6);
+    letter-spacing: 0.1em;
+}
+
+.nick-style-goth::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(transparent 70%, #ff000044);
+    z-index: -1;
+    filter: blur(4px);
+}
+
+.nick-style-goth::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 1px;
+    background: #ff0000;
+    box-shadow: 0 0 10px #ff0000;
+}
+
+/* 💾 ESTILO: CYBER (Glitch neón y escaneo) */
+.nick-style-cyber {
+    color: #0ff;
+    text-shadow: 2px 0 #f0f, -2px 0 #0f0;
+    animation: cyberGlitch 3s steps(2, start) infinite;
+}
+
+@keyframes cyberGlitch {
+
+    0%,
+    80%,
+    100% {
+        text-shadow: 2px 0 #f0f, -2px 0 #0f0;
+        transform: skew(0);
+    }
+
+    85% {
+        text-shadow: -3px 0 #f0f, 3px 0 #0f0;
+        transform: skew(2deg);
+    }
+
+    90% {
+        text-shadow: 4px 0 #f0f, -4px 0 #0f0;
+        transform: translateX(-2px);
+    }
+}
+
+/* 👑 ESTILO: ROYAL (Oro, corona y destello) */
+.nick-style-royal {
+    background: linear-gradient(to bottom, #fff700, #ff8c00);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    font-weight: 900;
+}
+
+.nick-style-royal::before {
+    content: '👑';
+    position: absolute;
+    top: -12px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 10px;
+    -webkit-text-fill-color: initial;
+}
+
+/* 👻 ESTILO: GHOST (Etéreo y flotante) */
+.nick-style-ghost {
+    color: rgba(255, 255, 255, 0.5);
+    filter: blur(0.5px);
+    animation: ghostFloat 4s ease-in-out infinite;
+}
+
+@keyframes ghostFloat {
+
+    0%,
+    100% {
+        transform: translateY(0) scale(1);
+        opacity: 0.4;
+    }
+
+    50% {
+        transform: translateY(-4px) scale(1.05);
+        opacity: 0.7;
+    }
+}
+
+/* 🍭 ESTILO: LOLLIPOP (Multicolor pastel y espiral) */
+.nick-style-lollipop {
+    background: linear-gradient(90deg, #ff99cc, #99ffff, #ffff99, #ff99cc);
+    background-size: 300% 100%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: rainbowScroll 4s linear infinite;
+    font-weight: 900;
+}
+
+@keyframes rainbowScroll {
+    from {
+        background-position: 0% 0%;
+    }
+
+    to {
+        background-position: 100% 0%;
+    }
+}
+
+/* 🧚 ESTILO: FAIRY (Verde menta y brillo de polvos mágicos) */
+.nick-style-fairy {
+    color: #ccfffa;
+    text-shadow: 0 0 10px #00ffcc;
+    animation: fairyFloat 3s ease-in-out infinite;
+}
+
+.nick-style-fairy::before {
+    content: '🪄';
+    position: absolute;
+    left: -15px;
+    top: -5px;
+    font-size: 10px;
+    animation: wandWave 2s ease-in-out infinite;
+}
+
+@keyframes fairyFloat {
+
+    0%,
+    100% {
+        transform: translateY(0) rotate(-1deg);
+    }
+
+    50% {
+        transform: translateY(-3px) rotate(1deg);
+    }
+}
+
+@keyframes wandWave {
+
+    0%,
+    100% {
+        transform: rotate(0deg);
+    }
+
+    50% {
+        transform: rotate(30deg);
+    }
+}
+
+/* 💝 ESTILO: VALENTINE (Coraones y pulsación de amor) */
+.nick-style-valentine {
+    color: #ff4d6d;
+    text-shadow: 0 0 5px rgba(255, 77, 109, 0.4);
+    padding-right: 18px !important;
+}
+
+.nick-style-valentine::after {
+    content: '❤';
+    position: absolute;
+    right: 2px;
+    top: 2px;
+    font-size: 10px;
+    color: #ff4d6d;
+    animation: heartPulse 1.2s ease-in-out infinite;
+}
+
+@keyframes heartPulse {
+
+    0%,
+    100% {
+        transform: scale(1);
+        opacity: 0.8;
+    }
+
+    50% {
+        transform: scale(1.4);
+        opacity: 1;
+    }
+}
+
+/* 🌌 ESTILO: MAGIC (Azul noche pastel y Shimmer) */
+.nick-style-magic {
+    background: linear-gradient(135deg, #b464ff 0%, #64b4ff 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    position: relative;
+}
+
+.nick-style-magic::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.8), transparent);
+    background-size: 200% 100%;
+    animation: shimmerSlide 2s infinite;
+    -webkit-background-clip: text;
+    background-clip: text;
+}
+
+@keyframes shimmerSlide {
+    from {
+        background-position: 200% 0;
+    }
+
+    to {
+        background-position: -200% 0;
+    }
+}
+
+/* 🤖 ESTILO: HYPERBOT (Oro blindado, escudo y circuitos) */
+.nick-style-hyperbot {
+    background: linear-gradient(to bottom, #ffd700, #b8860b);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    font-weight: 900;
+    text-shadow: 0 0 10px rgba(255, 215, 0, 0.4);
+    position: relative;
+    padding-right: 20px !important;
+}
+
+.nick-style-hyperbot::after {
+    content: '🛡️';
+    position: absolute;
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 10px;
+    -webkit-text-fill-color: initial;
+    filter: drop-shadow(0 0 5px rgba(255, 215, 0, 0.5));
+}
+
+.nick-style-hyperbot::before {
+    content: '';
+    position: absolute;
+    inset: -2px;
+    background: linear-gradient(90deg, transparent, rgba(255, 215, 0, 0.2), transparent);
+    background-size: 200% 100%;
+    animation: goldSweep 3s linear infinite;
+    mask-image: linear-gradient(black, black);
+    -webkit-mask-image: linear-gradient(black, black);
+    pointer-events: none;
+}
+
+@keyframes goldSweep {
+    from {
+        background-position: 200% 0;
+    }
+
+    to {
+        background-position: -200% 0;
+    }
+}
+
+/* 🌈 ESTILO: GRADIENT (Transición suave de colores) */
+.nick-style-gradient {
+    background: linear-gradient(90deg, #3b82f6, #8b5cf6, #ec4899);
+    background-size: 200% auto;
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: gradientShift 3s linear infinite;
+}
+
+@keyframes gradientShift {
+    0% {
+        background-position: 0% 50%;
+    }
+
+    50% {
+        background-position: 100% 50%;
+    }
+
+    100% {
+        background-position: 0% 50%;
+    }
+}
+
+/* 💡 ESTILO: NEON (Vibrante y pulsante) */
+.nick-style-neon {
+    color: #fff;
+    text-shadow: 0 0 5px #fff, 0 0 10px #0ff, 0 0 20px #0ff, 0 0 40px #0ff;
+    animation: neonPulse 1.5s ease-in-out infinite alternate;
+}
+
+@keyframes neonPulse {
+    from {
+        opacity: 0.8;
+        text-shadow: 0 0 10px #0ff, 0 0 20px #0ff;
+    }
+
+    to {
+        opacity: 1;
+        text-shadow: 0 0 15px #0ff, 0 0 30px #0ff, 0 0 50px #0ff;
+    }
+}
+
+/* 👾 ESTILO: GLITCH (Interferencia digital) */
+.nick-style-glitch {
+    color: white;
+    text-shadow: 0.05em 0 0 #00fffc, -0.03em -0.04em 0 #fc00ff, 0.025em 0.04em 0 #fffc00;
+    animation: glitchText 1s infinite;
+}
+
+@keyframes glitchText {
+
+    0%,
+    15% {
+        text-shadow: 0.05em 0 0 #00fffc, -0.03em -0.04em 0 #fc00ff, 0.025em 0.04em 0 #fffc00;
+    }
+
+    16%,
+    49% {
+        text-shadow: -0.05em -0.025em 0 #00fffc, 0.025em 0.035em 0 #fc00ff, -0.05em -0.05em 0 #fffc00;
+    }
+
+    50%,
+    99% {
+        text-shadow: 0.03em 0.05em 0 #00fffc, 0.05em 0 0 #fc00ff, 0 -0.05em 0 #fffc00;
+    }
+
+    100% {
+        text-shadow: -0.025em 0 0 #00fffc, -0.025em -0.025em 0 #fc00ff, -0.025em -0.05em 0 #fffc00;
+    }
+}
+
+/* 🛰️ ESTILO: HOLOGRAM/HOLOGRAPHIC (Azulado y parpadeante) */
+.nick-style-hologram,
+.nick-style-holographic {
+    color: #a5f3fc;
+    text-shadow: 0 0 10px #22d3ee;
+    opacity: 0.8;
+    animation: holoFlicker 2s linear infinite;
+}
+
+@keyframes holoFlicker {
+
+    0%,
+    100% {
+        opacity: 0.7;
+    }
+
+    5% {
+        opacity: 0.4;
+    }
+
+    10% {
+        opacity: 0.9;
+    }
+
+    15% {
+        opacity: 0.5;
+    }
+
+    20% {
+        opacity: 0.8;
+    }
+}
+
+/* 💍 ESTILO: PRISMA (Gradiente cromático) */
+.nick-style-prisma,
+.nick-style-prism {
+    background: linear-gradient(90deg, #ff0000, #ff7f00, #ffff00, #00ff00, #0000ff, #4b0082, #9400d3);
+    background-size: 400% 100%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: prismRainbow 8s linear infinite;
+}
+
+@keyframes prismRainbow {
+    0% {
+        background-position: 0% 50%;
+    }
+
+    100% {
+        background-position: 100% 50%;
+    }
+}
+
+/* 💠 ESTILO: SINGULARIDAD (Vórtice mítico rose-gold) */
+.nick-style-mythic_singularity {
+    background: linear-gradient(135deg, #fb7185 0%, #fda4af 50%, #fb7185 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    font-weight: 900;
+    text-shadow: 0 0 20px rgba(251, 113, 133, 0.5);
+    animation: singularityAura 3s ease-in-out infinite alternate;
+}
+
+@keyframes singularityAura {
+    from {
+        filter: drop-shadow(0 0 5px #fb7185);
+    }
+
+    to {
+        filter: drop-shadow(0 0 15px #fb7185);
+        transform: scale(1.02);
+    }
+}
+
+/* ⚪ ESTILO: MINIMAL (Firma elegante) */
+.nick-style-minimal {
+    font-family: 'Dancing Script', cursive !important;
+    color: #ffffff;
+    opacity: 1;
+    letter-spacing: 0.02em;
+    text-transform: none;
+    /* Las firmas no suelen ser uppercase */
+    font-size: 1.1em;
+    font-weight: 700;
+    text-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
+}
+
+.nick-style-minimal::after {
+    content: '';
+    position: absolute;
+    bottom: 2px;
+    left: 0;
+    width: 100%;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.8), transparent);
+    transform: scaleX(0);
+    transition: transform 0.6s cubic-bezier(0.19, 1, 0.22, 1);
+    transform-origin: left;
+}
+
+.dan-nickname:hover .nick-style-minimal::after,
+.nick-style-minimal:hover::after {
+    transform: scaleX(1);
+}
+
+/* ─────────────────────────────────────────────────────────────
+   CHAT EFFECTS: VISUAL TRANSFORMATIONS
+   ───────────────────────────────────────────────────────────── */
+
+/* 💫 EFECTO DE CHAT: PULSE (chat_pulse) */
+.chat-effect-pulse {
+    animation: chatPulseGlow 2s infinite alternate ease-in-out;
+    border-color: rgba(34, 211, 238, 0.4) !important;
+    background: rgba(34, 211, 238, 0.03) !important;
+}
+
+@keyframes chatPulseGlow {
+    from {
+        box-shadow: 0 0 15px rgba(34, 211, 238, 0.1);
+        border-color: rgba(34, 211, 238, 0.2);
+    }
+
+    to {
+        box-shadow: 0 0 100px -20px var(--cyber-accent);
+    }
+}
+
+/* 💠 ESTILO: VOID PULSE (Mythic) */
+.nick-style-void_pulse {
+    color: #fff;
+    text-shadow: 0 0 15px rgba(255, 255, 255, 0.4);
+    letter-spacing: 0.15em;
+    animation: voidBreath 4s ease-in-out infinite;
+    mix-blend-mode: screen;
+}
+
+.nick-style-void_pulse::before {
+    content: '';
+    position: absolute;
+    inset: -10px -20px;
+    background: radial-gradient(circle, rgba(124, 58, 237, 0.2) 0%, transparent 70%);
+    z-index: -1;
+    filter: blur(10px);
+    animation: voidAura 4s ease-in-out infinite;
+}
+
+.nick-style-void_pulse::after {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    left: 0;
+    width: 100%;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, #fff, transparent);
+    opacity: 0.5;
+    box-shadow: 0 0 20px #fff;
+}
+
+@keyframes voidBreath {
+
+    0%,
+    100% {
+        transform: scale(1);
+        letter-spacing: 0.15em;
+        filter: brightness(1);
+    }
+
+    50% {
+        transform: scale(1.05);
+        letter-spacing: 0.2em;
+        filter: brightness(1.5);
+    }
+}
+
+@keyframes voidAura {
+
+    0%,
+    100% {
+        opacity: 0.3;
+        transform: scale(0.8);
+    }
+
+    50% {
+        opacity: 0.6;
+        transform: scale(1.2);
+    }
+}
+
+/* 👻 ESTILO: SPECTRAL (Legendary) */
+.nick-style-spectral {
+    background: linear-gradient(90deg, #99ffcc, #33ff99, #99ffcc);
+    background-size: 200% auto;
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: spectralFlow 3s linear infinite, spectralJitter 0.5s infinite;
+    filter: drop-shadow(0 0 8px rgba(153, 255, 204, 0.5));
+}
+
+.nick-style-spectral::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: inherit;
+    filter: blur(12px);
+    opacity: 0.4;
+    z-index: -1;
+}
+
+@keyframes spectralFlow {
+    to {
+        background-position: 200% center;
+    }
+}
+
+@keyframes spectralJitter {
+    0% {
+        transform: translate(0, 0);
+    }
+
+    25% {
+        transform: translate(1px, -1px);
+    }
+
+    50% {
+        transform: translate(-1px, 1px);
+    }
+
+    75% {
+        transform: translate(1px, 1px);
+    }
+
+    100% {
+        transform: translate(0, 0);
+    }
+}
+
+/* 🔥 ESTILO: EMBER (Epic) */
+.nick-style-ember {
+    background: linear-gradient(0deg, #ff4d00, #ff9900);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    text-shadow: 0 0 10px rgba(255, 77, 0, 0.5);
+}
+
+.nick-style-ember::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background-image:
+        radial-gradient(circle, #fff 1px, transparent 1px),
+        radial-gradient(circle, #ff4d00 1.5px, transparent 1.5px);
+    background-size: 15px 15px, 20px 20px;
+    mask-image: linear-gradient(to top, black, transparent);
+    animation: emberRise 2s linear infinite;
+    opacity: 0.6;
+}
+
+@keyframes emberRise {
+    from {
+        background-position: 0 0;
+    }
+
+    to {
+        background-position: 0 -40px;
+    }
+}
+
+/* 🗣️ EFECTO DE CHAT: ECO (chat_eco) */
+.chat-effect-eco {
+    position: relative;
+    overflow: hidden;
+    border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+.chat-effect-eco::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.05), transparent);
+    transform: translateX(-100%);
+    animation: echoSweep 4s infinite linear;
+}
+
+@keyframes echoSweep {
+    0% {
+        transform: translateX(-100%);
+    }
+
+    20%,
+    100% {
+        transform: translateX(100%);
+    }
+}
+
+/* ⌛ EFECTO DE CHAT: GLITCH (chat_glitch) */
+.chat-effect-glitch {
+    animation: chatBoxGlitch 5s infinite;
+    position: relative;
+    border-color: rgba(255, 0, 255, 0.2) !important;
+}
+
+.chat-effect-glitch::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(255, 0, 255, 0.02);
+    opacity: 0;
+    animation: chatOverlayGlitch 5s infinite;
+    pointer-events: none;
+}
+
+@keyframes chatBoxGlitch {
+
+    0%,
+    88%,
+    94%,
+    100% {
+        transform: translate(0);
+    }
+
+    90% {
+        transform: translate(-2px, 1px);
+    }
+
+    92% {
+        transform: translate(2px, -1px);
+    }
+}
+
+@keyframes chatOverlayGlitch {
+
+    0%,
+    88%,
+    94%,
+    100% {
+        opacity: 0;
+    }
+
+    90%,
+    92% {
+        opacity: 1;
+    }
+}
+
+/* 💥 EFECTO DE CHAT: STARS (chat_stars) - REDISEÑO TOTAL */
+.chat-effect-stars {
+    background: linear-gradient(135deg, #0e0e1a, #1a1a2e) !important;
+    border: 1px solid rgba(255, 215, 0, 0.3) !important;
+    position: relative;
+    overflow: hidden !important;
+    box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.5), 0 0 15px rgba(255, 215, 0, 0.1);
+}
+
+.chat-effect-stars::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image:
+        radial-gradient(1px 1px at 20% 30%, white 100%, transparent),
+        radial-gradient(1px 1px at 40% 70%, #ffd700 100%, transparent),
+        radial-gradient(1px 1px at 60% 40%, white 100%, transparent),
+        radial-gradient(1px 1px at 80% 60%, #ffd700 100%, transparent),
+        radial-gradient(1.5px 1.5px at 10% 80%, white 100%, transparent),
+        radial-gradient(1.5px 1.5px at 90% 10%, #ffd700 100%, transparent);
+    background-size: 200% 200%;
+    animation: novaStarFieldMove 20s linear infinite;
+    opacity: 0.6;
+}
+
+.chat-effect-stars::after {
+    content: '';
+    position: absolute;
+    top: -100px;
+    right: 20%;
+    width: 1px;
+    height: 80px;
+    background: linear-gradient(to bottom, white, transparent);
+    transform: rotate(45deg);
+    animation: novaShootingStar 4s infinite ease-out;
+    filter: blur(1px);
+    opacity: 0;
+}
+
+@keyframes novaStarFieldMove {
+    from {
+        background-position: 0 0;
+    }
+
+    to {
+        background-position: 100% 100%;
+    }
+}
+
+@keyframes novaShootingStar {
+    0% {
+        top: -100px;
+        right: 20%;
+        opacity: 0;
+    }
+
+    10% {
+        opacity: 1;
+    }
+
+    30% {
+        top: 120%;
+        right: 80%;
+        opacity: 0;
+    }
+
+    100% {
+        top: 120%;
+        right: 80%;
+        opacity: 0;
+    }
+}
+
+/* 🎀 EFECTO DE CHAT: KAWAII (chat_kawaii) */
+.chat-effect-kawaii {
+    background: linear-gradient(135deg, rgba(255, 153, 204, 0.1), rgba(20, 10, 20, 0.6)) !important;
+    border-color: #ff99cc66 !important;
+    box-shadow: 0 0 15px rgba(255, 153, 204, 0.2);
+}
+
+.chat-effect-kawaii::before {
+    content: '🌸';
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 12px;
+    animation: kawaiiRotate 4s linear infinite;
+    opacity: 0.6;
+}
+
+@keyframes kawaiiRotate {
+    from {
+        transform: translateY(-50%) rotate(0deg);
+    }
+
+    to {
+        transform: translateY(-50%) rotate(360deg);
+    }
+}
+
+/* 🦇 EFECTO DE CHAT: GOTH (chat_goth) */
+.chat-effect-goth {
+    background: linear-gradient(to right, rgba(0, 0, 0, 0.8), rgba(136, 19, 55, 0.1)) !important;
+    border-color: #881337cc !important;
+    box-shadow: inset 0 0 20px rgba(255, 0, 0, 0.1);
+}
+
+.chat-effect-goth::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at center, transparent, rgba(136, 19, 55, 0.05));
+    animation: gothAura 2s infinite alternate;
+}
+
+@keyframes gothAura {
+    from {
+        opacity: 0.3;
+    }
+
+    to {
+        opacity: 0.8;
+    }
+}
+
+/* 🔌 EFECTO DE CHAT: CYBER (chat_cyberpunky) - REDISEÑO TOTAL */
+.chat-effect-cyberpunky {
+    background: #000c14 !important;
+    border: 1px solid #00f2ff !important;
+    position: relative;
+    overflow: hidden !important;
+    box-shadow: 0 0 20px rgba(0, 242, 255, 0.2);
+    color: #fff !important;
+}
+
+.chat-effect-cyberpunky::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image:
+        linear-gradient(rgba(0, 242, 255, 0.05) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 242, 255, 0.05) 1px, transparent 1px);
+    background-size: 15px 15px;
+    opacity: 0.5;
+}
+
+.chat-effect-cyberpunky::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(transparent, rgba(0, 242, 255, 0.05), transparent);
+    top: -100%;
+    animation: cyberScanBar 4s linear infinite;
+    z-index: 10;
+}
+
+@keyframes cyberScanBar {
+    0% {
+        top: -100%;
+    }
+
+    100% {
+        top: 100%;
+    }
+}
+
+/* ✨ ESTILO: STARLIGHT (Pase Estelar - Épico) */
+.nick-style-starlight {
+    background: linear-gradient(90deg, #e2e8f0, #ffffff, #e2e8f0);
+    background-size: 200% auto;
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent !important;
+    animation: starlightShimmer 3s linear infinite;
+    font-weight: 900;
+    text-shadow: 0 0 15px rgba(255, 255, 255, 0.4);
+}
+
+@keyframes starlightShimmer {
+    to {
+        background-position: 200% center;
+    }
+}
+
+.nick-style-starlight::before {
+    content: '✨';
+    position: absolute;
+    top: -8px;
+    right: -10px;
+    font-size: 10px;
+    -webkit-text-fill-color: initial !important;
+    animation: sparkleSpin 4s linear infinite !important;
+}
+
+@keyframes sparkleSpin {
+    from {
+        transform: rotate(0deg) scale(0.5);
+        opacity: 0;
+    }
+
+    50% {
+        transform: rotate(180deg) scale(1.2);
+        opacity: 1;
+    }
+
+    to {
+        transform: rotate(360deg) scale(0.5);
+        opacity: 0;
+    }
+}
+
+/* 💥 ESTILO: SUPERNOVA (Pase Estelar - Legendario) */
+.nick-style-supernova {
+    background: linear-gradient(135deg, #ff00cc, #3333ff, #00ffcc, #ffff00, #ff00cc);
+    background-size: 400% 400%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent !important;
+    animation: supernovaPulse 5s ease infinite;
+    font-weight: 950;
+    filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.3));
+}
+
+@keyframes supernovaPulse {
+    0% {
+        background-position: 0% 50%;
+        transform: scale(1);
+    }
+
+    50% {
+        background-position: 100% 50%;
+        transform: scale(1.05);
+    }
+
+    100% {
+        background-position: 0% 50%;
+        transform: scale(1);
+    }
+}
+
+.nick-style-supernova::after {
+    content: '';
+    position: absolute;
+    inset: -5px -10px;
+    background: radial-gradient(circle, rgba(255, 255, 255, 0.2) 0%, transparent 70%);
+    z-index: -1;
+    filter: blur(10px);
+    animation: supernovaAura 2s ease-in-out infinite;
+}
+
+@keyframes supernovaAura {
+
+    0%,
+    100% {
+        opacity: 0.3;
+        transform: scale(0.8);
+    }
+
+    50% {
+        opacity: 0.7;
+        transform: scale(1.2);
+    }
+}

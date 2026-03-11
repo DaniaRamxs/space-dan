@@ -1,0 +1,44 @@
+<!doctype html>
+
+<html lang="es">
+
+<head>
+
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+
+  <!-- App identity -->
+  <title>Spacely</title>
+  <meta name="description" content="Spacely — Comunidad galáctica interactiva" />
+
+  <!-- PWA / mobile -->
+  <meta name="theme-color" content="#050510" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Spacely" />
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+
+  <!-- Preconnect: TCP/TLS a Supabase antes de que cargue el JS -->
+  <link rel="preconnect" href="https://dwhobtphhacmoogullxk.supabase.co" crossorigin />
+  <link rel="dns-prefetch" href="https://dwhobtphhacmoogullxk.supabase.co" />
+
+  <!-- Preconnect para avatares de DiceBear (HyperBot y avatares generados) -->
+  <link rel="dns-prefetch" href="https://api.dicebear.com" />
+
+  <!-- Previene FOUC en temas: aplica fondo oscuro antes de que cargue CSS -->
+  <style>
+    html, body { background: #050510; }
+  </style>
+
+</head>
+
+<body>
+  <div id="root"></div>
+  <script type="module" src="/src/main.jsx"></script>
+
+</body>
+
+</html>
