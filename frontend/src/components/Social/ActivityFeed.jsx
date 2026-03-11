@@ -32,22 +32,24 @@ function mergeFeedWithUniverse(posts, universeEvents) {
     return result;
 }
 
-export default function ActivityFeed({ userId, filter = 'all', category = null }) {
+export default function ActivityFeed({ userId, filter = 'all', category = null, showCosmicEvents = false }) {
     const { feed, setFeed, loading, loadingMore, hasMore, loadMore } = useActivityFeed(filter, 20, category, userId);
     const [universeEvents, setUniverseEvents] = useState([]);
     const sentinelRef = useRef(null);
     const isGlobalFeed = !userId;
 
-    // Cargar eventos del universo (actividad + cosmic events)
+    // Cargar eventos del universo (solo si showCosmicEvents está activado)
     useEffect(() => {
-        if (!isGlobalFeed) {
-            setUniverseEvents([]);
-            return;
-        }
+        if (!isGlobalFeed || !showCosmicEvents) return;
+        
+        let mounted = true;
         cosmicEventsService.getUniverseEvents(30)
-            .then(setUniverseEvents)
+            .then(events => {
+                if (mounted) setUniverseEvents(events);
+            })
             .catch(err => console.error('[ActivityFeed] Error loading universe events:', err));
-    }, [isGlobalFeed]);
+        return () => { mounted = false; };
+    }, [isGlobalFeed, showCosmicEvents]);
 
     // ... resto del componente (handleUpdatePost, handleNewPost, etc.)
     const handleUpdatePost = useCallback((updatedPost) => {
@@ -88,7 +90,7 @@ export default function ActivityFeed({ userId, filter = 'all', category = null }
         );
     }
 
-    const mixedFeed = isGlobalFeed ? mergeFeedWithUniverse(feed, universeEvents) : feed;
+    const mixedFeed = isGlobalFeed && showCosmicEvents ? mergeFeedWithUniverse(feed, universeEvents) : feed;
 
     return (
         <div className="w-full flex flex-col items-center">

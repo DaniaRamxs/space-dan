@@ -68,11 +68,12 @@ export const cosmicEventsService = {
         }
     },
 
-    // Obtener historial de eventos (feed + cosmic)
+    // Obtener eventos cósmicos (solo cosmic_event, no feed_activity)
     getUniverseEvents: async (limit = 20) => {
         const { data, error } = await supabase
             .from('universe_events')
             .select('*, profile:user_id(username, avatar_url)')
+            .eq('type', 'cosmic_event')
             .order('created_at', { ascending: false })
             .limit(limit);
 
