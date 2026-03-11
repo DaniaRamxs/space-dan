@@ -137,7 +137,7 @@ export default function GardenLayout({ children }) {
                   </div>
                 </div>
 
-                <NavLink to="/games" className="desktopNavLink">Juegos</NavLink>
+                <NavLink to="/games" className="desktopNavLink">Arcade</NavLink>
                 <NavLink to="/tienda" className="desktopNavLink">Tienda</NavLink>
                 <button onClick={() => setMobileMenuOpen(true)} className="desktopNavLink moreBtn">
                   <span>Sístema</span>
@@ -271,8 +271,8 @@ export default function GardenLayout({ children }) {
           <span className="mobileNavLabel">Chat {activeChatters > 0 && <span className="text-[7px] text-cyan-400 ml-0.5">●</span>}</span>
         </NavLink>
         <NavLink to="/games" className={({ isActive }) => `mobileNavLink ${isActive ? 'active' : ''}`}>
-          <span className="mobileNavIcon icon-spin-slow">🎮</span>
-          <span className="mobileNavLabel">Juegos</span>
+          <span className="mobileNavIcon icon-spin-slow">🕹️</span>
+          <span className="mobileNavLabel">Arcade</span>
         </NavLink>
         <NavLink to="/tienda" className={({ isActive }) => `mobileNavLink ${isActive ? 'active' : ''}`}>
           <span className="mobileNavIcon icon-float">🛍️</span>
