@@ -102,6 +102,8 @@ app.get("/health", (req, res) => {
 app.use("/api", youtubeRoutes);
 app.use("/api", socialRoutes);
 
+console.log('[ROUTES] Social API mounted: /api/communities, /api/activities');
+
 /* ==================== HTTP SERVER ==================== */
 
 const server = http.createServer(app);
