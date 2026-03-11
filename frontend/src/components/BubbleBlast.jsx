@@ -80,17 +80,45 @@ export default function BubbleBlast() {
       setShootAngle(angle);
     };
 
+    const handleTouchMove = (e) => {
+      if (gameState !== 'playing' || isAnimating) return;
+      
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+      
+      const touch = e.touches[0];
+      const rect = canvas.getBoundingClientRect();
+      const touchX = touch.clientX - rect.left;
+      const touchY = touch.clientY - rect.top;
+      
+      const dx = touchX - shooterRef.current.x;
+      const dy = touchY - shooterRef.current.y;
+      const angle = Math.atan2(dy, dx);
+      
+      setShootAngle(angle);
+    };
+
     const handleClick = () => {
+      if (gameState !== 'playing' || isAnimating || !currentBubble) return;
+      shootBubble();
+    };
+
+    const handleTouchEnd = (e) => {
+      e.preventDefault();
       if (gameState !== 'playing' || isAnimating || !currentBubble) return;
       shootBubble();
     };
 
     window.addEventListener('mousemove', handleMouseMove);
     window.addEventListener('click', handleClick);
+    window.addEventListener('touchmove', handleTouchMove, { passive: false });
+    window.addEventListener('touchend', handleTouchEnd);
     
     return () => {
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('click', handleClick);
+      window.removeEventListener('touchmove', handleTouchMove);
+      window.removeEventListener('touchend', handleTouchEnd);
     };
   }, [gameState, isAnimating, currentBubble, shootBubble]);
 

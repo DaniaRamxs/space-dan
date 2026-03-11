@@ -184,6 +184,16 @@ export default function RhythmDash() {
     }
   }, [health, gameState, score]);
 
+  const handleLanePress = useCallback((laneIndex) => {
+    if (gameState !== 'playing') return;
+    const key = KEYS[laneIndex];
+    setPressedKeys(prev => ({ ...prev, [key]: true }));
+    checkHit(laneIndex);
+    setTimeout(() => {
+      setPressedKeys(prev => ({ ...prev, [key]: false }));
+    }, 100);
+  }, [gameState, checkHit]);
+
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (gameState !== 'playing') return;
@@ -456,20 +466,34 @@ export default function RhythmDash() {
               borderRadius: 8
             }} />
             
-            {/* Key label */}
-            <div style={{
-              position: 'absolute',
-              bottom: 20,
-              left: '50%',
-              transform: 'translateX(-50%)',
-              fontSize: '1.5rem',
-              fontWeight: 'bold',
-              color: pressedKeys[key] ? '#ec4899' : 'rgba(255,255,255,0.3)',
-              textTransform: 'uppercase',
-              transition: 'color 0.1s'
-            }}>
+            {/* Key label / Touch button */}
+            <button
+              onClick={() => handleLanePress(i)}
+              onTouchStart={(e) => {
+                e.preventDefault();
+                handleLanePress(i);
+              }}
+              style={{
+                position: 'absolute',
+                bottom: 20,
+                left: '50%',
+                transform: 'translateX(-50%)',
+                fontSize: '1.5rem',
+                fontWeight: 'bold',
+                color: pressedKeys[key] ? '#ec4899' : 'rgba(255,255,255,0.3)',
+                textTransform: 'uppercase',
+                transition: 'color 0.1s',
+                background: pressedKeys[key] ? 'rgba(236,72,153,0.3)' : 'rgba(255,255,255,0.1)',
+                border: '2px solid rgba(255,255,255,0.2)',
+                borderRadius: '12px',
+                padding: '12px 20px',
+                cursor: 'pointer',
+                touchAction: 'manipulation',
+                WebkitTapHighlightColor: 'transparent'
+              }}
+            >
               {key}
-            </div>
+            </button>
           </div>
         ))}
       </div>
