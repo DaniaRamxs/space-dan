@@ -30,7 +30,9 @@ import { PixelGalaxyRoom } from "./rooms/PixelGalaxyRoom.mjs";
 import { PuzzleRoom } from "./rooms/PuzzleRoom.mjs";
 import { LudoRoom } from "./rooms/LudoRoom.mjs";
 import { BeatSoundRoom } from "./rooms/BeatSoundRoom.mjs";
+import { LiveActivityRoom } from "./rooms/LiveActivityRoom.mjs";
 import youtubeRoutes from "./youtubeSearch.mjs";
+import socialRoutes from "./modules/social/index.mjs";
 
 const PORT = process.env.PORT || 2567;
 const IS_PROD = process.env.NODE_ENV === "production";
@@ -98,6 +100,7 @@ app.get("/health", (req, res) => {
 /* ---------------- API ROUTES ---------------- */
 
 app.use("/api", youtubeRoutes);
+app.use("/api", socialRoutes);
 
 /* ==================== HTTP SERVER ==================== */
 
@@ -132,6 +135,7 @@ gameServer.define("pixel-galaxy", PixelGalaxyRoom).filterBy(['roomName']);
 gameServer.define("puzzle", PuzzleRoom).filterBy(['roomName']);
 gameServer.define("ludo", LudoRoom).filterBy(['roomName']);
 gameServer.define("beat_sound", BeatSoundRoom).filterBy(['roomName']);
+gameServer.define("live-activity", LiveActivityRoom).filterBy(['activityId']);
 
 /* ==================== ERROR HANDLING ==================== */
 

@@ -75,6 +75,8 @@ const StellarPassPage = lazy(() => import("./pages/StellarPassPage"));
 const InventoryPage = lazy(() => import("./pages/InventoryPage"));
 const ExplorePage = lazy(() => import("./pages/ExplorePage"));
 const DownloadPage = lazy(() => import("./pages/DownloadPage"));
+const CommunitiesPage = lazy(() => import("./pages/CommunitiesPage"));
+const CommunityPage = lazy(() => import("./pages/CommunityPage"));
 const SpotifyCallback = lazy(() => import("./pages/SpotifyCallback"));
 const AuthCallback = lazy(() => import("./pages/AuthCallback"));
 
@@ -484,6 +486,12 @@ function AnimatedRoutes() {
         <Route path="/descargar" element={<Layout><DownloadPage /></Layout>} />
         <Route path="/download" element={<Layout><DownloadPage /></Layout>} />
         <Route path="/explorar" element={<Layout><ExplorePage /></Layout>} />
+        <Route path="/communities" element={<Layout><CommunitiesPage /></Layout>} />
+        <Route path="/community/:slug" element={
+          loading ? <Layout><RouteLoader /></Layout> :
+            user ? <Layout><CommunityPage /></Layout> :
+              <Layout><LoginGate /></Layout>
+        } />
         <Route path="/posts" element={
           loading ? <Layout><RouteLoader /></Layout> :
             user ? <Layout><PostsPage /></Layout> :
