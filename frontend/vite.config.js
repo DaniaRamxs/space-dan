@@ -23,7 +23,7 @@ export default defineConfig(({ mode }) => {
           globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2}'],
           // No precachear chunks grandes (livekit, konva) — se cachean en runtime
           globIgnores: ['**/livekit-*.js', '**/konva-*.js', '**/canvas-*.js', '**/games-*.js'],
-          // Limpiar cache antigua
+          // Limpieza agresiva de cache
           cleanupOutdatedCaches: true,
           skipWaiting: true,
           clientsClaim: true,
@@ -59,7 +59,7 @@ export default defineConfig(({ mode }) => {
             {
               // Chunks de juegos: cache-first (cambian poco)
               urlPattern: /games.*\.js$/i,
-              handler: 'CacheFirst',
+              handler: 'StaleWhileRevalidate',
               options: {
                 cacheName: 'games',
                 expiration: { maxEntries: 20, maxAgeSeconds: 60 * 60 * 24 * 7 },
