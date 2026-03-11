@@ -138,29 +138,24 @@ export default function RhythmDash() {
   }, [spawnNote, difficulty]);
 
   useEffect(() => {
-    if (gameState === 'playing' && gameLoopRef.current === null) {
-      const loop = () => {
-        gameLoop();
-        gameLoopRef.current = requestAnimationFrame(loop);
-      };
-      gameLoopRef.current = requestAnimationFrame(loop);
-    }
-    
-    if (gameState !== 'playing' && gameLoopRef.current !== null) {
-      cancelAnimationFrame(gameLoopRef.current);
-      gameLoopRef.current = null;
-    }
-  }, [gameState, gameLoop]);
-
-  useEffect(() => {
     if (gameState === 'playing') {
       startTimeRef.current = Date.now();
       lastSpawnRef.current = Date.now();
-      gameLoopRef.current = requestAnimationFrame(gameLoop);
+      
+      const loop = () => {
+        gameLoop();
+        if (gameState === 'playing') {
+          gameLoopRef.current = requestAnimationFrame(loop);
+        }
+      };
+      
+      gameLoopRef.current = requestAnimationFrame(loop);
     }
+    
     return () => {
       if (gameLoopRef.current) {
         cancelAnimationFrame(gameLoopRef.current);
+        gameLoopRef.current = null;
       }
     };
   }, [gameState, gameLoop]);

@@ -156,86 +156,58 @@ export default function BubbleBlast() {
     
     setIsAnimating(true);
     
-    const speed = 10;
-    const vx = Math.cos(shootAngle) * speed;
-    const vy = Math.sin(shootAngle) * speed;
+    // Simplificado: disparar directamente al tope
+    const targetRow = 0;
+    const targetCol = Math.floor(shooterRef.current.x / BUBBLE_SIZE);
     
-    let x = shooterRef.current.x;
-    let y = shooterRef.current.y;
+    const newGrid = grid.map(r => [...r]);
     
-    const animate = () => {
-      x += vx;
-      y += vy;
-      
-      if (x <= BUBBLE_SIZE / 2 || x >= 400 - BUBBLE_SIZE / 2) {
-        return;
-      }
-      
-      const col = Math.floor(x / BUBBLE_SIZE);
-      const row = Math.floor(y / BUBBLE_SIZE);
-      
-      if (row >= 0 && row < GRID_ROWS && col >= 0 && col < GRID_COLS) {
-        if (grid[row] && grid[row][col]) {
-          placeBubble(row, col);
-          return;
-        }
-      }
-      
-      if (y <= BUBBLE_SIZE / 2) {
-        const topRow = 0;
-        const topCol = Math.floor(x / BUBBLE_SIZE);
-        placeBubble(topRow, topCol);
-        return;
-      }
-      
-      requestAnimationFrame(animate);
+    if (!newGrid[targetRow]) {
+      newGrid[targetRow] = Array(GRID_COLS).fill(null);
+    }
+    
+    newGrid[targetRow][targetCol] = {
+      color: currentBubble.color,
+      id: `${targetRow}-${targetCol}-${Date.now()}`
     };
     
-    const placeBubble = (row, col) => {
-      const newGrid = grid.map(r => [...r]);
-      
-      if (!newGrid[row]) {
-        newGrid[row] = Array(GRID_COLS).fill(null);
-      }
-      
-      newGrid[row][col] = {
-        color: currentBubble.color,
-        id: `${row}-${col}-${Date.now()}`
-      };
-      
-      const connected = findConnectedBubbles(newGrid, row, col, currentBubble.color);
-      
-      if (connected.length >= 3) {
-        connected.forEach(({ row: r, col: c }) => {
-          newGrid[r][c] = null;
-        });
-        
-        const points = connected.length * 10 * (combo + 1);
-        setScore(s => s + points);
-        setCombo(c => c + 1);
-        setBubblesPopped(b => b + connected.length);
-      } else {
-        setCombo(0);
-      }
-      
-      setGrid(newGrid);
-      setCurrentBubble(nextBubble);
-      setNextBubble({ color: getRandomColor() });
-      setIsAnimating(false);
-      
-      const hasRemainingBubbles = newGrid.some(row => row.some(b => b));
-      if (!hasRemainingBubbles) {
-        setTimeout(() => {
-          setGameState('gameover');
-          window.dispatchEvent(new CustomEvent('dan:game-score', {
-            detail: { score, gameId: 'bubble-blast', isHighScore: true }
-          }));
-        }, 500);
-      }
-    };
+    const connected = findConnectedBubbles(newGrid, targetRow, targetCol, currentBubble.color);
     
-    animate();
-  }, [currentBubble, nextBubble, shootAngle, grid, combo, score, findConnectedBubbles, getRandomColor]);
+    if (connected.length >= 3) {
+      connected.forEach(({ row: r, col: c }) => {
+        newGrid[r][c] = null;
+      });
+      
+      const points = connected.length * 10 * (combo + 1);
+      setScore(s => s + points);
+      setCombo(c => c + 1);
+      setBubblesPopped(b => b + connected.length);
+    } else {
+      setCombo(0);
+    }
+    
+    setGrid(newGrid);
+    setCurrentBubble(nextBubble);
+    
+    const gridColors = newGrid.flat().filter(b => b).map(b => b.color);
+    const uniqueColors = [...new Set(gridColors)];
+    const randomColor = uniqueColors.length > 0 
+      ? uniqueColors[Math.floor(Math.random() * uniqueColors.length)]
+      : COLORS[0];
+    
+    setNextBubble({ color: randomColor });
+    setIsAnimating(false);
+    
+    const hasRemainingBubbles = newGrid.some(row => row.some(b => b));
+    if (!hasRemainingBubbles) {
+      setTimeout(() => {
+        setGameState('gameover');
+        window.dispatchEvent(new CustomEvent('dan:game-score', {
+          detail: { score, gameId: 'bubble-blast', isHighScore: true }
+        }));
+      }, 500);
+    }
+  }, [currentBubble, nextBubble, grid, combo, findConnectedBubbles]);
 
   const startGame = () => {
     setGameState('playing');
