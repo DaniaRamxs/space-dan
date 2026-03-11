@@ -97,6 +97,23 @@ app.get("/health", (req, res) => {
   });
 });
 
+/* ---------------- MOCK AUTH MIDDLEWARE (TEMPORARY) ---------------- */
+
+// Temporary middleware to mock user authentication for testing
+app.use("/api/communities", (req, res, next) => {
+  if (!req.user) {
+    req.user = { id: 'mock-user-id' }; // Mock user for testing
+  }
+  next();
+});
+
+app.use("/api/activities", (req, res, next) => {
+  if (!req.user) {
+    req.user = { id: 'mock-user-id' }; // Mock user for testing
+  }
+  next();
+});
+
 /* ---------------- API ROUTES ---------------- */
 
 app.use("/api", youtubeRoutes);
