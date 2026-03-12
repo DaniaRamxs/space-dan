@@ -4,6 +4,7 @@ import { createRoot } from 'react-dom/client'
 import './index.css'
 import './profile-v2.css'
 import App from './App.jsx'
+import { YouTubeProvider } from './contexts/YouTubeContext'
 import { loadSavedTheme } from './hooks/useTheme'
 import { supabase } from './supabaseClient'
 import { Capacitor } from '@capacitor/core'
@@ -207,7 +208,9 @@ if (Capacitor.isNativePlatform()) {
 // Render app
 createRoot(document.getElementById('root')).render(
   <StrictMode>
-    <App />
+    <YouTubeProvider>
+      <App />
+    </YouTubeProvider>
   </StrictMode>
 )
 
