@@ -15,8 +15,16 @@ export const communitiesController = {
       const { name, slug, description, category, avatar, banner } = req.body;
       const creatorId = req.user?.id;
 
+      console.log('[Communities] Create request:', {
+        hasUser: !!req.user,
+        creatorId,
+        name,
+        slug
+      });
+
       if (!creatorId) {
-        return res.status(401).json({ error: 'Unauthorized' });
+        console.error('[Communities] No creator ID - user not authenticated');
+        return res.status(401).json({ error: 'Unauthorized - user not authenticated' });
       }
 
       if (!name || !slug) {
@@ -33,9 +41,15 @@ export const communitiesController = {
         banner
       });
 
+      console.log('[Communities] Created successfully:', community.id);
       res.status(201).json(community);
     } catch (error) {
       console.error('[Communities] Create error:', error);
+      console.error('[Communities] Error details:', {
+        message: error.message,
+        code: error.code,
+        details: error.details
+      });
       res.status(500).json({ error: error.message });
     }
   },

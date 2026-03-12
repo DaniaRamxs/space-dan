@@ -10,23 +10,45 @@ export const communitiesService = {
    * Create a new community
    */
   async createCommunity({ name, slug, description, category, creatorId, avatar, banner }) {
+    console.log('[CommunitiesService] Creating community with:', {
+      name,
+      slug,
+      category: category || 'general',
+      creatorId,
+      hasCreatorId: !!creatorId
+    });
+
+    const insertData = {
+      name,
+      slug,
+      description,
+      category: category || 'general',
+      creator_id: creatorId,
+      avatar_url: avatar || null,
+      banner_url: banner || null,
+      member_count: 1,
+      created_at: new Date().toISOString()
+    };
+
+    console.log('[CommunitiesService] Insert data:', insertData);
+
     const { data, error } = await supabase
       .from('communities')
-      .insert([{
-        name,
-        slug,
-        description,
-        category: category || 'general',
-        creator_id: creatorId,
-        avatar_url: avatar || null,
-        banner_url: banner || null,
-        member_count: 1,
-        created_at: new Date().toISOString()
-      }])
+      .insert([insertData])
       .select('*')
       .single();
 
-    if (error) throw error;
+    if (error) {
+      console.error('[CommunitiesService] Supabase insert error:', {
+        message: error.message,
+        code: error.code,
+        details: error.details,
+        hint: error.hint
+      });
+      throw error;
+    }
+
+    console.log('[CommunitiesService] Community created:', data.id);
 
     // Auto-join creator as first member
     await this.joinCommunity(data.id, creatorId);

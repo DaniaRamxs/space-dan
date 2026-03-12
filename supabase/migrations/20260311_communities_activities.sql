@@ -152,6 +152,10 @@ CREATE POLICY "Creators can update their communities"
   ON communities FOR UPDATE
   USING (auth.uid() = creator_id);
 
+CREATE POLICY "Creators can delete their communities"
+  ON communities FOR DELETE
+  USING (auth.uid() = creator_id);
+
 -- Community Members: Members can view, authenticated can join
 ALTER TABLE community_members ENABLE ROW LEVEL SECURITY;
 

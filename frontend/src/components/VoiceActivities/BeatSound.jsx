@@ -52,7 +52,10 @@ export default function BeatSound({ roomName, onClose }) {
     const [isMuted, setIsMuted] = useState(false);
     const [youtubePlayer, setYoutubePlayer] = useState(null);
     const [youtubeReady, setYoutubeReady] = useState(false);
+    const [youtubeError, setYoutubeError] = useState(false);
+    const [initTimeout, setInitTimeout] = useState(false);
     const youtubePlayerRef = useRef(null);
+    const initAttemptedRef = useRef(false);
     
     // Refs para funciones usadas en callbacks
     const showHitFeedbackRef = useRef();
@@ -172,30 +175,46 @@ export default function BeatSound({ roomName, onClose }) {
                 });
                 
                 r.onMessage('game_start', (data) => {
-                    console.log('[BeatSound] Game started:', data);
-                    console.log('[BeatSound] YouTube player ready?', !!youtubePlayerRef.current);
-                    // Iniciar reproducción de YouTube si hay trackId
-                    if (data.trackId && youtubePlayerRef.current) {
-                        console.log('[BeatSound] Loading video:', data.trackId);
+                    console.log('[BeatSound] 🎮 Game started:', data);
+                    console.log('[BeatSound] YouTube player available?', !!youtubePlayerRef.current);
+                    console.log('[BeatSound] YouTube error?', youtubeError);
+                    console.log('[BeatSound] Init timeout?', initTimeout);
+                    
+                    // Iniciar reproducción de YouTube si está disponible
+                    if (data.trackId && youtubePlayerRef.current && !youtubeError && !initTimeout) {
+                        console.log('[BeatSound] 🎵 Loading video:', data.trackId);
                         try {
                             youtubePlayerRef.current.loadVideoById(data.trackId);
                             youtubePlayerRef.current.playVideo();
-                            console.log('[BeatSound] Video playback started');
+                            console.log('[BeatSound] ✅ Video playback started');
                             
                             // Obtener duración del video y enviarla al servidor
                             setTimeout(() => {
-                                const duration = youtubePlayerRef.current.getDuration();
-                                if (duration && duration > 0) {
-                                    const durationMs = Math.floor(duration * 1000);
-                                    console.log('[BeatSound] Video duration:', durationMs, 'ms');
-                                    r.send('update_duration', { duration: durationMs });
+                                try {
+                                    const duration = youtubePlayerRef.current.getDuration();
+                                    if (duration && duration > 0) {
+                                        const durationMs = Math.floor(duration * 1000);
+                                        console.log('[BeatSound] 📏 Video duration:', durationMs, 'ms');
+                                        r.send('update_duration', { duration: durationMs });
+                                    }
+                                } catch (err) {
+                                    console.error('[BeatSound] Error getting duration:', err);
                                 }
-                            }, 1000);
+                            }, 1500);
                         } catch (err) {
-                            console.error('[BeatSound] Error playing video:', err);
+                            console.error('[BeatSound] ❌ Error playing video:', err);
+                            toast.error('Error reproduciendo música');
                         }
                     } else {
-                        console.warn('[BeatSound] Cannot play - trackId:', data.trackId, 'player:', !!youtubePlayerRef.current);
+                        if (!data.trackId) {
+                            console.warn('[BeatSound] ⚠️  No track ID provided');
+                        } else if (!youtubePlayerRef.current) {
+                            console.warn('[BeatSound] ⚠️  YouTube player not initialized');
+                            toast('Jugando sin música', { icon: '🔇' });
+                        } else if (youtubeError || initTimeout) {
+                            console.warn('[BeatSound] ⚠️  YouTube unavailable, playing without music');
+                            toast('Jugando sin música', { icon: '🔇' });
+                        }
                     }
                 });
                 
@@ -299,48 +318,93 @@ export default function BeatSound({ roomName, onClose }) {
         return room?.sessionId === state?.leaderId;
     }, [room?.sessionId, state?.leaderId]);
     
-    // Inicializar YouTube Player
+    // Inicializar YouTube Player con timeout y error handling
     useEffect(() => {
-        if (!window.YT) {
-            const tag = document.createElement('script');
-            tag.src = 'https://www.youtube.com/iframe_api';
-            const firstScriptTag = document.getElementsByTagName('script')[0];
-            firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
-        }
+        if (initAttemptedRef.current) return;
+        initAttemptedRef.current = true;
 
-        window.onYouTubeIframeAPIReady = () => {
-            console.log('[BeatSound] YouTube API Ready, initializing player...');
-            const player = new window.YT.Player('youtube-player-beatsound', {
-                height: '0',
-                width: '0',
-                playerVars: {
-                    autoplay: 0,
-                    controls: 0,
-                    disablekb: 1,
-                    fs: 0,
-                    modestbranding: 1,
-                },
-                events: {
-                    onReady: (event) => {
-                        console.log('[BeatSound] YouTube player ready!');
-                        youtubePlayerRef.current = event.target;
-                        setYoutubePlayer(event.target);
-                        setYoutubeReady(true);
+        console.log('[BeatSound] Initializing YouTube player...');
+        
+        // Timeout de 10 segundos para la inicialización
+        const timeoutId = setTimeout(() => {
+            if (!youtubeReady) {
+                console.warn('[BeatSound] YouTube player initialization timeout - enabling fallback');
+                setInitTimeout(true);
+                setYoutubeReady(true); // Permitir continuar sin YouTube
+                toast.error('YouTube no disponible. El juego funcionará sin música.');
+            }
+        }, 10000);
+
+        const initPlayer = () => {
+            try {
+                console.log('[BeatSound] Creating YouTube player instance...');
+                const player = new window.YT.Player('youtube-player-beatsound', {
+                    height: '0',
+                    width: '0',
+                    playerVars: {
+                        autoplay: 0,
+                        controls: 0,
+                        disablekb: 1,
+                        fs: 0,
+                        modestbranding: 1,
+                        origin: window.location.origin,
                     },
-                    onError: (event) => {
-                        console.error('[BeatSound] YouTube player error:', event.data);
+                    events: {
+                        onReady: (event) => {
+                            console.log('[BeatSound] ✅ YouTube player ready!');
+                            clearTimeout(timeoutId);
+                            youtubePlayerRef.current = event.target;
+                            setYoutubePlayer(event.target);
+                            setYoutubeReady(true);
+                            setYoutubeError(false);
+                        },
+                        onError: (event) => {
+                            console.error('[BeatSound] ❌ YouTube player error:', event.data);
+                            clearTimeout(timeoutId);
+                            setYoutubeError(true);
+                            setYoutubeReady(true); // Permitir continuar sin YouTube
+                            toast.error('Error cargando YouTube. Continuando sin música.');
+                        },
+                        onStateChange: (event) => {
+                            console.log('[BeatSound] YouTube state:', event.data);
+                        },
                     },
-                    onStateChange: (event) => {
-                        console.log('[BeatSound] YouTube state changed:', event.data);
-                    },
-                },
-            });
+                });
+            } catch (err) {
+                console.error('[BeatSound] Error creating YouTube player:', err);
+                clearTimeout(timeoutId);
+                setYoutubeError(true);
+                setYoutubeReady(true);
+                toast.error('No se pudo inicializar YouTube.');
+            }
         };
 
-        if (window.YT && window.YT.Player) {
-            window.onYouTubeIframeAPIReady();
+        // Cargar YouTube IFrame API si no existe
+        if (!window.YT) {
+            console.log('[BeatSound] Loading YouTube IFrame API...');
+            const tag = document.createElement('script');
+            tag.src = 'https://www.youtube.com/iframe_api';
+            tag.onerror = () => {
+                console.error('[BeatSound] Failed to load YouTube IFrame API');
+                clearTimeout(timeoutId);
+                setYoutubeError(true);
+                setYoutubeReady(true);
+                toast.error('No se pudo cargar YouTube API.');
+            };
+            const firstScriptTag = document.getElementsByTagName('script')[0];
+            firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+            
+            window.onYouTubeIframeAPIReady = initPlayer;
+        } else if (window.YT.Player) {
+            initPlayer();
+        } else {
+            window.onYouTubeIframeAPIReady = initPlayer;
         }
-    }, []);
+
+        return () => {
+            clearTimeout(timeoutId);
+        };
+    }, [youtubeReady]);
     
     if (!state) {
         return (
@@ -458,6 +522,8 @@ export default function BeatSound({ roomName, onClose }) {
                     isPlaying={state.isPlaying}
                     gamePhase={state.gamePhase}
                     youtubeReady={youtubeReady}
+                    youtubeError={youtubeError}
+                    initTimeout={initTimeout}
                 />
             )}
             
@@ -812,7 +878,7 @@ function LeaderboardPanel({ players, leaderId, localSessionId }) {
 }
 
 // Componente: Stats del jugador
-function PlayerStats({ player, onReady, isPlaying, gamePhase, youtubeReady }) {
+function PlayerStats({ player, onReady, isPlaying, gamePhase, youtubeReady, youtubeError, initTimeout }) {
     return (
         <div className="absolute bottom-0 left-0 right-0 p-4 pb-24 md:pb-6 bg-gradient-to-t from-black/80 to-transparent">
             <div className="max-w-4xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
@@ -873,7 +939,7 @@ function PlayerStats({ player, onReady, isPlaying, gamePhase, youtubeReady }) {
                         whileHover={!player.isReady && youtubeReady ? { scale: 1.05 } : {}}
                         whileTap={!player.isReady && youtubeReady ? { scale: 0.95 } : {}}
                     >
-                        {player.isReady ? '✓ Listo' : !youtubeReady ? 'Cargando...' : 'Estoy Listo'}
+                        {player.isReady ? '✓ Listo' : !youtubeReady ? 'Cargando...' : (youtubeError || initTimeout) ? '🔇 Estoy Listo' : 'Estoy Listo'}
                     </motion.button>
                 )}
             </div>

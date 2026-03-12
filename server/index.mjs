@@ -33,6 +33,7 @@ import { BeatSoundRoom } from "./rooms/BeatSoundRoom.mjs";
 import { LiveActivityRoom } from "./rooms/LiveActivityRoom.mjs";
 import youtubeRoutes from "./youtubeSearch.mjs";
 import socialRoutes from "./modules/social/index.mjs";
+import audioRoutes from "./modules/audio/audioRoutes.mjs";
 
 const PORT = process.env.PORT || 2567;
 const IS_PROD = process.env.NODE_ENV === "production";
@@ -149,8 +150,10 @@ app.use("/api/activities", authenticateSupabase);
 
 app.use("/api", youtubeRoutes);
 app.use("/api", socialRoutes);
+app.use("/api/audio", audioRoutes);
 
 console.log('[ROUTES] Social API mounted: /api/communities, /api/activities');
+console.log('[ROUTES] Audio API mounted: /api/audio');
 
 // Debug endpoint to list all routes
 app.get("/api/debug/routes", (req, res) => {

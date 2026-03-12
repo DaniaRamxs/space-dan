@@ -2,26 +2,32 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const LANES = 4;
-const KEYS = ['d', 'f', 'j', 'k'];
-const NOTE_SPEED   = 3;
-const PERFECT_WINDOW = 60;   // more forgiving for keyboard latency
+const KEYS  = ['d', 'f', 'j', 'k'];
+const LANE_COLORS = ['#ec4899', '#a78bfa', '#00e5ff', '#00ff88'];
+const NOTE_SPEED     = 3;
+const PERFECT_WINDOW = 60;
 const GOOD_WINDOW    = 130;
 const OK_WINDOW      = 200;
 
+// Hit zone is at 77% of container height (center)
+const HIT_FRAC = 0.77;
+// Buttons occupy the bottom 22% of the container
+const BTN_FRAC = 0.22;
+
 const PATTERNS = [
-  [0, 1, 2, 3, 0, 2, 1, 3, 0, 1, 3, 2],
-  [0, 0, 1, 1, 2, 2, 3, 3, 0, 2, 1, 3],
-  [3, 2, 1, 0, 3, 1, 2, 0, 3, 2, 0, 1],
-  [0, 1, 0, 2, 1, 3, 2, 0, 3, 1, 2, 3],
+  [0,1,2,3,0,2,1,3,0,1,3,2],
+  [0,0,1,1,2,2,3,3,0,2,1,3],
+  [3,2,1,0,3,1,2,0,3,2,0,1],
+  [0,1,0,2,1,3,2,0,3,1,2,3],
 ];
 
 const DIFFICULTY_PRESETS = {
-  easy:   { label: 'FÁCIL',   emoji: '🌟', initialDiff: 0.5, maxDiff: 3, hitMult: 1.5,  color: '#00ff88' },
-  normal: { label: 'NORMAL',  emoji: '⚡', initialDiff: 1,   maxDiff: 5, hitMult: 1,    color: '#00e5ff' },
-  hard:   { label: 'DIFÍCIL', emoji: '💀', initialDiff: 2,   maxDiff: 7, hitMult: 0.65, color: '#ff4444' },
+  easy:   { label:'FÁCIL',   emoji:'🌟', initialDiff:0.5, maxDiff:3, hitMult:1.5,  color:'#00ff88' },
+  normal: { label:'NORMAL',  emoji:'⚡', initialDiff:1,   maxDiff:5, hitMult:1,    color:'#00e5ff' },
+  hard:   { label:'DIFÍCIL', emoji:'💀', initialDiff:2,   maxDiff:7, hitMult:0.65, color:'#ff4444' },
 };
 
-// ── Audio ────────────────────────────────────────────────────────────────────
+// ── Audio ─────────────────────────────────────────────────────────────────────
 let _ctx = null;
 const getCtx = () => {
   try {
@@ -47,61 +53,60 @@ const sounds = {
   ok:        () => tone(440, 0.1, 'triangle', 0.22),
   miss:      () => tone(120, 0.18, 'sawtooth', 0.25),
   milestone: (c) => {
-    const seq = c >= 25 ? [523, 659, 784, 1047, 1319] : [392, 523, 659, 784];
-    seq.forEach((f, i) => setTimeout(() => tone(f, 0.18, 'sine', 0.22), i * 65));
+    const seq = c >= 25 ? [523,659,784,1047,1319] : [392,523,659,784];
+    seq.forEach((f,i) => setTimeout(() => tone(f, 0.18, 'sine', 0.22), i * 65));
   },
-  gameover:  () => [440, 370, 311, 261].forEach((f, i) => setTimeout(() => tone(f, 0.28, 'sine', 0.25), i * 140)),
-  start:     () => [261, 329, 392, 523].forEach((f, i) => setTimeout(() => tone(f, 0.12, 'sine', 0.2), i * 60)),
+  gameover:  () => [440,370,311,261].forEach((f,i) => setTimeout(() => tone(f, 0.28, 'sine', 0.25), i * 140)),
+  start:     () => [261,329,392,523].forEach((f,i) => setTimeout(() => tone(f, 0.12, 'sine', 0.2), i * 60)),
 };
-// ────────────────────────────────────────────────────────────────────────────
-
-// Hit zone at bottom: 100px, height 80px inside a 600px container → center at y=460
-const TARGET_Y = 460;
-
-// Scale game to fill available space on PC
-const computeScale = () => {
-  if (typeof window === 'undefined') return 1;
-  if (window.innerWidth <= 480) return 1; // GamesPage handles mobile scaling
-  const availW = window.innerWidth  - 420; // ~380px sidebar + margins
-  const availH = window.innerHeight - 120; // header + padding
-  return Math.min(availW / 600, availH / 600, 2.0); // up to 2×
-};
+// ─────────────────────────────────────────────────────────────────────────────
 
 export default function RhythmDash() {
-  const [gameState, setGameState]         = useState('menu');
+  const [gameState, setGameState]           = useState('menu');
   const [selectedPreset, setSelectedPreset] = useState('normal');
-  const [score, setScore]                 = useState(0);
-  const [combo, setCombo]                 = useState(0);
-  const [maxCombo, setMaxCombo]           = useState(0);
-  const [notes, setNotes]                 = useState([]);
-  const [pressedKeys, setPressedKeys]     = useState({});
-  const [feedback, setFeedback]           = useState([]);
-  const [health, setHealth]               = useState(100);
-  const [difficulty, setDifficulty]       = useState(1);
-  const [flashColor, setFlashColor]       = useState(null);
-  const [stats, setStats]                 = useState({ perfect: 0, good: 0, ok: 0, miss: 0 });
-  const [gameScale, setGameScale]         = useState(computeScale);
+  const [score, setScore]                   = useState(0);
+  const [combo, setCombo]                   = useState(0);
+  const [maxCombo, setMaxCombo]             = useState(0);
+  const [notes, setNotes]                   = useState([]);
+  const [pressedKeys, setPressedKeys]       = useState({});
+  const [feedback, setFeedback]             = useState([]);
+  const [health, setHealth]                 = useState(100);
+  const [difficulty, setDifficulty]         = useState(1);
+  const [flashColor, setFlashColor]         = useState(null);
+  const [stats, setStats]                   = useState({ perfect:0, good:0, ok:0, miss:0 });
+  // Container dimensions — updated by ResizeObserver
+  const [containerSize, setContainerSize]   = useState({ w: 360, h: 600 });
 
-  const gameLoopRef      = useRef(null);
-  const noteIdRef        = useRef(0);
-  const lastSpawnRef     = useRef(0);
-  const startTimeRef     = useRef(0);
-  const patternIndexRef  = useRef(0);
-  const noteInPatternRef = useRef(0);
-  const difficultyRef    = useRef(1);
-  const comboRef         = useRef(0);
-  const gameStateRef     = useRef('menu'); // updated synchronously
-  const presetRef        = useRef(DIFFICULTY_PRESETS.normal);
-  const milestoneRef     = useRef(0);
-  const statsRef         = useRef({ perfect: 0, good: 0, ok: 0, miss: 0 });
-  // Synchronous notes ref — avoids React batching issues in hit detection
-  const notesRef         = useRef([]);
+  const containerRef       = useRef(null);
+  const containerSizeRef   = useRef({ w: 360, h: 600 });
+  const gameLoopRef        = useRef(null);
+  const noteIdRef          = useRef(0);
+  const lastSpawnRef       = useRef(0);
+  const startTimeRef       = useRef(0);
+  const patternIndexRef    = useRef(0);
+  const noteInPatternRef   = useRef(0);
+  const difficultyRef      = useRef(1);
+  const comboRef           = useRef(0);
+  const gameStateRef       = useRef('menu');
+  const presetRef          = useRef(DIFFICULTY_PRESETS.normal);
+  const milestoneRef       = useRef(0);
+  const statsRef           = useRef({ perfect:0, good:0, ok:0, miss:0 });
+  const notesRef           = useRef([]);
 
-  // Recalculate scale on window resize
+  // Track container size responsively
   useEffect(() => {
-    const update = () => setGameScale(computeScale());
-    window.addEventListener('resize', update);
-    return () => window.removeEventListener('resize', update);
+    const el = containerRef.current;
+    if (!el) return;
+    const update = () => {
+      const w = el.offsetWidth  || 360;
+      const h = el.offsetHeight || 600;
+      containerSizeRef.current = { w, h };
+      setContainerSize({ w, h });
+    };
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    return () => ro.disconnect();
   }, []);
 
   const triggerFlash = useCallback((color, dur = 300) => {
@@ -128,9 +133,11 @@ export default function RhythmDash() {
     setNotes(notesRef.current);
   }, []);
 
-  // checkHit reads from notesRef (synchronous, latest positions — no batching race)
+  // checkHit reads containerSizeRef for dynamic TARGET_Y
   const checkHit = useCallback((lane) => {
-    const preset  = presetRef.current;
+    const preset   = presetRef.current;
+    const ch       = containerSizeRef.current.h;
+    const targetY  = ch * HIT_FRAC;
     const pw = PERFECT_WINDOW * preset.hitMult;
     const gw = GOOD_WINDOW   * preset.hitMult;
     const ow = OK_WINDOW     * preset.hitMult;
@@ -147,9 +154,9 @@ export default function RhythmDash() {
     }
 
     const closest = inLane.reduce((a, b) =>
-      Math.abs(b.y - TARGET_Y) < Math.abs(a.y - TARGET_Y) ? b : a
+      Math.abs(b.y - targetY) < Math.abs(a.y - targetY) ? b : a
     );
-    const dist = Math.abs(closest.y - TARGET_Y);
+    const dist = Math.abs(closest.y - targetY);
 
     if (dist >= ow) {
       comboRef.current = 0; setCombo(0);
@@ -160,7 +167,6 @@ export default function RhythmDash() {
       return;
     }
 
-    // Mark note as hit synchronously in ref first (prevents double-hit on same note)
     notesRef.current = notesRef.current.map(n => n.id === closest.id ? { ...n, hit: true } : n);
     setNotes([...notesRef.current]);
 
@@ -196,24 +202,24 @@ export default function RhythmDash() {
   }, [addFeedback, triggerFlash]);
 
   const gameLoop = useCallback(() => {
-    const now  = Date.now();
+    const now     = Date.now();
     const elapsed = now - startTimeRef.current;
-    const diff = difficultyRef.current;
-    const speed = NOTE_SPEED * (1 + diff * 0.1);
+    const diff    = difficultyRef.current;
+    const ch      = containerSizeRef.current.h;
+    // Scale speed to container height so timing feels consistent across screen sizes
+    const speed   = NOTE_SPEED * (ch / 600) * (1 + diff * 0.1);
 
-    // Spawn
     const spawnInterval = Math.max(350, 800 - diff * 50);
     if (now - lastSpawnRef.current > spawnInterval) {
       spawnNote();
       lastSpawnRef.current = now;
     }
 
-    // Move + collect misses synchronously in ref
     let missed = 0;
-    const moved = notesRef.current.map(n => ({ ...n, y: n.y + speed }));
+    const moved    = notesRef.current.map(n => ({ ...n, y: n.y + speed }));
     const filtered = moved.filter(note => {
-      if (note.y > 600 && !note.hit) { missed++; return false; }
-      return note.y < 650;
+      if (note.y > ch + 50 && !note.hit) { missed++; return false; }
+      return note.y < ch + 100;
     });
     notesRef.current = filtered;
     setNotes([...filtered]);
@@ -224,7 +230,6 @@ export default function RhythmDash() {
       setHealth(h => Math.max(0, h - 10 * missed));
     }
 
-    // Ramp difficulty
     if (elapsed > 15000) {
       const preset = presetRef.current;
       const newDiff = Math.min(preset.maxDiff, preset.initialDiff + ((elapsed - 15000) / 30000) * (preset.maxDiff - preset.initialDiff));
@@ -237,8 +242,8 @@ export default function RhythmDash() {
 
   useEffect(() => {
     if (gameState !== 'playing') return;
-    startTimeRef.current = Date.now();
-    lastSpawnRef.current = Date.now();
+    startTimeRef.current  = Date.now();
+    lastSpawnRef.current  = Date.now();
 
     let running = true;
     const loop = () => {
@@ -267,19 +272,19 @@ export default function RhythmDash() {
   }, [health, gameState, score]);
 
   const handleLanePress = useCallback((i) => {
-    if (gameState !== 'playing') return;
+    if (gameStateRef.current !== 'playing') return;
     const key = KEYS[i];
     setPressedKeys(prev => ({ ...prev, [key]: true }));
     checkHit(i);
     setTimeout(() => setPressedKeys(prev => ({ ...prev, [key]: false })), 100);
-  }, [gameState, checkHit]);
+  }, [checkHit]);
 
   useEffect(() => {
     const held = {};
     const onDown = (e) => {
       if (gameStateRef.current !== 'playing') return;
       const key = e.key.toLowerCase();
-      const li = KEYS.indexOf(key);
+      const li  = KEYS.indexOf(key);
       if (li !== -1 && !held[key]) {
         held[key] = true;
         setPressedKeys(prev => ({ ...prev, [key]: true }));
@@ -291,26 +296,26 @@ export default function RhythmDash() {
       if (KEYS.includes(key)) { held[key] = false; setPressedKeys(prev => ({ ...prev, [key]: false })); }
     };
     window.addEventListener('keydown', onDown);
-    window.addEventListener('keyup', onUp);
+    window.addEventListener('keyup',   onUp);
     return () => { window.removeEventListener('keydown', onDown); window.removeEventListener('keyup', onUp); };
   }, [checkHit]);
 
   const startGame = () => {
     const preset = DIFFICULTY_PRESETS[selectedPreset];
-    presetRef.current     = preset;
-    difficultyRef.current = preset.initialDiff;
-    comboRef.current      = 0;
-    milestoneRef.current  = 0;
-    noteIdRef.current     = 0;
+    presetRef.current        = preset;
+    difficultyRef.current    = preset.initialDiff;
+    comboRef.current         = 0;
+    milestoneRef.current     = 0;
+    noteIdRef.current        = 0;
     patternIndexRef.current  = 0;
     noteInPatternRef.current = 0;
-    statsRef.current      = { perfect: 0, good: 0, ok: 0, miss: 0 };
-    notesRef.current      = [];
-    gameStateRef.current  = 'playing';
+    statsRef.current         = { perfect:0, good:0, ok:0, miss:0 };
+    notesRef.current         = [];
+    gameStateRef.current     = 'playing';
     setGameState('playing');
     setScore(0); setCombo(0); setMaxCombo(0); setNotes([]);
     setHealth(100); setDifficulty(preset.initialDiff);
-    setStats({ perfect: 0, good: 0, ok: 0, miss: 0 });
+    setStats({ perfect:0, good:0, ok:0, miss:0 });
     sounds.start();
   };
 
@@ -321,39 +326,45 @@ export default function RhythmDash() {
     setHealth(100); setDifficulty(1); notesRef.current = [];
   };
 
-  // ── MENU ──────────────────────────────────────────────────────────────────
+  // ── MENU ───────────────────────────────────────────────────────────────────
   if (gameState === 'menu') {
     return (
-      <div style={{ width: '100%', maxWidth: 600, margin: '0 auto', padding: 20, textAlign: 'center', color: '#fff' }}>
-        <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
-          style={{ background: 'linear-gradient(135deg,rgba(236,72,153,.1),rgba(0,229,255,.1))', borderRadius: 24, padding: 40, border: '1px solid rgba(236,72,153,.2)' }}>
-          <div style={{ fontSize: '3rem', marginBottom: 16 }}>🎵</div>
-          <h1 style={{ fontSize: '2.5rem', fontWeight: 900, background: 'linear-gradient(135deg,#ec4899,#00e5ff)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', marginBottom: 8 }}>
+      <div style={{ width:'100%', maxWidth:600, margin:'0 auto', padding:20, textAlign:'center', color:'#fff' }}>
+        <motion.div initial={{ scale:0.8, opacity:0 }} animate={{ scale:1, opacity:1 }}
+          style={{ background:'linear-gradient(135deg,rgba(236,72,153,.1),rgba(0,229,255,.1))', borderRadius:24, padding:'32px 24px', border:'1px solid rgba(236,72,153,.2)' }}>
+          <div style={{ fontSize:'3rem', marginBottom:12 }}>🎵</div>
+          <h1 style={{ fontSize:'clamp(1.8rem,6vw,2.5rem)', fontWeight:900, background:'linear-gradient(135deg,#ec4899,#00e5ff)', WebkitBackgroundClip:'text', WebkitTextFillColor:'transparent', marginBottom:8 }}>
             RHYTHM DASH
           </h1>
-          <p style={{ opacity: 0.6, marginBottom: 28, fontSize: '0.85rem' }}>
-            Presiona <span style={{ color: '#ec4899', fontWeight: 'bold' }}>D F J K</span> al ritmo de las notas
+          <p style={{ opacity:0.6, marginBottom:24, fontSize:'0.85rem' }}>
+            Toca cada carril al ritmo de las notas
           </p>
 
-          <div style={{ marginBottom: 28 }}>
-            <div style={{ fontSize: '0.7rem', opacity: 0.5, marginBottom: 10, textTransform: 'uppercase', letterSpacing: 2 }}>Dificultad</div>
-            <div style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
+          {/* Difficulty selector */}
+          <div style={{ marginBottom:28 }}>
+            <div style={{ fontSize:'0.7rem', opacity:0.5, marginBottom:10, textTransform:'uppercase', letterSpacing:2 }}>Dificultad</div>
+            <div style={{ display:'flex', gap:8, justifyContent:'center', flexWrap:'wrap' }}>
               {Object.entries(DIFFICULTY_PRESETS).map(([key, p]) => (
                 <button key={key} onClick={() => setSelectedPreset(key)}
-                  style={{ padding: '10px 16px', borderRadius: 12, border: `2px solid ${selectedPreset === key ? p.color : 'rgba(255,255,255,0.15)'}`, background: selectedPreset === key ? `${p.color}22` : 'transparent', color: selectedPreset === key ? p.color : 'rgba(255,255,255,0.5)', cursor: 'pointer', fontWeight: 700, fontSize: '0.85rem', transition: 'all 0.15s' }}>
+                  style={{ padding:'12px 18px', borderRadius:12, border:`2px solid ${selectedPreset === key ? p.color : 'rgba(255,255,255,0.15)'}`, background:selectedPreset === key ? `${p.color}22` : 'transparent', color:selectedPreset === key ? p.color : 'rgba(255,255,255,0.5)', cursor:'pointer', fontWeight:700, fontSize:'0.9rem', transition:'all 0.15s', touchAction:'manipulation' }}>
                   {p.emoji} {p.label}
                 </button>
               ))}
             </div>
           </div>
 
-          <div style={{ marginBottom: 28, display: 'flex', justifyContent: 'center', gap: 10 }}>
-            {KEYS.map((k, i) => (
-              <div key={i} style={{ width: 56, height: 56, background: 'rgba(255,255,255,0.08)', border: '2px solid rgba(255,255,255,0.18)', borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.4rem', fontWeight: 'bold', textTransform: 'uppercase', color: '#fff' }}>{k}</div>
+          {/* Lane preview */}
+          <div style={{ marginBottom:28, display:'flex', justifyContent:'center', gap:8 }}>
+            {LANE_COLORS.map((c, i) => (
+              <div key={i} style={{ width:60, height:60, background:`${c}22`, border:`2px solid ${c}66`, borderRadius:14, display:'flex', alignItems:'center', justifyContent:'center', flexDirection:'column', gap:2 }}>
+                <div style={{ width:20, height:20, borderRadius:'50%', background:c, opacity:0.85 }} />
+                <span style={{ fontSize:'0.65rem', color:c, fontWeight:700, opacity:0.7 }}>{KEYS[i].toUpperCase()}</span>
+              </div>
             ))}
           </div>
 
-          <button onClick={startGame} style={{ background: 'linear-gradient(135deg,#ec4899,#00e5ff)', border: 'none', padding: '16px 48px', borderRadius: 16, fontSize: '1.2rem', fontWeight: 900, color: '#fff', cursor: 'pointer', textTransform: 'uppercase', boxShadow: '0 10px 30px rgba(236,72,153,.3)' }}>
+          <button onClick={startGame}
+            style={{ background:'linear-gradient(135deg,#ec4899,#00e5ff)', border:'none', padding:'18px 52px', borderRadius:16, fontSize:'1.2rem', fontWeight:900, color:'#fff', cursor:'pointer', textTransform:'uppercase', boxShadow:'0 10px 30px rgba(236,72,153,.3)', touchAction:'manipulation' }}>
             JUGAR
           </button>
         </motion.div>
@@ -363,52 +374,54 @@ export default function RhythmDash() {
 
   // ── GAMEOVER ───────────────────────────────────────────────────────────────
   if (gameState === 'gameover') {
-    const s = statsRef.current;
-    const total = s.perfect + s.good + s.ok + s.miss;
+    const s   = statsRef.current;
+    const total    = s.perfect + s.good + s.ok + s.miss;
     const accuracy = total > 0 ? Math.round(((s.perfect + s.good) / total) * 100) : 0;
 
     return (
-      <div style={{ width: '100%', maxWidth: 600, margin: '0 auto', padding: 20, textAlign: 'center', color: '#fff' }}>
-        <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
-          style={{ background: 'linear-gradient(135deg,rgba(236,72,153,.1),rgba(0,229,255,.1))', borderRadius: 24, padding: 40, border: '1px solid rgba(236,72,153,.2)' }}>
-          <div style={{ fontSize: '3rem', marginBottom: 16 }}>🎮</div>
-          <h2 style={{ fontSize: '2rem', fontWeight: 900, marginBottom: 20 }}>GAME OVER</h2>
+      <div style={{ width:'100%', maxWidth:600, margin:'0 auto', padding:20, textAlign:'center', color:'#fff' }}>
+        <motion.div initial={{ scale:0.8, opacity:0 }} animate={{ scale:1, opacity:1 }}
+          style={{ background:'linear-gradient(135deg,rgba(236,72,153,.1),rgba(0,229,255,.1))', borderRadius:24, padding:'32px 20px', border:'1px solid rgba(236,72,153,.2)' }}>
+          <div style={{ fontSize:'3rem', marginBottom:12 }}>🎮</div>
+          <h2 style={{ fontSize:'2rem', fontWeight:900, marginBottom:16 }}>GAME OVER</h2>
 
-          <div style={{ fontSize: '0.7rem', opacity: 0.5, marginBottom: 4 }}>SCORE FINAL</div>
-          <div style={{ fontSize: '3rem', fontWeight: 900, color: '#00e5ff', marginBottom: 20 }}>{score.toLocaleString()}</div>
+          <div style={{ fontSize:'0.7rem', opacity:0.5, marginBottom:4 }}>SCORE FINAL</div>
+          <div style={{ fontSize:'3rem', fontWeight:900, color:'#00e5ff', marginBottom:20 }}>{score.toLocaleString()}</div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 8, marginBottom: 20 }}>
+          <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:8, marginBottom:20 }}>
             {[
-              { label: 'PERFECT', val: s.perfect, color: '#00ff88' },
-              { label: 'GOOD',    val: s.good,    color: '#00e5ff' },
-              { label: 'OK',      val: s.ok,      color: '#ffd700' },
-              { label: 'MISS',    val: s.miss,    color: '#ff4444' },
+              { label:'PERFECT', val:s.perfect, color:'#00ff88' },
+              { label:'GOOD',    val:s.good,    color:'#00e5ff' },
+              { label:'OK',      val:s.ok,      color:'#ffd700' },
+              { label:'MISS',    val:s.miss,    color:'#ff4444' },
             ].map(x => (
-              <div key={x.label} style={{ background: 'rgba(255,255,255,0.05)', borderRadius: 10, padding: '10px 6px' }}>
-                <div style={{ fontSize: '0.55rem', opacity: 0.5, marginBottom: 4 }}>{x.label}</div>
-                <div style={{ fontSize: '1.2rem', fontWeight: 'bold', color: x.color }}>{x.val}</div>
+              <div key={x.label} style={{ background:'rgba(255,255,255,0.05)', borderRadius:10, padding:'10px 4px' }}>
+                <div style={{ fontSize:'0.5rem', opacity:0.5, marginBottom:4 }}>{x.label}</div>
+                <div style={{ fontSize:'1.3rem', fontWeight:'bold', color:x.color }}>{x.val}</div>
               </div>
             ))}
           </div>
 
-          <div style={{ display: 'flex', gap: 20, justifyContent: 'center', marginBottom: 24 }}>
+          <div style={{ display:'flex', gap:16, justifyContent:'center', flexWrap:'wrap', marginBottom:24 }}>
             <div>
-              <div style={{ fontSize: '0.65rem', opacity: 0.5 }}>PRECISIÓN</div>
-              <div style={{ fontSize: '1.4rem', fontWeight: 'bold', color: accuracy >= 80 ? '#00ff88' : accuracy >= 50 ? '#ffd700' : '#ff4444' }}>{accuracy}%</div>
+              <div style={{ fontSize:'0.65rem', opacity:0.5 }}>PRECISIÓN</div>
+              <div style={{ fontSize:'1.4rem', fontWeight:'bold', color:accuracy >= 80 ? '#00ff88' : accuracy >= 50 ? '#ffd700' : '#ff4444' }}>{accuracy}%</div>
             </div>
             <div>
-              <div style={{ fontSize: '0.65rem', opacity: 0.5 }}>MAX COMBO</div>
-              <div style={{ fontSize: '1.4rem', fontWeight: 'bold', color: '#ec4899' }}>{maxCombo}x</div>
+              <div style={{ fontSize:'0.65rem', opacity:0.5 }}>MAX COMBO</div>
+              <div style={{ fontSize:'1.4rem', fontWeight:'bold', color:'#ec4899' }}>{maxCombo}x</div>
             </div>
             <div>
-              <div style={{ fontSize: '0.65rem', opacity: 0.5 }}>DIFICULTAD</div>
-              <div style={{ fontSize: '1.4rem', fontWeight: 'bold', color: presetRef.current.color }}>{presetRef.current.label}</div>
+              <div style={{ fontSize:'0.65rem', opacity:0.5 }}>DIFICULTAD</div>
+              <div style={{ fontSize:'1.4rem', fontWeight:'bold', color:presetRef.current.color }}>{presetRef.current.label}</div>
             </div>
           </div>
 
-          <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
-            <button onClick={startGame} style={{ background: 'linear-gradient(135deg,#ec4899,#00e5ff)', border: 'none', padding: '14px 40px', borderRadius: 14, fontSize: '1.1rem', fontWeight: 900, color: '#fff', cursor: 'pointer' }}>REPETIR</button>
-            <button onClick={resetGame} style={{ background: 'rgba(255,255,255,.08)', border: '2px solid rgba(255,255,255,.18)', padding: '14px 24px', borderRadius: 14, fontSize: '1rem', fontWeight: 700, color: '#fff', cursor: 'pointer' }}>MENÚ</button>
+          <div style={{ display:'flex', gap:12, justifyContent:'center' }}>
+            <button onClick={startGame}
+              style={{ background:'linear-gradient(135deg,#ec4899,#00e5ff)', border:'none', padding:'14px 40px', borderRadius:14, fontSize:'1.1rem', fontWeight:900, color:'#fff', cursor:'pointer', touchAction:'manipulation' }}>REPETIR</button>
+            <button onClick={resetGame}
+              style={{ background:'rgba(255,255,255,.08)', border:'2px solid rgba(255,255,255,.18)', padding:'14px 24px', borderRadius:14, fontSize:'1rem', fontWeight:700, color:'#fff', cursor:'pointer', touchAction:'manipulation' }}>MENÚ</button>
           </div>
         </motion.div>
       </div>
@@ -416,84 +429,141 @@ export default function RhythmDash() {
   }
 
   // ── PLAYING ────────────────────────────────────────────────────────────────
-  // Outer div fills the .gameScale area; inner div is the fixed 600×600 game scaled up/down
+  const { w: CW, h: CH } = containerSize;
+  // Hit zone: centered at HIT_FRAC of container height, 10% tall (min 60px)
+  const hitZoneH    = Math.max(60, CH * 0.10);
+  const hitZoneTop  = CH * HIT_FRAC - hitZoneH / 2;
+  // Button zone: bottom BTN_FRAC of container (min 70px)
+  const btnH        = Math.max(70, CH * BTN_FRAC);
+  const laneW       = CW / LANES;
+
   return (
-    <div style={{ width: '100%', height: '100%', minHeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'transparent' }}>
-      <div style={{
-        width: 600, height: 600,
-        position: 'relative',
-        flexShrink: 0,
-        transform: `scale(${gameScale})`,
-        transformOrigin: 'center center',
-        background: 'linear-gradient(180deg,rgba(0,0,0,.85),rgba(20,0,40,.95))',
-        borderRadius: 24,
-        overflow: 'hidden',
-        border: '2px solid rgba(236,72,153,.35)',
-      }}>
+    <div ref={containerRef}
+      style={{ width:'100%', height:'100%', position:'relative', overflow:'hidden',
+        background:'linear-gradient(180deg,rgba(0,0,0,.9),rgba(20,0,40,.98))',
+        borderRadius:16, border:'2px solid rgba(236,72,153,.3)',
+        minHeight:400, userSelect:'none' }}>
 
-        {/* Milestone flash */}
-        <AnimatePresence>
-          {flashColor && (
-            <motion.div key="flash" initial={{ opacity: 1 }} animate={{ opacity: 0 }} transition={{ duration: 0.5 }}
-              style={{ position: 'absolute', inset: 0, background: flashColor, zIndex: 20, pointerEvents: 'none', borderRadius: 24 }} />
-          )}
-        </AnimatePresence>
+      {/* Milestone flash */}
+      <AnimatePresence>
+        {flashColor && (
+          <motion.div key="flash" initial={{ opacity:1 }} animate={{ opacity:0 }} transition={{ duration:0.5 }}
+            style={{ position:'absolute', inset:0, background:flashColor, zIndex:20, pointerEvents:'none' }} />
+        )}
+      </AnimatePresence>
 
-        {/* HUD */}
-        <div style={{ position: 'absolute', top: 16, left: 16, right: 16, display: 'flex', justifyContent: 'space-between', zIndex: 10, color: '#fff' }}>
-          <div>
-            <div style={{ fontSize: '0.65rem', opacity: 0.5 }}>SCORE</div>
-            <div style={{ fontSize: '1.4rem', fontWeight: 'bold', color: '#00e5ff' }}>{score.toLocaleString()}</div>
-          </div>
-          <div style={{ textAlign: 'center' }}>
-            <div style={{ fontSize: '0.65rem', opacity: 0.5 }}>COMBO</div>
-            <motion.div key={combo} animate={combo > 0 ? { scale: [1.3, 1] } : {}} transition={{ duration: 0.15 }}
-              style={{ fontSize: '1.4rem', fontWeight: 'bold', color: combo >= 25 ? '#ffd700' : combo >= 10 ? '#ec4899' : '#fff' }}>
-              {combo}x
-            </motion.div>
-          </div>
-          <div style={{ textAlign: 'right' }}>
-            <div style={{ fontSize: '0.65rem', opacity: 0.5 }}>HEALTH</div>
-            <div style={{ width: 90, height: 8, background: 'rgba(255,255,255,.1)', borderRadius: 4, overflow: 'hidden', marginTop: 6 }}>
-              <motion.div animate={{ width: `${health}%` }} transition={{ duration: 0.3 }}
-                style={{ height: '100%', background: health > 50 ? '#00ff88' : health > 25 ? '#ffd700' : '#ff4444', borderRadius: 4 }} />
-            </div>
+      {/* HUD */}
+      <div style={{ position:'absolute', top:0, left:0, right:0, height:52, display:'flex', alignItems:'center', justifyContent:'space-between', padding:'0 14px', zIndex:10, color:'#fff', background:'linear-gradient(180deg,rgba(0,0,0,.5),transparent)' }}>
+        <div>
+          <div style={{ fontSize:'0.55rem', opacity:0.5, lineHeight:1 }}>SCORE</div>
+          <div style={{ fontSize:'1.2rem', fontWeight:'bold', color:'#00e5ff', lineHeight:1.2 }}>{score.toLocaleString()}</div>
+        </div>
+        <div style={{ textAlign:'center' }}>
+          <div style={{ fontSize:'0.55rem', opacity:0.5, lineHeight:1 }}>COMBO</div>
+          <motion.div key={combo} animate={combo > 0 ? { scale:[1.3,1] } : {}} transition={{ duration:0.15 }}
+            style={{ fontSize:'1.2rem', fontWeight:'bold', color:combo >= 25 ? '#ffd700' : combo >= 10 ? '#ec4899' : '#fff', lineHeight:1.2 }}>
+            {combo}x
+          </motion.div>
+        </div>
+        <div style={{ textAlign:'right', minWidth:80 }}>
+          <div style={{ fontSize:'0.55rem', opacity:0.5, lineHeight:1, marginBottom:4 }}>HP</div>
+          <div style={{ width:80, height:7, background:'rgba(255,255,255,.1)', borderRadius:4, overflow:'hidden' }}>
+            <motion.div animate={{ width:`${health}%` }} transition={{ duration:0.3 }}
+              style={{ height:'100%', background:health > 50 ? '#00ff88' : health > 25 ? '#ffd700' : '#ff4444', borderRadius:4 }} />
           </div>
         </div>
+      </div>
 
-        {/* Lanes */}
-        <div style={{ position: 'absolute', inset: 0, display: 'flex' }}>
-          {KEYS.map((key, i) => (
-            <div key={i} style={{ flex: 1, borderRight: i < LANES - 1 ? '1px solid rgba(255,255,255,.07)' : 'none', position: 'relative', background: pressedKeys[key] ? 'rgba(236,72,153,.2)' : 'transparent', transition: 'background 0.08s' }}>
-              {/* Hit zone — center at y=460, so bottom=100, height=80 (420–500) */}
-              <div style={{ position: 'absolute', bottom: 100, left: 2, right: 2, height: 80, background: 'rgba(0,229,255,.07)', border: '1px solid rgba(0,229,255,.22)', borderRadius: 8 }} />
-              {/* Key button */}
-              <button onClick={() => handleLanePress(i)}
-                onTouchStart={e => { e.preventDefault(); handleLanePress(i); }}
-                style={{ position: 'absolute', bottom: 16, left: '50%', transform: 'translateX(-50%)', fontSize: '1.3rem', fontWeight: 'bold', color: pressedKeys[key] ? '#ec4899' : 'rgba(255,255,255,.22)', textTransform: 'uppercase', background: pressedKeys[key] ? 'rgba(236,72,153,.28)' : 'rgba(255,255,255,.06)', border: '2px solid rgba(255,255,255,.14)', borderRadius: 10, padding: '10px 16px', cursor: 'pointer', touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent', transition: 'all 0.08s' }}>
-                {key}
-              </button>
-            </div>
-          ))}
-        </div>
+      {/* Lane dividers */}
+      {[1,2,3].map(i => (
+        <div key={i} style={{ position:'absolute', top:0, bottom:0, left:`${(i / LANES) * 100}%`, width:1, background:'rgba(255,255,255,.07)', zIndex:1 }} />
+      ))}
 
-        {/* Notes */}
-        <AnimatePresence>
-          {notes.map(note => (
-            <motion.div key={note.id} initial={{ opacity: 1 }} exit={{ opacity: 0, scale: 0 }}
-              style={{ position: 'absolute', left: `${(note.lane / LANES) * 100 + 5}%`, top: note.y, width: `${(1 / LANES) * 100 - 10}%`, height: 38, background: note.hit ? 'rgba(0,255,136,.75)' : 'linear-gradient(135deg,#ec4899,#00e5ff)', borderRadius: 8, boxShadow: note.hit ? '0 0 12px rgba(0,255,136,.5)' : '0 4px 14px rgba(236,72,153,.45)', transition: 'background 0.08s' }} />
-          ))}
-        </AnimatePresence>
+      {/* Hit zone */}
+      <div style={{ position:'absolute', top:hitZoneTop, left:4, right:4, height:hitZoneH, background:'rgba(0,229,255,.06)', border:'1px solid rgba(0,229,255,.2)', borderRadius:8, zIndex:2, pointerEvents:'none' }} />
 
-        {/* Feedback */}
-        <AnimatePresence>
-          {feedback.map(f => (
-            <motion.div key={f.id} initial={{ opacity: 1, y: 0, scale: 1 }} animate={{ opacity: 0, y: -60, scale: 1.2 }} transition={{ duration: 0.9 }}
-              style={{ position: 'absolute', left: `${(f.lane / LANES) * 100 + 10}%`, top: 390, fontSize: '1.1rem', fontWeight: 900, pointerEvents: 'none', textShadow: '0 0 12px currentColor', color: f.text === 'PERFECT!' ? '#00ff88' : f.text === 'GOOD' ? '#00e5ff' : f.text === 'OK' ? '#ffd700' : '#ff4444' }}>
-              {f.text}
-            </motion.div>
-          ))}
-        </AnimatePresence>
+      {/* Notes */}
+      <AnimatePresence>
+        {notes.map(note => {
+          const color = LANE_COLORS[note.lane];
+          return (
+            <motion.div key={note.id} initial={{ opacity:1 }} exit={{ opacity:0, scale:0 }}
+              style={{
+                position:'absolute',
+                left: note.lane * laneW + laneW * 0.08,
+                top:  note.y,
+                width: laneW * 0.84,
+                height: Math.max(28, CH * 0.055),
+                background: note.hit
+                  ? 'rgba(0,255,136,.8)'
+                  : `linear-gradient(135deg, ${color}, ${color}aa)`,
+                borderRadius: 8,
+                boxShadow: note.hit
+                  ? '0 0 12px rgba(0,255,136,.6)'
+                  : `0 4px 14px ${color}55`,
+                zIndex: 5,
+                transition:'background 0.06s',
+              }} />
+          );
+        })}
+      </AnimatePresence>
+
+      {/* Feedback text */}
+      <AnimatePresence>
+        {feedback.map(f => (
+          <motion.div key={f.id}
+            initial={{ opacity:1, y:0, scale:1 }}
+            animate={{ opacity:0, y:-50, scale:1.2 }}
+            transition={{ duration:0.85 }}
+            style={{
+              position:'absolute',
+              left: f.lane * laneW + laneW * 0.05,
+              top: hitZoneTop - 30,
+              width: laneW * 0.9,
+              textAlign:'center',
+              fontSize:'clamp(0.75rem,3vw,1rem)',
+              fontWeight:900,
+              pointerEvents:'none',
+              zIndex:15,
+              color: f.text === 'PERFECT!' ? '#00ff88' : f.text === 'GOOD' ? '#00e5ff' : f.text === 'OK' ? '#ffd700' : '#ff4444',
+              textShadow:`0 0 10px currentColor`,
+            }}>
+            {f.text}
+          </motion.div>
+        ))}
+      </AnimatePresence>
+
+      {/* Tap buttons — bottom BTN_FRAC of container */}
+      <div style={{ position:'absolute', bottom:0, left:0, right:0, height:btnH, display:'flex', zIndex:10, gap:3, padding:'3px 3px 6px' }}>
+        {LANE_COLORS.map((color, i) => (
+          <button key={i}
+            onPointerDown={e => { e.preventDefault(); handleLanePress(i); }}
+            style={{
+              flex:1,
+              height:'100%',
+              background: pressedKeys[KEYS[i]]
+                ? `${color}44`
+                : `${color}11`,
+              border: `2px solid ${pressedKeys[KEYS[i]] ? color : `${color}44`}`,
+              borderRadius:12,
+              cursor:'pointer',
+              touchAction:'manipulation',
+              WebkitTapHighlightColor:'transparent',
+              transition:'background 0.08s, border-color 0.08s',
+              display:'flex',
+              flexDirection:'column',
+              alignItems:'center',
+              justifyContent:'center',
+              gap:4,
+            }}>
+            {/* Colored indicator dot */}
+            <div style={{ width: Math.max(18, btnH * 0.25), height: Math.max(18, btnH * 0.25), borderRadius:'50%', background:pressedKeys[KEYS[i]] ? color : `${color}66`, transition:'background 0.08s', boxShadow:pressedKeys[KEYS[i]] ? `0 0 12px ${color}` : 'none' }} />
+            {/* Key label (visible on desktop) */}
+            <span style={{ fontSize:'clamp(0.65rem,2.5vw,0.85rem)', fontWeight:700, color:pressedKeys[KEYS[i]] ? color : `${color}88`, textTransform:'uppercase' }}>
+              {KEYS[i]}
+            </span>
+          </button>
+        ))}
       </div>
     </div>
   );
