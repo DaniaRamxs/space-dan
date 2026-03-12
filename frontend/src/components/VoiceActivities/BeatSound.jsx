@@ -53,6 +53,7 @@ export default function BeatSound({ roomName, onClose }) {
     const [youtubeError, setYoutubeError] = useState(false);
     const youtubePlayerRef = useRef(null);
     const initAttemptedRef = useRef(false);
+    const fallbackTimeoutRef = useRef(null);
     
     // Refs para funciones usadas en callbacks
     const showHitFeedbackRef = useRef();
@@ -338,7 +339,7 @@ export default function BeatSound({ roomName, onClose }) {
     // Fallback timeout independiente - habilita el juego después de 5 segundos
     useEffect(() => {
         console.log('[BeatSound] Setting up fallback timeout...');
-        const fallbackTimeout = setTimeout(() => {
+        fallbackTimeoutRef.current = setTimeout(() => {
             console.log('[BeatSound] Fallback timeout fired. youtubeReady:', youtubeReady, 'youtubeApiReady:', youtubeApiReady);
             if (!youtubeReady) {
                 console.warn('[BeatSound] ⏰ Timeout reached - enabling game without music');
@@ -349,7 +350,10 @@ export default function BeatSound({ roomName, onClose }) {
         
         return () => {
             console.log('[BeatSound] Cleaning up fallback timeout');
-            clearTimeout(fallbackTimeout);
+            if (fallbackTimeoutRef.current) {
+                clearTimeout(fallbackTimeoutRef.current);
+                fallbackTimeoutRef.current = null;
+            }
         };
     }, []); // Solo se ejecuta una vez al montar
     
@@ -392,6 +396,12 @@ export default function BeatSound({ roomName, onClose }) {
                     events: {
                         onReady: (event) => {
                             console.log('[BeatSound] ✅ YouTube player ready!');
+                            // Cancelar el timeout de fallback
+                            if (fallbackTimeoutRef.current) {
+                                console.log('[BeatSound] Canceling fallback timeout');
+                                clearTimeout(fallbackTimeoutRef.current);
+                                fallbackTimeoutRef.current = null;
+                            }
                             youtubePlayerRef.current = event.target;
                             setYoutubeReady(true);
                             setYoutubeError(false);
