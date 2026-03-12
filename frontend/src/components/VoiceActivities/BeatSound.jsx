@@ -335,26 +335,23 @@ export default function BeatSound({ roomName, onClose }) {
         return room?.sessionId === state?.leaderId;
     }, [room?.sessionId, state?.leaderId]);
     
-    // Inicializar YouTube Player usando el contexto global
+    // Fallback timeout independiente - habilita el juego después de 3 segundos
     useEffect(() => {
-        if (initAttemptedRef.current) return;
-        
-        // Si YouTube API no está lista después de 3 segundos, permitir jugar sin música
         const fallbackTimeout = setTimeout(() => {
             if (!youtubeReady) {
-                console.warn('[BeatSound] YouTube API timeout - enabling game without music');
+                console.warn('[BeatSound] YouTube timeout - enabling game without music');
                 setYoutubeReady(true);
                 setYoutubeError(true);
             }
         }, 3000);
         
-        if (!youtubeApiReady || !YT) {
-            console.log('[BeatSound] Waiting for YouTube API...');
-            return () => clearTimeout(fallbackTimeout);
-        }
-        
+        return () => clearTimeout(fallbackTimeout);
+    }, []); // Solo se ejecuta una vez al montar
+    
+    // Inicializar YouTube Player usando el contexto global
+    useEffect(() => {
+        if (initAttemptedRef.current || !youtubeApiReady || !YT) return;
         initAttemptedRef.current = true;
-        clearTimeout(fallbackTimeout);
 
         console.log('[BeatSound] Initializing YouTube player with pre-loaded API...');
         
@@ -402,7 +399,6 @@ export default function BeatSound({ roomName, onClose }) {
         setTimeout(initPlayer, 100);
 
         return () => {
-            clearTimeout(fallbackTimeout);
             if (youtubePlayerRef.current) {
                 try {
                     youtubePlayerRef.current.destroy();
@@ -412,7 +408,7 @@ export default function BeatSound({ roomName, onClose }) {
                 youtubePlayerRef.current = null;
             }
         };
-    }, [youtubeApiReady, YT, youtubeReady]);
+    }, [youtubeApiReady, YT]);
     
     if (!state) {
         return (

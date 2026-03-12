@@ -3,14 +3,14 @@
  * Handles business logic for live activity operations
  */
 
-import { supabase } from '../../../supabaseClient.mjs';
+import { supabase, supabaseAdmin } from '../../../supabaseClient.mjs';
 
 export const activitiesService = {
   /**
    * Create a new activity
    */
   async createActivity({ type, title, communityId, hostId, roomName, metadata }) {
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
       .from('activities')
       .insert([{
         type,
@@ -92,7 +92,7 @@ export const activitiesService = {
    * Update activity participant count
    */
   async updateParticipantCount(activityId, count) {
-    const { error } = await supabase
+    const { error } = await supabaseAdmin
       .from('activities')
       .update({ participant_count: count })
       .eq('id', activityId);
@@ -104,7 +104,7 @@ export const activitiesService = {
    * Update activity spectator count
    */
   async updateSpectatorCount(activityId, count) {
-    const { error } = await supabase
+    const { error } = await supabaseAdmin
       .from('activities')
       .update({ spectator_count: count })
       .eq('id', activityId);
@@ -116,7 +116,7 @@ export const activitiesService = {
    * End activity
    */
   async endActivity(activityId) {
-    const { error } = await supabase
+    const { error } = await supabaseAdmin
       .from('activities')
       .update({ 
         status: 'ended',
@@ -163,7 +163,7 @@ export const activitiesService = {
     }
 
     // Add participant
-    const { error } = await supabase
+    const { error } = await supabaseAdmin
       .from('activity_participants')
       .insert([{
         activity_id: activityId,
@@ -199,7 +199,7 @@ export const activitiesService = {
     if (!participant) return { notInActivity: true };
 
     // Mark as left
-    const { error } = await supabase
+    const { error } = await supabaseAdmin
       .from('activity_participants')
       .update({ left_at: new Date().toISOString() })
       .eq('activity_id', activityId)

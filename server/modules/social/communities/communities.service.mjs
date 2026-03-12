@@ -3,7 +3,7 @@
  * Handles business logic for community operations
  */
 
-import { supabase } from '../../../supabaseClient.mjs';
+import { supabase, supabaseAdmin } from '../../../supabaseClient.mjs';
 
 export const communitiesService = {
   /**
@@ -32,7 +32,7 @@ export const communitiesService = {
 
     console.log('[CommunitiesService] Insert data:', insertData);
 
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
       .from('communities')
       .insert([insertData])
       .select('*')
@@ -125,7 +125,7 @@ export const communitiesService = {
     }
 
     // Add member
-    const { error: memberError } = await supabase
+    const { error: memberError } = await supabaseAdmin
       .from('community_members')
       .insert([{
         community_id: communityId,
@@ -149,7 +149,7 @@ export const communitiesService = {
    * Leave a community
    */
   async leaveCommunity(communityId, userId) {
-    const { error: deleteError } = await supabase
+    const { error: deleteError } = await supabaseAdmin
       .from('community_members')
       .delete()
       .eq('community_id', communityId)
