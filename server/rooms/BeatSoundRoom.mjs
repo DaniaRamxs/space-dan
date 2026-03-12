@@ -418,6 +418,7 @@ export class BeatSoundRoom extends Room {
         
         this.broadcast("game_start", {
             serverStartTime: this.state.serverStartTime,
+            trackId: this.state.currentTrackId,
         });
         
         log("[BeatSound] Game started!");

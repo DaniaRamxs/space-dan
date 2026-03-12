@@ -4,7 +4,6 @@ import { Search, Youtube, X, Play, Clock } from 'lucide-react';
 import { youtubeService } from '../../services/youtubeService';
 
 export default function YouTubeSearchModal({ isOpen, onClose, onSelect }) {
-    console.log('YouTubeSearchModal renderizado con isOpen:', isOpen);
     const [query, setQuery] = useState('');
     const [results, setResults] = useState([]);
     const [loading, setLoading] = useState(false);
@@ -33,13 +32,8 @@ export default function YouTubeSearchModal({ isOpen, onClose, onSelect }) {
         return () => clearTimeout(delayDebounce);
     }, [query]);
 
-    if (!isOpen) return null;
-
     return (
         <AnimatePresence>
-            {isOpen && (
-                console.log('YouTubeSearchModal: AnimatePresence está renderizando el modal')
-            )}
             {isOpen && (
                 <div 
                     className="fixed inset-0 z-[999999] flex items-center justify-center p-4" 
