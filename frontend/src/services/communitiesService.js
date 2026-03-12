@@ -5,7 +5,8 @@
 
 import { supabase } from '../supabaseClient';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:2567';
+// TODO: Configure VITE_API_URL in Vercel Dashboard
+const API_URL = 'https://spacely-server-production.up.railway.app';
 
 // Helper to get auth headers
 async function getAuthHeaders() {
