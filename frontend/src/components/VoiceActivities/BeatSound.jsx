@@ -172,10 +172,19 @@ export default function BeatSound({ roomName, onClose }) {
                 
                 r.onMessage('game_start', (data) => {
                     console.log('[BeatSound] Game started:', data);
+                    console.log('[BeatSound] YouTube player ready?', !!youtubePlayerRef.current);
                     // Iniciar reproducción de YouTube si hay trackId
                     if (data.trackId && youtubePlayerRef.current) {
-                        youtubePlayerRef.current.loadVideoById(data.trackId);
-                        youtubePlayerRef.current.playVideo();
+                        console.log('[BeatSound] Loading video:', data.trackId);
+                        try {
+                            youtubePlayerRef.current.loadVideoById(data.trackId);
+                            youtubePlayerRef.current.playVideo();
+                            console.log('[BeatSound] Video playback started');
+                        } catch (err) {
+                            console.error('[BeatSound] Error playing video:', err);
+                        }
+                    } else {
+                        console.warn('[BeatSound] Cannot play - trackId:', data.trackId, 'player:', !!youtubePlayerRef.current);
                     }
                 });
                 
@@ -289,6 +298,7 @@ export default function BeatSound({ roomName, onClose }) {
         }
 
         window.onYouTubeIframeAPIReady = () => {
+            console.log('[BeatSound] YouTube API Ready, initializing player...');
             const player = new window.YT.Player('youtube-player-beatsound', {
                 height: '0',
                 width: '0',
@@ -301,8 +311,15 @@ export default function BeatSound({ roomName, onClose }) {
                 },
                 events: {
                     onReady: (event) => {
+                        console.log('[BeatSound] YouTube player ready!');
                         youtubePlayerRef.current = event.target;
                         setYoutubePlayer(event.target);
+                    },
+                    onError: (event) => {
+                        console.error('[BeatSound] YouTube player error:', event.data);
+                    },
+                    onStateChange: (event) => {
+                        console.log('[BeatSound] YouTube state changed:', event.data);
                     },
                 },
             });
@@ -468,11 +485,11 @@ function WaveVisualizer({ isPlaying, beats, currentTime, players }) {
     return (
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
             {/* Ondas de fondo */}
-            <div className="relative w-full h-full max-w-4xl max-h-[60vh]">
+            <div className="relative w-[400px] h-[400px]">
                 {isPlaying && beats.map((beat, i) => {
                     const timeToBeat = beat.time - currentTime;
                     const progress = 1 - (timeToBeat / 2000);
-                    const scale = Math.max(0.3, progress * 2);
+                    const scale = Math.max(0.2, progress * 1.2);
                     const opacity = Math.max(0, 1 - progress);
                     
                     return (
@@ -480,12 +497,12 @@ function WaveVisualizer({ isPlaying, beats, currentTime, players }) {
                             key={`${beat.time}-${i}`}
                             className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full border-2"
                             style={{
-                                width: `${scale * 300}px`,
-                                height: `${scale * 300}px`,
+                                width: `${scale * 180}px`,
+                                height: `${scale * 180}px`,
                                 opacity,
                                 borderColor: beat.type === 'special' ? '#fbbf24' : 
                                             beat.type === 'double' ? '#a78bfa' : '#22d3ee',
-                                boxShadow: `0 0 ${scale * 50}px ${beat.type === 'special' ? 'rgba(251, 191, 36, 0.5)' : 'rgba(34, 211, 238, 0.3)'}`,
+                                boxShadow: `0 0 ${scale * 30}px ${beat.type === 'special' ? 'rgba(251, 191, 36, 0.5)' : 'rgba(34, 211, 238, 0.3)'}`,
                             }}
                             initial={{ scale: 0, opacity: 0 }}
                             animate={{ scale, opacity }}
@@ -499,8 +516,8 @@ function WaveVisualizer({ isPlaying, beats, currentTime, players }) {
                         key={player.sessionId}
                         className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full"
                         style={{
-                            width: '100px',
-                            height: '100px',
+                            width: '80px',
+                            height: '80px',
                             background: `radial-gradient(circle, ${player.color}40 0%, transparent 70%)`,
                         }}
                         animate={{
