@@ -84,6 +84,18 @@ export class BeatSoundRoom extends Room {
             }
         });
         
+        this.onMessage("sync_time", (client, data) => {
+            // Sincronizar tiempo del juego con el audio del cliente
+            if (this.state.isPlaying && data.currentTime !== undefined) {
+                // Solo actualizar si la diferencia es significativa (>200ms)
+                const diff = Math.abs(this.state.currentTime - data.currentTime);
+                if (diff > 200) {
+                    this.state.currentTime = data.currentTime;
+                    log(`[BeatSound] Time synced to ${data.currentTime}ms (diff: ${diff}ms)`);
+                }
+            }
+        });
+        
         // Game loop starts only when game is playing (see startGame/endRound)
         this.gameLoop = null;
     }

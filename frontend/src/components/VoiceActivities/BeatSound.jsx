@@ -188,6 +188,23 @@ export default function BeatSound({ roomName, onClose }) {
                             youtubePlayerRef.current.playVideo();
                             console.log('[BeatSound] ✅ Video playback started');
                             
+                            // Sincronizar tiempo del juego con el audio
+                            const syncInterval = setInterval(() => {
+                                if (youtubePlayerRef.current && r) {
+                                    try {
+                                        const currentTime = youtubePlayerRef.current.getCurrentTime();
+                                        if (currentTime > 0) {
+                                            // Enviar tiempo actual al servidor para sincronización
+                                            r.send('sync_time', { currentTime: Math.floor(currentTime * 1000) });
+                                        }
+                                    } catch (err) {
+                                        console.error('[BeatSound] Sync error:', err);
+                                    }
+                                } else {
+                                    clearInterval(syncInterval);
+                                }
+                            }, 500); // Sincronizar cada 500ms
+                            
                             // Obtener duración del video y enviarla al servidor
                             setTimeout(() => {
                                 try {
@@ -561,30 +578,70 @@ export default function BeatSound({ roomName, onClose }) {
 
 // Componente: Visualizador de ondas
 function WaveVisualizer({ isPlaying, beats, currentTime, players }) {
+    // Configuración del círculo central
+    const CENTER_CIRCLE_SIZE = 120; // Tamaño del círculo central en px
+    const MAX_BEAT_SIZE = 400; // Tamaño máximo del beat cuando llega al borde
+    const BEAT_TRAVEL_TIME = 2000; // Tiempo que tarda el beat en llegar al círculo (ms)
+    
     return (
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-            {/* Ondas de fondo */}
+            {/* Círculo central de referencia */}
             <div className="relative w-[400px] h-[400px]">
+                {/* Círculo central (zona de hit) */}
+                <div 
+                    className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full border-4 border-white/20"
+                    style={{
+                        width: `${CENTER_CIRCLE_SIZE}px`,
+                        height: `${CENTER_CIRCLE_SIZE}px`,
+                        boxShadow: '0 0 40px rgba(34, 211, 238, 0.3), inset 0 0 40px rgba(34, 211, 238, 0.1)',
+                    }}
+                />
+                
+                {/* Beats que crecen desde el centro hacia afuera */}
                 {isPlaying && beats.map((beat, i) => {
                     const timeToBeat = beat.time - currentTime;
-                    const progress = 1 - (timeToBeat / 2000);
-                    const scale = Math.max(0.2, progress * 1.2);
-                    const opacity = Math.max(0, 1 - progress);
+                    
+                    // Si el beat ya pasó, no mostrarlo
+                    if (timeToBeat < -500) return null;
+                    
+                    // Calcular progreso: 0 = acaba de aparecer, 1 = llegó al círculo central
+                    const progress = Math.max(0, Math.min(1, 1 - (timeToBeat / BEAT_TRAVEL_TIME)));
+                    
+                    // El beat crece desde 0 hasta el tamaño del círculo central
+                    const size = CENTER_CIRCLE_SIZE * progress;
+                    
+                    // Opacidad: aparece gradualmente y desaparece al pasar
+                    let opacity;
+                    if (timeToBeat > BEAT_TRAVEL_TIME * 0.8) {
+                        // Apareciendo
+                        opacity = (BEAT_TRAVEL_TIME - timeToBeat) / (BEAT_TRAVEL_TIME * 0.2);
+                    } else if (timeToBeat < -100) {
+                        // Desapareciendo después de pasar
+                        opacity = Math.max(0, 1 + (timeToBeat / 400));
+                    } else {
+                        // Visible
+                        opacity = 1;
+                    }
+                    
+                    // Color según tipo de beat
+                    const beatColor = beat.type === 'special' ? '#fbbf24' : 
+                                     beat.type === 'double' ? '#a78bfa' : '#22d3ee';
+                    
+                    // Grosor del borde aumenta cuando se acerca al círculo
+                    const borderWidth = 2 + (progress * 4);
                     
                     return (
                         <motion.div
                             key={`${beat.time}-${i}`}
-                            className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full border-2"
+                            className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full"
                             style={{
-                                width: `${scale * 180}px`,
-                                height: `${scale * 180}px`,
+                                width: `${size}px`,
+                                height: `${size}px`,
                                 opacity,
-                                borderColor: beat.type === 'special' ? '#fbbf24' : 
-                                            beat.type === 'double' ? '#a78bfa' : '#22d3ee',
-                                boxShadow: `0 0 ${scale * 30}px ${beat.type === 'special' ? 'rgba(251, 191, 36, 0.5)' : 'rgba(34, 211, 238, 0.3)'}`,
+                                border: `${borderWidth}px solid ${beatColor}`,
+                                boxShadow: `0 0 ${20 + (progress * 30)}px ${beatColor}80`,
+                                pointerEvents: 'none',
                             }}
-                            initial={{ scale: 0, opacity: 0 }}
-                            animate={{ scale, opacity }}
                         />
                     );
                 })}
@@ -595,12 +652,12 @@ function WaveVisualizer({ isPlaying, beats, currentTime, players }) {
                         key={player.sessionId}
                         className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full"
                         style={{
-                            width: '80px',
-                            height: '80px',
+                            width: `${CENTER_CIRCLE_SIZE}px`,
+                            height: `${CENTER_CIRCLE_SIZE}px`,
                             background: `radial-gradient(circle, ${player.color}40 0%, transparent 70%)`,
                         }}
                         animate={{
-                            scale: player.combo > 0 ? [1, 1.2, 1] : 1,
+                            scale: player.combo > 0 ? [1, 1.15, 1] : 1,
                             opacity: player.combo > 0 ? 1 : 0.3,
                         }}
                         transition={{ duration: 0.3 }}
