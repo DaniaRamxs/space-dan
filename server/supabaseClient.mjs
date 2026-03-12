@@ -34,3 +34,10 @@ export const supabase =
     SUPABASE_URL && SUPABASE_KEY
         ? createClient(SUPABASE_URL, SUPABASE_KEY)
         : null;
+
+// Create admin client for server-side operations that need to bypass RLS
+const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+export const supabaseAdmin = 
+    SUPABASE_URL && SERVICE_KEY
+        ? createClient(SUPABASE_URL, SERVICE_KEY)
+        : supabase; // Fallback to normal client if service key missing
