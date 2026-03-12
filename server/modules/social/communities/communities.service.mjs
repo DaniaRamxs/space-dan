@@ -175,12 +175,12 @@ export const communitiesService = {
   },
 
   /**
-   * Get community members
+   * Get community members with activity stats
    */
   async getCommunityMembers(communityId, { limit = 50, offset = 0 }) {
     const { data, error } = await supabase
       .from('community_members')
-      .select('user:profiles!user_id(id, username, avatar_url, level)')
+      .select('user:profiles!user_id(id, username, avatar_url, level, message_count, chat_level)')
       .eq('community_id', communityId)
       .order('joined_at', { ascending: false })
       .range(offset, offset + limit - 1);

@@ -33,16 +33,22 @@ export default function CommunityActivityPanel({ communityId }) {
             );
             setVoiceRooms(communityVoiceRooms);
 
-            // Cargar miembros activos (simulado por ahora)
-            // TODO: Implementar ranking real basado en mensajes y tiempo en voz
-            const mockActiveMembers = [
-                { username: 'Dan', points: 120, avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Dan' },
-                { username: 'Lyra', points: 95, avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Lyra' },
-                { username: 'Marco', points: 70, avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Marco' },
-                { username: 'Sofia', points: 65, avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Sofia' },
-                { username: 'Alex', points: 50, avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Alex' },
-            ];
-            setActiveMembers(mockActiveMembers);
+            // Cargar miembros activos reales de la comunidad
+            const members = await communitiesService.getCommunityMembers(communityId);
+            
+            // Calcular puntos de actividad: message_count + (chat_level * 10)
+            const membersWithPoints = members.map(member => ({
+                username: member.username || 'Anónimo',
+                avatar: member.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${member.username}`,
+                points: (member.message_count || 0) + ((member.chat_level || 0) * 10)
+            }));
+
+            // Ordenar por puntos descendente y tomar top 5
+            const topMembers = membersWithPoints
+                .sort((a, b) => b.points - a.points)
+                .slice(0, 5);
+
+            setActiveMembers(topMembers);
         } catch (error) {
             console.error('[CommunityActivityPanel] Load error:', error);
         } finally {

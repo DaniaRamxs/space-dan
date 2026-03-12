@@ -113,5 +113,27 @@ export const communitiesService = {
 
     if (!response.ok) throw new Error('Failed to fetch members');
     return response.json();
+  },
+
+  /**
+   * Check if current user is a member of a community
+   */
+  async checkMembership(communityId) {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return false;
+
+    const { data, error } = await supabase
+      .from('community_members')
+      .select('id')
+      .eq('community_id', communityId)
+      .eq('user_id', user.id)
+      .maybeSingle();
+
+    if (error) {
+      console.error('[Communities] Check membership error:', error);
+      return false;
+    }
+
+    return !!data;
   }
 };
