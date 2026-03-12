@@ -62,6 +62,8 @@ export class BeatSoundRoom extends Room {
                 this.state.currentTrackId = data.trackId;
                 this.state.currentTrackName = data.trackName;
                 this.state.currentTrackArtist = data.artist;
+                // Duración por defecto: 3 minutos (180000ms)
+                this.state.trackDuration = data.duration || 180000;
                 this.generateBeats();
             }
         });
