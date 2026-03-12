@@ -7,7 +7,7 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import * as Colyseus from 'colyseus.js';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Music, X, Radio, Volume2, VolumeX, Trophy, Settings, Play, Pause, Search, Star, Zap, Target, Award, TrendingUp } from 'lucide-react';
+import { Music, X, Radio, Volume2, VolumeX, Trophy, Settings, Play, Pause, Search, Star, Zap, Target, Award, TrendingUp, Crown } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useYouTube } from '../../contexts/YouTubeContext';
 import { useAuthContext } from '../../contexts/AuthContext';
