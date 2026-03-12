@@ -13,6 +13,7 @@ import { useYouTube } from '../../contexts/YouTubeContext';
 import { useAuthContext } from '../../contexts/AuthContext';
 import YouTubeSearchModal from '../Social/YouTubeSearchModal';
 import GalacticSyncEffect from './GalacticSyncEffect';
+import RhythmLanes from './BeatSound/RhythmLanes';
 
 // Configuración de colores para jugadores
 const PLAYER_COLORS = [
@@ -266,8 +267,8 @@ export default function BeatSound({ roomName, onClose }) {
         });
     }, []);
     
-    // Manejar click en beat
-    const handleHit = useCallback((e) => {
+    // Manejar hit en carril específico (Rhythm Dash)
+    const handleHit = useCallback((lane, e) => {
         if (!room || !state?.isPlaying) return;
         
         // Cooldown de 100ms entre hits
@@ -280,14 +281,41 @@ export default function BeatSound({ roomName, onClose }) {
         const x = rect ? ((e.clientX - rect.left) / rect.width) : 0.5;
         const y = rect ? ((e.clientY - rect.top) / rect.height) : 0.5;
         
-        // Enviar hit con tiempo ajustado por offset
+        // Enviar hit con tiempo ajustado por offset y carril
         const clientTime = now + timeOffsetRef.current;
         room.send('hit', {
             clientTime,
+            lane,
             x,
             y,
         });
     }, [room, state?.isPlaying]);
+    
+    // Keyboard controls para Rhythm Dash
+    useEffect(() => {
+        if (!state?.isPlaying) return;
+        
+        const LANE_KEYS = {
+            easy: { 'D': 0, 'K': 1 },
+            normal: { 'D': 0, 'F': 1, 'K': 2 },
+            pro: { 'D': 0, 'F': 1, 'J': 2, 'K': 3 }
+        };
+        
+        const keyMap = LANE_KEYS[state.config.difficulty] || LANE_KEYS.normal;
+        
+        const handleKeyPress = (e) => {
+            const key = e.key.toUpperCase();
+            const lane = keyMap[key];
+            
+            if (lane !== undefined) {
+                e.preventDefault();
+                handleHit(lane, { currentTarget: document.body, clientX: 0, clientY: 0 });
+            }
+        };
+        
+        window.addEventListener('keydown', handleKeyPress);
+        return () => window.removeEventListener('keydown', handleKeyPress);
+    }, [state?.isPlaying, state?.config?.difficulty, handleHit]);
     
     // Toggle ready
     const toggleReady = useCallback(() => {
@@ -501,33 +529,15 @@ export default function BeatSound({ roomName, onClose }) {
                 </div>
             </div>
             
-            {/* Área de juego principal */}
-            <div className="absolute inset-0 flex flex-col items-center justify-center">
-                {/* Visualizador de ondas */}
-                <WaveVisualizer 
-                    isPlaying={state.isPlaying}
-                    beats={upcomingBeats}
+            {/* Área de juego principal - Rhythm Dash */}
+            <div className="absolute inset-0">
+                {/* Rhythm Lanes con notas cayendo */}
+                <RhythmLanes
+                    beats={state.beats}
                     currentTime={state.currentTime}
-                    players={state.players}
-                    localSessionId={room?.sessionId}
+                    difficulty={state.config.difficulty}
+                    isPlaying={state.isPlaying}
                 />
-                
-                {/* Hit zones */}
-                <HitZone
-                    onHit={handleHit}
-                    isActive={state.isPlaying}
-                    recentHits={state.recentHits}
-                    localSessionId={room?.sessionId}
-                />
-                
-                {/* Pre-beat indicator */}
-                {state.isPlaying && upcomingBeats[0] && (
-                    <PreBeatIndicator 
-                        beat={upcomingBeats[0]} 
-                        currentTime={state.currentTime}
-                        config={state.config}
-                    />
-                )}
                 
                 {/* Galactic Sync Effect */}
                 <GalacticSyncEffect 
