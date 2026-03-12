@@ -136,7 +136,7 @@ export default function CreateCommunityModal({ isOpen, onClose, onSuccess }) {
                       onChange={(e) => setFormData(prev => ({ ...prev, slug: e.target.value }))}
                       placeholder="slug-de-comunidad"
                       required
-                      pattern="[a-z0-9-]+"
+                      pattern="^[a-z0-9\-]+$"
                       className="flex-1 px-4 py-2 bg-white/[0.03] border border-white/[0.06] rounded-xl text-xs text-white placeholder:text-white/30 focus:border-purple-500/30 focus:outline-none transition-all"
                     />
                   </div>

@@ -37,6 +37,16 @@ export const supabase =
 
 // Create admin client for server-side operations that need to bypass RLS
 const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+if (!SERVICE_KEY) {
+    console.error("=======================================================================");
+    console.error("🚨 ALERTA CRÍTICA: SUPABASE_SERVICE_ROLE_KEY NO ESTÁ CONFIGURADA 🚨");
+    console.error("El backend no tiene permisos de administrador. Todas las creaciones");
+    console.error("de comunidades van a FALLAR con error de RLS (Row-Level Security).");
+    console.error("Por favor, añade SUPABASE_SERVICE_ROLE_KEY a tus variables en Railway.");
+    console.error("=======================================================================");
+}
+
 export const supabaseAdmin = 
     SUPABASE_URL && SERVICE_KEY
         ? createClient(SUPABASE_URL, SERVICE_KEY)
