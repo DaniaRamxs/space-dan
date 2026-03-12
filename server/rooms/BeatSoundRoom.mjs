@@ -75,6 +75,15 @@ export class BeatSoundRoom extends Room {
             }
         });
         
+        this.onMessage("update_duration", (client, data) => {
+            if (data.duration && data.duration > 0) {
+                this.state.trackDuration = data.duration;
+                log(`[BeatSound] Track duration updated to ${data.duration}ms`);
+                // Regenerar beats con la nueva duración
+                this.generateBeats();
+            }
+        });
+        
         // Game loop starts only when game is playing (see startGame/endRound)
         this.gameLoop = null;
     }

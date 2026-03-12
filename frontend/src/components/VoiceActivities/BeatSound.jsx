@@ -180,6 +180,16 @@ export default function BeatSound({ roomName, onClose }) {
                             youtubePlayerRef.current.loadVideoById(data.trackId);
                             youtubePlayerRef.current.playVideo();
                             console.log('[BeatSound] Video playback started');
+                            
+                            // Obtener duración del video y enviarla al servidor
+                            setTimeout(() => {
+                                const duration = youtubePlayerRef.current.getDuration();
+                                if (duration && duration > 0) {
+                                    const durationMs = Math.floor(duration * 1000);
+                                    console.log('[BeatSound] Video duration:', durationMs, 'ms');
+                                    r.send('update_duration', { duration: durationMs });
+                                }
+                            }, 1000);
                         } catch (err) {
                             console.error('[BeatSound] Error playing video:', err);
                         }
