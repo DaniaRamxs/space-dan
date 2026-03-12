@@ -38,7 +38,8 @@ export const communitiesController = {
         category,
         creatorId,
         avatar,
-        banner
+        banner,
+        token: req.user?.token
       });
 
       console.log('[Communities] Created successfully:', community.id);
@@ -112,7 +113,7 @@ export const communitiesController = {
         return res.status(401).json({ error: 'Unauthorized' });
       }
 
-      const result = await communitiesService.joinCommunity(id, userId);
+      const result = await communitiesService.joinCommunity(id, userId, req.user?.token);
       res.json(result);
     } catch (error) {
       console.error('[Communities] Join error:', error);
@@ -133,7 +134,7 @@ export const communitiesController = {
         return res.status(401).json({ error: 'Unauthorized' });
       }
 
-      const result = await communitiesService.leaveCommunity(id, userId);
+      const result = await communitiesService.leaveCommunity(id, userId, req.user?.token);
       res.json(result);
     } catch (error) {
       console.error('[Communities] Leave error:', error);

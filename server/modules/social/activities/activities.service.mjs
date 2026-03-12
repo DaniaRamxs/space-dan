@@ -3,14 +3,15 @@
  * Handles business logic for live activity operations
  */
 
-import { supabase, supabaseAdmin } from '../../../supabaseClient.mjs';
+import { supabase, supabaseAdmin, createClientForUser } from '../../../supabaseClient.mjs';
 
 export const activitiesService = {
   /**
    * Create a new activity
    */
-  async createActivity({ type, title, communityId, hostId, roomName, metadata }) {
-    const { data, error } = await supabaseAdmin
+  async createActivity({ type, title, communityId, hostId, roomName, metadata, token }) {
+    const client = token ? createClientForUser(token) : supabaseAdmin;
+    const { data, error } = await client
       .from('activities')
       .insert([{
         type,
@@ -115,8 +116,9 @@ export const activitiesService = {
   /**
    * End activity
    */
-  async endActivity(activityId) {
-    const { error } = await supabaseAdmin
+  async endActivity(activityId, token) {
+    const client = token ? createClientForUser(token) : supabaseAdmin;
+    const { error } = await client
       .from('activities')
       .update({ 
         status: 'ended',
@@ -148,7 +150,7 @@ export const activitiesService = {
   /**
    * Join activity
    */
-  async joinActivity(activityId, userId, isSpectator = false) {
+  async joinActivity(activityId, userId, isSpectator = false, token) {
     // Check if already in activity
     const { data: existing } = await supabase
       .from('activity_participants')
@@ -163,7 +165,8 @@ export const activitiesService = {
     }
 
     // Add participant
-    const { error } = await supabaseAdmin
+    const client = token ? createClientForUser(token) : supabaseAdmin;
+    const { error } = await client
       .from('activity_participants')
       .insert([{
         activity_id: activityId,
@@ -187,7 +190,7 @@ export const activitiesService = {
   /**
    * Leave activity
    */
-  async leaveActivity(activityId, userId) {
+  async leaveActivity(activityId, userId, token) {
     const { data: participant } = await supabase
       .from('activity_participants')
       .select('is_spectator')
@@ -199,7 +202,8 @@ export const activitiesService = {
     if (!participant) return { notInActivity: true };
 
     // Mark as left
-    const { error } = await supabaseAdmin
+    const client = token ? createClientForUser(token) : supabaseAdmin;
+    const { error } = await client
       .from('activity_participants')
       .update({ left_at: new Date().toISOString() })
       .eq('activity_id', activityId)

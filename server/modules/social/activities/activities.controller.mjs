@@ -29,7 +29,8 @@ export const activitiesController = {
         communityId,
         hostId,
         roomName,
-        metadata
+        metadata,
+        token: req.user?.token
       });
 
       res.status(201).json(activity);
@@ -90,7 +91,7 @@ export const activitiesController = {
         return res.status(401).json({ error: 'Unauthorized' });
       }
 
-      const result = await activitiesService.joinActivity(id, userId, isSpectator);
+      const result = await activitiesService.joinActivity(id, userId, isSpectator, req.user?.token);
       res.json(result);
     } catch (error) {
       console.error('[Activities] Join error:', error);
@@ -111,7 +112,7 @@ export const activitiesController = {
         return res.status(401).json({ error: 'Unauthorized' });
       }
 
-      const result = await activitiesService.leaveActivity(id, userId);
+      const result = await activitiesService.leaveActivity(id, userId, req.user?.token);
       res.json(result);
     } catch (error) {
       console.error('[Activities] Leave error:', error);
@@ -138,7 +139,7 @@ export const activitiesController = {
         return res.status(403).json({ error: 'Only the host can end this activity' });
       }
 
-      const result = await activitiesService.endActivity(id);
+      const result = await activitiesService.endActivity(id, req.user?.token);
       res.json(result);
     } catch (error) {
       console.error('[Activities] End error:', error);

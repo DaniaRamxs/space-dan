@@ -3,19 +3,20 @@
  * Handles business logic for community operations
  */
 
-import { supabase, supabaseAdmin } from '../../../supabaseClient.mjs';
+import { supabase, supabaseAdmin, createClientForUser } from '../../../supabaseClient.mjs';
 
 export const communitiesService = {
   /**
    * Create a new community
    */
-  async createCommunity({ name, slug, description, category, creatorId, avatar, banner }) {
+  async createCommunity({ name, slug, description, category, creatorId, avatar, banner, token }) {
     console.log('[CommunitiesService] Creating community with:', {
       name,
       slug,
       category: category || 'general',
       creatorId,
-      hasCreatorId: !!creatorId
+      hasCreatorId: !!creatorId,
+      hasToken: !!token
     });
 
     const insertData = {
@@ -32,7 +33,8 @@ export const communitiesService = {
 
     console.log('[CommunitiesService] Insert data:', insertData);
 
-    const { data, error } = await supabaseAdmin
+    const client = token ? createClientForUser(token) : supabaseAdmin;
+    const { data, error } = await client
       .from('communities')
       .insert([insertData])
       .select('*')
@@ -51,7 +53,7 @@ export const communitiesService = {
     console.log('[CommunitiesService] Community created:', data.id);
 
     // Auto-join creator as first member
-    await this.joinCommunity(data.id, creatorId);
+    await this.joinCommunity(data.id, creatorId, token);
 
     return data;
   },
@@ -111,7 +113,7 @@ export const communitiesService = {
   /**
    * Join a community
    */
-  async joinCommunity(communityId, userId) {
+  async joinCommunity(communityId, userId, token) {
     // Check if already a member
     const { data: existing } = await supabase
       .from('community_members')
@@ -125,7 +127,8 @@ export const communitiesService = {
     }
 
     // Add member
-    const { error: memberError } = await supabaseAdmin
+    const client = token ? createClientForUser(token) : supabaseAdmin;
+    const { error: memberError } = await client
       .from('community_members')
       .insert([{
         community_id: communityId,
@@ -148,8 +151,9 @@ export const communitiesService = {
   /**
    * Leave a community
    */
-  async leaveCommunity(communityId, userId) {
-    const { error: deleteError } = await supabaseAdmin
+  async leaveCommunity(communityId, userId, token) {
+    const client = token ? createClientForUser(token) : supabaseAdmin;
+    const { error: deleteError } = await client
       .from('community_members')
       .delete()
       .eq('community_id', communityId)

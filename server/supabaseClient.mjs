@@ -51,3 +51,10 @@ export const supabaseAdmin =
     SUPABASE_URL && SERVICE_KEY
         ? createClient(SUPABASE_URL, SERVICE_KEY)
         : supabase; // Fallback to normal client if service key missing
+
+// Helper to create a user-specific client that sends their token, enabling strict RLS checks
+export const createClientForUser = (token) => {
+    return createClient(SUPABASE_URL, SUPABASE_KEY, {
+        global: { headers: { Authorization: `Bearer ${token}` } }
+    });
+};
