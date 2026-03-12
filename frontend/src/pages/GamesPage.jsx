@@ -82,8 +82,8 @@ const BubbleBlast = lazy(() => import('../components/BubbleBlast'));
 
 
 const GAMES = [
-  { id: 'rhythm-dash', icon: '🎵', title: 'rhythm dash', component: RhythmDash, category: 'Arcade', isImmersive: true },
-  { id: 'bubble-blast', icon: '🫧', title: 'bubble blast', component: BubbleBlast, category: 'Puzzle', isImmersive: true },
+  { id: 'rhythm-dash', icon: '🎵', title: 'rhythm dash', component: RhythmDash, category: 'Arcade', isImmersive: false },
+  { id: 'bubble-blast', icon: '🫧', title: 'bubble blast', component: BubbleBlast, category: 'Puzzle', isImmersive: false },
   { id: 'snake', icon: '🐍', title: 'snake', component: SnakeGame, category: 'Arcade', isImmersive: true },
   { id: 'memory', icon: '🃏', title: 'memory', component: MemoryGame, category: 'Puzzle', isImmersive: true },
   { id: 'ttt', icon: '❌', title: 'tic tac toe', component: TicTacToe, category: 'Table', isImmersive: true },

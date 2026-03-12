@@ -80,7 +80,7 @@ export default function RhythmDash() {
   const noteInPatternRef  = useRef(0);
   const difficultyRef     = useRef(1);
   const comboRef          = useRef(0);
-  const gameStateRef      = useRef('menu');
+  const gameStateRef      = useRef('menu'); // updated synchronously in startGame/resetGame
   const presetRef         = useRef(DIFFICULTY_PRESETS.normal);
   const milestoneRef      = useRef(0);
   const statsRef          = useRef({ perfect: 0, good: 0, ok: 0, miss: 0 });
@@ -210,25 +210,29 @@ export default function RhythmDash() {
     }
   }, [spawnNote]);
 
-  useEffect(() => { gameStateRef.current = gameState; }, [gameState]);
-
   useEffect(() => {
     if (gameState !== 'playing') return;
     startTimeRef.current = Date.now();
     lastSpawnRef.current = Date.now();
 
+    // 'running' is synchronously true — no race condition with async ref updates
+    let running = true;
     const loop = () => {
-      if (gameStateRef.current !== 'playing') return;
+      if (!running) return;
       gameLoop();
       gameLoopRef.current = requestAnimationFrame(loop);
     };
     gameLoopRef.current = requestAnimationFrame(loop);
 
-    return () => { if (gameLoopRef.current) cancelAnimationFrame(gameLoopRef.current); };
+    return () => {
+      running = false;
+      if (gameLoopRef.current) cancelAnimationFrame(gameLoopRef.current);
+    };
   }, [gameState, gameLoop]);
 
   useEffect(() => {
     if (health <= 0 && gameState === 'playing') {
+      gameStateRef.current = 'gameover';
       setGameState('gameover');
       if (gameLoopRef.current) cancelAnimationFrame(gameLoopRef.current);
       sounds.gameover();
@@ -277,6 +281,7 @@ export default function RhythmDash() {
     patternIndexRef.current = 0;
     noteInPatternRef.current = 0;
     statsRef.current = { perfect: 0, good: 0, ok: 0, miss: 0 };
+    gameStateRef.current = 'playing'; // sync update — no useEffect delay
     setGameState('playing');
     setScore(0); setCombo(0); setMaxCombo(0); setNotes([]);
     setHealth(100); setDifficulty(preset.initialDiff);
@@ -285,6 +290,7 @@ export default function RhythmDash() {
   };
 
   const resetGame = () => {
+    gameStateRef.current = 'menu';
     setGameState('menu');
     setScore(0); setCombo(0); setMaxCombo(0); setNotes([]);
     setHealth(100); setDifficulty(1);

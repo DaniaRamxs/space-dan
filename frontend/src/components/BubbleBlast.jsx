@@ -354,10 +354,9 @@ export default function BubbleBlast() {
     );
   }
 
-  // Aim trajectory
-  const aimLen = 160;
-  const aimDx  = Math.cos(shootAngle) * aimLen;
-  const aimDy  = Math.sin(shootAngle) * aimLen;
+  // CSS rotation for aim line: converts math angle to CSS rotate
+  // shootAngle=-π/2 (up) → rotate(0) → vertical div pointing up ✓
+  const aimRotate = shootAngle + Math.PI / 2;
 
   return (
     <div style={{ width: '100%', maxWidth: 500, margin: '0 auto', position: 'relative' }}>
@@ -413,27 +412,39 @@ export default function BubbleBlast() {
         )}
       </AnimatePresence>
 
-      {/* Shooter + aim line SVG */}
+      {/* Shooter + aim line */}
       {currentBubble && (
-        <div style={{ position: 'absolute', bottom: 50, left: '50%', transform: 'translateX(-50%)', pointerEvents: 'none', width: 0, height: 0 }}>
-          <svg style={{ position: 'absolute', top: -SHOOTER_Y, left: -SHOOTER_X, overflow: 'visible', width: 0, height: 0 }}>
-            {Math.sin(shootAngle) < 0 && (
-              <line x1={SHOOTER_X} y1={SHOOTER_Y} x2={SHOOTER_X + aimDx} y2={SHOOTER_Y + aimDy}
-                stroke="rgba(255,255,255,0.35)" strokeWidth="2" strokeDasharray="7,5" />
-            )}
-          </svg>
+        <>
+          {/* Aim line — CSS div rotated from shooter center, only when aiming up */}
+          {Math.sin(shootAngle) < 0 && (
+            <div style={{
+              position: 'absolute',
+              bottom: 75, // center of shooter bubble (bottom:50 + 25px radius)
+              left: '50%',
+              width: 2,
+              height: 150,
+              transformOrigin: 'bottom center',
+              transform: `translateX(-50%) rotate(${aimRotate}rad)`,
+              pointerEvents: 'none',
+              background: 'repeating-linear-gradient(to top, rgba(255,255,255,0.45) 0px, rgba(255,255,255,0.45) 7px, transparent 7px, transparent 14px)',
+              borderRadius: 2,
+            }} />
+          )}
           {/* Current bubble */}
           <div style={{
-            position: 'absolute', left: -25, top: -25, width: 50, height: 50, borderRadius: '50%',
-            background: isBomb ? 'radial-gradient(circle,#ff4444,#ff0000)' : currentBubble.color,
+            position: 'absolute', bottom: 50, left: '50%',
+            transform: 'translateX(-50%)',
+            width: 50, height: 50, borderRadius: '50%',
+            background: isBomb ? 'radial-gradient(circle,#ff6666,#cc0000)' : currentBubble.color,
             boxShadow: isBomb ? '0 0 20px rgba(255,0,0,0.7)' : `0 4px 20px ${currentBubble.color}80`,
             border: isBomb ? '3px solid #ffaa00' : '3px solid rgba(255,255,255,0.3)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: isBomb ? '1.4rem' : '0', animation: isBomb ? 'pulse 0.5s infinite alternate' : 'none'
+            fontSize: isBomb ? '1.4rem' : '0',
+            pointerEvents: 'none',
           }}>
             {isBomb && '💥'}
           </div>
-        </div>
+        </>
       )}
     </div>
   );
