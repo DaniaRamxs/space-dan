@@ -335,25 +335,35 @@ export default function BeatSound({ roomName, onClose }) {
         return room?.sessionId === state?.leaderId;
     }, [room?.sessionId, state?.leaderId]);
     
-    // Fallback timeout independiente - habilita el juego después de 3 segundos
+    // Fallback timeout independiente - habilita el juego después de 5 segundos
     useEffect(() => {
+        console.log('[BeatSound] Setting up fallback timeout...');
         const fallbackTimeout = setTimeout(() => {
+            console.log('[BeatSound] Fallback timeout fired. youtubeReady:', youtubeReady, 'youtubeApiReady:', youtubeApiReady);
             if (!youtubeReady) {
-                console.warn('[BeatSound] YouTube timeout - enabling game without music');
+                console.warn('[BeatSound] ⏰ Timeout reached - enabling game without music');
                 setYoutubeReady(true);
                 setYoutubeError(true);
             }
-        }, 3000);
+        }, 5000);
         
-        return () => clearTimeout(fallbackTimeout);
+        return () => {
+            console.log('[BeatSound] Cleaning up fallback timeout');
+            clearTimeout(fallbackTimeout);
+        };
     }, []); // Solo se ejecuta una vez al montar
     
     // Inicializar YouTube Player usando el contexto global
     useEffect(() => {
-        if (initAttemptedRef.current || !youtubeApiReady || !YT) return;
+        console.log('[BeatSound] YouTube init check - attempted:', initAttemptedRef.current, 'apiReady:', youtubeApiReady, 'YT:', !!YT);
+        
+        if (initAttemptedRef.current || !youtubeApiReady || !YT) {
+            if (!youtubeApiReady) console.log('[BeatSound] Waiting for YouTube API to be ready...');
+            return;
+        }
+        
         initAttemptedRef.current = true;
-
-        console.log('[BeatSound] Initializing YouTube player with pre-loaded API...');
+        console.log('[BeatSound] 🎬 Initializing YouTube player with pre-loaded API...');
         
         const initPlayer = () => {
             try {
