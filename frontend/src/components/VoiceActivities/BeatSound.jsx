@@ -178,8 +178,8 @@ export default function BeatSound({ roomName, onClose }) {
                     console.log('[BeatSound] YouTube ready?', youtubeReady);
                     console.log('[BeatSound] YouTube error?', youtubeError);
                     
-                    // Iniciar reproducción de YouTube si está disponible
-                    if (data.trackId && youtubePlayerRef.current && youtubeReady && !youtubeError) {
+                    // Iniciar reproducción de YouTube si está disponible (verificar ref directamente)
+                    if (data.trackId && youtubePlayerRef.current) {
                         console.log('[BeatSound] 🎵 Loading video:', data.trackId);
                         try {
                             youtubePlayerRef.current.loadVideoById(data.trackId);
