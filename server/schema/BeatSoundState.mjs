@@ -54,6 +54,7 @@ export class BeatState extends Schema {
         this.duration = 500;
         this.type = "normal"; // normal, double, hold, special
         this.intensity = 1;
+        this.lane = 0; // Carril (0-3) para Rhythm Dash
         this.isActive = true;
         this.hitByCount = 0;
         this.hitFeedback = ""; // "perfect", "good", "miss"
@@ -65,6 +66,7 @@ type("number")(BeatState.prototype, "serverTime");
 type("number")(BeatState.prototype, "duration");
 type("string")(BeatState.prototype, "type");
 type("number")(BeatState.prototype, "intensity");
+type("number")(BeatState.prototype, "lane");
 type("boolean")(BeatState.prototype, "isActive");
 type("number")(BeatState.prototype, "hitByCount");
 type("string")(BeatState.prototype, "hitFeedback");

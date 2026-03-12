@@ -10,6 +10,12 @@ const BEAT_INTERVALS = {
     pro: 400,
 };
 
+const LANE_COUNT = {
+    easy: 2,      // 2 carriles (teclas D, K)
+    normal: 3,    // 3 carriles (teclas D, F, K)
+    pro: 4,       // 4 carriles (teclas D, F, J, K)
+};
+
 const POINTS = {
     perfect: 100,
     good: 50,
@@ -45,7 +51,7 @@ export class BeatSoundRoom extends Room {
         });
         
         this.onMessage("hit", (client, data) => {
-            this.validateHit(client, data.clientTime, data.x, data.y);
+            this.validateHit(client, data.clientTime, data.lane, data.x, data.y);
         });
         
         this.onMessage("ready", (client) => {
@@ -155,19 +161,30 @@ export class BeatSoundRoom extends Room {
         log("[BeatSound] Room disposed");
     }
     
-    // Generar beats basados en dificultad
+    // Generar beats basados en dificultad (Rhythm Dash style)
     generateBeats() {
         this.state.beats.clear();
-        const interval = BEAT_INTERVALS[this.state.config.difficulty] || 600;
+        const difficulty = this.state.config.difficulty;
+        const interval = BEAT_INTERVALS[difficulty] || 600;
+        const laneCount = LANE_COUNT[difficulty] || 3;
         const duration = this.state.trackDuration || 120000; // 2 min default
         
         let time = 2000; // Empezar después de 2 segundos
         let beatCount = 0;
+        let lastLane = -1; // Evitar notas consecutivas en el mismo carril
         
         while (time < duration) {
             const beat = new BeatState();
             beat.time = time;
             beat.duration = this.state.config.beatWindow;
+            
+            // Asignar carril aleatorio (evitando repetir el anterior)
+            let lane = Math.floor(Math.random() * laneCount);
+            if (lane === lastLane && laneCount > 1) {
+                lane = (lane + 1) % laneCount;
+            }
+            beat.lane = lane;
+            lastLane = lane;
             
             // Cada 10 beats, uno especial
             if (beatCount % 10 === 9) {
@@ -189,23 +206,26 @@ export class BeatSoundRoom extends Room {
             beatCount++;
         }
         
-        log(`[BeatSound] Generated ${beatCount} beats`);
+        log(`[BeatSound] Generated ${beatCount} beats with ${laneCount} lanes (${difficulty})`);
     }
     
-    // Validación server-side de hits con precisión
-    validateHit(client, clientTime, x, y) {
+    // Validación server-side de hits con precisión (Rhythm Dash)
+    validateHit(client, clientTime, lane, x, y) {
         const player = this.state.players.get(client.sessionId);
         if (!player) return;
         
         // Aplicar offset del jugador
         const adjustedTime = this.state.currentTime;
         
-        // Encontrar beat más cercano
+        // Encontrar beat más cercano EN EL CARRIL CORRECTO
         let closestBeat = null;
         let minDiff = Infinity;
         
         for (const beat of this.state.beats) {
             if (!beat.isActive) continue;
+            
+            // Verificar que sea el carril correcto
+            if (lane !== undefined && beat.lane !== lane) continue;
             
             const diff = Math.abs(adjustedTime - beat.time);
             if (diff < minDiff && diff < this.state.config.goodWindow * 2) {

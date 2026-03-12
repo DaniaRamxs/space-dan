@@ -52,8 +52,8 @@ export const communitiesService = {
 
     console.log('[CommunitiesService] Community created:', data.id);
 
-    // Auto-join creator as first member
-    await this.joinCommunity(data.id, creatorId, token);
+    // Auto-join creator as first member and set as owner
+    await this.joinCommunity(data.id, creatorId, token, 'owner', true);
 
     return data;
   },
@@ -113,7 +113,7 @@ export const communitiesService = {
   /**
    * Join a community
    */
-  async joinCommunity(communityId, userId, token) {
+  async joinCommunity(communityId, userId, token, role = 'member', isCreator = false) {
     // Check if already a member
     const { data: existing } = await supabase
       .from('community_members')
@@ -133,17 +133,20 @@ export const communitiesService = {
       .insert([{
         community_id: communityId,
         user_id: userId,
+        role: role,
         joined_at: new Date().toISOString()
       }]);
 
     if (memberError) throw memberError;
 
-    // Increment member count
-    const { error: updateError } = await supabase.rpc('increment_community_members', {
-      community_id: communityId
-    });
+    // Solo incrementar si NO es la creación inicial (para evitar doble conteo)
+    if (!isCreator) {
+      const { error: updateError } = await supabase.rpc('increment_community_members', {
+        community_id: communityId
+      });
 
-    if (updateError) console.warn('[Communities] Failed to increment member count:', updateError);
+      if (updateError) console.warn('[Communities] Failed to increment member count:', updateError);
+    }
 
     return { success: true };
   },
