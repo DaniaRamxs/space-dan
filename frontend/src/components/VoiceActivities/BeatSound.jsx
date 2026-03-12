@@ -41,7 +41,7 @@ const ACCURACY_COLORS = {
 };
 
 export default function BeatSound({ roomName, onClose }) {
-    const { user } = useAuthContext();
+    const { user, profile } = useAuthContext();
     
     // Estado del juego
     const [client, setClient] = useState(null);
@@ -50,6 +50,8 @@ export default function BeatSound({ roomName, onClose }) {
     const [isSearchOpen, setIsSearchOpen] = useState(false);
     const [showSettings, setShowSettings] = useState(false);
     const [isMuted, setIsMuted] = useState(false);
+    const [youtubePlayer, setYoutubePlayer] = useState(null);
+    const youtubePlayerRef = useRef(null);
     
     // Refs para funciones usadas en callbacks
     const showHitFeedbackRef = useRef();
@@ -134,8 +136,8 @@ export default function BeatSound({ roomName, onClose }) {
                 r = await client.joinOrCreate('beat_sound', {
                     roomName,
                     userId: user.id,
-                    username: user.username || 'Anon',
-                    avatar: user.avatar_url || '/default-avatar.png',
+                    username: profile?.username || user.email?.split('@')[0] || 'Piloto',
+                    avatar: profile?.avatar_url || user.avatar_url || '/default-avatar.png',
                 });
                 
                 setRoom(r);
@@ -170,10 +172,19 @@ export default function BeatSound({ roomName, onClose }) {
                 
                 r.onMessage('game_start', (data) => {
                     console.log('[BeatSound] Game started:', data);
+                    // Iniciar reproducción de YouTube si hay trackId
+                    if (data.trackId && youtubePlayerRef.current) {
+                        youtubePlayerRef.current.loadVideoById(data.trackId);
+                        youtubePlayerRef.current.playVideo();
+                    }
                 });
                 
                 r.onMessage('game_end', (data) => {
                     console.log('[BeatSound] Game ended:', data);
+                    // Pausar YouTube
+                    if (youtubePlayerRef.current) {
+                        youtubePlayerRef.current.pauseVideo();
+                    }
                 });
                 
             } catch (e) {
@@ -268,6 +279,40 @@ export default function BeatSound({ roomName, onClose }) {
         return room?.sessionId === state?.leaderId;
     }, [room?.sessionId, state?.leaderId]);
     
+    // Inicializar YouTube Player
+    useEffect(() => {
+        if (!window.YT) {
+            const tag = document.createElement('script');
+            tag.src = 'https://www.youtube.com/iframe_api';
+            const firstScriptTag = document.getElementsByTagName('script')[0];
+            firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+        }
+
+        window.onYouTubeIframeAPIReady = () => {
+            const player = new window.YT.Player('youtube-player-beatsound', {
+                height: '0',
+                width: '0',
+                playerVars: {
+                    autoplay: 0,
+                    controls: 0,
+                    disablekb: 1,
+                    fs: 0,
+                    modestbranding: 1,
+                },
+                events: {
+                    onReady: (event) => {
+                        youtubePlayerRef.current = event.target;
+                        setYoutubePlayer(event.target);
+                    },
+                },
+            });
+        };
+
+        if (window.YT && window.YT.Player) {
+            window.onYouTubeIframeAPIReady();
+        }
+    }, []);
+    
     if (!state) {
         return (
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90">
@@ -281,9 +326,12 @@ export default function BeatSound({ roomName, onClose }) {
             </div>
         );
     }
-    
+
     return (
         <div className="fixed inset-0 z-[10005] bg-gradient-to-br from-indigo-950 via-purple-950 to-pink-950 overflow-hidden">
+            {/* YouTube Player (oculto pero funcional) */}
+            <div id="youtube-player-beatsound" style={{ position: 'absolute', top: -9999, left: -9999 }} />
+            
             {/* Header */}
             <div className="absolute top-0 left-0 right-0 z-20 p-4 flex items-center justify-between bg-gradient-to-b from-black/50 to-transparent">
                 <div className="flex items-center gap-4">
