@@ -340,6 +340,10 @@ export default function PixelGalaxyGame({ roomName, onClose, isTheater, onToggle
             panRef.current = newPan;
             _setPan(newPan);
             lastPointer.current = { x: t.clientX, y: t.clientY };
+            
+            // Actualizar hover position en touch para preview
+            const v = screenToVirtual(t.clientX, t.clientY);
+            setHoverPos(v);
         } else if (e.touches.length === 2) {
             const dist = pinchDist(e.touches);
             const delta = lastPinchDist.current ? dist / lastPinchDist.current : 1;
