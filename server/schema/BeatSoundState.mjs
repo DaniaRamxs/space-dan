@@ -139,7 +139,7 @@ export class BeatSoundState extends Schema {
         
         // Tiempo sincronizad
         this.serverStartTime = 0; // Cuando empezó la canción (server timestamp)
-        this.trackDuration = 0;
+        this.trackDuration = 180000; // 3 minutos por defecto
         this.currentTime = 0;
         this.isPlaying = false;
         this.gamePhase = 0;
