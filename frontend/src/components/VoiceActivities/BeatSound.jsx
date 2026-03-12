@@ -412,12 +412,14 @@ export default function BeatSound({ roomName, onClose }) {
                 <HitFeedbackOverlay hitFeedbacks={hitFeedbacks} />
             </div>
             
-            {/* Panel lateral - Leaderboard */}
-            <LeaderboardPanel 
-                players={state.players}
-                leaderId={state.leaderId}
-                localSessionId={room?.sessionId}
-            />
+            {/* Panel lateral - Leaderboard (solo desktop) */}
+            <div className="hidden lg:block">
+                <LeaderboardPanel 
+                    players={state.players}
+                    leaderId={state.leaderId}
+                    localSessionId={room?.sessionId}
+                />
+            </div>
             
             {/* Panel inferior - Stats del jugador */}
             {localPlayer && (
@@ -782,20 +784,20 @@ function LeaderboardPanel({ players, leaderId, localSessionId }) {
 // Componente: Stats del jugador
 function PlayerStats({ player, onReady, isPlaying, gamePhase }) {
     return (
-        <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-black/80 to-transparent">
-            <div className="max-w-4xl mx-auto flex items-center justify-between">
+        <div className="absolute bottom-0 left-0 right-0 p-4 pb-24 md:pb-6 bg-gradient-to-t from-black/80 to-transparent">
+            <div className="max-w-4xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
                 {/* Info del jugador */}
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-3 md:gap-4 w-full md:w-auto">
                     <div 
-                        className="w-16 h-16 rounded-2xl flex items-center justify-center text-2xl font-black"
+                        className="w-12 h-12 md:w-16 md:h-16 rounded-xl md:rounded-2xl flex items-center justify-center text-lg md:text-2xl font-black"
                         style={{ background: `${player.color}30`, color: player.color }}
                     >
                         {player.username[0].toUpperCase()}
                     </div>
                     
-                    <div>
-                        <h3 className="text-white font-bold text-lg">{player.username}</h3>
-                        <div className="flex items-center gap-3 text-sm">
+                    <div className="flex-1">
+                        <h3 className="text-white font-bold text-base md:text-lg">{player.username}</h3>
+                        <div className="flex items-center gap-2 md:gap-3 text-xs md:text-sm">
                             <span className="text-white/40">Score: <span className="text-white font-bold">{player.score.toLocaleString()}</span></span>
                             {player.combo > 0 && (
                                 <motion.span 
@@ -811,7 +813,7 @@ function PlayerStats({ player, onReady, isPlaying, gamePhase }) {
                 </div>
                 
                 {/* Precisión y stats */}
-                <div className="flex items-center gap-6 text-sm">
+                <div className="hidden md:flex items-center gap-6 text-sm">
                     <div className="text-center">
                         <div className="text-emerald-400 font-black text-2xl">{player.perfectHits}</div>
                         <div className="text-white/40 text-xs uppercase">Perfect</div>
@@ -831,7 +833,7 @@ function PlayerStats({ player, onReady, isPlaying, gamePhase }) {
                     <motion.button
                         onClick={onReady}
                         disabled={player.isReady}
-                        className={`px-8 py-4 rounded-2xl font-black uppercase tracking-widest text-sm transition-all ${
+                        className={`w-full md:w-auto px-6 md:px-8 py-3 md:py-4 rounded-xl md:rounded-2xl font-black uppercase tracking-widest text-xs md:text-sm transition-all ${
                             player.isReady
                                 ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40'
                                 : 'bg-gradient-to-r from-cyan-500 to-purple-500 text-white hover:shadow-lg hover:shadow-cyan-500/30'
