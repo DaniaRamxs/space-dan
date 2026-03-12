@@ -366,6 +366,16 @@ export default function BeatSound({ roomName, onClose }) {
         console.log('[BeatSound] 🎬 Initializing YouTube player with pre-loaded API...');
         
         const initPlayer = () => {
+            // Verificar que el elemento DOM existe
+            const element = document.getElementById('youtube-player-beatsound');
+            if (!element) {
+                console.error('[BeatSound] ❌ DOM element not found! Retrying...');
+                setTimeout(initPlayer, 200);
+                return;
+            }
+            
+            console.log('[BeatSound] ✅ DOM element found, creating player...');
+            
             try {
                 console.log('[BeatSound] Creating YouTube player instance...');
                 const player = new YT.Player('youtube-player-beatsound', {
@@ -397,16 +407,17 @@ export default function BeatSound({ roomName, onClose }) {
                         },
                     },
                 });
+                console.log('[BeatSound] Player instance created:', player);
             } catch (err) {
-                console.error('[BeatSound] Error creating YouTube player:', err);
+                console.error('[BeatSound] ❌ Error creating YouTube player:', err);
                 setYoutubeError(true);
                 setYoutubeReady(true);
                 toast.error('No se pudo inicializar YouTube.');
             }
         };
 
-        // Pequeño delay para asegurar que el DOM esté listo
-        setTimeout(initPlayer, 100);
+        // Delay más largo para asegurar que el DOM esté completamente listo
+        setTimeout(initPlayer, 300);
 
         return () => {
             if (youtubePlayerRef.current) {
