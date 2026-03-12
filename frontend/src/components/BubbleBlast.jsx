@@ -5,13 +5,13 @@ const COLORS = ['#ff6b9d', '#00e5ff', '#ffd700', '#00ff88', '#a78bfa', '#fb923c'
 const GRID_COLS = 8;
 const BUBBLE_SIZE = 40;
 const MAX_ROWS = 10;
-const NEW_ROW_EVERY = 8;   // new row of bubbles every N shots
-const BOMB_EVERY    = 6;   // every Nth shot is a bomb bubble
+const NEW_ROW_EVERY = 8;
+const BOMB_EVERY    = 6;
 const CANVAS_W      = 400;
 const SHOOTER_X     = 200;
 const SHOOTER_Y     = 490;
 
-// ── Audio ────────────────────────────────────────────────────────────────────
+// ── Audio ─────────────────────────────────────────────────────────────────────
 let _ctx = null;
 const getCtx = () => {
   try {
@@ -41,7 +41,7 @@ const sounds = {
   lose:    () => [440, 370, 311, 261, 220].forEach((f, i) => setTimeout(() => tone(f, 0.28, 'sine', 0.25), i * 120)),
   start:   () => [261, 329, 392].forEach((f, i) => setTimeout(() => tone(f, 0.1, 'sine', 0.2), i * 55)),
 };
-// ────────────────────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
 
 const createInitialGrid = () =>
   Array.from({ length: 5 }, (_, row) =>
@@ -51,7 +51,6 @@ const createInitialGrid = () =>
     })
   );
 
-// Find all bubbles NOT connected to ceiling (row 0)
 const findFloating = (grid) => {
   const anchored = new Set();
   const queue = [];
@@ -73,28 +72,43 @@ const findFloating = (grid) => {
 };
 
 export default function BubbleBlast() {
-  const [gameState, setGameState]       = useState('menu');
-  const [grid, setGrid]                 = useState([]);
+  const [gameState, setGameState]         = useState('menu');
+  const [grid, setGrid]                   = useState([]);
   const [currentBubble, setCurrentBubble] = useState(null);
-  const [nextBubble, setNextBubble]     = useState(null);
-  const [isBomb, setIsBomb]             = useState(false);
-  const [score, setScore]               = useState(0);
-  const [combo, setCombo]               = useState(0);
-  const [maxCombo, setMaxCombo]         = useState(0);
-  const [shootAngle, setShootAngle]     = useState(-Math.PI / 2);
-  const [isAnimating, setIsAnimating]   = useState(false);
+  const [nextBubble, setNextBubble]       = useState(null);
+  const [isBomb, setIsBomb]               = useState(false);
+  const [score, setScore]                 = useState(0);
+  const [combo, setCombo]                 = useState(0);
+  const [maxCombo, setMaxCombo]           = useState(0);
+  const [shootAngle, setShootAngle]       = useState(-Math.PI / 2);
+  const [isAnimating, setIsAnimating]     = useState(false);
   const [bubblesPopped, setBubblesPopped] = useState(0);
-  const [message, setMessage]           = useState(null); // "¡CASCADA!", "¡BOMBA!", etc.
+  const [message, setMessage]             = useState(null);
 
-  const canvasRef  = useRef(null);
-  const gridRef    = useRef([]);
-  const comboRef   = useRef(0);
-  const scoreRef   = useRef(0);
-  const shotsRef   = useRef(0);
+  // Refs — always current, safe to read inside callbacks with [] deps
+  const canvasRef        = useRef(null);
+  const gameContainerRef = useRef(null);
+  const gridRef          = useRef([]);
+  const comboRef         = useRef(0);
+  const scoreRef         = useRef(0);
+  const shotsRef         = useRef(0);
+  const shootAngleRef    = useRef(-Math.PI / 2);
+  const currentBubbleRef = useRef(null);
+  const nextBubbleRef    = useRef(null);
+  const isBombRef        = useRef(false);
+  const gameStateRef     = useRef('menu');
+  const isAnimatingRef   = useRef(false);
 
-  useEffect(() => { gridRef.current = grid; }, [grid]);
-  useEffect(() => { comboRef.current = combo; }, [combo]);
-  useEffect(() => { scoreRef.current = score; }, [score]);
+  // Keep refs in sync
+  useEffect(() => { gameStateRef.current = gameState; },         [gameState]);
+  useEffect(() => { isAnimatingRef.current = isAnimating; },     [isAnimating]);
+  useEffect(() => { currentBubbleRef.current = currentBubble; }, [currentBubble]);
+  useEffect(() => { nextBubbleRef.current = nextBubble; },       [nextBubble]);
+  useEffect(() => { isBombRef.current = isBomb; },               [isBomb]);
+  useEffect(() => { shootAngleRef.current = shootAngle; },       [shootAngle]);
+  useEffect(() => { gridRef.current = grid; },                   [grid]);
+  useEffect(() => { comboRef.current = combo; },                 [combo]);
+  useEffect(() => { scoreRef.current = score; },                 [score]);
 
   const showMessage = useCallback((text, color = '#ffd700') => {
     setMessage({ text, color });
@@ -109,8 +123,12 @@ export default function BubbleBlast() {
 
   const initGame = useCallback(() => {
     const g = createInitialGrid();
-    setGrid(g); gridRef.current = g;
+    gridRef.current = g;
+    setGrid(g);
     const c1 = getColorFromGrid(g), c2 = getColorFromGrid(g);
+    currentBubbleRef.current = { color: c1 };
+    nextBubbleRef.current    = { color: c2 };
+    isBombRef.current        = false;
     setCurrentBubble({ color: c1 });
     setNextBubble({ color: c2 });
     setIsBomb(false);
@@ -121,30 +139,41 @@ export default function BubbleBlast() {
 
   useEffect(() => { if (gameState === 'playing') initGame(); }, [gameState, initGame]);
 
+  // BFS-based connected search (iterative, no recursion overflow risk)
   const findConnected = useCallback((grid, row, col, color) => {
     const visited = new Set(), result = [];
-    const dfs = (r, c) => {
-      const key = `${r},${c}`;
-      if (visited.has(key) || r < 0 || r >= grid.length || c < 0 || c >= GRID_COLS) return;
+    const queue = [[row, col]];
+    visited.add(`${row},${col}`);
+    while (queue.length) {
+      const [r, c] = queue.shift();
       const b = grid[r]?.[c];
-      if (!b || b.color !== color) return;
-      visited.add(key); result.push({ row: r, col: c });
-      [[r-1,c],[r+1,c],[r,c-1],[r,c+1],[r-1,c-1],[r-1,c+1],[r+1,c-1],[r+1,c+1]].forEach(([nr,nc]) => dfs(nr,nc));
-    };
-    dfs(row, col);
+      if (!b || b.color !== color) continue;
+      result.push({ row: r, col: c });
+      for (const [nr, nc] of [[r-1,c],[r+1,c],[r,c-1],[r,c+1],[r-1,c-1],[r-1,c+1],[r+1,c-1],[r+1,c+1]]) {
+        const key = `${nr},${nc}`;
+        if (!visited.has(key) && nr >= 0 && nr < grid.length && nc >= 0 && nc < GRID_COLS) {
+          visited.add(key); queue.push([nr, nc]);
+        }
+      }
+    }
     return result;
   }, []);
 
+  // shootBubble reads only from refs → stable (no reactive deps → never re-registers listeners)
   const shootBubble = useCallback(() => {
-    const current = currentBubble, next = nextBubble;
+    if (gameStateRef.current !== 'playing') return;
+    if (isAnimatingRef.current) return;
+    const current = currentBubbleRef.current;
     if (!current) return;
+
+    const angle = shootAngleRef.current;
+    if (Math.sin(angle) >= 0) return; // only shoot upward
+
+    isAnimatingRef.current = true;
     setIsAnimating(true);
     sounds.shoot();
 
-    const angle = shootAngle;
-    if (Math.sin(angle) >= 0) { setIsAnimating(false); return; }
-
-    // Raycast to top
+    // Raycast to top of grid
     const t = -SHOOTER_Y / Math.sin(angle);
     let lx = SHOOTER_X + Math.cos(angle) * t;
     if (lx < 0) lx = -lx;
@@ -152,7 +181,6 @@ export default function BubbleBlast() {
     lx = Math.max(0, Math.min(CANVAS_W - 1, lx));
     const targetCol = Math.max(0, Math.min(GRID_COLS - 1, Math.floor(lx / (CANVAS_W / GRID_COLS))));
 
-    // Find target row: below last bubble in column
     const currentGrid = gridRef.current;
     let targetRow = 0;
     for (let r = currentGrid.length - 1; r >= 0; r--) {
@@ -162,20 +190,20 @@ export default function BubbleBlast() {
     const newGrid = currentGrid.map(r => [...r]);
     while (newGrid.length <= targetRow) newGrid.push(Array(GRID_COLS).fill(null));
 
-    // Lose if grid too tall
     if (targetRow >= MAX_ROWS) {
       sounds.lose();
       setGameState('gameover');
       window.dispatchEvent(new CustomEvent('dan:game-score', { detail: { score: scoreRef.current, gameId: 'bubble-blast', isHighScore: true } }));
+      isAnimatingRef.current = false;
       setIsAnimating(false);
       return;
     }
 
     shotsRef.current++;
     let totalPopped = 0;
+    const bomb = isBombRef.current;
 
-    if (isBomb) {
-      // Bomb: remove 3×3 area
+    if (bomb) {
       sounds.bomb();
       showMessage('💥 ¡BOMBA!', '#fb923c');
       for (let dr = -1; dr <= 1; dr++) {
@@ -187,7 +215,6 @@ export default function BubbleBlast() {
         }
       }
     } else {
-      // Normal bubble
       newGrid[targetRow][targetCol] = { color: current.color, id: `${targetRow}-${targetCol}-${Date.now()}` };
       const connected = findConnected(newGrid, targetRow, targetCol, current.color);
       if (connected.length >= 3) {
@@ -200,7 +227,6 @@ export default function BubbleBlast() {
       }
     }
 
-    // Floating bubble detection (cascade)
     const floating = findFloating(newGrid);
     if (floating.length > 0) {
       floating.forEach(({ row: r, col: c }) => { newGrid[r][c] = null; });
@@ -213,13 +239,13 @@ export default function BubbleBlast() {
       const nc = comboRef.current + 1;
       comboRef.current = nc;
       const pts = totalPopped * 10 * nc;
-      setScore(s => { scoreRef.current = s + pts; return s + pts; });
+      scoreRef.current += pts;
+      setScore(scoreRef.current);
       setCombo(nc);
       setMaxCombo(m => Math.max(m, nc));
       setBubblesPopped(b => b + totalPopped);
     }
 
-    // New row every N shots (pressure mechanic)
     if (shotsRef.current % NEW_ROW_EVERY === 0) {
       const newRow = Array.from({ length: GRID_COLS }, (_, i) =>
         (Math.random() < 0.8) ? { color: COLORS[Math.floor(Math.random() * COLORS.length)], id: `nr-${i}-${Date.now()}` } : null
@@ -229,28 +255,36 @@ export default function BubbleBlast() {
       showMessage('⬇ Nueva fila', '#ff4444');
       if (newGrid.length >= MAX_ROWS) {
         sounds.lose();
-        setGrid(newGrid); gridRef.current = newGrid;
+        gridRef.current = newGrid;
+        setGrid(newGrid);
         setGameState('gameover');
         window.dispatchEvent(new CustomEvent('dan:game-score', { detail: { score: scoreRef.current, gameId: 'bubble-blast', isHighScore: true } }));
+        isAnimatingRef.current = false;
         setIsAnimating(false);
         return;
       }
     }
 
-    // Trim empty trailing rows
     while (newGrid.length > 0 && newGrid[newGrid.length - 1].every(b => !b)) newGrid.pop();
 
-    setGrid(newGrid); gridRef.current = newGrid;
+    gridRef.current = newGrid;
+    setGrid(newGrid);
 
-    // Prepare next bubble
+    const next = nextBubbleRef.current;
     const nextColor = getColorFromGrid(newGrid);
-    setCurrentBubble(next);
     const nextShot = shotsRef.current + 1;
+    const nextIsBomb = nextShot % BOMB_EVERY === 0;
+
+    currentBubbleRef.current = next;
+    nextBubbleRef.current    = { color: nextColor };
+    isBombRef.current        = nextIsBomb;
+    setCurrentBubble(next);
     setNextBubble({ color: nextColor });
-    setIsBomb(nextShot % BOMB_EVERY === 0);
+    setIsBomb(nextIsBomb);
+
+    isAnimatingRef.current = false;
     setIsAnimating(false);
 
-    // Win condition
     if (!newGrid.some(row => row.some(Boolean))) {
       sounds.win();
       setTimeout(() => {
@@ -258,35 +292,59 @@ export default function BubbleBlast() {
         window.dispatchEvent(new CustomEvent('dan:game-score', { detail: { score: scoreRef.current, gameId: 'bubble-blast', isHighScore: true } }));
       }, 600);
     }
-  }, [currentBubble, nextBubble, isBomb, shootAngle, findConnected, getColorFromGrid, showMessage]);
+  }, [findConnected, getColorFromGrid, showMessage]); // stable — no state deps
 
+  // Event listeners attached to game container (not window) — registered once
   useEffect(() => {
-    const onMouseMove = (e) => {
-      if (gameState !== 'playing' || isAnimating) return;
-      const canvas = canvasRef.current; if (!canvas) return;
+    const getAngle = (clientX, clientY) => {
+      const canvas = canvasRef.current; if (!canvas) return null;
       const rect = canvas.getBoundingClientRect();
-      setShootAngle(Math.atan2(e.clientY - rect.top - SHOOTER_Y, e.clientX - rect.left - SHOOTER_X));
+      return Math.atan2(clientY - rect.top - SHOOTER_Y, clientX - rect.left - SHOOTER_X);
     };
-    const onTouchMove = (e) => {
-      if (gameState !== 'playing' || isAnimating) return;
-      const canvas = canvasRef.current; if (!canvas) return;
-      const t = e.touches[0], rect = canvas.getBoundingClientRect();
-      setShootAngle(Math.atan2(t.clientY - rect.top - SHOOTER_Y, t.clientX - rect.left - SHOOTER_X));
-    };
-    const onClick   = () => { if (gameState === 'playing' && !isAnimating && currentBubble) shootBubble(); };
-    const onTouchEnd = (e) => { e.preventDefault(); if (gameState === 'playing' && !isAnimating && currentBubble) shootBubble(); };
 
-    window.addEventListener('mousemove', onMouseMove);
-    window.addEventListener('click', onClick);
-    window.addEventListener('touchmove', onTouchMove, { passive: false });
-    window.addEventListener('touchend', onTouchEnd);
-    return () => {
-      window.removeEventListener('mousemove', onMouseMove);
-      window.removeEventListener('click', onClick);
-      window.removeEventListener('touchmove', onTouchMove);
-      window.removeEventListener('touchend', onTouchEnd);
+    const onMouseMove = (e) => {
+      if (gameStateRef.current !== 'playing') return;
+      const a = getAngle(e.clientX, e.clientY); if (a === null) return;
+      shootAngleRef.current = a;
+      setShootAngle(a);
     };
-  }, [gameState, isAnimating, currentBubble, shootBubble]);
+
+    const onTouchMove = (e) => {
+      if (gameStateRef.current !== 'playing') return;
+      e.preventDefault(); // prevent scroll only when in-game
+      const t = e.touches[0];
+      const a = getAngle(t.clientX, t.clientY); if (a === null) return;
+      shootAngleRef.current = a;
+      setShootAngle(a);
+    };
+
+    const onClick = (e) => {
+      if (gameStateRef.current !== 'playing') return;
+      e.stopPropagation();
+      shootBubble();
+    };
+
+    const onTouchEnd = (e) => {
+      if (gameStateRef.current !== 'playing') return;
+      e.preventDefault();
+      shootBubble();
+    };
+
+    const container = gameContainerRef.current;
+    if (!container) return;
+
+    container.addEventListener('mousemove', onMouseMove);
+    container.addEventListener('click', onClick);
+    container.addEventListener('touchmove', onTouchMove, { passive: false });
+    container.addEventListener('touchend', onTouchEnd, { passive: false });
+
+    return () => {
+      container.removeEventListener('mousemove', onMouseMove);
+      container.removeEventListener('click', onClick);
+      container.removeEventListener('touchmove', onTouchMove);
+      container.removeEventListener('touchend', onTouchEnd);
+    };
+  }, [shootBubble]); // shootBubble is stable → runs once
 
   if (gameState === 'menu') {
     return (
@@ -354,12 +412,12 @@ export default function BubbleBlast() {
     );
   }
 
-  // CSS rotation for aim line: converts math angle to CSS rotate
-  // shootAngle=-π/2 (up) → rotate(0) → vertical div pointing up ✓
   const aimRotate = shootAngle + Math.PI / 2;
 
   return (
-    <div style={{ width: '100%', maxWidth: 500, margin: '0 auto', position: 'relative' }}>
+    <div ref={gameContainerRef}
+      style={{ width: '100%', maxWidth: 500, margin: '0 auto', position: 'relative', touchAction: 'none', userSelect: 'none' }}>
+
       {/* HUD */}
       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16, padding: '0 16px', color: '#fff' }}>
         <div>
@@ -376,7 +434,7 @@ export default function BubbleBlast() {
           {nextBubble && (
             <div style={{ position: 'relative', width: 30, height: 30, marginTop: 4, marginLeft: 'auto' }}>
               <div style={{ width: 30, height: 30, borderRadius: '50%', background: nextBubble.color, boxShadow: `0 4px 12px ${nextBubble.color}55`, border: '2px solid rgba(255,255,255,.2)' }} />
-              {shotsRef.current + 1 > 0 && (shotsRef.current + 1) % BOMB_EVERY === 0 && (
+              {(shotsRef.current + 1) % BOMB_EVERY === 0 && (
                 <div style={{ position: 'absolute', top: -4, right: -4, fontSize: '0.7rem' }}>💥</div>
               )}
             </div>
@@ -384,9 +442,9 @@ export default function BubbleBlast() {
         </div>
       </div>
 
-      {/* Canvas (background) */}
+      {/* Canvas background */}
       <canvas ref={canvasRef} width={CANVAS_W} height={600}
-        style={{ background: 'linear-gradient(180deg,rgba(0,0,0,.8),rgba(20,0,40,.9))', borderRadius: 24, border: '2px solid rgba(0,229,255,.3)', display: 'block', margin: '0 auto', cursor: 'crosshair' }} />
+        style={{ background: 'linear-gradient(180deg,rgba(0,0,0,.8),rgba(20,0,40,.9))', borderRadius: 24, border: '2px solid rgba(0,229,255,.3)', display: 'block', margin: '0 auto', cursor: 'crosshair', width: '100%', height: 'auto' }} />
 
       {/* Grid overlay */}
       <div style={{ position: 'absolute', top: 60, left: '50%', transform: 'translateX(-50%)', width: CANVAS_W, pointerEvents: 'none' }}>
@@ -415,11 +473,10 @@ export default function BubbleBlast() {
       {/* Shooter + aim line */}
       {currentBubble && (
         <>
-          {/* Aim line — CSS div rotated from shooter center, only when aiming up */}
           {Math.sin(shootAngle) < 0 && (
             <div style={{
               position: 'absolute',
-              bottom: 75, // center of shooter bubble (bottom:50 + 25px radius)
+              bottom: 75,
               left: '50%',
               width: 2,
               height: 150,
@@ -430,7 +487,6 @@ export default function BubbleBlast() {
               borderRadius: 2,
             }} />
           )}
-          {/* Current bubble */}
           <div style={{
             position: 'absolute', bottom: 50, left: '50%',
             transform: 'translateX(-50%)',
