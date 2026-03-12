@@ -51,6 +51,7 @@ export default function BeatSound({ roomName, onClose }) {
     const [showSettings, setShowSettings] = useState(false);
     const [isMuted, setIsMuted] = useState(false);
     const [youtubePlayer, setYoutubePlayer] = useState(null);
+    const [youtubeReady, setYoutubeReady] = useState(false);
     const youtubePlayerRef = useRef(null);
     
     // Refs para funciones usadas en callbacks
@@ -324,6 +325,7 @@ export default function BeatSound({ roomName, onClose }) {
                         console.log('[BeatSound] YouTube player ready!');
                         youtubePlayerRef.current = event.target;
                         setYoutubePlayer(event.target);
+                        setYoutubeReady(true);
                     },
                     onError: (event) => {
                         console.error('[BeatSound] YouTube player error:', event.data);
@@ -455,6 +457,7 @@ export default function BeatSound({ roomName, onClose }) {
                     onReady={toggleReady}
                     isPlaying={state.isPlaying}
                     gamePhase={state.gamePhase}
+                    youtubeReady={youtubeReady}
                 />
             )}
             
@@ -809,7 +812,7 @@ function LeaderboardPanel({ players, leaderId, localSessionId }) {
 }
 
 // Componente: Stats del jugador
-function PlayerStats({ player, onReady, isPlaying, gamePhase }) {
+function PlayerStats({ player, onReady, isPlaying, gamePhase, youtubeReady }) {
     return (
         <div className="absolute bottom-0 left-0 right-0 p-4 pb-24 md:pb-6 bg-gradient-to-t from-black/80 to-transparent">
             <div className="max-w-4xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
@@ -859,16 +862,18 @@ function PlayerStats({ player, onReady, isPlaying, gamePhase }) {
                 {!isPlaying && gamePhase === 0 && (
                     <motion.button
                         onClick={onReady}
-                        disabled={player.isReady}
+                        disabled={player.isReady || !youtubeReady}
                         className={`w-full md:w-auto px-6 md:px-8 py-3 md:py-4 rounded-xl md:rounded-2xl font-black uppercase tracking-widest text-xs md:text-sm transition-all ${
                             player.isReady
                                 ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40'
+                                : !youtubeReady
+                                ? 'bg-white/10 text-white/40 border border-white/10 cursor-not-allowed'
                                 : 'bg-gradient-to-r from-cyan-500 to-purple-500 text-white hover:shadow-lg hover:shadow-cyan-500/30'
                         }`}
-                        whileHover={!player.isReady ? { scale: 1.05 } : {}}
-                        whileTap={!player.isReady ? { scale: 0.95 } : {}}
+                        whileHover={!player.isReady && youtubeReady ? { scale: 1.05 } : {}}
+                        whileTap={!player.isReady && youtubeReady ? { scale: 0.95 } : {}}
                     >
-                        {player.isReady ? '✓ Listo' : 'Estoy Listo'}
+                        {player.isReady ? '✓ Listo' : !youtubeReady ? 'Cargando...' : 'Estoy Listo'}
                     </motion.button>
                 )}
             </div>
