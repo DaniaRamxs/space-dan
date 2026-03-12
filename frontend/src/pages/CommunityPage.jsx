@@ -1,18 +1,20 @@
 /**
  * Community Page
- * Individual community view with feed and live activities
+ * Vista principal de comunidad con diseño de 3 columnas:
+ * - Izquierda: Información de la comunidad
+ * - Centro: Chat exclusivo de la comunidad
+ * - Derecha: Actividad (salas de voz + ranking)
  */
 
 import { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Users, Activity, ArrowLeft } from 'lucide-react';
+import { Users, ArrowLeft, UserPlus } from 'lucide-react';
 import { communitiesService } from '../services/communitiesService';
-import { liveActivitiesService } from '../services/liveActivitiesService';
 import { useAuthContext } from '../contexts/AuthContext';
-import LiveActivityCard from '../components/Activities/LiveActivityCard';
-import ActivityFeed from '../components/Social/ActivityFeed';
+import CommunityChatPanel from '../components/Communities/CommunityChatPanel';
+import CommunityActivityPanel from '../components/Communities/CommunityActivityPanel';
 import StellarScrollBg from '../components/Effects/StellarScrollBg';
+import toast from 'react-hot-toast';
 
 export default function CommunityPage() {
   const { slug } = useParams();
@@ -20,13 +22,12 @@ export default function CommunityPage() {
   const { user } = useAuthContext();
 
   const [community, setCommunity] = useState(null);
-  const [activities, setActivities] = useState([]);
   const [isMember, setIsMember] = useState(false);
   const [loading, setLoading] = useState(true);
   const [joining, setJoining] = useState(false);
 
   useEffect(() => {
-    loadCommunity();
+    if (slug) loadCommunity();
   }, [slug]);
 
   const loadCommunity = async () => {
@@ -34,12 +35,12 @@ export default function CommunityPage() {
     try {
       const communityData = await communitiesService.getCommunityBySlug(slug);
       setCommunity(communityData);
-
-      const activitiesData = await liveActivitiesService.getTrendingActivities({ 
-        limit: 10 
-      });
-      setActivities(activitiesData.filter(a => a.community?.slug === slug));
-
+      
+      // Verificar si el usuario es miembro
+      if (user && communityData.id) {
+        const membership = await communitiesService.checkMembership(communityData.id);
+        setIsMember(membership);
+      }
     } catch (error) {
       console.error('[CommunityPage] Load error:', error);
     } finally {
@@ -97,110 +98,116 @@ export default function CommunityPage() {
     );
   }
 
+  const handleInvite = () => {
+    const inviteUrl = `${window.location.origin}/community/${slug}`;
+    navigator.clipboard.writeText(inviteUrl);
+    toast.success('¡Link de invitación copiado!');
+  };
+
   return (
-    <main className="w-full max-w-6xl mx-auto min-h-screen pb-32 text-white font-sans pt-6 md:pt-10 px-4 relative">
+    <main className="w-full h-screen overflow-hidden text-white font-sans relative">
       <StellarScrollBg />
 
-      {/* Back Button */}
-      <motion.button
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        onClick={() => navigate('/communities')}
-        className="flex items-center gap-2 text-white/40 hover:text-white/80 transition-colors mb-6 text-sm"
-      >
-        <ArrowLeft size={16} />
-        <span>Volver</span>
-      </motion.button>
-
-      {/* Community Header */}
-      <motion.div
-        initial={{ opacity: 0, y: -10 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="bg-white/[0.03] border border-white/[0.06] rounded-2xl p-6 mb-8"
-      >
-        <div className="flex items-start gap-4">
-          {community.avatar_url ? (
-            <img 
-              src={community.avatar_url} 
-              alt={community.name}
-              className="w-20 h-20 rounded-2xl object-cover"
-            />
-          ) : (
-            <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-cyan-500/20 to-purple-500/20 flex items-center justify-center">
-              <Users size={32} className="text-cyan-400" />
-            </div>
-          )}
-
-          <div className="flex-1">
-            <h1 className="text-3xl font-black uppercase tracking-tight text-white/90 mb-2">
+      {/* Header con botón volver */}
+      <div className="border-b border-white/[0.06] bg-black/20 backdrop-blur-sm">
+        <div className="max-w-[1800px] mx-auto px-6 py-4 flex items-center justify-between">
+          <button
+            onClick={() => navigate('/communities')}
+            className="flex items-center gap-2 text-white/40 hover:text-white/80 transition-colors text-sm"
+          >
+            <ArrowLeft size={16} />
+            <span>Volver</span>
+          </button>
+          
+          {community && (
+            <h1 className="text-xl font-bold text-white/90">
               {community.name}
             </h1>
-            
-            <div className="flex items-center gap-4 text-[10px] text-white/40 uppercase tracking-wider mb-3">
-              <span>{community.member_count?.toLocaleString() || 0} miembros</span>
-              <span>•</span>
-              <span>{activities.length} actividades en vivo</span>
-            </div>
+          )}
+          
+          <div className="w-20" /> {/* Spacer for centering */}
+        </div>
+      </div>
 
-            {community.description && (
+      {/* 3-Column Layout */}
+      <div className="max-w-[1800px] mx-auto h-[calc(100vh-73px)] flex gap-6 p-6">
+        {/* Left Panel - Community Info */}
+        <div className="w-80 flex-shrink-0 space-y-6 overflow-y-auto">
+          {/* Community Card */}
+          <div className="bg-white/[0.03] border border-white/[0.06] rounded-2xl p-6">
+            {community?.avatar_url ? (
+              <img 
+                src={community.avatar_url} 
+                alt={community.name}
+                className="w-full h-40 rounded-xl object-cover mb-4"
+              />
+            ) : (
+              <div className="w-full h-40 rounded-xl bg-gradient-to-br from-cyan-500/20 to-purple-500/20 flex items-center justify-center mb-4">
+                <Users size={48} className="text-cyan-400" />
+              </div>
+            )}
+
+            <h2 className="text-2xl font-black uppercase tracking-tight text-white/90 mb-2">
+              {community?.name}
+            </h2>
+
+            {community?.description && (
               <p className="text-sm text-white/60 mb-4">
                 {community.description}
               </p>
             )}
 
-            {user && (
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={isMember ? handleLeaveCommunity : handleJoinCommunity}
-                disabled={joining}
-                className={`px-6 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all ${
-                  isMember
-                    ? 'bg-white/[0.05] hover:bg-white/[0.08] border border-white/[0.1] text-white/60'
-                    : 'bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/30 text-cyan-300'
-                }`}
+            <div className="flex items-center gap-2 text-sm text-white/40 mb-4">
+              <Users size={16} />
+              <span>{community?.member_count?.toLocaleString() || 0} miembros</span>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="space-y-2">
+              {user && (
+                <button
+                  onClick={isMember ? handleLeaveCommunity : handleJoinCommunity}
+                  disabled={joining}
+                  className={`w-full py-2.5 rounded-xl text-sm font-bold uppercase tracking-wider transition-all ${
+                    isMember
+                      ? 'bg-white/[0.05] hover:bg-white/[0.08] border border-white/[0.1] text-white/60'
+                      : 'bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/30 text-cyan-300'
+                  }`}
+                >
+                  {joining ? 'Cargando...' : isMember ? 'Salir' : 'Unirse'}
+                </button>
+              )}
+
+              <button
+                onClick={handleInvite}
+                className="w-full py-2.5 bg-white/[0.03] hover:bg-white/[0.05] border border-white/[0.06] rounded-xl text-sm font-semibold text-white/70 transition-all flex items-center justify-center gap-2"
               >
-                {joining ? 'Cargando...' : isMember ? 'Salir' : 'Unirse'}
-              </motion.button>
-            )}
+                <UserPlus size={16} />
+                Invitar
+              </button>
+            </div>
           </div>
         </div>
-      </motion.div>
 
-      {/* Live Activities Section */}
-      {activities.length > 0 && (
-        <motion.section
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.15 }}
-          className="mb-10"
-        >
-          <div className="flex items-center gap-2 mb-4">
-            <Activity size={18} className="text-cyan-400" />
-            <h2 className="text-xl font-bold uppercase tracking-tight text-white/90">
-              Actividades en Vivo
-            </h2>
-          </div>
+        {/* Center Panel - Community Chat */}
+        <div className="flex-1 bg-white/[0.03] border border-white/[0.06] rounded-2xl overflow-hidden">
+          {community ? (
+            <CommunityChatPanel 
+              communityId={community.id} 
+              communityName={community.name}
+            />
+          ) : (
+            <div className="flex items-center justify-center h-full">
+              <div className="w-8 h-8 border-2 border-cyan-500/20 border-t-cyan-500 rounded-full animate-spin" />
+            </div>
+          )}
+        </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {activities.map(activity => (
-              <LiveActivityCard key={activity.id} activity={activity} />
-            ))}
-          </div>
-        </motion.section>
-      )}
-
-      {/* Community Feed */}
-      <motion.section
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.2 }}
-      >
-        <h2 className="text-xl font-bold uppercase tracking-tight text-white/90 mb-4">
-          Feed de la Comunidad
-        </h2>
-        <ActivityFeed filter="community" category={community.category} />
-      </motion.section>
+        {/* Right Panel - Activity */}
+        <div className="w-80 flex-shrink-0 overflow-y-auto">
+          {community && <CommunityActivityPanel communityId={community.id} />}
+        </div>
+      </div>
     </main>
   );
 }
