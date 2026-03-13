@@ -119,7 +119,7 @@ export const botCommandService = {
       pet = newPet;
     }
 
-    let result = '';
+    let result = null;
     let updates = {};
 
     switch (command) {
@@ -130,11 +130,11 @@ export const botCommandService = {
 
       case 'feed':
         if (!pet.is_alive) {
-          result = '💀 No puedes alimentar a una paloma que ya no está...';
+          result = { type: 'embed', title: '🕊️', description: 'No puedes alimentar a una paloma que ya no está...', color: '#374151' };
         } else if (pet.is_sleeping) {
-          result = '😴 Shhh... está durmiendo!';
+          result = { type: 'embed', title: '🕊️', description: 'Shhh... está durmiendo!', color: '#7c3aed' };
         } else if (pet.hunger >= 95) {
-          result = '🍕 Está llenita! No quiere más comida.';
+          result = { type: 'embed', title: '🕊️', description: 'Está llenita! No quiere más comida.', color: '#f97316' };
         } else {
           const foodBoost = Math.floor(Math.random() * 15) + 10;
           updates = {
@@ -145,17 +145,27 @@ export const botCommandService = {
           };
           const foods = ['🌽 maíz', '🍞 pan', '🌾 semillas'];
           const food = foods[Math.floor(Math.random() * foods.length)];
-          result = `🕊️ **${pet.name}** comió ${food} felizmente!\n🍕 +${foodBoost}% hambre | 😊 +5% felicidad | 🪙 +1 moneda`;
+          result = {
+            type: 'embed',
+            title: `🕊️ ${pet.name}`,
+            description: `Comió ${food} felizmente!`,
+            color: '#22c55e',
+            fields: [
+              { name: '🍕 Hambre', value: `+${foodBoost}%`, inline: true },
+              { name: '😊 Felicidad', value: '+5%', inline: true },
+              { name: '🪙 Monedas', value: '+1 moneda', inline: true },
+            ]
+          };
         }
         break;
 
       case 'play':
         if (!pet.is_alive) {
-          result = '💀 ...';
+          result = { type: 'embed', title: '💀', description: '...', color: '#374151' };
         } else if (pet.is_sleeping) {
-          result = '😴 Está soñando con volar...';
+          result = { type: 'embed', title: '🕊️', description: 'Está soñando con volar...', color: '#7c3aed' };
         } else if (pet.energy < 20) {
-          result = '⚡ Está muy cansada para jugar.';
+          result = { type: 'embed', title: '🕊️', description: 'Está muy cansada para jugar.', color: '#f97316' };
         } else {
           const games = ['volar en círculos', 'picotear semillas', 'cantar palomadas'];
           const game = games[Math.floor(Math.random() * games.length)];
@@ -166,36 +176,56 @@ export const botCommandService = {
             coins: pet.coins + 2,
             last_interaction: new Date().toISOString()
           };
-          result = `🕊️ **${pet.name}** jugó ${game}!\n⚡ -15% energía | 😊 +20% felicidad | 🍕 -10% hambre | 🪙 +2 monedas`;
+          result = {
+            type: 'embed',
+            title: `🕊️ ${pet.name}`,
+            description: `Jugó ${game}!`,
+            color: '#ec4899',
+            fields: [
+              { name: '⚡ Energía', value: '-15%', inline: true },
+              { name: '😊 Felicidad', value: '+20%', inline: true },
+              { name: '🍕 Hambre', value: '-10%', inline: true },
+              { name: '🪙 Monedas', value: '+2 monedas', inline: true },
+            ]
+          };
         }
         break;
 
       case 'pet':
         if (!pet.is_alive) {
-          result = '💀 ...';
+          result = { type: 'embed', title: '💀', description: '...', color: '#374151' };
         } else if (pet.is_sleeping) {
-          result = '😴 Ronronea en sueños...';
+          result = { type: 'embed', title: '🕊️', description: 'Ronronea en sueños...', color: '#7c3aed' };
         } else {
-          const responses = [
+          const petResponses = [
             'Cierra los ojitos de felicidad 🥰',
             'Hace "coo-coo-cooo" 💕',
             'Se eriza las plumas de gusto'
           ];
-          const response = responses[Math.floor(Math.random() * responses.length)];
+          const petResponse = petResponses[Math.floor(Math.random() * petResponses.length)];
           updates = {
             happiness: Math.min(100, pet.happiness + 15),
             health: Math.min(100, pet.health + 5),
             last_interaction: new Date().toISOString()
           };
-          result = `🕊️ **${pet.name}**: "${response}"\n😊 +15% felicidad | ❤️ +5% salud`;
+          result = {
+            type: 'embed',
+            title: `🕊️ ${pet.name}`,
+            description: `"${petResponse}"`,
+            color: '#ec4899',
+            fields: [
+              { name: '😊 Felicidad', value: '+15%', inline: true },
+              { name: '❤️ Salud', value: '+5%', inline: true },
+            ]
+          };
         }
         break;
 
       case 'clean':
         if (!pet.is_alive) {
-          result = '💀 ...';
+          result = { type: 'embed', title: '💀', description: '...', color: '#374151' };
         } else if (pet.hygiene >= 90) {
-          result = '🧼 Ya está limpiecita!';
+          result = { type: 'embed', title: '🕊️', description: 'Ya está limpiecita!', color: '#f97316' };
         } else {
           updates = {
             hygiene: 100,
@@ -203,72 +233,141 @@ export const botCommandService = {
             coins: pet.coins + 1,
             last_interaction: new Date().toISOString()
           };
-          result = `🛁 Bañaste a **${pet.name}**! Ahora brilla ✨\n🧼 100% higiene | 😊 +5% felicidad | 🪙 +1 moneda`;
+          result = {
+            type: 'embed',
+            title: `🛁 ${pet.name}`,
+            description: 'Ahora brilla de limpio! ✨',
+            color: '#22c55e',
+            fields: [
+              { name: '🧼 Higiene', value: '100%', inline: true },
+              { name: '😊 Felicidad', value: '+5%', inline: true },
+              { name: '🪙 Monedas', value: '+1 moneda', inline: true },
+            ]
+          };
         }
         break;
 
       case 'sleep':
         if (!pet.is_alive) {
-          result = '💀 ...';
+          result = { type: 'embed', title: '💀', description: '...', color: '#374151' };
         } else if (pet.is_sleeping) {
-          result = '😴 Ya está dormida!';
+          result = { type: 'embed', title: '🕊️', description: 'Ya está dormida!', color: '#f97316' };
         } else {
-          updates = { 
+          updates = {
             is_sleeping: true,
             last_interaction: new Date().toISOString()
           };
-          result = `🌙 **${pet.name}** se fue a dormir a su palomar... Dulces sueños! 🕊️💤`;
+          result = {
+            type: 'embed',
+            title: `🌙 ${pet.name}`,
+            description: 'Se fue a dormir a su palomar... Dulces sueños! 🕊️💤',
+            color: '#7c3aed'
+          };
         }
         break;
 
       case 'wake':
         if (!pet.is_alive) {
-          result = '💀 ...';
+          result = { type: 'embed', title: '💀', description: '...', color: '#374151' };
         } else if (!pet.is_sleeping) {
-          result = '🕊️ Ya está despierta!';
+          result = { type: 'embed', title: '🕊️', description: 'Ya está despierta!', color: '#f97316' };
         } else {
           const energyRecovered = Math.min(100, pet.energy + 30);
-          updates = { 
+          updates = {
             is_sleeping: false,
             energy: energyRecovered,
             last_interaction: new Date().toISOString()
           };
-          result = `☀️ **${pet.name}** despertó! Coo-coo-cooo! 🕊️\n⚡ +30% energía`;
+          result = {
+            type: 'embed',
+            title: `☀️ ${pet.name}`,
+            description: 'Despertó! Coo-coo-cooo! 🕊️',
+            color: '#22c55e',
+            fields: [
+              { name: '⚡ Energía', value: '+30%', inline: true },
+            ]
+          };
         }
         break;
 
       case 'name':
-      case 'rename':
+      case 'rename': {
         const newName = args.join(' ');
         if (!newName) {
-          result = '❌ Uso: /chimu name <nuevo nombre>';
+          result = { type: 'embed', title: '❌', description: 'Uso: /chimu name <nuevo nombre>', color: '#f97316' };
         } else if (newName.length > 20) {
-          result = '❌ El nombre es muy largo (máx 20 caracteres)';
+          result = { type: 'embed', title: '❌', description: 'El nombre es muy largo (máx 20 caracteres)', color: '#f97316' };
         } else if (newName.length < 2) {
-          result = '❌ El nombre es muy corto';
+          result = { type: 'embed', title: '❌', description: 'El nombre es muy corto', color: '#f97316' };
         } else {
-          updates = { 
+          updates = {
             name: newName,
             last_interaction: new Date().toISOString()
           };
-          result = `🕊️ **${pet.name}** ahora se llama **${newName}**!`;
+          result = {
+            type: 'embed',
+            title: `🕊️ ${pet.name}`,
+            description: `Ahora se llama **${newName}**! 📝`,
+            color: '#6366f1'
+          };
         }
         break;
+      }
 
       case 'help':
-        result = `🕊️ **Comandos de ChimuGotchi:**
-• /chimu - Ver estado
-• /chimu feed - Alimentar
-• /chimu play - Jugar
-• /chimu pet - Acariciar
-• /chimu clean - Limpiar
-• /chimu sleep - Dormir
-• /chimu wake - Despertar
-• /chimu name <nombre> - Renombrar`;
+        result = {
+          type: 'embed',
+          title: '🕊️ ChimuBot — Comandos',
+          description: 'Tu paloma virtual personal',
+          color: '#6366f1',
+          fields: [
+            { name: '/chimu', value: 'Ver estado de tu paloma', inline: true },
+            { name: '/chimu feed', value: 'Dar de comer 🍕', inline: true },
+            { name: '/chimu play', value: 'Jugar con Chimuelo 🎾', inline: true },
+            { name: '/chimu pet', value: 'Acariciar 🥰', inline: true },
+            { name: '/chimu clean', value: 'Limpiar 🛁', inline: true },
+            { name: '/chimu sleep', value: 'Mandar a dormir 🌙', inline: true },
+            { name: '/chimu wake', value: 'Despertar ☀️', inline: true },
+            { name: '/chimu name <nombre>', value: 'Renombrar 📝', inline: true },
+            { name: '/chimu leaderboard', value: 'Ranking del palomar 🏆', inline: false },
+          ],
+          footer: 'Cada acción te da monedas 🪙'
+        };
         break;
 
+      case 'leaderboard': {
+        const { data: topPets, error: lbError } = await supabase
+          .from('chimugotchi_pets')
+          .select('name, coins, owner_id, personality')
+          .eq('community_id', communityId)
+          .eq('is_alive', true)
+          .order('coins', { ascending: false })
+          .limit(10);
+
+        if (lbError) {
+          result = { type: 'embed', title: '❌', description: 'Error al cargar el ranking', color: '#f97316' };
+        } else if (!topPets || topPets.length === 0) {
+          result = { type: 'embed', title: '🏆 Palomar', description: 'Aún no hay palomas en este servidor', color: '#6366f1' };
+        } else {
+          const medals = ['🥇', '🥈', '🥉'];
+          const fields = topPets.map((p, i) => ({
+            name: `${medals[i] || `${i + 1}.`} ${p.name}`,
+            value: `🪙 ${p.coins} monedas · ${p.personality}`,
+            inline: false
+          }));
+          result = {
+            type: 'embed',
+            title: '🏆 Ranking del Palomar',
+            description: 'Las palomas más ricas de la comunidad',
+            color: '#f59e0b',
+            fields
+          };
+        }
+        break;
+      }
+
       default:
-        result = `❓ Comando desconocido. Usa /chimu help para ver los comandos disponibles.`;
+        result = { type: 'embed', title: '❓', description: 'Comando desconocido. Usa /chimu help para ver los comandos disponibles.', color: '#f97316' };
     }
 
     // Apply updates if any
@@ -290,29 +389,56 @@ export const botCommandService = {
 
   formatStatus(pet) {
     if (!pet.is_alive) {
-      return `💀 **${pet.name}** ha fallecido... Usa /chimu para adoptar una nueva.`;
+      return {
+        type: 'embed',
+        title: `💀 ${pet.name}`,
+        description: 'Ha fallecido... Usa /chimu para adoptar una nueva.',
+        color: '#374151'
+      };
     }
 
     const state = this.getPetState(pet);
-    const emoji = this.getStateEmoji(state);
+    const stateEmoji = this.getStateEmoji(state);
 
-    const bars = {
-      hunger: this.renderBar(pet.hunger),
-      happiness: this.renderBar(pet.happiness),
-      energy: this.renderBar(pet.energy),
-      hygiene: this.renderBar(pet.hygiene),
-      health: this.renderBar(pet.health)
+    const moodDescriptions = {
+      HAPPY: 'Un palomito muy feliz',
+      HUNGRY: 'Tiene mucha hambre...',
+      SLEEPY: 'Está descansando',
+      DIRTY: 'Necesita un baño urgente',
+      SAD: 'Está triste y necesita atención',
+      PLAYFUL: 'Lleno de energía y ganas de jugar!',
+      SICK: 'Se siente muy mal, necesita cuidados',
+      DEAD: 'Ha fallecido'
     };
 
-    return `${emoji} Chimuelo el Palomo ${pet.personality === 'glotona' ? 'gloton' : pet.personality}
+    const moodColorHex = {
+      HAPPY: '#22c55e',
+      HUNGRY: '#f97316',
+      SLEEPY: '#7c3aed',
+      DIRTY: '#92400e',
+      SAD: '#3b82f6',
+      PLAYFUL: '#ec4899',
+      SICK: '#dc2626',
+      DEAD: '#374151'
+    }[state] || '#22c55e';
 
-🍕 Hambre: ${bars.hunger} ${pet.hunger}%
-😊 Felicidad: ${bars.happiness} ${pet.happiness}%
-⚡ Energía: ${pet.is_sleeping ? '😴 Durmiendo' : `${bars.energy} ${pet.energy}%`}
-🧼 Higiene: ${bars.hygiene} ${pet.hygiene}%
-❤️ Salud: ${bars.health} ${pet.health}%
-
-🪙 ${pet.coins} monedas | 🎂 ${pet.age?.toFixed(1) || 0} días`;
+    return {
+      type: 'embed',
+      title: `${stateEmoji} ${pet.name}`,
+      description: moodDescriptions[state] || 'Un palomito',
+      color: moodColorHex,
+      thumbnail: `https://api.dicebear.com/7.x/avataaars/svg?seed=${pet.name}`,
+      stats: [
+        { label: '🍕 Hambre', value: pet.hunger },
+        { label: '😊 Felicidad', value: pet.happiness },
+        { label: '⚡ Energía', value: pet.is_sleeping ? -1 : pet.energy },
+        { label: '🧼 Higiene', value: pet.hygiene },
+        { label: '❤️ Salud', value: pet.health },
+        { label: '🪙 Monedas', value: -2, text: `${pet.coins} monedas` },
+      ],
+      meta: `🎂 ${pet.age?.toFixed(1) || 0} días · 🎭 ${pet.personality}`,
+      footer: '/chimu feed · play · pet · clean · sleep · wake'
+    };
   },
 
   getPetState(pet) {
