@@ -13,9 +13,9 @@ CREATE TABLE IF NOT EXISTS community_reputation (
 );
 
 -- Índices para búsquedas rápidas
-CREATE INDEX idx_community_reputation_user ON community_reputation(user_id);
-CREATE INDEX idx_community_reputation_community ON community_reputation(community_id);
-CREATE INDEX idx_community_reputation_points ON community_reputation(points DESC);
+CREATE INDEX IF NOT EXISTS idx_community_reputation_user ON community_reputation(user_id);
+CREATE INDEX IF NOT EXISTS idx_community_reputation_community ON community_reputation(community_id);
+CREATE INDEX IF NOT EXISTS idx_community_reputation_points ON community_reputation(points DESC);
 
 -- Políticas RLS para community_reputation
 ALTER TABLE community_reputation ENABLE ROW LEVEL SECURITY;
@@ -50,8 +50,8 @@ CREATE TABLE IF NOT EXISTS reputation_history (
 );
 
 -- Índice para historial
-CREATE INDEX idx_reputation_history_user ON reputation_history(user_id, community_id);
-CREATE INDEX idx_reputation_history_created ON reputation_history(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_reputation_history_user ON reputation_history(user_id, community_id);
+CREATE INDEX IF NOT EXISTS idx_reputation_history_created ON reputation_history(created_at DESC);
 
 -- Políticas RLS para reputation_history
 ALTER TABLE reputation_history ENABLE ROW LEVEL SECURITY;

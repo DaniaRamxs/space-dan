@@ -6,7 +6,7 @@
  * Desktop: Layout 3 columnas tradicional
  */
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
@@ -18,7 +18,7 @@ import { chatService } from '../services/chatService';
 import { useAuthContext } from '../contexts/AuthContext';
 import { supabase } from '../supabaseClient';
 import { liveActivitiesService } from '../services/liveActivitiesService';
-import { addMessagePoints } from '../services/reputationService';
+import { addMessagePoints, getCommunityRanking } from '../services/reputationService';
 import ReputationBadge from '../components/Reputation/ReputationBadge';
 import StellarScrollBg from '../components/Effects/StellarScrollBg';
 import toast from 'react-hot-toast';
@@ -426,25 +426,46 @@ function CommunityChat({ communityId, communityName, isMember }) {
 
   const handleNewMessage = async (payload) => {
     const newMsg = payload.new;
-    const { data: authorProfile } = await supabase
-      .from('profiles')
-      .select('id, username, avatar_url, user_level:level')
-      .eq('id', newMsg.user_id)
-      .single();
-
-    setMessages(prev => [...prev, {
-      ...newMsg,
-      author: authorProfile || { username: 'Anónimo', id: newMsg.user_id }
-    }]);
+    
+    // Check if we already have this message (avoid duplicates)
+    setMessages(prev => {
+      if (prev.some(m => m.id === newMsg.id)) return prev;
+      
+      return [...prev, {
+        ...newMsg,
+        author: newMsg.author || { username: 'Anónimo', id: newMsg.user_id }
+      }];
+    });
   };
 
   const handleSendMessage = async (content, isVip = false, replyTo = null) => {
     if (!content.trim() || sending || !isMember) return;
 
     setSending(true);
+    
+    // Optimistic update - add message immediately to UI
+    const tempId = `temp-${Date.now()}`;
+    const optimisticMsg = {
+      id: tempId,
+      content: content,
+      user_id: user?.id,
+      created_at: new Date().toISOString(),
+      is_vip: isVip,
+      reply_to_id: replyTo,
+      channel_id: channelId,
+      author: {
+        id: user?.id,
+        username: user?.username || 'Tú',
+        avatar_url: user?.avatar_url
+      }
+    };
+    
+    // Add optimistic message to UI immediately
+    setMessages(prev => [...prev, optimisticMsg]);
+    setNewMessage('');
+    
     try {
       await chatService.sendMessage(content, isVip, replyTo, channelId);
-      setNewMessage('');
       await chatService.incrementChatStats();
       
       // Añadir puntos de reputación por mensaje
@@ -455,6 +476,8 @@ function CommunityChat({ communityId, communityName, isMember }) {
       }
     } catch (error) {
       console.error('[CommunityChat] Send error:', error);
+      // Remove optimistic message on error
+      setMessages(prev => prev.filter(m => m.id !== tempId));
       toast.error('Error al enviar mensaje');
     } finally {
       setSending(false);
@@ -858,23 +881,20 @@ function RankingPanel({ communityId, compact }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    loadMembers();
+    loadRanking();
   }, [communityId]);
 
-  const loadMembers = async () => {
+  const loadRanking = useCallback(async () => {
     try {
-      const data = await communitiesService.getCommunityMembers(communityId, { limit: 10 });
-      const withPoints = data.map(m => ({
-        ...m,
-        points: (m.message_count || 0) + ((m.chat_level || 0) * 10)
-      })).sort((a, b) => b.points - a.points).slice(0, 5);
-      setMembers(withPoints);
+      const data = await getCommunityRanking(communityId, 10);
+      setMembers(data.slice(0, 5));
     } catch (error) {
       console.error('[RankingPanel] Load error:', error);
+      setMembers([]);
     } finally {
       setLoading(false);
     }
-  };
+  }, [communityId]);
 
   const medals = ['🥇', '🥈', '🥉', '4', '5'];
 
@@ -934,11 +954,11 @@ function RankingPanel({ communityId, compact }) {
 
               <div className="flex-1 min-w-0">
                 <p className="font-medium text-white/90 text-sm truncate">{member.username}</p>
-                <ReputationBadge points={member.reputation_points || member.points || 0} size="sm" showName={false} />
+                <ReputationBadge points={member.points || 0} size="sm" showName={false} />
               </div>
 
               <div className="text-right">
-                <p className="text-sm font-bold text-cyan-400">{member.reputation_points || member.points || 0}</p>
+                <p className="text-sm font-bold text-cyan-400">{member.points || 0}</p>
                 <p className="text-[10px] text-white/30">pts</p>
               </div>
             </motion.div>

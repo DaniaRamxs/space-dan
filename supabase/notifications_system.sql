@@ -1,6 +1,22 @@
 -- Sistema de Notificaciones para Spacely
 -- Tabla de notificaciones en tiempo real
 
+-- Eliminar funciones existentes para evitar conflictos
+DO $$
+DECLARE
+    func RECORD;
+BEGIN
+    FOR func IN 
+        SELECT proname, pg_get_function_identity_arguments(oid) as args
+        FROM pg_proc 
+        WHERE proname IN ('create_notification', 'mark_notifications_read', 'get_user_notifications', 
+                          'notify_message_reply', 'notify_voice_activity', 'notify_community_activity', 
+                          'cleanup_old_notifications')
+    LOOP
+        EXECUTE format('DROP FUNCTION IF EXISTS %I(%s)', func.proname, func.args);
+    END LOOP;
+END $$;
+
 CREATE TABLE IF NOT EXISTS notifications (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
@@ -8,17 +24,17 @@ CREATE TABLE IF NOT EXISTS notifications (
     title VARCHAR(200),
     message TEXT NOT NULL,
     data JSONB DEFAULT '{}', -- Datos adicionales contextuales
-    read BOOLEAN DEFAULT false,
+    is_read BOOLEAN DEFAULT false,
     action_url TEXT, -- URL opcional para navegar al hacer click
     created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
     read_at TIMESTAMP WITH TIME ZONE
 );
 
 -- Índices para búsquedas rápidas
-CREATE INDEX idx_notifications_user ON notifications(user_id, created_at DESC);
-CREATE INDEX idx_notifications_unread ON notifications(user_id, read, created_at DESC);
-CREATE INDEX idx_notifications_type ON notifications(type);
-CREATE INDEX idx_notifications_created ON notifications(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_notifications_user ON notifications(user_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_notifications_unread ON notifications(user_id, is_read, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_notifications_type ON notifications(type);
+CREATE INDEX IF NOT EXISTS idx_notifications_created ON notifications(created_at DESC);
 
 -- Políticas RLS para notifications
 ALTER TABLE notifications ENABLE ROW LEVEL SECURITY;
@@ -51,12 +67,13 @@ USING (user_id = auth.uid());
 CREATE OR REPLACE VIEW user_notification_counts AS
 SELECT 
     user_id,
-    COUNT(*) FILTER (WHERE NOT read) as unread_count,
+    COUNT(*) FILTER (WHERE NOT is_read) as unread_count,
     COUNT(*) as total_count
 FROM notifications
 GROUP BY user_id;
 
 -- Función para crear notificación
+DROP FUNCTION IF EXISTS create_notification(UUID, VARCHAR, VARCHAR, TEXT, JSONB, TEXT);
 CREATE OR REPLACE FUNCTION create_notification(
     p_user_id UUID,
     p_type VARCHAR(50),
@@ -78,6 +95,7 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- Función para marcar notificaciones como leídas
+DROP FUNCTION IF EXISTS mark_notifications_read(UUID, UUID[]);
 CREATE OR REPLACE FUNCTION mark_notifications_read(
     p_user_id UUID,
     p_notification_ids UUID[] DEFAULT NULL
@@ -89,16 +107,16 @@ BEGIN
     IF p_notification_ids IS NOT NULL AND array_length(p_notification_ids, 1) > 0 THEN
         -- Marcar específicas
         UPDATE notifications 
-        SET read = true, read_at = now()
+        SET is_read = true, read_at = now()
         WHERE user_id = p_user_id 
         AND id = ANY(p_notification_ids)
-        AND NOT read;
+        AND NOT is_read;
     ELSE
         -- Marcar todas
         UPDATE notifications 
-        SET read = true, read_at = now()
+        SET is_read = true, read_at = now()
         WHERE user_id = p_user_id 
-        AND NOT read;
+        AND NOT is_read;
     END IF;
     
     GET DIAGNOSTICS v_count = ROW_COUNT;
@@ -107,6 +125,7 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- Función para obtener notificaciones de un usuario
+DROP FUNCTION IF EXISTS get_user_notifications(UUID, INTEGER, INTEGER, BOOLEAN);
 CREATE OR REPLACE FUNCTION get_user_notifications(
     p_user_id UUID,
     p_limit INTEGER DEFAULT 20,
@@ -119,7 +138,7 @@ RETURNS TABLE (
     title VARCHAR(200),
     message TEXT,
     data JSONB,
-    read BOOLEAN,
+    is_read BOOLEAN,
     action_url TEXT,
     created_at TIMESTAMP WITH TIME ZONE,
     read_at TIMESTAMP WITH TIME ZONE
@@ -132,19 +151,20 @@ BEGIN
         n.title,
         n.message,
         n.data,
-        n.read,
+        n.is_read,
         n.action_url,
         n.created_at,
         n.read_at
     FROM notifications n
     WHERE n.user_id = p_user_id
-    AND (NOT p_only_unread OR NOT n.read)
+    AND (NOT p_only_unread OR NOT n.is_read)
     ORDER BY n.created_at DESC
     LIMIT p_limit OFFSET p_offset;
 END;
 $$ LANGUAGE plpgsql STABLE;
 
 -- Función para notificar respuesta a mensaje
+DROP FUNCTION IF EXISTS notify_message_reply(UUID, UUID, UUID, TEXT, TEXT);
 CREATE OR REPLACE FUNCTION notify_message_reply(
     p_parent_user_id UUID,
     p_reply_user_id UUID,
@@ -179,6 +199,7 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- Función para notificar actividad de voz
+DROP FUNCTION IF EXISTS notify_voice_activity(UUID, UUID, UUID, TEXT, TEXT);
 CREATE OR REPLACE FUNCTION notify_voice_activity(
     p_user_id UUID,
     p_actor_user_id UUID,
@@ -213,6 +234,7 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- Función para notificar actividad en comunidad
+DROP FUNCTION IF EXISTS notify_community_activity(UUID, UUID, TEXT, TEXT, TEXT);
 CREATE OR REPLACE FUNCTION notify_community_activity(
     p_user_id UUID,
     p_community_id UUID,
@@ -243,16 +265,17 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- Trigger para limpiar notificaciones antiguas (más de 30 días)
+DROP FUNCTION IF EXISTS cleanup_old_notifications();
 CREATE OR REPLACE FUNCTION cleanup_old_notifications()
 RETURNS void AS $$
 BEGIN
     DELETE FROM notifications 
     WHERE created_at < now() - interval '30 days' 
-    AND read = true;
+    AND is_read = true;
 END;
 $$ LANGUAGE plpgsql;
 
 -- Comentarios
 COMMENT ON TABLE notifications IS 'Sistema de notificaciones en tiempo real para usuarios';
-COMMENT ON FUNCTION create_notification IS 'Crea una nueva notificación para un usuario';
-COMMENT ON FUNCTION mark_notifications_read IS 'Marca notificaciones como leídas';
+COMMENT ON FUNCTION create_notification(UUID, VARCHAR, VARCHAR, TEXT, JSONB, TEXT) IS 'Crea una nueva notificación para un usuario';
+COMMENT ON FUNCTION mark_notifications_read(UUID, UUID[]) IS 'Marca notificaciones como leídas';

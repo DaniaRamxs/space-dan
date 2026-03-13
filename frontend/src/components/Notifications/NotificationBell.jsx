@@ -93,7 +93,7 @@ export default function NotificationBell() {
   const handleMarkAllRead = async () => {
     const marked = await notificationsService.markAsRead();
     if (marked > 0) {
-      setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+      setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
       setUnreadCount(0);
     }
   };
@@ -104,7 +104,7 @@ export default function NotificationBell() {
     const success = await notificationsService.markOneAsRead(id);
     if (success) {
       setNotifications(prev => 
-        prev.map(n => n.id === id ? { ...n, read: true } : n)
+        prev.map(n => n.id === id ? { ...n, is_read: true } : n)
       );
       setUnreadCount(prev => Math.max(0, prev - 1));
     }
@@ -121,10 +121,10 @@ export default function NotificationBell() {
 
   // Handle notification click
   const handleNotificationClick = async (notification) => {
-    if (!notification.read) {
+    if (!notification.is_read) {
       await notificationsService.markOneAsRead(notification.id);
       setNotifications(prev => 
-        prev.map(n => n.id === notification.id ? { ...n, read: true } : n)
+        prev.map(n => n.id === notification.id ? { ...n, is_read: true } : n)
       );
       setUnreadCount(prev => Math.max(0, prev - 1));
     }
@@ -244,7 +244,7 @@ export default function NotificationBell() {
                       animate={{ opacity: 1, x: 0 }}
                       onClick={() => handleNotificationClick(notification)}
                       className={`group p-4 cursor-pointer transition-all hover:bg-white/[0.03] ${
-                        !notification.read ? 'bg-cyan-500/[0.02]' : ''
+                        !notification.is_read ? 'bg-cyan-500/[0.02]' : ''
                       }`}
                     >
                       <div className="flex gap-3">
@@ -259,7 +259,7 @@ export default function NotificationBell() {
                         <div className="flex-1 min-w-0">
                           <div className="flex items-start justify-between gap-2">
                             <h4 className={`font-semibold text-sm ${
-                              notification.read ? 'text-white/60' : 'text-white/90'
+                              notification.is_read ? 'text-white/60' : 'text-white/90'
                             }`}>
                               {notification.title}
                             </h4>
@@ -268,7 +268,7 @@ export default function NotificationBell() {
                             </span>
                           </div>
                           <p className={`text-sm mt-0.5 line-clamp-2 ${
-                            notification.read ? 'text-white/40' : 'text-white/60'
+                            notification.is_read ? 'text-white/40' : 'text-white/60'
                           }`}>
                             {notification.message}
                           </p>
@@ -276,7 +276,7 @@ export default function NotificationBell() {
 
                         {/* Actions */}
                         <div className="flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                          {!notification.read && (
+                          {!notification.is_read && (
                             <button
                               onClick={(e) => handleMarkRead(notification.id, e)}
                               className="p-1.5 rounded-lg hover:bg-cyan-500/10 text-white/30 hover:text-cyan-400 transition-colors"
@@ -296,7 +296,7 @@ export default function NotificationBell() {
                       </div>
 
                       {/* Unread indicator */}
-                      {!notification.read && (
+                      {!notification.is_read && (
                         <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-cyan-500 rounded-r-full" />
                       )}
                     </motion.div>
