@@ -61,9 +61,10 @@ export default function CommunityChannelsPage() {
         const membership = await communitiesService.checkMembership(communityData.id);
         setIsMember(membership);
         
-        // Check if owner
-        const ownerCheck = await channelsService.isCommunityOwner(communityData.id, user.id);
-        setIsOwner(ownerCheck);
+        // Check if owner (using creator_id from community data or API check)
+        const isOwnerCheck = communityData.creator_id === user.id || 
+                             (await channelsService.isCommunityOwner(communityData.id, user.id));
+        setIsOwner(isOwnerCheck);
       }
       
       // Load channels
@@ -71,7 +72,7 @@ export default function CommunityChannelsPage() {
       setChannels(channelsData);
       
       // Check if community needs setup (no channels = old community)
-      if (channelsData.length === 0 && communityData.owner_id === user?.id) {
+      if (channelsData.length === 0 && communityData.creator_id === user?.id) {
         setNeedsSetup(true);
       } else {
         setNeedsSetup(false);
@@ -286,26 +287,35 @@ export default function CommunityChannelsPage() {
         }`}
       >
         {/* Community Header */}
-        <div className="h-14 flex items-center justify-between px-4 border-b border-white/5 bg-[#1a1a24]">
-          <button
-            onClick={() => setShowCommunityMenu(!showCommunityMenu)}
-            className="flex items-center gap-2 text-white font-semibold hover:bg-white/5 rounded-lg px-2 py-1 -ml-2 transition-colors"
-          >
-            <span className="truncate">{community.name}</span>
-            <ChevronLeft 
-              size={16} 
-              className={`transition-transform ${showCommunityMenu ? '-rotate-90' : ''}`}
-            />
-          </button>
-          
-          {/* Owner Settings Button */}
-          {isOwner && (
+        <div className="h-auto min-h-14 flex flex-col px-4 py-2 border-b border-white/5 bg-[#1a1a24]">
+          <div className="flex items-center justify-between">
             <button
-              onClick={() => setShowOwnerMenu(!showOwnerMenu)}
-              className="p-2 text-gray-400 hover:text-white hover:bg-white/5 rounded-lg transition-colors"
+              onClick={() => setShowCommunityMenu(!showCommunityMenu)}
+              className="flex items-center gap-2 text-white font-semibold hover:bg-white/5 rounded-lg px-2 py-1 -ml-2 transition-colors"
             >
-              <Settings size={18} />
+              <span className="truncate">{community.name}</span>
+              <ChevronLeft 
+                size={16} 
+                className={`transition-transform ${showCommunityMenu ? '-rotate-90' : ''}`}
+              />
             </button>
+            
+            {/* Owner Settings Button */}
+            {isOwner && (
+              <button
+                onClick={() => setShowOwnerMenu(!showOwnerMenu)}
+                className="p-2 text-gray-400 hover:text-white hover:bg-white/5 rounded-lg transition-colors"
+              >
+                <Settings size={18} />
+              </button>
+            )}
+          </div>
+          
+          {/* Owner info */}
+          {community.creator?.username && (
+            <span className="text-xs text-gray-500 ml-0.5">
+              owner: @{community.creator.username}
+            </span>
           )}
           
           {/* Owner Menu Dropdown */}
@@ -402,7 +412,7 @@ export default function CommunityChannelsPage() {
         </div>
 
         {/* Channels List */}
-        <div className="flex-1 overflow-y-auto h-[calc(100%-3.5rem)]">
+        <div className="flex-1 overflow-y-auto h-[calc(100%-4.5rem)]">
           <ChannelSidebar
             communityId={community.id}
             channels={channels}
