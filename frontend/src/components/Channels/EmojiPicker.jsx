@@ -24,7 +24,7 @@ export default function EmojiPicker({ communityId, onSelect, isOwner, userId }) 
         .from('community_emojis')
         .select('*')
         .eq('community_id', communityId)
-        .eq('is_active', true);
+        .or('is_active.eq.true,is_active.is.null');
 
       if (error) throw error;
       setCustomEmojis(data || []);

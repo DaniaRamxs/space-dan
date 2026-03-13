@@ -31,7 +31,7 @@ export function useCustomEmojis(communityId) {
           .from('community_emojis')
           .select('*')
           .eq('community_id', communityId)
-          .eq('is_active', true);
+          .or('is_active.eq.true,is_active.is.null');
 
         if (error) throw error;
         

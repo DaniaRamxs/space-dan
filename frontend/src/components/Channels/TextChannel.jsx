@@ -26,6 +26,12 @@ export default function TextChannel({ channel, communityId, isMember, isOwner })
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
+  const messagesRef = useRef([]);
+
+  // Keep ref in sync so handleNewMessage always reads current state
+  useEffect(() => {
+    messagesRef.current = messages;
+  }, [messages]);
 
   const loadMessages = useCallback(async () => {
     if (!channel?.id) return;
@@ -60,44 +66,50 @@ export default function TextChannel({ channel, communityId, isMember, isOwner })
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  const handleNewMessage = async (payload) => {
+  const handleNewMessage = useCallback(async (payload) => {
     const newMsg = payload.new;
-    
-    // Skip if already exists
-    if (messages.some(m => m.id === newMsg.id)) return;
-    
-    // If this is our own message (we have a temp message), replace it
-    const tempMsgIndex = messages.findIndex(m => 
-      m.user_id === newMsg.user_id && 
+    const current = messagesRef.current;
+
+    // Skip if already exists (uses ref, never stale)
+    if (current.some(m => m.id === newMsg.id)) return;
+
+    // Check if there's a temp message to replace
+    const tempMsgIndex = current.findIndex(m =>
+      m.user_id === newMsg.user_id &&
       m.content === newMsg.content &&
       String(m.id).startsWith('temp-')
     );
-    
-    if (tempMsgIndex !== -1) {
-      // Replace temp message with real one
-      const { data: author } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', newMsg.user_id)
-        .single();
-      
-      setMessages(prev => {
-        const updated = [...prev];
-        updated[tempMsgIndex] = { ...newMsg, author };
-        return updated;
-      });
-      return;
-    }
-    
-    // New message from someone else
+
     const { data: author } = await supabase
       .from('profiles')
       .select('*')
       .eq('id', newMsg.user_id)
       .single();
 
-    setMessages(prev => [...prev, { ...newMsg, author }]);
-  };
+    if (tempMsgIndex !== -1) {
+      setMessages(prev => {
+        // Re-find temp index in latest state (prev may differ from ref)
+        const idx = prev.findIndex(m =>
+          m.user_id === newMsg.user_id &&
+          m.content === newMsg.content &&
+          String(m.id).startsWith('temp-')
+        );
+        if (idx === -1) {
+          // Temp was already replaced; add only if not present
+          return prev.some(m => m.id === newMsg.id) ? prev : [...prev, { ...newMsg, author }];
+        }
+        const updated = [...prev];
+        updated[idx] = { ...newMsg, author };
+        return updated;
+      });
+      return;
+    }
+
+    setMessages(prev => {
+      if (prev.some(m => m.id === newMsg.id)) return prev;
+      return [...prev, { ...newMsg, author }];
+    });
+  }, []);
 
   const handleSendMessage = async (e) => {
     e?.preventDefault();
