@@ -118,7 +118,7 @@ export default function TextChannel({ channel, communityId, isMember, isOwner })
               .from('channel_messages')
               .insert({
                 channel_id: channel.id,
-                user_id: '00000000-0000-0000-0000-00000000b07', // Bot user ID
+                user_id: user?.id, // Use current user's ID (bot messages are marked by is_bot flag)
                 content: result.result,
                 is_bot: true,
                 bot_name: 'ChimuBot 🕊️',
@@ -132,7 +132,7 @@ export default function TextChannel({ channel, communityId, isMember, isOwner })
             const botMessage = {
               ...savedBotMsg,
               author: {
-                id: '00000000-0000-0000-0000-00000000b07',
+                id: user?.id,
                 username: 'ChimuBot 🕊️',
                 avatar_url: 'https://api.dicebear.com/7.x/avataaars/svg?seed=chimu',
                 is_bot: true
