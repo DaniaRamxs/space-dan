@@ -13,8 +13,10 @@ import EmojiPicker from './EmojiPicker';
 import MessageRenderer from './MessageRenderer';
 import toast from 'react-hot-toast';
 
+// Bot messages now persist to database
+
 export default function TextChannel({ channel, communityId, isMember, isOwner }) {
-  const { user } = useAuthContext();
+  const { user, profile } = useAuthContext();
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(true);
@@ -59,8 +61,34 @@ export default function TextChannel({ channel, communityId, isMember, isOwner })
 
   const handleNewMessage = async (payload) => {
     const newMsg = payload.new;
+    
+    // Skip if already exists
     if (messages.some(m => m.id === newMsg.id)) return;
     
+    // If this is our own message (we have a temp message), replace it
+    const tempMsgIndex = messages.findIndex(m => 
+      m.user_id === newMsg.user_id && 
+      m.content === newMsg.content &&
+      String(m.id).startsWith('temp-')
+    );
+    
+    if (tempMsgIndex !== -1) {
+      // Replace temp message with real one
+      const { data: author } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', newMsg.user_id)
+        .single();
+      
+      setMessages(prev => {
+        const updated = [...prev];
+        updated[tempMsgIndex] = { ...newMsg, author };
+        return updated;
+      });
+      return;
+    }
+    
+    // New message from someone else
     const { data: author } = await supabase
       .from('profiles')
       .select('*')
@@ -84,21 +112,52 @@ export default function TextChannel({ channel, communityId, isMember, isOwner })
         const result = await botCommandService.executeCommand(content, communityId, user?.id);
         
         if (result.isBotCommand) {
-          // Add bot response as a message
-          const botMessage = {
-            id: `bot-${Date.now()}`,
-            content: result.result,
-            user_id: 'bot-chimu',
-            author: {
-              id: 'bot-chimu',
-              username: 'ChimuBot 🕊️',
-              avatar_url: 'https://api.dicebear.com/7.x/avataaars/svg?seed=chimu',
-              is_bot: true
-            },
-            created_at: new Date().toISOString(),
-          };
+          // Save bot response to database so it persists
+          try {
+            const { data: savedBotMsg, error: botError } = await supabase
+              .from('channel_messages')
+              .insert({
+                channel_id: channel.id,
+                user_id: '00000000-0000-0000-0000-00000000b07', // Bot user ID
+                content: result.result,
+                is_bot: true,
+                bot_name: 'ChimuBot 🕊️',
+              })
+              .select()
+              .single();
+            
+            if (botError) throw botError;
+            
+            // Add to local state with author info
+            const botMessage = {
+              ...savedBotMsg,
+              author: {
+                id: '00000000-0000-0000-0000-00000000b07',
+                username: 'ChimuBot 🕊️',
+                avatar_url: 'https://api.dicebear.com/7.x/avataaars/svg?seed=chimu',
+                is_bot: true
+              },
+            };
+            
+            setMessages(prev => [...prev, botMessage]);
+          } catch (botSaveErr) {
+            console.error('[TextChannel] Error saving bot message:', botSaveErr);
+            // Fallback: just show locally without saving
+            const botMessage = {
+              id: `bot-${Date.now()}`,
+              content: result.result,
+              user_id: 'bot-chimu',
+              author: {
+                id: 'bot-chimu',
+                username: 'ChimuBot 🕊️',
+                avatar_url: 'https://api.dicebear.com/7.x/avataaars/svg?seed=chimu',
+                is_bot: true
+              },
+              created_at: new Date().toISOString(),
+            };
+            setMessages(prev => [...prev, botMessage]);
+          }
           
-          setMessages(prev => [...prev, botMessage]);
           setNewMessage('');
           setSending(false);
           return;
@@ -119,9 +178,9 @@ export default function TextChannel({ channel, communityId, isMember, isOwner })
       user_id: user?.id,
       author: {
         id: user?.id,
-        username: user?.username || user?.email?.split('@')[0] || 'Usuario',
-        avatar_url: user?.avatar_url,
-        reputation: user?.reputation
+        username: profile?.username || 'Usuario',
+        avatar_url: profile?.avatar_url,
+        reputation: profile?.reputation
       },
       created_at: new Date().toISOString(),
       reply_to_id: replyingTo?.id,
