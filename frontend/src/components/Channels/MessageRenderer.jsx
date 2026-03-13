@@ -10,7 +10,10 @@ import { supabase } from '../../supabaseClient';
 const globalEmojiCache = new Map();
 
 export function useCustomEmojis(communityId) {
-  const [emojis, setEmojis] = useState([]);
+  // Initialize from global cache if available
+  const [emojis, setEmojis] = useState(() => {
+    return communityId ? (globalEmojiCache.get(communityId) || []) : [];
+  });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -44,7 +47,11 @@ export function useCustomEmojis(communityId) {
       } catch (err) {
         console.error('[MessageRenderer] Error loading emojis:', err);
         if (!cancelled) {
-          setEmojis([]);
+          // On error, keep existing emojis if we have them
+          const cached = globalEmojiCache.get(communityId);
+          if (cached) {
+            setEmojis(cached);
+          }
         }
       } finally {
         if (!cancelled) {
