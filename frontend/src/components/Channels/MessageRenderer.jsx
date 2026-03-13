@@ -10,22 +10,12 @@ import { supabase } from '../../supabaseClient';
 const globalEmojiCache = new Map();
 
 export function useCustomEmojis(communityId) {
-  const [emojis, setEmojis] = useState(() => {
-    // Intentar obtener del cache inicialmente
-    return globalEmojiCache.get(communityId) || [];
-  });
-  const [loading, setLoading] = useState(!globalEmojiCache.has(communityId));
+  const [emojis, setEmojis] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!communityId) {
       setEmojis([]);
-      setLoading(false);
-      return;
-    }
-
-    // Si ya está en cache, usarlo
-    if (globalEmojiCache.has(communityId)) {
-      setEmojis(globalEmojiCache.get(communityId));
       setLoading(false);
       return;
     }
@@ -35,6 +25,8 @@ export function useCustomEmojis(communityId) {
     const loadEmojis = async () => {
       try {
         setLoading(true);
+        
+        // Always fetch fresh data - skip cache for reliability
         const { data, error } = await supabase
           .from('community_emojis')
           .select('*')
@@ -51,6 +43,9 @@ export function useCustomEmojis(communityId) {
         }
       } catch (err) {
         console.error('[MessageRenderer] Error loading emojis:', err);
+        if (!cancelled) {
+          setEmojis([]);
+        }
       } finally {
         if (!cancelled) {
           setLoading(false);
