@@ -225,10 +225,71 @@ CREATE POLICY "Only owner can delete channels" ON community_channels
         )
     );
 
--- Comments for documentation
+-- Tabla: channel_messages
+-- Mensajes en canales de texto
+CREATE TABLE IF NOT EXISTS channel_messages (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    channel_id UUID NOT NULL REFERENCES community_channels(id) ON DELETE CASCADE,
+    user_id UUID NOT NULL REFERENCES profiles(id),
+    content TEXT NOT NULL,
+    reply_to_id UUID REFERENCES channel_messages(id) ON DELETE SET NULL,
+    is_edited BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Índices para channel_messages
+CREATE INDEX IF NOT EXISTS idx_channel_messages_channel ON channel_messages(channel_id);
+CREATE INDEX IF NOT EXISTS idx_channel_messages_user ON channel_messages(user_id);
+CREATE INDEX IF NOT EXISTS idx_channel_messages_created ON channel_messages(created_at);
 COMMENT ON TABLE community_channels IS 'Canales de comunidad tipo Discord (texto, voz, foro)';
 COMMENT ON TABLE community_roles IS 'Roles personalizados por comunidad';
 COMMENT ON TABLE community_member_roles IS 'Asignación de roles a miembros';
 COMMENT ON TABLE forum_posts IS 'Posts para canales tipo foro';
 COMMENT ON TABLE forum_comments IS 'Comentarios en posts de foro';
 
+-- ============================================
+-- RLS POLICIES FOR channel_messages
+-- ============================================
+
+-- Enable RLS
+ALTER TABLE channel_messages ENABLE ROW LEVEL SECURITY;
+
+-- Policy: Channel messages visible to community members
+CREATE POLICY "Channel messages visible to community members" ON channel_messages
+    FOR SELECT USING (
+        EXISTS (
+            SELECT 1 FROM community_channels cc
+            JOIN community_members cm ON cc.community_id = cm.community_id
+            WHERE cc.id = channel_messages.channel_id
+            AND cm.user_id = auth.uid()
+        )
+    );
+
+-- Policy: Members can insert messages
+CREATE POLICY "Members can insert channel messages" ON channel_messages
+    FOR INSERT WITH CHECK (
+        auth.uid() = user_id AND
+        EXISTS (
+            SELECT 1 FROM community_channels cc
+            JOIN community_members cm ON cc.community_id = cm.community_id
+            WHERE cc.id = channel_messages.channel_id
+            AND cm.user_id = auth.uid()
+        )
+    );
+
+-- Policy: Users can update own messages
+CREATE POLICY "Users can update own channel messages" ON channel_messages
+    FOR UPDATE USING (auth.uid() = user_id);
+
+-- Policy: Users can delete own messages  
+CREATE POLICY "Users can delete own channel messages" ON channel_messages
+    FOR DELETE USING (auth.uid() = user_id);
+
+-- Trigger for updated_at
+DROP TRIGGER IF EXISTS update_channel_messages_updated_at ON channel_messages;
+CREATE TRIGGER update_channel_messages_updated_at
+    BEFORE UPDATE ON channel_messages
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+COMMENT ON TABLE channel_messages IS 'Mensajes en canales de texto de comunidades';
