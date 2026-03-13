@@ -69,19 +69,37 @@ router.post('/batch', async (req, res) => {
 });
 
 /**
- * DELETE /audio/cache/:videoId?
- * Clear audio cache
+ * DELETE /audio/cache
+ * Clear all audio cache
  */
-router.delete('/cache/:videoId?', (req, res) => {
+router.delete('/cache', (req, res) => {
+  try {
+    audioService.clearCache();
+    res.json({
+      success: true,
+      message: 'All cache cleared'
+    });
+  } catch (error) {
+    console.error('[Audio API] Cache clear error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+/**
+ * DELETE /audio/cache/:videoId
+ * Clear audio cache for specific video
+ */
+router.delete('/cache/:videoId', (req, res) => {
   try {
     const { videoId } = req.params;
     audioService.clearCache(videoId);
-
     res.json({
       success: true,
-      message: videoId ? `Cache cleared for ${videoId}` : 'All cache cleared'
+      message: `Cache cleared for ${videoId}`
     });
-
   } catch (error) {
     console.error('[Audio API] Cache clear error:', error);
     res.status(500).json({
