@@ -10,7 +10,7 @@ import { liveActivitiesService } from '../../services/liveActivitiesService';
 import { communitiesService } from '../../services/communitiesService';
 import { useNavigate } from 'react-router-dom';
 
-export default function CommunityActivityPanel({ communityId }) {
+export default function CommunityActivityPanel({ communityId, isMember }) {
     const navigate = useNavigate();
     const [voiceRooms, setVoiceRooms] = useState([]);
     const [activeMembers, setActiveMembers] = useState([]);
@@ -91,9 +91,11 @@ export default function CommunityActivityPanel({ communityId }) {
                         {voiceRooms.map((room) => (
                             <motion.div
                                 key={room.id}
-                                whileHover={{ scale: 1.02 }}
-                                className="bg-white/[0.03] border border-white/[0.06] rounded-xl p-4 cursor-pointer hover:border-cyan-500/30 transition-all"
-                                onClick={() => handleJoinVoiceRoom(room)}
+                                whileHover={isMember ? { scale: 1.02 } : {}}
+                                className={`bg-white/[0.03] border border-white/[0.06] rounded-xl p-4 transition-all ${
+                                    isMember ? 'cursor-pointer hover:border-cyan-500/30' : 'opacity-60'
+                                }`}
+                                onClick={isMember ? () => handleJoinVoiceRoom(room) : undefined}
                             >
                                 <div className="flex items-center justify-between mb-2">
                                     <div className="flex items-center gap-2">
@@ -107,8 +109,15 @@ export default function CommunityActivityPanel({ communityId }) {
                                         <span>{room.participant_count || 0}</span>
                                     </div>
                                 </div>
-                                <button className="w-full py-1.5 bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/30 rounded-lg text-xs font-semibold text-cyan-300 transition-all">
-                                    Unirse
+                                <button 
+                                    disabled={!isMember}
+                                    className={`w-full py-1.5 border rounded-lg text-xs font-semibold transition-all ${
+                                        isMember 
+                                            ? 'bg-cyan-500/10 hover:bg-cyan-500/20 border-cyan-500/30 text-cyan-300'
+                                            : 'bg-white/[0.02] border-white/[0.06] text-white/30 cursor-not-allowed'
+                                    }`}
+                                >
+                                    {isMember ? 'Unirse' : 'Solo miembros'}
                                 </button>
                             </motion.div>
                         ))}

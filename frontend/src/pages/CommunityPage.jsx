@@ -195,6 +195,7 @@ export default function CommunityPage() {
             <CommunityChatPanel 
               communityId={community.id} 
               communityName={community.name}
+              isMember={isMember}
             />
           ) : (
             <div className="flex items-center justify-center h-full">
@@ -205,7 +206,12 @@ export default function CommunityPage() {
 
         {/* Right Panel - Activity */}
         <div className="w-80 flex-shrink-0 overflow-y-auto">
-          {community && <CommunityActivityPanel communityId={community.id} />}
+          {community && (
+            <CommunityActivityPanel 
+              communityId={community.id} 
+              isMember={isMember}
+            />
+          )}
         </div>
       </div>
     </main>

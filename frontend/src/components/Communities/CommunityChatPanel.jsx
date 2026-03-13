@@ -11,8 +11,8 @@ import { supabase } from '../../supabaseClient';
 import { useAuthContext } from '../../contexts/AuthContext';
 import toast from 'react-hot-toast';
 
-export default function CommunityChatPanel({ communityId, communityName }) {
-    const { user, profile } = useAuthContext();
+export default function CommunityChatPanel({ communityId, communityName, isMember }) {
+    const { user } = useAuthContext();
     const [messages, setMessages] = useState([]);
     const [newMessage, setNewMessage] = useState('');
     const [loading, setLoading] = useState(true);
@@ -162,27 +162,35 @@ export default function CommunityChatPanel({ communityId, communityName }) {
 
             {/* Input */}
             <form onSubmit={handleSendMessage} className="p-4 border-t border-white/[0.06]">
-                <div className="flex gap-2">
-                    <input
-                        type="text"
-                        value={newMessage}
-                        onChange={(e) => setNewMessage(e.target.value)}
-                        placeholder={`Mensaje en ${communityName}...`}
-                        disabled={sending}
-                        className="flex-1 bg-white/[0.03] border border-white/[0.06] rounded-xl px-4 py-2.5 text-sm text-white placeholder-white/40 focus:outline-none focus:border-cyan-500/50 transition-colors"
-                    />
-                    <button
-                        type="submit"
-                        disabled={!newMessage.trim() || sending}
-                        className="px-4 py-2.5 bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/30 rounded-xl text-cyan-300 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                        {sending ? (
-                            <Loader2 className="w-5 h-5 animate-spin" />
-                        ) : (
-                            <Send className="w-5 h-5" />
-                        )}
-                    </button>
-                </div>
+                {!isMember ? (
+                    <div className="text-center py-3 px-4 bg-white/[0.02] border border-white/[0.06] rounded-xl">
+                        <p className="text-sm text-white/40">
+                            Únete a la comunidad para participar en el chat
+                        </p>
+                    </div>
+                ) : (
+                    <div className="flex gap-2">
+                        <input
+                            type="text"
+                            value={newMessage}
+                            onChange={(e) => setNewMessage(e.target.value)}
+                            placeholder={`Mensaje en ${communityName}...`}
+                            disabled={sending}
+                            className="flex-1 bg-white/[0.03] border border-white/[0.06] rounded-xl px-4 py-2.5 text-sm text-white placeholder-white/40 focus:outline-none focus:border-cyan-500/50 transition-colors"
+                        />
+                        <button
+                            type="submit"
+                            disabled={!newMessage.trim() || sending}
+                            className="px-4 py-2.5 bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/30 rounded-xl text-cyan-300 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            {sending ? (
+                                <Loader2 className="w-5 h-5 animate-spin" />
+                            ) : (
+                                <Send className="w-5 h-5" />
+                            )}
+                        </button>
+                    </div>
+                )}
             </form>
         </div>
     );
