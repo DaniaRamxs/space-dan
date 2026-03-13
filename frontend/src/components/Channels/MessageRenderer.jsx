@@ -30,12 +30,12 @@ export function useCustomEmojis(communityId) {
         const { data, error } = await supabase
           .from('community_emojis')
           .select('*')
-          .eq('community_id', communityId)
-          .or('is_active.eq.true,is_active.is.null');
+          .eq('community_id', communityId);
 
         if (error) throw error;
         
-        const emojiList = data || [];
+        // Filter: include active=true OR is_active is null/undefined (legacy emojis)
+        const emojiList = (data || []).filter(e => e.is_active !== false);
         globalEmojiCache.set(communityId, emojiList);
         
         if (!cancelled) {
