@@ -169,6 +169,63 @@ export default function GlobalChat({ initialActivity = null }) {
             
             createCommunityVoiceRoom();
         }
+        
+        // Handle channel- prefixed voice rooms (Discord-like channels)
+        if (voiceParam && voiceParam.startsWith('channel-') && user && !hasJoinedVoice) {
+            const channelId = voiceParam.replace('channel-', '');
+            
+            const createChannelVoiceRoom = async () => {
+                try {
+                    // Try to get activity info from the channel system
+                    const activities = await liveActivitiesService.getTrendingActivities({ type: 'voice', limit: 20 });
+                    const channelActivity = activities.find(a => 
+                        a.metadata?.channelId === channelId || a.room_name?.includes(channelId)
+                    );
+                    
+                    if (channelActivity) {
+                        setVoiceRoomName(channelActivity.name || 'Canal de Voz');
+                        setTempVoiceChannel({
+                            id: channelActivity.id,
+                            name: channelActivity.name || 'Canal de Voz',
+                            icon: '🔊',
+                            channelId: channelId,
+                            communityId: channelActivity.community_id
+                        });
+                        setTempTextChannelId(`channel-${channelId}`);
+                        setHasJoinedVoice(true);
+                        setShowVoiceRoom(true);
+                    } else {
+                        // Fallback: create new activity for this channel
+                        const activity = await liveActivitiesService.createActivity({
+                            type: 'voice',
+                            title: 'Canal de Voz',
+                            roomName: `channel-${channelId}`,
+                            metadata: { channelId: channelId, createdFrom: 'channel_system' }
+                        });
+                        
+                        setVoiceRoomName('Canal de Voz');
+                        setTempVoiceChannel({
+                            id: activity.id,
+                            name: 'Canal de Voz',
+                            icon: '🔊',
+                            channelId: channelId
+                        });
+                        setTempTextChannelId(`channel-${channelId}`);
+                        setHasJoinedVoice(true);
+                        setShowVoiceRoom(true);
+                    }
+                    
+                    // Clear the voice param from URL
+                    setSearchParams({});
+                } catch (err) {
+                    console.error('[GlobalChat] Failed to create channel voice room:', err);
+                    // Fallback
+                    handleCreateVoiceRoom('Canal de Voz');
+                }
+            };
+            
+            createChannelVoiceRoom();
+        }
     }, [searchParams, user, hasJoinedVoice, setSearchParams]);
     useEffect(() => {
         if (initialActivity && user && !hasJoinedVoice) {

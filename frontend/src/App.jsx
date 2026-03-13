@@ -76,7 +76,7 @@ const InventoryPage = lazy(() => import("./pages/InventoryPage"));
 const ExplorePage = lazy(() => import("./pages/ExplorePage"));
 const DownloadPage = lazy(() => import("./pages/DownloadPage"));
 const CommunitiesPage = lazy(() => import("./pages/CommunitiesPage"));
-const CommunityPage = lazy(() => import("./pages/CommunityPage"));
+const CommunityChannelsPage = lazy(() => import("./pages/CommunityChannelsPage"));
 const SpotifyCallback = lazy(() => import("./pages/SpotifyCallback"));
 const AuthCallback = lazy(() => import("./pages/AuthCallback"));
 
@@ -489,7 +489,7 @@ function AnimatedRoutes() {
         <Route path="/communities" element={<Layout><CommunitiesPage /></Layout>} />
         <Route path="/community/:slug" element={
           loading ? <Layout><RouteLoader /></Layout> :
-            user ? <Layout><CommunityPage /></Layout> :
+            user ? <Layout><CommunityChannelsPage /></Layout> :
               <Layout><LoginGate /></Layout>
         } />
         <Route path="/posts" element={
