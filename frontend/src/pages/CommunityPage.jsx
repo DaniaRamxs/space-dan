@@ -1053,8 +1053,8 @@ function VoicePanel({ communityId, communityName, isMember, compact }) {
         metadata: { createdFrom: 'community_page', communityName }
       });
       
-      // Navigate to voice room with the created activity ID
-      navigate(`/chat?voice=${activity.id}`);
+      // Navigate to voice room with community- prefix so GlobalChatSystem recognizes it
+      navigate(`/chat?voice=community-${activity.id}`);
     } catch (err) {
       console.error('[VoicePanel] Failed to create community voice room:', err);
       // Fallback to local voice room creation
