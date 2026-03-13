@@ -119,9 +119,10 @@ export class WelcomeBot {
 
     // Add quick links if available
     if (community.invite_code) {
+      const origin = process.env.FRONTEND_URL || 'https://www.joinspacely.com';
       embed.fields.push({
         name: '🔗 Links',
-        value: `[Invitar amigos](${window.location.origin}/c/${community.slug})`,
+        value: `[Invitar amigos](${origin}/c/${community.slug})`,
         inline: true
       });
     }

@@ -4,6 +4,12 @@
  */
 
 import { supabase, supabaseAdmin, createClientForUser } from '../../../supabaseClient.mjs';
+import WelcomeBot from '../../bots/WelcomeBot.mjs';
+
+const welcomeBot = new WelcomeBot(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_KEY
+);
 
 export const communitiesService = {
   /**
@@ -146,6 +152,11 @@ export const communitiesService = {
       });
 
       if (updateError) console.warn('[Communities] Failed to increment member count:', updateError);
+
+      // Disparar WelcomeBot en background (fire-and-forget)
+      this._sendWelcomeMessage(communityId, userId).catch(err =>
+        console.error('[Communities] WelcomeBot error:', err)
+      );
     }
 
     return { success: true };
@@ -187,6 +198,43 @@ export const communitiesService = {
 
     if (error) throw error;
     return data.map(m => m.user);
+  },
+
+  /**
+   * Envía el mensaje de bienvenida en el canal adecuado (fire-and-forget)
+   */
+  async _sendWelcomeMessage(communityId, userId) {
+    // Obtener datos en paralelo
+    const [communityRes, userRes, settingsRes, channelRes] = await Promise.all([
+      supabase.from('communities').select('*').eq('id', communityId).single(),
+      supabase.from('profiles').select('*').eq('id', userId).single(),
+      welcomeBot.getSettings(communityId),
+      supabase
+        .from('channels')
+        .select('id')
+        .eq('community_id', communityId)
+        .eq('type', 'text')
+        .order('position', { ascending: true })
+        .limit(1)
+        .single()
+    ]);
+
+    if (communityRes.error || userRes.error || channelRes.error) return;
+
+    const community = communityRes.data;
+    const user = userRes.data;
+    const settings = settingsRes;
+    const channel = channelRes.data;
+
+    const { plainText } = await welcomeBot.generateWelcomeEmbed(user, community, settings);
+
+    await supabaseAdmin.from('channel_messages').insert({
+      channel_id: channel.id,
+      user_id: userId,
+      content: plainText,
+      is_bot: true,
+      bot_name: 'WelcomeBot 👋',
+    });
   },
 
   /**

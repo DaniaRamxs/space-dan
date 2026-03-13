@@ -32,7 +32,7 @@ export const botCommandService = {
   /**
    * Ejecuta un comando de bot
    */
-  async executeCommand(content, communityId, userId) {
+  async executeCommand(content, communityId, userId, profile = null) {
     if (!this.isBotCommand(content)) {
       return { isBotCommand: false };
     }
@@ -47,7 +47,7 @@ export const botCommandService = {
       
       // Para WelcomeBot
       if (botName === 'welcome') {
-        return await this.executeWelcomeCommand(command, args, communityId, userId);
+        return await this.executeWelcomeCommand(command, args, communityId, userId, profile);
       }
 
       // Para otros bots usaríamos la API
@@ -343,7 +343,7 @@ export const botCommandService = {
   /**
    * Ejecuta comando de WelcomeBot
    */
-  async executeWelcomeCommand(command, args, communityId, userId) {
+  async executeWelcomeCommand(command, args, communityId, userId, profile = null) {
     // Check if user is community owner
     const { data: community, error: communityError } = await supabase
       .from('communities')
@@ -364,81 +364,114 @@ export const botCommandService = {
       };
     }
 
+    // Load current settings for commands that need them
+    const currentSettings = await this.getWelcomeSettings(communityId);
+
     switch (command) {
-      case 'setup':
-        return { 
-          isBotCommand: true, 
-          result: `🤖 **WelcomeBot Configuration**
+      case 'setup': {
+        const msg = currentSettings.customMessage || '(mensaje aleatorio)';
+        const color = currentSettings.accentColor || '#5865F2';
+        const ping = currentSettings.pingUser ? '✅ activado' : '❌ desactivado';
+        const rules = currentSettings.showRules ? '✅ activadas' : '❌ desactivadas';
+        const goodbye = currentSettings.enableGoodbye ? '✅ activado' : '❌ desactivado';
+        return {
+          isBotCommand: true,
+          result: `🤖 **WelcomeBot — Configuración actual**
 
-📋 Configuración actual:
-• Mensaje: ¡Bienvenido {user}! 🎉
-• Color: #5865F2
-• Canal: #bienvenida
+💬 Mensaje: ${msg}
+🎨 Color: ${color}
+📣 Ping al usuario: ${ping}
+📜 Mostrar reglas: ${rules}
+👋 Despedidas: ${goodbye}
 
-✏️ Para cambiar el mensaje, usa:
-\`/welcome message Tu mensaje personalizado\`
+✏️ Comandos:
+\`/welcome message <texto>\` — Cambiar mensaje
+\`/welcome color #RRGGBB\` — Cambiar color
+\`/welcome ping on|off\` — Activar/desactivar ping
+\`/welcome rules on|off\` — Mostrar/ocultar reglas
+\`/welcome goodbye on|off\` — Activar/desactivar despedidas
+\`/welcome test\` — Ver previa del mensaje
 
-🎨 Para cambiar el color:
-\`/welcome color #FF0000\`
-
-📍 Para cambiar el canal:
-\`/welcome channel #nombre-canal\`
-
-💡 Variables disponibles:
-\`{user}\` - Mención al usuario
-\`{username}\` - Nombre del usuario  
-\`{server}\` - Nombre del servidor
-\`{memberCount}\` - Número de miembros`
+💡 Variables: \`{user}\` \`{username}\` \`{server}\` \`{memberCount}\``
         };
+      }
 
-      case 'message':
+      case 'message': {
         const message = args.join(' ');
         if (!message) {
           return { isBotCommand: true, result: '❌ Uso: /welcome message <tu mensaje>' };
         }
-        // Save to settings
-        await this.saveWelcomeSettings(communityId, { customMessage: message });
-        return { isBotCommand: true, result: `✅ Mensaje actualizado: "${message}"` };
+        await this.saveWelcomeSettings(communityId, { ...currentSettings, customMessage: message });
+        return { isBotCommand: true, result: `✅ Mensaje actualizado:\n"${message}"` };
+      }
 
-      case 'color':
+      case 'color': {
         const color = args[0];
         if (!color || !color.match(/^#[0-9A-Fa-f]{6}$/)) {
           return { isBotCommand: true, result: '❌ Uso: /welcome color #RRGGBB (ej: #5865F2)' };
         }
-        await this.saveWelcomeSettings(communityId, { accentColor: color });
+        await this.saveWelcomeSettings(communityId, { ...currentSettings, accentColor: color });
         return { isBotCommand: true, result: `✅ Color actualizado a ${color}` };
+      }
 
-      case 'test':
-        return { 
-          isBotCommand: true, 
-          result: `👋 **Mensaje de prueba:**
+      case 'ping': {
+        const val = args[0]?.toLowerCase();
+        if (val !== 'on' && val !== 'off') {
+          return { isBotCommand: true, result: '❌ Uso: /welcome ping on|off' };
+        }
+        await this.saveWelcomeSettings(communityId, { ...currentSettings, pingUser: val === 'on' });
+        return { isBotCommand: true, result: `✅ Ping al usuario: ${val === 'on' ? 'activado' : 'desactivado'}` };
+      }
 
-¡Bienvenido @Dan! 🎉
+      case 'rules': {
+        const val = args[0]?.toLowerCase();
+        if (val !== 'on' && val !== 'off') {
+          return { isBotCommand: true, result: '❌ Uso: /welcome rules on|off' };
+        }
+        await this.saveWelcomeSettings(communityId, { ...currentSettings, showRules: val === 'on' });
+        return { isBotCommand: true, result: `✅ Reglas en bienvenida: ${val === 'on' ? 'activadas' : 'desactivadas'}` };
+      }
 
-📜 Reglas Importantes
-1. Sé respetuoso
-2. No spam
-3. Diviértete 🎉
+      case 'goodbye': {
+        const val = args[0]?.toLowerCase();
+        if (val !== 'on' && val !== 'off') {
+          return { isBotCommand: true, result: '❌ Uso: /welcome goodbye on|off' };
+        }
+        await this.saveWelcomeSettings(communityId, { ...currentSettings, enableGoodbye: val === 'on' });
+        return { isBotCommand: true, result: `✅ Despedidas: ${val === 'on' ? 'activadas' : 'desactivadas'}` };
+      }
 
-📊 En este servidor
-Somos **42** miembros
-Únete a la conversación!`
+      case 'test': {
+        const welcomeMsg = currentSettings.customMessage || '¡{user} acaba de aterrizar! 🚀';
+        const preview = welcomeMsg
+          .replace(/{user}/g, `@${profile?.username || 'tú'}`)
+          .replace(/{username}/g, profile?.username || 'tú')
+          .replace(/{server}/g, 'este servidor')
+          .replace(/{memberCount}/g, '?');
+        const rules = currentSettings.showRules
+          ? '\n\n📜 **Reglas**\n1. Sé respetuoso\n2. No spam\n3. Diviértete 🎉'
+          : '';
+        return {
+          isBotCommand: true,
+          result: `👋 **Vista previa del mensaje de bienvenida:**\n\n${preview}${rules}\n\n🎨 Color: ${currentSettings.accentColor || '#5865F2'}`
         };
+      }
 
       case 'help':
       default:
-        return { 
-          isBotCommand: true, 
+        return {
+          isBotCommand: true,
           result: `🤖 **WelcomeBot Comandos:**
 
-• /welcome setup - Ver configuración
-• /welcome message <texto> - Cambiar mensaje
-• /welcome color #RRGGBB - Cambiar color
-• /welcome test - Probar mensaje
-• /welcome enable - Activar
-• /welcome disable - Desactivar
+• /welcome setup — Ver configuración actual
+• /welcome message <texto> — Cambiar mensaje
+• /welcome color #RRGGBB — Cambiar color
+• /welcome ping on|off — Mencionar al nuevo miembro
+• /welcome rules on|off — Mostrar reglas en bienvenida
+• /welcome goodbye on|off — Mensajes de despedida
+• /welcome test — Previa del mensaje
 
-Variables: {user}, {username}, {server}, {memberCount}` 
+Variables: {user}, {username}, {server}, {memberCount}`
         };
     }
   },
@@ -454,8 +487,27 @@ Variables: {user}, {username}, {server}, {memberCount}`
       }, {
         onConflict: 'community_id,bot_type'
       });
-    
+
     if (error) throw error;
+  },
+
+  async getWelcomeSettings(communityId) {
+    const { data } = await supabase
+      .from('community_bot_settings')
+      .select('settings')
+      .eq('community_id', communityId)
+      .eq('bot_type', 'welcome')
+      .single();
+
+    return data?.settings || {
+      customMessage: null,
+      showAvatar: true,
+      showMemberCount: true,
+      showRules: false,
+      accentColor: '#5865F2',
+      pingUser: false,
+      enableGoodbye: false,
+    };
   }
 };
 

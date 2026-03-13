@@ -60,7 +60,8 @@ export default function EmojiPicker({ communityId, onSelect, isOwner, userId }) 
           community_id: communityId,
           name: emojiName,
           image_url: publicUrl,
-          created_by: userId
+          created_by: userId,
+          is_active: true
         });
 
       if (insertError) throw insertError;

@@ -109,7 +109,7 @@ export default function TextChannel({ channel, communityId, isMember, isOwner })
     if (botCommandService.isBotCommand(content)) {
       try {
         // Execute bot command
-        const result = await botCommandService.executeCommand(content, communityId, user?.id);
+        const result = await botCommandService.executeCommand(content, communityId, user?.id, profile);
         
         if (result.isBotCommand) {
           const botContent = result.result || result.message || 'Bot response';
