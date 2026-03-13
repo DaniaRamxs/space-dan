@@ -46,11 +46,7 @@ export default function CommunityPage() {
   const [showVoiceModal, setShowVoiceModal] = useState(false);
   const [showRankingModal, setShowRankingModal] = useState(false);
 
-  useEffect(() => {
-    if (slug) loadCommunity();
-  }, [slug]);
-
-  const loadCommunity = async () => {
+  const loadCommunity = useCallback(async () => {
     setLoading(true);
     try {
       const communityData = await communitiesService.getCommunityBySlug(slug);
@@ -65,7 +61,11 @@ export default function CommunityPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [slug, user]);
+
+  useEffect(() => {
+    if (slug) loadCommunity();
+  }, [slug, loadCommunity]);
 
   const handleJoinCommunity = async () => {
     if (!user || !community) return;
@@ -388,9 +388,23 @@ function CommunityChat({ communityId, communityName, isMember }) {
   const [isUploading, setIsUploading] = useState(false);
   const [showGiphy, setShowGiphy] = useState(false);
   const [gifSearchTerm, setGifSearchTerm] = useState('');
+  const [showScrollButton, setShowScrollButton] = useState(false);
   const messagesEndRef = useRef(null);
   const fileInputRef = useRef(null);
+  const chatContainerRef = useRef(null);
   const channelId = `community-${communityId}`;
+
+  const loadMessages = useCallback(async () => {
+    setLoading(true);
+    try {
+      const msgs = await chatService.getRecentMessages(50, channelId);
+      setMessages(msgs);
+    } catch (error) {
+      console.error('[CommunityChat] Load error:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, [channelId]);
 
   useEffect(() => {
     loadMessages();
@@ -406,23 +420,11 @@ function CommunityChat({ communityId, communityName, isMember }) {
       .subscribe();
 
     return () => subscription.unsubscribe();
-  }, [communityId]);
+  }, [communityId, loadMessages, channelId]);
 
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
-
-  const loadMessages = async () => {
-    setLoading(true);
-    try {
-      const msgs = await chatService.getRecentMessages(50, channelId);
-      setMessages(msgs);
-    } catch (error) {
-      console.error('[CommunityChat] Load error:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleNewMessage = async (payload) => {
     const newMsg = payload.new;
@@ -535,6 +537,14 @@ function CommunityChat({ communityId, communityName, isMember }) {
     setShowGiphy(false);
   };
 
+  const handleScroll = () => {
+    if (chatContainerRef.current) {
+      const { scrollTop, scrollHeight, clientHeight } = chatContainerRef.current;
+      const isNearBottom = scrollHeight - scrollTop - clientHeight < 100;
+      setShowScrollButton(!isNearBottom);
+    }
+  };
+
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
@@ -629,65 +639,140 @@ function CommunityChat({ communityId, communityName, isMember }) {
         )}
       </AnimatePresence>
 
-      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-1">
+      <div 
+        ref={chatContainerRef}
+        onScroll={handleScroll}
+        className="flex-1 overflow-y-auto px-4 py-4 space-y-0.5 scroll-smooth relative">
         {messages.length === 0 ? (
           <div className="h-full flex flex-col items-center justify-center text-center p-8">
-            <div className="w-16 h-16 rounded-2xl bg-white/[0.03] flex items-center justify-center mb-4">
-              <MessageCircle size={28} className="text-white/20" />
+            <motion.div 
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              className="w-20 h-20 rounded-2xl bg-gradient-to-br from-cyan-500/20 to-purple-500/20 border border-white/[0.08] flex items-center justify-center mb-5"
+            >
+              <MessageCircle size={32} className="text-cyan-400/60" />
+            </motion.div>
+            <p className="text-white/50 text-base font-medium mb-2">No hay mensajes aún</p>
+            <p className="text-white/30 text-sm max-w-xs">¡Sé el primero en escribir! Comparte tus ideas, imágenes o GIFs con la comunidad.</p>
+            <div className="mt-6 flex gap-2">
+              <div className="px-3 py-1.5 bg-white/[0.03] rounded-full text-xs text-white/40 border border-white/[0.06]">Imágenes</div>
+              <div className="px-3 py-1.5 bg-white/[0.03] rounded-full text-xs text-white/40 border border-white/[0.06]">GIFs</div>
+              <div className="px-3 py-1.5 bg-white/[0.03] rounded-full text-xs text-white/40 border border-white/[0.06]">Emoji</div>
             </div>
-            <p className="text-white/40 text-sm mb-1">No hay mensajes aún</p>
-            <p className="text-white/20 text-xs">¡Sé el primero en escribir!</p>
           </div>
         ) : (
           messages.map((msg, index) => {
             const isOwn = msg.user_id === user?.id;
             const prevMsg = messages[index - 1];
-            const showAvatar = !prevMsg || prevMsg.user_id !== msg.user_id;
+            const nextMsg = messages[index + 1];
+            
+            // Grouping logic
+            const isFirstInGroup = !prevMsg || prevMsg.user_id !== msg.user_id;
+            const isLastInGroup = !nextMsg || nextMsg.user_id !== msg.user_id;
+            const timeDiff = prevMsg ? new Date(msg.created_at) - new Date(prevMsg.created_at) : 0;
+            const showTimeSeparator = isFirstInGroup || timeDiff > 5 * 60 * 1000; // 5 minutes
             
             return (
-              <motion.div
-                key={msg.id}
-                initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                className={`flex gap-2 ${isOwn ? 'flex-row-reverse' : ''}`}
-              >
-                <div className="w-8 flex-shrink-0">
-                  {showAvatar ? (
-                    <img
-                      src={msg.author?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${msg.author?.username}`}
-                      alt={msg.author?.username}
-                      className="w-8 h-8 rounded-full bg-white/5"
-                    />
-                  ) : (
-                    <div className="w-8" />
-                  )}
-                </div>
-
-                <div className={`max-w-[75%] lg:max-w-[60%] ${isOwn ? 'items-end' : 'items-start'}`}>
-                  {showAvatar && (
-                    <div className={`flex items-center gap-2 mb-1 ${isOwn ? 'justify-end' : ''}`}>
-                      <span className="text-[10px] text-white/40">
-                        {msg.author?.username || 'Anónimo'}
-                      </span>
-                      <ReputationBadge points={msg.author?.reputation?.points || 0} size="sm" />
+              <div key={msg.id}>
+                {/* Time separator */}
+                {showTimeSeparator && (
+                  <div className="flex items-center justify-center my-3">
+                    <div className="px-3 py-1 bg-white/[0.03] rounded-full text-[10px] text-white/30 border border-white/[0.06]">
+                      {formatTime(msg.created_at)}
                     </div>
-                  )}
-                  <div className={`px-4 py-2.5 rounded-2xl text-sm leading-relaxed overflow-hidden ${
-                    isOwn 
-                      ? 'bg-cyan-500 text-cyan-950 rounded-br-md' 
-                      : 'bg-white/[0.08] text-white/90 rounded-bl-md border border-white/[0.06]'
-                  }`}>
-                    {renderMessageContent(msg.content)}
                   </div>
-                  <span className={`text-[9px] text-white/30 mt-1 block ${isOwn ? 'text-right' : ''}`}>
-                    {formatTime(msg.created_at)}
-                  </span>
-                </div>
-              </motion.div>
+                )}
+                
+                <motion.div
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                  className={`group flex gap-2 hover:bg-white/[0.02] rounded-lg transition-colors -mx-2 px-2 py-1 ${isOwn ? 'flex-row-reverse' : ''}`}
+                >
+                  {/* Avatar - only show on first message in group */}
+                  <div className="w-8 flex-shrink-0 pt-0.5">
+                    {isFirstInGroup ? (
+                      <motion.img
+                        whileHover={{ scale: 1.1 }}
+                        src={msg.author?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${msg.author?.username}`}
+                        alt={msg.author?.username}
+                        className="w-8 h-8 rounded-full bg-white/5 border border-white/[0.1] cursor-pointer"
+                      />
+                    ) : (
+                      <div className="w-8 flex justify-center">
+                        <span className="text-[9px] text-white/20 opacity-0 group-hover:opacity-100 transition-opacity mt-2">
+                          {new Date(msg.created_at).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className={`max-w-[75%] lg:max-w-[65%] ${isOwn ? 'items-end' : 'items-start'}`}>
+                    {/* Username - only on first message */}
+                    {isFirstInGroup && (
+                      <div className={`flex items-center gap-2 mb-0.5 ${isOwn ? 'justify-end' : ''}`}>
+                        <span className="text-xs font-medium text-white/60 hover:text-white/80 transition-colors cursor-pointer">
+                          {msg.author?.username || 'Anónimo'}
+                        </span>
+                        <ReputationBadge points={msg.author?.reputation?.points || 0} size="sm" />
+                      </div>
+                    )}
+                    
+                    {/* Message bubble */}
+                    <div 
+                      className={`relative px-3.5 py-2 text-sm leading-relaxed overflow-hidden group/message cursor-pointer transition-all ${
+                        isOwn 
+                          ? 'bg-cyan-500 text-cyan-950 rounded-2xl rounded-br-sm' 
+                          : 'bg-white/[0.07] text-white/90 rounded-2xl rounded-bl-sm border border-white/[0.05] hover:border-white/[0.1]'
+                      } ${!isLastInGroup ? (isOwn ? 'rounded-br-lg' : 'rounded-bl-lg') : ''}`}
+                    >
+                      {renderMessageContent(msg.content)}
+                      
+                      {/* Hover actions */}
+                      <div className={`absolute ${isOwn ? 'left-0 -translate-x-full' : 'right-0 translate-x-full'} top-1/2 -translate-y-1/2 opacity-0 group-hover/message:opacity-100 transition-opacity flex gap-1 px-2`}>
+                        <button 
+                          className="p-1.5 bg-[#1a1a24] border border-white/[0.1] rounded-lg text-white/60 hover:text-cyan-400 hover:border-cyan-500/30 transition-all shadow-lg"
+                          title="Reaccionar"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>
+                        </button>
+                        <button 
+                          className="p-1.5 bg-[#1a1a24] border border-white/[0.1] rounded-lg text-white/60 hover:text-cyan-400 hover:border-cyan-500/30 transition-all shadow-lg"
+                          title="Responder"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                        </button>
+                        <button 
+                          className="p-1.5 bg-[#1a1a24] border border-white/[0.1] rounded-lg text-white/60 hover:text-red-400 hover:border-red-500/30 transition-all shadow-lg"
+                          title="Más opciones"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </motion.div>
+              </div>
             );
           })
         )}
         <div ref={messagesEndRef} />
+        
+        {/* Scroll to bottom button */}
+        <AnimatePresence>
+          {showScrollButton && (
+            <motion.button
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.8 }}
+              onClick={scrollToBottom}
+              className="absolute bottom-4 right-4 p-3 bg-cyan-500 text-cyan-950 rounded-full shadow-lg hover:bg-cyan-400 transition-all z-10"
+              title="Ir al final"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 5v14M19 12l-7 7-7-7"/></svg>
+            </motion.button>
+          )}
+        </AnimatePresence>
       </div>
 
       <div className="px-4 pb-4">
@@ -770,13 +855,7 @@ function VoicePanel({ communityId, isMember, compact }) {
   const [voiceRooms, setVoiceRooms] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    loadVoiceRooms();
-    const interval = setInterval(loadVoiceRooms, 30000);
-    return () => clearInterval(interval);
-  }, [communityId]);
-
-  const loadVoiceRooms = async () => {
+  const loadVoiceRooms = useCallback(async () => {
     try {
       const activities = await liveActivitiesService.getTrendingActivities({ limit: 20 });
       const rooms = activities.filter(a => 
@@ -788,7 +867,13 @@ function VoicePanel({ communityId, isMember, compact }) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [communityId]);
+
+  useEffect(() => {
+    loadVoiceRooms();
+    const interval = setInterval(loadVoiceRooms, 30000);
+    return () => clearInterval(interval);
+  }, [communityId, loadVoiceRooms]);
 
   const handleJoinRoom = (roomId) => {
     navigate(`/chat?voice=${roomId}`);
@@ -832,7 +917,7 @@ function VoicePanel({ communityId, isMember, compact }) {
           {voiceRooms.map((room) => (
             <motion.div
               key={room.id}
-              whileHover={isMember ? { scale: 1.02 } : {}}
+              whileHover={{ scale: 1.02 }}
               className={`p-3 rounded-xl border transition-all ${
                 isMember 
                   ? 'bg-white/[0.03] border-white/[0.06] hover:border-cyan-500/30 cursor-pointer' 
@@ -880,10 +965,6 @@ function RankingPanel({ communityId, compact }) {
   const [members, setMembers] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    loadRanking();
-  }, [communityId]);
-
   const loadRanking = useCallback(async () => {
     try {
       const data = await getCommunityRanking(communityId, 10);
@@ -895,6 +976,10 @@ function RankingPanel({ communityId, compact }) {
       setLoading(false);
     }
   }, [communityId]);
+
+  useEffect(() => {
+    loadRanking();
+  }, [communityId, loadRanking]);
 
   const medals = ['🥇', '🥈', '🥉', '4', '5'];
 
