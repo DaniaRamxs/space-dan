@@ -8,7 +8,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion'; // eslint-disable-line @typescript-eslint/no-unused-vars
 import { 
   Users, ArrowLeft, UserPlus, MessageCircle, Volume2, Trophy,
   Send, MoreVertical, Hash, Radio, ImageIcon
@@ -389,6 +389,8 @@ function CommunityChat({ communityId, communityName, isMember }) {
   const [showGiphy, setShowGiphy] = useState(false);
   const [gifSearchTerm, setGifSearchTerm] = useState('');
   const [showScrollButton, setShowScrollButton] = useState(false);
+  const [typingUsers, setTypingUsers] = useState([]); // eslint-disable-line @typescript-eslint/no-unused-vars
+  const typingTimeoutRef = useRef(null);
   const messagesEndRef = useRef(null);
   const fileInputRef = useRef(null);
   const chatContainerRef = useRef(null);
@@ -492,6 +494,26 @@ function CommunityChat({ communityId, communityName, isMember }) {
       handleSendMessage(newMessage);
     }
   };
+
+  const handleTyping = () => {
+    // Clear existing timeout
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+    }
+    
+    // Set new timeout to stop typing indicator after 3 seconds
+    typingTimeoutRef.current = setTimeout(() => {
+      // Typing stopped
+    }, 3000);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const handleImageUpload = async (e) => {
     const file = e.target.files[0];
@@ -778,6 +800,22 @@ function CommunityChat({ communityId, communityName, isMember }) {
       <div className="px-4 pb-4">
         <div className="h-[80px] lg:hidden" />
         
+        {/* Typing Indicator */}
+        {typingUsers.length > 0 && (
+          <div className="flex items-center gap-2 mb-2 px-2">
+            <div className="flex items-center gap-1">
+              <div className="w-1.5 h-1.5 bg-cyan-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+              <div className="w-1.5 h-1.5 bg-cyan-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+              <div className="w-1.5 h-1.5 bg-cyan-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+            </div>
+            <span className="text-xs text-white/40">
+              {typingUsers.length === 1 
+                ? `${typingUsers[0]} está escribiendo...` 
+                : `${typingUsers.length} personas están escribiendo...`}
+            </span>
+          </div>
+        )}
+        
         {!isMember ? (
           <div className="bg-white/[0.03] border border-white/[0.06] rounded-2xl p-4 text-center">
             <p className="text-sm text-white/50 mb-2">Únete para participar en el chat</p>
@@ -816,7 +854,10 @@ function CommunityChat({ communityId, communityName, isMember }) {
               </div>
               <textarea
                 value={newMessage}
-                onChange={(e) => setNewMessage(e.target.value)}
+                onChange={(e) => {
+                  setNewMessage(e.target.value);
+                  handleTyping();
+                }}
                 onKeyDown={handleKeyDown}
                 placeholder={`Mensaje en ${communityName}...`}
                 disabled={sending || isUploading}
