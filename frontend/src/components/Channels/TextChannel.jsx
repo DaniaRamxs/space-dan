@@ -2,22 +2,23 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Send, Image as ImageIcon, Smile, Paperclip, Hash, MoreVertical,
-  Reply, Edit2, Trash2, Pin, Lock
+  Reply, Edit2, Trash2, Pin, Lock, X
 } from 'lucide-react';
 import { useAuthContext } from '../../contexts/AuthContext';
 import { chatService } from '../../services/chatService';
 import { supabase } from '../../supabaseClient';
 import ReputationBadge from '../Reputation/ReputationBadge';
+import EmojiPicker from './EmojiPicker';
 import toast from 'react-hot-toast';
 
-export default function TextChannel({ channel, communityId, isMember }) {
+export default function TextChannel({ channel, communityId, isMember, isOwner }) {
   const { user } = useAuthContext();
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [replyingTo, setReplyingTo] = useState(null);
-  const [selectedMessage, setSelectedMessage] = useState(null);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
 
@@ -109,10 +110,17 @@ export default function TextChannel({ channel, communityId, isMember }) {
     try {
       await supabase.from('channel_messages').delete().eq('id', messageId);
       setMessages(prev => prev.filter(m => m.id !== messageId));
-      setSelectedMessage(null);
     } catch (err) {
       toast.error('Error al eliminar mensaje');
     }
+  };
+
+  const handleEmojiSelect = (emoji) => {
+    const cursorPosition = inputRef.current?.selectionStart || newMessage.length;
+    const newText = newMessage.slice(0, cursorPosition) + emoji + newMessage.slice(cursorPosition);
+    setNewMessage(newText);
+    setShowEmojiPicker(false);
+    setTimeout(() => inputRef.current?.focus(), 100);
   };
 
   const formatTime = (timestamp) => {
@@ -265,13 +273,29 @@ export default function TextChannel({ channel, communityId, isMember }) {
           </div>
         ) : (
           <form onSubmit={handleSendMessage} className="relative">
-            <div className="flex items-end gap-2 bg-[#1a1a24] border border-white/10 rounded-xl p-2 focus-within:border-cyan-500/50 transition-colors">
+            {/* Emoji Picker */}
+            {showEmojiPicker && (
+              <div className="absolute bottom-full left-0 mb-2 z-50">
+                <EmojiPicker
+                  communityId={communityId}
+                  onSelect={handleEmojiSelect}
+                  isOwner={isOwner}
+                  userId={user?.id}
+                />
+              </div>
+            )}
+            
+            <div className="flex items-end gap-1 sm:gap-2 bg-[#1a1a24] border border-white/10 rounded-xl p-2 focus-within:border-cyan-500/50 transition-colors">
+              {/* Mobile: Compact buttons */}
               <button
                 type="button"
-                className="p-2 text-gray-400 hover:text-white hover:bg-white/5 rounded-lg transition-colors"
+                onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                className="p-1.5 sm:p-2 text-gray-400 hover:text-white hover:bg-white/5 rounded-lg transition-colors"
+                title="Emojis"
               >
-                <Paperclip size={20} />
+                <Smile size={18} className="sm:w-5 sm:h-5" />
               </button>
+              
               <input
                 ref={inputRef}
                 type="text"
@@ -285,20 +309,15 @@ export default function TextChannel({ channel, communityId, isMember }) {
                 }}
                 placeholder={`Mensaje #${channel?.name}`}
                 disabled={sending}
-                className="flex-1 bg-transparent px-2 py-2 text-white placeholder:text-gray-500 outline-none"
+                className="flex-1 min-w-0 bg-transparent px-2 py-1.5 sm:py-2 text-sm sm:text-base text-white placeholder:text-gray-500 outline-none"
               />
-              <button
-                type="button"
-                className="p-2 text-gray-400 hover:text-white hover:bg-white/5 rounded-lg transition-colors"
-              >
-                <Smile size={20} />
-              </button>
+              
               <button
                 type="submit"
                 disabled={!newMessage.trim() || sending}
-                className="p-2 bg-cyan-500 hover:bg-cyan-400 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg text-cyan-950 transition-colors"
+                className="p-1.5 sm:p-2 bg-cyan-500 hover:bg-cyan-400 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg text-cyan-950 transition-colors"
               >
-                <Send size={20} />
+                <Send size={18} className="sm:w-5 sm:h-5" />
               </button>
             </div>
           </form>
