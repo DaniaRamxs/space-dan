@@ -6,9 +6,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  Menu, ChevronLeft, Users, Hash, Volume2, MessageSquare,
-  MoreVertical, Settings, Plus, Shield, Link2, Clock
+import {
+  Menu, ChevronLeft, Hash, Volume2, MessageSquare,
+  Settings, Plus, Shield, Link2, Clock, Trophy, X
 } from 'lucide-react';
 import { supabase } from '../supabaseClient';
 import { useAuthContext } from '../contexts/AuthContext';
@@ -45,8 +45,11 @@ export default function CommunityChannelsPage() {
   const [needsSetup, setNeedsSetup] = useState(false);
   const [settingUp, setSettingUp] = useState(false);
 
-  // callback para cuando el canal de voz establece conexión (por si se necesita en el futuro)
+  // callback para cuando el canal de voz establece conexión
   const handleJoinVoice = (_roomName, _channelName) => {};
+
+  // Ranking panel en mobile
+  const [showMobileRanking, setShowMobileRanking] = useState(false);
 
   // Load community and channels
   const loadCommunityData = useCallback(async () => {
@@ -445,30 +448,39 @@ export default function CommunityChannelsPage() {
       {/* Main Content Area */}
       <main className="flex-1 flex flex-col min-w-0">
         {/* Mobile Header */}
-        <header className="lg:hidden h-14 flex items-center justify-between px-4 border-b border-white/5 bg-[#0f0f13]/95 backdrop-blur-sm">
+        <header className="lg:hidden h-14 flex items-center justify-between px-4 border-b border-white/5 bg-[#0f0f13]/95 backdrop-blur-sm shrink-0">
           <button
             onClick={() => setMobileSidebarOpen(true)}
             className="p-2 -ml-2 text-gray-400 hover:text-white"
           >
             <Menu size={24} />
           </button>
-          
-          <div className="flex items-center gap-2">
-            {currentChannel?.type === 'text' && <Hash size={18} className="text-gray-500" />}
-            {currentChannel?.type === 'voice' && <Volume2 size={18} className="text-emerald-400" />}
-            {currentChannel?.type === 'forum' && <MessageSquare size={18} className="text-amber-400" />}
-            <span className="font-semibold text-white">{currentChannel?.name}</span>
+
+          <div className="flex items-center gap-2 min-w-0">
+            {currentChannel?.type === 'text' && <Hash size={16} className="text-gray-500 shrink-0" />}
+            {currentChannel?.type === 'voice' && <Volume2 size={16} className="text-emerald-400 shrink-0" />}
+            {currentChannel?.type === 'forum' && <MessageSquare size={16} className="text-amber-400 shrink-0" />}
+            <span className="font-semibold text-white text-sm truncate max-w-[140px]">
+              {currentChannel?.name || community.name}
+            </span>
           </div>
-          
-          <div className="w-8" /> {/* Spacer for alignment */}
+
+          {/* Botón ranking mobile */}
+          <button
+            onClick={() => setShowMobileRanking(true)}
+            className="p-2 -mr-1 text-gray-400 hover:text-orange-400 transition-colors relative"
+            aria-label="Ver ranking"
+          >
+            <Trophy size={20} />
+          </button>
         </header>
 
         {/* Channel Content */}
         <div className="flex-1 flex overflow-hidden">
           {renderChannelContent()}
           
-          {/* Right Panel - Activity/Ranking (Desktop only) */}
-          <aside className="hidden xl:block w-72 border-l border-white/5 bg-[#0f0f13] p-4">
+          {/* Right Panel - Ranking (Desktop lg+) */}
+          <aside className="hidden lg:flex w-64 xl:w-72 border-l border-white/5 bg-[#0f0f13] p-4 flex-col">
             <RankingPanel communityId={community.id} compact />
           </aside>
         </div>
@@ -493,7 +505,43 @@ export default function CommunityChannelsPage() {
         onClose={() => setShowAuditModal(false)}
       />
 
-      {/* El canal de voz ya gestiona LiveKit internamente — no se usa VoiceRoomUI overlay aquí */}
+      {/* Bottom sheet ranking — solo mobile */}
+      <AnimatePresence>
+        {showMobileRanking && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="lg:hidden fixed inset-0 bg-black/50 z-40"
+              onClick={() => setShowMobileRanking(false)}
+            />
+            <motion.div
+              initial={{ y: '100%' }}
+              animate={{ y: 0 }}
+              exit={{ y: '100%' }}
+              transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+              className="lg:hidden fixed bottom-0 left-0 right-0 bg-[#1a1a24] border-t border-white/10 rounded-t-2xl z-50 max-h-[70vh] flex flex-col"
+            >
+              <div className="flex items-center justify-between px-4 py-3 border-b border-white/5 shrink-0">
+                <div className="flex items-center gap-2">
+                  <Trophy size={16} className="text-orange-400" />
+                  <span className="font-semibold text-white text-sm">Más Activos</span>
+                </div>
+                <button
+                  onClick={() => setShowMobileRanking(false)}
+                  className="p-1 text-gray-400 hover:text-white transition-colors"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+              <div className="overflow-y-auto p-4">
+                <RankingPanel communityId={community.id} compact />
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
