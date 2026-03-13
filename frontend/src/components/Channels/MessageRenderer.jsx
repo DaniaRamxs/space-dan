@@ -173,7 +173,7 @@ export default function MessageRenderer({ content, communityId }) {
   }
 
   // Si no hay partes parseadas (contenido vacío o solo espacios)
-  if (parts.length === 0 || (parts.length === 1 && !parts[0].content)) {
+  if (parts.length === 0 || (parts.length === 1 && parts[0].type === 'text' && !parts[0].content)) {
     return <p className="text-gray-200 whitespace-pre-wrap break-words">{content}</p>;
   }
 
@@ -228,7 +228,7 @@ export function MessageRendererWithEmojis({ content, emojis = [] }) {
     );
   }
 
-  if (parts.length === 0 || (parts.length === 1 && !parts[0].content)) {
+  if (parts.length === 0 || (parts.length === 1 && parts[0].type === 'text' && !parts[0].content)) {
     return <p className="text-gray-200 whitespace-pre-wrap break-words">{content}</p>;
   }
 

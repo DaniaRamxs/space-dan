@@ -59,8 +59,9 @@ export default function TextChannel({ channel, communityId, isMember, isOwner })
           .eq('community_id', communityId);
         
         if (error) throw error;
-        setCustomEmojis((data || []).filter(e => e.is_active !== false));
-        console.log('[TextChannel] Loaded emojis:', data?.length || 0);
+        const active = (data || []).filter(e => e.is_active !== false);
+        setCustomEmojis(active);
+        console.log('[TextChannel] CUSTOM EMOJIS:', active.map(e => ({ name: e.name, image_url: e.image_url })));
       } catch (err) {
         console.error('[TextChannel] Emoji load error:', err);
       }
