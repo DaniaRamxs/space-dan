@@ -50,6 +50,18 @@ export const botCommandService = {
         return await this.executeWelcomeCommand(command, args, communityId, userId, profile);
       }
 
+      if (botName === 'poll') {
+        const rawText = content.trim().slice('/poll'.length).trim();
+        return await this.executePollCommand(rawText, communityId, userId);
+      }
+      if (botName === 'announce') {
+        const rawText = content.trim().slice('/announce'.length).trim();
+        return await this.executeAnnounceCommand(rawText, communityId, userId);
+      }
+      if (botName === 'rules') {
+        return await this.executeRulesCommand(command, args, communityId, userId);
+      }
+
       // Para otros bots usaríamos la API
       const response = await fetch(`${API_URL}/api/bots/command`, {
         method: 'POST',
@@ -478,15 +490,15 @@ export const botCommandService = {
       .single();
     
     if (communityError) {
-      return { isBotCommand: true, result: '❌ Error al verificar permisos' };
+      return { isBotCommand: true, result: { type: 'embed', title: '❌ Error', description: 'Error al verificar permisos', color: '#f97316' } };
     }
-    
+
     const isOwner = community?.creator_id === userId;
-    
+
     if (!isOwner) {
-      return { 
-        isBotCommand: true, 
-        result: '❌ Solo el owner de la comunidad puede configurar el WelcomeBot' 
+      return {
+        isBotCommand: true,
+        result: { type: 'embed', title: '❌ Sin permisos', description: 'Solo el owner de la comunidad puede configurar el WelcomeBot', color: '#f97316' }
       };
     }
 
@@ -500,71 +512,93 @@ export const botCommandService = {
         const ping = currentSettings.pingUser ? '✅ activado' : '❌ desactivado';
         const rules = currentSettings.showRules ? '✅ activadas' : '❌ desactivadas';
         const goodbye = currentSettings.enableGoodbye ? '✅ activado' : '❌ desactivado';
+        const fields = [
+          { name: '💬 Mensaje', value: msg, inline: false },
+          { name: '🎨 Color', value: color, inline: true },
+          { name: '📣 Ping', value: ping, inline: true },
+          { name: '📜 Reglas', value: rules, inline: true },
+          { name: '👋 Despedidas', value: goodbye, inline: true },
+        ];
+        if (currentSettings.imageUrl) {
+          fields.push({ name: '🖼️ Imagen', value: currentSettings.imageUrl, inline: false });
+        }
+        if (currentSettings.footerText) {
+          fields.push({ name: '📝 Footer', value: currentSettings.footerText, inline: false });
+        }
+        fields.push({ name: '✏️ Comandos', value: '`/welcome message` `/welcome color` `/welcome ping` `/welcome rules` `/welcome goodbye` `/welcome image` `/welcome footer` `/welcome test`', inline: false });
         return {
           isBotCommand: true,
-          result: `🤖 **WelcomeBot — Configuración actual**
-
-💬 Mensaje: ${msg}
-🎨 Color: ${color}
-📣 Ping al usuario: ${ping}
-📜 Mostrar reglas: ${rules}
-👋 Despedidas: ${goodbye}
-
-✏️ Comandos:
-\`/welcome message <texto>\` — Cambiar mensaje
-\`/welcome color #RRGGBB\` — Cambiar color
-\`/welcome ping on|off\` — Activar/desactivar ping
-\`/welcome rules on|off\` — Mostrar/ocultar reglas
-\`/welcome goodbye on|off\` — Activar/desactivar despedidas
-\`/welcome test\` — Ver previa del mensaje
-
-💡 Variables: \`{user}\` \`{username}\` \`{server}\` \`{memberCount}\``
+          result: {
+            type: 'embed',
+            title: '🤖 WelcomeBot — Configuración actual',
+            description: 'Variables disponibles: `{user}` `{username}` `{server}` `{memberCount}`',
+            color: '#5865F2',
+            fields,
+          }
         };
       }
 
       case 'message': {
         const message = args.join(' ');
         if (!message) {
-          return { isBotCommand: true, result: '❌ Uso: /welcome message <tu mensaje>' };
+          return { isBotCommand: true, result: { type: 'embed', title: '❌ Uso incorrecto', description: 'Uso: /welcome message <tu mensaje>', color: '#f97316' } };
         }
         await this.saveWelcomeSettings(communityId, { ...currentSettings, customMessage: message });
-        return { isBotCommand: true, result: `✅ Mensaje actualizado:\n"${message}"` };
+        return { isBotCommand: true, result: { type: 'embed', title: '✅ Mensaje actualizado', description: `"${message}"`, color: '#22c55e' } };
       }
 
       case 'color': {
         const color = args[0];
         if (!color || !color.match(/^#[0-9A-Fa-f]{6}$/)) {
-          return { isBotCommand: true, result: '❌ Uso: /welcome color #RRGGBB (ej: #5865F2)' };
+          return { isBotCommand: true, result: { type: 'embed', title: '❌ Uso incorrecto', description: 'Uso: /welcome color #RRGGBB (ej: #5865F2)', color: '#f97316' } };
         }
         await this.saveWelcomeSettings(communityId, { ...currentSettings, accentColor: color });
-        return { isBotCommand: true, result: `✅ Color actualizado a ${color}` };
+        return { isBotCommand: true, result: { type: 'embed', title: '✅ Color actualizado', description: `Color cambiado a ${color}`, color } };
       }
 
       case 'ping': {
         const val = args[0]?.toLowerCase();
         if (val !== 'on' && val !== 'off') {
-          return { isBotCommand: true, result: '❌ Uso: /welcome ping on|off' };
+          return { isBotCommand: true, result: { type: 'embed', title: '❌ Uso incorrecto', description: 'Uso: /welcome ping on|off', color: '#f97316' } };
         }
         await this.saveWelcomeSettings(communityId, { ...currentSettings, pingUser: val === 'on' });
-        return { isBotCommand: true, result: `✅ Ping al usuario: ${val === 'on' ? 'activado' : 'desactivado'}` };
+        return { isBotCommand: true, result: { type: 'embed', title: '✅ Ping actualizado', description: `Ping al usuario: ${val === 'on' ? 'activado' : 'desactivado'}`, color: '#22c55e' } };
       }
 
       case 'rules': {
         const val = args[0]?.toLowerCase();
         if (val !== 'on' && val !== 'off') {
-          return { isBotCommand: true, result: '❌ Uso: /welcome rules on|off' };
+          return { isBotCommand: true, result: { type: 'embed', title: '❌ Uso incorrecto', description: 'Uso: /welcome rules on|off', color: '#f97316' } };
         }
         await this.saveWelcomeSettings(communityId, { ...currentSettings, showRules: val === 'on' });
-        return { isBotCommand: true, result: `✅ Reglas en bienvenida: ${val === 'on' ? 'activadas' : 'desactivadas'}` };
+        return { isBotCommand: true, result: { type: 'embed', title: '✅ Reglas actualizadas', description: `Reglas en bienvenida: ${val === 'on' ? 'activadas' : 'desactivadas'}`, color: '#22c55e' } };
       }
 
       case 'goodbye': {
         const val = args[0]?.toLowerCase();
         if (val !== 'on' && val !== 'off') {
-          return { isBotCommand: true, result: '❌ Uso: /welcome goodbye on|off' };
+          return { isBotCommand: true, result: { type: 'embed', title: '❌ Uso incorrecto', description: 'Uso: /welcome goodbye on|off', color: '#f97316' } };
         }
         await this.saveWelcomeSettings(communityId, { ...currentSettings, enableGoodbye: val === 'on' });
-        return { isBotCommand: true, result: `✅ Despedidas: ${val === 'on' ? 'activadas' : 'desactivadas'}` };
+        return { isBotCommand: true, result: { type: 'embed', title: '✅ Despedidas actualizadas', description: `Despedidas: ${val === 'on' ? 'activadas' : 'desactivadas'}`, color: '#22c55e' } };
+      }
+
+      case 'image': {
+        const imageUrl = args[0];
+        if (!imageUrl || !imageUrl.startsWith('http')) {
+          return { isBotCommand: true, result: { type: 'embed', title: '❌ URL inválida', description: 'Uso: /welcome image <url> (debe empezar con http)', color: '#f97316' } };
+        }
+        await this.saveWelcomeSettings(communityId, { ...currentSettings, imageUrl });
+        return { isBotCommand: true, result: { type: 'embed', title: '✅ Imagen actualizada', description: `Imagen configurada correctamente`, color: '#22c55e' } };
+      }
+
+      case 'footer': {
+        const footerText = args.join(' ');
+        if (!footerText) {
+          return { isBotCommand: true, result: { type: 'embed', title: '❌ Uso incorrecto', description: 'Uso: /welcome footer <texto>', color: '#f97316' } };
+        }
+        await this.saveWelcomeSettings(communityId, { ...currentSettings, footerText });
+        return { isBotCommand: true, result: { type: 'embed', title: '✅ Footer actualizado', description: `"${footerText}"`, color: '#22c55e' } };
       }
 
       case 'test': {
@@ -574,12 +608,20 @@ export const botCommandService = {
           .replace(/{username}/g, profile?.username || 'tú')
           .replace(/{server}/g, 'este servidor')
           .replace(/{memberCount}/g, '?');
-        const rules = currentSettings.showRules
-          ? '\n\n📜 **Reglas**\n1. Sé respetuoso\n2. No spam\n3. Diviértete 🎉'
-          : '';
+        const fields = [];
+        if (currentSettings.showRules) {
+          fields.push({ name: '📜 Reglas', value: '• Sé respetuoso\n• No spam\n• ¡Diviértete!', inline: false });
+        }
         return {
           isBotCommand: true,
-          result: `👋 **Vista previa del mensaje de bienvenida:**\n\n${preview}${rules}\n\n🎨 Color: ${currentSettings.accentColor || '#5865F2'}`
+          result: {
+            type: 'embed',
+            title: '👋 Vista previa — Mensaje de bienvenida',
+            description: preview,
+            color: currentSettings.accentColor || '#5865F2',
+            fields,
+            footer: currentSettings.footerText || undefined,
+          }
         };
       }
 
@@ -587,19 +629,206 @@ export const botCommandService = {
       default:
         return {
           isBotCommand: true,
-          result: `🤖 **WelcomeBot Comandos:**
-
-• /welcome setup — Ver configuración actual
-• /welcome message <texto> — Cambiar mensaje
-• /welcome color #RRGGBB — Cambiar color
-• /welcome ping on|off — Mencionar al nuevo miembro
-• /welcome rules on|off — Mostrar reglas en bienvenida
-• /welcome goodbye on|off — Mensajes de despedida
-• /welcome test — Previa del mensaje
-
-Variables: {user}, {username}, {server}, {memberCount}`
+          result: {
+            type: 'embed',
+            title: '🤖 WelcomeBot — Comandos',
+            description: 'Configura los mensajes de bienvenida de tu comunidad',
+            color: '#5865F2',
+            fields: [
+              { name: '/welcome setup', value: 'Ver configuración actual', inline: true },
+              { name: '/welcome message <texto>', value: 'Cambiar mensaje', inline: true },
+              { name: '/welcome color #RRGGBB', value: 'Cambiar color', inline: true },
+              { name: '/welcome ping on|off', value: 'Mencionar al nuevo miembro', inline: true },
+              { name: '/welcome rules on|off', value: 'Mostrar reglas en bienvenida', inline: true },
+              { name: '/welcome goodbye on|off', value: 'Mensajes de despedida', inline: true },
+              { name: '/welcome image <url>', value: 'Imagen de bienvenida', inline: true },
+              { name: '/welcome footer <texto>', value: 'Texto del footer', inline: true },
+              { name: '/welcome test', value: 'Previa del mensaje', inline: true },
+            ],
+            footer: 'Variables: {user}, {username}, {server}, {memberCount}',
+          }
         };
     }
+  },
+
+  /**
+   * Ejecuta comando de PollBot
+   */
+  async executePollCommand(rawText, communityId, userId) {
+    const parts = rawText.split('|').map(p => p.trim()).filter(Boolean);
+    if (parts.length < 3) {
+      return {
+        isBotCommand: true,
+        botName: 'PollBot 📊',
+        result: {
+          type: 'embed',
+          title: '❌ Formato incorrecto',
+          description: 'Uso: `/poll ¿Pregunta? | Opción 1 | Opción 2 | ...`\nSe requiere al menos 2 opciones.',
+          color: '#f97316',
+        }
+      };
+    }
+
+    const question = parts[0];
+    const options = parts.slice(1, 11); // máx 10 opciones
+    const letters = ['🇦','🇧','🇨','🇩','🇪','🇫','🇬','🇭','🇮','🇯'];
+
+    return {
+      isBotCommand: true,
+      botName: 'PollBot 📊',
+      result: {
+        type: 'embed',
+        title: `📊 ${question}`,
+        description: 'Vota con /vote A, /vote B...',
+        color: '#6366f1',
+        fields: options.map((opt, i) => ({
+          name: `${letters[i]} ${opt}`,
+          value: '0 votos',
+          inline: true
+        })),
+        footer: `Encuesta · ${options.length} opciones`
+      }
+    };
+  },
+
+  /**
+   * Ejecuta comando de AnnounceBot
+   */
+  async executeAnnounceCommand(text, communityId, userId) {
+    const { data: community, error: communityError } = await supabase
+      .from('communities')
+      .select('creator_id, name')
+      .eq('id', communityId)
+      .single();
+
+    if (communityError) {
+      return {
+        isBotCommand: true,
+        botName: 'AnnounceBot 📢',
+        result: { type: 'embed', title: '❌ Error', description: 'No se pudo verificar permisos', color: '#f97316' }
+      };
+    }
+
+    if (community.creator_id !== userId) {
+      return {
+        isBotCommand: true,
+        botName: 'AnnounceBot 📢',
+        result: { type: 'embed', title: '❌ Sin permisos', description: 'Solo el owner puede hacer anuncios oficiales', color: '#f97316' }
+      };
+    }
+
+    if (!text) {
+      return {
+        isBotCommand: true,
+        botName: 'AnnounceBot 📢',
+        result: {
+          type: 'embed',
+          title: '📢 AnnounceBot — Ayuda',
+          description: 'Uso: `/announce <texto del anuncio>`',
+          color: '#f59e0b',
+          footer: `Solo el owner de ${community.name} puede usar este comando`
+        }
+      };
+    }
+
+    return {
+      isBotCommand: true,
+      botName: 'AnnounceBot 📢',
+      result: {
+        type: 'embed',
+        title: `📢 Anuncio — ${community.name}`,
+        description: text,
+        color: '#f59e0b',
+        footer: `Anuncio oficial · ${community.name}`
+      }
+    };
+  },
+
+  /**
+   * Ejecuta comando de RulesBot
+   */
+  async executeRulesCommand(command, args, communityId, userId) {
+    const { data: community, error: communityError } = await supabase
+      .from('communities')
+      .select('creator_id, name')
+      .eq('id', communityId)
+      .single();
+
+    if (communityError) {
+      return {
+        isBotCommand: true,
+        botName: 'RulesBot 📜',
+        result: { type: 'embed', title: '❌ Error', description: 'No se pudo acceder a los datos de la comunidad', color: '#f97316' }
+      };
+    }
+
+    if (command === 'set') {
+      if (community.creator_id !== userId) {
+        return {
+          isBotCommand: true,
+          botName: 'RulesBot 📜',
+          result: { type: 'embed', title: '❌ Sin permisos', description: 'Solo el owner puede configurar las reglas', color: '#f97316' }
+        };
+      }
+      const rulesText = args.join(' ');
+      if (!rulesText) {
+        return {
+          isBotCommand: true,
+          botName: 'RulesBot 📜',
+          result: { type: 'embed', title: '❌ Uso incorrecto', description: 'Uso: `/rules set <reglas separadas por \\n>`', color: '#f97316' }
+        };
+      }
+      await this.saveRulesSettings(communityId, { rules: rulesText });
+      return {
+        isBotCommand: true,
+        botName: 'RulesBot 📜',
+        result: { type: 'embed', title: '✅ Reglas actualizadas', description: 'Las reglas de la comunidad han sido guardadas', color: '#22c55e' }
+      };
+    }
+
+    // Mostrar reglas (default)
+    const settings = await this.getRulesSettings(communityId);
+
+    if (!settings?.rules) {
+      return {
+        isBotCommand: true,
+        botName: 'RulesBot 📜',
+        result: {
+          type: 'embed',
+          title: `📜 Reglas — ${community.name}`,
+          description: 'Esta comunidad aún no tiene reglas configuradas.\nUsa `/rules set <reglas>` para establecerlas.',
+          color: '#6366f1',
+        }
+      };
+    }
+
+    const lines = settings.rules.split('\n').filter(Boolean);
+    let fields;
+    let description;
+    if (lines.length > 1) {
+      fields = lines.map((line, i) => ({
+        name: `${i + 1}.`,
+        value: line,
+        inline: false
+      }));
+      description = undefined;
+    } else {
+      description = settings.rules;
+      fields = undefined;
+    }
+
+    return {
+      isBotCommand: true,
+      botName: 'RulesBot 📜',
+      result: {
+        type: 'embed',
+        title: `📜 Reglas — ${community.name}`,
+        description,
+        color: '#6366f1',
+        fields,
+        footer: `${community.name} · Reglas de la comunidad`
+      }
+    };
   },
 
   async saveWelcomeSettings(communityId, settings) {
@@ -634,7 +863,29 @@ Variables: {user}, {username}, {server}, {memberCount}`
       pingUser: false,
       enableGoodbye: false,
     };
-  }
+  },
+
+  async saveRulesSettings(communityId, settings) {
+    const { error } = await supabase
+      .from('community_bot_settings')
+      .upsert({
+        community_id: communityId,
+        bot_type: 'moderation',
+        settings,
+        updated_at: new Date().toISOString()
+      }, { onConflict: 'community_id,bot_type' });
+    if (error) throw error;
+  },
+
+  async getRulesSettings(communityId) {
+    const { data } = await supabase
+      .from('community_bot_settings')
+      .select('settings')
+      .eq('community_id', communityId)
+      .eq('bot_type', 'moderation')
+      .single();
+    return data?.settings || null;
+  },
 };
 
 export default botCommandService;

@@ -128,7 +128,15 @@ export default function TextChannel({ channel, communityId, isMember, isOwner })
           const rawContent = result.result || result.message || 'Bot response';
           const botContent = typeof rawContent === 'object' ? JSON.stringify(rawContent) : rawContent;
           const { botName } = botCommandService.parseCommand(content);
-          const botLabel = botName === 'welcome' ? 'WelcomeBot 👋' : 'ChimuBot 🕊️';
+          const BOT_LABELS = {
+            welcome: 'WelcomeBot 👋',
+            chimu: 'ChimuBot 🕊️',
+            poll: 'PollBot 📊',
+            announce: 'AnnounceBot 📢',
+            rules: 'RulesBot 📜',
+          };
+          const botLabel = result.botName || BOT_LABELS[botName] || `${botName}Bot 🤖`;
+          const botAvatarSeed = { chimu: 'chimu-bird', welcome: 'welcome-space', poll: 'poll-chart', announce: 'announce-megaphone', rules: 'rules-book' }[botName] || 'generic-bot';
 
           // Save bot response to database so it persists
           try {
@@ -152,7 +160,7 @@ export default function TextChannel({ channel, communityId, isMember, isOwner })
               author: {
                 id: user?.id,
                 username: botLabel,
-                avatar_url: 'https://api.dicebear.com/7.x/avataaars/svg?seed=chimu-bot',
+                avatar_url: `https://api.dicebear.com/7.x/avataaars/svg?seed=${botAvatarSeed}`,
                 is_bot: true
               },
             };
@@ -170,7 +178,7 @@ export default function TextChannel({ channel, communityId, isMember, isOwner })
               author: {
                 id: 'bot-chimu',
                 username: botLabel,
-                avatar_url: 'https://api.dicebear.com/7.x/avataaars/svg?seed=chimu-bot',
+                avatar_url: `https://api.dicebear.com/7.x/avataaars/svg?seed=${botAvatarSeed}`,
                 is_bot: true
               },
               created_at: new Date().toISOString(),
@@ -318,7 +326,7 @@ export default function TextChannel({ channel, communityId, isMember, isOwner })
                     <img
                       src={
                         isBot
-                          ? 'https://api.dicebear.com/7.x/avataaars/svg?seed=chimu-bot'
+                          ? (msg.author?.avatar_url || 'https://api.dicebear.com/7.x/avataaars/svg?seed=generic-bot')
                           : (msg.author?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${msg.author?.username}`)
                       }
                       alt={msg.author?.username}

@@ -204,7 +204,6 @@ export const communitiesService = {
    * Envía el mensaje de bienvenida en el canal adecuado (fire-and-forget)
    */
   async _sendWelcomeMessage(communityId, userId) {
-    // Obtener datos en paralelo
     const [communityRes, userRes, settingsRes, channelRes] = await Promise.all([
       supabase.from('communities').select('*').eq('id', communityId).single(),
       supabase.from('profiles').select('*').eq('id', userId).single(),
@@ -226,12 +225,99 @@ export const communitiesService = {
     const settings = settingsRes;
     const channel = channelRes.data;
 
-    const { plainText } = await welcomeBot.generateWelcomeEmbed(user, community, settings);
+    // Get member count
+    const { count: memberCount } = await supabase
+      .from('community_members')
+      .select('*', { count: 'exact', head: true })
+      .eq('community_id', communityId);
+
+    const DEFAULT_MSGS = [
+      '¡Bienvenido a {server}! 🎉',
+      '¡{user} acaba de aterrizar! 🚀',
+      '¡Mira quién llegó! Es {user} ✨',
+      '¡{user} se unió a la fiesta! 🎊',
+      '¡Dale la bienvenida a {user}! 👋'
+    ];
+
+    let welcomeText = settings.customMessage || DEFAULT_MSGS[Math.floor(Math.random() * DEFAULT_MSGS.length)];
+    welcomeText = welcomeText
+      .replace(/{user}/g, settings.pingUser ? `@${user.username}` : user.username)
+      .replace(/{username}/g, user.username)
+      .replace(/{server}/g, community.name)
+      .replace(/{memberCount}/g, memberCount || '?');
+
+    const fields = [];
+    if (settings.showRules) {
+      fields.push({ name: '📜 Reglas', value: '• Sé respetuoso\n• No spam\n• ¡Diviértete!', inline: false });
+    }
+    fields.push({ name: '📊 Miembros', value: `${memberCount || '?'} exploradores`, inline: true });
+
+    const embed = {
+      type: 'embed',
+      title: `👋 ¡Bienvenido a ${community.name}!`,
+      description: welcomeText,
+      color: settings.accentColor || '#5865F2',
+      thumbnail: user.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.username}`,
+      fields,
+      footer: settings.footerText
+        ? settings.footerText.replace(/{memberCount}/g, memberCount || '?')
+        : `Miembro #${memberCount || '?'}`
+    };
 
     await supabaseAdmin.from('channel_messages').insert({
       channel_id: channel.id,
       user_id: userId,
-      content: plainText,
+      content: JSON.stringify(embed),
+      is_bot: true,
+      bot_name: 'WelcomeBot 👋',
+    });
+  },
+
+  /**
+   * Envía el mensaje de despedida en el canal adecuado (fire-and-forget)
+   */
+  async _sendGoodbyeMessage(communityId, userId) {
+    const [settingsRes, channelRes, userRes, communityRes] = await Promise.all([
+      welcomeBot.getSettings(communityId),
+      supabase.from('channels').select('id').eq('community_id', communityId).eq('type', 'text').order('position', { ascending: true }).limit(1).single(),
+      supabase.from('profiles').select('username').eq('id', userId).single(),
+      supabase.from('communities').select('name').eq('id', communityId).single()
+    ]);
+
+    const settings = settingsRes;
+    if (!settings.enableGoodbye) return;
+    if (channelRes.error || userRes.error || communityRes.error) return;
+
+    const user = userRes.data;
+    const community = communityRes.data;
+    const channel = channelRes.data;
+
+    const DEFAULT_GOODBYE = [
+      '{user} se fue volando... 🕊️',
+      '{user} ha abandonado el servidor 👋',
+      'Hasta luego, {user} 👋',
+      '{user} se marchó... 🚶'
+    ];
+
+    let goodbyeText = settings.goodbyeMessage || DEFAULT_GOODBYE[Math.floor(Math.random() * DEFAULT_GOODBYE.length)];
+    goodbyeText = goodbyeText
+      .replace(/{user}/g, user.username)
+      .replace(/{username}/g, user.username)
+      .replace(/{server}/g, community.name);
+
+    const embed = {
+      type: 'embed',
+      title: '👋 Hasta luego',
+      description: goodbyeText,
+      color: settings.goodbyeColor || '#ED4245',
+      thumbnail: `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.username}`,
+      footer: community.name
+    };
+
+    await supabaseAdmin.from('channel_messages').insert({
+      channel_id: channel.id,
+      user_id: userId,
+      content: JSON.stringify(embed),
       is_bot: true,
       bot_name: 'WelcomeBot 👋',
     });

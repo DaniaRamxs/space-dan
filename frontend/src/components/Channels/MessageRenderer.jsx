@@ -189,9 +189,14 @@ export default function MessageRenderer({ content, communityId }) {
               className="inline-block w-5 h-5 object-contain align-text-bottom mx-0.5"
               title={`:${part.name}:`}
               loading="lazy"
+              crossOrigin="anonymous"
               onError={(e) => {
-                // Si falla la imagen, mostrar el texto
-                e.target.style.display = 'none';
+                console.error('[MessageRenderer] Emoji failed to load:', part.name, part.imageUrl);
+                // Show text fallback instead of hiding
+                const span = document.createElement('span');
+                span.textContent = `:${part.name}:`;
+                span.className = 'text-cyan-400 font-medium';
+                e.target.parentNode.replaceChild(span, e.target);
               }}
             />
           );
