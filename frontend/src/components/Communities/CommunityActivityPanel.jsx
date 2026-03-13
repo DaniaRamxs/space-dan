@@ -87,7 +87,7 @@ export default function CommunityActivityPanel({ communityId, isMember }) {
                         </p>
                         {isMember && (
                             <button
-                                onClick={() => navigate(`/voice/community-${communityId}`)}
+                                onClick={() => navigate(`/chat?voice=community-${communityId}`)}
                                 className="w-full py-2.5 bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/30 rounded-xl text-sm font-semibold text-cyan-300 transition-all"
                             >
                                 Unirse a Sala General

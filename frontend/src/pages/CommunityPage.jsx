@@ -619,7 +619,7 @@ function VoicePanel({ communityId, isMember, compact }) {
           <p className="text-sm text-white/40 mb-4">No hay salas activas</p>
           {isMember && (
             <button
-              onClick={() => navigate(`/voice/community-${communityId}`)}
+              onClick={() => navigate(`/chat?voice=community-${communityId}`)}
               className="w-full py-3 bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/30 rounded-xl text-sm font-semibold text-cyan-300 transition-all active:scale-95"
             >
               Crear sala general
