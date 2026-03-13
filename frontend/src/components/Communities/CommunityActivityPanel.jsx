@@ -80,11 +80,19 @@ export default function CommunityActivityPanel({ communityId, isMember }) {
                 </div>
 
                 {voiceRooms.length === 0 ? (
-                    <div className="bg-white/[0.02] border border-white/[0.06] rounded-xl p-6 text-center">
+                    <div className="bg-white/[0.02] border border-white/[0.06] rounded-xl p-6 text-center space-y-3">
                         <Volume2 className="w-8 h-8 text-white/20 mx-auto mb-2" />
-                        <p className="text-xs text-white/40">
+                        <p className="text-xs text-white/40 mb-3">
                             No hay salas de voz activas
                         </p>
+                        {isMember && (
+                            <button
+                                onClick={() => navigate(`/voice/community-${communityId}`)}
+                                className="w-full py-2.5 bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/30 rounded-xl text-sm font-semibold text-cyan-300 transition-all"
+                            >
+                                Unirse a Sala General
+                            </button>
+                        )}
                     </div>
                 ) : (
                     <div className="space-y-2">
