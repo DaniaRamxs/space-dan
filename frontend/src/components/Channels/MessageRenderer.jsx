@@ -138,6 +138,16 @@ export function parseMessageContent(content, customEmojis = []) {
 export default function MessageRenderer({ content, communityId }) {
   const { emojis } = useCustomEmojis(communityId);
   
+  // Debug logging
+  useEffect(() => {
+    console.log('[MessageRenderer] Debug:', {
+      communityId,
+      emojiCount: emojis.length,
+      emojiNames: emojis.map(e => e.name),
+      content: content?.slice(0, 50)
+    });
+  }, [communityId, emojis, content]);
+
   // Parsear contenido con useMemo para optimizar
   const parts = useMemo(() => {
     return parseMessageContent(content, emojis);
