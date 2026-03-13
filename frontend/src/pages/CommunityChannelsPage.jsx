@@ -18,7 +18,7 @@ import ChannelSidebar from '../components/Channels/ChannelSidebar';
 import TextChannel from '../components/Channels/TextChannel';
 import VoiceChannel from '../components/Channels/VoiceChannel';
 import ForumChannel from '../components/Channels/ForumChannel';
-import RankingPanel from '../components/Communities/RankingPanel';
+import RankingPanel from '../components/RankingPanel';
 import toast from 'react-hot-toast';
 
 export default function CommunityChannelsPage() {
