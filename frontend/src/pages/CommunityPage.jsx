@@ -11,7 +11,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Users, ArrowLeft, UserPlus, MessageCircle, Volume2, Trophy,
-  Send, MoreVertical, Hash, Radio
+  Send, MoreVertical, Hash, Radio, ImageIcon
 } from 'lucide-react';
 import { communitiesService } from '../services/communitiesService';
 import { chatService } from '../services/chatService';
@@ -20,6 +20,12 @@ import { supabase } from '../supabaseClient';
 import { liveActivitiesService } from '../services/liveActivitiesService';
 import StellarScrollBg from '../components/Effects/StellarScrollBg';
 import toast from 'react-hot-toast';
+
+// Giphy integration
+import { GiphyFetch } from '@giphy/js-fetch-api';
+import { Grid } from '@giphy/react-components';
+
+const gf = new GiphyFetch('3k4Fdn6D040IQvIq1KquLZzJgutP3dGp');
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // COMPONENTE PRINCIPAL
@@ -156,12 +162,14 @@ export default function CommunityPage() {
                 initial={{ opacity: 0, x: 100 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -100 }}
-                className="flex-1 overflow-auto p-4"
+                className="flex-1 overflow-y-auto min-h-0"
               >
-                <VoicePanel 
-                  communityId={community.id}
-                  isMember={isMember}
-                />
+                <div className="p-4 pb-24">
+                  <VoicePanel 
+                    communityId={community.id}
+                    isMember={isMember}
+                  />
+                </div>
               </motion.div>
             )}
             
@@ -171,9 +179,11 @@ export default function CommunityPage() {
                 initial={{ opacity: 0, x: 100 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -100 }}
-                className="flex-1 overflow-auto p-4"
+                className="flex-1 overflow-y-auto min-h-0"
               >
-                <RankingPanel communityId={community.id} />
+                <div className="p-4 pb-24">
+                  <RankingPanel communityId={community.id} />
+                </div>
               </motion.div>
             )}
           </AnimatePresence>
@@ -353,7 +363,11 @@ function CommunityChat({ communityId, communityName, isMember }) {
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const [showGiphy, setShowGiphy] = useState(false);
+  const [gifSearchTerm, setGifSearchTerm] = useState('');
   const messagesEndRef = useRef(null);
+  const fileInputRef = useRef(null);
   const channelId = `community-${communityId}`;
 
   useEffect(() => {
@@ -402,13 +416,12 @@ function CommunityChat({ communityId, communityName, isMember }) {
     }]);
   };
 
-  const handleSendMessage = async (e) => {
-    e?.preventDefault();
-    if (!newMessage.trim() || sending || !isMember) return;
+  const handleSendMessage = async (content, isVip = false, replyTo = null) => {
+    if (!content.trim() || sending || !isMember) return;
 
     setSending(true);
     try {
-      await chatService.sendMessage(newMessage, false, null, channelId);
+      await chatService.sendMessage(content, isVip, replyTo, channelId);
       setNewMessage('');
       await chatService.incrementChatStats();
     } catch (error) {
@@ -422,8 +435,52 @@ function CommunityChat({ communityId, communityName, isMember }) {
   const handleKeyDown = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      handleSendMessage();
+      handleSendMessage(newMessage);
     }
+  };
+
+  const handleImageUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error('La imagen es demasiado pesada (máx 2MB)');
+      return;
+    }
+
+    try {
+      setIsUploading(true);
+      toast.loading('Subiendo imagen...', { id: 'upload' });
+
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
+      const filePath = `chat/${channelId}/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('uploads')
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('uploads')
+        .getPublicUrl(filePath);
+
+      await handleSendMessage(`![imagen](${publicUrl})`);
+      toast.success('Imagen enviada', { id: 'upload' });
+    } catch (err) {
+      console.error('[CommunityChat] Upload error:', err);
+      toast.error('Error al subir imagen', { id: 'upload' });
+    } finally {
+      setIsUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
+  const handleGifClick = (gif) => {
+    const gifMarkdown = `![gif](${gif.images.fixed_height.url})`;
+    handleSendMessage(gifMarkdown);
+    setShowGiphy(false);
   };
 
   const scrollToBottom = () => {
@@ -432,6 +489,22 @@ function CommunityChat({ communityId, communityName, isMember }) {
 
   const formatTime = (timestamp) => {
     return new Date(timestamp).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+  };
+
+  const renderMessageContent = (content) => {
+    // Check if content is an image markdown
+    const imageMatch = content.match(/!\[.*?\]\((.*?)\)/);
+    if (imageMatch) {
+      return (
+        <img 
+          src={imageMatch[1]} 
+          alt="imagen" 
+          className="max-w-full rounded-lg mt-1 max-h-[200px] object-contain"
+          loading="lazy"
+        />
+      );
+    }
+    return content;
   };
 
   if (loading) {
@@ -456,6 +529,53 @@ function CommunityChat({ communityId, communityName, isMember }) {
   return (
     <div className="h-full flex flex-col bg-[#0a0a0f] lg:bg-white/[0.02] lg:rounded-2xl lg:border lg:border-white/[0.06]">
       <div className="lg:hidden h-14" />
+
+      {/* Giphy Panel */}
+      <AnimatePresence>
+        {showGiphy && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 20 }}
+            className="absolute bottom-[120px] left-4 right-4 z-50 bg-[#12121a] border border-white/[0.08] rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[350px]"
+          >
+            <div className="flex items-center justify-between p-3 border-b border-white/[0.06]">
+              <span className="text-[10px] font-black uppercase tracking-[0.2em] text-cyan-400">GIFs ✨</span>
+              <button 
+                onClick={() => setShowGiphy(false)} 
+                className="text-white/40 hover:text-white p-1"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="p-2 border-b border-white/[0.06]">
+              <input
+                type="text"
+                placeholder="Buscar GIFs..."
+                value={gifSearchTerm}
+                onChange={(e) => setGifSearchTerm(e.target.value)}
+                className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-white outline-none focus:border-cyan-500/50"
+              />
+            </div>
+            <div className="flex-1 overflow-y-auto p-2">
+              <Grid
+                key={gifSearchTerm}
+                width={window.innerWidth > 640 ? 400 : window.innerWidth - 48}
+                columns={2}
+                gutter={6}
+                fetchGifs={(offset) => gifSearchTerm.trim()
+                  ? gf.search(gifSearchTerm, { offset, limit: 10 })
+                  : gf.trending({ offset, limit: 10 })
+                }
+                onGifClick={(gif, e) => {
+                  e.preventDefault();
+                  handleGifClick(gif);
+                }}
+              />
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <div className="flex-1 overflow-y-auto px-4 py-4 space-y-1">
         {messages.length === 0 ? (
@@ -497,12 +617,12 @@ function CommunityChat({ communityId, communityName, isMember }) {
                       {msg.author?.username || 'Anónimo'}
                     </span>
                   )}
-                  <div className={`px-4 py-2.5 rounded-2xl text-sm leading-relaxed ${
+                  <div className={`px-4 py-2.5 rounded-2xl text-sm leading-relaxed overflow-hidden ${
                     isOwn 
                       ? 'bg-cyan-500 text-cyan-950 rounded-br-md' 
                       : 'bg-white/[0.08] text-white/90 rounded-bl-md border border-white/[0.06]'
                   }`}>
-                    {msg.content}
+                    {renderMessageContent(msg.content)}
                   </div>
                   <span className={`text-[9px] text-white/30 mt-1 block ${isOwn ? 'text-right' : ''}`}>
                     {formatTime(msg.created_at)}
@@ -526,24 +646,50 @@ function CommunityChat({ communityId, communityName, isMember }) {
             </button>
           </div>
         ) : (
-          <form onSubmit={handleSendMessage} className="relative">
+          <form onSubmit={(e) => { e.preventDefault(); handleSendMessage(newMessage); }} className="relative">
             <div className="flex items-end gap-2 bg-white/[0.05] border border-white/[0.08] rounded-2xl p-2 focus-within:border-cyan-500/30 focus-within:bg-white/[0.08] transition-all">
+              <div className="flex items-center gap-1 mr-1">
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleImageUpload}
+                />
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={isUploading}
+                  className="p-2 text-white/40 hover:text-white/70 hover:bg-white/5 rounded-lg transition-all disabled:opacity-50"
+                  title="Subir imagen"
+                >
+                  <ImageIcon size={18} />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowGiphy(!showGiphy)}
+                  className={`p-2 rounded-lg transition-all ${showGiphy ? 'bg-cyan-500/20 text-cyan-400' : 'text-white/40 hover:text-white/70 hover:bg-white/5'}`}
+                  title="Insertar GIF"
+                >
+                  <span className="text-sm">GIF</span>
+                </button>
+              </div>
               <textarea
                 value={newMessage}
                 onChange={(e) => setNewMessage(e.target.value)}
                 onKeyDown={handleKeyDown}
                 placeholder={`Mensaje en ${communityName}...`}
-                disabled={sending}
+                disabled={sending || isUploading}
                 rows={1}
                 className="flex-1 bg-transparent px-3 py-2.5 text-sm text-white placeholder:text-white/30 resize-none outline-none max-h-32"
                 style={{ minHeight: '44px' }}
               />
               <button
                 type="submit"
-                disabled={!newMessage.trim() || sending}
+                disabled={!newMessage.trim() || sending || isUploading}
                 className="p-3 bg-cyan-500 text-cyan-950 rounded-xl disabled:opacity-40 disabled:cursor-not-allowed hover:bg-cyan-400 transition-all active:scale-95"
               >
-                {sending ? (
+                {sending || isUploading ? (
                   <div className="w-5 h-5 border-2 border-cyan-950/30 border-t-cyan-950 rounded-full animate-spin" />
                 ) : (
                   <Send size={20} />
@@ -551,7 +697,7 @@ function CommunityChat({ communityId, communityName, isMember }) {
               </button>
             </div>
             <p className="text-[10px] text-white/20 mt-1.5 text-center lg:text-left">
-              Enter para enviar · Shift + Enter para nueva línea
+              Enter para enviar · Shift + Enter para nueva línea · Máx 2MB para imágenes
             </p>
           </form>
         )}
