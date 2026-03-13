@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { AnimatePresence } from 'framer-motion';
-import { 
+import {
   Send, Smile, Hash, MoreVertical,
-  Reply, Trash2, Pin
+  Reply, Trash2, Pin, X
 } from 'lucide-react';
+import PinnedMessages, { PinMessageButton } from './PinnedMessages';
 import { useAuthContext } from '../../contexts/AuthContext';
 import { chatService } from '../../services/chatService';
 import { botCommandService } from '../../services/botCommandService';
@@ -54,6 +55,9 @@ export default function TextChannel({ channel, communityId, isMember, isOwner })
   const [replyingTo, setReplyingTo] = useState(null);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [customEmojis, setCustomEmojis] = useState([]);
+  const [showPinned, setShowPinned] = useState(false);
+  const [showChannelMenu, setShowChannelMenu] = useState(false);
+  const [pinnedKey, setPinnedKey] = useState(0);
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
   const messagesRef = useRef([]);
@@ -336,18 +340,53 @@ export default function TextChannel({ channel, communityId, isMember, isOwner })
             <p className="text-xs text-gray-500">{channel?.description || 'Chat de texto'}</p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <button className="p-2 text-gray-400 hover:text-white hover:bg-white/5 rounded-lg transition-colors">
+        <div className="flex items-center gap-2 relative">
+          <button
+            onClick={() => setShowPinned(v => !v)}
+            className={`p-2 hover:bg-white/5 rounded-lg transition-colors ${showPinned ? 'text-yellow-400' : 'text-gray-400 hover:text-white'}`}
+            title="Mensajes fijados"
+          >
             <Pin size={18} />
           </button>
-          <button className="p-2 text-gray-400 hover:text-white hover:bg-white/5 rounded-lg transition-colors">
-            <MoreVertical size={18} />
-          </button>
+          <div className="relative">
+            <button
+              onClick={() => setShowChannelMenu(v => !v)}
+              className={`p-2 hover:bg-white/5 rounded-lg transition-colors ${showChannelMenu ? 'text-white' : 'text-gray-400 hover:text-white'}`}
+              title="Opciones del canal"
+            >
+              <MoreVertical size={18} />
+            </button>
+            {showChannelMenu && (
+              <div className="absolute right-0 top-full mt-1 w-48 bg-[#1a1a24] border border-white/10 rounded-xl shadow-xl z-50 py-1">
+                <button
+                  onClick={() => { setShowPinned(true); setShowChannelMenu(false); }}
+                  className="w-full text-left px-4 py-2 text-sm text-gray-300 hover:bg-white/5 hover:text-white flex items-center gap-2 transition-colors"
+                >
+                  <Pin size={14} className="text-yellow-400" />
+                  Ver mensajes fijados
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
+      {/* Pinned Messages Panel */}
+      {showPinned && (
+        <div className="relative">
+          <button
+            onClick={() => setShowPinned(false)}
+            className="absolute right-2 top-2 p-1 text-gray-500 hover:text-white z-10"
+            title="Cerrar"
+          >
+            <X size={14} />
+          </button>
+          <PinnedMessages key={pinnedKey} channelId={channel?.id} isOwner={isOwner} />
+        </div>
+      )}
+
       {/* Messages Area */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-1">
+      <div className="flex-1 overflow-y-auto p-4 space-y-1" onClick={() => showChannelMenu && setShowChannelMenu(false)}>
         {messages.length === 0 ? (
           <div className="h-full flex flex-col items-center justify-center text-center p-8">
             <div className="w-20 h-20 rounded-full bg-white/5 flex items-center justify-center mb-4">
@@ -431,6 +470,14 @@ export default function TextChannel({ channel, communityId, isMember, isOwner })
                     >
                       <Reply size={16} />
                     </button>
+                  )}
+                  {isOwner && !isBot && (
+                    <PinMessageButton
+                      messageId={msg.id}
+                      channelId={channel?.id}
+                      isOwner={isOwner}
+                      onPinned={() => setPinnedKey(k => k + 1)}
+                    />
                   )}
                   {isOwn && !isBot && (
                     <button

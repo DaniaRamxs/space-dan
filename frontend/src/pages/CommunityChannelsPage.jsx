@@ -3,9 +3,11 @@
  * Página principal de comunidad con sistema de canales
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, lazy, Suspense } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+
+const VoiceRoomUI = lazy(() => import('../components/VoiceRoom/VoiceRoomUI'));
 import { 
   Menu, ChevronLeft, Users, Hash, Volume2, MessageSquare,
   MoreVertical, Settings, Plus, Shield, Link2, Clock
@@ -27,7 +29,7 @@ import toast from 'react-hot-toast';
 export default function CommunityChannelsPage() {
   const { slug } = useParams();
   const navigate = useNavigate();
-  const { user } = useAuthContext();
+  const { user, profile } = useAuthContext();
 
   const [community, setCommunity] = useState(null);
   const [channels, setChannels] = useState([]);
@@ -44,6 +46,23 @@ export default function CommunityChannelsPage() {
 
   const [needsSetup, setNeedsSetup] = useState(false);
   const [settingUp, setSettingUp] = useState(false);
+
+  // Sala de voz de comunidad (embebida, no redirige al chat global)
+  const [hasJoinedVoice, setHasJoinedVoice] = useState(false);
+  const [voiceRoomName, setVoiceRoomName] = useState('');
+  const [showVoiceRoom, setShowVoiceRoom] = useState(true);
+
+  const handleJoinVoice = (roomName, channelName) => {
+    setVoiceRoomName(roomName);
+    setShowVoiceRoom(true);
+    setHasJoinedVoice(true);
+  };
+
+  const handleLeaveVoice = () => {
+    setHasJoinedVoice(false);
+    setVoiceRoomName('');
+    setShowVoiceRoom(false);
+  };
 
   // Load community and channels
   const loadCommunityData = useCallback(async () => {
@@ -185,7 +204,7 @@ export default function CommunityChannelsPage() {
       case 'text':
         return <TextChannel {...props} />;
       case 'voice':
-        return <VoiceChannel {...props} />;
+        return <VoiceChannel {...props} onJoinVoice={handleJoinVoice} />;
       case 'forum':
         return <ForumChannel {...props} />;
       default:
@@ -479,6 +498,25 @@ export default function CommunityChannelsPage() {
         isOpen={showAuditModal}
         onClose={() => setShowAuditModal(false)}
       />
+
+      {/* Sala de voz de comunidad — overlay como en el chat global */}
+      {hasJoinedVoice && (
+        <Suspense fallback={null}>
+          <VoiceRoomUI
+            key={voiceRoomName}
+            roomName={voiceRoomName}
+            isOpen={showVoiceRoom}
+            onMinimize={() => setShowVoiceRoom(false)}
+            onExpand={() => setShowVoiceRoom(true)}
+            onLeave={handleLeaveVoice}
+            userAvatar={profile?.avatar_url}
+            nicknameStyle={profile?.equipped_nickname_style}
+            frameId={profile?.frame_item_id}
+            userName={profile?.username}
+            activityLevel={profile?.activity_level}
+          />
+        </Suspense>
+      )}
     </div>
   );
 }

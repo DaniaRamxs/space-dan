@@ -1,16 +1,13 @@
 import { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { 
-  Volume2, Mic, Headphones, PhoneOff, Users, Settings, 
+import {
+  Volume2, Mic, Headphones, PhoneOff, Users, Settings,
   MoreVertical, MessageSquare
 } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
-import { channelsService } from '../../services/channelsService';
 import { liveActivitiesService } from '../../services/liveActivitiesService';
 import toast from 'react-hot-toast';
 
-export default function VoiceChannel({ channel, communityId, communityName, isMember, isOwner }) {
-  const navigate = useNavigate();
+export default function VoiceChannel({ channel, communityId, communityName, isMember, isOwner, onJoinVoice }) {
   const [participants, setParticipants] = useState([]);
   const [isConnected, setIsConnected] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -63,8 +60,9 @@ export default function VoiceChannel({ channel, communityId, communityName, isMe
         });
       }
 
-      // Navigate to voice room
-      navigate(`/chat?voice=channel-${voiceActivity.id}`);
+      // Abrir sala de voz dentro de la comunidad (no navegar al chat global)
+      const roomName = `channel-${channel.id}`;
+      onJoinVoice?.(roomName, channel.name);
       setIsConnected(true);
     } catch (err) {
       console.error('[VoiceChannel] Connect error:', err);

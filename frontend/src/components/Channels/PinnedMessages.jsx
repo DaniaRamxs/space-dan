@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Pin, X, MessageSquare } from 'lucide-react';
-import { supabase } from '../supabaseClient';
+import { Pin, X } from 'lucide-react';
+import { supabase } from '../../supabaseClient';
 import toast from 'react-hot-toast';
 
 export default function PinnedMessages({ channelId, isOwner }) {
@@ -18,14 +18,25 @@ export default function PinnedMessages({ channelId, isOwner }) {
   const loadPinned = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase
+      const { data: pins, error } = await supabase
         .from('pinned_messages')
-        .select('*, message:message_id(*)')
+        .select('*')
         .eq('channel_id', channelId)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setPinned(data || []);
+
+      // message_id no tiene FK real, hacemos join manual
+      const enriched = await Promise.all((pins || []).map(async (pin) => {
+        const { data: msg } = await supabase
+          .from('channel_messages')
+          .select('id, content, user_id, author:user_id(username, avatar_url)')
+          .eq('id', pin.message_id)
+          .single();
+        return { ...pin, message: msg };
+      }));
+
+      setPinned(enriched);
     } catch (err) {
       console.error('[PinnedMessages] Load error:', err);
     } finally {
@@ -66,7 +77,7 @@ export default function PinnedMessages({ channelId, isOwner }) {
             <Pin size={16} className="text-yellow-400 mt-0.5 flex-shrink-0" />
             <div className="flex-1 min-w-0">
               <p className="text-sm text-gray-300 truncate">
-                <span className="text-yellow-400 font-medium">{pin.message?.author?.username || 'Usuario'}:</span>
+                <span className="text-yellow-400 font-medium">{pin.message?.author?.username || pin.message?.user_id || 'Usuario'}:</span>
                 {' '}
                 {pin.message?.content || 'Mensaje no disponible'}
               </p>
