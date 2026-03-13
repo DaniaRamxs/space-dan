@@ -7,16 +7,18 @@ export default defineConfig(({ mode }) => {
   // eslint-disable-next-line no-undef
   const env = loadEnv(mode, process.cwd(), '');
   const isProd = mode === 'production';
-  // En Tauri dev, el host se inyecta via variable de entorno
-  // eslint-disable-next-line no-undef
+  // Check if we are building for Tauri or Mobile
+  const isTauri = process.env.TAURI_ENV_PLATFORM !== undefined || process.env.TAURI_PLATFORM !== undefined;
+  const isMobile = process.env.CAPACITOR_PLATFORM !== undefined;
+  const enablePWA = isProd && !isTauri && !isMobile;
   const tauriHost = process.env.TAURI_DEV_HOST;
 
   return {
     envDir: '../',
     plugins: [
       react(),
-      // Service Worker moderno y limpio
-      isProd && VitePWA({
+      // Service Worker solo para versión Web pura
+      enablePWA && VitePWA({
         registerType: 'autoUpdate',
         injectRegister: 'auto',
         workbox: {

@@ -229,11 +229,12 @@ if (import.meta.env.PROD) {
   }).catch(() => {});
 }
 
-// Purga de Service Workers en localhost para evitar redirecciones de dominio persistentes
-if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+// Purga de Service Workers en Tauri o localhost para evitar redirecciones de caché o dominios persistentes (como Vercel)
+const isTauriEnv = typeof window !== 'undefined' && (window.__TAURI_INTERNALS__ !== undefined || window.__TAURI__ !== undefined);
+if (isTauriEnv || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.getRegistrations().then(regs => {
-      regs.forEach(reg => reg.unregister().then(() => console.log('[Dev] SW purgado para evitar redirecciones de caché')));
+      regs.forEach(reg => reg.unregister().then(() => console.log('[Dev/Tauri] SW purgado para evitar redirecciones de caché')));
     });
   }
 }
