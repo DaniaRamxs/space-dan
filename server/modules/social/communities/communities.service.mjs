@@ -182,6 +182,11 @@ export const communitiesService = {
 
     if (updateError) console.warn('[Communities] Failed to decrement member count:', updateError);
 
+    // Solo si el goodbye está habilitado en settings
+    this._sendGoodbyeMessage(communityId, userId).catch(err =>
+      console.error('[Communities] GoodbyeBot error:', err)
+    );
+
     return { success: true };
   },
 
