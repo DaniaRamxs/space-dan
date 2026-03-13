@@ -178,4 +178,13 @@ export const channelsService = {
     if (error) throw error;
     return data;
   },
+
+  // Setup community defaults (for old communities without channels)
+  async setupCommunity(communityId) {
+    const { data, error } = await supabase
+      .rpc('setup_community_defaults', { p_community_id: communityId });
+
+    if (error) throw error;
+    return data || { success: false, error: 'Unknown error' };
+  },
 };

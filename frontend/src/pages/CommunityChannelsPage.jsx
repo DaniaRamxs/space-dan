@@ -35,6 +35,9 @@ export default function CommunityChannelsPage() {
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [showCommunityMenu, setShowCommunityMenu] = useState(false);
 
+  const [needsSetup, setNeedsSetup] = useState(false);
+  const [settingUp, setSettingUp] = useState(false);
+
   // Load community and channels
   const loadCommunityData = useCallback(async () => {
     if (!slug) return;
@@ -60,10 +63,16 @@ export default function CommunityChannelsPage() {
       const channelsData = await channelsService.getCommunityChannels(communityData.id);
       setChannels(channelsData);
       
-      // Set default channel (first text channel)
-      const defaultChannel = channelsData.find(c => c.type === 'text') || channelsData[0];
-      if (defaultChannel && !currentChannel) {
-        setCurrentChannel(defaultChannel);
+      // Check if community needs setup (no channels = old community)
+      if (channelsData.length === 0 && communityData.owner_id === user?.id) {
+        setNeedsSetup(true);
+      } else {
+        setNeedsSetup(false);
+        // Set default channel (first text channel)
+        const defaultChannel = channelsData.find(c => c.type === 'text') || channelsData[0];
+        if (defaultChannel && !currentChannel) {
+          setCurrentChannel(defaultChannel);
+        }
       }
     } catch (err) {
       console.error('[CommunityChannelsPage] Load error:', err);
@@ -120,6 +129,29 @@ export default function CommunityChannelsPage() {
     }
   };
 
+  const handleSetupCommunity = async () => {
+    if (!user || !community || !isOwner) return;
+    
+    try {
+      setSettingUp(true);
+      const result = await channelsService.setupCommunity(community.id);
+      
+      if (result.success) {
+        toast.success('Comunidad configurada exitosamente');
+        setNeedsSetup(false);
+        // Reload to get new channels
+        await loadCommunityData();
+      } else {
+        toast.error(result.error || 'Error al configurar comunidad');
+      }
+    } catch (err) {
+      console.error('[CommunityChannelsPage] Setup error:', err);
+      toast.error('Error al configurar comunidad');
+    } finally {
+      setSettingUp(false);
+    }
+  };
+
   // Render channel content based on type
   const renderChannelContent = () => {
     if (!currentChannel) {
@@ -168,6 +200,58 @@ export default function CommunityChannelsPage() {
           >
             Volver
           </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Show setup screen for old communities without channels
+  if (needsSetup && isOwner) {
+    return (
+      <div className="min-h-screen bg-[#0a0a0f] flex items-center justify-center p-4">
+        <div className="max-w-md w-full bg-[#1a1a24] border border-white/10 rounded-2xl p-8 text-center">
+          <div className="w-20 h-20 bg-cyan-500/10 rounded-full flex items-center justify-center mx-auto mb-6">
+            <Settings size={40} className="text-cyan-400" />
+          </div>
+          <h2 className="text-2xl font-bold text-white mb-2">Configurar Comunidad</h2>
+          <p className="text-gray-400 mb-6">
+            Esta comunidad fue creada antes del sistema de canales. 
+            Haz clic para configurarla con canales por defecto.
+          </p>
+          <button
+            onClick={handleSetupCommunity}
+            disabled={settingUp}
+            className="w-full py-3 bg-cyan-500 hover:bg-cyan-400 disabled:opacity-50 rounded-xl text-cyan-950 font-semibold transition-all flex items-center justify-center gap-2"
+          >
+            {settingUp ? (
+              <>
+                <div className="w-5 h-5 border-2 border-cyan-950/30 border-t-cyan-950 rounded-full animate-spin" />
+                Configurando...
+              </>
+            ) : (
+              <>
+                <Plus size={20} />
+                Configurar ahora
+              </>
+            )}
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (needsSetup && !isOwner) {
+    return (
+      <div className="min-h-screen bg-[#0a0a0f] flex items-center justify-center p-4">
+        <div className="max-w-md w-full bg-[#1a1a24] border border-white/10 rounded-2xl p-8 text-center">
+          <div className="w-20 h-20 bg-gray-500/10 rounded-full flex items-center justify-center mx-auto mb-6">
+            <Settings size={40} className="text-gray-400" />
+          </div>
+          <h2 className="text-2xl font-bold text-white mb-2">Comunidad en mantenimiento</h2>
+          <p className="text-gray-400">
+            Esta comunidad está siendo actualizada por su owner. 
+            Por favor, vuelve más tarde.
+          </p>
         </div>
       </div>
     );
