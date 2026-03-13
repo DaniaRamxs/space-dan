@@ -75,6 +75,31 @@ export default function Connect4Game({ roomName, onClose, isTheater, onToggleThe
         return () => { if (activeRoom) activeRoom.leave(); };
     }, []); // Solo al montar
 
+    // ── Derivados del estado (calculados seguros) ─────────────────────────────
+    const isMyTurn = state?.currentTurnSid === room?.sessionId;
+    const isInSlot1 = room?.sessionId && state?.p1 === room.sessionId;
+    const isInSlot2 = room?.sessionId && state?.p2 === room.sessionId;
+    const isSpectator = !isInSlot1 && !isInSlot2;
+
+    // ── Audio: BGM + SFX ─────────────────────────────────────────────────────
+    useEffect(() => {
+        const phase = state?.phase;
+        if (phase === prevPhaseRef.current) return;
+        prevPhaseRef.current = phase;
+        if (phase === 'playing') {
+            audio.playBgm();
+        } else if (phase === 'finished') {
+            audio.stopBgm();
+            if (!isSpectator) {
+                const mySlot = isInSlot1 ? '1' : '2';
+                if (state?.winner === mySlot) audio.sfx.win();
+                else if (state?.winner !== '3') audio.sfx.lose();
+            }
+        } else if (phase === 'waiting' || phase === 'lobby') {
+            audio.stopBgm();
+        }
+    }, [state?.phase, isSpectator, isInSlot1, state?.winner, audio]);
+
     // ── Estado de carga ───────────────────────────────────────────────────────
     if (connecting || !state || !room) {
         return (
@@ -87,11 +112,6 @@ export default function Connect4Game({ roomName, onClose, isTheater, onToggleThe
         );
     }
 
-    // ── Derivados del estado ──────────────────────────────────────────────────
-    const isMyTurn = state.currentTurnSid === room.sessionId;
-    const isInSlot1 = room.sessionId === state.p1;
-    const isInSlot2 = room.sessionId === state.p2;
-    const isSpectator = !isInSlot1 && !isInSlot2;
 
     // ── Mensajes al servidor ──────────────────────────────────────────────────
 
@@ -126,24 +146,6 @@ export default function Connect4Game({ roomName, onClose, isTheater, onToggleThe
         });
     };
 
-    // ── Audio: BGM + SFX ─────────────────────────────────────────────────────
-    useEffect(() => {
-        const phase = state?.phase;
-        if (phase === prevPhaseRef.current) return;
-        prevPhaseRef.current = phase;
-        if (phase === 'playing') {
-            audio.playBgm();
-        } else if (phase === 'finished') {
-            audio.stopBgm();
-            if (!isSpectator) {
-                const mySlot = isInSlot1 ? '1' : '2';
-                if (state.winner === mySlot) audio.sfx.win();
-                else if (state.winner !== '3') audio.sfx.lose();
-            }
-        } else if (phase === 'waiting' || phase === 'lobby') {
-            audio.stopBgm();
-        }
-    }, [state?.phase]);
 
     /**
      * El jugador activo droppea una ficha en la columna `col`.

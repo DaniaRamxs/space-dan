@@ -415,9 +415,8 @@ export default function OrbitLettersPage() {
                 className={`glassCard lettersPanel lettersPanel--chat${showMobileChat ? '' : ' lettersPanel--hidden'}`}
                 style={{
                     padding: 0,
-                    display: activeConv ? 'grid' : 'flex',
-                    gridTemplateRows: activeConv ? 'auto minmax(0, 1fr) auto' : undefined,
-                    flexDirection: activeConv ? undefined : 'column',
+                    display: 'flex',
+                    flexDirection: 'column',
                     flex: 1,
                     minHeight: 0,
                     height: '100%',
@@ -527,8 +526,8 @@ export default function OrbitLettersPage() {
                             className="lettersScrollArea lettersMessages"
                             ref={scrollRef}
                             style={{
+                                flex: '1 1 auto',
                                 minHeight: 0,
-                                height: '100%',
                                 overflowY: 'auto',
                                 overflowX: 'hidden',
                                 WebkitOverflowScrolling: 'touch',
@@ -573,7 +572,7 @@ export default function OrbitLettersPage() {
                         </div>
 
                         {/* Input */}
-                        <form className="lettersComposer" onSubmit={(e) => handleSend(e)} style={{ flexShrink: 0, marginTop: 'auto', padding: '14px 16px', paddingBottom: 'calc(14px + env(safe-area-inset-bottom, 20px))', borderTop: '1px solid var(--glass-border)', background: 'rgba(5,5,10,0.95)', backdropFilter: 'blur(12px)', position: 'relative', zIndex: 50 }}>
+                        <form className="lettersComposer" onSubmit={(e) => handleSend(e)} style={{ flexShrink: 0, padding: '14px 16px', paddingBottom: 'calc(14px + env(safe-area-inset-bottom, 20px))', borderTop: '1px solid var(--glass-border)', background: 'rgba(5,5,10,0.95)', backdropFilter: 'blur(12px)', position: 'relative', zIndex: 50 }}>
                             {showGiphy && (
                                 <div className="lettersScrollArea" ref={giphyPanelRef} style={{ position: 'absolute', bottom: '100%', left: '0', width: '100%', height: isMobile ? '56dvh' : '340px', maxHeight: isMobile ? '56dvh' : '420px', background: 'rgba(5,5,10,0.98)', backdropFilter: 'blur(30px)', zIndex: 60, padding: '10px', overflowY: 'auto', borderTop: '1px solid var(--glass-border)' }}>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px', marginBottom: '8px' }}>
