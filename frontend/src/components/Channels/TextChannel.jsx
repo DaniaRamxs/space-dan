@@ -1,14 +1,15 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { AnimatePresence } from 'framer-motion';
 import { 
-  Send, Image as ImageIcon, Smile, Paperclip, Hash, MoreVertical,
-  Reply, Edit2, Trash2, Pin, Lock, X
+  Send, Smile, Hash, MoreVertical,
+  Reply, Trash2, Pin
 } from 'lucide-react';
 import { useAuthContext } from '../../contexts/AuthContext';
 import { chatService } from '../../services/chatService';
 import { supabase } from '../../supabaseClient';
 import ReputationBadge from '../Reputation/ReputationBadge';
 import EmojiPicker from './EmojiPicker';
+import MessageRenderer from './MessageRenderer';
 import toast from 'react-hot-toast';
 
 export default function TextChannel({ channel, communityId, isMember, isOwner }) {
@@ -202,7 +203,7 @@ export default function TextChannel({ channel, communityId, isMember, isOwner })
                         <ReputationBadge points={msg.author?.reputation?.points || 0} size="sm" />
                         <span className="text-xs text-gray-500">{formatTime(msg.created_at)}</span>
                       </div>
-                      <MessageContent content={msg.content} />
+                      <MessageRenderer content={msg.content} communityId={communityId} />
                       {msg.reply_to && (
                         <div className="mt-1 text-xs text-gray-500 bg-white/5 rounded px-2 py-1">
                           <span className="text-cyan-400">Respondiendo a {msg.reply_to.author?.username}:</span>
@@ -218,7 +219,7 @@ export default function TextChannel({ channel, communityId, isMember, isOwner })
                       {formatTime(msg.created_at)}
                     </span>
                     <div className="flex-1">
-                      <MessageContent content={msg.content} />
+                      <MessageRenderer content={msg.content} communityId={communityId} />
                     </div>
                   </div>
                 )}
@@ -324,23 +325,5 @@ export default function TextChannel({ channel, communityId, isMember, isOwner })
         )}
       </div>
     </div>
-  );
-}
-
-function MessageContent({ content }) {
-  // Check for image markdown
-  const imageMatch = content.match(/!\[.*?\]\((.*?)\)/);
-  if (imageMatch) {
-    return (
-      <img 
-        src={imageMatch[1]} 
-        alt="imagen" 
-        className="max-w-sm rounded-lg mt-1 cursor-pointer hover:opacity-90 transition-opacity"
-      />
-    );
-  }
-  
-  return (
-    <p className="text-gray-200 whitespace-pre-wrap break-words">{content}</p>
   );
 }
