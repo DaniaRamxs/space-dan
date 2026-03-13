@@ -40,7 +40,9 @@ export default function CommunityPage() {
   const [isMember, setIsMember] = useState(false);
   const [loading, setLoading] = useState(true);
   const [joining, setJoining] = useState(false);
-  const [activeTab, setActiveTab] = useState('chat'); // 'chat' | 'voice' | 'ranking'
+  const [activeTab, setActiveTab] = useState('chat');
+  const [showVoiceModal, setShowVoiceModal] = useState(false);
+  const [showRankingModal, setShowRankingModal] = useState(false);
 
   useEffect(() => {
     if (slug) loadCommunity();
@@ -133,56 +135,80 @@ export default function CommunityPage() {
         onLeave={handleLeaveCommunity}
         joining={joining}
         user={user}
+        onVoiceClick={() => setShowVoiceModal(true)}
+        onRankingClick={() => setShowRankingModal(true)}
       />
 
       {/* Content Area */}
       <div className="flex-1 overflow-hidden lg:overflow-auto">
         {/* Mobile Layout */}
         <div className="lg:hidden h-full flex flex-col">
-          <AnimatePresence mode="wait">
-            {activeTab === 'chat' && (
+          <div className="flex-1 overflow-hidden">
+            <CommunityChat 
+              communityId={community.id}
+              communityName={community.name}
+              isMember={isMember}
+            />
+          </div>
+
+          {/* Voice Modal */}
+          <AnimatePresence>
+            {showVoiceModal && (
               <motion.div
-                key="chat"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                className="flex-1 overflow-hidden"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="fixed inset-0 z-50 bg-[#0a0a0f]/95 backdrop-blur-xl"
               >
-                <CommunityChat 
-                  communityId={community.id}
-                  communityName={community.name}
-                  isMember={isMember}
-                />
-              </motion.div>
-            )}
-            
-            {activeTab === 'voice' && (
-              <motion.div
-                key="voice"
-                initial={{ opacity: 0, x: 100 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -100 }}
-                className="flex-1 overflow-y-auto min-h-0"
-              >
-                <div className="p-4 pb-24">
-                  <VoicePanel 
-                    communityId={community.id}
-                    isMember={isMember}
-                  />
+                <div className="h-full flex flex-col">
+                  <div className="flex items-center justify-between px-4 py-3 border-b border-white/[0.06]">
+                    <h2 className="font-bold text-white/90 flex items-center gap-2">
+                      <Volume2 size={20} className="text-cyan-400" />
+                      Salas de Voz
+                    </h2>
+                    <button
+                      onClick={() => setShowVoiceModal(false)}
+                      className="p-2 rounded-xl hover:bg-white/5 text-white/60"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                  <div className="flex-1 overflow-y-auto p-4">
+                    <VoicePanel 
+                      communityId={community.id}
+                      isMember={isMember}
+                    />
+                  </div>
                 </div>
               </motion.div>
             )}
-            
-            {activeTab === 'ranking' && (
+          </AnimatePresence>
+
+          {/* Ranking Modal */}
+          <AnimatePresence>
+            {showRankingModal && (
               <motion.div
-                key="ranking"
-                initial={{ opacity: 0, x: 100 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -100 }}
-                className="flex-1 overflow-y-auto min-h-0"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="fixed inset-0 z-50 bg-[#0a0a0f]/95 backdrop-blur-xl"
               >
-                <div className="p-4 pb-24">
-                  <RankingPanel communityId={community.id} />
+                <div className="h-full flex flex-col">
+                  <div className="flex items-center justify-between px-4 py-3 border-b border-white/[0.06]">
+                    <h2 className="font-bold text-white/90 flex items-center gap-2">
+                      <Trophy size={20} className="text-orange-400" />
+                      Ranking
+                    </h2>
+                    <button
+                      onClick={() => setShowRankingModal(false)}
+                      className="p-2 rounded-xl hover:bg-white/5 text-white/60"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                  <div className="flex-1 overflow-y-auto p-4">
+                    <RankingPanel communityId={community.id} />
+                  </div>
                 </div>
               </motion.div>
             )}
@@ -231,7 +257,7 @@ export default function CommunityPage() {
 // MOBILE HEADER
 // ═══════════════════════════════════════════════════════════════════════════════
 
-function MobileHeader({ community, onBack, isMember, onJoin, onLeave, joining, user }) {
+function MobileHeader({ community, onBack, isMember, onJoin, onLeave, joining, user, onVoiceClick, onRankingClick }) {
   const [showMenu, setShowMenu] = useState(false);
 
   return (
@@ -253,14 +279,31 @@ function MobileHeader({ community, onBack, isMember, onJoin, onLeave, joining, u
                 <Hash size={12} className="text-cyan-400" />
               </div>
             )}
-            <h1 className="font-bold text-white/90 truncate max-w-[150px]">
+            <h1 className="font-bold text-white/90 truncate max-w-[120px]">
               {community?.name}
             </h1>
           </div>
-          <p className="text-[10px] text-white/40 flex items-center justify-center gap-1">
-            <Users size={10} />
-            {community?.member_count?.toLocaleString() || 0}
-          </p>
+          <div className="flex items-center justify-center gap-3 mt-1">
+            <p className="text-[10px] text-white/40 flex items-center gap-1">
+              <Users size={10} />
+              {community?.member_count?.toLocaleString() || 0}
+            </p>
+            {/* Quick access buttons in header */}
+            <button
+              onClick={onVoiceClick}
+              className="flex items-center gap-1 px-2 py-0.5 bg-cyan-500/10 hover:bg-cyan-500/20 rounded-full text-[9px] text-cyan-300 transition-colors"
+            >
+              <Volume2 size={10} />
+              Voz
+            </button>
+            <button
+              onClick={onRankingClick}
+              className="flex items-center gap-1 px-2 py-0.5 bg-orange-500/10 hover:bg-orange-500/20 rounded-full text-[9px] text-orange-300 transition-colors"
+            >
+              <Trophy size={10} />
+              Ranking
+            </button>
+          </div>
         </div>
 
         <button 
@@ -317,37 +360,14 @@ function MobileHeader({ community, onBack, isMember, onJoin, onLeave, joining, u
 // MOBILE BOTTOM TABS
 // ═══════════════════════════════════════════════════════════════════════════════
 
-function MobileBottomTabs({ activeTab, onTabChange }) {
-  const tabs = [
-    { id: 'chat', icon: MessageCircle, label: 'Chat' },
-    { id: 'voice', icon: Volume2, label: 'Voz' },
-    { id: 'ranking', icon: Trophy, label: 'Ranking' },
-  ];
-
+function MobileBottomTabs() {
   return (
     <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-[#0a0a0f]/90 backdrop-blur-xl border-t border-white/[0.06] pb-safe">
-      <div className="flex items-center justify-around px-2 py-2">
-        {tabs.map((tab) => {
-          const Icon = tab.icon;
-          const isActive = activeTab === tab.id;
-          
-          return (
-            <button
-              key={tab.id}
-              onClick={() => onTabChange(tab.id)}
-              className={`flex flex-col items-center gap-1 px-6 py-2 rounded-xl transition-all ${
-                isActive 
-                  ? 'text-cyan-400 bg-cyan-500/10' 
-                  : 'text-white/40 hover:text-white/60'
-              }`}
-            >
-              <Icon size={22} strokeWidth={isActive ? 2.5 : 2} />
-              <span className={`text-[10px] font-medium ${isActive ? 'font-semibold' : ''}`}>
-                {tab.label}
-              </span>
-            </button>
-          );
-        })}
+      <div className="flex items-center justify-center px-2 py-3">
+        <div className="flex items-center gap-2 px-8 py-2.5 rounded-xl text-cyan-400 bg-cyan-500/10">
+          <MessageCircle size={22} />
+          <span className="text-sm font-medium">Chat de Comunidad</span>
+        </div>
       </div>
     </nav>
   );
@@ -736,7 +756,7 @@ function VoicePanel({ communityId, isMember, compact }) {
   };
 
   const handleJoinRoom = (roomId) => {
-    navigate(`/voice/${roomId}`);
+    navigate(`/chat?voice=${roomId}`);
   };
 
   if (loading) {
