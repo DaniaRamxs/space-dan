@@ -112,14 +112,16 @@ export default function TextChannel({ channel, communityId, isMember, isOwner })
         const result = await botCommandService.executeCommand(content, communityId, user?.id);
         
         if (result.isBotCommand) {
+          const botContent = result.result || result.message || 'Bot response';
+          
           // Save bot response to database so it persists
           try {
             const { data: savedBotMsg, error: botError } = await supabase
               .from('channel_messages')
               .insert({
                 channel_id: channel.id,
-                user_id: user?.id, // Use current user's ID (bot messages are marked by is_bot flag)
-                content: result.result,
+                user_id: user?.id,
+                content: botContent,
                 is_bot: true,
                 bot_name: 'ChimuBot 🕊️',
               })
@@ -145,7 +147,7 @@ export default function TextChannel({ channel, communityId, isMember, isOwner })
             // Fallback: just show locally without saving
             const botMessage = {
               id: `bot-${Date.now()}`,
-              content: result.result,
+              content: botContent,
               user_id: 'bot-chimu',
               author: {
                 id: 'bot-chimu',

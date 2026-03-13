@@ -44,6 +44,11 @@ export const botCommandService = {
       if (botName === 'chimu') {
         return await this.executeChimuCommand(command, args, communityId, userId);
       }
+      
+      // Para WelcomeBot
+      if (botName === 'welcome') {
+        return await this.executeWelcomeCommand(command, args, communityId, userId);
+      }
 
       // Para otros bots usaríamos la API
       const response = await fetch(`${API_URL}/api/bots/command`, {
@@ -333,6 +338,124 @@ export const botCommandService = {
     const filled = Math.round(value / 10);
     const empty = 10 - filled;
     return '█'.repeat(filled) + '░'.repeat(empty);
+  },
+
+  /**
+   * Ejecuta comando de WelcomeBot
+   */
+  async executeWelcomeCommand(command, args, communityId, userId) {
+    // Check if user is community owner
+    const { data: community, error: communityError } = await supabase
+      .from('communities')
+      .select('creator_id')
+      .eq('id', communityId)
+      .single();
+    
+    if (communityError) {
+      return { isBotCommand: true, result: '❌ Error al verificar permisos' };
+    }
+    
+    const isOwner = community?.creator_id === userId;
+    
+    if (!isOwner) {
+      return { 
+        isBotCommand: true, 
+        result: '❌ Solo el owner de la comunidad puede configurar el WelcomeBot' 
+      };
+    }
+
+    switch (command) {
+      case 'setup':
+        return { 
+          isBotCommand: true, 
+          result: `🤖 **WelcomeBot Configuration**
+
+📋 Configuración actual:
+• Mensaje: ¡Bienvenido {user}! 🎉
+• Color: #5865F2
+• Canal: #bienvenida
+
+✏️ Para cambiar el mensaje, usa:
+\`/welcome message Tu mensaje personalizado\`
+
+🎨 Para cambiar el color:
+\`/welcome color #FF0000\`
+
+📍 Para cambiar el canal:
+\`/welcome channel #nombre-canal\`
+
+💡 Variables disponibles:
+\`{user}\` - Mención al usuario
+\`{username}\` - Nombre del usuario  
+\`{server}\` - Nombre del servidor
+\`{memberCount}\` - Número de miembros`
+        };
+
+      case 'message':
+        const message = args.join(' ');
+        if (!message) {
+          return { isBotCommand: true, result: '❌ Uso: /welcome message <tu mensaje>' };
+        }
+        // Save to settings
+        await this.saveWelcomeSettings(communityId, { customMessage: message });
+        return { isBotCommand: true, result: `✅ Mensaje actualizado: "${message}"` };
+
+      case 'color':
+        const color = args[0];
+        if (!color || !color.match(/^#[0-9A-Fa-f]{6}$/)) {
+          return { isBotCommand: true, result: '❌ Uso: /welcome color #RRGGBB (ej: #5865F2)' };
+        }
+        await this.saveWelcomeSettings(communityId, { accentColor: color });
+        return { isBotCommand: true, result: `✅ Color actualizado a ${color}` };
+
+      case 'test':
+        return { 
+          isBotCommand: true, 
+          result: `👋 **Mensaje de prueba:**
+
+¡Bienvenido @Dan! 🎉
+
+📜 Reglas Importantes
+1. Sé respetuoso
+2. No spam
+3. Diviértete 🎉
+
+📊 En este servidor
+Somos **42** miembros
+Únete a la conversación!`
+        };
+
+      case 'help':
+      default:
+        return { 
+          isBotCommand: true, 
+          result: `🤖 **WelcomeBot Comandos:**
+
+• /welcome setup - Ver configuración
+• /welcome message <texto> - Cambiar mensaje
+• /welcome color #RRGGBB - Cambiar color
+• /welcome test - Probar mensaje
+• /welcome enable - Activar
+• /welcome disable - Desactivar
+
+Variables: {user}, {username}, {server}, {memberCount}` 
+        };
+    }
+  },
+
+  async saveWelcomeSettings(communityId, settings) {
+    const { error } = await supabase
+      .from('community_bot_settings')
+      .upsert({
+        community_id: communityId,
+        bot_type: 'welcome',
+        settings,
+        updated_at: new Date().toISOString()
+      }, {
+        onConflict: 'community_id,bot_type'
+      });
+    
+    if (error) throw error;
   }
 };
 
