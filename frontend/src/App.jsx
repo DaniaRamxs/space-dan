@@ -606,6 +606,16 @@ const isTauri = typeof window !== 'undefined' && (
   window.location.hostname === 'tauri.localhost' ||
   window.location.protocol === 'tauri:'
 );
+
+// Tauri Desktop oAuth Recovery: HashRouter completely ignores window.location.pathname 
+// and window.location.search, resolving them as the root `/`. 
+// If Supabase redirects us to `http://tauri.localhost/auth/callback?code=...`, we must 
+// inject that back into the hash `/#/auth/callback?code=...` before React routes it.
+if (typeof window !== 'undefined' && isTauri && window.location.pathname === '/auth/callback') {
+  const recoveredUrl = `/#/auth/callback${window.location.search}${window.location.hash}`;
+  window.history.replaceState(null, '', recoveredUrl);
+}
+
 const AppRouter = isTauri ? HashRouter : BrowserRouter;
 
 export default function App() {

@@ -103,7 +103,7 @@ export default function DesktopDownloadSection() {
                             {/* Android Download */}
                             <div className="flex flex-col items-center lg:items-start gap-4">
                                 <motion.a
-                                    href="https://github.com/DaniaRamxs/space-dan/releases/download/v1.3.5/spacely1.3.5.apk"
+                                    href="https://github.com/DaniaRamxs/space-dan/releases/download/v1.3.6/spacely1.3.6.apk"
                                     download
                                     whileHover={{ scale: 1.05 }}
                                     whileTap={{ scale: 0.95 }}

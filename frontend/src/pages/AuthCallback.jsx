@@ -1,9 +1,10 @@
 import React, { useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
 
 export default function AuthCallback() {
     const navigate = useNavigate();
+    const location = useLocation();
     const hasExchanged = useRef(false);
 
     useEffect(() => {
@@ -11,7 +12,9 @@ export default function AuthCallback() {
             if (hasExchanged.current) return;
 
             try {
-                const params = new URLSearchParams(window.location.search);
+                // Compatible with both BrowserRouter (Web) & HashRouter (Tauri)
+                const searchParams = location.search || window.location.search;
+                const params = new URLSearchParams(searchParams);
                 const code = params.get('code');
 
                 if (code) {
