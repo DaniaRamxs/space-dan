@@ -41,6 +41,18 @@ export default function EmojiPicker({ communityId, onSelect, isOwner, userId, on
       return;
     }
 
+    // Nombre del emoji: nombre del archivo sin extensión, solo alfanumérico
+    const rawName = file.name.replace(/\.[^.]+$/, '');
+    const emojiName = rawName.toLowerCase().replace(/[^a-z0-9_-]/g, '').slice(0, 32) || `emoji${Date.now()}`;
+
+    // Verificar si el nombre ya existe en la comunidad
+    const existing = customEmojis.find(e => e.name === emojiName);
+    if (existing) {
+      toast.error(`Este nombre de emoji ya existe en la comunidad: :${emojiName}:`);
+      e.target.value = '';
+      return;
+    }
+
     try {
       setUploading(true);
       const fileExt = file.name.split('.').pop().toLowerCase();
@@ -55,10 +67,6 @@ export default function EmojiPicker({ communityId, onSelect, isOwner, userId, on
       const { data: { publicUrl } } = supabase.storage
         .from('emojis')
         .getPublicUrl(fileName);
-
-      // Nombre del emoji: nombre del archivo sin extensión, solo alfanumérico
-      const rawName = file.name.replace(/\.[^.]+$/, '');
-      const emojiName = rawName.toLowerCase().replace(/[^a-z0-9_-]/g, '').slice(0, 32) || `emoji${Date.now()}`;
 
       const { error: insertError } = await supabase
         .from('community_emojis')
