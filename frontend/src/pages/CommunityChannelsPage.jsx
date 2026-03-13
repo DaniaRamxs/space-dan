@@ -3,11 +3,9 @@
  * Página principal de comunidad con sistema de canales
  */
 
-import { useState, useEffect, useCallback, lazy, Suspense } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-
-const VoiceRoomUI = lazy(() => import('../components/VoiceRoom/VoiceRoomUI'));
 import { 
   Menu, ChevronLeft, Users, Hash, Volume2, MessageSquare,
   MoreVertical, Settings, Plus, Shield, Link2, Clock
@@ -47,22 +45,8 @@ export default function CommunityChannelsPage() {
   const [needsSetup, setNeedsSetup] = useState(false);
   const [settingUp, setSettingUp] = useState(false);
 
-  // Sala de voz de comunidad (embebida, no redirige al chat global)
-  const [hasJoinedVoice, setHasJoinedVoice] = useState(false);
-  const [voiceRoomName, setVoiceRoomName] = useState('');
-  const [showVoiceRoom, setShowVoiceRoom] = useState(true);
-
-  const handleJoinVoice = (roomName, channelName) => {
-    setVoiceRoomName(roomName);
-    setShowVoiceRoom(true);
-    setHasJoinedVoice(true);
-  };
-
-  const handleLeaveVoice = () => {
-    setHasJoinedVoice(false);
-    setVoiceRoomName('');
-    setShowVoiceRoom(false);
-  };
+  // callback para cuando el canal de voz establece conexión (por si se necesita en el futuro)
+  const handleJoinVoice = (_roomName, _channelName) => {};
 
   // Load community and channels
   const loadCommunityData = useCallback(async () => {
@@ -204,7 +188,17 @@ export default function CommunityChannelsPage() {
       case 'text':
         return <TextChannel {...props} />;
       case 'voice':
-        return <VoiceChannel {...props} onJoinVoice={handleJoinVoice} />;
+        return (
+          <VoiceChannel
+            {...props}
+            onJoinVoice={handleJoinVoice}
+            userAvatar={profile?.avatar_url}
+            userName={profile?.username}
+            nicknameStyle={profile?.equipped_nickname_style}
+            frameId={profile?.frame_item_id}
+            activityLevel={profile?.activity_level}
+          />
+        );
       case 'forum':
         return <ForumChannel {...props} />;
       default:
@@ -499,24 +493,7 @@ export default function CommunityChannelsPage() {
         onClose={() => setShowAuditModal(false)}
       />
 
-      {/* Sala de voz de comunidad — overlay como en el chat global */}
-      {hasJoinedVoice && (
-        <Suspense fallback={null}>
-          <VoiceRoomUI
-            key={voiceRoomName}
-            roomName={voiceRoomName}
-            isOpen={showVoiceRoom}
-            onMinimize={() => setShowVoiceRoom(false)}
-            onExpand={() => setShowVoiceRoom(true)}
-            onLeave={handleLeaveVoice}
-            userAvatar={profile?.avatar_url}
-            nicknameStyle={profile?.equipped_nickname_style}
-            frameId={profile?.frame_item_id}
-            userName={profile?.username}
-            activityLevel={profile?.activity_level}
-          />
-        </Suspense>
-      )}
+      {/* El canal de voz ya gestiona LiveKit internamente — no se usa VoiceRoomUI overlay aquí */}
     </div>
   );
 }
