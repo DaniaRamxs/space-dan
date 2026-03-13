@@ -18,9 +18,10 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Trophy, Play, RotateCcw, User, Tv2, Smartphone, Gamepad2, Info, Crown } from 'lucide-react';
+import { X, Trophy, Play, RotateCcw, User, Tv2, Smartphone, Gamepad2, Info, Crown, Volume2, VolumeX } from 'lucide-react';
 import { client } from '../../services/colyseusClient';
 import { useAuthContext } from '../../contexts/AuthContext';
+import { useGameAudio } from '../../hooks/useGameAudio';
 import toast from 'react-hot-toast';
 
 // ─── Dimensiones del tablero (deben coincidir con el servidor) ────────────────
@@ -34,6 +35,8 @@ export default function Connect4Game({ roomName, onClose, isTheater, onToggleThe
     const [room, setRoom] = useState(null);
     const [state, setState] = useState(null);
     const [connecting, setConnecting] = useState(true);
+    const audio        = useGameAudio('connect4');
+    const prevPhaseRef = useRef(null);
 
     // ── Conexión a Colyseus ───────────────────────────────────────────────────
     useEffect(() => {
@@ -123,6 +126,25 @@ export default function Connect4Game({ roomName, onClose, isTheater, onToggleThe
         });
     };
 
+    // ── Audio: BGM + SFX ─────────────────────────────────────────────────────
+    useEffect(() => {
+        const phase = state?.phase;
+        if (phase === prevPhaseRef.current) return;
+        prevPhaseRef.current = phase;
+        if (phase === 'playing') {
+            audio.playBgm();
+        } else if (phase === 'finished') {
+            audio.stopBgm();
+            if (!isSpectator) {
+                const mySlot = isInSlot1 ? '1' : '2';
+                if (state.winner === mySlot) audio.sfx.win();
+                else if (state.winner !== '3') audio.sfx.lose();
+            }
+        } else if (phase === 'waiting' || phase === 'lobby') {
+            audio.stopBgm();
+        }
+    }, [state?.phase]);
+
     /**
      * El jugador activo droppea una ficha en la columna `col`.
      * El servidor valida si es el turno correcto y si la columna no está llena.
@@ -130,6 +152,7 @@ export default function Connect4Game({ roomName, onClose, isTheater, onToggleThe
     const handleDrop = (col) => {
         if (!isMyTurn || state.phase !== 'playing') return;
         room.send('drop', { col });
+        audio.sfx.place();
     };
 
     const handleReset = () => {
@@ -154,7 +177,14 @@ export default function Connect4Game({ roomName, onClose, isTheater, onToggleThe
                         <p className="text-[8px] text-white/30 uppercase tracking-widest mt-1.5 font-bold">Duelo Galáctico</p>
                     </div>
                 </div>
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2">
+                    <button
+                        onClick={audio.toggleMute}
+                        className={`p-2.5 rounded-xl transition-all border ${audio.muted ? 'bg-white/5 text-gray-500 border-white/10' : 'bg-purple-500/10 text-purple-400 border-purple-500/20 hover:bg-purple-500/20'}`}
+                        title={audio.muted ? 'Activar sonido' : 'Silenciar'}
+                    >
+                        {audio.muted ? <VolumeX size={15} /> : <Volume2 size={15} />}
+                    </button>
                     <button
                         onClick={onToggleTheater}
                         className="p-2.5 rounded-xl bg-white/5 text-white/30 hover:text-white transition-all border border-white/5 hover:bg-white/10"

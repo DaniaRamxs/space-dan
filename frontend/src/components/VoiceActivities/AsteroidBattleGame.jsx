@@ -23,10 +23,11 @@ import { client } from '../../services/colyseusClient';
 import { useAuthContext } from '../../contexts/AuthContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-    Crosshair, Trophy, Zap, X, Rocket, Timer, Users
+    Crosshair, Trophy, Zap, X, Rocket, Timer, Users, Volume2, VolumeX
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { getLeaderboard } from '../../services/supabaseScores';
+import { useGameAudio } from '../../hooks/useGameAudio';
 
 // Dimensiones del mundo de juego (coordenadas del servidor)
 const WORLD_WIDTH  = 1200;
@@ -48,6 +49,9 @@ export default function AsteroidBattleGame({ roomName, onClose }) {
     const keysRef      = useRef({ w: false, a: false, s: false, d: false });
     const mouseRef     = useRef({ x: 0, y: 0 });
     const joystickRef  = useRef({ active: false, x: 0, y: 0 });
+    const prevPhaseRef = useRef(null);
+
+    const audio = useGameAudio('asteroids');
 
     const [room,                  setRoom]                  = useState(null);
     const [state,                 setState]                 = useState(null);
@@ -59,6 +63,24 @@ export default function AsteroidBattleGame({ roomName, onClose }) {
 
     // Mantener ref sincronizada con el estado para el loop de inputs
     useEffect(() => { stateRef.current = state; }, [state]);
+
+    // ── Audio: BGM y SFX de fase ──────────────────────────────────────────────
+    useEffect(() => {
+        const phase = state?.phase;
+        if (phase === prevPhaseRef.current) return;
+        prevPhaseRef.current = phase;
+
+        if (phase === 'playing') {
+            audio.playBgm();
+        } else if (phase === 'finished') {
+            audio.stopBgm();
+            const playersArr = Array.from(state?.players?.values() || []);
+            const myPlayer   = playersArr.find(p => p.sessionId === myId);
+            const winner     = [...playersArr].sort((a, b) => b.score - a.score)[0];
+            if (winner && myPlayer && winner.sessionId === myId) audio.sfx.win();
+            else audio.sfx.lose();
+        }
+    }, [state?.phase]);
 
     // ── Conexión a Colyseus ───────────────────────────────────────────────────
     useEffect(() => {
@@ -164,6 +186,7 @@ export default function AsteroidBattleGame({ roomName, onClose }) {
             // Ignorar clics sobre botones de UI
             if (e.target.closest('button')) return;
             room.send('shoot');
+            audio.sfx.shoot();
         };
 
         window.addEventListener('keydown',   onKeyDown);
@@ -410,6 +433,17 @@ export default function AsteroidBattleGame({ roomName, onClose }) {
                         <Users size={18} />
                     </button>
                     <button
+                        aria-label={audio.muted ? 'Activar sonido' : 'Silenciar'}
+                        onClick={audio.toggleMute}
+                        className={`w-10 h-10 rounded-xl border flex items-center justify-center backdrop-blur-xl transition-colors ${
+                            audio.muted
+                                ? 'bg-white/5 border-white/10 text-gray-500'
+                                : 'bg-cyan-500/10 border-cyan-500/20 text-cyan-400 hover:bg-cyan-500/20'
+                        }`}
+                    >
+                        {audio.muted ? <VolumeX size={18} /> : <Volume2 size={18} />}
+                    </button>
+                    <button
                         aria-label="Salir del juego"
                         onClick={onClose}
                         className="w-10 h-10 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 flex items-center justify-center backdrop-blur-xl hover:bg-rose-500/20 transition-colors"
@@ -568,7 +602,7 @@ export default function AsteroidBattleGame({ roomName, onClose }) {
                         {/* Botón de disparo */}
                         <button
                             aria-label="Disparar"
-                            onPointerDown={() => room?.send('shoot')}
+                            onPointerDown={() => { room?.send('shoot'); audio.sfx.shoot(); }}
                             className="absolute bottom-10 right-10 w-24 h-24 rounded-full bg-rose-500/20 border-2 border-rose-500/40 backdrop-blur-xl pointer-events-auto flex items-center justify-center active:scale-90 transition-transform shadow-[0_0_40px_rgba(244,63,94,0.2)]"
                         >
                             <Zap size={32} className="text-white fill-current" />

@@ -18,14 +18,16 @@
  *   dando un efecto de "trail" visual sin necesidad de textura.
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     X, Trophy, RotateCcw, User, Zap, Tv2, Info,
-    ChevronUp, ChevronDown, ChevronLeft, ChevronRight, Crown
+    ChevronUp, ChevronDown, ChevronLeft, ChevronRight, Crown,
+    Volume2, VolumeX
 } from 'lucide-react';
 import { client } from '../../services/colyseusClient';
 import { useAuthContext } from '../../contexts/AuthContext';
+import { useGameAudio } from '../../hooks/useGameAudio';
 import toast from 'react-hot-toast';
 
 // Tamaño del grid en celdas — debe coincidir con el valor del servidor
@@ -36,6 +38,9 @@ export default function SnakeDuelGame({ roomName, onClose, isTheater, onToggleTh
     const [room,       setRoom]       = useState(null);
     const [state,      setState]      = useState(null);
     const [connecting, setConnecting] = useState(true);
+    const audio        = useGameAudio('snake');
+    const prevPhaseRef = useRef(null);
+    const prevAppleRef = useRef(null);
 
     // ── Conexión a la sala de Colyseus ────────────────────────────────────────
     // `activeRoom` es la referencia local del efecto — necesaria porque `room`
@@ -94,12 +99,38 @@ export default function SnakeDuelGame({ roomName, onClose, isTheater, onToggleTh
         return () => { if (activeRoom) activeRoom.leave(); };
     }, []); // Sin dependencias — la conexión es única al montar
 
+    // ── Audio: BGM + SFX de fase y manzana ───────────────────────────────────
+    useEffect(() => {
+        const phase = state?.phase;
+        if (phase !== prevPhaseRef.current) {
+            prevPhaseRef.current = phase;
+            if (phase === 'playing') {
+                audio.playBgm();
+            } else if (phase === 'finished') {
+                audio.stopBgm();
+                const isMePlaying = room && (room.sessionId === state?.p1 || room.sessionId === state?.p2);
+                if (isMePlaying) {
+                    if (state?.winner === room?.sessionId) audio.sfx.win();
+                    else audio.sfx.lose();
+                }
+            } else if (phase === 'waiting') {
+                audio.stopBgm();
+            }
+        }
+        // Detectar que se comió la manzana (posición de apple cambia)
+        const apple = state?.apple;
+        if (apple && prevAppleRef.current) {
+            if (apple.x !== prevAppleRef.current.x || apple.y !== prevAppleRef.current.y) {
+                audio.sfx.eat();
+            }
+        }
+        prevAppleRef.current = apple ? { x: apple.x, y: apple.y } : null;
+    }, [state?.phase, state?.apple?.x, state?.apple?.y]);
+
     // ── Enviar dirección al servidor ──────────────────────────────────────────
     const handleInput = (direction) => {
-        // Solo enviar input si estamos en el juego y es nuestro turno
         if (!room || !state || state.phase !== 'playing') return;
-        if (!isMeInGame) return; // Solo jugadores pueden enviar inputs
-        
+        if (!isMeInGame) return;
         room.send('input', { direction });
     };
 
@@ -180,7 +211,14 @@ export default function SnakeDuelGame({ roomName, onClose, isTheater, onToggleTh
                         <p className="text-[8px] text-white/30 uppercase tracking-wider">Resistencia Máxima</p>
                     </div>
                 </div>
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2">
+                    <button
+                        onClick={audio.toggleMute}
+                        className={`p-2.5 rounded-xl transition-all border ${audio.muted ? 'bg-white/5 text-gray-500 border-white/10' : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20 hover:bg-emerald-500/20'}`}
+                        title={audio.muted ? 'Activar sonido' : 'Silenciar'}
+                    >
+                        {audio.muted ? <VolumeX size={15} /> : <Volume2 size={15} />}
+                    </button>
                     <button
                         onClick={onToggleTheater}
                         className="p-2.5 rounded-xl bg-white/5 text-white/30 hover:text-white transition-all border border-white/5 hover:bg-white/10"

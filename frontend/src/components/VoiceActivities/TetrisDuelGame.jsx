@@ -22,15 +22,16 @@
  *   Espacio  Drop instantáneo
  */
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     X, Trophy, User, Zap, Tv2, Info,
     ChevronUp, ChevronDown, ChevronLeft, ChevronRight,
-    RotateCcw, Crown
+    RotateCcw, Crown, Volume2, VolumeX
 } from 'lucide-react';
 import { client } from '../../services/colyseusClient';
 import { useAuthContext } from '../../contexts/AuthContext';
+import { useGameAudio } from '../../hooks/useGameAudio';
 import toast from 'react-hot-toast';
 
 // Dimensiones del tablero — deben coincidir con el servidor
@@ -53,6 +54,8 @@ export default function TetrisDuelGame({ roomName, onClose, isTheater, onToggleT
     const [room, setRoom] = useState(null);
     const [state, setState] = useState(null);
     const [connecting, setConnecting] = useState(true);
+    const audio = useGameAudio('tetris');
+    const prevPhaseRef = useRef(null);
 
     // ── Conexión a la sala de Colyseus ────────────────────────────────────────
     useEffect(() => {
@@ -90,9 +93,11 @@ export default function TetrisDuelGame({ roomName, onClose, isTheater, onToggleT
     // ── Enviar movimiento al servidor ─────────────────────────────────────────
     const handleInput = (dir) => {
         if (!room || state?.phase !== 'playing') return;
-        // Verificar que la conexión siga abierta antes de enviar
         if (room.connection?.isOpen) {
             room.send('move', { dir });
+            if (dir === 'LEFT' || dir === 'RIGHT' || dir === 'DOWN') audio.sfx.move();
+            else if (dir === 'ROTATE') audio.sfx.rotate();
+            else if (dir === 'DROP') audio.sfx.drop();
         }
     };
 
@@ -114,6 +119,27 @@ export default function TetrisDuelGame({ roomName, onClose, isTheater, onToggleT
         window.addEventListener('keydown', onKeyDown);
         return () => window.removeEventListener('keydown', onKeyDown);
     }, [room, state?.phase]);
+
+    // ── Audio: BGM + SFX de fase ──────────────────────────────────────────────
+    useEffect(() => {
+        const phase = state?.phase;
+        if (phase === prevPhaseRef.current) return;
+        prevPhaseRef.current = phase;
+        if (phase === 'playing') {
+            audio.playBgm();
+        } else if (phase === 'finished') {
+            audio.stopBgm();
+            const isInSlot1 = room?.sessionId === state?.p1;
+            const isInSlot2 = room?.sessionId === state?.p2;
+            const isSpectator = !isInSlot1 && !isInSlot2;
+            if (!isSpectator) {
+                const didWin = state?.winner === room?.sessionId;
+                if (didWin) audio.sfx.win(); else audio.sfx.lose();
+            }
+        } else if (phase === 'waiting' && prevPhaseRef.current === 'playing') {
+            audio.stopBgm();
+        }
+    }, [state?.phase]);
 
     // ── Estado de carga ───────────────────────────────────────────────────────
     if (connecting || !state || !room) {
@@ -178,7 +204,14 @@ export default function TetrisDuelGame({ roomName, onClose, isTheater, onToggleT
                         <p className="text-[8px] text-white/30 uppercase tracking-widest mt-1.5 font-bold">Arquitectura en Tiempo Real</p>
                     </div>
                 </div>
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2">
+                    <button
+                        onClick={audio.toggleMute}
+                        className={`p-2.5 rounded-xl transition-all border ${audio.muted ? 'bg-white/5 text-gray-500 border-white/10' : 'bg-blue-500/10 text-blue-400 border-blue-500/20 hover:bg-blue-500/20'}`}
+                        title={audio.muted ? 'Activar sonido' : 'Silenciar'}
+                    >
+                        {audio.muted ? <VolumeX size={15} /> : <Volume2 size={15} />}
+                    </button>
                     <button
                         onClick={onClose}
                         className="p-2.5 rounded-xl bg-rose-500/10 text-rose-400 hover:bg-rose-500/20 transition-all border border-rose-500/20 group"
