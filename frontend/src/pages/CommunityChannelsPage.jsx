@@ -8,7 +8,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Menu, ChevronLeft, Hash, Volume2, MessageSquare,
-  Settings, Plus, Shield, Link2, Clock, Trophy, X
+  Settings, Plus, Shield, Link2, Clock, Trophy, X, Users
 } from 'lucide-react';
 import { supabase } from '../supabaseClient';
 import { useAuthContext } from '../contexts/AuthContext';
@@ -19,6 +19,7 @@ import TextChannel from '../components/Channels/TextChannel';
 import VoiceChannel from '../components/Channels/VoiceChannel';
 import ForumChannel from '../components/Channels/ForumChannel';
 import RankingPanel from '../components/RankingPanel';
+import CommunityMemberList from '../components/Communities/CommunityMemberList';
 import InviteModal from '../components/Channels/InviteModal';
 import RoleManagerModal from '../components/Channels/RoleManagerModal';
 import AuditLogModal from '../components/Channels/AuditLogModal';
@@ -45,11 +46,17 @@ export default function CommunityChannelsPage() {
   const [needsSetup, setNeedsSetup] = useState(false);
   const [settingUp, setSettingUp] = useState(false);
 
+  // Canal de voz activo — se mantiene montado aunque el usuario navegue a otro canal
+  const [activeVoiceChannel, setActiveVoiceChannel] = useState(null);
+
   // callback para cuando el canal de voz establece conexión
   const handleJoinVoice = (_roomName, _channelName) => {};
 
   // Ranking panel en mobile
   const [showMobileRanking, setShowMobileRanking] = useState(false);
+  // Panel de miembros
+  const [showMobileMembers, setShowMobileMembers] = useState(false);
+  const [rightPanel, setRightPanel] = useState('ranking'); // 'ranking' | 'members'
 
   // Load community and channels
   const loadCommunityData = useCallback(async () => {
@@ -168,46 +175,70 @@ export default function CommunityChannelsPage() {
 
   // Render channel content based on type
   const renderChannelContent = () => {
-    if (!currentChannel) {
-      return (
-        <div className="flex-1 flex items-center justify-center bg-[#0f0f13]">
-          <div className="text-center">
-            <Hash size={48} className="text-gray-600 mx-auto mb-4" />
-            <p className="text-gray-500">Selecciona un canal para empezar</p>
+    const voiceChannels = channels.filter(c => c.type === 'voice');
+
+    const isViewingVoice = currentChannel?.type === 'voice';
+    const showEmpty = !currentChannel;
+
+    return (
+      <>
+        {/* Canales de voz — siempre montados para no cortar la conexión */}
+        {voiceChannels.map(vc => (
+          <div
+            key={vc.id}
+            className="flex-1 flex flex-col min-w-0 min-h-0"
+            style={{ display: isViewingVoice && currentChannel?.id === vc.id ? 'flex' : 'none' }}
+          >
+            <VoiceChannel
+              channel={vc}
+              communityId={community?.id}
+              communityName={community?.name}
+              isMember={isMember}
+              isOwner={isOwner}
+              onJoinVoice={handleJoinVoice}
+              onVoiceConnected={() => setActiveVoiceChannel(vc.id)}
+              onVoiceDisconnected={() => setActiveVoiceChannel(null)}
+              userId={user?.id}
+              userAvatar={profile?.avatar_url}
+              userName={profile?.username}
+              nicknameStyle={profile?.equipped_nickname_style}
+              frameId={profile?.frame_item_id}
+              activityLevel={profile?.activity_level}
+            />
           </div>
-        </div>
-      );
-    }
+        ))}
 
-    const props = {
-      channel: currentChannel,
-      communityId: community?.id,
-      communityName: community?.name,
-      isMember,
-      isOwner,
-    };
-
-    switch (currentChannel.type) {
-      case 'text':
-        return <TextChannel {...props} />;
-      case 'voice':
-        return (
-          <VoiceChannel
-            {...props}
-            onJoinVoice={handleJoinVoice}
-            userId={user?.id}
-            userAvatar={profile?.avatar_url}
-            userName={profile?.username}
-            nicknameStyle={profile?.equipped_nickname_style}
-            frameId={profile?.frame_item_id}
-            activityLevel={profile?.activity_level}
-          />
-        );
-      case 'forum':
-        return <ForumChannel {...props} />;
-      default:
-        return <TextChannel {...props} />;
-    }
+        {/* Canal de texto / foro / vacío */}
+        {!isViewingVoice && (
+          <div className="flex-1 flex flex-col min-w-0 min-h-0">
+            {showEmpty ? (
+              <div className="flex-1 flex items-center justify-center bg-[#0f0f13]">
+                <div className="text-center">
+                  <Hash size={48} className="text-gray-600 mx-auto mb-4" />
+                  <p className="text-gray-500">Selecciona un canal para empezar</p>
+                </div>
+              </div>
+            ) : currentChannel.type === 'forum' ? (
+              <ForumChannel
+                channel={currentChannel}
+                communityId={community?.id}
+                communityName={community?.name}
+                isMember={isMember}
+                isOwner={isOwner}
+              />
+            ) : (
+              <TextChannel
+                channel={currentChannel}
+                communityId={community?.id}
+                communityName={community?.name}
+                isMember={isMember}
+                isOwner={isOwner}
+              />
+            )}
+          </div>
+        )}
+      </>
+    );
   };
 
   if (loading) {
@@ -442,6 +473,7 @@ export default function CommunityChannelsPage() {
             user={user}
             isMobileOpen={mobileSidebarOpen}
             onMobileClose={() => setMobileSidebarOpen(false)}
+            activeVoiceChannelId={activeVoiceChannel}
           />
         </div>
       </motion.aside>
@@ -466,23 +498,68 @@ export default function CommunityChannelsPage() {
             </span>
           </div>
 
-          {/* Botón ranking mobile */}
-          <button
-            onClick={() => setShowMobileRanking(true)}
-            className="p-2 -mr-1 text-gray-400 hover:text-orange-400 transition-colors relative"
-            aria-label="Ver ranking"
-          >
-            <Trophy size={20} />
-          </button>
+          {/* Botones mobile: ranking + miembros */}
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => setShowMobileMembers(true)}
+              className="p-2 text-gray-400 hover:text-cyan-400 transition-colors"
+              aria-label="Ver miembros"
+            >
+              <Users size={20} />
+            </button>
+            <button
+              onClick={() => setShowMobileRanking(true)}
+              className="p-2 -mr-1 text-gray-400 hover:text-orange-400 transition-colors"
+              aria-label="Ver ranking"
+            >
+              <Trophy size={20} />
+            </button>
+          </div>
         </header>
 
         {/* Channel Content */}
         <div className="flex-1 flex overflow-hidden">
           {renderChannelContent()}
           
-          {/* Right Panel - Ranking (Desktop lg+) */}
-          <aside className="hidden lg:flex w-64 xl:w-72 border-l border-white/5 bg-[#0f0f13] p-4 flex-col">
-            <RankingPanel communityId={community.id} compact />
+          {/* Right Panel — Desktop lg+ */}
+          <aside className="hidden lg:flex w-64 xl:w-72 border-l border-white/5 bg-[#0f0f13] flex-col">
+            {/* Tabs */}
+            <div className="flex border-b border-white/5 shrink-0">
+              <button
+                onClick={() => setRightPanel('ranking')}
+                className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs font-semibold uppercase tracking-wider transition-all ${
+                  rightPanel === 'ranking'
+                    ? 'text-orange-400 border-b-2 border-orange-400'
+                    : 'text-gray-500 hover:text-gray-300'
+                }`}
+              >
+                <Trophy size={13} />
+                Ranking
+              </button>
+              <button
+                onClick={() => setRightPanel('members')}
+                className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs font-semibold uppercase tracking-wider transition-all ${
+                  rightPanel === 'members'
+                    ? 'text-cyan-400 border-b-2 border-cyan-400'
+                    : 'text-gray-500 hover:text-gray-300'
+                }`}
+              >
+                <Users size={13} />
+                Miembros
+              </button>
+            </div>
+            <div className="flex-1 overflow-hidden">
+              {rightPanel === 'ranking' ? (
+                <div className="p-4 h-full overflow-y-auto">
+                  <RankingPanel communityId={community.id} compact />
+                </div>
+              ) : (
+                <CommunityMemberList
+                  communityId={community.id}
+                  memberCount={community.member_count}
+                />
+              )}
+            </div>
           </aside>
         </div>
       </main>
@@ -505,6 +582,47 @@ export default function CommunityChannelsPage() {
         isOpen={showAuditModal}
         onClose={() => setShowAuditModal(false)}
       />
+
+      {/* Bottom sheet miembros — solo mobile */}
+      <AnimatePresence>
+        {showMobileMembers && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="lg:hidden fixed inset-0 bg-black/50 z-40"
+              onClick={() => setShowMobileMembers(false)}
+            />
+            <motion.div
+              initial={{ y: '100%' }}
+              animate={{ y: 0 }}
+              exit={{ y: '100%' }}
+              transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+              className="lg:hidden fixed bottom-0 left-0 right-0 bg-[#1a1a24] border-t border-white/10 rounded-t-2xl z-50 max-h-[70vh] flex flex-col"
+            >
+              <div className="flex items-center justify-between px-4 py-3 border-b border-white/5 shrink-0">
+                <div className="flex items-center gap-2">
+                  <Users size={16} className="text-cyan-400" />
+                  <span className="font-semibold text-white text-sm">Miembros</span>
+                </div>
+                <button
+                  onClick={() => setShowMobileMembers(false)}
+                  className="p-1 text-gray-400 hover:text-white transition-colors"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+              <div className="flex-1 overflow-y-auto">
+                <CommunityMemberList
+                  communityId={community.id}
+                  memberCount={community.member_count}
+                />
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
 
       {/* Bottom sheet ranking — solo mobile */}
       <AnimatePresence>

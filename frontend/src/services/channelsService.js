@@ -187,4 +187,72 @@ export const channelsService = {
     if (error) throw error;
     return data || { success: false, error: 'Unknown error' };
   },
+
+  // ── Pasaportes de miembro ─────────────────────────────────────────────────
+
+  async getPassport(userId, communityId) {
+    const { data } = await supabase
+      .from('community_member_passports')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('community_id', communityId)
+      .maybeSingle();
+    return data;
+  },
+
+  async upsertPassport(userId, communityId, { signature }) {
+    const { data, error } = await supabase
+      .from('community_member_passports')
+      .upsert({ user_id: userId, community_id: communityId, signature }, { onConflict: 'user_id,community_id' })
+      .select()
+      .single();
+    if (error) throw error;
+    return data;
+  },
+
+  // ── Encuestas nativas ─────────────────────────────────────────────────────
+
+  async createPoll({ channelId, communityId, creatorId, question, options, endsAt = null }) {
+    const opts = options.map((text, i) => ({ id: `opt_${i}`, text }));
+    const { data, error } = await supabase
+      .from('community_polls')
+      .insert({ channel_id: channelId, community_id: communityId, creator_id: creatorId, question, options: opts, ends_at: endsAt })
+      .select()
+      .single();
+    if (error) throw error;
+    return data;
+  },
+
+  async getPoll(pollId) {
+    const { data, error } = await supabase
+      .from('community_polls')
+      .select('*')
+      .eq('id', pollId)
+      .single();
+    if (error) throw error;
+    return data;
+  },
+
+  async getPollVotes(pollId) {
+    const { data } = await supabase
+      .from('community_poll_votes')
+      .select('option_id, user_id')
+      .eq('poll_id', pollId);
+    return data || [];
+  },
+
+  async votePoll(pollId, userId, optionId) {
+    const { error } = await supabase
+      .from('community_poll_votes')
+      .upsert({ poll_id: pollId, user_id: userId, option_id: optionId }, { onConflict: 'poll_id,user_id' });
+    if (error) throw error;
+  },
+
+  async closePoll(pollId) {
+    const { error } = await supabase
+      .from('community_polls')
+      .update({ is_closed: true })
+      .eq('id', pollId);
+    if (error) throw error;
+  },
 };

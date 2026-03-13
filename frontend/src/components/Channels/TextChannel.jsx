@@ -2,12 +2,13 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { AnimatePresence } from 'framer-motion';
 import {
   Send, Smile, Hash, MoreVertical,
-  Reply, Trash2, Pin, X
+  Reply, Trash2, Pin, X, BarChart2, Plus, Check
 } from 'lucide-react';
 import PinnedMessages, { PinMessageButton } from './PinnedMessages';
 import { useAuthContext } from '../../contexts/AuthContext';
 import { chatService } from '../../services/chatService';
 import { botCommandService } from '../../services/botCommandService';
+import { channelsService } from '../../services/channelsService';
 import { supabase } from '../../supabaseClient';
 import { addMessagePoints } from '../../services/reputationService';
 import ReputationBadge from '../Reputation/ReputationBadge';
@@ -17,6 +18,180 @@ import BotEmbed from './BotEmbed';
 import toast from 'react-hot-toast';
 
 // Bot messages now persist to database
+
+// ─── Poll: Modal de creación ───────────────────────────────────────────────
+function PollCreateModal({ onClose, onCreate }) {
+  const [question, setQuestion] = useState('');
+  const [options, setOptions]   = useState(['', '']);
+  const [saving, setSaving]     = useState(false);
+
+  const addOption = () => options.length < 6 && setOptions(o => [...o, '']);
+  const setOption = (i, v) => setOptions(o => o.map((x, j) => j === i ? v : x));
+  const removeOption = (i) => options.length > 2 && setOptions(o => o.filter((_, j) => j !== i));
+
+  const handleCreate = async () => {
+    const q = question.trim();
+    const opts = options.map(o => o.trim()).filter(Boolean);
+    if (!q || opts.length < 2) return toast.error('Necesitas una pregunta y al menos 2 opciones');
+    setSaving(true);
+    try {
+      await onCreate({ question: q, options: opts });
+      onClose();
+    } catch (err) {
+      console.error('[PollCreateModal] Error:', err);
+      toast.error('Error al crear encuesta');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div
+      className="absolute bottom-full left-0 mb-2 z-50 w-80 bg-[#1a1a24] border border-white/10 rounded-xl shadow-2xl p-4"
+      onClick={e => e.stopPropagation()}
+    >
+      <div className="flex items-center justify-between mb-3">
+        <span className="text-sm font-semibold text-white flex items-center gap-1.5">
+          <BarChart2 size={14} className="text-indigo-400" />
+          Nueva encuesta
+        </span>
+        <button onClick={onClose} className="text-gray-500 hover:text-white">
+          <X size={14} />
+        </button>
+      </div>
+
+      <input
+        type="text"
+        value={question}
+        onChange={e => setQuestion(e.target.value)}
+        placeholder="¿Qué quieres preguntar?"
+        maxLength={200}
+        className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-indigo-500/50 mb-3"
+        autoFocus
+      />
+
+      <div className="space-y-2 mb-3">
+        {options.map((opt, i) => (
+          <div key={i} className="flex gap-2 items-center">
+            <input
+              type="text"
+              value={opt}
+              onChange={e => setOption(i, e.target.value)}
+              placeholder={`Opción ${i + 1}`}
+              maxLength={100}
+              className="flex-1 bg-white/5 border border-white/10 rounded-lg px-3 py-1.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-indigo-500/50"
+            />
+            {options.length > 2 && (
+              <button onClick={() => removeOption(i)} className="text-gray-500 hover:text-red-400 transition-colors">
+                <X size={14} />
+              </button>
+            )}
+          </div>
+        ))}
+      </div>
+
+      <div className="flex justify-between">
+        {options.length < 6 ? (
+          <button
+            onClick={addOption}
+            className="flex items-center gap-1 text-xs text-gray-400 hover:text-white transition-colors"
+          >
+            <Plus size={12} /> Añadir opción
+          </button>
+        ) : <span />}
+        <button
+          onClick={handleCreate}
+          disabled={saving}
+          className="px-4 py-1.5 bg-indigo-500 hover:bg-indigo-400 disabled:opacity-50 text-white text-xs font-semibold rounded-lg transition-colors"
+        >
+          {saving ? 'Creando…' : 'Crear encuesta'}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ─── Poll: Embed en mensajes ───────────────────────────────────────────────
+function PollEmbed({ pollId, communityId, userId }) {
+  const [poll, setPoll]   = useState(null);
+  const [votes, setVotes] = useState([]);
+  const [voting, setVoting] = useState(false);
+
+  useEffect(() => {
+    if (!pollId) return;
+    Promise.all([
+      channelsService.getPoll(pollId),
+      channelsService.getPollVotes(pollId),
+    ]).then(([p, v]) => { setPoll(p); setVotes(v); }).catch(console.error);
+  }, [pollId]);
+
+  const myVote = votes.find(v => v.user_id === userId)?.option_id;
+  const total  = votes.length;
+
+  const handleVote = async (optionId) => {
+    if (voting || poll?.is_closed || myVote === optionId) return;
+    setVoting(true);
+    try {
+      await channelsService.votePoll(pollId, userId, optionId);
+      const updated = await channelsService.getPollVotes(pollId);
+      setVotes(updated);
+    } catch (err) {
+      toast.error('Error al votar');
+    } finally {
+      setVoting(false);
+    }
+  };
+
+  if (!poll) return <div className="h-4 w-32 bg-white/5 rounded animate-pulse mt-1" />;
+
+  const closed = poll.is_closed || (poll.ends_at && new Date(poll.ends_at) < new Date());
+
+  return (
+    <div className="mt-2 bg-indigo-950/30 border border-indigo-500/20 rounded-xl p-3 max-w-sm">
+      <div className="flex items-center gap-1.5 mb-2">
+        <BarChart2 size={13} className="text-indigo-400" />
+        <span className="text-xs font-semibold text-indigo-300">Encuesta</span>
+        {closed && <span className="text-[10px] bg-red-500/20 text-red-400 px-1.5 py-0.5 rounded ml-auto">Cerrada</span>}
+      </div>
+      <p className="text-sm text-white font-medium mb-3">{poll.question}</p>
+      <div className="space-y-2">
+        {(poll.options || []).map(opt => {
+          const count  = votes.filter(v => v.option_id === opt.id).length;
+          const pct    = total > 0 ? Math.round((count / total) * 100) : 0;
+          const isMyVote = myVote === opt.id;
+
+          return (
+            <button
+              key={opt.id}
+              onClick={() => handleVote(opt.id)}
+              disabled={closed || voting || !userId}
+              className={`w-full text-left relative overflow-hidden rounded-lg border transition-colors ${
+                isMyVote
+                  ? 'border-indigo-500/60 bg-indigo-500/10'
+                  : 'border-white/10 hover:border-indigo-500/40 hover:bg-white/5'
+              } disabled:cursor-not-allowed`}
+            >
+              <div
+                className="absolute inset-y-0 left-0 bg-indigo-500/10 transition-all duration-500"
+                style={{ width: `${pct}%` }}
+              />
+              <div className="relative flex items-center justify-between px-3 py-2">
+                <span className={`text-xs ${isMyVote ? 'text-indigo-300 font-semibold' : 'text-gray-300'}`}>
+                  {opt.text}
+                </span>
+                <div className="flex items-center gap-1.5 shrink-0">
+                  {isMyVote && <Check size={11} className="text-indigo-400" />}
+                  <span className="text-[11px] text-gray-400">{pct}%</span>
+                </div>
+              </div>
+            </button>
+          );
+        })}
+      </div>
+      <p className="text-[10px] text-gray-600 mt-2">{total} {total === 1 ? 'voto' : 'votos'}</p>
+    </div>
+  );
+}
 
 // Helper component for optimistic messages with pre-rendered emojis
 function OptimisticMessageRenderer({ content, emojis, preRenderedParts }) {
@@ -59,6 +234,8 @@ export default function TextChannel({ channel, communityId, isMember, isOwner })
   const [showPinned, setShowPinned] = useState(false);
   const [showChannelMenu, setShowChannelMenu] = useState(false);
   const [pinnedKey, setPinnedKey] = useState(0);
+  const [showPollModal, setShowPollModal] = useState(false);
+  const [memberSignatures, setMemberSignatures] = useState({}); // userId → signature
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
   const messagesRef = useRef([]);
@@ -80,6 +257,46 @@ export default function TextChannel({ channel, communityId, isMember, isOwner })
       setLoading(false);
     }
   }, [channel?.id]);
+
+  // Load signatures for members visible in messages
+  useEffect(() => {
+    if (!communityId || messages.length === 0) return;
+    const userIds = [...new Set(
+      messages.filter(m => !m.is_bot && m.user_id).map(m => m.user_id)
+    )];
+    if (userIds.length === 0) return;
+
+    supabase
+      .from('community_member_passports')
+      .select('user_id, signature')
+      .eq('community_id', communityId)
+      .in('user_id', userIds)
+      .then(({ data }) => {
+        if (!data) return;
+        const map = {};
+        data.forEach(r => { if (r.signature) map[r.user_id] = r.signature; });
+        setMemberSignatures(prev => ({ ...prev, ...map }));
+      })
+      .catch(() => {});
+  }, [communityId, messages.length]);  // only re-run when message count changes
+
+  const handleCreatePoll = useCallback(async ({ question, options }) => {
+    if (!channel?.id || !communityId || !user?.id) return;
+    const poll = await channelsService.createPoll({
+      channelId: channel.id,
+      communityId,
+      creatorId: user.id,
+      question,
+      options,
+    });
+    // Insert message with poll_id reference
+    await supabase.from('channel_messages').insert({
+      channel_id: channel.id,
+      user_id: user.id,
+      content: `📊 ${question}`,
+      poll_id: poll.id,
+    });
+  }, [channel?.id, communityId, user?.id]);
 
   // Load custom emojis once for all messages
   useEffect(() => {
@@ -431,7 +648,7 @@ export default function TextChannel({ channel, communityId, isMember, isOwner })
                       className={`w-10 h-10 rounded-full bg-white/5 mt-0.5 flex-shrink-0 ${isBot ? 'ring-2 ring-cyan-500/50' : ''}`}
                     />
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-baseline gap-2">
+                      <div className="flex items-baseline gap-2 flex-wrap">
                         <span className="font-semibold text-white hover:underline cursor-pointer">
                           {msg.author?.username || msg.bot_name || 'Bot'}
                         </span>
@@ -441,10 +658,20 @@ export default function TextChannel({ channel, communityId, isMember, isOwner })
                         {!isBot && <ReputationBadge points={msg.author?.reputation?.points || 0} size="sm" />}
                         <span className="text-xs text-gray-500">{formatTime(msg.created_at)}</span>
                       </div>
+                      {/* Community signature */}
+                      {!isBot && memberSignatures[msg.user_id] && (
+                        <p className="text-[11px] text-gray-500 italic -mt-0.5 mb-0.5 leading-tight">
+                          {memberSignatures[msg.user_id]}
+                        </p>
+                      )}
                       {isBot
                         ? <BotEmbed content={msg.content} />
                         : <OptimisticMessageRenderer content={msg.content} emojis={customEmojis} preRenderedParts={msg._preRenderedParts} />
                       }
+                      {/* Poll embed */}
+                      {!isBot && msg.poll_id && (
+                        <PollEmbed pollId={msg.poll_id} communityId={communityId} userId={user?.id} />
+                      )}
                       {!isBot && msg.reply_to && (
                         <div className="mt-1 text-xs text-gray-500 bg-white/5 rounded px-2 py-1">
                           <span className="text-cyan-400">Respondiendo a {msg.reply_to.author?.username}:</span>
@@ -537,9 +764,17 @@ export default function TextChannel({ channel, communityId, isMember, isOwner })
                 />
               </div>
             )}
-            
+
+            {/* Poll Creation Modal */}
+            {showPollModal && (
+              <PollCreateModal
+                onClose={() => setShowPollModal(false)}
+                onCreate={handleCreatePoll}
+              />
+            )}
+
             <div className="flex items-end gap-1 sm:gap-2 bg-[#1a1a24] border border-white/10 rounded-xl p-2 focus-within:border-cyan-500/50 transition-colors">
-              {/* Mobile: Compact buttons */}
+              {/* Emoji button */}
               <button
                 type="button"
                 onClick={() => setShowEmojiPicker(!showEmojiPicker)}
@@ -547,6 +782,16 @@ export default function TextChannel({ channel, communityId, isMember, isOwner })
                 title="Emojis"
               >
                 <Smile size={18} className="sm:w-5 sm:h-5" />
+              </button>
+
+              {/* Poll button */}
+              <button
+                type="button"
+                onClick={() => { setShowPollModal(v => !v); setShowEmojiPicker(false); }}
+                className={`p-1.5 sm:p-2 hover:bg-white/5 rounded-lg transition-colors ${showPollModal ? 'text-indigo-400' : 'text-gray-400 hover:text-white'}`}
+                title="Crear encuesta"
+              >
+                <BarChart2 size={18} className="sm:w-5 sm:h-5" />
               </button>
               
               <input

@@ -19,14 +19,15 @@ const CHANNEL_COLORS = {
   forum: 'text-amber-400',
 };
 
-export default function ChannelSidebar({ 
-  communityId, 
-  currentChannel, 
-  onChannelSelect, 
+export default function ChannelSidebar({
+  communityId,
+  currentChannel,
+  onChannelSelect,
   isOwner,
   user,
   isMobileOpen,
-  onMobileClose
+  onMobileClose,
+  activeVoiceChannelId,
 }) {
   const [channels, setChannels] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -113,6 +114,7 @@ export default function ChannelSidebar({
     const Icon = CHANNEL_ICONS[channel.type];
     const isActive = currentChannel?.id === channel.id;
     const isPrivate = channel.is_private;
+    const isVoiceConnected = channel.type === 'voice' && activeVoiceChannelId === channel.id;
 
     return (
       <motion.button
@@ -127,13 +129,16 @@ export default function ChannelSidebar({
           setContextMenu({ x: e.clientX, y: e.clientY, channel });
         }}
         className={`w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm transition-all group ${
-          isActive 
-            ? 'bg-white/10 text-white' 
+          isActive
+            ? 'bg-white/10 text-white'
             : 'text-gray-400 hover:text-gray-200 hover:bg-white/5'
         }`}
       >
         <Icon size={16} className={isActive ? 'text-white' : CHANNEL_COLORS[channel.type]} />
         <span className="flex-1 text-left truncate">{channel.name}</span>
+        {isVoiceConnected && (
+          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0" title="Conectado" />
+        )}
         {isPrivate && <Lock size={12} className="text-gray-500" />}
         {isOwner && (
           <button

@@ -499,6 +499,8 @@ export default function VoiceChannel({
   isMember,
   isOwner,
   onJoinVoice,
+  onVoiceConnected,
+  onVoiceDisconnected,
   userAvatar,
   userName,
   nicknameStyle,
@@ -557,6 +559,7 @@ export default function VoiceChannel({
       setToken(data.token);
       setConnected(true);
       onJoinVoice?.(roomName, channel.name);
+      onVoiceConnected?.();
     } catch (err) {
       console.error('[VoiceChannel] Connect error:', err);
       setError('Error al conectar. Intenta de nuevo.');
@@ -566,7 +569,7 @@ export default function VoiceChannel({
     }
   };
 
-  const handleLeave = () => { setToken(null); setConnected(false); setError(null); };
+  const handleLeave = () => { setToken(null); setConnected(false); setError(null); onVoiceDisconnected?.(); };
 
   // ── Vista conectada ────────────────────────────────────────────────────────
   if (connected && token) {
