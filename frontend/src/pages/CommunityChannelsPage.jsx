@@ -8,7 +8,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Menu, ChevronLeft, Users, Hash, Volume2, MessageSquare,
-  MoreVertical, Settings, Bell, Search
+  MoreVertical, Settings, Plus, Shield, Link2, Clock
 } from 'lucide-react';
 import { supabase } from '../supabaseClient';
 import { useAuthContext } from '../contexts/AuthContext';
@@ -19,6 +19,9 @@ import TextChannel from '../components/Channels/TextChannel';
 import VoiceChannel from '../components/Channels/VoiceChannel';
 import ForumChannel from '../components/Channels/ForumChannel';
 import RankingPanel from '../components/RankingPanel';
+import InviteModal from '../components/Channels/InviteModal';
+import RoleManagerModal from '../components/Channels/RoleManagerModal';
+import AuditLogModal from '../components/Channels/AuditLogModal';
 import toast from 'react-hot-toast';
 
 export default function CommunityChannelsPage() {
@@ -34,6 +37,10 @@ export default function CommunityChannelsPage() {
   const [loading, setLoading] = useState(true);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [showCommunityMenu, setShowCommunityMenu] = useState(false);
+  const [showOwnerMenu, setShowOwnerMenu] = useState(false);
+  const [showInviteModal, setShowInviteModal] = useState(false);
+  const [showRoleModal, setShowRoleModal] = useState(false);
+  const [showAuditModal, setShowAuditModal] = useState(false);
 
   const [needsSetup, setNeedsSetup] = useState(false);
   const [settingUp, setSettingUp] = useState(false);
@@ -291,6 +298,63 @@ export default function CommunityChannelsPage() {
             />
           </button>
           
+          {/* Owner Settings Button */}
+          {isOwner && (
+            <button
+              onClick={() => setShowOwnerMenu(!showOwnerMenu)}
+              className="p-2 text-gray-400 hover:text-white hover:bg-white/5 rounded-lg transition-colors"
+            >
+              <Settings size={18} />
+            </button>
+          )}
+          
+          {/* Owner Menu Dropdown */}
+          <AnimatePresence>
+            {showOwnerMenu && isOwner && (
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                className="absolute top-14 right-4 w-56 bg-[#12121a] border border-white/10 rounded-xl shadow-2xl overflow-hidden z-50"
+              >
+                <div className="p-2 space-y-1">
+                  <button
+                    onClick={() => {
+                      setShowInviteModal(true);
+                      setShowOwnerMenu(false);
+                    }}
+                    className="w-full flex items-center gap-3 px-3 py-2.5 text-left text-gray-300 hover:bg-white/5 hover:text-cyan-400 rounded-lg transition-colors"
+                  >
+                    <Link2 size={16} />
+                    <span className="text-sm">Invitaciones</span>
+                  </button>
+                  
+                  <button
+                    onClick={() => {
+                      setShowRoleModal(true);
+                      setShowOwnerMenu(false);
+                    }}
+                    className="w-full flex items-center gap-3 px-3 py-2.5 text-left text-gray-300 hover:bg-white/5 hover:text-purple-400 rounded-lg transition-colors"
+                  >
+                    <Shield size={16} />
+                    <span className="text-sm">Gestionar Roles</span>
+                  </button>
+                  
+                  <button
+                    onClick={() => {
+                      setShowAuditModal(true);
+                      setShowOwnerMenu(false);
+                    }}
+                    className="w-full flex items-center gap-3 px-3 py-2.5 text-left text-gray-300 hover:bg-white/5 hover:text-yellow-400 rounded-lg transition-colors"
+                  >
+                    <Clock size={16} />
+                    <span className="text-sm">Logs de Auditoría</span>
+                  </button>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+          
           {/* Community Menu Dropdown */}
           <AnimatePresence>
             {showCommunityMenu && (
@@ -386,6 +450,25 @@ export default function CommunityChannelsPage() {
           </aside>
         </div>
       </main>
+
+      {/* Modals */}
+      <InviteModal
+        communityId={community?.id}
+        isOpen={showInviteModal}
+        onClose={() => setShowInviteModal(false)}
+      />
+      
+      <RoleManagerModal
+        communityId={community?.id}
+        isOpen={showRoleModal}
+        onClose={() => setShowRoleModal(false)}
+      />
+      
+      <AuditLogModal
+        communityId={community?.id}
+        isOpen={showAuditModal}
+        onClose={() => setShowAuditModal(false)}
+      />
     </div>
   );
 }
