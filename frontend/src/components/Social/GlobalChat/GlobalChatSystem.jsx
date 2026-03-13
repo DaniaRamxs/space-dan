@@ -8,6 +8,7 @@ import { useEconomy } from '../../../contexts/EconomyContext';
 import * as economyService from '../../../services/economy';
 import { chatService } from '../../../services/chatService';
 import { activityService } from '../../../services/activityService';
+import { liveActivitiesService } from '../../../services/liveActivitiesService';
 import { createNotification } from '../../../services/supabaseNotifications';
 import { supabase } from '../../../supabaseClient';
 import ChatMessage, { parseMentions } from './ChatMessage';
@@ -128,7 +129,47 @@ export default function GlobalChat({ initialActivity = null }) {
     const activeEventsRef = useRef({ meteor: null, boss: null, marketCrash: null, eclipse: null });
     const lastEventRollRef = useRef(0);
 
-    // ── Auto-join voice room when coming from feed with activity ─────────────
+    // ── Auto-join voice room when coming from community ─────────────
+    useEffect(() => {
+        const voiceParam = searchParams.get('voice');
+        if (voiceParam && voiceParam.startsWith('community-') && user && !hasJoinedVoice) {
+            const communityId = voiceParam.replace('community-', '');
+            
+            // Create community-linked voice room
+            const createCommunityVoiceRoom = async () => {
+                try {
+                    const activity = await liveActivitiesService.createActivity({
+                        type: 'voice',
+                        title: 'Sala General',
+                        communityId: communityId,
+                        roomName: `community-${communityId}`,
+                        metadata: { createdFrom: 'community_page' }
+                    });
+                    
+                    // Set up voice room with the created activity
+                    setVoiceRoomName('Sala General');
+                    setTempVoiceChannel({ 
+                        id: activity.id, 
+                        name: 'Sala General', 
+                        icon: '🎙️',
+                        communityId: communityId
+                    });
+                    setTempTextChannelId(`community-${communityId}`);
+                    setHasJoinedVoice(true);
+                    setShowVoiceRoom(true);
+                    
+                    // Clear the voice param from URL
+                    setSearchParams({});
+                } catch (err) {
+                    console.error('[GlobalChat] Failed to create community voice room:', err);
+                    // Fallback to local voice room
+                    handleCreateVoiceRoom('Sala General');
+                }
+            };
+            
+            createCommunityVoiceRoom();
+        }
+    }, [searchParams, user, hasJoinedVoice, setSearchParams]);
     useEffect(() => {
         if (initialActivity && user && !hasJoinedVoice) {
             // Auto-join voice room when user navigates with activity parameter
