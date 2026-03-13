@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Copy, Link2, Clock, Users, Trash2, RefreshCw } from 'lucide-react';
-import { supabase } from '../supabaseClient';
+import { supabase } from "../../supabaseClient";
 import toast from 'react-hot-toast';
 
 export default function InviteModal({ communityId, isOpen, onClose }) {
