@@ -155,5 +155,50 @@ export const chatService = {
 
         if (error) throw error;
         return data;
+    },
+
+    // ============ CHANNEL MESSAGES ============
+    
+    async sendChannelMessage({ channelId, content, replyToId = null }) {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error('Debes iniciar sesión para chatear.');
+
+        if (!content.trim()) return null;
+
+        const { data, error } = await supabase
+            .from('channel_messages')
+            .insert({
+                channel_id: channelId,
+                user_id: user.id,
+                content: content.trim(),
+                reply_to_id: replyToId,
+            })
+            .select('*, author:user_id(*)')
+            .single();
+
+        if (error) throw error;
+        return data;
+    },
+
+    async getChannelMessages(channelId, limit = 50) {
+        const { data, error } = await supabase
+            .from('channel_messages')
+            .select('*, author:user_id(*)')
+            .eq('channel_id', channelId)
+            .order('created_at', { ascending: true })
+            .limit(limit);
+
+        if (error) throw error;
+        return data || [];
+    },
+
+    async deleteChannelMessage(messageId) {
+        const { error } = await supabase
+            .from('channel_messages')
+            .delete()
+            .eq('id', messageId);
+
+        if (error) throw error;
+        return true;
     }
 };
