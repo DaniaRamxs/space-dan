@@ -299,7 +299,7 @@ export const botCommandService = {
       health: this.renderBar(pet.health)
     };
 
-    return `${emoji} **${pet.name}** el Palomito *(${pet.personality})*
+    return `${emoji} Chimuelo el Palomo ${pet.personality === 'glotona' ? 'gloton' : pet.personality}
 
 🍕 Hambre: ${bars.hunger} ${pet.hunger}%
 😊 Felicidad: ${bars.happiness} ${pet.happiness}%

@@ -3,28 +3,38 @@
  * Renderiza mensajes con soporte para emojis custom :nombre:
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '../../supabaseClient';
 
-// Cache de emojis para no cargar repetidamente
-const emojiCache = new Map();
+// Cache global de emojis
+const globalEmojiCache = new Map();
 
 export function useCustomEmojis(communityId) {
-  const [emojis, setEmojis] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [emojis, setEmojis] = useState(() => {
+    // Intentar obtener del cache inicialmente
+    return globalEmojiCache.get(communityId) || [];
+  });
+  const [loading, setLoading] = useState(!globalEmojiCache.has(communityId));
 
   useEffect(() => {
-    if (!communityId) return;
-
-    // Check cache
-    if (emojiCache.has(communityId)) {
-      setEmojis(emojiCache.get(communityId));
+    if (!communityId) {
+      setEmojis([]);
       setLoading(false);
       return;
     }
 
+    // Si ya está en cache, usarlo
+    if (globalEmojiCache.has(communityId)) {
+      setEmojis(globalEmojiCache.get(communityId));
+      setLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+
     const loadEmojis = async () => {
       try {
+        setLoading(true);
         const { data, error } = await supabase
           .from('community_emojis')
           .select('*')
@@ -34,16 +44,25 @@ export function useCustomEmojis(communityId) {
         if (error) throw error;
         
         const emojiList = data || [];
-        emojiCache.set(communityId, emojiList);
-        setEmojis(emojiList);
+        globalEmojiCache.set(communityId, emojiList);
+        
+        if (!cancelled) {
+          setEmojis(emojiList);
+        }
       } catch (err) {
         console.error('[MessageRenderer] Error loading emojis:', err);
       } finally {
-        setLoading(false);
+        if (!cancelled) {
+          setLoading(false);
+        }
       }
     };
 
     loadEmojis();
+
+    return () => {
+      cancelled = true;
+    };
   }, [communityId]);
 
   return { emojis, loading };
@@ -53,12 +72,17 @@ export function useCustomEmojis(communityId) {
  * Parsea el contenido del mensaje y reemplaza :emoji: con imágenes
  */
 export function parseMessageContent(content, customEmojis = []) {
-  if (!content) return [];
+  if (!content) return [{ type: 'text', content: '' }];
 
-  // Crear un mapa de nombre -> emoji para búsqueda rápida
-  const emojiMap = new Map(customEmojis.map(e => [e.name, e]));
+  // Crear mapa de nombre -> emoji
+  const emojiMap = new Map();
+  for (const emoji of customEmojis) {
+    if (emoji.name) {
+      emojiMap.set(emoji.name.toLowerCase(), emoji);
+    }
+  }
 
-  // Regex para encontrar :nombre: (letras, números, guiones, underscores)
+  // Regex para :nombre: - soporta letras, números, guiones, underscores
   const emojiRegex = /:([a-zA-Z0-9_-]+):/g;
   
   const parts = [];
@@ -67,7 +91,8 @@ export function parseMessageContent(content, customEmojis = []) {
 
   while ((match = emojiRegex.exec(content)) !== null) {
     const [fullMatch, emojiName] = match;
-    const emoji = emojiMap.get(emojiName);
+    const lowerName = emojiName.toLowerCase();
+    const emoji = emojiMap.get(lowerName);
 
     // Texto antes del emoji
     if (match.index > lastIndex) {
@@ -77,7 +102,7 @@ export function parseMessageContent(content, customEmojis = []) {
       });
     }
 
-    if (emoji) {
+    if (emoji && emoji.image_url) {
       // Emoji custom encontrado
       parts.push({
         type: 'emoji',
@@ -86,7 +111,7 @@ export function parseMessageContent(content, customEmojis = []) {
         fullMatch
       });
     } else {
-      // No es un emoji custom, dejar como texto
+      // No es un emoji custom conocido, dejar como texto
       parts.push({
         type: 'text',
         content: fullMatch
@@ -96,7 +121,7 @@ export function parseMessageContent(content, customEmojis = []) {
     lastIndex = match.index + fullMatch.length;
   }
 
-  // Texto restante después del último emoji
+  // Texto restante
   if (lastIndex < content.length) {
     parts.push({
       type: 'text',
@@ -104,7 +129,7 @@ export function parseMessageContent(content, customEmojis = []) {
     });
   }
 
-  // Si no hay emojis, devolver el texto completo
+  // Si no hubo matches, devolver todo como texto
   if (parts.length === 0) {
     parts.push({ type: 'text', content });
   }
@@ -117,7 +142,11 @@ export function parseMessageContent(content, customEmojis = []) {
  */
 export default function MessageRenderer({ content, communityId }) {
   const { emojis } = useCustomEmojis(communityId);
-  const parts = parseMessageContent(content, emojis);
+  
+  // Parsear contenido con useMemo para optimizar
+  const parts = useMemo(() => {
+    return parseMessageContent(content, emojis);
+  }, [content, emojis]);
 
   // Verificar si es una imagen markdown
   const imageMatch = content?.match(/!\[.*?\]\((.*?)\)/);
@@ -131,6 +160,11 @@ export default function MessageRenderer({ content, communityId }) {
     );
   }
 
+  // Si no hay partes parseadas (contenido vacío o solo espacios)
+  if (parts.length === 0 || (parts.length === 1 && !parts[0].content)) {
+    return <p className="text-gray-200 whitespace-pre-wrap break-words">{content}</p>;
+  }
+
   return (
     <p className="text-gray-200 whitespace-pre-wrap break-words">
       {parts.map((part, index) => {
@@ -142,6 +176,11 @@ export default function MessageRenderer({ content, communityId }) {
               alt={`:${part.name}:`}
               className="inline-block w-5 h-5 object-contain align-text-bottom mx-0.5"
               title={`:${part.name}:`}
+              loading="lazy"
+              onError={(e) => {
+                // Si falla la imagen, mostrar el texto
+                e.target.style.display = 'none';
+              }}
             />
           );
         }
@@ -156,7 +195,9 @@ export default function MessageRenderer({ content, communityId }) {
  * Recibe los emojis pre-cargados
  */
 export function MessageRendererWithEmojis({ content, emojis = [] }) {
-  const parts = parseMessageContent(content, emojis);
+  const parts = useMemo(() => {
+    return parseMessageContent(content, emojis);
+  }, [content, emojis]);
 
   // Verificar si es una imagen markdown
   const imageMatch = content?.match(/!\[.*?\]\((.*?)\)/);
@@ -170,6 +211,10 @@ export function MessageRendererWithEmojis({ content, emojis = [] }) {
     );
   }
 
+  if (parts.length === 0 || (parts.length === 1 && !parts[0].content)) {
+    return <p className="text-gray-200 whitespace-pre-wrap break-words">{content}</p>;
+  }
+
   return (
     <p className="text-gray-200 whitespace-pre-wrap break-words">
       {parts.map((part, index) => {
@@ -181,6 +226,7 @@ export function MessageRendererWithEmojis({ content, emojis = [] }) {
               alt={`:${part.name}:`}
               className="inline-block w-5 h-5 object-contain align-text-bottom mx-0.5"
               title={`:${part.name}:`}
+              loading="lazy"
             />
           );
         }
