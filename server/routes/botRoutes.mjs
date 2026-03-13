@@ -30,7 +30,7 @@ let welcomeBot = null;
 if (supabaseUrl && supabaseKey) {
   try {
     chimuBot = new ChimuGotchiBot(supabaseUrl, supabaseKey);
-    welcomeBot = new WelcomeBot(supabaseUrl, supabaseKey);
+    welcomeBot = new WelcomeBot(); // Uses process.env directly
     console.log("[BotRoutes] Bots initialized successfully");
   } catch (err) {
     console.error("[BotRoutes] Error initializing bots:", err.message);
