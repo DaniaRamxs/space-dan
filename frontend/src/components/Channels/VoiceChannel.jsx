@@ -1,7 +1,7 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Volume2, Mic, MicOff, LogOut, Radio,
+  Volume2, Mic, MicOff, LogOut, Radio, Gamepad2,
 } from 'lucide-react';
 import {
   LiveKitRoom,
@@ -11,9 +11,16 @@ import {
 } from '@livekit/components-react';
 import { supabase } from '../../supabaseClient';
 import { liveActivitiesService } from '../../services/liveActivitiesService';
+import { addVoicePoints } from '../../services/reputationService';
+import { activityService } from '../../services/activityService';
+import { missionService } from '../../services/missionService';
 import { getNicknameClass } from '../../utils/user';
 import { getFrameStyle } from '../../utils/styles';
 import toast from 'react-hot-toast';
+
+const VoiceActivityLauncher = lazy(() =>
+  import('../VoiceActivities/VoiceActivityLauncher')
+);
 
 const LIVEKIT_URL = 'wss://danspace-76f5bceh.livekit.cloud';
 
@@ -47,7 +54,40 @@ const playSyntheticSound = (type) => {
 };
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// Fila compacta en el sidebar
+// CommunityVoiceTracker — XP global + reputación de comunidad (sin UI)
+// ═══════════════════════════════════════════════════════════════════════════════
+function CommunityVoiceTracker({ userId, communityId }) {
+  const { isMicrophoneEnabled } = useLocalParticipant();
+  const micRef = useRef(isMicrophoneEnabled);
+
+  useEffect(() => { micRef.current = isMicrophoneEnabled; }, [isMicrophoneEnabled]);
+
+  useEffect(() => {
+    if (!userId || !communityId) return;
+
+    const interval = setInterval(async () => {
+      const micActive = micRef.current;
+      // XP global del universo (igual que VoiceActivityTracker)
+      const xp = micActive ? 15 : 5;
+      try {
+        await activityService.awardActivityXP(xp, 'voice_time');
+        missionService.updateProgress('social', 2, 'voice_10').catch(() => {});
+      } catch (_) {}
+
+      // Puntos de reputación en la comunidad — solo si tiene mic activo
+      if (micActive) {
+        addVoicePoints(userId, communityId).catch(() => {});
+      }
+    }, 120_000); // cada 2 minutos
+
+    return () => clearInterval(interval);
+  }, [userId, communityId]);
+
+  return null;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// Fila compacta en sidebar
 // ═══════════════════════════════════════════════════════════════════════════════
 function ParticipantRow({ participant: p, meta }) {
   return (
@@ -131,15 +171,97 @@ function ParticipantCard({ participant: p, meta, frame, nickClass }) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// Componente interno — debe estar dentro de <LiveKitRoom>
+// Componente interno — dentro de <LiveKitRoom>
 // ═══════════════════════════════════════════════════════════════════════════════
-function VoiceChannelInner({ channel, onLeave }) {
+function VoiceChannelInner({ channel, communityId, userId, roomName, onLeave }) {
   const participants = useParticipants();
   const { localParticipant, isMicrophoneEnabled } = useLocalParticipant();
-  const [showParticipants, setShowParticipants] = useState(false); // mobile drawer
+  const [showParticipants, setShowParticipants] = useState(false);
+  const [activeTab, setActiveTab] = useState('participants'); // 'participants' | 'activities'
+  const [activeActivity, setActiveActivity] = useState(null);
+  const activeActivityRef = useRef(null);
+  const syncChannelRef = useRef(null);
+  const activityChannelRef = useRef(null);
   const prevIdsRef = useRef(new Set());
 
-  // Detectar join/leave
+  useEffect(() => { activeActivityRef.current = activeActivity; }, [activeActivity]);
+
+  // ── Sincronización de actividades via Supabase broadcast ──────────────────
+  useEffect(() => {
+    if (!roomName) return;
+    const chanName = `activity-sync-${roomName.toLowerCase().replace(/[^a-z0-9]/g, '-')}`;
+    const channel = supabase.channel(chanName);
+    syncChannelRef.current = channel;
+
+    channel
+      .on('broadcast', { event: 'start_activity' }, ({ payload }) => {
+        if (payload.activityId && payload.activityId !== activeActivityRef.current) {
+          setActiveActivity(payload.activityId);
+          toast(`🔥 ${payload.sender} inició ${payload.activityId}`, {
+            icon: '🎮',
+            style: { background: '#020617', color: '#fff', border: '1px solid #334155' },
+          });
+        }
+      })
+      .on('broadcast', { event: 'stop_activity' }, () => {
+        setActiveActivity(null);
+      })
+      .on('broadcast', { event: 'activity_sync_req' }, () => {
+        const current = activeActivityRef.current;
+        if (current) {
+          channel.send({
+            type: 'broadcast', event: 'start_activity',
+            payload: { activityId: current, sender: 'Sistema (Sync)' },
+          });
+        }
+      })
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          channel.send({ type: 'broadcast', event: 'activity_sync_req', payload: {} });
+        }
+      });
+
+    return () => {
+      syncChannelRef.current = null;
+      supabase.removeChannel(channel);
+    };
+  }, [roomName]);
+
+  // ── Canal de actividad específica ────────────────────────────────────────
+  useEffect(() => {
+    if (!activeActivity) {
+      if (activityChannelRef.current) {
+        supabase.removeChannel(activityChannelRef.current);
+        activityChannelRef.current = null;
+      }
+      return;
+    }
+    const chanName = `activity-${activeActivity}-${roomName.toLowerCase().replace(/[^a-z0-9]/g, '-')}`;
+    const ch = supabase.channel(chanName);
+    activityChannelRef.current = ch;
+    ch.subscribe();
+    return () => {
+      activityChannelRef.current = null;
+      supabase.removeChannel(ch);
+    };
+  }, [activeActivity, roomName]);
+
+  // ── Broadcast de cambio de actividad a otros usuarios ────────────────────
+  const handleSetActiveActivity = (id) => {
+    setActiveActivity(id);
+    const ch = syncChannelRef.current;
+    if (!ch) return;
+    if (id) {
+      ch.send({
+        type: 'broadcast', event: 'start_activity',
+        payload: { activityId: id, sender: 'Tú' },
+      });
+    } else {
+      ch.send({ type: 'broadcast', event: 'stop_activity', payload: {} });
+    }
+  };
+
+  // ── Detectar join/leave ───────────────────────────────────────────────────
   useEffect(() => {
     const currentIds = new Set(participants.map(p => p.sid));
     participants.forEach(p => {
@@ -161,6 +283,9 @@ function VoiceChannelInner({ channel, onLeave }) {
 
   return (
     <div className="flex-1 flex flex-col bg-[#0f0f13] overflow-hidden min-h-0">
+      {/* Tracker silencioso de XP + reputación */}
+      <CommunityVoiceTracker userId={userId} communityId={communityId} />
+
       {/* Header */}
       <div className="h-14 flex items-center justify-between px-3 sm:px-4 border-b border-white/5 bg-[#0f0f13]/95 backdrop-blur-sm shrink-0">
         <div className="flex items-center gap-2 sm:gap-3 min-w-0">
@@ -172,7 +297,7 @@ function VoiceChannelInner({ channel, onLeave }) {
             </p>
           </div>
         </div>
-        {/* Botón para mostrar lista en mobile */}
+        {/* Botón participantes mobile */}
         <button
           onClick={() => setShowParticipants(v => !v)}
           className="sm:hidden p-2 text-gray-400 hover:text-white hover:bg-white/5 rounded-lg transition-colors relative"
@@ -181,8 +306,7 @@ function VoiceChannelInner({ channel, onLeave }) {
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
             <circle cx="9" cy="7" r="4"/>
-            <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
-            <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+            <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
           </svg>
           {participants.length > 0 && (
             <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-emerald-500 text-[9px] font-bold text-black rounded-full flex items-center justify-center">
@@ -194,7 +318,7 @@ function VoiceChannelInner({ channel, onLeave }) {
 
       {/* Cuerpo */}
       <div className="flex-1 flex overflow-hidden min-h-0">
-        {/* Sidebar participantes — oculto en mobile, visible en sm+ */}
+        {/* Sidebar participantes — solo sm+ */}
         <div className="hidden sm:flex w-48 md:w-56 border-r border-white/5 flex-col shrink-0">
           <div className="px-3 py-3">
             <span className="text-[10px] font-bold uppercase tracking-widest text-gray-500">
@@ -216,26 +340,82 @@ function VoiceChannelInner({ channel, onLeave }) {
 
         {/* Área central */}
         <div className="flex-1 flex flex-col overflow-hidden min-h-0">
-          <div className="flex-1 flex items-center justify-center p-4 sm:p-6">
-            {participants.length === 0 ? (
-              <div className="text-center">
-                <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-emerald-500/10 flex items-center justify-center mx-auto mb-4">
-                  <Volume2 size={36} className="text-emerald-400/50" />
-                </div>
-                <h3 className="text-base sm:text-lg font-semibold text-white mb-1">Canal vacío</h3>
-                <p className="text-sm text-gray-500">Eres el primero, ¡invita a alguien!</p>
+
+          {/* Tabs: Sala / Actividades */}
+          <div className="flex border-b border-white/5 shrink-0">
+            <button
+              onClick={() => setActiveTab('participants')}
+              className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs font-semibold uppercase tracking-wider transition-all ${
+                activeTab === 'participants'
+                  ? 'text-emerald-400 border-b-2 border-emerald-400'
+                  : 'text-gray-500 hover:text-gray-300'
+              }`}
+            >
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                <circle cx="9" cy="7" r="4"/>
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+              </svg>
+              Sala
+            </button>
+            <button
+              onClick={() => setActiveTab('activities')}
+              className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs font-semibold uppercase tracking-wider transition-all ${
+                activeTab === 'activities'
+                  ? 'text-violet-400 border-b-2 border-violet-400'
+                  : 'text-gray-500 hover:text-gray-300'
+              }`}
+            >
+              <Gamepad2 size={13} />
+              Actividades
+              {activeActivity && (
+                <span className="w-2 h-2 bg-violet-400 rounded-full animate-pulse" />
+              )}
+            </button>
+          </div>
+
+          {/* Contenido del tab */}
+          <div className="flex-1 overflow-y-auto">
+            {activeTab === 'participants' ? (
+              /* ── Tab Sala: avatares grandes ────────────────── */
+              <div className="flex items-center justify-center p-4 sm:p-6 min-h-full">
+                {participants.length === 0 ? (
+                  <div className="text-center">
+                    <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-emerald-500/10 flex items-center justify-center mx-auto mb-4">
+                      <Volume2 size={36} className="text-emerald-400/50" />
+                    </div>
+                    <h3 className="text-base sm:text-lg font-semibold text-white mb-1">Canal vacío</h3>
+                    <p className="text-sm text-gray-500">Eres el primero, ¡invita a alguien!</p>
+                  </div>
+                ) : (
+                  <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-6 max-w-xl">
+                    {participants.map(p => {
+                      let meta = {};
+                      try { meta = p.metadata ? JSON.parse(p.metadata) : {}; } catch (_) {}
+                      const frame = getFrameStyle(meta.frameId);
+                      const nickClass = getNicknameClass({ nickname_style: meta.nicknameStyle });
+                      return (
+                        <ParticipantCard key={p.sid} participant={p} meta={meta} frame={frame} nickClass={nickClass} />
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             ) : (
-              <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-6 max-w-xl">
-                {participants.map(p => {
-                  let meta = {};
-                  try { meta = p.metadata ? JSON.parse(p.metadata) : {}; } catch (_) {}
-                  const frame = getFrameStyle(meta.frameId);
-                  const nickClass = getNicknameClass({ nickname_style: meta.nicknameStyle });
-                  return (
-                    <ParticipantCard key={p.sid} participant={p} meta={meta} frame={frame} nickClass={nickClass} />
-                  );
-                })}
+              /* ── Tab Actividades ────────────────────────────── */
+              <div className="p-3 sm:p-4">
+                <Suspense fallback={
+                  <div className="flex items-center justify-center py-16">
+                    <div className="w-8 h-8 border-2 border-violet-500/30 border-t-violet-400 rounded-full animate-spin" />
+                  </div>
+                }>
+                  <VoiceActivityLauncher
+                    roomName={roomName}
+                    activeActivity={activeActivity}
+                    setActiveActivity={handleSetActiveActivity}
+                    activityChannelRef={activityChannelRef}
+                  />
+                </Suspense>
               </div>
             )}
           </div>
@@ -251,7 +431,7 @@ function VoiceChannelInner({ channel, onLeave }) {
               }`}
             >
               {isMicrophoneEnabled ? <Mic size={15} /> : <MicOff size={15} />}
-              <span className="hidden xs:inline sm:inline">
+              <span className="hidden sm:inline">
                 {isMicrophoneEnabled ? 'Silenciar' : 'Activar mic'}
               </span>
             </button>
@@ -260,27 +440,23 @@ function VoiceChannelInner({ channel, onLeave }) {
               className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 rounded-xl text-sm font-medium bg-rose-500/20 text-rose-400 border border-rose-500/40 hover:bg-rose-500/30 transition-all"
             >
               <LogOut size={15} />
-              <span className="hidden xs:inline sm:inline">Desconectar</span>
+              <span className="hidden sm:inline">Desconectar</span>
             </button>
           </div>
         </div>
       </div>
 
-      {/* Drawer de participantes — solo mobile */}
+      {/* Drawer mobile de participantes */}
       <AnimatePresence>
         {showParticipants && (
           <>
             <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               className="sm:hidden fixed inset-0 bg-black/50 z-40"
               onClick={() => setShowParticipants(false)}
             />
             <motion.div
-              initial={{ y: '100%' }}
-              animate={{ y: 0 }}
-              exit={{ y: '100%' }}
+              initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
               transition={{ type: 'spring', damping: 25, stiffness: 300 }}
               className="sm:hidden fixed bottom-0 left-0 right-0 bg-[#1a1a24] border-t border-white/10 rounded-t-2xl z-50 max-h-[60vh] flex flex-col"
             >
@@ -328,6 +504,7 @@ export default function VoiceChannel({
   nicknameStyle,
   frameId,
   activityLevel,
+  userId,
 }) {
   const [token, setToken] = useState(null);
   const [connecting, setConnecting] = useState(false);
@@ -335,7 +512,6 @@ export default function VoiceChannel({
   const [error, setError] = useState(null);
   const [previewParticipants, setPreviewParticipants] = useState([]);
 
-  // Polling de participantes (preview antes de conectarse)
   useEffect(() => {
     checkExistingActivity();
     const id = setInterval(checkExistingActivity, 10000);
@@ -394,6 +570,7 @@ export default function VoiceChannel({
 
   // ── Vista conectada ────────────────────────────────────────────────────────
   if (connected && token) {
+    const roomName = `channel-${channel.id}`;
     return (
       <LiveKitRoom
         audio={true} video={false}
@@ -403,7 +580,13 @@ export default function VoiceChannel({
         style={{ display: 'contents' }}
       >
         <RoomAudioRenderer />
-        <VoiceChannelInner channel={channel} isOwner={isOwner} onLeave={handleLeave} />
+        <VoiceChannelInner
+          channel={channel}
+          communityId={communityId}
+          userId={userId}
+          roomName={roomName}
+          onLeave={handleLeave}
+        />
       </LiveKitRoom>
     );
   }
@@ -411,7 +594,6 @@ export default function VoiceChannel({
   // ── Vista desconectada ─────────────────────────────────────────────────────
   return (
     <div className="flex-1 flex flex-col bg-[#0f0f13] min-h-0">
-      {/* Header */}
       <div className="h-14 flex items-center justify-between px-3 sm:px-4 border-b border-white/5 bg-[#0f0f13]/95 shrink-0">
         <div className="flex items-center gap-2 sm:gap-3">
           <Volume2 size={18} className="text-emerald-400 shrink-0" />
@@ -426,9 +608,8 @@ export default function VoiceChannel({
         </div>
       </div>
 
-      {/* Cuerpo */}
       <div className="flex-1 flex overflow-hidden min-h-0">
-        {/* Sidebar preview — oculto en mobile */}
+        {/* Sidebar preview — solo sm+ */}
         <div className="hidden sm:flex w-48 md:w-56 border-r border-white/5 flex-col shrink-0">
           <div className="px-3 py-3">
             <span className="text-[10px] font-bold uppercase tracking-widest text-gray-500">
@@ -443,8 +624,7 @@ export default function VoiceChannel({
                 <div key={i} className="flex items-center gap-2.5 px-2 py-1.5 rounded-lg hover:bg-white/5">
                   <img
                     src={p.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${p.username}`}
-                    alt={p.username}
-                    className="w-7 h-7 rounded-full object-cover"
+                    alt={p.username} className="w-7 h-7 rounded-full object-cover"
                   />
                   <span className="text-sm text-gray-400 truncate">{p.username}</span>
                   {p.isMuted && <MicOff size={12} className="ml-auto text-gray-600 shrink-0" />}
@@ -454,8 +634,7 @@ export default function VoiceChannel({
           </div>
         </div>
 
-        {/* Área central */}
-        <div className="flex-1 flex flex-col items-center justify-center p-4 sm:p-8 gap-5 sm:gap-6">
+        <div className="flex-1 flex flex-col items-center justify-center p-4 sm:p-8 gap-5">
           {previewParticipants.length === 0 ? (
             <>
               <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-emerald-500/10 flex items-center justify-center">
@@ -505,12 +684,8 @@ export default function VoiceChannel({
             )}
           </button>
 
-          {!isMember && (
-            <p className="text-xs text-gray-600 text-center">Únete a la comunidad para acceder a la voz</p>
-          )}
-          {isOwner && isMember && (
-            <p className="text-xs text-gray-600">Como owner, puedes moderar este canal</p>
-          )}
+          {!isMember && <p className="text-xs text-gray-600 text-center">Únete a la comunidad para acceder a la voz</p>}
+          {isOwner && isMember && <p className="text-xs text-gray-600">Como owner, puedes moderar este canal</p>}
         </div>
       </div>
     </div>

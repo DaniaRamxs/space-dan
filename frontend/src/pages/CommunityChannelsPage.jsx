@@ -195,6 +195,7 @@ export default function CommunityChannelsPage() {
           <VoiceChannel
             {...props}
             onJoinVoice={handleJoinVoice}
+            userId={user?.id}
             userAvatar={profile?.avatar_url}
             userName={profile?.username}
             nicknameStyle={profile?.equipped_nickname_style}

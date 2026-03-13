@@ -9,6 +9,7 @@ import { useAuthContext } from '../../contexts/AuthContext';
 import { chatService } from '../../services/chatService';
 import { botCommandService } from '../../services/botCommandService';
 import { supabase } from '../../supabaseClient';
+import { addMessagePoints } from '../../services/reputationService';
 import ReputationBadge from '../Reputation/ReputationBadge';
 import EmojiPicker from './EmojiPicker';
 import { MessageRendererWithEmojis, parseMessageContent } from './MessageRenderer';
@@ -283,6 +284,10 @@ export default function TextChannel({ channel, communityId, isMember, isOwner })
         content,
         replyToId: replyingTo?.id,
       });
+      // Sumar puntos de reputación en la comunidad (fire-and-forget)
+      if (communityId && user?.id) {
+        addMessagePoints(user.id, communityId).catch(() => {});
+      }
     } catch (err) {
       console.error('[TextChannel] Send error:', err);
       setMessages(prev => prev.filter(m => m.id !== tempId));
