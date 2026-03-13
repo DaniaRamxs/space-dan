@@ -11,6 +11,7 @@ import { supabase } from '../../supabaseClient';
 import ReputationBadge from '../Reputation/ReputationBadge';
 import EmojiPicker from './EmojiPicker';
 import MessageRenderer from './MessageRenderer';
+import BotEmbed from './BotEmbed';
 import toast from 'react-hot-toast';
 
 // Bot messages now persist to database
@@ -112,8 +113,11 @@ export default function TextChannel({ channel, communityId, isMember, isOwner })
         const result = await botCommandService.executeCommand(content, communityId, user?.id, profile);
         
         if (result.isBotCommand) {
-          const botContent = result.result || result.message || 'Bot response';
-          
+          const rawContent = result.result || result.message || 'Bot response';
+          const botContent = typeof rawContent === 'object' ? JSON.stringify(rawContent) : rawContent;
+          const { botName } = botCommandService.parseCommand(content);
+          const botLabel = botName === 'welcome' ? 'WelcomeBot 👋' : 'ChimuBot 🕊️';
+
           // Save bot response to database so it persists
           try {
             const { data: savedBotMsg, error: botError } = await supabase
@@ -123,7 +127,7 @@ export default function TextChannel({ channel, communityId, isMember, isOwner })
                 user_id: user?.id,
                 content: botContent,
                 is_bot: true,
-                bot_name: 'ChimuBot 🕊️',
+                bot_name: botLabel,
               })
               .select()
               .single();
@@ -135,12 +139,12 @@ export default function TextChannel({ channel, communityId, isMember, isOwner })
               ...savedBotMsg,
               author: {
                 id: user?.id,
-                username: 'ChimuBot 🕊️',
-                avatar_url: 'https://api.dicebear.com/7.x/avataaars/svg?seed=chimu',
+                username: botLabel,
+                avatar_url: 'https://api.dicebear.com/7.x/avataaars/svg?seed=chimu-bot',
                 is_bot: true
               },
             };
-            
+
             setMessages(prev => [...prev, botMessage]);
           } catch (botSaveErr) {
             console.error('[TextChannel] Error saving bot message:', botSaveErr);
@@ -148,11 +152,13 @@ export default function TextChannel({ channel, communityId, isMember, isOwner })
             const botMessage = {
               id: `bot-${Date.now()}`,
               content: botContent,
+              is_bot: true,
+              bot_name: botLabel,
               user_id: 'bot-chimu',
               author: {
                 id: 'bot-chimu',
-                username: 'ChimuBot 🕊️',
-                avatar_url: 'https://api.dicebear.com/7.x/avataaars/svg?seed=chimu',
+                username: botLabel,
+                avatar_url: 'https://api.dicebear.com/7.x/avataaars/svg?seed=chimu-bot',
                 is_bot: true
               },
               created_at: new Date().toISOString(),
@@ -283,29 +289,45 @@ export default function TextChannel({ channel, communityId, isMember, isOwner })
         ) : (
           messages.map((msg, index) => {
             const isOwn = msg.user_id === user?.id;
+            const isBot = msg.is_bot === true;
             const prevMsg = messages[index - 1];
-            const isGrouped = prevMsg && prevMsg.user_id === msg.user_id && 
+            const isGrouped = !isBot && prevMsg && !prevMsg.is_bot &&
+              prevMsg.user_id === msg.user_id &&
               new Date(msg.created_at) - new Date(prevMsg.created_at) < 5 * 60 * 1000;
+            const showHeader = !isGrouped || isBot;
 
             return (
-              <div key={msg.id} className={`group ${isGrouped ? 'mt-0.5' : 'mt-4'}`}>
-                {!isGrouped && (
-                  <div className="flex items-start gap-3">
+              <div
+                key={msg.id}
+                className={`group relative ${isBot ? 'mt-3' : isGrouped ? 'mt-0.5' : 'mt-4'}`}
+              >
+                {showHeader && (
+                  <div className={`flex items-start gap-3 ${isBot ? 'bg-indigo-950/20 rounded-lg p-2' : ''}`}>
                     <img
-                      src={msg.author?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${msg.author?.username}`}
+                      src={
+                        isBot
+                          ? 'https://api.dicebear.com/7.x/avataaars/svg?seed=chimu-bot'
+                          : (msg.author?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${msg.author?.username}`)
+                      }
                       alt={msg.author?.username}
-                      className="w-10 h-10 rounded-full bg-white/5 mt-0.5"
+                      className={`w-10 h-10 rounded-full bg-white/5 mt-0.5 flex-shrink-0 ${isBot ? 'ring-2 ring-cyan-500/50' : ''}`}
                     />
                     <div className="flex-1 min-w-0">
                       <div className="flex items-baseline gap-2">
                         <span className="font-semibold text-white hover:underline cursor-pointer">
-                          {msg.author?.username || 'Anónimo'}
+                          {msg.author?.username || msg.bot_name || 'Bot'}
                         </span>
-                        <ReputationBadge points={msg.author?.reputation?.points || 0} size="sm" />
+                        {isBot && (
+                          <span className="text-[10px] bg-cyan-500/20 text-cyan-400 px-1.5 py-0.5 rounded font-bold">BOT</span>
+                        )}
+                        {!isBot && <ReputationBadge points={msg.author?.reputation?.points || 0} size="sm" />}
                         <span className="text-xs text-gray-500">{formatTime(msg.created_at)}</span>
                       </div>
-                      <MessageRenderer content={msg.content} communityId={communityId} />
-                      {msg.reply_to && (
+                      {isBot
+                        ? <BotEmbed content={msg.content} />
+                        : <MessageRenderer content={msg.content} communityId={communityId} />
+                      }
+                      {!isBot && msg.reply_to && (
                         <div className="mt-1 text-xs text-gray-500 bg-white/5 rounded px-2 py-1">
                           <span className="text-cyan-400">Respondiendo a {msg.reply_to.author?.username}:</span>
                           <span className="ml-1 truncate">{msg.reply_to.content?.substring(0, 50)}...</span>
@@ -314,7 +336,7 @@ export default function TextChannel({ channel, communityId, isMember, isOwner })
                     </div>
                   </div>
                 )}
-                {isGrouped && (
+                {!showHeader && !isBot && (
                   <div className="flex group-hover:bg-white/[0.02] rounded py-0.5 -ml-2 pl-2">
                     <span className="w-10 text-right text-[10px] text-gray-600 opacity-0 group-hover:opacity-100 transition-opacity mr-3">
                       {formatTime(msg.created_at)}
@@ -327,14 +349,16 @@ export default function TextChannel({ channel, communityId, isMember, isOwner })
 
                 {/* Message Actions */}
                 <div className="absolute right-4 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1 bg-[#1a1a24] border border-white/10 rounded-lg shadow-lg -mt-6 mr-2">
-                  <button
-                    onClick={() => setReplyingTo(msg)}
-                    className="p-1.5 text-gray-400 hover:text-cyan-400 hover:bg-white/5 rounded"
-                    title="Responder"
-                  >
-                    <Reply size={16} />
-                  </button>
-                  {isOwn && (
+                  {!isBot && (
+                    <button
+                      onClick={() => setReplyingTo(msg)}
+                      className="p-1.5 text-gray-400 hover:text-cyan-400 hover:bg-white/5 rounded"
+                      title="Responder"
+                    >
+                      <Reply size={16} />
+                    </button>
+                  )}
+                  {isOwn && !isBot && (
                     <button
                       onClick={() => handleDeleteMessage(msg.id)}
                       className="p-1.5 text-gray-400 hover:text-red-400 hover:bg-white/5 rounded"
