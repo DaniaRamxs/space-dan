@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { useAuthContext } from '../../contexts/AuthContext';
 import { chatService } from '../../services/chatService';
+import { botCommandService } from '../../services/botCommandService';
 import { supabase } from '../../supabaseClient';
 import ReputationBadge from '../Reputation/ReputationBadge';
 import EmojiPicker from './EmojiPicker';
@@ -76,13 +77,52 @@ export default function TextChannel({ channel, communityId, isMember, isOwner })
     setSending(true);
     const content = newMessage.trim();
     
-    // Optimistic update
+    // Check if it's a bot command
+    if (botCommandService.isBotCommand(content)) {
+      try {
+        // Execute bot command
+        const result = await botCommandService.executeCommand(content, communityId, user?.id);
+        
+        if (result.isBotCommand) {
+          // Add bot response as a message
+          const botMessage = {
+            id: `bot-${Date.now()}`,
+            content: result.result,
+            user_id: 'bot-chimu',
+            author: {
+              id: 'bot-chimu',
+              username: 'ChimuBot 🕊️',
+              avatar_url: 'https://api.dicebear.com/7.x/avataaars/svg?seed=chimu',
+              is_bot: true
+            },
+            created_at: new Date().toISOString(),
+          };
+          
+          setMessages(prev => [...prev, botMessage]);
+          setNewMessage('');
+          setSending(false);
+          return;
+        }
+      } catch (err) {
+        console.error('[TextChannel] Bot command error:', err);
+        toast.error('Error en comando');
+        setSending(false);
+        return;
+      }
+    }
+
+    // Regular message
     const tempId = `temp-${Date.now()}`;
     const optimisticMsg = {
       id: tempId,
       content,
       user_id: user?.id,
-      author: user,
+      author: {
+        id: user?.id,
+        username: user?.username || user?.email?.split('@')[0] || 'Usuario',
+        avatar_url: user?.avatar_url,
+        reputation: user?.reputation
+      },
       created_at: new Date().toISOString(),
       reply_to_id: replyingTo?.id,
       reply_to: replyingTo,
