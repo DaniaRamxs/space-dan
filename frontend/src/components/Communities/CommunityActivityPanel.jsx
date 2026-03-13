@@ -57,7 +57,7 @@ export default function CommunityActivityPanel({ communityId, isMember }) {
     };
 
     const handleJoinVoiceRoom = (room) => {
-        navigate(`/voice/${room.id}`);
+        navigate(`/chat?voice=${room.id}`);
     };
 
     if (loading) {
