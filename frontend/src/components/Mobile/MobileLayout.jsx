@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Gamepad2, MessageCircle, User, Radio, ChevronDown, Hash } from 'lucide-react';
 import FloatingActionButton from './FloatingActionButton';
 import useTouchGestures from '../../hooks/useTouchGestures';
+import NotificationBell from '../Notifications/NotificationBell';
 
 /**
  * MobileLayout - Layout estilo Global Chat para móvil
@@ -73,8 +74,9 @@ export default function MobileLayout({
                     <ChevronDown size={14} className={`text-white/40 transition-transform ${showChannels ? 'rotate-180' : ''}`} />
                 </button>
 
-                {/* Derecha: Versión y Online */}
+                {/* Derecha: Versión, Notificaciones y Online */}
                 <div className="flex items-center gap-3">
+                    <NotificationBell />
                     <span className="text-[9px] font-black uppercase tracking-widest text-cyan-400/60">
                         v2.5 Global Sync
                     </span>

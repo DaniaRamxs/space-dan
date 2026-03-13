@@ -18,6 +18,8 @@ import { chatService } from '../services/chatService';
 import { useAuthContext } from '../contexts/AuthContext';
 import { supabase } from '../supabaseClient';
 import { liveActivitiesService } from '../services/liveActivitiesService';
+import { addMessagePoints } from '../services/reputationService';
+import ReputationBadge from '../components/Reputation/ReputationBadge';
 import StellarScrollBg from '../components/Effects/StellarScrollBg';
 import toast from 'react-hot-toast';
 
@@ -444,6 +446,13 @@ function CommunityChat({ communityId, communityName, isMember }) {
       await chatService.sendMessage(content, isVip, replyTo, channelId);
       setNewMessage('');
       await chatService.incrementChatStats();
+      
+      // Añadir puntos de reputación por mensaje
+      if (user?.id) {
+        await addMessagePoints(user.id, communityId).catch(err => {
+          console.log('[Reputation] No se pudieron añadir puntos:', err);
+        });
+      }
     } catch (error) {
       console.error('[CommunityChat] Send error:', error);
       toast.error('Error al enviar mensaje');
@@ -633,9 +642,12 @@ function CommunityChat({ communityId, communityName, isMember }) {
 
                 <div className={`max-w-[75%] lg:max-w-[60%] ${isOwn ? 'items-end' : 'items-start'}`}>
                   {showAvatar && (
-                    <span className={`text-[10px] text-white/40 mb-1 block ${isOwn ? 'text-right' : ''}`}>
-                      {msg.author?.username || 'Anónimo'}
-                    </span>
+                    <div className={`flex items-center gap-2 mb-1 ${isOwn ? 'justify-end' : ''}`}>
+                      <span className="text-[10px] text-white/40">
+                        {msg.author?.username || 'Anónimo'}
+                      </span>
+                      <ReputationBadge points={msg.author?.reputation?.points || 0} size="sm" />
+                    </div>
                   )}
                   <div className={`px-4 py-2.5 rounded-2xl text-sm leading-relaxed overflow-hidden ${
                     isOwn 
@@ -922,10 +934,11 @@ function RankingPanel({ communityId, compact }) {
 
               <div className="flex-1 min-w-0">
                 <p className="font-medium text-white/90 text-sm truncate">{member.username}</p>
+                <ReputationBadge points={member.reputation_points || member.points || 0} size="sm" showName={false} />
               </div>
 
               <div className="text-right">
-                <p className="text-sm font-bold text-cyan-400">{member.points}</p>
+                <p className="text-sm font-bold text-cyan-400">{member.reputation_points || member.points || 0}</p>
                 <p className="text-[10px] text-white/30">pts</p>
               </div>
             </motion.div>
