@@ -21,6 +21,7 @@ import { liveActivitiesService } from '../services/liveActivitiesService';
 import { addMessagePoints, getCommunityRanking } from '../services/reputationService';
 import ReputationBadge from '../components/Reputation/ReputationBadge';
 import StellarScrollBg from '../components/Effects/StellarScrollBg';
+import HoloCard from '../components/HoloCard';
 import toast from 'react-hot-toast';
 
 // Giphy integration
@@ -178,6 +179,7 @@ export default function CommunityPage() {
                   <div className="flex-1 overflow-y-auto p-4">
                     <VoicePanel 
                       communityId={community.id}
+                      communityName={community.name}
                       isMember={isMember}
                     />
                   </div>
@@ -243,7 +245,7 @@ export default function CommunityPage() {
 
           {/* Right Panel */}
           <div className="w-80 flex-shrink-0 space-y-4">
-            <VoicePanel communityId={community.id} isMember={isMember} compact />
+            <VoicePanel communityId={community.id} communityName={community.name} isMember={isMember} compact />
             <RankingPanel communityId={community.id} compact />
           </div>
         </div>
@@ -393,6 +395,7 @@ function CommunityChat({ communityId, communityName, isMember }) {
   const [replyingTo, setReplyingTo] = useState(null);
   const [selectedMessage, setSelectedMessage] = useState(null);
   const [showImageModal, setShowImageModal] = useState(null);
+  const [selectedProfile, setSelectedProfile] = useState(null);
   const messagesEndRef = useRef(null);
   const fileInputRef = useRef(null);
   const chatContainerRef = useRef(null);
@@ -754,6 +757,7 @@ function CommunityChat({ communityId, communityName, isMember }) {
                         src={msg.author?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${msg.author?.username}`}
                         alt={msg.author?.username}
                         className="w-8 h-8 rounded-full bg-white/5 border border-white/[0.1] cursor-pointer"
+                        onClick={() => msg.author && setSelectedProfile(msg.author)}
                       />
                     ) : (
                       <div className="w-8 flex justify-center">
@@ -991,6 +995,14 @@ function CommunityChat({ communityId, communityName, isMember }) {
           </motion.div>
         )}
       </AnimatePresence>
+      
+      {/* User Profile HoloCard */}
+      {selectedProfile && (
+        <HoloCard 
+          profile={selectedProfile} 
+          onClose={() => setSelectedProfile(null)} 
+        />
+      )}
     </div>
   );
 }
@@ -999,7 +1011,7 @@ function CommunityChat({ communityId, communityName, isMember }) {
 // VOICE PANEL
 // ═══════════════════════════════════════════════════════════════════════════════
 
-function VoicePanel({ communityId, isMember, compact }) {
+function VoicePanel({ communityId, communityName, isMember, compact }) {
   const navigate = useNavigate();
   const [voiceRooms, setVoiceRooms] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -1028,6 +1040,28 @@ function VoicePanel({ communityId, isMember, compact }) {
     navigate(`/chat?voice=${roomId}`);
   };
 
+  const handleCreateVoiceRoom = async () => {
+    if (!isMember || !communityId) return;
+    
+    try {
+      // Create community voice activity via API
+      const activity = await liveActivitiesService.createActivity({
+        type: 'voice',
+        title: 'Sala General',
+        communityId: communityId,
+        roomName: `community-${communityId}`,
+        metadata: { createdFrom: 'community_page', communityName }
+      });
+      
+      // Navigate to voice room with the created activity ID
+      navigate(`/chat?voice=${activity.id}`);
+    } catch (err) {
+      console.error('[VoicePanel] Failed to create community voice room:', err);
+      // Fallback to local voice room creation
+      navigate(`/chat?voice=community-${communityId}`);
+    }
+  };
+
   if (loading) {
     return (
       <div className={`bg-white/[0.02] border border-white/[0.06] rounded-2xl p-6 ${compact ? '' : 'm-4'}`}>
@@ -1054,7 +1088,7 @@ function VoicePanel({ communityId, isMember, compact }) {
           <p className="text-sm text-white/40 mb-4">No hay salas activas</p>
           {isMember && (
             <button
-              onClick={() => navigate(`/chat?voice=community-${communityId}`)}
+              onClick={handleCreateVoiceRoom}
               className="w-full py-3 bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/30 rounded-xl text-sm font-semibold text-cyan-300 transition-all active:scale-95"
             >
               Crear sala general
