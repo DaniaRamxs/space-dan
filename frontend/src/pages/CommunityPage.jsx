@@ -389,11 +389,14 @@ function CommunityChat({ communityId, communityName, isMember }) {
   const [showGiphy, setShowGiphy] = useState(false);
   const [gifSearchTerm, setGifSearchTerm] = useState('');
   const [showScrollButton, setShowScrollButton] = useState(false);
-  const [typingUsers, setTypingUsers] = useState([]); // eslint-disable-line @typescript-eslint/no-unused-vars
-  const typingTimeoutRef = useRef(null);
+  const [typingUsers, setTypingUsers] = useState([]);
+  const [replyingTo, setReplyingTo] = useState(null);
+  const [selectedMessage, setSelectedMessage] = useState(null);
+  const [showImageModal, setShowImageModal] = useState(null);
   const messagesEndRef = useRef(null);
   const fileInputRef = useRef(null);
   const chatContainerRef = useRef(null);
+  const typingTimeoutRef = useRef(null);
   const channelId = `community-${communityId}`;
 
   const loadMessages = useCallback(async () => {
@@ -442,10 +445,12 @@ function CommunityChat({ communityId, communityName, isMember }) {
     });
   };
 
-  const handleSendMessage = async (content, isVip = false, replyTo = null) => {
+  const handleSendMessage = async (content, isVip = false) => {
     if (!content.trim() || sending || !isMember) return;
 
     setSending(true);
+    
+    const replyToId = replyingTo?.id;
     
     // Optimistic update - add message immediately to UI
     const tempId = `temp-${Date.now()}`;
@@ -455,7 +460,8 @@ function CommunityChat({ communityId, communityName, isMember }) {
       user_id: user?.id,
       created_at: new Date().toISOString(),
       is_vip: isVip,
-      reply_to_id: replyTo,
+      reply_to_id: replyToId,
+      reply_to: replyingTo,
       channel_id: channelId,
       author: {
         id: user?.id,
@@ -467,9 +473,10 @@ function CommunityChat({ communityId, communityName, isMember }) {
     // Add optimistic message to UI immediately
     setMessages(prev => [...prev, optimisticMsg]);
     setNewMessage('');
+    setReplyingTo(null);
     
     try {
-      await chatService.sendMessage(content, isVip, replyTo, channelId);
+      await chatService.sendMessage(content, isVip, replyToId, channelId);
       await chatService.incrementChatStats();
       
       // Añadir puntos de reputación por mensaje
@@ -485,6 +492,33 @@ function CommunityChat({ communityId, communityName, isMember }) {
       toast.error('Error al enviar mensaje');
     } finally {
       setSending(false);
+    }
+  };
+
+  const handleReply = (msg) => {
+    setReplyingTo(msg);
+    setSelectedMessage(null);
+  };
+
+  const handleCancelReply = () => {
+    setReplyingTo(null);
+  };
+
+  const handleDeleteMessage = async (messageId) => {
+    try {
+      const { error } = await supabase
+        .from('global_chat')
+        .delete()
+        .eq('id', messageId)
+        .eq('user_id', user?.id);
+      
+      if (error) throw error;
+      
+      setMessages(prev => prev.filter(m => m.id !== messageId));
+      toast.success('Mensaje eliminado');
+    } catch (err) {
+      console.error('[CommunityChat] Delete error:', err);
+      toast.error('Error al eliminar mensaje');
     }
   };
 
@@ -575,7 +609,7 @@ function CommunityChat({ communityId, communityName, isMember }) {
     return new Date(timestamp).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
   };
 
-  const renderMessageContent = (content) => {
+  const renderMessageContent = (content, isImageClickable = true) => {
     // Check if content is an image markdown
     const imageMatch = content.match(/!\[.*?\]\((.*?)\)/);
     if (imageMatch) {
@@ -583,8 +617,9 @@ function CommunityChat({ communityId, communityName, isMember }) {
         <img 
           src={imageMatch[1]} 
           alt="imagen" 
-          className="max-w-full rounded-lg mt-1 max-h-[200px] object-contain"
+          className="max-w-full rounded-lg mt-1 max-h-[200px] object-contain cursor-pointer hover:opacity-90 transition-opacity"
           loading="lazy"
+          onClick={() => isImageClickable && setShowImageModal(imageMatch[1])}
         />
       );
     }
@@ -753,22 +788,47 @@ function CommunityChat({ communityId, communityName, isMember }) {
                       {/* Hover actions */}
                       <div className={`absolute ${isOwn ? 'left-0 -translate-x-full' : 'right-0 translate-x-full'} top-1/2 -translate-y-1/2 opacity-0 group-hover/message:opacity-100 transition-opacity flex gap-1 px-2`}>
                         <button 
+                          onClick={(e) => { e.stopPropagation(); toast.success('Reacciones próximamente'); }}
                           className="p-1.5 bg-[#1a1a24] border border-white/[0.1] rounded-lg text-white/60 hover:text-cyan-400 hover:border-cyan-500/30 transition-all shadow-lg"
                           title="Reaccionar"
                         >
                           <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>
                         </button>
                         <button 
+                          onClick={(e) => { e.stopPropagation(); handleReply(msg); }}
                           className="p-1.5 bg-[#1a1a24] border border-white/[0.1] rounded-lg text-white/60 hover:text-cyan-400 hover:border-cyan-500/30 transition-all shadow-lg"
                           title="Responder"
                         >
                           <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
                         </button>
                         <button 
-                          className="p-1.5 bg-[#1a1a24] border border-white/[0.1] rounded-lg text-white/60 hover:text-red-400 hover:border-red-500/30 transition-all shadow-lg"
+                          onClick={(e) => { e.stopPropagation(); setSelectedMessage(selectedMessage === msg.id ? null : msg.id); }}
+                          className="p-1.5 bg-[#1a1a24] border border-white/[0.1] rounded-lg text-white/60 hover:text-red-400 hover:border-red-500/30 transition-all shadow-lg relative"
                           title="Más opciones"
                         >
                           <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+                          
+                          {/* Message Options Dropdown */}
+                          {selectedMessage === msg.id && (
+                            <div className={`absolute ${isOwn ? 'right-0' : 'left-0'} top-full mt-1 w-36 bg-[#1a1a24] border border-white/[0.1] rounded-lg shadow-xl py-1 z-50`}>
+                              {isOwn && (
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); handleDeleteMessage(msg.id); setSelectedMessage(null); }}
+                                  className="w-full px-3 py-2 text-left text-xs text-red-400 hover:bg-white/5 transition-colors flex items-center gap-2"
+                                >
+                                  <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+                                  Eliminar
+                                </button>
+                              )}
+                              <button
+                                onClick={(e) => { e.stopPropagation(); navigator.clipboard.writeText(msg.content.replace(/!\[.*?\]\((.*?)\)/, '$1')); toast.success('Contenido copiado'); setSelectedMessage(null); }}
+                                className="w-full px-3 py-2 text-left text-xs text-white/70 hover:bg-white/5 transition-colors flex items-center gap-2"
+                              >
+                                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                                Copiar
+                              </button>
+                            </div>
+                          )}
                         </button>
                       </div>
                     </div>
@@ -813,6 +873,26 @@ function CommunityChat({ communityId, communityName, isMember }) {
                 ? `${typingUsers[0]} está escribiendo...` 
                 : `${typingUsers.length} personas están escribiendo...`}
             </span>
+          </div>
+        )}
+        
+        {/* Reply Preview */}
+        {replyingTo && (
+          <div className="flex items-center gap-2 mb-2 px-2 py-2 bg-white/[0.03] rounded-lg border-l-2 border-cyan-500">
+            <div className="flex-1 min-w-0">
+              <p className="text-[10px] text-cyan-400 font-medium">
+                Respondiendo a {replyingTo.author?.username || 'Anónimo'}
+              </p>
+              <p className="text-xs text-white/50 truncate">
+                {replyingTo.content?.length > 50 ? replyingTo.content.substring(0, 50) + '...' : replyingTo.content}
+              </p>
+            </div>
+            <button 
+              onClick={handleCancelReply}
+              className="p-1 text-white/40 hover:text-white/70 transition-colors"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+            </button>
           </div>
         )}
         
@@ -883,6 +963,34 @@ function CommunityChat({ communityId, communityName, isMember }) {
           </form>
         )}
       </div>
+      {/* Image Modal */}
+      <AnimatePresence>
+        {showImageModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setShowImageModal(null)}
+            className="fixed inset-0 z-50 bg-black/90 backdrop-blur-sm flex items-center justify-center p-4"
+          >
+            <motion.img
+              initial={{ scale: 0.9 }}
+              animate={{ scale: 1 }}
+              exit={{ scale: 0.9 }}
+              src={showImageModal}
+              alt="Imagen ampliada"
+              className="max-w-full max-h-[90vh] object-contain rounded-lg"
+              onClick={(e) => e.stopPropagation()}
+            />
+            <button
+              onClick={() => setShowImageModal(null)}
+              className="absolute top-4 right-4 p-2 text-white/60 hover:text-white transition-colors"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
