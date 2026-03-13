@@ -1,5 +1,5 @@
 import React, { Suspense, lazy, useEffect, useRef } from "react";
-import { BrowserRouter, Routes, Route, useLocation, Navigate, useParams } from "react-router-dom";
+import { BrowserRouter, HashRouter, Routes, Route, useLocation, Navigate, useParams } from "react-router-dom";
 import { AnimatePresence } from "framer-motion";
 import { Capacitor } from "@capacitor/core";
 import { App as CapApp } from "@capacitor/app";
@@ -600,6 +600,14 @@ function AnimatedRoutes() {
   );
 }
 
+const isTauri = typeof window !== 'undefined' && (
+  window.__TAURI_INTERNALS__ !== undefined ||
+  window.__TAURI__ !== undefined ||
+  window.location.hostname === 'tauri.localhost' ||
+  window.location.protocol === 'tauri:'
+);
+const AppRouter = isTauri ? HashRouter : BrowserRouter;
+
 export default function App() {
   useEffect(() => {
     // Global drag-to-scroll logic for .mobile-scroll-x
@@ -700,7 +708,7 @@ export default function App() {
       <EconomyProvider>
         <UniverseProvider>
           <CosmicProvider>
-            <BrowserRouter>
+            <AppRouter>
               <DomainGuard />
               <DarkSideManager />
               <div className="scanline-overlay opacity-[0.03] fixed inset-0 pointer-events-none z-[99999]" />
@@ -722,7 +730,7 @@ export default function App() {
               <Suspense fallback={<FallbackLoader />}>
                 <AnimatedRoutes />
               </Suspense>
-            </BrowserRouter>
+            </AppRouter>
           </CosmicProvider>
         </UniverseProvider>
       </EconomyProvider>
