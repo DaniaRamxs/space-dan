@@ -465,6 +465,8 @@ function VoiceRoomInner({
 }) {
     // useTracks debe llamarse aquí (dentro de LiveKitRoom) para tener contexto
     const screenTracks = useTracks([Track.Source.ScreenShare]);
+    const { chatMessages } = useChat();
+    const unreadCount = activeTab !== 'chat' ? chatMessages.length : 0;
 
     return (
         <>
@@ -606,13 +608,18 @@ function VoiceRoomInner({
                                             </button>
                                             <button
                                                 onClick={() => setActiveTab('chat')}
-                                                className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
+                                                className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all relative ${
                                                     activeTab === 'chat'
                                                         ? 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/20'
                                                         : 'text-white/30 hover:bg-white/5'
                                                 }`}
                                             >
                                                 <MessageSquare size={14} /> Chat Temporal
+                                                {unreadCount > 0 && (
+                                                    <span className="absolute -top-1 -right-1 w-5 h-5 bg-cyan-500 text-black text-[8px] font-black rounded-full flex items-center justify-center animate-pulse">
+                                                        {unreadCount > 9 ? '9+' : unreadCount}
+                                                    </span>
+                                                )}
                                             </button>
                                         </div>
                                     </header>
