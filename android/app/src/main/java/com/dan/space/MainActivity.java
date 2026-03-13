@@ -11,9 +11,9 @@ public class MainActivity extends BridgeActivity {
 
     @Override
     public void onCreate(android.os.Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
         registerPlugin(VoiceServicePlugin.class);
         registerPlugin(RadioServicePlugin.class);
-        super.onCreate(savedInstanceState);
 
         // Habilitar soporte para compartir pantalla (getDisplayMedia) en la WebView
         getBridge().getWebView().setWebChromeClient(new WebChromeClient() {
