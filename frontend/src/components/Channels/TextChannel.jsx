@@ -10,11 +10,40 @@ import { botCommandService } from '../../services/botCommandService';
 import { supabase } from '../../supabaseClient';
 import ReputationBadge from '../Reputation/ReputationBadge';
 import EmojiPicker from './EmojiPicker';
-import { MessageRendererWithEmojis } from './MessageRenderer';
+import { MessageRendererWithEmojis, parseMessageContent } from './MessageRenderer';
 import BotEmbed from './BotEmbed';
 import toast from 'react-hot-toast';
 
 // Bot messages now persist to database
+
+// Helper component for optimistic messages with pre-rendered emojis
+function OptimisticMessageRenderer({ content, emojis, preRenderedParts }) {
+  if (preRenderedParts) {
+    // Use pre-rendered parts for immediate display
+    return (
+      <p className="text-gray-200 whitespace-pre-wrap break-words">
+        {preRenderedParts.map((part, index) => {
+          if (part.type === 'emoji') {
+            return (
+              <img
+                key={`${part.name}-${index}`}
+                src={part.imageUrl}
+                alt={`:${part.name}:`}
+                className="inline-block w-5 h-5 object-contain align-text-bottom mx-0.5"
+                title={`:${part.name}:`}
+                loading="lazy"
+              />
+            );
+          }
+          return <span key={index}>{part.content}</span>;
+        })}
+      </p>
+    );
+  }
+  
+  // Fallback to normal renderer
+  return <MessageRendererWithEmojis content={content} emojis={emojis} />;
+}
 
 export default function TextChannel({ channel, communityId, isMember, isOwner }) {
   const { user, profile } = useAuthContext();
@@ -237,6 +266,7 @@ export default function TextChannel({ channel, communityId, isMember, isOwner })
       created_at: new Date().toISOString(),
       reply_to_id: replyingTo?.id,
       reply_to: replyingTo,
+      _preRenderedParts: parseMessageContent(content, customEmojis), // Pre-render emojis for immediate display
     };
     
     setMessages(prev => [...prev, optimisticMsg]);
@@ -369,7 +399,7 @@ export default function TextChannel({ channel, communityId, isMember, isOwner })
                       </div>
                       {isBot
                         ? <BotEmbed content={msg.content} />
-                        : <MessageRendererWithEmojis content={msg.content} emojis={customEmojis} />
+                        : <OptimisticMessageRenderer content={msg.content} emojis={customEmojis} preRenderedParts={msg._preRenderedParts} />
                       }
                       {!isBot && msg.reply_to && (
                         <div className="mt-1 text-xs text-gray-500 bg-white/5 rounded px-2 py-1">
@@ -386,7 +416,7 @@ export default function TextChannel({ channel, communityId, isMember, isOwner })
                       {formatTime(msg.created_at)}
                     </span>
                     <div className="flex-1">
-                      <MessageRendererWithEmojis content={msg.content} emojis={customEmojis} />
+                      <OptimisticMessageRenderer content={msg.content} emojis={customEmojis} preRenderedParts={msg._preRenderedParts} />
                     </div>
                   </div>
                 )}
