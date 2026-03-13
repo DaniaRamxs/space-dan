@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Plus, Trash2, Edit2, Shield, Check, Users } from 'lucide-react';
-import { supabase } from '../supabaseClient';
+import { supabase } from "../../supabaseClient";
 import toast from 'react-hot-toast';
 
 const PERMISSIONS = [

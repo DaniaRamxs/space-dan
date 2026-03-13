@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { X, Clock, User, Trash2, Shield, Plus, Edit2, MessageSquare } from 'lucide-react';
-import { supabase } from '../supabaseClient';
+import { supabase } from "../../supabaseClient";
 import { formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
 
