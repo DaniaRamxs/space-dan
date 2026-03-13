@@ -10,7 +10,7 @@ import { botCommandService } from '../../services/botCommandService';
 import { supabase } from '../../supabaseClient';
 import ReputationBadge from '../Reputation/ReputationBadge';
 import EmojiPicker from './EmojiPicker';
-import MessageRenderer from './MessageRenderer';
+import { MessageRendererWithEmojis } from './MessageRenderer';
 import BotEmbed from './BotEmbed';
 import toast from 'react-hot-toast';
 
@@ -24,6 +24,7 @@ export default function TextChannel({ channel, communityId, isMember, isOwner })
   const [sending, setSending] = useState(false);
   const [replyingTo, setReplyingTo] = useState(null);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [customEmojis, setCustomEmojis] = useState([]);
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
   const messagesRef = useRef([]);
@@ -45,6 +46,28 @@ export default function TextChannel({ channel, communityId, isMember, isOwner })
       setLoading(false);
     }
   }, [channel?.id]);
+
+  // Load custom emojis once for all messages
+  useEffect(() => {
+    if (!communityId) return;
+    
+    const loadEmojis = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('community_emojis')
+          .select('*')
+          .eq('community_id', communityId);
+        
+        if (error) throw error;
+        setCustomEmojis((data || []).filter(e => e.is_active !== false));
+        console.log('[TextChannel] Loaded emojis:', data?.length || 0);
+      } catch (err) {
+        console.error('[TextChannel] Emoji load error:', err);
+      }
+    };
+    
+    loadEmojis();
+  }, [communityId]);
 
   useEffect(() => {
     loadMessages();
@@ -345,7 +368,7 @@ export default function TextChannel({ channel, communityId, isMember, isOwner })
                       </div>
                       {isBot
                         ? <BotEmbed content={msg.content} />
-                        : <MessageRenderer content={msg.content} communityId={communityId} />
+                        : <MessageRendererWithEmojis content={msg.content} emojis={customEmojis} />
                       }
                       {!isBot && msg.reply_to && (
                         <div className="mt-1 text-xs text-gray-500 bg-white/5 rounded px-2 py-1">
@@ -362,7 +385,7 @@ export default function TextChannel({ channel, communityId, isMember, isOwner })
                       {formatTime(msg.created_at)}
                     </span>
                     <div className="flex-1">
-                      <MessageRenderer content={msg.content} communityId={communityId} />
+                      <MessageRendererWithEmojis content={msg.content} emojis={customEmojis} />
                     </div>
                   </div>
                 )}
