@@ -419,6 +419,7 @@ export default function TextChannel({ channel, communityId, isMember, isOwner })
                   onSelect={handleEmojiSelect}
                   isOwner={isOwner}
                   userId={user?.id}
+                  onClose={() => setShowEmojiPicker(false)}
                 />
               </div>
             )}

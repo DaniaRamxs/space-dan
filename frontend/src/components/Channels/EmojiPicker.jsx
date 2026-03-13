@@ -1,33 +1,31 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Smile, Plus, X, Trash2 } from 'lucide-react';
+import { Plus, X, Trash2 } from 'lucide-react';
 import { supabase } from "../../supabaseClient";
 import toast from 'react-hot-toast';
 
 const DEFAULT_EMOJIS = ['👍', '❤️', '😂', '😮', '😢', '😡', '🎉', '🔥'];
 
-export default function EmojiPicker({ communityId, onSelect, isOwner, userId }) {
-  const [emojis, setEmojis] = useState([]);
+// EmojiPicker siempre muestra su contenido cuando se renderiza.
+// TextChannel controla la visibilidad con su propio estado.
+export default function EmojiPicker({ communityId, onSelect, isOwner, userId, onClose }) {
   const [customEmojis, setCustomEmojis] = useState([]);
-  const [showPicker, setShowPicker] = useState(false);
   const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
-    if (communityId && showPicker) {
-      loadCustomEmojis();
-    }
-  }, [communityId, showPicker]);
+    if (communityId) loadCustomEmojis();
+  }, [communityId]);
 
   const loadCustomEmojis = async () => {
     try {
       const { data, error } = await supabase
         .from('community_emojis')
         .select('*')
-        .eq('community_id', communityId)
-        .or('is_active.eq.true,is_active.is.null');
+        .eq('community_id', communityId);
 
       if (error) throw error;
-      setCustomEmojis(data || []);
+      // Filtrar en JS: excluir solo los explícitamente desactivados
+      setCustomEmojis((data || []).filter(e => e.is_active !== false));
     } catch (err) {
       console.error('[EmojiPicker] Load error:', err);
     }
@@ -37,14 +35,20 @@ export default function EmojiPicker({ communityId, onSelect, isOwner, userId }) 
     const file = e.target.files?.[0];
     if (!file) return;
 
+    // Validar tamaño (máx 256KB)
+    if (file.size > 256 * 1024) {
+      toast.error('El emoji debe pesar menos de 256KB');
+      return;
+    }
+
     try {
       setUploading(true);
-      const fileExt = file.name.split('.').pop();
-      const fileName = `emoji-${Date.now()}.${fileExt}`;
+      const fileExt = file.name.split('.').pop().toLowerCase();
+      const fileName = `${communityId}/emoji-${Date.now()}.${fileExt}`;
 
       const { error: uploadError } = await supabase.storage
         .from('emojis')
-        .upload(fileName, file);
+        .upload(fileName, file, { upsert: false });
 
       if (uploadError) throw uploadError;
 
@@ -52,7 +56,9 @@ export default function EmojiPicker({ communityId, onSelect, isOwner, userId }) 
         .from('emojis')
         .getPublicUrl(fileName);
 
-      const emojiName = file.name.split('.')[0].toLowerCase().replace(/[^a-z0-9]/g, '');
+      // Nombre del emoji: nombre del archivo sin extensión, solo alfanumérico
+      const rawName = file.name.replace(/\.[^.]+$/, '');
+      const emojiName = rawName.toLowerCase().replace(/[^a-z0-9_-]/g, '').slice(0, 32) || `emoji${Date.now()}`;
 
       const { error: insertError } = await supabase
         .from('community_emojis')
@@ -66,10 +72,13 @@ export default function EmojiPicker({ communityId, onSelect, isOwner, userId }) 
 
       if (insertError) throw insertError;
 
-      toast.success('Emoji agregado');
+      toast.success(`Emoji :${emojiName}: agregado`);
       await loadCustomEmojis();
+      // Reset input
+      e.target.value = '';
     } catch (err) {
-      toast.error('Error al subir emoji');
+      console.error('[EmojiPicker] Upload error:', err);
+      toast.error(err.message || 'Error al subir emoji');
     } finally {
       setUploading(false);
     }
@@ -83,82 +92,67 @@ export default function EmojiPicker({ communityId, onSelect, isOwner, userId }) 
         .eq('id', emojiId);
 
       if (error) throw error;
+      setCustomEmojis(prev => prev.filter(e => e.id !== emojiId));
       toast.success('Emoji eliminado');
-      await loadCustomEmojis();
     } catch (err) {
       toast.error('Error al eliminar');
     }
   };
 
-  const handleSelect = (emoji) => {
-    onSelect?.(emoji);
-    setShowPicker(false);
-  };
-
-  if (!showPicker) {
-    return (
-      <button
-        onClick={() => setShowPicker(true)}
-        className="p-2 text-gray-400 hover:text-white hover:bg-white/5 rounded-lg transition-colors"
-      >
-        <Smile size={20} />
-      </button>
-    );
-  }
-
   return (
     <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      className="absolute bottom-full mb-2 bg-[#1a1a24] border border-white/10 rounded-xl p-3 shadow-2xl z-50 w-64"
+      className="bg-[#1a1a24] border border-white/10 rounded-xl p-3 shadow-2xl w-72"
     >
       <div className="flex items-center justify-between mb-2">
         <h4 className="text-sm font-semibold text-white">Emojis</h4>
-        <button
-          onClick={() => setShowPicker(false)}
-          className="p-1 text-gray-400 hover:text-white"
-        >
-          <X size={16} />
-        </button>
+        {onClose && (
+          <button onClick={onClose} className="p-1 text-gray-400 hover:text-white">
+            <X size={16} />
+          </button>
+        )}
       </div>
 
-      {/* Default Emojis */}
-      <div className="grid grid-cols-4 gap-1 mb-3">
+      {/* Emojis por defecto */}
+      <div className="grid grid-cols-8 gap-0.5 mb-2">
         {DEFAULT_EMOJIS.map((emoji) => (
           <button
             key={emoji}
-            onClick={() => handleSelect(emoji)}
-            className="p-2 hover:bg-white/5 rounded text-2xl transition-colors"
+            onClick={() => onSelect?.(emoji)}
+            className="p-1.5 hover:bg-white/5 rounded text-xl transition-colors"
           >
             {emoji}
           </button>
         ))}
       </div>
 
-      {/* Custom Emojis */}
+      {/* Emojis custom */}
       {customEmojis.length > 0 && (
         <>
           <div className="border-t border-white/5 my-2" />
-          <p className="text-xs text-gray-500 mb-1">Custom</p>
-          <div className="grid grid-cols-4 gap-1">
+          <p className="text-xs text-gray-500 mb-1">Custom ({customEmojis.length})</p>
+          <div className="grid grid-cols-6 gap-1 max-h-32 overflow-y-auto">
             {customEmojis.map((emoji) => (
               <div key={emoji.id} className="relative group">
                 <button
-                  onClick={() => handleSelect(`:${emoji.name}:`)}
-                  className="p-2 hover:bg-white/5 rounded transition-colors w-full"
+                  onClick={() => onSelect?.(`:${emoji.name}:`)}
+                  className="p-1.5 hover:bg-white/5 rounded transition-colors w-full"
+                  title={`:${emoji.name}:`}
                 >
                   <img
                     src={emoji.image_url}
                     alt={emoji.name}
-                    className="w-6 h-6 object-contain mx-auto"
+                    className="w-7 h-7 object-contain mx-auto"
+                    onError={(e) => { e.target.style.opacity = '0.3'; }}
                   />
                 </button>
                 {isOwner && (
                   <button
                     onClick={() => deleteEmoji(emoji.id)}
-                    className="absolute -top-1 -right-1 p-1 bg-red-500/20 text-red-400 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                    className="absolute -top-1 -right-1 p-0.5 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
                   >
-                    <Trash2 size={10} />
+                    <Trash2 size={8} />
                   </button>
                 )}
               </div>
@@ -167,18 +161,18 @@ export default function EmojiPicker({ communityId, onSelect, isOwner, userId }) 
         </>
       )}
 
-      {/* Upload */}
+      {/* Upload — solo owners */}
       {isOwner && (
         <>
           <div className="border-t border-white/5 my-2" />
-          <label className="flex items-center justify-center gap-2 p-2 bg-white/5 hover:bg-white/10 rounded-lg cursor-pointer transition-colors">
-            <Plus size={16} className="text-gray-400" />
-            <span className="text-xs text-gray-400">
-              {uploading ? 'Subiendo...' : 'Agregar emoji'}
+          <label className={`flex items-center justify-center gap-2 p-2 rounded-lg cursor-pointer transition-colors ${uploading ? 'opacity-50 cursor-not-allowed' : 'bg-white/5 hover:bg-white/10'}`}>
+            <Plus size={14} className="text-cyan-400" />
+            <span className="text-xs text-cyan-400">
+              {uploading ? 'Subiendo...' : 'Agregar emoji (máx 256KB)'}
             </span>
             <input
               type="file"
-              accept="image/*"
+              accept="image/png,image/gif,image/webp,image/jpeg"
               onChange={uploadEmoji}
               disabled={uploading}
               className="hidden"
