@@ -14,9 +14,30 @@ const router = Router();
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-// Initialize bots
-const chimuBot = new ChimuGotchiBot(supabaseUrl, supabaseKey);
-const welcomeBot = new WelcomeBot(supabaseUrl, supabaseKey);
+// Debug logging for Railway
+console.log("[BotRoutes] Environment check:", {
+  hasUrl: !!supabaseUrl,
+  hasKey: !!supabaseKey,
+  url: supabaseUrl ? supabaseUrl.substring(0, 20) + "..." : "MISSING",
+  keyFirst10: supabaseKey ? supabaseKey.substring(0, 10) + "..." : "MISSING",
+  allEnvKeys: Object.keys(process.env).filter(k => k.includes("SUPABASE") || k.includes("SERVICE"))
+});
+
+// Initialize bots only if credentials are available
+let chimuBot = null;
+let welcomeBot = null;
+
+if (supabaseUrl && supabaseKey) {
+  try {
+    chimuBot = new ChimuGotchiBot(supabaseUrl, supabaseKey);
+    welcomeBot = new WelcomeBot(supabaseUrl, supabaseKey);
+    console.log("[BotRoutes] Bots initialized successfully");
+  } catch (err) {
+    console.error("[BotRoutes] Error initializing bots:", err.message);
+  }
+} else {
+  console.error("[BotRoutes] Cannot initialize bots - missing Supabase credentials");
+}
 
 /**
  * POST /api/bots/command
@@ -29,6 +50,13 @@ router.post('/command', async (req, res) => {
     if (!communityId || !botType || !userId) {
       return res.status(400).json({ 
         error: 'Missing required fields: communityId, botType, userId' 
+      });
+    }
+    
+    // Check if bots are initialized
+    if (!chimuBot || !welcomeBot) {
+      return res.status(503).json({ 
+        error: 'Bot service unavailable - check SUPABASE_SERVICE_ROLE_KEY' 
       });
     }
 
