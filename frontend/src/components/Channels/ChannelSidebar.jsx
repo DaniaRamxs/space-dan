@@ -4,7 +4,7 @@ import {
   Hash, Volume2, MessageSquare, Plus, Settings, ChevronDown, ChevronRight,
   MoreVertical, Edit2, Trash2, Lock, Unlock
 } from 'lucide-react';
-import { channelsService } from '../services/channelsService';
+import { channelsService } from '../../services/channelsService';
 import toast from 'react-hot-toast';
 
 const CHANNEL_ICONS = {
