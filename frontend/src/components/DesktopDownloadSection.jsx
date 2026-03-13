@@ -75,7 +75,7 @@ export default function DesktopDownloadSection() {
                             {/* Windows Download */}
                             <div className="flex flex-col items-center lg:items-start gap-4">
                                 <motion.a
-                                    href="https://github.com/DaniaRamxs/space-dan/releases/download/deskopt-v1/Spacely_0.0.0_x64-setup.exe"
+                                    href="https://github.com/DaniaRamxs/space-dan/releases/download/deskopt-v1.1/spacely.exe"
                                     download
                                     whileHover={{ scale: 1.05 }}
                                     whileTap={{ scale: 0.95 }}
