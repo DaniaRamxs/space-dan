@@ -1,20 +1,29 @@
 /**
- * Community Page
- * Vista principal de comunidad con diseño de 3 columnas:
- * - Izquierda: Información de la comunidad
- * - Centro: Chat exclusivo de la comunidad
- * - Derecha: Actividad (salas de voz + ranking)
+ * Community Page - Mobile First Design
+ * Vista principal de comunidad con diseño mobile-first
+ * 
+ * Mobile: Layout vertical con bottom tabs
+ * Desktop: Layout 3 columnas tradicional
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Users, ArrowLeft, UserPlus } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { 
+  Users, ArrowLeft, UserPlus, MessageCircle, Volume2, Trophy,
+  Send, MoreVertical, Hash, Radio
+} from 'lucide-react';
 import { communitiesService } from '../services/communitiesService';
+import { chatService } from '../services/chatService';
 import { useAuthContext } from '../contexts/AuthContext';
-import CommunityChatPanel from '../components/Communities/CommunityChatPanel';
-import CommunityActivityPanel from '../components/Communities/CommunityActivityPanel';
+import { supabase } from '../supabaseClient';
+import { liveActivitiesService } from '../services/liveActivitiesService';
 import StellarScrollBg from '../components/Effects/StellarScrollBg';
 import toast from 'react-hot-toast';
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// COMPONENTE PRINCIPAL
+// ═══════════════════════════════════════════════════════════════════════════════
 
 export default function CommunityPage() {
   const { slug } = useParams();
@@ -25,6 +34,7 @@ export default function CommunityPage() {
   const [isMember, setIsMember] = useState(false);
   const [loading, setLoading] = useState(true);
   const [joining, setJoining] = useState(false);
+  const [activeTab, setActiveTab] = useState('chat'); // 'chat' | 'voice' | 'ranking'
 
   useEffect(() => {
     if (slug) loadCommunity();
@@ -36,7 +46,6 @@ export default function CommunityPage() {
       const communityData = await communitiesService.getCommunityBySlug(slug);
       setCommunity(communityData);
       
-      // Verificar si el usuario es miembro
       if (user && communityData.id) {
         const membership = await communitiesService.checkMembership(communityData.id);
         setIsMember(membership);
@@ -55,8 +64,10 @@ export default function CommunityPage() {
       await communitiesService.joinCommunity(community.id);
       setIsMember(true);
       setCommunity(prev => ({ ...prev, member_count: (prev.member_count || 0) + 1 }));
+      toast.success('¡Te uniste a la comunidad!');
     } catch (error) {
       console.error('[CommunityPage] Join error:', error);
+      toast.error('Error al unirse');
     } finally {
       setJoining(false);
     }
@@ -69,6 +80,7 @@ export default function CommunityPage() {
       await communitiesService.leaveCommunity(community.id);
       setIsMember(false);
       setCommunity(prev => ({ ...prev, member_count: Math.max(0, (prev.member_count || 0) - 1) }));
+      toast.success('Saliste de la comunidad');
     } catch (error) {
       console.error('[CommunityPage] Leave error:', error);
     } finally {
@@ -76,142 +88,791 @@ export default function CommunityPage() {
     }
   };
 
+  const handleInvite = () => {
+    const inviteUrl = `${window.location.origin}/community/${slug}`;
+    navigator.clipboard.writeText(inviteUrl);
+    toast.success('¡Link copiado al portapapeles!');
+  };
+
   if (loading) {
-    return (
-      <main className="w-full max-w-6xl mx-auto min-h-screen pb-32 text-white font-sans pt-6 md:pt-10 px-4">
-        <div className="animate-pulse space-y-6">
-          <div className="h-32 bg-white/[0.03] rounded-2xl" />
-          <div className="h-64 bg-white/[0.03] rounded-2xl" />
-        </div>
-      </main>
-    );
+    return <CommunitySkeleton />;
   }
 
   if (!community) {
     return (
-      <main className="w-full max-w-6xl mx-auto min-h-screen pb-32 text-white font-sans pt-6 md:pt-10 px-4 text-center">
-        <p className="text-white/60">Comunidad no encontrada</p>
-        <button onClick={() => navigate('/communities')} className="mt-4 text-cyan-400 hover:text-cyan-300">
-          Volver a comunidades
-        </button>
+      <main className="w-full min-h-screen bg-[#0a0a0f] text-white font-sans flex items-center justify-center p-4">
+        <div className="text-center">
+          <p className="text-white/60 text-lg">Comunidad no encontrada</p>
+          <button 
+            onClick={() => navigate('/communities')} 
+            className="mt-4 px-6 py-3 bg-cyan-500/10 border border-cyan-500/30 rounded-xl text-cyan-300 hover:bg-cyan-500/20 transition-all"
+          >
+            Volver a comunidades
+          </button>
+        </div>
       </main>
     );
   }
 
-  const handleInvite = () => {
-    const inviteUrl = `${window.location.origin}/community/${slug}`;
-    navigator.clipboard.writeText(inviteUrl);
-    toast.success('¡Link de invitación copiado!');
-  };
-
   return (
-    <main className="w-full h-screen overflow-hidden text-white font-sans relative">
+    <main className="w-full h-screen bg-[#0a0a0f] text-white font-sans relative overflow-hidden flex flex-col">
       <StellarScrollBg />
+      
+      {/* Header Móvil - Fixed */}
+      <MobileHeader 
+        community={community} 
+        onBack={() => navigate('/communities')}
+        isMember={isMember}
+        onJoin={handleJoinCommunity}
+        onLeave={handleLeaveCommunity}
+        joining={joining}
+        user={user}
+      />
 
-      {/* Header con botón volver */}
-      <div className="border-b border-white/[0.06] bg-black/20 backdrop-blur-sm">
-        <div className="max-w-[1800px] mx-auto px-6 py-4 flex items-center justify-between">
-          <button
-            onClick={() => navigate('/communities')}
-            className="flex items-center gap-2 text-white/40 hover:text-white/80 transition-colors text-sm"
-          >
-            <ArrowLeft size={16} />
-            <span>Volver</span>
-          </button>
-          
-          {community && (
-            <h1 className="text-xl font-bold text-white/90">
-              {community.name}
-            </h1>
-          )}
-          
-          <div className="w-20" /> {/* Spacer for centering */}
-        </div>
-      </div>
-
-      {/* 3-Column Layout */}
-      <div className="max-w-[1800px] mx-auto h-[calc(100vh-73px)] flex gap-6 p-6">
-        {/* Left Panel - Community Info */}
-        <div className="w-80 flex-shrink-0 space-y-6 overflow-y-auto">
-          {/* Community Card */}
-          <div className="bg-white/[0.03] border border-white/[0.06] rounded-2xl p-6">
-            {community?.avatar_url ? (
-              <img 
-                src={community.avatar_url} 
-                alt={community.name}
-                className="w-full h-40 rounded-xl object-cover mb-4"
-              />
-            ) : (
-              <div className="w-full h-40 rounded-xl bg-gradient-to-br from-cyan-500/20 to-purple-500/20 flex items-center justify-center mb-4">
-                <Users size={48} className="text-cyan-400" />
-              </div>
-            )}
-
-            <h2 className="text-2xl font-black uppercase tracking-tight text-white/90 mb-2">
-              {community?.name}
-            </h2>
-
-            {community?.description && (
-              <p className="text-sm text-white/60 mb-4">
-                {community.description}
-              </p>
-            )}
-
-            <div className="flex items-center gap-2 text-sm text-white/40 mb-4">
-              <Users size={16} />
-              <span>{community?.member_count?.toLocaleString() || 0} miembros</span>
-            </div>
-
-            {/* Action Buttons */}
-            <div className="space-y-2">
-              {user && (
-                <button
-                  onClick={isMember ? handleLeaveCommunity : handleJoinCommunity}
-                  disabled={joining}
-                  className={`w-full py-2.5 rounded-xl text-sm font-bold uppercase tracking-wider transition-all ${
-                    isMember
-                      ? 'bg-white/[0.05] hover:bg-white/[0.08] border border-white/[0.1] text-white/60'
-                      : 'bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/30 text-cyan-300'
-                  }`}
-                >
-                  {joining ? 'Cargando...' : isMember ? 'Salir' : 'Unirse'}
-                </button>
-              )}
-
-              <button
-                onClick={handleInvite}
-                className="w-full py-2.5 bg-white/[0.03] hover:bg-white/[0.05] border border-white/[0.06] rounded-xl text-sm font-semibold text-white/70 transition-all flex items-center justify-center gap-2"
+      {/* Content Area */}
+      <div className="flex-1 overflow-hidden lg:overflow-auto">
+        {/* Mobile Layout */}
+        <div className="lg:hidden h-full flex flex-col">
+          <AnimatePresence mode="wait">
+            {activeTab === 'chat' && (
+              <motion.div
+                key="chat"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                className="flex-1 overflow-hidden"
               >
-                <UserPlus size={16} />
-                Invitar
-              </button>
-            </div>
-          </div>
+                <CommunityChat 
+                  communityId={community.id}
+                  communityName={community.name}
+                  isMember={isMember}
+                />
+              </motion.div>
+            )}
+            
+            {activeTab === 'voice' && (
+              <motion.div
+                key="voice"
+                initial={{ opacity: 0, x: 100 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -100 }}
+                className="flex-1 overflow-auto p-4"
+              >
+                <VoicePanel 
+                  communityId={community.id}
+                  isMember={isMember}
+                />
+              </motion.div>
+            )}
+            
+            {activeTab === 'ranking' && (
+              <motion.div
+                key="ranking"
+                initial={{ opacity: 0, x: 100 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -100 }}
+                className="flex-1 overflow-auto p-4"
+              >
+                <RankingPanel communityId={community.id} />
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
 
-        {/* Center Panel - Community Chat */}
-        <div className="flex-1 bg-white/[0.03] border border-white/[0.06] rounded-2xl overflow-hidden">
-          {community ? (
-            <CommunityChatPanel 
-              communityId={community.id} 
+        {/* Desktop Layout - 3 Columns */}
+        <div className="hidden lg:flex max-w-[1600px] mx-auto h-full gap-6 p-6">
+          {/* Left Panel */}
+          <div className="w-72 flex-shrink-0 space-y-4">
+            <CommunityInfoCard 
+              community={community}
+              isMember={isMember}
+              onJoin={handleJoinCommunity}
+              onLeave={handleLeaveCommunity}
+              onInvite={handleInvite}
+              joining={joining}
+              user={user}
+            />
+          </div>
+
+          {/* Center Panel */}
+          <div className="flex-1 min-w-0">
+            <CommunityChat 
+              communityId={community.id}
               communityName={community.name}
               isMember={isMember}
             />
+          </div>
+
+          {/* Right Panel */}
+          <div className="w-80 flex-shrink-0 space-y-4">
+            <VoicePanel communityId={community.id} isMember={isMember} compact />
+            <RankingPanel communityId={community.id} compact />
+          </div>
+        </div>
+      </div>
+
+      {/* Mobile Bottom Tabs */}
+      <MobileBottomTabs activeTab={activeTab} onTabChange={setActiveTab} />
+    </main>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// MOBILE HEADER
+// ═══════════════════════════════════════════════════════════════════════════════
+
+function MobileHeader({ community, onBack, isMember, onJoin, onLeave, joining, user }) {
+  const [showMenu, setShowMenu] = useState(false);
+
+  return (
+    <header className="lg:hidden fixed top-0 left-0 right-0 z-50 bg-[#0a0a0f]/80 backdrop-blur-xl border-b border-white/[0.06]">
+      <div className="flex items-center justify-between px-4 py-3">
+        <button 
+          onClick={onBack}
+          className="p-2 -ml-2 rounded-xl hover:bg-white/5 transition-colors"
+        >
+          <ArrowLeft size={20} className="text-white/70" />
+        </button>
+
+        <div className="flex-1 text-center px-2">
+          <div className="flex items-center justify-center gap-2">
+            {community?.avatar_url ? (
+              <img src={community.avatar_url} alt="" className="w-6 h-6 rounded-lg object-cover" />
+            ) : (
+              <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-cyan-500/30 to-purple-500/30 flex items-center justify-center">
+                <Hash size={12} className="text-cyan-400" />
+              </div>
+            )}
+            <h1 className="font-bold text-white/90 truncate max-w-[150px]">
+              {community?.name}
+            </h1>
+          </div>
+          <p className="text-[10px] text-white/40 flex items-center justify-center gap-1">
+            <Users size={10} />
+            {community?.member_count?.toLocaleString() || 0}
+          </p>
+        </div>
+
+        <button 
+          onClick={() => setShowMenu(!showMenu)}
+          className="p-2 -mr-2 rounded-xl hover:bg-white/5 transition-colors relative"
+        >
+          <MoreVertical size={20} className="text-white/70" />
+          
+          <AnimatePresence>
+            {showMenu && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95, y: 10 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: 10 }}
+                className="absolute right-0 top-full mt-2 w-48 bg-[#12121a] border border-white/[0.08] rounded-xl shadow-2xl overflow-hidden"
+              >
+                {user && (
+                  <button
+                    onClick={() => {
+                      isMember ? onLeave() : onJoin();
+                      setShowMenu(false);
+                    }}
+                    disabled={joining}
+                    className={`w-full px-4 py-3 text-left text-sm font-medium transition-colors ${
+                      isMember 
+                        ? 'text-rose-400 hover:bg-rose-500/10' 
+                        : 'text-cyan-400 hover:bg-cyan-500/10'
+                    }`}
+                  >
+                    {joining ? 'Cargando...' : isMember ? 'Salir de comunidad' : 'Unirse a comunidad'}
+                  </button>
+                )}
+                <button
+                  onClick={() => {
+                    const url = `${window.location.origin}/community/${community?.slug}`;
+                    navigator.clipboard.writeText(url);
+                    toast.success('Link copiado');
+                    setShowMenu(false);
+                  }}
+                  className="w-full px-4 py-3 text-left text-sm text-white/70 hover:bg-white/5 transition-colors"
+                >
+                  Copiar link de invitación
+                </button>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </button>
+      </div>
+    </header>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// MOBILE BOTTOM TABS
+// ═══════════════════════════════════════════════════════════════════════════════
+
+function MobileBottomTabs({ activeTab, onTabChange }) {
+  const tabs = [
+    { id: 'chat', icon: MessageCircle, label: 'Chat' },
+    { id: 'voice', icon: Volume2, label: 'Voz' },
+    { id: 'ranking', icon: Trophy, label: 'Ranking' },
+  ];
+
+  return (
+    <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-[#0a0a0f]/90 backdrop-blur-xl border-t border-white/[0.06] pb-safe">
+      <div className="flex items-center justify-around px-2 py-2">
+        {tabs.map((tab) => {
+          const Icon = tab.icon;
+          const isActive = activeTab === tab.id;
+          
+          return (
+            <button
+              key={tab.id}
+              onClick={() => onTabChange(tab.id)}
+              className={`flex flex-col items-center gap-1 px-6 py-2 rounded-xl transition-all ${
+                isActive 
+                  ? 'text-cyan-400 bg-cyan-500/10' 
+                  : 'text-white/40 hover:text-white/60'
+              }`}
+            >
+              <Icon size={22} strokeWidth={isActive ? 2.5 : 2} />
+              <span className={`text-[10px] font-medium ${isActive ? 'font-semibold' : ''}`}>
+                {tab.label}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+    </nav>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// COMMUNITY CHAT
+// ═══════════════════════════════════════════════════════════════════════════════
+
+function CommunityChat({ communityId, communityName, isMember }) {
+  const { user } = useAuthContext();
+  const [messages, setMessages] = useState([]);
+  const [newMessage, setNewMessage] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [sending, setSending] = useState(false);
+  const messagesEndRef = useRef(null);
+  const channelId = `community-${communityId}`;
+
+  useEffect(() => {
+    loadMessages();
+    
+    const subscription = supabase
+      .channel(`community-chat-${communityId}`)
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'global_chat',
+        filter: `channel_id=eq.${channelId}`
+      }, handleNewMessage)
+      .subscribe();
+
+    return () => subscription.unsubscribe();
+  }, [communityId]);
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
+
+  const loadMessages = async () => {
+    setLoading(true);
+    try {
+      const msgs = await chatService.getRecentMessages(50, channelId);
+      setMessages(msgs);
+    } catch (error) {
+      console.error('[CommunityChat] Load error:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleNewMessage = async (payload) => {
+    const newMsg = payload.new;
+    const { data: authorProfile } = await supabase
+      .from('profiles')
+      .select('id, username, avatar_url, user_level:level')
+      .eq('id', newMsg.user_id)
+      .single();
+
+    setMessages(prev => [...prev, {
+      ...newMsg,
+      author: authorProfile || { username: 'Anónimo', id: newMsg.user_id }
+    }]);
+  };
+
+  const handleSendMessage = async (e) => {
+    e?.preventDefault();
+    if (!newMessage.trim() || sending || !isMember) return;
+
+    setSending(true);
+    try {
+      await chatService.sendMessage(newMessage, false, null, channelId);
+      setNewMessage('');
+      await chatService.incrementChatStats();
+    } catch (error) {
+      console.error('[CommunityChat] Send error:', error);
+      toast.error('Error al enviar mensaje');
+    } finally {
+      setSending(false);
+    }
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSendMessage();
+    }
+  };
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  const formatTime = (timestamp) => {
+    return new Date(timestamp).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+  };
+
+  if (loading) {
+    return (
+      <div className="h-full flex flex-col bg-[#0a0a0f] lg:bg-white/[0.02] lg:rounded-2xl lg:border lg:border-white/[0.06]">
+        <div className="lg:hidden h-14" />
+        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+          {[...Array(6)].map((_, i) => (
+            <div key={i} className={`flex gap-3 ${i % 2 === 0 ? '' : 'flex-row-reverse'}`}>
+              <div className="w-10 h-10 rounded-full bg-white/5 animate-pulse" />
+              <div className={`space-y-2 ${i % 2 === 0 ? '' : 'items-end'}`}>
+                <div className="h-3 w-20 bg-white/5 rounded animate-pulse" />
+                <div className="h-12 w-48 bg-white/5 rounded-2xl animate-pulse" />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="h-full flex flex-col bg-[#0a0a0f] lg:bg-white/[0.02] lg:rounded-2xl lg:border lg:border-white/[0.06]">
+      <div className="lg:hidden h-14" />
+
+      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-1">
+        {messages.length === 0 ? (
+          <div className="h-full flex flex-col items-center justify-center text-center p-8">
+            <div className="w-16 h-16 rounded-2xl bg-white/[0.03] flex items-center justify-center mb-4">
+              <MessageCircle size={28} className="text-white/20" />
+            </div>
+            <p className="text-white/40 text-sm mb-1">No hay mensajes aún</p>
+            <p className="text-white/20 text-xs">¡Sé el primero en escribir!</p>
+          </div>
+        ) : (
+          messages.map((msg, index) => {
+            const isOwn = msg.user_id === user?.id;
+            const prevMsg = messages[index - 1];
+            const showAvatar = !prevMsg || prevMsg.user_id !== msg.user_id;
+            
+            return (
+              <motion.div
+                key={msg.id}
+                initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                className={`flex gap-2 ${isOwn ? 'flex-row-reverse' : ''}`}
+              >
+                <div className="w-8 flex-shrink-0">
+                  {showAvatar ? (
+                    <img
+                      src={msg.author?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${msg.author?.username}`}
+                      alt={msg.author?.username}
+                      className="w-8 h-8 rounded-full bg-white/5"
+                    />
+                  ) : (
+                    <div className="w-8" />
+                  )}
+                </div>
+
+                <div className={`max-w-[75%] lg:max-w-[60%] ${isOwn ? 'items-end' : 'items-start'}`}>
+                  {showAvatar && (
+                    <span className={`text-[10px] text-white/40 mb-1 block ${isOwn ? 'text-right' : ''}`}>
+                      {msg.author?.username || 'Anónimo'}
+                    </span>
+                  )}
+                  <div className={`px-4 py-2.5 rounded-2xl text-sm leading-relaxed ${
+                    isOwn 
+                      ? 'bg-cyan-500 text-cyan-950 rounded-br-md' 
+                      : 'bg-white/[0.08] text-white/90 rounded-bl-md border border-white/[0.06]'
+                  }`}>
+                    {msg.content}
+                  </div>
+                  <span className={`text-[9px] text-white/30 mt-1 block ${isOwn ? 'text-right' : ''}`}>
+                    {formatTime(msg.created_at)}
+                  </span>
+                </div>
+              </motion.div>
+            );
+          })
+        )}
+        <div ref={messagesEndRef} />
+      </div>
+
+      <div className="px-4 pb-4">
+        <div className="h-[80px] lg:hidden" />
+        
+        {!isMember ? (
+          <div className="bg-white/[0.03] border border-white/[0.06] rounded-2xl p-4 text-center">
+            <p className="text-sm text-white/50 mb-2">Únete para participar en el chat</p>
+            <button className="px-4 py-2 bg-cyan-500/10 border border-cyan-500/30 rounded-xl text-sm text-cyan-300 font-medium">
+              Unirse ahora
+            </button>
+          </div>
+        ) : (
+          <form onSubmit={handleSendMessage} className="relative">
+            <div className="flex items-end gap-2 bg-white/[0.05] border border-white/[0.08] rounded-2xl p-2 focus-within:border-cyan-500/30 focus-within:bg-white/[0.08] transition-all">
+              <textarea
+                value={newMessage}
+                onChange={(e) => setNewMessage(e.target.value)}
+                onKeyDown={handleKeyDown}
+                placeholder={`Mensaje en ${communityName}...`}
+                disabled={sending}
+                rows={1}
+                className="flex-1 bg-transparent px-3 py-2.5 text-sm text-white placeholder:text-white/30 resize-none outline-none max-h-32"
+                style={{ minHeight: '44px' }}
+              />
+              <button
+                type="submit"
+                disabled={!newMessage.trim() || sending}
+                className="p-3 bg-cyan-500 text-cyan-950 rounded-xl disabled:opacity-40 disabled:cursor-not-allowed hover:bg-cyan-400 transition-all active:scale-95"
+              >
+                {sending ? (
+                  <div className="w-5 h-5 border-2 border-cyan-950/30 border-t-cyan-950 rounded-full animate-spin" />
+                ) : (
+                  <Send size={20} />
+                )}
+              </button>
+            </div>
+            <p className="text-[10px] text-white/20 mt-1.5 text-center lg:text-left">
+              Enter para enviar · Shift + Enter para nueva línea
+            </p>
+          </form>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// VOICE PANEL
+// ═══════════════════════════════════════════════════════════════════════════════
+
+function VoicePanel({ communityId, isMember, compact }) {
+  const navigate = useNavigate();
+  const [voiceRooms, setVoiceRooms] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    loadVoiceRooms();
+    const interval = setInterval(loadVoiceRooms, 30000);
+    return () => clearInterval(interval);
+  }, [communityId]);
+
+  const loadVoiceRooms = async () => {
+    try {
+      const activities = await liveActivitiesService.getTrendingActivities({ limit: 20 });
+      const rooms = activities.filter(a => 
+        a.community_id === communityId && a.type === 'voice'
+      );
+      setVoiceRooms(rooms);
+    } catch (error) {
+      console.error('[VoicePanel] Load error:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleJoinRoom = (roomId) => {
+    navigate(`/voice/${roomId}`);
+  };
+
+  if (loading) {
+    return (
+      <div className={`bg-white/[0.02] border border-white/[0.06] rounded-2xl p-6 ${compact ? '' : 'm-4'}`}>
+        <div className="animate-pulse space-y-3">
+          <div className="h-4 w-32 bg-white/5 rounded" />
+          <div className="h-12 bg-white/5 rounded-xl" />
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className={`${compact ? 'bg-white/[0.02] border border-white/[0.06] rounded-2xl p-4' : ''}`}>
+      <div className="flex items-center gap-2 mb-4">
+        <div className="w-8 h-8 rounded-lg bg-cyan-500/10 flex items-center justify-center">
+          <Volume2 size={16} className="text-cyan-400" />
+        </div>
+        <h3 className="font-bold text-white/90">Salas de Voz</h3>
+      </div>
+
+      {voiceRooms.length === 0 ? (
+        <div className="text-center py-6">
+          <Radio size={32} className="text-white/10 mx-auto mb-3" />
+          <p className="text-sm text-white/40 mb-4">No hay salas activas</p>
+          {isMember && (
+            <button
+              onClick={() => navigate(`/voice/community-${communityId}`)}
+              className="w-full py-3 bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/30 rounded-xl text-sm font-semibold text-cyan-300 transition-all active:scale-95"
+            >
+              Crear sala general
+            </button>
+          )}
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {voiceRooms.map((room) => (
+            <motion.div
+              key={room.id}
+              whileHover={isMember ? { scale: 1.02 } : {}}
+              className={`p-3 rounded-xl border transition-all ${
+                isMember 
+                  ? 'bg-white/[0.03] border-white/[0.06] hover:border-cyan-500/30 cursor-pointer' 
+                  : 'bg-white/[0.02] border-white/[0.06] opacity-50'
+              }`}
+              onClick={() => isMember && handleJoinRoom(room.id)}
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-cyan-500/20 to-purple-500/20 flex items-center justify-center">
+                    <Volume2 size={18} className="text-cyan-400" />
+                  </div>
+                  <div>
+                    <p className="font-semibold text-white/90 text-sm">{room.name || 'Sala General'}</p>
+                    <div className="flex items-center gap-1 text-xs text-white/40">
+                      <Users size={12} />
+                      <span>{room.participant_count || 0} en voz</span>
+                    </div>
+                  </div>
+                </div>
+                <button
+                  disabled={!isMember}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                    isMember
+                      ? 'bg-cyan-500/10 text-cyan-300 hover:bg-cyan-500/20'
+                      : 'bg-white/[0.03] text-white/30'
+                  }`}
+                >
+                  {isMember ? 'Unirse' : 'Solo miembros'}
+                </button>
+              </div>
+            </motion.div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// RANKING PANEL
+// ═══════════════════════════════════════════════════════════════════════════════
+
+function RankingPanel({ communityId, compact }) {
+  const [members, setMembers] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    loadMembers();
+  }, [communityId]);
+
+  const loadMembers = async () => {
+    try {
+      const data = await communitiesService.getCommunityMembers(communityId, { limit: 10 });
+      const withPoints = data.map(m => ({
+        ...m,
+        points: (m.message_count || 0) + ((m.chat_level || 0) * 10)
+      })).sort((a, b) => b.points - a.points).slice(0, 5);
+      setMembers(withPoints);
+    } catch (error) {
+      console.error('[RankingPanel] Load error:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const medals = ['🥇', '🥈', '🥉', '4', '5'];
+
+  if (loading) {
+    return (
+      <div className={`bg-white/[0.02] border border-white/[0.06] rounded-2xl p-6 ${compact ? '' : 'm-4'}`}>
+        <div className="animate-pulse space-y-3">
+          {[...Array(3)].map((_, i) => (
+            <div key={i} className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-full bg-white/5" />
+              <div className="flex-1 h-10 bg-white/5 rounded-xl" />
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className={`${compact ? 'bg-white/[0.02] border border-white/[0.06] rounded-2xl p-4' : ''}`}>
+      <div className="flex items-center gap-2 mb-4">
+        <div className="w-8 h-8 rounded-lg bg-orange-500/10 flex items-center justify-center">
+          <Trophy size={16} className="text-orange-400" />
+        </div>
+        <h3 className="font-bold text-white/90">Más Activos</h3>
+      </div>
+
+      {members.length === 0 ? (
+        <div className="text-center py-6 text-white/40 text-sm">
+          Aún no hay miembros activos
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {members.map((member, index) => (
+            <motion.div
+              key={member.id}
+              initial={{ opacity: 0, x: -10 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: index * 0.1 }}
+              whileHover={{ scale: 1.02 }}
+              className="flex items-center gap-3 p-2 rounded-xl bg-white/[0.03] hover:bg-white/[0.05] transition-all cursor-pointer"
+            >
+              <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold ${
+                index === 0 ? 'bg-yellow-500/20 text-yellow-400' :
+                index === 1 ? 'bg-gray-400/20 text-gray-300' :
+                index === 2 ? 'bg-orange-500/20 text-orange-400' :
+                'bg-white/[0.05] text-white/40'
+              }`}>
+                {medals[index]}
+              </div>
+
+              <img
+                src={member.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${member.username}`}
+                alt={member.username}
+                className="w-9 h-9 rounded-full bg-white/5"
+              />
+
+              <div className="flex-1 min-w-0">
+                <p className="font-medium text-white/90 text-sm truncate">{member.username}</p>
+              </div>
+
+              <div className="text-right">
+                <p className="text-sm font-bold text-cyan-400">{member.points}</p>
+                <p className="text-[10px] text-white/30">pts</p>
+              </div>
+            </motion.div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// COMMUNITY INFO CARD (Desktop)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+function CommunityInfoCard({ community, isMember, onJoin, onLeave, onInvite, joining, user }) {
+  return (
+    <div className="bg-white/[0.02] border border-white/[0.06] rounded-2xl overflow-hidden">
+      <div className="h-24 bg-gradient-to-br from-cyan-500/20 via-purple-500/20 to-pink-500/20" />
+      
+      <div className="p-4 -mt-10">
+        <div className="w-20 h-20 rounded-2xl bg-[#0a0a0f] border-2 border-white/[0.08] p-1">
+          {community?.avatar_url ? (
+            <img 
+              src={community.avatar_url} 
+              alt={community.name}
+              className="w-full h-full rounded-xl object-cover"
+            />
           ) : (
-            <div className="flex items-center justify-center h-full">
-              <div className="w-8 h-8 border-2 border-cyan-500/20 border-t-cyan-500 rounded-full animate-spin" />
+            <div className="w-full h-full rounded-xl bg-gradient-to-br from-cyan-500/30 to-purple-500/30 flex items-center justify-center">
+              <Users size={28} className="text-cyan-400" />
             </div>
           )}
         </div>
 
-        {/* Right Panel - Activity */}
-        <div className="w-80 flex-shrink-0 overflow-y-auto">
-          {community && (
-            <CommunityActivityPanel 
-              communityId={community.id} 
-              isMember={isMember}
-            />
+        <div className="mt-3">
+          <h2 className="font-bold text-white/90 text-lg">{community?.name}</h2>
+          {community?.description && (
+            <p className="text-sm text-white/50 mt-1 line-clamp-2">{community.description}</p>
           )}
+          
+          <div className="flex items-center gap-2 mt-3 text-sm text-white/40">
+            <Users size={14} />
+            <span>{community?.member_count?.toLocaleString() || 0} miembros</span>
+          </div>
+        </div>
+
+        <div className="mt-4 space-y-2">
+          {user && (
+            <button
+              onClick={isMember ? onLeave : onJoin}
+              disabled={joining}
+              className={`w-full py-2.5 rounded-xl text-sm font-semibold transition-all ${
+                isMember
+                  ? 'bg-white/[0.05] hover:bg-white/[0.08] text-white/70 border border-white/[0.1]'
+                  : 'bg-cyan-500 hover:bg-cyan-400 text-cyan-950'
+              }`}
+            >
+              {joining ? 'Cargando...' : isMember ? 'Salir' : 'Unirse'}
+            </button>
+          )}
+
+          <button
+            onClick={onInvite}
+            className="w-full py-2.5 bg-white/[0.03] hover:bg-white/[0.05] border border-white/[0.06] rounded-xl text-sm font-medium text-white/60 transition-all flex items-center justify-center gap-2"
+          >
+            <UserPlus size={16} />
+            Invitar
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// SKELETON LOADING
+// ═══════════════════════════════════════════════════════════════════════════════
+
+function CommunitySkeleton() {
+  return (
+    <main className="w-full h-screen bg-[#0a0a0f] text-white font-sans relative overflow-hidden flex flex-col">
+      <StellarScrollBg />
+      
+      <div className="lg:hidden fixed top-0 left-0 right-0 z-50 bg-[#0a0a0f]/80 backdrop-blur-xl border-b border-white/[0.06]">
+        <div className="flex items-center justify-between px-4 py-3">
+          <div className="w-8 h-8 rounded-xl bg-white/5 animate-pulse" />
+          <div className="flex-1 flex justify-center">
+            <div className="w-32 h-6 bg-white/5 rounded-lg animate-pulse" />
+          </div>
+          <div className="w-8 h-8 rounded-xl bg-white/5 animate-pulse" />
+        </div>
+      </div>
+
+      <div className="flex-1 mt-14 lg:mt-0 p-4 lg:p-6">
+        <div className="max-w-[1600px] mx-auto h-full flex gap-6">
+          <div className="hidden lg:block w-72">
+            <div className="bg-white/[0.02] border border-white/[0.06] rounded-2xl h-96 animate-pulse" />
+          </div>
+          
+          <div className="flex-1 bg-white/[0.02] border border-white/[0.06] rounded-2xl animate-pulse" />
+          
+          <div className="hidden lg:block w-80 space-y-4">
+            <div className="bg-white/[0.02] border border-white/[0.06] rounded-2xl h-48 animate-pulse" />
+            <div className="bg-white/[0.02] border border-white/[0.06] rounded-2xl h-64 animate-pulse" />
+          </div>
+        </div>
+      </div>
+
+      <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-[#0a0a0f]/90 backdrop-blur-xl border-t border-white/[0.06] h-[80px]">
+        <div className="flex items-center justify-around h-full px-4">
+          {[...Array(3)].map((_, i) => (
+            <div key={i} className="w-12 h-8 bg-white/5 rounded-lg animate-pulse" />
+          ))}
         </div>
       </div>
     </main>
