@@ -9,8 +9,9 @@ console.log('[AnimeService] Available ANIME providers:', Object.keys(ANIME || {}
  * Detection of available providers using prioritized list
  * We prefer Gogoanime/AnimePahe for faster scraping, Zoro/Hianime for quality/subtitles
  */
-const GogoProvider = ANIME.Gogoanime || ANIME.GogoAnime || ANIME.AnimePahe;
-const ZoroProvider = ANIME.Zoro || ANIME.Hianime;
+// Hianime (Zoro) is prioritized for quality and multiple subtitles (including Spanish)
+const GogoProvider = ANIME.Hianime || ANIME.Zoro || ANIME.Gogoanime || ANIME.AnimePahe;
+const ZoroProvider = ANIME.AnimePahe || ANIME.Gogoanime;
 
 if (!GogoProvider) {
     console.error('[AnimeService] NO PRIMARY PROVIDER DETECTED! Check @consumet/extensions version.');
@@ -26,9 +27,28 @@ const sourceCache = new Map();
  * Normalizes the response from different providers to have a consistent structure
  */
 const normalizeSources = (data, providerName) => {
+  const sources = data.sources || [];
+  const subtitles = data.subtitles || [];
+  
+  // Try to find Spanish subtitles and move to front/mark as default
+  const spanishSub = subtitles.find(s => 
+    s.lang?.toLowerCase().includes('spanish') || 
+    s.lang?.toLowerCase().includes('español') ||
+    s.lang?.toLowerCase() === 'es-es' ||
+    s.lang?.toLowerCase() === 'es'
+  );
+
+  // Move Spanish sub to the front if found
+  if (spanishSub) {
+    const others = subtitles.filter(s => s !== spanishSub);
+    subtitles.length = 0;
+    subtitles.push(spanishSub, ...others);
+  }
+
   return {
-    sources: data.sources || [],
-    subtitles: data.subtitles || [],
+    sources,
+    subtitles,
+    spanishSubFound: !!spanishSub,
     headers: data.headers || {},
     intro: data.intro || null,
     outro: data.outro || null,
@@ -43,10 +63,18 @@ const normalizeSources = (data, providerName) => {
  */
 export const searchAnime = async (query) => {
   try {
-    if (!gogoanime) throw new Error("No provider available for search");
-    const results = await gogoanime.search(query);
-    const list = results.results || results || [];
+    if (!gogoanime) throw new Error("No primary provider available for search");
+    console.log(`[AnimeService] Search primary: ${query}`);
+    let results = await gogoanime.search(query);
+    let list = results.results || results || [];
     
+    // Fallback search if primary returned nothing
+    if (list.length === 0 && zoro) {
+        console.warn(`[AnimeService] Primary search empty, trying fallback...`);
+        results = await zoro.search(query);
+        list = results.results || results || [];
+    }
+
     // Normalize images and structure
     return list.map(anime => ({
         ...anime,
@@ -54,6 +82,16 @@ export const searchAnime = async (query) => {
     }));
   } catch (error) {
     console.error('[AnimeService] Search error:', error.message);
+    // Silent fallback if first failed
+    if (zoro) {
+       try {
+           const res = await zoro.search(query);
+           const list = res.results || res || [];
+           return list.map(anime => ({ ...anime, image: anime.image || anime.img || anime.cover }));
+       } catch (e) {
+           throw error;
+       }
+    }
     throw error;
   }
 };
@@ -113,18 +151,18 @@ export const getEpisodeSources = async (episodeId) => {
         }
     }
 
-    // 3. Fallback Provider (Zoro/Hianime)
+    // 3. Fallback Provider
     if (!response && zoro) {
       try {
-        console.warn(`[AnimeService] Attempting Zoro/Hianime fallback...`);
+        console.warn(`[AnimeService] Attempting fallback provider...`);
         const fetchFn = zoro.fetchEpisodeSources || zoro.getEpisodeSources;
         if (!fetchFn) throw new Error("Fallback provider cannot fetch sources");
 
         const zoroRes = await fetchFn.call(zoro, episodeId);
         if (zoroRes?.sources?.length > 0) {
-          response = normalizeSources(zoroRes, 'zoro/hianime');
+          response = normalizeSources(zoroRes, 'fallback');
         } else {
-          throw new Error("Zoro fallback also returned empty sources");
+          throw new Error("Fallback also returned empty sources");
         }
       } catch (zoroErr) {
         console.error(`[AnimeService] All providers failed for ${episodeId}:`, zoroErr.message);
@@ -133,17 +171,17 @@ export const getEpisodeSources = async (episodeId) => {
 
     // 4. Return or Error Object
     if (response) {
+      console.log(`[AnimeService] Success! Found ${response.sources.length} sources and ${response.subtitles.length} subs.`);
       sourceCache.set(episodeId, response);
       setTimeout(() => sourceCache.delete(episodeId), 180000); 
       return response;
     }
 
-    // Graceful error for UI
     return {
       sources: [],
       subtitles: [],
       success: false,
-      error: "This episode is currently unavailable. No working sources found."
+      message: "Este episodio no está disponible actualmente. No se encontraron fuentes de video funcionando."
     };
 
   } catch (error) {
@@ -152,7 +190,7 @@ export const getEpisodeSources = async (episodeId) => {
       sources: [],
       subtitles: [],
       success: false,
-      error: "Technical error while fetching media."
+      message: "Error técnico al intentar obtener el video: " + error.message
     };
   }
 };
