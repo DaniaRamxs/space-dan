@@ -121,7 +121,9 @@ const AnimeSpacePage = ({ onClose }) => {
 
     const handleTimeUpdate = (time) => {
         // Only host sends sync periodically or on major events
-        // For simplicity, we can let AnimePlayer call specific sync events
+        if (room && isHost && Math.floor(time) % 5 === 0) { // Sync every 5 seconds
+            room.send("seek", { currentTime: time });
+        }
     };
 
     const handlePlay = (time) => {
@@ -211,6 +213,7 @@ const AnimeSpacePage = ({ onClose }) => {
                                 onPlay={handlePlay}
                                 onPause={handlePause}
                                 onSeek={handleSeek}
+                                onTimeUpdate={handleTimeUpdate}
                                 externalState={{
                                     isPlaying: roomState?.isPlaying,
                                     currentTime: roomState?.currentTime
