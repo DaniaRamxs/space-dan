@@ -1,6 +1,6 @@
-import { ANIME } from '@consumet/extensions';
+import { Gogoanime } from '@consumet/extensions';
 
-const gogoanime = new ANIME.Gogoanime();
+const gogoanime = new Gogoanime();
 
 /**
  * Search anime by query
