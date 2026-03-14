@@ -83,7 +83,7 @@ export default function ReactionOverlay({ gifOverlays = [], isStorming = false }
                             transition={{
                                 duration: e.duration,
                                 delay: e.delay,
-                                repeat: Infinity,
+                                repeat: 2,
                                 ease: 'linear',
                             }}
                             className="absolute text-3xl select-none"

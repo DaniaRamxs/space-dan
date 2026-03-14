@@ -100,7 +100,10 @@ export function usePlaybackSync({
 
         return () => {
             unsub?.();
-            colyseusRoom.off("STATE_UPDATE", handleUpdate);
+            // FIX: Colyseus has no .off() → use .removeListener() with guard
+            if (typeof colyseusRoom?.removeListener === 'function') {
+                colyseusRoom.removeListener("STATE_UPDATE", handleUpdate);
+            }
         };
     }, [colyseusRoom, profile?.id]);
 
