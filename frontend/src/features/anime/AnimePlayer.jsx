@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState, useMemo } from 'react';
 import Hls from 'hls.js';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Play, Pause, Volume2, VolumeX, Maximize, MonitorPlay, Heart, Laugh, Ghost, Zap } from 'lucide-react';
-import ReactionOverlay from '../../components/reactions/ReactionOverlay';
+import ReactionOverlay from '@/components/reactions/ReactionOverlay';
 
 const API_URL = import.meta.env.VITE_API_URL || '';
 

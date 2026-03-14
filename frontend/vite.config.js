@@ -2,6 +2,7 @@ import { defineConfig, loadEnv } from 'vite'
 import react from '@vitejs/plugin-react'
 import { AccessToken } from 'livekit-server-sdk'
 import { VitePWA } from 'vite-plugin-pwa'
+import path from 'path'
 
 export default defineConfig(({ mode }) => {
   // eslint-disable-next-line no-undef
@@ -14,6 +15,11 @@ export default defineConfig(({ mode }) => {
   const tauriHost = process.env.TAURI_DEV_HOST;
 
   return {
+    resolve: {
+      alias: {
+        '@': path.resolve(__dirname, './src'),
+      },
+    },
     envDir: '../',
     plugins: [
       react(),

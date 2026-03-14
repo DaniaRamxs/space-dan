@@ -13,13 +13,13 @@ import {
     Heart, Laugh, Ghost, Zap, Smile, Send
 } from 'lucide-react';
 import { useLocalParticipant, useParticipants as useLiveKitParticipants } from '@livekit/components-react';
-import { supabase } from '../../supabaseClient';
-import { useAuthContext } from '../../contexts/AuthContext';
-import { usePlaybackSync } from '../../hooks/usePlaybackSync';
-import { joinOrCreateRoom } from '../../services/colyseusClient';
-import YouTubeSearchModal from '../Social/YouTubeSearchModal';
-import GifPickerModal from '../reactions/GifPickerModal';
-import ReactionOverlay from '../reactions/ReactionOverlay';
+import { supabase } from '@/supabaseClient';
+import { useAuthContext } from '@/contexts/AuthContext';
+import { usePlaybackSync } from '@/hooks/usePlaybackSync';
+import { joinOrCreateRoom } from '@/services/colyseusClient';
+import YouTubeSearchModal from '@/components/Social/YouTubeSearchModal';
+import GifPickerModal from '@/components/reactions/GifPickerModal';
+import ReactionOverlay from '@/components/reactions/ReactionOverlay';
 
 // ─── Constantes ───────────────────────────────────────────────────────────────
 const SYNC_INTERVAL_MS = 2000;
