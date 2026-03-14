@@ -517,6 +517,28 @@
   }
 }
 
+/* 🎬 YOUTUBE IFRAME: Force iframes to fill their player wrapper containers.
+   YT.Player replaces the target <div> with an <iframe> that carries inline
+   width/height attrs from YouTube, so we need !important to override them. */
+#wt-player-wrapper iframe,
+#wt-player-wrapper video,
+#shorts-player-wrapper iframe,
+#shorts-player-wrapper video {
+  width: 100% !important;
+  height: 100% !important;
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  border: 0 !important;
+}
+
+#wt-player-wrapper,
+#shorts-player-wrapper {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
 /* 🚀 PERFORMANCE: content-visibility para items del feed */
 .feed-item {
   content-visibility: auto;
