@@ -433,7 +433,7 @@ export default function WatchTogether({ roomName, onClose, isMinimized = false, 
         <div className="fixed inset-0 z-[99996] flex items-center justify-center bg-black/90 backdrop-blur-xl" onClick={(e) => { if (e.target === e.currentTarget) onClose?.(); }}>
             <motion.div
                 initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}
-                className={`relative bg-black overflow-hidden shadow-2xl flex flex-col sm:flex-row ${isFullscreen ? 'fixed inset-0 w-screen h-screen z-[99999] rounded-none' : 'w-full h-full max-w-6xl max-h-[90vh] rounded-3xl'}`}
+                className={`relative bg-black overflow-hidden shadow-2xl flex flex-col sm:flex-row ${isFullscreen ? 'fixed inset-0 w-screen h-screen z-[99999] rounded-none' : 'w-[98vw] h-[96vh] max-w-7xl rounded-3xl'}`}
                 onClick={e => e.stopPropagation()}
             >
                 {/* Main Video Area */}
@@ -441,23 +441,17 @@ export default function WatchTogether({ roomName, onClose, isMinimized = false, 
                     {/* ── SHORTS MODE: TikTok-style vertical player ── */}
                     {isShortsMode && (currentVideo || shortsFeed.length > 0) ? (
                         <ShortsPlayer
-                            shortsFeed={shortsFeed}
-                            currentIndex={shortsIndex}
-                            onIndexChange={(idx) => {
-                                setShortsIndex(idx);
-                                const video = shortsFeed[idx];
-                                if (video) {
-                                    setCurrentVideo(video);
-                                    updatePlayback({ videoId: video.id, playing: true, currentTime: 0 });
-                                }
+                            initialFeed={shortsFeed}
+                            initialIndex={shortsIndex}
+                            onVideoChange={(video) => {
+                                setCurrentVideo(video);
+                                updatePlayback({ videoId: video.id, playing: true, currentTime: 0 });
                             }}
+                            onRequestMore={() => setIsSearchOpen(true)}
                             onClose={onClose}
-                            onSearchMore={() => setIsSearchOpen(true)}
                             isHost={isHost}
                             hostParticipant={hostParticipant}
-                            playbackState={playbackState}
                             updatePlayback={updatePlayback}
-                            room={room}
                             gifOverlays={gifOverlays}
                             isStorming={isStorming}
                             sendReaction={sendReaction}
