@@ -3,93 +3,134 @@ import * as animeController from './animeController.mjs';
 
 const router = Router();
 
-// ─── Stream proxy (bypasses CORS for AnimePahe CDN) ──────────────────────────
-// Handles:
-//   GET /api/anime/proxy?url=<encoded_url>                (m3u8 + ts + key files)
-//   GET /api/anime/proxy/segment?url=<encoded_url>        (alias, same handler)
-// The proxy:
-//   1. Fetches the target URL with the correct Referer/UA headers
-//   2. If it's a .m3u8 playlist, rewrites all segment/key URLs to go through the proxy
-//   3. If it's a binary segment (.ts) or key file, pipes the response directly
+// ─── HLS Stream Proxy ─────────────────────────────────────────────────────────
+// Routes anime streams through the server to bypass CORS restrictions.
+// AnimePahe CDN blocks direct browser requests but allows server-side fetches
+// with the correct Referer/Origin headers.
+//
+// Flow:
+//   browser → /api/anime/proxy?url=<m3u8>   ← this server   → CDN
+//   browser ← rewritten m3u8                ← this server   ← CDN
+//   browser → /api/anime/proxy?url=<seg.ts> ← this server   → CDN  (piped)
+
+// CORS helper — always call this first, even before sending errors
+function setCorsHeaders(res) {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Range, Content-Type, Authorization');
+  res.setHeader('Access-Control-Expose-Headers', 'Content-Length, Content-Range');
+}
+
+// CDN headers that trick the AnimePahe CDN into serving content
+const CDN_HEADERS = {
+  'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+  'Referer': 'https://animepahe.ru/',
+  'Origin': 'https://animepahe.ru',
+  'Accept': '*/*',
+  'Accept-Language': 'en-US,en;q=0.9',
+  'Accept-Encoding': 'gzip, deflate, br',
+  'Connection': 'keep-alive',
+};
+
+// Handle OPTIONS preflight (CORS pre-flight requests from browsers)
+router.options('/proxy', (req, res) => {
+  setCorsHeaders(res);
+  res.status(204).end();
+});
+
 router.get('/proxy', async (req, res) => {
+  setCorsHeaders(res); // ← ALWAYS first, before any potential error
+
   const { url } = req.query;
-  if (!url) return res.status(400).json({ error: 'url query param required' });
+  if (!url) return res.status(400).json({ error: 'Missing url query param' });
 
   let targetUrl;
   try {
     targetUrl = decodeURIComponent(url);
-    new URL(targetUrl); // validate it's a real URL
+    new URL(targetUrl); // throws if malformed
   } catch {
-    return res.status(400).json({ error: 'Invalid URL' });
+    return res.status(400).json({ error: 'Invalid URL format' });
   }
 
+  console.log(`[AnimeProxy] → ${targetUrl.substring(0, 100)}`);
+
+  let upstream;
   try {
-    const upstream = await fetch(targetUrl, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
-        'Referer': 'https://animepahe.ru/',
-        'Origin': 'https://animepahe.ru',
-        'Accept': '*/*',
-      },
+    upstream = await fetch(targetUrl, { headers: CDN_HEADERS });
+  } catch (fetchErr) {
+    console.error('[AnimeProxy] fetch() threw:', fetchErr.message);
+    return res.status(502).json({ error: 'Could not reach CDN', detail: fetchErr.message });
+  }
+
+  console.log(`[AnimeProxy] ← status ${upstream.status} | type: ${upstream.headers.get('content-type') || 'unknown'}`);
+
+  if (!upstream.ok) {
+    const body = await upstream.text().catch(() => '');
+    console.error(`[AnimeProxy] CDN returned ${upstream.status}:`, body.substring(0, 200));
+    return res.status(upstream.status).json({ 
+      error: `CDN returned ${upstream.status}`,
+      hint: upstream.status === 403 ? 'CDN may have expired the session or requires different headers' : undefined
     });
+  }
 
-    if (!upstream.ok) {
-      return res.status(upstream.status).json({ error: `Upstream returned ${upstream.status}` });
-    }
+  const contentType = upstream.headers.get('content-type') || '';
+  const isM3U8 = targetUrl.includes('.m3u8') || 
+                 contentType.includes('mpegurl') || 
+                 contentType.includes('x-mpegURL');
 
-    const contentType = upstream.headers.get('content-type') || '';
-    const isPlaylist = targetUrl.includes('.m3u8') || contentType.includes('mpegurl') || contentType.includes('x-mpegURL');
+  if (isM3U8) {
+    // ── Playlist: read, rewrite all URLs, return ──────────────────────────────
+    const text = await upstream.text();
+    const baseUrl = targetUrl.substring(0, targetUrl.lastIndexOf('/') + 1);
+    const proxyBase = '/api/anime/proxy?url=';
 
-    if (isPlaylist) {
-      // ── M3U8 playlist: rewrite internal URLs to go through this proxy ──
-      const text = await upstream.text();
-      const baseUrl = targetUrl.substring(0, targetUrl.lastIndexOf('/') + 1);
-      const proxyBase = '/api/anime/proxy?url=';
+    const rewritten = text
+      .split('\n')
+      .map(line => {
+        const trimmed = line.trim();
 
-      const rewritten = text
-        .split('\n')
-        .map(line => {
-          const trimmed = line.trim();
-          if (!trimmed || trimmed.startsWith('#')) {
-            // Rewrite URI attributes inside tags like #EXT-X-KEY:...,URI="..."
-            return line.replace(/URI="([^"]+)"/g, (_, uri) => {
-              const absolute = uri.startsWith('http') ? uri : baseUrl + uri;
-              return `URI="${proxyBase}${encodeURIComponent(absolute)}"`;
-            });
-          }
-          // Plain segment line (relative or absolute URL)
-          const absolute = trimmed.startsWith('http') ? trimmed : baseUrl + trimmed;
-          return `${proxyBase}${encodeURIComponent(absolute)}`;
-        })
-        .join('\n');
+        // Empty line — preserve
+        if (!trimmed) return line;
 
-      res.setHeader('Content-Type', 'application/vnd.apple.mpegurl');
-      res.setHeader('Access-Control-Allow-Origin', '*');
-      return res.send(rewritten);
-    }
+        // Tag line — only rewrite URI="..." attributes (e.g., AES-128 key URIs)
+        if (trimmed.startsWith('#')) {
+          return line.replace(/URI="([^"]+)"/g, (_, uri) => {
+            const abs = uri.startsWith('http') ? uri : baseUrl + uri;
+            return `URI="${proxyBase}${encodeURIComponent(abs)}"`;
+          });
+        }
 
-    // ── Binary segment (.ts) or encryption key: pipe directly ──
-    res.setHeader('Content-Type', contentType || 'application/octet-stream');
-    res.setHeader('Access-Control-Allow-Origin', '*');
+        // Segment line (absolute or relative URL)
+        const abs = trimmed.startsWith('http') ? trimmed : baseUrl + trimmed;
+        return `${proxyBase}${encodeURIComponent(abs)}`;
+      })
+      .join('\n');
 
-    const contentLength = upstream.headers.get('content-length');
-    if (contentLength) res.setHeader('Content-Length', contentLength);
+    console.log(`[AnimeProxy] M3U8 rewritten (${rewritten.split('\n').length} lines)`);
+    res.setHeader('Content-Type', 'application/vnd.apple.mpegurl');
+    return res.send(rewritten);
+  }
 
-    // Stream the response body
-    const reader = upstream.body.getReader();
-    const pump = async () => {
-      const { done, value } = await reader.read();
-      if (done) { res.end(); return; }
-      res.write(Buffer.from(value));
-      return pump();
-    };
-    return pump();
+  // ── Binary segment (.ts) or AES key: stream directly ─────────────────────
+  res.setHeader('Content-Type', contentType || 'application/octet-stream');
+  const contentLength = upstream.headers.get('content-length');
+  if (contentLength) res.setHeader('Content-Length', contentLength);
 
-  } catch (err) {
-    console.error('[AnimeProxy] Error:', err.message);
-    res.status(502).json({ error: 'Proxy error', detail: err.message });
+  // Use Node.js stream pipeline for efficiency (avoids memory spikes on large .ts files)
+  try {
+    const { Readable } = await import('stream');
+    const nodeStream = Readable.fromWeb(upstream.body);
+    nodeStream.pipe(res);
+    nodeStream.on('error', (err) => {
+      console.error('[AnimeProxy] Stream error:', err.message);
+      if (!res.headersSent) res.status(500).end();
+    });
+  } catch (pipeErr) {
+    console.error('[AnimeProxy] Pipe error:', pipeErr.message);
+    if (!res.headersSent) res.status(500).json({ error: 'Stream failed' });
   }
 });
+
 
 router.get('/search', animeController.search);
 router.get('/info/:id', animeController.getInfo);

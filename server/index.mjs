@@ -74,6 +74,14 @@ const corsOptions = {
   optionsSuccessStatus: 200
 };
 
+// ── Open CORS for the anime proxy — must come BEFORE the whitelist middleware ──
+// The HLS stream proxy needs to be accessible from any origin because:
+//   1. HLS.js requests segments directly (not through fetch with credentials)
+//   2. The browser's hls.js instance may not send an Origin header
+//   3. We need *, not a specific origin, for the player to work
+app.use('/api/anime/proxy', cors({ origin: '*', methods: ['GET', 'OPTIONS'] }));
+app.options('/api/anime/proxy', cors({ origin: '*' }));
+
 app.use(cors(corsOptions));
 app.options(/.*/, cors(corsOptions));
 
