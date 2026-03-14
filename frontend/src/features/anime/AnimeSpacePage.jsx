@@ -215,13 +215,14 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
     }
 
     try {
-      const newRoom = await joinOrCreateRoom('anime', {
-        roomId,
-        activityId,
+      const newRoom = await joinOrCreateRoom('live_activity', {
+        activityId: roomId,
+        activityType: 'anime',
         animeId: anime.id,
         animeTitle: anime.title,
         episodeId: episode.id,
         episodeNumber: episode.number,
+        videoId: episode.id,
         userId: profile?.id,
         username: profile?.username,
         avatar: profile?.avatar_url,

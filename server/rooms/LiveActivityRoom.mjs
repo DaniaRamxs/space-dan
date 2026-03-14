@@ -75,16 +75,61 @@ export class LiveActivityRoom extends Room {
     // Update playback state (host only)
     this.onMessage("update_state", (client, state) => {
       const participant = this.state.participants.get(client.sessionId);
-      if (participant?.isHost) {
+      const isHost = participant?.isHost || participant?.userId === this.state.hostId;
+      
+      if (isHost) {
         if (state.videoId !== undefined) this.state.videoId = state.videoId;
         if (state.playing !== undefined) this.state.playing = state.playing;
         if (state.currentTime !== undefined) this.state.currentTime = state.currentTime;
         if (state.duration !== undefined) this.state.duration = state.duration;
+        if (state.activityType !== undefined) this.state.activityType = state.activityType;
         this.state.lastUpdate = state.lastUpdate || Date.now();
         
         // Secondary broadcast for immediate sync
         this.broadcast("STATE_UPDATE", state, { except: client });
       }
+    });
+
+    // Semantic playback handlers (host only)
+    this.onMessage("play", (client, { currentTime }) => {
+      const participant = this.state.participants.get(client.sessionId);
+      if (participant?.isHost || participant?.userId === this.state.hostId) {
+        this.state.playing = true;
+        if (currentTime !== undefined) this.state.currentTime = currentTime;
+        this.state.lastUpdate = Date.now();
+        this.broadcast("STATE_UPDATE", { playing: true, currentTime }, { except: client });
+      }
+    });
+
+    this.onMessage("pause", (client, { currentTime }) => {
+      const participant = this.state.participants.get(client.sessionId);
+      if (participant?.isHost || participant?.userId === this.state.hostId) {
+        this.state.playing = false;
+        if (currentTime !== undefined) this.state.currentTime = currentTime;
+        this.state.lastUpdate = Date.now();
+        this.broadcast("STATE_UPDATE", { playing: false, currentTime }, { except: client });
+      }
+    });
+
+    this.onMessage("seek", (client, { currentTime }) => {
+      const participant = this.state.participants.get(client.sessionId);
+      if (participant?.isHost || participant?.userId === this.state.hostId) {
+        this.state.currentTime = currentTime;
+        this.state.lastUpdate = Date.now();
+        this.broadcast("STATE_UPDATE", { currentTime }, { except: client });
+      }
+    });
+
+    // Late join request for snapshot
+    this.onMessage("request_sync", (client) => {
+      client.send("STATE_UPDATE", {
+        videoId: this.state.videoId,
+        playing: this.state.playing,
+        currentTime: this.state.currentTime,
+        activityType: this.state.activityType,
+        hostId: this.state.hostId,
+        lastUpdate: this.state.lastUpdate
+      });
     });
 
     // Chat message
