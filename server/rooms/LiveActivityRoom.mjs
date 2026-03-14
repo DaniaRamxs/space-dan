@@ -178,8 +178,16 @@ export class LiveActivityRoom extends Room {
     participant.userId = userId;
     participant.username = username;
     participant.avatar = avatar;
-    participant.isHost = userId === this.state.hostId;
     participant.isSpectator = isSpectator;
+
+    // First non-spectator becomes host if none exists
+    if (!this.state.hostId && !isSpectator) {
+      this.state.hostId = userId;
+      participant.isHost = true;
+      log(`[LiveActivity] Auto-assigned ${username} as first host`);
+    } else {
+      participant.isHost = userId === this.state.hostId;
+    }
 
     this.state.participants.set(client.sessionId, participant);
 

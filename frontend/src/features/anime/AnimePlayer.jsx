@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState, useMemo } from 'react';
 import Hls from 'hls.js';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Play, Pause, Volume2, VolumeX, Maximize, MonitorPlay, Heart, Laugh, Ghost, Zap } from 'lucide-react';
+import { Play, Pause, Volume2, VolumeX, Maximize, MonitorPlay, Heart, Laugh, Ghost, Zap, Crown } from 'lucide-react';
 import ReactionOverlay from '@/components/reactions/ReactionOverlay';
 
 const API_URL = import.meta.env.VITE_API_URL || '';
@@ -242,10 +242,23 @@ const AnimePlayer = ({
 
                         <div className="flex items-center justify-between">
                             <div className="flex items-center gap-4">
-                                <button onClick={handlePlayPause} className="w-10 h-10 bg-white text-black rounded-full flex items-center justify-center hover:scale-110 transition-all">
-                                    {isPlaying ? <Pause size={20} fill="black" /> : <Play size={20} fill="black" />}
-                                </button>
-                                <span className="text-xs font-mono text-white/70">{formatTime(currentTime)} / {formatTime(duration)}</span>
+                                {isHost ? (
+                                    <button onClick={handlePlayPause} className="w-10 h-10 bg-cyan-400 text-slate-950 rounded-full flex items-center justify-center hover:scale-110 transition-all shadow-lg shadow-cyan-400/20">
+                                        {isPlaying ? <Pause size={20} fill="currentColor" /> : <Play size={20} fill="currentColor" />}
+                                    </button>
+                                ) : (
+                                    <div className="flex items-center gap-2 px-3 py-1 bg-white/5 border border-white/10 rounded-full text-white/40 text-[10px] uppercase font-black tracking-widest">
+                                        Solo lectura
+                                    </div>
+                                )}
+                                <span className="text-[11px] font-black tracking-tighter tabular-nums text-white/70">
+                                    {formatTime(currentTime)} / {formatTime(duration)}
+                                </span>
+                                {isHost && (
+                                    <div className="flex items-center gap-1 px-2 py-0.5 bg-yellow-500/20 border border-yellow-500/30 rounded-full text-yellow-500 text-[8px] font-black uppercase tracking-[0.2em]">
+                                        <Crown size={8} fill="currentColor" /> Host
+                                    </div>
+                                )}
                             </div>
 
                             {/* Reactions panel */}

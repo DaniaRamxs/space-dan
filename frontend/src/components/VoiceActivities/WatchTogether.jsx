@@ -50,6 +50,10 @@ export default function WatchTogether({ roomName, onClose, isMinimized = false, 
     const [room, setRoom] = useState(null);
     const [colyseusParticipants, setColyseusParticipants] = useState([]);
     
+    const hostParticipant = useMemo(() => {
+        return colyseusParticipants.find(p => p.isHost || p.userId === playbackState.hostId);
+    }, [colyseusParticipants, playbackState.hostId]);
+
     const { 
         playbackState, 
         isHost, 
@@ -425,9 +429,13 @@ export default function WatchTogether({ roomName, onClose, isMinimized = false, 
                                         <div className="flex items-center gap-2">
                                             <span className="text-white/40 text-[10px] uppercase tracking-widest">YouTube</span>
                                             {isHost ? (
-                                                <span className="px-1.5 py-0.5 bg-yellow-500/20 text-yellow-500 rounded text-[8px] font-black uppercase tracking-widest border border-yellow-500/20">HOST</span>
+                                                <span className="px-1.5 py-0.5 bg-yellow-500/20 text-yellow-500 rounded text-[8px] font-black uppercase tracking-widest border border-yellow-500/20 flex items-center gap-1">
+                                                    <Crown size={8} fill="currentColor" /> HOST
+                                                </span>
                                             ) : (
-                                                <span className="text-white/40 text-[10px]">Esperando al Host</span>
+                                                <span className="text-white/40 text-[10px] flex items-center gap-1">
+                                                    <Users size={10} /> Esperando al Host: {hostParticipant?.username || '...'}
+                                                </span>
                                             )}
                                         </div>
                                     </div>
@@ -544,9 +552,14 @@ export default function WatchTogether({ roomName, onClose, isMinimized = false, 
                                     Buscar Video
                                 </button>
                             ) : (
-                                <div className="p-4 bg-white/5 rounded-2xl border border-white/10 flex items-center gap-3">
-                                    <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
-                                    <span className="text-xs text-blue-400 font-bold uppercase tracking-widest">Esperando al Host...</span>
+                                <div className="p-4 bg-white/5 rounded-2xl border border-white/10 flex flex-col items-center gap-3">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
+                                        <span className="text-xs text-blue-400 font-bold uppercase tracking-widest">
+                                            Esperando al Host: @{hostParticipant?.username || '...'}
+                                        </span>
+                                    </div>
+                                    <p className="text-[10px] text-white/20 italic">Solo el host puede iniciar la reproducción.</p>
                                 </div>
                             )}
                         </div>

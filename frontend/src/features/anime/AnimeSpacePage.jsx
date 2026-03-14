@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
-import { Radio, Users, MessageSquare, ChevronLeft, Tv, Send } from 'lucide-react';
+import { Radio, Users, MessageSquare, ChevronLeft, Tv, Send, Crown } from 'lucide-react';
 import YouTubeSearchModal from '@/components/Social/YouTubeSearchModal';
 import GifPickerModal from '@/components/reactions/GifPickerModal';
 import { toast } from 'sonner';
@@ -51,7 +51,11 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
     colyseusRoom: room
   });
 
-  const isHost = isSyncedHost || (roomState?.hostId === profile?.id);
+  const hostParticipant = useMemo(() => {
+    return participants.find(p => p.isHost || p.userId === playbackState.hostId);
+  }, [participants, playbackState.hostId]);
+
+  const isHost = isSyncedHost || (playbackState.hostId === profile?.id);
 
   const clearRoomState = () => {
     setRoom(null);
@@ -550,21 +554,27 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
       </div>
 
       <div className="mb-4 flex flex-wrap gap-2">
-        {visibleParticipants.map((participant, index) => (
-          <div key={`${participant.username || 'user'}-${index}`} className="flex min-w-0 max-w-full items-center gap-2 rounded-full border border-white/10 bg-black/20 px-3 py-2">
-            <img
-              src={participant.avatar || '/default-avatar.png'}
-              alt={participant.username || 'participant'}
-              className="h-8 w-8 rounded-full object-cover"
-            />
-            <div className="min-w-0">
-              <div className="truncate text-xs font-bold text-white">{participant.username || 'Invitado'}</div>
-              <div className="text-[10px] uppercase tracking-[0.18em] text-white/45">
-                {participant.isHost ? 'Host' : 'Viewer'}
+        {visibleParticipants.map((participant, index) => {
+          const isParticipantHost = participant.isHost || participant.userId === playbackState.hostId;
+          return (
+            <div key={`${participant.username || 'user'}-${index}`} className="flex min-w-0 max-w-full items-center gap-2 rounded-full border border-white/10 bg-black/20 px-3 py-2">
+              <img
+                src={participant.avatar || '/default-avatar.png'}
+                alt={participant.username || 'participant'}
+                className="h-8 w-8 rounded-full object-cover"
+              />
+              <div className="min-w-0">
+                <div className="truncate text-xs font-bold text-white flex items-center gap-1">
+                  {participant.username || 'Invitado'}
+                  {isParticipantHost && <Crown size={10} className="text-yellow-400" />}
+                </div>
+                <div className={`text-[10px] uppercase tracking-[0.18em] ${isParticipantHost ? 'text-yellow-500 font-black' : 'text-white/45'}`}>
+                  {isParticipantHost ? 'Host' : 'Viewer'}
+                </div>
               </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       <div className="space-y-3">
@@ -754,7 +764,9 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#030308]/65 backdrop-blur-md">
           <div className="flex flex-col items-center gap-4">
             <div className="h-12 w-12 animate-spin rounded-full border-4 border-cyan-400/20 border-t-cyan-400" />
-            <p className="text-xs font-black uppercase tracking-[0.26em] text-cyan-200">Cargando AnimeSpace</p>
+            <p className="text-xs font-black uppercase tracking-[0.26em] text-cyan-200">
+              {hostParticipant ? `Conectando con @${hostParticipant.username}...` : 'Cargando AnimeSpace'}
+            </p>
           </div>
         </div>
       )}
