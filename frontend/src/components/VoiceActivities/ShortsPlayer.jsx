@@ -293,8 +293,8 @@ export default function ShortsPlayer({
             ref={containerRef}
             className="relative flex-1 min-h-0 flex items-center justify-center bg-black overflow-hidden"
         >
-            {/* 9:16 Vertical container — big on desktop, full on mobile */}
-            <div className="relative h-[90vh] sm:h-[88vh] aspect-[9/16] max-w-full max-h-full bg-black overflow-hidden rounded-2xl sm:rounded-3xl">
+            {/* 9:16 Vertical container — full height on mobile, capped on desktop */}
+            <div className="relative h-[100dvh] sm:h-[90vh] aspect-[9/16] sm:max-w-[520px] max-w-full max-h-full bg-black overflow-hidden rounded-none sm:rounded-3xl">
                 {/* YouTube Player */}
                 <div id="shorts-player-wrapper" className="absolute inset-0">
                     <div id="shorts-player" className="w-full h-full" />
