@@ -315,7 +315,7 @@ export default function VoiceActivityLauncher({
             return createPortal(
                 <>
                     {/* Wrapper fullscreen de la actividad */}
-                    <div className="fixed inset-0 z-[10020] bg-[#04040f] overflow-hidden flex flex-col">
+                    <div className="fixed inset-0 z-[10020] flex flex-col overflow-y-auto overflow-x-hidden overscroll-contain bg-[#04040f]">
                         <Suspense fallback={<ActivityLoader />}>
                             {ActivityComponent
                                 ? <ActivityComponent {...commonProps} />

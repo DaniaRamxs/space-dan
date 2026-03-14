@@ -25,6 +25,13 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
   const [chatMessages, setChatMessages] = useState([]);
   const [chatInput, setChatInput] = useState('');
   const chatEndRef = useRef(null);
+  const leavingRoomRef = useRef(false);
+
+  const clearRoomState = () => {
+    setRoom(null);
+    setRoomState(null);
+    setParticipants([]);
+  };
 
   useEffect(() => {
     if (chatEndRef.current) {
@@ -34,11 +41,10 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
 
   const resetWatchParty = () => {
     if (room) {
+      leavingRoomRef.current = true;
       room.leave(true).catch(() => {});
     }
-    setRoom(null);
-    setRoomState(null);
-    setParticipants([]);
+    clearRoomState();
     setChatMessages([]);
   };
 
@@ -117,6 +123,19 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
         });
 
         setRoom(newRoom);
+        newRoom.onLeave(() => {
+          const intentionalLeave = leavingRoomRef.current;
+          leavingRoomRef.current = false;
+          clearRoomState();
+          if (!intentionalLeave) {
+            toast.error('La sala de AnimeSpace se cerró.');
+          }
+        });
+        newRoom.onError((code, message) => {
+          console.error('[AnimeSpace] Room socket error:', code, message);
+          leavingRoomRef.current = false;
+          clearRoomState();
+        });
         newRoom.onStateChange((state) => {
           setRoomState(state.toJSON());
           const nextParticipants = [];
@@ -142,8 +161,13 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
 
   const handleSendMessage = (e) => {
     e.preventDefault();
-    if (!chatInput.trim() || !room) return;
-    room.send('chat', chatInput);
+    const message = chatInput.trim();
+    if (!message || !room || !room.connection?.isOpen) {
+      toast.error('La sala no está conectada.');
+      return;
+    }
+
+    room.send('chat', { message });
     setChatInput('');
   };
 
@@ -175,7 +199,7 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
   const isHost = roomState?.hostId === profile?.id;
 
   return (
-    <div className="min-h-screen bg-[radial-gradient(circle_at_top,rgba(34,211,238,0.12),transparent_28%),linear-gradient(180deg,#04040a_0%,#070711_45%,#030308_100%)] text-white">
+    <div className="min-h-full overflow-x-hidden bg-[radial-gradient(circle_at_top,rgba(34,211,238,0.12),transparent_28%),linear-gradient(180deg,#04040a_0%,#070711_45%,#030308_100%)] text-white">
       {!onClose && (
         <header className="sticky top-0 z-40 border-b border-white/5 bg-[#030308]/80 px-4 py-3 backdrop-blur-xl sm:px-6">
           <div className="mx-auto flex max-w-6xl items-center justify-between gap-3">

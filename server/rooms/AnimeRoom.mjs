@@ -48,14 +48,15 @@ export class AnimeRoom extends Room {
                 }
             });
 
-            this.onMessage("chat", (client, message) => {
+            this.onMessage("chat", (client, payload) => {
                 const participant = this.state.participants.get(client.sessionId);
-                if (participant) {
+                const message = typeof payload === "string" ? payload : payload?.message;
+                if (participant && typeof message === "string" && message.trim()) {
                     this.broadcast("chat", {
                         userId: participant.userId,
                         username: participant.username,
                         avatar: participant.avatar,
-                        message,
+                        message: message.trim().slice(0, 500),
                         timestamp: Date.now()
                     });
                 }
