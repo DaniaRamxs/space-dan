@@ -45,7 +45,13 @@ export const searchAnime = async (query) => {
   try {
     if (!gogoanime) throw new Error("No provider available for search");
     const results = await gogoanime.search(query);
-    return results.results || results || [];
+    const list = results.results || results || [];
+    
+    // Normalize images and structure
+    return list.map(anime => ({
+        ...anime,
+        image: anime.image || anime.img || anime.cover
+    }));
   } catch (error) {
     console.error('[AnimeService] Search error:', error.message);
     throw error;
@@ -60,7 +66,13 @@ export const getAnimeInfo = async (animeId) => {
     if (!gogoanime) throw new Error("No provider available for info");
     const fetchFn = gogoanime.fetchAnimeInfo || gogoanime.getAnimeInfo || gogoanime.fetchInfo;
     if (!fetchFn) throw new Error("Primary provider does not support fetching anime info");
-    return await fetchFn.call(gogoanime, animeId);
+    const info = await fetchFn.call(gogoanime, animeId);
+    
+    // Normalize image in info
+    if (info) {
+        info.image = info.image || info.img || info.cover;
+    }
+    return info;
   } catch (error) {
     console.error('[AnimeService] Info error:', error.message);
     throw error;

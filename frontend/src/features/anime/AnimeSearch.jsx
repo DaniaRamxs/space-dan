@@ -51,7 +51,7 @@ const AnimeSearch = ({ onSelect }) => {
                     >
                         <div className="relative aspect-[3/4] overflow-hidden">
                             <img 
-                                src={anime.image} 
+                                src={anime.image || anime.img || anime.cover} 
                                 alt={anime.title}
                                 className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                             />

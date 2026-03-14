@@ -7,7 +7,7 @@ const AnimeEpisodeList = ({ anime, episodes = [], onSelect, currentEpisodeId }) 
             <div className="flex flex-col md:flex-row gap-8 mb-8">
                 <div className="w-full md:w-64 flex-shrink-0">
                     <img 
-                        src={anime.image} 
+                        src={anime.image || anime.img || anime.cover} 
                         alt={anime.title} 
                         className="w-full rounded-2xl shadow-2xl border border-white/10"
                     />
