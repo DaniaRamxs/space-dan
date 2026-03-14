@@ -21,6 +21,7 @@ import { joinOrCreateRoom } from '@/services/colyseusClient';
 import YouTubeSearchModal from '@/components/Social/YouTubeSearchModal';
 import GifPickerModal from '@/components/reactions/GifPickerModal';
 import ReactionOverlay from '@/components/reactions/ReactionOverlay';
+import ShortsPlayer from '@/components/VoiceActivities/ShortsPlayer';
 
 // ─── Constantes ───────────────────────────────────────────────────────────────
 const SYNC_INTERVAL_MS = 2000;
@@ -82,6 +83,8 @@ export default function WatchTogether({ roomName, onClose, isMinimized = false, 
     const [showModeSelector, setShowModeSelector] = useState(false);
     const [searchMode, setSearchMode] = useState('videos');
     const [videoEnded, setVideoEnded] = useState(false);
+    const [shortsFeed, setShortsFeed] = useState([]);
+    const [shortsIndex, setShortsIndex] = useState(0);
 
     // ── 4. All refs (MUST be declared before any hook that uses them) ─────────────
     const playerRef = useRef(null);
@@ -363,11 +366,27 @@ export default function WatchTogether({ roomName, onClose, isMinimized = false, 
         if (!isHost) return;
         setCurrentVideo(video);
         setIsPlaying(true);
-        updatePlayback({ 
-            videoId: video.id, 
-            playing: true, 
-            currentTime: 0 
+        setVideoEnded(false);
+        updatePlayback({
+            videoId: video.id,
+            playing: true,
+            currentTime: 0
         });
+
+        // If in shorts mode, add to feed if not already present
+        if (isShortsMode) {
+            setShortsFeed(prev => {
+                const exists = prev.some(v => v.id === video.id);
+                if (exists) {
+                    const idx = prev.findIndex(v => v.id === video.id);
+                    setShortsIndex(idx);
+                    return prev;
+                }
+                const next = [...prev, video];
+                setShortsIndex(next.length - 1);
+                return next;
+            });
+        }
     };
 
     const formatTime = (seconds) => {
@@ -419,7 +438,34 @@ export default function WatchTogether({ roomName, onClose, isMinimized = false, 
             >
                 {/* Main Video Area */}
                 <div className="flex-1 relative bg-black flex flex-col" onMouseMove={handleMouseMove}>
-                    {currentVideo ? (
+                    {/* ── SHORTS MODE: TikTok-style vertical player ── */}
+                    {isShortsMode && (currentVideo || shortsFeed.length > 0) ? (
+                        <ShortsPlayer
+                            shortsFeed={shortsFeed}
+                            currentIndex={shortsIndex}
+                            onIndexChange={(idx) => {
+                                setShortsIndex(idx);
+                                const video = shortsFeed[idx];
+                                if (video) {
+                                    setCurrentVideo(video);
+                                    updatePlayback({ videoId: video.id, playing: true, currentTime: 0 });
+                                }
+                            }}
+                            onClose={onClose}
+                            onSearchMore={() => setIsSearchOpen(true)}
+                            isHost={isHost}
+                            hostParticipant={hostParticipant}
+                            playbackState={playbackState}
+                            updatePlayback={updatePlayback}
+                            room={room}
+                            gifOverlays={gifOverlays}
+                            isStorming={isStorming}
+                            sendReaction={sendReaction}
+                            participantCount={colyseusParticipants.length || 1}
+                        />
+
+                    ) : currentVideo ? (
+                        /* ── NORMAL MODE: 16:9 horizontal player ── */
                         <div className="relative flex-1 min-h-0">
                             <div id="wt-player-wrapper" className="absolute inset-0">
                                 <div id="wt-player" className="w-full h-full" />
@@ -679,7 +725,23 @@ export default function WatchTogether({ roomName, onClose, isMinimized = false, 
                 </AnimatePresence>
             </motion.div>
 
-            <YouTubeSearchModal isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} onSelect={(v) => { setVideoEnded(false); playVideo(v); }} mode={searchMode} />
+            <YouTubeSearchModal
+                isOpen={isSearchOpen}
+                onClose={() => setIsSearchOpen(false)}
+                onSelect={(v) => {
+                    setVideoEnded(false);
+                    playVideo(v);
+                }}
+                mode={searchMode}
+                onBatchResults={isShortsMode ? (videos) => {
+                    // When in shorts mode, load all search results into the feed
+                    setShortsFeed(prev => {
+                        const existingIds = new Set(prev.map(x => x.id));
+                        const newVideos = videos.filter(v => !existingIds.has(v.id));
+                        return [...prev, ...newVideos];
+                    });
+                } : undefined}
+            />
             <GifPickerModal isOpen={gifPickerOpen} onClose={() => setGifPickerOpen(false)} onSelect={(gif) => sendGif(gif.url)} />
 
             {/* Mode Selector Modal */}

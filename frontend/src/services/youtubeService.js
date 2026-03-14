@@ -114,6 +114,72 @@ export const youtubeService = {
     },
 
     /**
+     * Busca shorts (videos cortos) en YouTube a través del backend
+     * Appends #shorts to query and passes videoDuration=short parameter
+     * @param {string} query
+     * @returns {Promise<Array>} List of short video objects
+     */
+    async searchShorts(query, limit = 15) {
+        if (!query?.trim()) {
+            return this._getFallbackShorts();
+        }
+
+        try {
+            const searchQuery = `${query.trim()} #shorts`;
+            const response = await fetch(
+                `${API_BASE_URL}/api/youtube/search?q=${encodeURIComponent(searchQuery)}&videoDuration=short`
+            );
+
+            if (!response.ok) {
+                throw new Error('Backend shorts search failed');
+            }
+
+            const result = await response.json();
+
+            if (result.error) {
+                throw new Error(result.error);
+            }
+
+            const videos = result.data.map(video => ({
+                id: video.id,
+                title: video.title,
+                artist: video.artist || video.channel,
+                name: video.title,
+                thumbnail: video.thumbnail,
+                cover: video.thumbnail,
+                duration: video.duration,
+                url: video.url,
+                isShort: true
+            }));
+
+            console.log(`[YouTube] Shorts results from ${result.source}:`, videos.length, 'shorts');
+            return videos;
+
+        } catch (err) {
+            console.warn('[YouTube] Backend shorts search failed, using fallback:', err.message);
+            // Fallback to normal search with #shorts appended
+            return this.searchVideos(`${query} #shorts`, limit);
+        }
+    },
+
+    /**
+     * Fallback shorts when backend is unavailable
+     */
+    _getFallbackShorts() {
+        return [
+            {
+                id: 'dQw4w9WgXcQ',
+                title: 'Rick Roll Short',
+                name: 'Rick Roll Short',
+                artist: 'Rick Astley',
+                thumbnail: 'https://img.youtube.com/vi/dQw4w9WgXcQ/hqdefault.jpg',
+                cover: 'https://img.youtube.com/vi/dQw4w9WgXcQ/hqdefault.jpg',
+                isShort: true
+            }
+        ];
+    },
+
+    /**
      * Obtiene detalles de un video específico
      * (Ya no necesita API key, usa el backend)
      */
