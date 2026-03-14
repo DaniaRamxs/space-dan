@@ -172,7 +172,7 @@ const AnimePlayer = ({
   };
 
   return (
-    <div className="overflow-hidden rounded-[28px] border border-white/10 bg-[#080810] shadow-[0_20px_60px_rgba(0,0,0,0.35)]">
+    <div className="overflow-hidden rounded-[24px] border border-white/10 bg-[#080810] shadow-[0_20px_60px_rgba(0,0,0,0.35)] sm:rounded-[28px]">
       <div
         className="relative aspect-video w-full bg-black"
         onMouseMove={!isEmbed ? autoHideControls : undefined}
@@ -224,7 +224,7 @@ const AnimePlayer = ({
               />
 
               <div className="flex flex-wrap items-center justify-between gap-3 text-white">
-                <div className="flex items-center gap-2 sm:gap-3">
+                <div className="flex min-w-0 items-center gap-2 sm:gap-3">
                   <button onClick={handlePlayPause} className="rounded-full bg-white/10 p-2 transition hover:bg-white/20">
                     {isPlaying ? <Pause size={18} fill="white" /> : <Play size={18} fill="white" />}
                   </button>
@@ -240,12 +240,12 @@ const AnimePlayer = ({
                     onChange={handleVolumeChange}
                     className="hidden h-1 w-20 cursor-pointer appearance-none rounded-lg bg-white/20 accent-white sm:block"
                   />
-                  <span className="text-xs font-semibold text-white/80 sm:text-sm">
+                  <span className="min-w-0 text-xs font-semibold text-white/80 sm:text-sm">
                     {formatTime(currentTime)} / {formatTime(duration)}
                   </span>
                 </div>
 
-                <button onClick={toggleFullscreen} className="rounded-full bg-white/10 p-2 transition hover:bg-white/20">
+                <button onClick={toggleFullscreen} className="ml-auto rounded-full bg-white/10 p-2 transition hover:bg-white/20">
                   <Maximize size={18} />
                 </button>
               </div>
@@ -274,7 +274,7 @@ const AnimePlayer = ({
       </div>
 
       {isEmbed && (
-        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-white/10 bg-white/[0.03] px-4 py-3 text-xs text-white/70">
+        <div className="flex flex-col gap-1 border-t border-white/10 bg-white/[0.03] px-4 py-3 text-xs text-white/70 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
           <span>{source?.isDub ? 'Audio latino disponible' : 'Subtitulado en español'}</span>
           <span>{source?.quality || source?.server || 'Reproductor externo'}</span>
         </div>

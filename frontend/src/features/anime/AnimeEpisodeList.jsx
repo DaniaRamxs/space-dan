@@ -3,13 +3,13 @@ import { Play, Clapperboard, Languages } from 'lucide-react';
 
 const AnimeEpisodeList = ({ anime, episodes = [], onSelect, currentEpisodeId }) => {
   return (
-    <section className="mx-auto flex w-full max-w-6xl flex-col gap-5 px-4 pb-8 pt-4 sm:px-6">
-      <div className="overflow-hidden rounded-[28px] border border-white/10 bg-white/[0.04] p-4 shadow-[0_18px_50px_rgba(0,0,0,0.28)] sm:p-6">
+    <section className="mx-auto flex w-full max-w-6xl flex-col gap-5 px-3 pb-8 pt-4 sm:px-6">
+      <div className="overflow-hidden rounded-[24px] border border-white/10 bg-white/[0.04] p-4 shadow-[0_18px_50px_rgba(0,0,0,0.28)] sm:rounded-[28px] sm:p-6">
         <div className="flex flex-col gap-5 md:flex-row">
           <img
             src={anime.image || anime.img || anime.cover}
             alt={anime.title}
-            className="mx-auto aspect-[3/4] w-full max-w-[220px] rounded-[24px] object-cover shadow-2xl"
+            className="mx-auto aspect-[3/4] w-full max-w-[180px] rounded-[20px] object-cover shadow-2xl sm:max-w-[220px] sm:rounded-[24px]"
           />
 
           <div className="flex-1 space-y-4">
@@ -17,7 +17,7 @@ const AnimeEpisodeList = ({ anime, episodes = [], onSelect, currentEpisodeId }) 
               <span className="inline-flex rounded-full border border-cyan-300/20 bg-cyan-500/15 px-3 py-1 text-[10px] font-black uppercase tracking-[0.28em] text-cyan-200">
                 {anime.provider === 'animeflv' ? 'AnimeFLV' : 'Proveedor alterno'}
               </span>
-              <h1 className="text-3xl font-black leading-none text-white sm:text-4xl">{anime.title}</h1>
+              <h1 className="text-2xl font-black leading-none text-white sm:text-4xl">{anime.title}</h1>
               <p className="text-sm leading-6 text-white/65 sm:text-base">
                 {anime.description || 'Sin descripción disponible.'}
               </p>
@@ -43,18 +43,18 @@ const AnimeEpisodeList = ({ anime, episodes = [], onSelect, currentEpisodeId }) 
         </div>
       </div>
 
-      <div className="overflow-hidden rounded-[28px] border border-white/10 bg-white/[0.03] p-4 sm:p-5">
-        <div className="mb-4 flex items-center justify-between gap-3">
-          <h2 className="text-lg font-black uppercase tracking-[0.2em] text-white sm:text-xl">Lista de episodios</h2>
+      <div className="overflow-hidden rounded-[24px] border border-white/10 bg-white/[0.03] p-4 sm:rounded-[28px] sm:p-5">
+        <div className="mb-4 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
+          <h2 className="text-base font-black uppercase tracking-[0.18em] text-white sm:text-xl sm:tracking-[0.2em]">Lista de episodios</h2>
           <span className="text-xs text-white/45">Toca un episodio para reproducir</span>
         </div>
 
-        <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8">
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8">
           {episodes.map((ep) => (
             <button
               key={ep.id}
               onClick={() => onSelect(ep)}
-              className={`relative rounded-2xl border px-3 py-4 text-center transition ${
+              className={`relative rounded-2xl border px-3 py-3 text-center transition sm:py-4 ${
                 currentEpisodeId === ep.id
                   ? 'border-cyan-300/60 bg-cyan-400 text-slate-950 shadow-[0_10px_30px_rgba(34,211,238,0.22)]'
                   : 'border-white/10 bg-black/20 text-white hover:border-white/20 hover:bg-white/[0.06]'

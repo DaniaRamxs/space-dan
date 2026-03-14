@@ -24,14 +24,14 @@ const AnimeSearch = ({ onSelect }) => {
   };
 
   return (
-    <section className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 pb-8 pt-4 sm:px-6">
-      <div className="overflow-hidden rounded-[28px] border border-white/10 bg-[radial-gradient(circle_at_top_left,rgba(56,189,248,0.2),transparent_35%),linear-gradient(180deg,rgba(9,9,18,0.96),rgba(5,5,10,0.96))] p-5 shadow-[0_18px_50px_rgba(0,0,0,0.35)] sm:p-7">
+    <section className="mx-auto flex w-full max-w-6xl flex-col gap-5 px-3 pb-8 pt-4 sm:gap-6 sm:px-6">
+      <div className="overflow-hidden rounded-[24px] border border-white/10 bg-[radial-gradient(circle_at_top_left,rgba(56,189,248,0.2),transparent_35%),linear-gradient(180deg,rgba(9,9,18,0.96),rgba(5,5,10,0.96))] p-4 shadow-[0_18px_50px_rgba(0,0,0,0.35)] sm:rounded-[28px] sm:p-7">
         <div className="mb-5 flex items-center gap-2 text-cyan-300">
           <Sparkles size={16} />
           <span className="text-[11px] font-black uppercase tracking-[0.28em]">AnimeFLV First</span>
         </div>
         <div className="space-y-3">
-          <h1 className="max-w-xl text-3xl font-black leading-none text-white sm:text-5xl">
+          <h1 className="max-w-xl text-2xl font-black leading-none text-white sm:text-5xl">
             AnimeSpace pensado primero para móvil.
           </h1>
           <p className="max-w-2xl text-sm leading-6 text-white/65 sm:text-base">
@@ -66,7 +66,7 @@ const AnimeSearch = ({ onSelect }) => {
           <button
             key={`${anime.provider || 'anime'}-${anime.id}`}
             onClick={() => onSelect(anime)}
-            className="overflow-hidden rounded-[24px] border border-white/10 bg-white/[0.04] text-left transition hover:-translate-y-1 hover:border-cyan-400/40 hover:bg-white/[0.07]"
+            className="overflow-hidden rounded-[20px] border border-white/10 bg-white/[0.04] text-left transition hover:-translate-y-1 hover:border-cyan-400/40 hover:bg-white/[0.07] sm:rounded-[24px]"
           >
             <div className="relative aspect-[3/4] overflow-hidden">
               <img
@@ -81,8 +81,8 @@ const AnimeSearch = ({ onSelect }) => {
               </div>
             </div>
             <div className="space-y-2 p-3">
-              <p className="line-clamp-2 text-sm font-bold leading-5 text-white">{anime.title}</p>
-              <p className="line-clamp-3 text-xs leading-5 text-white/50">
+              <p className="line-clamp-2 text-[13px] font-bold leading-5 text-white sm:text-sm">{anime.title}</p>
+              <p className="line-clamp-2 text-xs leading-5 text-white/50 sm:line-clamp-3">
                 {anime.description || 'Sin descripción disponible.'}
               </p>
             </div>
