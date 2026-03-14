@@ -1,51 +1,26 @@
-import React, { useMemo } from 'react';
+import { useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const STORM_EMOJIS = ['🚀', '✨', '🔥', '💎', '👑', '🎉', '🌟', '👾', '🌈', '🛸'];
 const MAX_GIF_OVERLAYS = 5;
 const STORM_PARTICLE_COUNT = 50;
 
-/**
- * GifItem — each GIF gets its own stable rotation to avoid recalculating on re-render.
- * Math.random() inside animate recalculates every render → janky animation.
- * By moving it into the component (memo), it's calculated ONCE per mount.
- */
-const GifItem = ({ gif }) => {
-    const rotation = useMemo(() => Math.random() * 20 - 10, []);
-    const left     = useMemo(() => `${Math.random() * 80 + 10}%`, []);
-
-    return (
-        <motion.img
-            key={gif.id}
-            src={gif.url}
-            className="absolute bottom-20 w-32 z-30 drop-shadow-[0_0_15px_rgba(0,0,0,0.5)] rounded-xl -translate-x-1/2"
-            style={{ left }}
-            initial={{ opacity: 0, y: 40, scale: 0.5, rotate: -10 }}
-            animate={{ opacity: 1, y: -250, scale: 1.2, rotate: rotation }}
-            exit={{ opacity: 0, scale: 0.2, transition: { duration: 0.5 } }}
-            transition={{ duration: 3, ease: 'easeOut' }}
-            alt=""
-            loading="lazy"
-        />
-    );
-};
-
-/**
- * ReactionOverlay
- * Renders floating GIFs and emoji storm particles above the video player.
- *
- * Props:
- *   gifOverlays  — array of { id, url } objects (safe: guarded with Array.isArray)
- *   isStorming   — boolean, triggers emoji rain
- */
 export default function ReactionOverlay({ gifOverlays = [], isStorming = false }) {
-    // ── Safety: guard against undefined/null/non-array ────────────────────────
     const safeOverlays = Array.isArray(gifOverlays)
-        ? gifOverlays.slice(-MAX_GIF_OVERLAYS)   // never more than 5 in the DOM
+        ? gifOverlays.slice(-MAX_GIF_OVERLAYS)
         : [];
 
-    // ── Storm particles: stable — recalculated only when isStorming toggles ──
-    // Moving Math.random() here means values are stable between re-renders
+    // Stable random values per gif id — survives re-renders without useMemo per-child
+    const gifRandomsRef = useRef({});
+    safeOverlays.forEach(g => {
+        if (!gifRandomsRef.current[g.id]) {
+            gifRandomsRef.current[g.id] = {
+                rotation: Math.random() * 20 - 10,
+                left: `${Math.random() * 80 + 10}%`,
+            };
+        }
+    });
+
     const emojis = useMemo(() => {
         if (!isStorming) return [];
         return Array.from({ length: STORM_PARTICLE_COUNT }, (_, i) => ({
@@ -56,15 +31,29 @@ export default function ReactionOverlay({ gifOverlays = [], isStorming = false }
             duration: Math.random() * 2 + 1,
             scale: Math.random() * 0.5 + 0.8,
         }));
-    }, [isStorming]); // recalculated only when storm starts/stops
+    }, [isStorming]);
 
     return (
         <div className="absolute inset-0 pointer-events-none z-40 overflow-hidden">
-            {/* ── Floating GIFs (max 5) ────────────────────────────────────── */}
+            {/* ── Floating GIFs — motion.img directly inside AnimatePresence ── */}
             <AnimatePresence>
-                {safeOverlays.map(g => (
-                    <GifItem key={g.id} gif={g} />
-                ))}
+                {safeOverlays.map(g => {
+                    const r = gifRandomsRef.current[g.id] || { rotation: 0, left: '50%' };
+                    return (
+                        <motion.img
+                            key={g.id}
+                            src={g.url}
+                            className="absolute bottom-20 w-32 z-30 drop-shadow-[0_0_15px_rgba(0,0,0,0.5)] rounded-xl -translate-x-1/2"
+                            style={{ left: r.left }}
+                            initial={{ opacity: 0, y: 40, scale: 0.5, rotate: -10 }}
+                            animate={{ opacity: 1, y: -250, scale: 1.2, rotate: r.rotation }}
+                            exit={{ opacity: 0, scale: 0.2, transition: { duration: 0.5 } }}
+                            transition={{ duration: 3, ease: 'easeOut' }}
+                            alt=""
+                            loading="lazy"
+                        />
+                    );
+                })}
             </AnimatePresence>
 
             {/* ── Emoji Rain / Storm ───────────────────────────────────────── */}
