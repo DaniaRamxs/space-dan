@@ -50,10 +50,6 @@ export default function WatchTogether({ roomName, onClose, isMinimized = false, 
     const [room, setRoom] = useState(null);
     const [colyseusParticipants, setColyseusParticipants] = useState([]);
     
-    const hostParticipant = useMemo(() => {
-        return colyseusParticipants.find(p => p.isHost || p.userId === playbackState.hostId);
-    }, [colyseusParticipants, playbackState.hostId]);
-
     const { 
         playbackState, 
         isHost, 
@@ -63,6 +59,10 @@ export default function WatchTogether({ roomName, onClose, isMinimized = false, 
         roomName: roomName || 'general',
         colyseusRoom: room
     });
+
+    const hostParticipant = useMemo(() => {
+        return colyseusParticipants.find(p => p.isHost || p.userId === playbackState.hostId);
+    }, [colyseusParticipants, playbackState.hostId]);
 
     // ── Local State ─────────────────────────────────────────────────────────────
     const [currentVideo, setCurrentVideo] = useState(null);
