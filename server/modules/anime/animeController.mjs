@@ -25,7 +25,11 @@ export const getInfo = async (req, res) => {
 };
 
 export const watch = async (req, res) => {
-  const { episodeId } = req.params;
+  // If id2 exists, we are in /watch/:animeId/:episodeId pattern
+  // Otherwise, id1 is the episodeId in /watch/:episodeId pattern
+  const { id1, id2 } = req.params;
+  const episodeId = id2 || id1;
+
   if (!episodeId) return res.status(400).json({ error: 'Episode ID is required' });
 
   try {
