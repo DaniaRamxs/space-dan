@@ -2,6 +2,16 @@ import React, { useEffect, useRef, useState } from 'react';
 import Hls from 'hls.js';
 import { Play, Pause, Volume2, VolumeX, Maximize, Settings } from 'lucide-react';
 
+// Build a proxy URL that routes the HLS stream through the backend
+// This bypasses CORS restrictions on AnimePahe's CDN
+const API_URL = import.meta.env.VITE_API_URL || '';
+const proxyUrl = (url) => {
+    if (!url) return url;
+    // Already proxied or relative — don't double-wrap
+    if (url.startsWith('/api/anime/proxy')) return url;
+    return `${API_URL}/api/anime/proxy?url=${encodeURIComponent(url)}`;
+};
+
 const AnimePlayer = ({ 
     src, 
     subtitles = [], 
@@ -26,21 +36,33 @@ const AnimePlayer = ({
         if (!src) return;
 
         const video = videoRef.current;
+        // Route the stream through our backend proxy to bypass CORS
+        const proxiedSrc = proxyUrl(src);
+        console.log('[AnimePlayer] Loading via proxy:', proxiedSrc.substring(0, 80) + '...');
 
         if (Hls.isSupported()) {
-            const hls = new Hls();
-            hls.loadSource(src);
+            if (hlsRef.current) hlsRef.current.destroy();
+            const hls = new Hls({
+                // Fine-tune for proxied streams (may have extra latency)
+                manifestLoadingTimeOut: 15000,
+                levelLoadingTimeOut: 15000,
+                fragLoadingTimeOut: 30000,
+            });
+            hls.loadSource(proxiedSrc);
             hls.attachMedia(video);
+            hls.on(Hls.Events.MANIFEST_PARSED, () => {
+                console.log('[AnimePlayer] Manifest parsed, ready to play');
+            });
             hls.on(Hls.Events.ERROR, function (event, data) {
                 if (data.fatal) {
-                    console.error('HLS Fatal Error:', data.type);
+                    console.error('[AnimePlayer] HLS Fatal Error:', data.type, data.details);
                     switch (data.type) {
                         case Hls.ErrorTypes.NETWORK_ERROR:
-                            console.error('Network Error, trying to recover...');
+                            console.error('[AnimePlayer] Network Error, trying to recover...');
                             hls.startLoad();
                             break;
                         case Hls.ErrorTypes.MEDIA_ERROR:
-                            console.error('Media Error, trying to recover...');
+                            console.error('[AnimePlayer] Media Error, trying to recover...');
                             hls.recoverMediaError();
                             break;
                         default:
@@ -51,15 +73,18 @@ const AnimePlayer = ({
             });
             hlsRef.current = hls;
         } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-            video.src = src;
+            // Safari native HLS — proxy the URL
+            video.src = proxiedSrc;
         }
 
         return () => {
             if (hlsRef.current) {
                 hlsRef.current.destroy();
+                hlsRef.current = null;
             }
         };
     }, [src]);
+
 
     // Handle external sync
     useEffect(() => {
