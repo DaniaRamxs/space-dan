@@ -534,11 +534,10 @@ export default function WatchTogether({ roomName, onClose, isMinimized = false, 
 
                     ) : currentVideo ? (
                         /* ── NORMAL MODE: 16:9 horizontal player ── */
-                        <div className="relative flex-1 min-h-0 flex items-center justify-center">
-                            <div className="relative w-full max-h-full aspect-video">
-                                <div id="wt-player-wrapper" className="absolute inset-0 rounded-xl sm:rounded-2xl overflow-hidden">
-                                    <div id="wt-player" className="w-full h-full" />
-                                </div>
+                        <div className="relative flex-1 min-h-0">
+                            <div id="wt-player-wrapper" className="absolute inset-0">
+                                <div id="wt-player" className="w-full h-full" />
+                            </div>
 
                             {/* Centered Reaction & Storm Overlays */}
                             <ReactionOverlay gifOverlays={gifOverlays} isStorming={isStorming} />
@@ -697,7 +696,6 @@ export default function WatchTogether({ roomName, onClose, isMinimized = false, 
                                     </motion.div>
                                 )}
                             </AnimatePresence>
-                            </div>
                         </div>
                     ) : (
                         <div className="flex-1 flex flex-col items-center justify-center p-12 text-center">
