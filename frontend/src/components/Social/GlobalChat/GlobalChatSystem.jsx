@@ -247,7 +247,8 @@ export default function GlobalChat({ initialActivity = null }) {
                 'pixel-galaxy': 'Pixel Galaxy',
                 puzzle: 'Puzzle Coop',
                 blackjack: 'Blackjack',
-                'asteroid-battle': 'Asteroid Battle'
+                'asteroid-battle': 'Asteroid Battle',
+                anime: 'Anime Space'
             };
             
             const activityIcons = {
@@ -262,7 +263,8 @@ export default function GlobalChat({ initialActivity = null }) {
                 'pixel-galaxy': '🪐',
                 puzzle: '🧩',
                 blackjack: '♠️',
-                'asteroid-battle': '🚀'
+                'asteroid-battle': '🚀',
+                anime: '📺'
             };
             
             if (activityNames[initialActivity]) {
