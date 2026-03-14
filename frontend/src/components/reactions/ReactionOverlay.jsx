@@ -12,12 +12,14 @@ const STORM_PARTICLE_COUNT = 50;
  */
 const GifItem = ({ gif }) => {
     const rotation = useMemo(() => Math.random() * 20 - 10, []);
+    const left     = useMemo(() => `${Math.random() * 80 + 10}%`, []);
 
     return (
         <motion.img
             key={gif.id}
             src={gif.url}
-            className="absolute bottom-20 left-1/2 w-32 -translate-x-1/2 z-30 drop-shadow-[0_0_15px_rgba(0,0,0,0.5)] rounded-xl"
+            className="absolute bottom-20 w-32 z-30 drop-shadow-[0_0_15px_rgba(0,0,0,0.5)] rounded-xl -translate-x-1/2"
+            style={{ left }}
             initial={{ opacity: 0, y: 40, scale: 0.5, rotate: -10 }}
             animate={{ opacity: 1, y: -250, scale: 1.2, rotate: rotation }}
             exit={{ opacity: 0, scale: 0.2, transition: { duration: 0.5 } }}
