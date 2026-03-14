@@ -21,7 +21,7 @@ export function useLiveActivity(activityId) {
     join, 
     leave, 
     sendMessage 
-  } = useColyseusRoom('live-activity');
+  } = useColyseusRoom('live_activity');
 
   useEffect(() => {
     if (!activityId) return;

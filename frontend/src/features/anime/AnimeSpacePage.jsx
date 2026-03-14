@@ -44,6 +44,7 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
   const { 
     playbackState, 
     isHost: isSyncedHost, 
+    reactions,
     updatePlayback 
   } = usePlaybackSync({
     roomName: roomName || 'general',

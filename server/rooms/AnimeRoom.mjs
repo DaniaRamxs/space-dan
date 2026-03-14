@@ -1,5 +1,6 @@
 import { Room } from "colyseus";
 import { AnimeState, AnimeParticipant } from "../schema/AnimeState.mjs";
+import { Reaction } from "../schema/LiveActivityState.mjs";
 import { supabase } from "../supabaseClient.mjs";
 
 const IS_PROD = process.env.NODE_ENV === "production";
@@ -77,6 +78,25 @@ export class AnimeRoom extends Room {
                         message: message.trim().slice(0, 500),
                         timestamp: Date.now()
                     });
+                }
+            });
+
+            // Reaction (emoji/gif)
+            this.onMessage("reaction", (client, { type, content, videoTimestamp }) => {
+                const participant = this.state.participants.get(client.sessionId);
+                if (participant) {
+                    const reaction = new Reaction();
+                    reaction.type = type;
+                    reaction.content = content;
+                    reaction.timestamp = videoTimestamp;
+                    reaction.userId = participant.userId;
+                    reaction.username = participant.username;
+                    
+                    this.state.reactions.push(reaction);
+                    
+                    if (this.state.reactions.length > 100) {
+                        this.state.reactions.shift();
+                    }
                 }
             });
 

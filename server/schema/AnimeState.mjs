@@ -1,4 +1,5 @@
-import { Schema, defineTypes, MapSchema } from "@colyseus/schema";
+import { Schema, defineTypes, MapSchema, ArraySchema } from "@colyseus/schema";
+import { Reaction } from "./LiveActivityState.mjs";
 
 export class AnimeParticipant extends Schema {
     userId = "";
@@ -26,6 +27,7 @@ export class AnimeState extends Schema {
 
     participants = new MapSchema();
     hostId = "";
+    reactions = new ArraySchema();
 }
 
 defineTypes(AnimeState, {
@@ -37,5 +39,6 @@ defineTypes(AnimeState, {
     duration: "number",
     lastUpdate: "number",
     participants: { map: AnimeParticipant },
-    hostId: "string"
+    hostId: "string",
+    reactions: [Reaction]
 });
