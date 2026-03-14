@@ -57,6 +57,7 @@ export class LiveActivityState extends Schema {
     this.currentTime = 0;
     this.duration = 0;
     this.lastUpdate = 0;
+    this.instanceId = "";
 
     this.participantCount = 0;
     this.spectatorCount = 0;
@@ -78,6 +79,7 @@ type("boolean")(LiveActivityState.prototype, "playing");
 type("number")(LiveActivityState.prototype, "currentTime");
 type("number")(LiveActivityState.prototype, "duration");
 type("number")(LiveActivityState.prototype, "lastUpdate");
+type("string")(LiveActivityState.prototype, "instanceId");
 
 type("number")(LiveActivityState.prototype, "participantCount");
 type("number")(LiveActivityState.prototype, "spectatorCount");

@@ -49,6 +49,7 @@ export function useLiveActivity(activityId) {
       await liveActivitiesService.joinActivity(activityId, isSpectator);
       
       await join({
+        instanceId: activityId,
         activityId,
         userId: user.id,
         username: user.username || 'Anonymous',

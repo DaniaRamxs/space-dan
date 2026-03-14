@@ -95,6 +95,7 @@ export default function WatchTogether({ roomName, onClose, isMinimized = false, 
         const connect = async () => {
             try {
                 const joinedRoom = await joinOrCreateRoom("live_activity", {
+                    instanceId: roomName,
                     userId: user.id,
                     username: profile?.username || 'Anon',
                     avatar: profile?.avatar_url,

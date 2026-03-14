@@ -18,6 +18,7 @@ export class LiveActivityRoom extends Room {
 
     this.state.activityId = options.activityId || "";
     this.state.activityType = options.activityType || "voice";
+    this.state.instanceId = options.instanceId || "";
     this.state.title = options.title || "Live Activity";
     this.state.hostId = options.hostId || "";
 

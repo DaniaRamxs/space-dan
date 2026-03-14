@@ -222,7 +222,7 @@ gameServer.define("pixel-galaxy", PixelGalaxyRoom).filterBy(['roomName']);
 gameServer.define("puzzle", PuzzleRoom).filterBy(['roomName']);
 gameServer.define("ludo", LudoRoom).filterBy(['roomName']);
 gameServer.define("beat_sound", BeatSoundRoom).filterBy(['roomName']);
-gameServer.define("live_activity", LiveActivityRoom).filterBy(['activityId']);
+gameServer.define("live_activity", LiveActivityRoom).filterBy(['instanceId']);
 
 
 /* ==================== 404 HANDLER ==================== */
