@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { ChevronLeft, MessageSquare, Tv, Users, Radio } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useAuthContext } from '../../contexts/AuthContext';
+import { supabase } from '../../supabaseClient';
 import { joinOrCreateRoom } from '../../services/colyseusClient';
 import { liveActivitiesService } from '../../services/liveActivitiesService';
 import AnimeEpisodeList from './AnimeEpisodeList';
@@ -27,6 +28,8 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
   const [chatInput, setChatInput] = useState('');
   const chatEndRef = useRef(null);
   const leavingRoomRef = useRef(false);
+  const syncChannelRef = useRef(null);
+  const applyingRemoteStateRef = useRef(false);
 
   const clearRoomState = () => {
     setRoom(null);
@@ -40,6 +43,85 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
     }
   }, [chatMessages]);
 
+  useEffect(() => {
+    if (!roomName || !onClose) return undefined;
+
+    const channelName = `anime-sync-${roomName.toLowerCase().replace(/[^a-z0-9]/g, '-')}`;
+    const channel = supabase.channel(channelName);
+    syncChannelRef.current = channel;
+
+    const syncCurrentState = () => {
+      if (!selectedAnime) return;
+      channel.send({
+        type: 'broadcast',
+        event: 'anime_state',
+        payload: {
+          senderId: profile?.id || null,
+          view,
+          selectedAnime,
+          episodes,
+          currentEpisode,
+          streamData,
+          activeSourceIndex,
+          roomState: roomState?.roomId
+            ? { roomId: roomState.roomId }
+            : currentEpisode && selectedAnime
+              ? { roomId: `anime-${selectedAnime.id?.slice(0, 8)}-${String(currentEpisode.number).padStart(3, '0')}` }
+              : null,
+        },
+      }).catch(() => {});
+    };
+
+    channel
+      .on('broadcast', { event: 'anime_state' }, async ({ payload }) => {
+        if (!payload || payload.senderId === profile?.id) return;
+
+        applyingRemoteStateRef.current = true;
+        setSelectedAnime(payload.selectedAnime || null);
+        setEpisodes(payload.episodes || []);
+        setCurrentEpisode(payload.currentEpisode || null);
+        setStreamData(payload.streamData || null);
+        setActiveSourceIndex(payload.activeSourceIndex || 0);
+        setView(payload.view || 'search');
+        setMobilePanel(payload.currentEpisode ? 'chat' : 'info');
+
+        if (payload.currentEpisode && payload.selectedAnime && payload.roomState?.roomId) {
+          try {
+            await connectToWatchParty({
+              anime: payload.selectedAnime,
+              episode: payload.currentEpisode,
+              roomId: payload.roomState.roomId,
+              announceActivity: false,
+            });
+          } catch (error) {
+            console.warn('[AnimeSpace] Failed to join synced room:', error);
+          }
+        }
+
+        window.setTimeout(() => {
+          applyingRemoteStateRef.current = false;
+        }, 0);
+      })
+      .on('broadcast', { event: 'anime_sync_req' }, ({ payload }) => {
+        if (payload?.senderId === profile?.id) return;
+        syncCurrentState();
+      })
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          channel.send({
+            type: 'broadcast',
+            event: 'anime_sync_req',
+            payload: { senderId: profile?.id || null },
+          }).catch(() => {});
+        }
+      });
+
+    return () => {
+      syncChannelRef.current = null;
+      supabase.removeChannel(channel);
+    };
+  }, [roomName, onClose, profile?.id, view, selectedAnime, episodes, currentEpisode, streamData, activeSourceIndex, roomState?.roomId]);
+
   const resetWatchParty = () => {
     if (room) {
       leavingRoomRef.current = true;
@@ -47,6 +129,87 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
     }
     clearRoomState();
     setChatMessages([]);
+  };
+
+  const broadcastAnimeState = (payload) => {
+    if (!syncChannelRef.current || applyingRemoteStateRef.current || !onClose) return;
+
+    syncChannelRef.current.send({
+      type: 'broadcast',
+      event: 'anime_state',
+      payload: {
+        senderId: profile?.id || null,
+        ...payload,
+      },
+    }).catch(() => {});
+  };
+
+  const connectToWatchParty = async ({ anime, episode, roomId, announceActivity }) => {
+    let activityId = null;
+
+    if (announceActivity) {
+      try {
+        const supabaseActivity = await liveActivitiesService.createActivity({
+          type: 'anime',
+          title: `${anime.title} - Ep ${episode.number}`,
+          roomName: roomName || `Sala de ${profile?.username || 'Gamer'}`,
+          metadata: {
+            animeId: anime.id,
+            animeTitle: anime.title,
+            episodeId: episode.id,
+            episodeNumber: episode.number,
+            image: anime.image,
+          },
+        });
+        activityId = supabaseActivity?.id || null;
+      } catch (error) {
+        console.warn('[AnimeSpace] Failed to create activity:', error);
+      }
+    }
+
+    try {
+      const newRoom = await joinOrCreateRoom('anime', {
+        roomId,
+        activityId,
+        animeId: anime.id,
+        animeTitle: anime.title,
+        episodeId: episode.id,
+        episodeNumber: episode.number,
+        userId: profile?.id,
+        username: profile?.username,
+        avatar: profile?.avatar_url,
+        hostId: profile?.id,
+      });
+
+      setRoom(newRoom);
+      newRoom.onLeave(() => {
+        const intentionalLeave = leavingRoomRef.current;
+        leavingRoomRef.current = false;
+        clearRoomState();
+        if (!intentionalLeave) {
+          toast.error('La sala de AnimeSpace se cerrÃ³.');
+        }
+      });
+      newRoom.onError((code, message) => {
+        console.error('[AnimeSpace] Room socket error:', code, message);
+        leavingRoomRef.current = false;
+        clearRoomState();
+      });
+      newRoom.onStateChange((state) => {
+        setRoomState(state.toJSON());
+        const nextParticipants = [];
+        state.participants.forEach((participant) => nextParticipants.push(participant));
+        setParticipants(nextParticipants);
+      });
+      newRoom.onMessage('chat', (message) => {
+        setChatMessages((prev) => [...prev, message]);
+      });
+    } catch (error) {
+      console.warn('[AnimeSpace] Colyseus unavailable, solo mode enabled:', error.message);
+      if (announceActivity) {
+        toast('Modo solitario: la watch party no respondiÃ³.', { icon: 'ðŸ“º' });
+      }
+    }
   };
 
   const handleAnimeSelect = async (anime) => {
@@ -61,9 +224,20 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
 
     try {
       const info = await animeService.getAnimeInfo(anime.id, anime.provider);
-      setSelectedAnime((prev) => ({ ...prev, ...info }));
-      setEpisodes(info.episodes || []);
+      const hydratedAnime = { ...anime, ...info };
+      const nextEpisodes = info.episodes || [];
+      setSelectedAnime(hydratedAnime);
+      setEpisodes(nextEpisodes);
       setView('episodes');
+      broadcastAnimeState({
+        view: 'episodes',
+        selectedAnime: hydratedAnime,
+        episodes: nextEpisodes,
+        currentEpisode: null,
+        streamData: null,
+        activeSourceIndex: 0,
+        roomState: null,
+      });
     } catch (error) {
       console.error('[AnimeSpace] handleAnimeSelect error:', error);
       toast.error('No pude cargar los episodios.');
@@ -92,66 +266,23 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
       setStreamData(sources);
       resetWatchParty();
 
-      let supabaseActivity = null;
-      try {
-        supabaseActivity = await liveActivitiesService.createActivity({
-          type: 'anime',
-          title: `${selectedAnime.title} - Ep ${episode.number}`,
-          roomName: roomName || `Sala de ${profile?.username || 'Gamer'}`,
-          metadata: {
-            animeId: selectedAnime.id,
-            animeTitle: selectedAnime.title,
-            episodeId: episode.id,
-            episodeNumber: episode.number,
-            image: selectedAnime.image,
-          },
-        });
-      } catch (error) {
-        console.warn('[AnimeSpace] Failed to create activity:', error);
-      }
-
       const roomId = `anime-${selectedAnime.id?.slice(0, 8)}-${String(episode.number).padStart(3, '0')}`;
-      try {
-        const newRoom = await joinOrCreateRoom('anime', {
-          roomId,
-          activityId: supabaseActivity?.id || null,
-          animeId: selectedAnime.id,
-          animeTitle: selectedAnime.title,
-          episodeId: episode.id,
-          episodeNumber: episode.number,
-          userId: profile?.id,
-          username: profile?.username,
-          avatar: profile?.avatar_url,
-          hostId: profile?.id,
-        });
+      await connectToWatchParty({
+        anime: selectedAnime,
+        episode,
+        roomId,
+        announceActivity: true,
+      });
 
-        setRoom(newRoom);
-        newRoom.onLeave(() => {
-          const intentionalLeave = leavingRoomRef.current;
-          leavingRoomRef.current = false;
-          clearRoomState();
-          if (!intentionalLeave) {
-            toast.error('La sala de AnimeSpace se cerrÃ³.');
-          }
-        });
-        newRoom.onError((code, message) => {
-          console.error('[AnimeSpace] Room socket error:', code, message);
-          leavingRoomRef.current = false;
-          clearRoomState();
-        });
-        newRoom.onStateChange((state) => {
-          setRoomState(state.toJSON());
-          const nextParticipants = [];
-          state.participants.forEach((participant) => nextParticipants.push(participant));
-          setParticipants(nextParticipants);
-        });
-        newRoom.onMessage('chat', (message) => {
-          setChatMessages((prev) => [...prev, message]);
-        });
-      } catch (error) {
-        console.warn('[AnimeSpace] Colyseus unavailable, solo mode enabled:', error.message);
-        toast('Modo solitario: la watch party no respondiÃ³.', { icon: 'ðŸ“º' });
-      }
+      broadcastAnimeState({
+        view: 'player',
+        selectedAnime,
+        episodes,
+        currentEpisode: episode,
+        streamData: sources,
+        activeSourceIndex: 0,
+        roomState: { roomId },
+      });
 
       setView('player');
     } catch (error) {
@@ -197,6 +328,20 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
       room.send('seek', { currentTime: time });
     }
   };
+
+  useEffect(() => {
+    if (view !== 'player' || !streamData || !selectedAnime || !currentEpisode) return;
+
+    broadcastAnimeState({
+      view: 'player',
+      selectedAnime,
+      episodes,
+      currentEpisode,
+      streamData,
+      activeSourceIndex,
+      roomState: roomState?.roomId ? { roomId: roomState.roomId } : null,
+    });
+  }, [activeSourceIndex]);
 
   const currentSource = streamData?.sources?.[activeSourceIndex] || null;
   const isHost = roomState?.hostId === profile?.id;
