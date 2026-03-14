@@ -21,16 +21,34 @@ function setCorsHeaders(res) {
   res.setHeader('Access-Control-Expose-Headers', 'Content-Length, Content-Range');
 }
 
-// CDN headers that trick the AnimePahe CDN into serving content
-const CDN_HEADERS = {
-  'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
-  'Referer': 'https://animepahe.ru/',
-  'Origin': 'https://animepahe.ru',
-  'Accept': '*/*',
-  'Accept-Language': 'en-US,en;q=0.9',
-  'Accept-Encoding': 'gzip, deflate, br',
-  'Connection': 'keep-alive',
-};
+// Build request headers for the CDN based on the target URL's hostname.
+// Each CDN checks the Referer header to verify the request comes from a known site.
+function buildCdnHeaders(targetUrl) {
+  let referer = 'https://animeunity.so/';
+  let origin  = 'https://animeunity.so';
+  
+  try {
+    const { hostname } = new URL(targetUrl);
+    if (hostname.includes('uwucdn') || hostname.includes('owocdn') || hostname.includes('animepahe')) {
+      referer = 'https://animepahe.ru/';
+      origin  = 'https://animepahe.ru';
+    } else if (hostname.includes('vixcloud') || hostname.includes('animeunity')) {
+      referer = 'https://animeunity.so/';
+      origin  = 'https://animeunity.so';
+    }
+  } catch { /* keep defaults */ }
+
+  return {
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+    'Referer': referer,
+    'Origin': origin,
+    'Accept': '*/*',
+    'Accept-Language': 'en-US,en;q=0.9',
+    'Sec-Fetch-Dest': 'video',
+    'Sec-Fetch-Mode': 'cors',
+    'Sec-Fetch-Site': 'cross-site',
+  };
+}
 
 // Handle OPTIONS preflight (CORS pre-flight requests from browsers)
 router.options('/proxy', (req, res) => {
@@ -56,7 +74,7 @@ router.get('/proxy', async (req, res) => {
 
   let upstream;
   try {
-    upstream = await fetch(targetUrl, { headers: CDN_HEADERS });
+    upstream = await fetch(targetUrl, { headers: buildCdnHeaders(targetUrl) });
   } catch (fetchErr) {
     console.error('[AnimeProxy] fetch() threw:', fetchErr.message);
     return res.status(502).json({ error: 'Could not reach CDN', detail: fetchErr.message });

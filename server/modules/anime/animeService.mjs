@@ -9,10 +9,11 @@ console.log('[AnimeService] Available ANIME providers:', Object.keys(ANIME || {}
  * Detection of available providers using prioritized list
  * We prefer Gogoanime/AnimePahe for faster scraping, Zoro/Hianime for quality/subtitles
  */
-// AnimePahe is used as primary since it returns results and working M3U8 streams.
-// Hianime is listed as fallback — it may work in production environments.
-const GogoProvider = ANIME.AnimePahe || ANIME.Hianime || ANIME.Zoro;
-const ZoroProvider = ANIME.Hianime || ANIME.Zoro;
+// AnimeUnity is the primary provider — its CDN (vixcloud.co) is accessible
+// from server-side requests (Railway) without Cloudflare blocking.
+// AnimePahe's CDN (uwucdn.top) blocks server IPs even with correct Referer headers.
+const GogoProvider = ANIME.AnimeUnity || ANIME.AnimePahe || ANIME.Hianime;
+const ZoroProvider = ANIME.AnimePahe || ANIME.Hianime;
 
 if (!GogoProvider) {
     console.error('[AnimeService] NO PRIMARY PROVIDER DETECTED! Check @consumet/extensions version.');
