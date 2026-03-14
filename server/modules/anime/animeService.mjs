@@ -1,9 +1,9 @@
 import pkg from '@consumet/extensions';
 
-const { Gogoanime, Zoro } = pkg;
+const { ANIME } = pkg;
 
-const gogoanime = new Gogoanime();
-const zoro = new Zoro();
+const gogoanime = new ANIME.Gogoanime();
+const zoro = new ANIME.Zoro();
 
 /**
  * Search anime by query
@@ -13,12 +13,7 @@ const zoro = new Zoro();
 export const searchAnime = async (query) => {
   try {
     const results = await gogoanime.search(query);
-    return results.results.map(item => ({
-      id: item.id,
-      title: item.title,
-      image: item.image,
-      releaseDate: item.releaseDate
-    }));
+    return results.results || [];
   } catch (error) {
     console.error('[AnimeService] Search error:', error);
     throw error;
@@ -32,17 +27,7 @@ export const searchAnime = async (query) => {
  */
 export const getAnimeInfo = async (animeId) => {
   try {
-    const info = await gogoanime.fetchAnimeInfo(animeId);
-    return {
-      title: info.title,
-      description: info.description,
-      image: info.image,
-      episodes: info.episodes.map(ep => ({
-        id: ep.id,
-        number: ep.number,
-        url: ep.url
-      }))
-    };
+    return await gogoanime.fetchAnimeInfo(animeId);
   } catch (error) {
     console.error('[AnimeService] Info error:', error);
     throw error;
@@ -56,21 +41,12 @@ export const getAnimeInfo = async (animeId) => {
  */
 export const getEpisodeSources = async (episodeId) => {
   try {
-    let sources;
     try {
-      sources = await gogoanime.fetchEpisodeSources(episodeId);
+      return await gogoanime.fetchEpisodeSources(episodeId);
     } catch (e) {
-      console.warn('[AnimeService] Gogoanime failed, trying Zoro fallback (note: IDs might differ)');
-      // Zoro fallback - Note: This might only work if IDs are shared or if we did a fresh search
-      sources = await zoro.fetchEpisodeSources(episodeId);
+      console.warn('[AnimeService] Gogoanime failed, trying Zoro fallback');
+      return await zoro.fetchEpisodeSources(episodeId);
     }
-    
-    return {
-      sources: sources.sources || [],
-      subtitles: sources.subtitles || [],
-      intro: sources.intro,
-      outro: sources.outro
-    };
   } catch (error) {
     console.error('[AnimeService] Sources error:', error);
     throw error;
