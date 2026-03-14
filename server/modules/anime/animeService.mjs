@@ -2,7 +2,7 @@ import pkg from '@consumet/extensions';
 
 const { ANIME } = pkg;
 
-const gogoanime = new ANIME.Gogoanime();
+const gogoanime = new ANIME.GogoAnime();
 const zoro = new ANIME.Zoro();
 
 // Simple memory cache for sources (10 min TTL)
