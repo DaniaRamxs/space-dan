@@ -12,7 +12,7 @@ const SHORTS_CATEGORIES = [
     { id: 'viral',     label: 'Viral',     icon: Sparkles, query: 'viral shorts 2025' },
 ];
 
-export default function YouTubeSearchModal({ isOpen, onClose, onSelect, mode = 'videos', onBatchResults }) {
+export default function YouTubeSearchModal({ isOpen, onClose, onSelect, mode = 'videos' }) {
     const [query, setQuery] = useState('');
     const [results, setResults] = useState([]);
     const [loading, setLoading] = useState(false);
@@ -35,18 +35,13 @@ export default function YouTubeSearchModal({ isOpen, onClose, onSelect, mode = '
                 ? await youtubeService.searchShorts(searchQuery)
                 : await youtubeService.searchVideos(searchQuery);
             setResults(videos);
-
-            // Pass batch results to parent for shorts feed
-            if (isShorts && onBatchResults && videos.length > 0) {
-                onBatchResults(videos);
-            }
         } catch (err) {
             console.error('Error al buscar en YouTube:', err);
             setError(err.message || 'Error al conectar con YouTube');
         } finally {
             setLoading(false);
         }
-    }, [isShorts, onBatchResults]);
+    }, [isShorts]);
 
     // Debounced search on query change
     useEffect(() => {

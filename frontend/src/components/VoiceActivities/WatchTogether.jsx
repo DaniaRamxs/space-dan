@@ -22,6 +22,7 @@ import YouTubeSearchModal from '@/components/Social/YouTubeSearchModal';
 import GifPickerModal from '@/components/reactions/GifPickerModal';
 import ReactionOverlay from '@/components/reactions/ReactionOverlay';
 import ShortsPlayer from '@/components/VoiceActivities/ShortsPlayer';
+import { youtubeService } from '@/services/youtubeService';
 
 // ─── Constantes ───────────────────────────────────────────────────────────────
 const SYNC_INTERVAL_MS = 2000;
@@ -85,6 +86,9 @@ export default function WatchTogether({ roomName, onClose, isMinimized = false, 
     const [videoEnded, setVideoEnded] = useState(false);
     const [shortsFeed, setShortsFeed] = useState([]);
     const [shortsIndex, setShortsIndex] = useState(0);
+    const [shortsTopic, setShortsTopic] = useState('');
+    const [shortsPage, setShortsPage] = useState(0);
+    const [shortsLoading, setShortsLoading] = useState(false);
 
     // ── 4. All refs (MUST be declared before any hook that uses them) ─────────────
     const playerRef = useRef(null);
@@ -372,20 +376,85 @@ export default function WatchTogether({ roomName, onClose, isMinimized = false, 
             playing: true,
             currentTime: 0
         });
+    };
 
-        // If in shorts mode, add to feed if not already present
-        if (isShortsMode) {
-            setShortsFeed(prev => {
-                const exists = prev.some(v => v.id === video.id);
-                if (exists) {
-                    const idx = prev.findIndex(v => v.id === video.id);
-                    setShortsIndex(idx);
-                    return prev;
+    // ── Shorts Feed Management ─────────────────────────────────────────────
+    /**
+     * Creates a full feed from a topic.
+     * When the user picks "Alien Stage" from the search modal,
+     * we build an entire feed: edits, clips, reactions, memes, etc.
+     * The selected video goes first, the rest fills the feed.
+     */
+    const createShortsFeed = async (seedVideo, topic) => {
+        if (!isHost) return;
+        setShortsLoading(true);
+
+        // Derive the best topic for searching
+        const searchTopic = topic || seedVideo?.artist
+            ? `${seedVideo?.artist || ''} ${seedVideo?.title || ''}`.trim()
+            : seedVideo?.title || 'trending shorts';
+
+        setShortsTopic(searchTopic);
+        setShortsPage(0);
+
+        try {
+            const results = await youtubeService.searchShorts(searchTopic, 15, 0);
+
+            // Put the selected video first, then add the rest (deduplicated)
+            const feed = seedVideo ? [seedVideo] : [];
+            const seenIds = new Set(feed.map(v => v.id));
+
+            for (const v of results) {
+                if (!seenIds.has(v.id)) {
+                    feed.push(v);
+                    seenIds.add(v.id);
                 }
-                const next = [...prev, video];
-                setShortsIndex(next.length - 1);
-                return next;
+            }
+
+            setShortsFeed(feed);
+            setShortsIndex(0);
+            if (feed[0]) {
+                setCurrentVideo(feed[0]);
+                updatePlayback({ videoId: feed[0].id, playing: true, currentTime: 0 });
+            }
+        } catch (err) {
+            console.warn('[Shorts] Feed creation failed:', err.message);
+            // Fallback: just play the single video
+            if (seedVideo) {
+                setShortsFeed([seedVideo]);
+                setShortsIndex(0);
+                setCurrentVideo(seedVideo);
+                updatePlayback({ videoId: seedVideo.id, playing: true, currentTime: 0 });
+            }
+        } finally {
+            setShortsLoading(false);
+        }
+    };
+
+    /**
+     * Loads more shorts of the same topic (infinite scroll).
+     * Called automatically by ShortsPlayer when user nears end of feed.
+     */
+    const loadMoreShorts = async () => {
+        if (!isHost || shortsLoading || !shortsTopic) return;
+        setShortsLoading(true);
+
+        const nextPage = shortsPage + 1;
+        setShortsPage(nextPage);
+
+        try {
+            const results = await youtubeService.searchShorts(shortsTopic, 15, nextPage);
+            setShortsFeed(prev => {
+                const existingIds = new Set(prev.map(v => v.id));
+                const newVideos = results.filter(v => !existingIds.has(v.id));
+                if (newVideos.length === 0) return prev;
+                return [...prev, ...newVideos];
             });
+            console.log(`[Shorts] Loaded page ${nextPage}, topic: "${shortsTopic}"`);
+        } catch (err) {
+            console.warn('[Shorts] Load more failed:', err.message);
+        } finally {
+            setShortsLoading(false);
         }
     };
 
@@ -403,8 +472,12 @@ export default function WatchTogether({ roomName, onClose, isMinimized = false, 
 
     const playNextShort = () => {
         if (!isHost) return;
-        // Open search modal so the host can pick a short
-        setIsSearchOpen(true);
+        // Auto-load more of same topic, or open search if no topic
+        if (shortsTopic) {
+            loadMoreShorts();
+        } else {
+            setIsSearchOpen(true);
+        }
     };
 
     // ── Mobile landscape auto-fullscreen ──────────────────────────────────
@@ -447,7 +520,8 @@ export default function WatchTogether({ roomName, onClose, isMinimized = false, 
                                 setCurrentVideo(video);
                                 updatePlayback({ videoId: video.id, playing: true, currentTime: 0 });
                             }}
-                            onRequestMore={() => setIsSearchOpen(true)}
+                            onRequestMore={loadMoreShorts}
+                            onOpenSearch={() => setIsSearchOpen(true)}
                             onClose={onClose}
                             isHost={isHost}
                             hostParticipant={hostParticipant}
@@ -726,17 +800,14 @@ export default function WatchTogether({ roomName, onClose, isMinimized = false, 
                 onClose={() => setIsSearchOpen(false)}
                 onSelect={(v) => {
                     setVideoEnded(false);
-                    playVideo(v);
+                    if (isShortsMode) {
+                        // Build an entire feed from this video's topic
+                        createShortsFeed(v);
+                    } else {
+                        playVideo(v);
+                    }
                 }}
                 mode={searchMode}
-                onBatchResults={isShortsMode ? (videos) => {
-                    // When in shorts mode, load all search results into the feed
-                    setShortsFeed(prev => {
-                        const existingIds = new Set(prev.map(x => x.id));
-                        const newVideos = videos.filter(v => !existingIds.has(v.id));
-                        return [...prev, ...newVideos];
-                    });
-                } : undefined}
             />
             <GifPickerModal isOpen={gifPickerOpen} onClose={() => setGifPickerOpen(false)} onSelect={(gif) => sendGif(gif.url)} />
 

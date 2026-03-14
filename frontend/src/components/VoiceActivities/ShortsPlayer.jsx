@@ -29,6 +29,7 @@ export default function ShortsPlayer({
     initialIndex = 0,
     onVideoChange,
     onRequestMore,
+    onOpenSearch,
     onClose,
     isHost = false,
     hostParticipant = null,
@@ -276,9 +277,9 @@ export default function ShortsPlayer({
                 <Zap size={48} className="text-purple-400 opacity-30 mb-4" />
                 <h3 className="text-lg font-black text-white uppercase tracking-widest mb-2">Sin Shorts</h3>
                 <p className="text-white/40 text-xs mb-6">Busca contenido corto para empezar.</p>
-                {isHost && onRequestMore && (
+                {isHost && onOpenSearch && (
                     <button
-                        onClick={onRequestMore}
+                        onClick={onOpenSearch}
                         className="px-6 py-3 bg-purple-600 text-white rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-purple-500 transition-all"
                     >
                         Buscar Shorts
@@ -401,6 +402,16 @@ export default function ShortsPlayer({
                     >
                         {isMuted ? <VolumeX size={22} className="text-white" /> : <Volume2 size={22} className="text-white" />}
                     </button>
+
+                    {isHost && onOpenSearch && (
+                        <button
+                            onClick={(e) => { e.stopPropagation(); onOpenSearch(); }}
+                            className="p-2.5 bg-purple-600/40 backdrop-blur-sm rounded-full hover:bg-purple-500/60 transition-all border border-purple-400/20"
+                            title="Buscar otro tema"
+                        >
+                            <Search size={20} className="text-white" />
+                        </button>
+                    )}
 
                     <div className="flex flex-col items-center">
                         <Users size={18} className="text-white/50" />

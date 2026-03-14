@@ -117,15 +117,21 @@ export const youtubeService = {
      * Busca shorts (videos cortos) en YouTube a través del backend
      * Appends #shorts to query and passes videoDuration=short parameter
      * @param {string} query
+     * @param {number} limit
+     * @param {number} page - page number for varied results (appends suffix to query)
      * @returns {Promise<Array>} List of short video objects
      */
-    async searchShorts(query, limit = 15) {
+    async searchShorts(query, limit = 15, page = 0) {
         if (!query?.trim()) {
             return this._getFallbackShorts();
         }
 
         try {
-            const searchQuery = `${query.trim()} #shorts`;
+            // Vary the query slightly on subsequent pages to get different results
+            const PAGE_SUFFIXES = ['', 'clips', 'edit', 'viral', 'highlights', 'moments', 'best', 'new'];
+            const suffix = page > 0 ? ` ${PAGE_SUFFIXES[page % PAGE_SUFFIXES.length]}` : '';
+            const searchQuery = `${query.trim()}${suffix} #shorts`;
+
             const response = await fetch(
                 `${API_BASE_URL}/api/youtube/search?q=${encodeURIComponent(searchQuery)}&videoDuration=short`
             );
@@ -152,7 +158,7 @@ export const youtubeService = {
                 isShort: true
             }));
 
-            console.log(`[YouTube] Shorts results from ${result.source}:`, videos.length, 'shorts');
+            console.log(`[YouTube] Shorts results from ${result.source} (page ${page}):`, videos.length, 'shorts');
             return videos;
 
         } catch (err) {
