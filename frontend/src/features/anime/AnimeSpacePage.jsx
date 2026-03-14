@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { Radio, Users, MessageSquare, ChevronLeft, Tv, Send } from 'lucide-react';
-import YouTubeSearchModal from '../Social/YouTubeSearchModal';
+import YouTubeSearchModal from '../../components/Social/YouTubeSearchModal';
 import GifPickerModal from '../reactions/GifPickerModal';
 import { toast } from 'sonner';
 import { useAuthContext } from '../../../contexts/AuthContext';
