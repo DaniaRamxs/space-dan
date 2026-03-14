@@ -84,6 +84,7 @@ export default function WatchTogether({ roomName, onClose, isMinimized = false, 
     const [gifOverlays, setGifOverlays] = useState([]);
     const [reactionBuffer, setReactionBuffer] = useState([]);
     const [isStorming, setIsStorming] = useState(false);
+    const [showModeSelector, setShowModeSelector] = useState(false);
     const stormTimestampsRef = useRef([]);
 
     const playerRef = useRef(null);
@@ -114,9 +115,15 @@ export default function WatchTogether({ roomName, onClose, isMinimized = false, 
                     setColyseusParticipants(Array.from(state.participants.values()));
                 });
 
-                joinedRoom.onMessage("chat", (msg) => {
+                const chatHandler = (msg) => {
                     setMessages(prev => [...prev.slice(-50), msg]);
-                });
+                };
+                
+                joinedRoom.onMessage("chat", chatHandler);
+
+                // Store handler for cleanup if needed, but since we leave the room on unmount, 
+                // Colyseus usually handles listener removal. However, using off() is safer.
+                joinedRoom._chatHandler = chatHandler;
 
             } catch (err) {
                 console.error("[WatchTogether] Colyseus connection failed:", err);
@@ -126,7 +133,10 @@ export default function WatchTogether({ roomName, onClose, isMinimized = false, 
         connect();
 
         return () => {
-            if (room) room.leave();
+            if (room) {
+                if (room._chatHandler) room.off("chat", room._chatHandler);
+                room.leave();
+            }
         };
     }, [roomName, user, room]);
 
@@ -393,6 +403,12 @@ export default function WatchTogether({ roomName, onClose, isMinimized = false, 
         setIsShortsMode(!isShortsMode);
     };
 
+    const playNextShort = () => {
+        if (!isHost) return;
+        // Placeholder for shorts feed logic
+        console.log("Playing next short...");
+    };
+
     const handleMouseMove = () => {
         setShowControls(true);
         if (controlsTimeoutRef.current) clearTimeout(controlsTimeoutRef.current);
@@ -532,7 +548,7 @@ export default function WatchTogether({ roomName, onClose, isMinimized = false, 
                                                     }} className="w-20 accent-blue-500" />
                                                 </div>
                                                 {isHost && (
-                                                    <button onClick={() => setIsSearchOpen(true)} className="p-2 bg-blue-600 text-white rounded-lg hover:bg-blue-500 transition-all font-bold text-xs uppercase tracking-widest">CAMBIAR</button>
+                                                    <button onClick={() => setShowModeSelector(true)} className="p-2 bg-blue-600 text-white rounded-lg hover:bg-blue-500 transition-all font-bold text-xs uppercase tracking-widest">CAMBIAR</button>
                                                 )}
                                             </div>
                                         </div>
@@ -548,7 +564,7 @@ export default function WatchTogether({ roomName, onClose, isMinimized = false, 
                             <h2 className="text-2xl font-black text-white uppercase tracking-widest mb-2">Mirar Juntos</h2>
                             <p className="text-white/40 mb-8 max-w-sm">Busca un video de YouTube para empezar la fiesta.</p>
                             {isHost ? (
-                                <button onClick={() => setIsSearchOpen(true)} className="px-8 py-4 bg-blue-600 text-white rounded-2xl font-black uppercase tracking-[0.2em] shadow-lg shadow-blue-500/20 hover:scale-105 active:scale-95 transition-all">
+                                <button onClick={() => setShowModeSelector(true)} className="px-8 py-4 bg-blue-600 text-white rounded-2xl font-black uppercase tracking-[0.2em] shadow-lg shadow-blue-500/20 hover:scale-105 active:scale-95 transition-all">
                                     Buscar Video
                                 </button>
                             ) : (
@@ -638,6 +654,69 @@ export default function WatchTogether({ roomName, onClose, isMinimized = false, 
 
             <YouTubeSearchModal isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} onSelect={playVideo} />
             <GifPickerModal isOpen={gifPickerOpen} onClose={() => setGifPickerOpen(false)} onSelect={(gif) => sendGif(gif.url)} />
+
+            {/* Mode Selector Modal */}
+            <AnimatePresence>
+                {showModeSelector && (
+                    <div className="fixed inset-0 z-[100000] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={() => setShowModeSelector(false)}>
+                        <motion.div 
+                            initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.9, y: 20 }}
+                            className="bg-[#0f0f1a] border border-white/10 rounded-[32px] p-8 max-w-sm w-full shadow-2xl overflow-hidden relative"
+                            onClick={e => e.stopPropagation()}
+                        >
+                            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 via-cyan-400 to-indigo-500" />
+                            
+                            <h3 className="text-xl font-black text-white uppercase tracking-widest mb-2 text-center">¿Qué veremos hoy?</h3>
+                            <p className="text-white/40 text-xs text-center mb-8">Selecciona el tipo de contenido para tu sala.</p>
+
+                            <div className="grid gap-4">
+                                <button 
+                                    onClick={() => {
+                                        setIsShortsMode(false);
+                                        setIsSearchOpen(true);
+                                        setShowModeSelector(false);
+                                    }}
+                                    className="group relative flex items-center gap-4 p-4 bg-white/5 border border-white/10 rounded-2xl hover:bg-white/10 hover:border-blue-500/50 transition-all text-left"
+                                >
+                                    <div className="w-12 h-12 rounded-xl bg-blue-500/20 flex items-center justify-center text-blue-400 group-hover:scale-110 transition-transform">
+                                        <Film size={24} />
+                                    </div>
+                                    <div>
+                                        <div className="text-sm font-black text-white uppercase tracking-wider">Videos Largos</div>
+                                        <div className="text-[10px] text-white/40">Películas, tutoriales, música...</div>
+                                    </div>
+                                </button>
+
+                                <button 
+                                    onClick={() => {
+                                        setIsShortsMode(true);
+                                        setShowModeSelector(false);
+                                        playNextShort();
+                                    }}
+                                    className="group relative flex items-center gap-4 p-4 bg-white/5 border border-white/10 rounded-2xl hover:bg-white/10 hover:border-purple-500/50 transition-all text-left"
+                                >
+                                    <div className="w-12 h-12 rounded-xl bg-purple-500/20 flex items-center justify-center text-purple-400 group-hover:scale-110 transition-transform">
+                                        <Zap size={24} />
+                                    </div>
+                                    <div>
+                                        <div className="text-sm font-black text-white uppercase tracking-wider">Videos Cortos</div>
+                                        <div className="text-[10px] text-white/40">Shorts, TikToks, clips rápidos...</div>
+                                    </div>
+                                </button>
+                            </div>
+
+                            <button 
+                                onClick={() => setShowModeSelector(false)}
+                                className="mt-8 w-full py-3 text-white/40 text-[10px] font-black uppercase tracking-[0.3em] hover:text-white transition-colors"
+                            >
+                                Cancelar
+                            </button>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
         </div>
     );
 }

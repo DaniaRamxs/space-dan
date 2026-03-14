@@ -71,6 +71,10 @@ export function usePlaybackSync({
     useEffect(() => {
         if (!colyseusRoom) return;
 
+        const handleUpdate = (payload) => {
+            handleRemoteState(payload);
+        };
+
         const unsub = colyseusRoom.onStateChange((state) => {
             const newState = {
                 videoId: state.videoId || '',
@@ -92,11 +96,12 @@ export function usePlaybackSync({
         });
 
         // Listen for direct snapshots (late joins)
-        colyseusRoom.onMessage("STATE_UPDATE", (payload) => {
-            handleRemoteState(payload);
-        });
+        colyseusRoom.onMessage("STATE_UPDATE", handleUpdate);
 
-        return () => unsub?.();
+        return () => {
+            unsub?.();
+            colyseusRoom.off("STATE_UPDATE", handleUpdate);
+        };
     }, [colyseusRoom, profile?.id]);
 
     const handleRemoteState = (remoteState) => {

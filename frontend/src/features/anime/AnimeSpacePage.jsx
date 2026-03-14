@@ -173,6 +173,14 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
     };
   }, [roomName, onClose, profile?.id]);
 
+  useEffect(() => {
+    return () => {
+      if (room) {
+        room.leave(true);
+      }
+    };
+  }, [room]);
+
   const resetWatchParty = () => {
     if (room) {
       leavingRoomRef.current = true;
