@@ -179,9 +179,11 @@ export const activitiesService = {
 
     // Increment count
     if (isSpectator) {
-      await supabase.rpc('increment_activity_spectators', { activity_id: activityId });
+      const { error: rpcErr1 } = await supabase.rpc('increment_activity_spectators', { activity_id: activityId });
+      if (rpcErr1) console.error('[ActivitiesService] increment_spectators error:', rpcErr1.message);
     } else {
-      await supabase.rpc('increment_activity_participants', { activity_id: activityId });
+      const { error: rpcErr2 } = await supabase.rpc('increment_activity_participants', { activity_id: activityId });
+      if (rpcErr2) console.error('[ActivitiesService] increment_participants error:', rpcErr2.message);
     }
 
     return { success: true };
@@ -214,9 +216,11 @@ export const activitiesService = {
 
     // Decrement count
     if (participant.is_spectator) {
-      await supabase.rpc('decrement_activity_spectators', { activity_id: activityId });
+      const { error: rpcErr1 } = await supabase.rpc('decrement_activity_spectators', { activity_id: activityId });
+      if (rpcErr1) console.error('[ActivitiesService] decrement_spectators error:', rpcErr1.message);
     } else {
-      await supabase.rpc('decrement_activity_participants', { activity_id: activityId });
+      const { error: rpcErr2 } = await supabase.rpc('decrement_activity_participants', { activity_id: activityId });
+      if (rpcErr2) console.error('[ActivitiesService] decrement_participants error:', rpcErr2.message);
     }
 
     return { success: true };

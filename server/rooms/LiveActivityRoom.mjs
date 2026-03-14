@@ -112,13 +112,15 @@ export class LiveActivityRoom extends Room {
     // Update database
     if (supabase && this.state.activityId) {
       if (isSpectator) {
-        await supabase.rpc('increment_activity_spectators', { 
+        const { error } = await supabase.rpc('increment_activity_spectators', { 
           activity_id: this.state.activityId 
-        }).catch(err => log('[LiveActivity] DB update error:', err));
+        });
+        if (error) log('[LiveActivity] DB spectator increment error:', error.message);
       } else {
-        await supabase.rpc('increment_activity_participants', { 
+        const { error } = await supabase.rpc('increment_activity_participants', { 
           activity_id: this.state.activityId 
-        }).catch(err => log('[LiveActivity] DB update error:', err));
+        });
+        if (error) log('[LiveActivity] DB participant increment error:', error.message);
       }
     }
 
@@ -147,13 +149,15 @@ export class LiveActivityRoom extends Room {
     // Update database
     if (supabase && this.state.activityId) {
       if (participant.isSpectator) {
-        await supabase.rpc('decrement_activity_spectators', { 
+        const { error } = await supabase.rpc('decrement_activity_spectators', { 
           activity_id: this.state.activityId 
-        }).catch(err => log('[LiveActivity] DB update error:', err));
+        });
+        if (error) log('[LiveActivity] DB spectator decrement error:', error.message);
       } else {
-        await supabase.rpc('decrement_activity_participants', { 
+        const { error } = await supabase.rpc('decrement_activity_participants', { 
           activity_id: this.state.activityId 
-        }).catch(err => log('[LiveActivity] DB update error:', err));
+        });
+        if (error) log('[LiveActivity] DB participant decrement error:', error.message);
       }
     }
 

@@ -72,9 +72,10 @@ export class AnimeRoom extends Room {
         log(`[AnimeRoom] ${participant.username} joined`);
 
         if (supabase && this.activityId) {
-            await supabase.rpc('increment_activity_participants', { 
+            const { error } = await supabase.rpc('increment_activity_participants', { 
                 activity_id: this.activityId 
-            }).catch(err => log('[AnimeRoom] DB update error:', err));
+            });
+            if (error) log('[AnimeRoom] DB increment error:', error.message);
         }
     }
 
@@ -85,9 +86,10 @@ export class AnimeRoom extends Room {
             this.state.participants.delete(client.sessionId);
 
             if (supabase && this.activityId) {
-                await supabase.rpc('decrement_activity_participants', { 
+                const { error } = await supabase.rpc('decrement_activity_participants', { 
                     activity_id: this.activityId 
-                }).catch(err => log('[AnimeRoom] DB update error:', err));
+                });
+                if (error) log('[AnimeRoom] DB decrement error:', error.message);
             }
             
             // Reassign host if necessary

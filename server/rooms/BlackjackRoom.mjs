@@ -88,16 +88,13 @@ export class BlackjackRoom extends GameRoom {
 
     async awardTournamentWinner(userId, amount) {
         if (!supabase || !userId) return;
-        try {
-            await supabase.rpc('award_coins', {
-                p_user_id: userId,
-                p_amount: amount,
-                p_type: 'game_reward',
-                p_description: 'Premio Pozo Blackjack (10 Rondas)'
-            });
-        } catch (e) {
-            console.error("[Blackjack Payout Error]", e);
-        }
+        const { error } = await supabase.rpc('award_coins', {
+            p_user_id: userId,
+            p_amount: amount,
+            p_type: 'game_reward',
+            p_description: 'Premio Pozo Blackjack (10 Rondas)'
+        });
+        if (error) console.error("[Blackjack Payout Error]", error.message);
     }
 
     // --- Card Helpers ---
