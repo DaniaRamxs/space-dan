@@ -177,7 +177,7 @@ const AnimePlayer = ({
           <>
             <video
               ref={videoRef}
-              className="h-full w-full"
+              className="absolute inset-0 h-full w-full object-contain"
               onTimeUpdate={handleTimeUpdate}
               onLoadedMetadata={() => setDuration(videoRef.current.duration)}
               onPlay={() => setIsPlaying(true)}
@@ -193,12 +193,12 @@ const AnimePlayer = ({
 
             <AnimatePresence>
                 {showControls && (
-                    <motion.div 
+                    <motion.div
                         initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                        className="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-black/40 p-4 flex flex-col justify-end"
+                        className="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-black/40 p-4 flex flex-col justify-end pointer-events-none z-20"
                     >
                         {/* Reaction Markers */}
-                        <div className="relative h-6 mb-1">
+                        <div className="relative h-6 mb-1 pointer-events-auto">
                             {timelineReactions.map((r, i) => (
                                 <div 
                                     key={i} 
@@ -227,7 +227,7 @@ const AnimePlayer = ({
                         </div>
 
                         {/* Progress Bar */}
-                        <div className="relative h-1.5 w-full bg-white/20 rounded-full mb-4 group/progress cursor-pointer"
+                        <div className="relative h-1.5 w-full bg-white/20 rounded-full mb-4 group/progress cursor-pointer pointer-events-auto"
                              onClick={(e) => {
                                  if (!isHost) return;
                                  const rect = e.currentTarget.getBoundingClientRect();
@@ -240,7 +240,7 @@ const AnimePlayer = ({
                             )}
                         </div>
 
-                        <div className="flex items-center justify-between">
+                        <div className="flex items-center justify-between pointer-events-auto">
                             <div className="flex items-center gap-4">
                                 {isHost ? (
                                     <button onClick={handlePlayPause} className="w-10 h-10 bg-cyan-400 text-slate-950 rounded-full flex items-center justify-center hover:scale-110 transition-all shadow-lg shadow-cyan-400/20">
@@ -275,8 +275,8 @@ const AnimePlayer = ({
                             </div>
 
                             <button onClick={() => {
-                                const container = videoRef.current?.parentElement;
-                                if (!document.fullscreenElement) container.requestFullscreen();
+                                const container = videoRef.current?.closest('.group\\/player');
+                                if (!document.fullscreenElement && container) container.requestFullscreen();
                                 else document.exitFullscreen();
                             }} className="p-2 bg-white/5 rounded-xl hover:bg-white/10">
                                 <Maximize size={18} />

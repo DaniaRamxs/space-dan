@@ -708,8 +708,8 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
 
         {view === 'player' && streamData && (
           <section className="flex flex-col gap-4 px-3 pb-8 sm:px-6">
-            <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_340px]">
-              <div className="space-y-4">
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_380px]">
+              <div className="min-w-0 space-y-4">
                 <AnimePlayer
                   source={currentSource}
                   subtitles={streamData.subtitles}
@@ -734,7 +734,7 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
                 {/* <ReactionOverlay gifOverlays={gifOverlays} isStorming={isStorming} /> */}
 
 
-                <div className="xl:hidden">
+                <div className="lg:hidden">
                   <div className="sticky top-[64px] z-20 overflow-hidden rounded-[24px] border border-white/10 bg-[#080810]/92 p-1 backdrop-blur-xl">
                     <div className="grid grid-cols-3 gap-1">
                       {mobileTabs.map(({ id, label, icon: Icon }) => (
@@ -761,11 +761,11 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
                   </div>
                 </div>
 
-                <div className="hidden xl:block">{infoPanel}</div>
-                <div className="hidden xl:block">{sourcesPanel}</div>
+                <div className="hidden lg:block">{infoPanel}</div>
+                <div className="hidden lg:block">{sourcesPanel}</div>
               </div>
 
-              <aside className="hidden xl:flex xl:flex-col xl:gap-4">
+              <aside className="hidden lg:flex lg:flex-col lg:gap-4">
                 {chatPanel}
               </aside>
             </div>

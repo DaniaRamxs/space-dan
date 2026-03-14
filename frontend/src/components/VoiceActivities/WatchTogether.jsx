@@ -420,7 +420,7 @@ export default function WatchTogether({ roomName, onClose, isMinimized = false, 
                 {/* Main Video Area */}
                 <div className="flex-1 relative bg-black flex flex-col" onMouseMove={handleMouseMove}>
                     {currentVideo ? (
-                        <div className="relative flex-1">
+                        <div className="relative flex-1 min-h-0">
                             <div id="wt-player-wrapper" className="absolute inset-0">
                                 <div id="wt-player" className="w-full h-full" />
                             </div>
@@ -464,7 +464,7 @@ export default function WatchTogether({ roomName, onClose, isMinimized = false, 
                             </AnimatePresence>
 
                             {/* Top Bar */}
-                            <div className="absolute top-0 left-0 right-0 p-4 bg-gradient-to-b from-black/80 to-transparent flex justify-between items-center z-20">
+                            <div className="absolute top-0 left-0 right-0 p-4 bg-gradient-to-b from-black/80 to-transparent flex justify-between items-center z-20 pointer-events-auto">
                                 <div className="flex items-center gap-3">
                                     <div className="p-2 bg-white/10 rounded-lg"><Film size={20} className="text-white" /></div>
                                     <div>
@@ -493,10 +493,10 @@ export default function WatchTogether({ roomName, onClose, isMinimized = false, 
                             <AnimatePresence>
                                 {showControls && (
                                     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                                        className="absolute inset-0 bg-black/20 flex flex-col justify-end p-6 bg-gradient-to-t from-black/90 via-transparent to-transparent z-10">
-                                        
+                                        className="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-transparent flex flex-col justify-end p-6 pointer-events-none z-10">
+
                                         {/* Reaction Timeline */}
-                                        <div className="relative h-8 mb-2 group">
+                                        <div className="relative h-8 mb-2 group pointer-events-auto">
                                             {timelineReactions.map((r, i) => (
                                                 <motion.div 
                                                     key={i}
@@ -527,7 +527,7 @@ export default function WatchTogether({ roomName, onClose, isMinimized = false, 
                                         </div>
 
                                         {/* Progress Bar */}
-                                        <div className="relative h-1.5 bg-white/10 rounded-full mb-4 cursor-pointer group"
+                                        <div className="relative h-1.5 bg-white/10 rounded-full mb-4 cursor-pointer group pointer-events-auto"
                                             onClick={(e) => {
                                                 if (!isHost) return;
                                                 const rect = e.currentTarget.getBoundingClientRect();
@@ -540,7 +540,7 @@ export default function WatchTogether({ roomName, onClose, isMinimized = false, 
                                             )}
                                         </div>
 
-                                        <div className="flex items-center justify-between">
+                                        <div className="flex items-center justify-between pointer-events-auto">
                                             <div className="flex items-center gap-4">
                                                 {isHost && (
                                                     <button onClick={togglePlayback} className="w-12 h-12 bg-white text-black rounded-full flex items-center justify-center hover:scale-110 active:scale-95 transition-all">
