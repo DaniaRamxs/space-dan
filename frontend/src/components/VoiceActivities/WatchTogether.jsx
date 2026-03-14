@@ -125,12 +125,10 @@ export default function WatchTogether({ roomName, onClose, isMinimized = false, 
                 const chatHandler = (msg) => {
                     setMessages(prev => [...prev.slice(-50), msg]);
                 };
-                
-                joinedRoom.onMessage("chat", chatHandler);
 
-                // Store handler for cleanup if needed, but since we leave the room on unmount, 
-                // Colyseus usually handles listener removal. However, using off() is safer.
-                joinedRoom._chatHandler = chatHandler;
+                // Colyseus 0.16: onMessage returns an unsubscribe function
+                const unsubChat = joinedRoom.onMessage("chat", chatHandler);
+                joinedRoom._unsubChat = unsubChat;
 
             } catch (err) {
                 console.error("[WatchTogether] Colyseus connection failed:", err);
@@ -141,7 +139,8 @@ export default function WatchTogether({ roomName, onClose, isMinimized = false, 
 
         return () => {
             if (room) {
-                if (room._chatHandler) room.off("chat", room._chatHandler);
+                // Colyseus 0.16: no .off() — use the unsub fn from onMessage
+                if (typeof room._unsubChat === 'function') room._unsubChat();
                 room.leave();
             }
         };
@@ -379,8 +378,8 @@ export default function WatchTogether({ roomName, onClose, isMinimized = false, 
 
     const playNextShort = () => {
         if (!isHost) return;
-        // Placeholder for shorts feed logic
-        console.log("Playing next short...");
+        // Open search modal so the host can pick a short
+        setIsSearchOpen(true);
     };
 
     const handleMouseMove = () => {
@@ -393,7 +392,7 @@ export default function WatchTogether({ roomName, onClose, isMinimized = false, 
 
     // ── Render ────────────────────────────────────────────────────────────────
     return (
-        <div className="fixed inset-0 z-[99996] flex items-center justify-center bg-black/90 backdrop-blur-xl" onClick={onClose}>
+        <div className="fixed inset-0 z-[99996] flex items-center justify-center bg-black/90 backdrop-blur-xl" onClick={(e) => { if (e.target === e.currentTarget) onClose?.(); }}>
             <motion.div
                 initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}
                 className="relative w-full h-full max-w-6xl max-h-[90vh] bg-black rounded-3xl overflow-hidden shadow-2xl flex flex-col sm:flex-row"
