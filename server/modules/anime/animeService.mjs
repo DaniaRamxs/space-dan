@@ -1,6 +1,9 @@
-import { Gogoanime } from '@consumet/extensions';
+import pkg from '@consumet/extensions';
+
+const { Gogoanime, Zoro } = pkg;
 
 const gogoanime = new Gogoanime();
+const zoro = new Zoro();
 
 /**
  * Search anime by query
@@ -53,15 +56,17 @@ export const getAnimeInfo = async (animeId) => {
  */
 export const getEpisodeSources = async (episodeId) => {
   try {
-    const sources = await gogoanime.fetchEpisodeSources(episodeId);
-    
-    // Consumet Gogoanime usually returns m3u8 in sources
-    // We also want to filter for Spanish subtitles if available, 
-    // although Gogoanime is usually hardcoded or has its own player.
-    // Some providers in Consumet return subtitles.
+    let sources;
+    try {
+      sources = await gogoanime.fetchEpisodeSources(episodeId);
+    } catch (e) {
+      console.warn('[AnimeService] Gogoanime failed, trying Zoro fallback (note: IDs might differ)');
+      // Zoro fallback - Note: This might only work if IDs are shared or if we did a fresh search
+      sources = await zoro.fetchEpisodeSources(episodeId);
+    }
     
     return {
-      sources: sources.sources, // Usually contains { url, isM3U8, quality }
+      sources: sources.sources || [],
       subtitles: sources.subtitles || [],
       intro: sources.intro,
       outro: sources.outro
