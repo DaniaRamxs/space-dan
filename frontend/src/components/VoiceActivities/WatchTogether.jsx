@@ -80,6 +80,8 @@ export default function WatchTogether({ roomName, onClose, isMinimized = false, 
     const [currentTime, setCurrentTime] = useState(0);
     const [gifPickerOpen, setGifPickerOpen] = useState(false);
     const [showModeSelector, setShowModeSelector] = useState(false);
+    const [searchMode, setSearchMode] = useState('videos');
+    const [videoEnded, setVideoEnded] = useState(false);
 
     // ── 4. All refs (MUST be declared before any hook that uses them) ─────────────
     const playerRef = useRef(null);
@@ -237,8 +239,12 @@ export default function WatchTogether({ roomName, onClose, isMinimized = false, 
                         if (!isHost) e.target.seekTo(playbackState.currentTime || 0, true);
                     },
                     onStateChange: (e) => {
-                        if (e.data === YT_STATE.ENDED && isHost) {
-                            if (isShortsMode) playNextShort();
+                        if (e.data === YT_STATE.ENDED) {
+                            setVideoEnded(true);
+                            if (isHost && isShortsMode) playNextShort();
+                        }
+                        if (e.data === YT_STATE.PLAYING) {
+                            setVideoEnded(false);
                         }
                     }
                 },
@@ -382,6 +388,19 @@ export default function WatchTogether({ roomName, onClose, isMinimized = false, 
         setIsSearchOpen(true);
     };
 
+    // ── Mobile landscape auto-fullscreen ──────────────────────────────────
+    useEffect(() => {
+        const handleOrientation = () => {
+            if (window.innerWidth > window.innerHeight && currentVideo) {
+                setIsFullscreen(true);
+            } else {
+                setIsFullscreen(false);
+            }
+        };
+        window.addEventListener('resize', handleOrientation);
+        return () => window.removeEventListener('resize', handleOrientation);
+    }, [currentVideo]);
+
     const handleMouseMove = () => {
         setShowControls(true);
         if (controlsTimeoutRef.current) clearTimeout(controlsTimeoutRef.current);
@@ -395,7 +414,7 @@ export default function WatchTogether({ roomName, onClose, isMinimized = false, 
         <div className="fixed inset-0 z-[99996] flex items-center justify-center bg-black/90 backdrop-blur-xl" onClick={(e) => { if (e.target === e.currentTarget) onClose?.(); }}>
             <motion.div
                 initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}
-                className="relative w-full h-full max-w-6xl max-h-[90vh] bg-black rounded-3xl overflow-hidden shadow-2xl flex flex-col sm:flex-row"
+                className={`relative bg-black overflow-hidden shadow-2xl flex flex-col sm:flex-row ${isFullscreen ? 'fixed inset-0 w-screen h-screen z-[99999] rounded-none' : 'w-full h-full max-w-6xl max-h-[90vh] rounded-3xl'}`}
                 onClick={e => e.stopPropagation()}
             >
                 {/* Main Video Area */}
@@ -408,6 +427,41 @@ export default function WatchTogether({ roomName, onClose, isMinimized = false, 
 
                             {/* Centered Reaction & Storm Overlays */}
                             <ReactionOverlay gifOverlays={gifOverlays} isStorming={isStorming} />
+
+                            {/* Video Ended Overlay */}
+                            <AnimatePresence>
+                                {videoEnded && isHost && (
+                                    <motion.div
+                                        initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                                        className="absolute inset-0 z-30 flex items-center justify-center bg-black/70 backdrop-blur-sm"
+                                    >
+                                        <div className="flex flex-col items-center gap-4 text-center">
+                                            <div className="text-4xl mb-2">🎬</div>
+                                            <h3 className="text-lg font-black text-white uppercase tracking-widest">Video Terminado</h3>
+                                            <div className="flex gap-3">
+                                                <button
+                                                    onClick={() => {
+                                                        playerRef.current?.seekTo(0, true);
+                                                        playerRef.current?.playVideo();
+                                                        setVideoEnded(false);
+                                                        setIsPlaying(true);
+                                                        updatePlayback({ playing: true, currentTime: 0 });
+                                                    }}
+                                                    className="px-6 py-3 bg-white/10 border border-white/20 rounded-2xl text-white text-xs font-black uppercase tracking-widest hover:bg-white/20 transition-all"
+                                                >
+                                                    Repetir
+                                                </button>
+                                                <button
+                                                    onClick={() => { setVideoEnded(false); setShowModeSelector(true); }}
+                                                    className="px-6 py-3 bg-blue-600 rounded-2xl text-white text-xs font-black uppercase tracking-widest hover:bg-blue-500 transition-all shadow-lg shadow-blue-500/20"
+                                                >
+                                                    Buscar Otro
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
 
                             {/* Top Bar */}
                             <div className="absolute top-0 left-0 right-0 p-4 bg-gradient-to-b from-black/80 to-transparent flex justify-between items-center z-20">
@@ -558,8 +612,8 @@ export default function WatchTogether({ roomName, onClose, isMinimized = false, 
                 {/* Sidebar Chat (conditional) */}
                 <AnimatePresence>
                     {chatOpen && (
-                        <motion.div initial={{ width: 0, opacity: 0 }} animate={{ width: 320, opacity: 1 }} exit={{ width: 0, opacity: 0 }}
-                            className="bg-[#050510] border-l border-white/5 flex flex-col relative"
+                        <motion.div initial={{ width: 0, opacity: 0 }} animate={{ width: '30vw', opacity: 1 }} exit={{ width: 0, opacity: 0 }}
+                            className="bg-[#050510] border-l border-white/5 flex flex-col relative min-w-[320px] max-w-[420px]"
                         >
                             <div className="p-4 border-b border-white/5 flex justify-between items-center">
                                 <h4 className="text-xs font-black text-white uppercase tracking-widest">Chat en Directo</h4>
@@ -625,7 +679,7 @@ export default function WatchTogether({ roomName, onClose, isMinimized = false, 
                 </AnimatePresence>
             </motion.div>
 
-            <YouTubeSearchModal isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} onSelect={playVideo} />
+            <YouTubeSearchModal isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} onSelect={(v) => { setVideoEnded(false); playVideo(v); }} mode={searchMode} />
             <GifPickerModal isOpen={gifPickerOpen} onClose={() => setGifPickerOpen(false)} onSelect={(gif) => sendGif(gif.url)} />
 
             {/* Mode Selector Modal */}
@@ -645,9 +699,10 @@ export default function WatchTogether({ roomName, onClose, isMinimized = false, 
                             <p className="text-white/40 text-xs text-center mb-8">Selecciona el tipo de contenido para tu sala.</p>
 
                             <div className="grid gap-4">
-                                <button 
+                                <button
                                     onClick={() => {
                                         setIsShortsMode(false);
+                                        setSearchMode('videos');
                                         setIsSearchOpen(true);
                                         setShowModeSelector(false);
                                     }}
@@ -662,11 +717,12 @@ export default function WatchTogether({ roomName, onClose, isMinimized = false, 
                                     </div>
                                 </button>
 
-                                <button 
+                                <button
                                     onClick={() => {
                                         setIsShortsMode(true);
+                                        setSearchMode('shorts');
+                                        setIsSearchOpen(true);
                                         setShowModeSelector(false);
-                                        playNextShort();
                                     }}
                                     className="group relative flex items-center gap-4 p-4 bg-white/5 border border-white/10 rounded-2xl hover:bg-white/10 hover:border-purple-500/50 transition-all text-left"
                                 >

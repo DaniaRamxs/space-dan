@@ -34,7 +34,7 @@ export default function ReactionOverlay({ gifOverlays = [], isStorming = false }
     }, [isStorming]);
 
     return (
-        <div className="absolute inset-0 pointer-events-none z-40 overflow-hidden">
+        <div className="absolute inset-0 pointer-events-none z-10 overflow-hidden">
             {/* ── Floating GIFs — motion.img directly inside AnimatePresence ── */}
             <AnimatePresence>
                 {safeOverlays.map(g => {

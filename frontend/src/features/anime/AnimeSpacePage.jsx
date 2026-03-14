@@ -261,9 +261,11 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
       setChatMessages((prev) => [...prev, message]);
     };
 
-    room.onMessage('chat', chatHandler);
+    // Colyseus 0.16: onMessage returns an unsubscribe function
+    const unsubChat = room.onMessage('chat', chatHandler);
 
-    const unsubState = room.onStateChange((state) => {
+    // Colyseus 0.16: onStateChange returns an EventEmitter { clear(), remove() }
+    const stateEmitter = room.onStateChange((state) => {
       setRoomState(state.toJSON());
       const nextParticipants = [];
       state.participants.forEach((participant) => nextParticipants.push(participant));
@@ -286,8 +288,8 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
     });
 
     return () => {
-      room.off('chat', chatHandler);
-      unsubState();
+      if (typeof unsubChat === 'function') unsubChat();
+      if (typeof stateEmitter?.clear === 'function') stateEmitter.clear();
     };
   }, [room]);
 

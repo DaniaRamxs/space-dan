@@ -3,11 +3,13 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Search, Youtube, X, Play, Clock } from 'lucide-react';
 import { youtubeService } from '../../services/youtubeService';
 
-export default function YouTubeSearchModal({ isOpen, onClose, onSelect }) {
+export default function YouTubeSearchModal({ isOpen, onClose, onSelect, mode = 'videos' }) {
     const [query, setQuery] = useState('');
     const [results, setResults] = useState([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
+
+    const isShorts = mode === 'shorts';
 
     useEffect(() => {
         if (!query.trim()) {
@@ -15,11 +17,15 @@ export default function YouTubeSearchModal({ isOpen, onClose, onSelect }) {
             return;
         }
 
+        const searchQuery = isShorts
+            ? `${query.trim()} #shorts`
+            : query.trim();
+
         const delayDebounce = setTimeout(async () => {
             setLoading(true);
             setError(null);
             try {
-                const videos = await youtubeService.searchVideos(query.trim());
+                const videos = await youtubeService.searchVideos(searchQuery);
                 setResults(videos);
             } catch (err) {
                 console.error('Error al buscar en YouTube:', err);
@@ -30,7 +36,7 @@ export default function YouTubeSearchModal({ isOpen, onClose, onSelect }) {
         }, 600);
 
         return () => clearTimeout(delayDebounce);
-    }, [query]);
+    }, [query, isShorts]);
 
     return (
         <AnimatePresence>
@@ -77,8 +83,12 @@ export default function YouTubeSearchModal({ isOpen, onClose, onSelect }) {
                                     <Youtube size={20} />
                                 </div>
                                 <div>
-                                    <h2 className="text-sm font-black text-white uppercase tracking-widest leading-none mb-1">YouTube Music Jukebox</h2>
-                                    <p className="text-[9px] text-white/40 uppercase tracking-tighter">Busca cualquier canción o video</p>
+                                    <h2 className="text-sm font-black text-white uppercase tracking-widest leading-none mb-1">
+                                        {isShorts ? 'YouTube Shorts' : 'YouTube Music Jukebox'}
+                                    </h2>
+                                    <p className="text-[9px] text-white/40 uppercase tracking-tighter">
+                                        {isShorts ? 'Busca clips cortos y shorts' : 'Busca cualquier canción o video'}
+                                    </p>
                                 </div>
                             </div>
                             <button onClick={onClose} className="p-2 hover:bg-white/5 rounded-full transition-colors text-white/40 hover:text-white">
