@@ -143,7 +143,7 @@ export default function WatchTogether({ roomName, onClose, isMinimized = false, 
             if (room) {
                 // Colyseus 0.16: no .off() — use the unsub fn from onMessage
                 if (typeof room._unsubChat === 'function') room._unsubChat();
-                room.leave();
+                if (room.connection?.isOpen) room.leave().catch(() => {});
             }
         };
     }, [roomName, user, room]);
@@ -648,9 +648,9 @@ export default function WatchTogether({ roomName, onClose, isMinimized = false, 
                                             placeholder="Escribe algo..." 
                                             className="w-full bg-white/5 border border-white/10 rounded-xl p-3 pr-10 text-xs text-white focus:outline-none focus:border-blue-500/50"
                                             onKeyDown={e => {
-                                                if (e.key === 'Enter' && e.target.value.trim() && room) {
+                                                if (e.key === 'Enter' && e.target.value.trim() && room?.connection?.isOpen) {
                                                     const text = e.target.value.trim();
-                                                    room.send("chat", text);
+                                                    try { room.send("chat", text); } catch {}
                                                     
                                                     // Also send via Supabase so we have a unified stream for GIFs if needed
                                                     if (channelRef.current) {

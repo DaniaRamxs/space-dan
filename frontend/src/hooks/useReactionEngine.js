@@ -134,8 +134,8 @@ export function useReactionEngine({ room = null, getVideoTimestamp } = {}) {
         const payload = { type, content: content || gifUrl, videoTimestamp };
 
         // 1. Send to Colyseus → timeline persistence + remote overlays for others
-        if (room) {
-            room.send('reaction', payload);
+        if (room?.connection?.isOpen) {
+            try { room.send('reaction', payload); } catch {}
         }
 
         // 2. GIFs: show locally + Supabase broadcast for redundancy

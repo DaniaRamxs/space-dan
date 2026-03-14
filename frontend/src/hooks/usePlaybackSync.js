@@ -145,8 +145,8 @@ export function usePlaybackSync({
         };
 
         // Broadcast through Colyseus if available (Authorized)
-        if (colyseusRoom) {
-            colyseusRoom.send("update_state", payload);
+        if (colyseusRoom?.connection?.isOpen) {
+            try { colyseusRoom.send("update_state", payload); } catch {}
         }
 
         // Always broadcast through Supabase for redundancy

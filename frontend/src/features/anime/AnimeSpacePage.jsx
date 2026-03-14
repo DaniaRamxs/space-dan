@@ -178,14 +178,14 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
 
   useEffect(() => {
     return () => {
-      if (room) {
-        room.leave(true);
+      if (room?.connection?.isOpen) {
+        room.leave(true).catch(() => {});
       }
     };
   }, [room]);
 
   const resetWatchParty = () => {
-    if (room) {
+    if (room?.connection?.isOpen) {
       leavingRoomRef.current = true;
       room.leave(true).catch(() => {});
     }
@@ -379,12 +379,12 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
     const text = chatInput.trim();
     if (!text) return;
 
-    if (!room) {
+    if (!room?.connection?.isOpen) {
       toast.error('La sala no está conectada.');
       return;
     }
 
-    room.send('chat', text);
+    try { room.send('chat', text); } catch {}
     
     // Broadcast via Supabase for unified stream
     if (syncChannelRef.current) {
@@ -721,9 +721,9 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
                   externalState={playbackState}
                   reactions={reactions}
                   onReaction={(type, content) => {
-                    if (room) {
+                    if (room?.connection?.isOpen) {
                       const time = playbackState.currentTime;
-                      room.send("reaction", { type, content, videoTimestamp: time });
+                      try { room.send("reaction", { type, content, videoTimestamp: time }); } catch {}
                     }
                   }}
                   gifOverlays={gifOverlays}
