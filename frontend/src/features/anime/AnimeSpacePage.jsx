@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState, useCallback } from 'react';
+import React, { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import { Radio, Users, MessageSquare, ChevronLeft, Tv, Send, Crown } from 'lucide-react';
 import YouTubeSearchModal from '@/components/Social/YouTubeSearchModal';
 import GifPickerModal from '@/components/reactions/GifPickerModal';
@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { useLiveActivity } from '@/hooks/useLiveActivity';
 import { usePlaybackSync } from '@/hooks/usePlaybackSync';
+import { useReactionEngine } from '@/hooks/useReactionEngine';
 import { animeService } from './animeService';
 import { liveActivitiesService } from '@/services/liveActivitiesService';
 import { supabase } from '@/supabaseClient';
@@ -16,11 +17,7 @@ import AnimeSearch from './AnimeSearch';
 
 const AnimeSpacePage = ({ onClose, roomName }) => {
   const { profile } = useAuthContext();
-  const [activeTab, setActiveTab] = useState('participants');
   const [gifPickerOpen, setGifPickerOpen] = useState(false);
-  const [gifOverlays, setGifOverlays] = useState([]);
-  const [reactionBuffer, setReactionBuffer] = useState([]);
-  const [isStorming, setIsStorming] = useState(false);
   const [selectedAnime, setSelectedAnime] = useState(null);
   const [view, setView] = useState('search');
   const [mobilePanel, setMobilePanel] = useState('info');
@@ -39,7 +36,6 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
   const leavingRoomRef = useRef(false);
   const syncChannelRef = useRef(null);
   const applyingRemoteStateRef = useRef(false);
-  const stormTimestampsRef = useRef([]);
 
   const { 
     playbackState, 
@@ -49,6 +45,12 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
   } = usePlaybackSync({
     roomName: roomName || 'general',
     colyseusRoom: room
+  });
+
+  const { gifOverlays, isStorming, sendReaction: engineSendReaction, addGifOverlay } = useReactionEngine({
+    room,
+    supabaseChannel: syncChannelRef.current,
+    getVideoTimestamp: () => playbackState.currentTime ?? 0
   });
 
   const hostParticipant = useMemo(() => {
@@ -139,14 +141,9 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
         }, 0);
       })
       .on('broadcast', { event: 'chat_message' }, ({ payload }) => {
-        if (payload.type === "gif") {
-            const newGif = { id: Date.now() + Math.random(), url: payload.gifUrl };
-            setGifOverlays(prev => [...prev.slice(-4), newGif]);
-            setReactionBuffer(prev => [...prev.slice(-10), Date.now()]);
-            
-            setTimeout(() => {
-                setGifOverlays(prev => prev.filter(g => g.id !== newGif.id));
-            }, 4000);
+        // GIFs from others: show via central engine
+        if (payload.type === "gif" && payload.userId !== profile?.id) {
+            addGifOverlay(payload.gifUrl);
         }
 
         if (payload.userId !== profile?.id) {
@@ -243,28 +240,6 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
       });
 
       setRoom(newRoom);
-      newRoom.onLeave(() => {
-        const intentionalLeave = leavingRoomRef.current;
-        leavingRoomRef.current = false;
-        clearRoomState();
-        if (!intentionalLeave) {
-          toast.error('La sala de AnimeSpace se cerrÃ³.');
-        }
-      });
-      newRoom.onError((code, message) => {
-        console.error('[AnimeSpace] Room socket error:', code, message);
-        leavingRoomRef.current = false;
-        clearRoomState();
-      });
-      newRoom.onStateChange((state) => {
-        setRoomState(state.toJSON());
-        const nextParticipants = [];
-        state.participants.forEach((participant) => nextParticipants.push(participant));
-        setParticipants(nextParticipants);
-      });
-      newRoom.onMessage('chat', (message) => {
-        setChatMessages((prev) => [...prev, message]);
-      });
     } catch (error) {
       console.warn('[AnimeSpace] Colyseus unavailable, solo mode enabled:', error.message);
       if (announceActivity) {
@@ -272,6 +247,43 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
       }
     }
   };
+
+  useEffect(() => {
+    if (!room) return;
+
+    const chatHandler = (message) => {
+      setChatMessages((prev) => [...prev, message]);
+    };
+
+    room.onMessage('chat', chatHandler);
+
+    const unsubState = room.onStateChange((state) => {
+      setRoomState(state.toJSON());
+      const nextParticipants = [];
+      state.participants.forEach((participant) => nextParticipants.push(participant));
+      setParticipants(nextParticipants);
+    });
+
+    room.onLeave((code) => {
+      const intentionalLeave = leavingRoomRef.current;
+      leavingRoomRef.current = false;
+      clearRoomState();
+      if (!intentionalLeave) {
+        toast.error('La sala de AnimeSpace se cerró.');
+      }
+    });
+
+    room.onError((code, message) => {
+      console.error('[AnimeSpace] Room socket error:', code, message);
+      leavingRoomRef.current = false;
+      clearRoomState();
+    });
+
+    return () => {
+      room.off('chat', chatHandler);
+      unsubState();
+    };
+  }, [room]);
 
   const handleAnimeSelect = async (anime) => {
     if (loading) return;
@@ -457,40 +469,22 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
         timestamp: Date.now()
     };
     setChatMessages(prev => [...prev.slice(-50), message]);
-    syncChannelRef.current.send({
-        type: "broadcast",
-        event: "chat_message",
-        payload: message
+
+    // Central engine: sends to Colyseus + Supabase broadcast + shows locally
+    engineSendReaction({
+        type: 'gif',
+        gifUrl,
+        supabaseChannel: syncChannelRef.current,
+        supabaseMeta: {
+            id: message.id,
+            userId: profile?.id,
+            username: profile?.username || 'Anon',
+            avatar: profile?.avatar_url,
+            timestamp: message.timestamp
+        }
     });
-
-    // Also send to Colyseus for persistent Reaction Timeline
-    if (room) {
-        const time = playbackState.currentTime;
-        room.send("reaction", { type: "gif", content: gifUrl, videoTimestamp: time });
-    }
-
-    const newGif = { id: Date.now() + Math.random(), url: gifUrl };
-    setGifOverlays(prev => [...prev.slice(-4), newGif]);
-    setReactionBuffer(prev => [...prev.slice(-10), Date.now()]);
-    setTimeout(() => setGifOverlays(prev => prev.filter(g => g.id !== newGif.id)), 4000);
   };
 
-  useEffect(() => {
-    const now = Date.now();
-    const recentReactions = reactionBuffer.filter(t => now - t < 2000);
-    
-    if (recentReactions.length >= 5 && !isStorming) {
-        // Throttling: max 3 storms per minute
-        const oneMinuteAgo = now - 60000;
-        stormTimestampsRef.current = stormTimestampsRef.current.filter(t => t > oneMinuteAgo);
-        
-        if (stormTimestampsRef.current.length < 3) {
-            setIsStorming(true);
-            stormTimestampsRef.current.push(now);
-            setTimeout(() => setIsStorming(false), 5000);
-        }
-    }
-  }, [reactionBuffer, isStorming]);
 
   const infoPanel = (
     <div className="overflow-hidden rounded-[24px] border border-white/10 bg-white/[0.04] p-4 sm:rounded-[28px] sm:p-5">
@@ -727,6 +721,9 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
                   gifOverlays={gifOverlays}
                   isStorming={isStorming}
                 />
+
+                {/* Shared Overlay (can be moved here if we want it to stay above player controls) */}
+                {/* <ReactionOverlay gifOverlays={gifOverlays} isStorming={isStorming} /> */}
 
 
                 <div className="xl:hidden">

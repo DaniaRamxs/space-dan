@@ -16,6 +16,7 @@ import { useLocalParticipant, useParticipants as useLiveKitParticipants } from '
 import { supabase } from '@/supabaseClient';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { usePlaybackSync } from '@/hooks/usePlaybackSync';
+import { useReactionEngine } from '@/hooks/useReactionEngine';
 import { joinOrCreateRoom } from '@/services/colyseusClient';
 import YouTubeSearchModal from '@/components/Social/YouTubeSearchModal';
 import GifPickerModal from '@/components/reactions/GifPickerModal';
@@ -81,11 +82,14 @@ export default function WatchTogether({ roomName, onClose, isMinimized = false, 
     const [isSearchOpen, setIsSearchOpen] = useState(false);
     const [currentTime, setCurrentTime] = useState(0);
     const [gifPickerOpen, setGifPickerOpen] = useState(false);
-    const [gifOverlays, setGifOverlays] = useState([]);
-    const [reactionBuffer, setReactionBuffer] = useState([]);
-    const [isStorming, setIsStorming] = useState(false);
     const [showModeSelector, setShowModeSelector] = useState(false);
-    const stormTimestampsRef = useRef([]);
+
+    // ── Central Reaction Engine ────────────────────────────────────────────────
+    const { gifOverlays, isStorming, sendReaction, addGifOverlay } = useReactionEngine({
+        room,
+        supabaseChannel: channelRef.current,
+        getVideoTimestamp: () => playerRef.current?.getCurrentTime?.() ?? 0
+    });
 
     const playerRef = useRef(null);
     const channelRef = useRef(null);
@@ -150,14 +154,9 @@ export default function WatchTogether({ roomName, onClose, isMinimized = false, 
 
         channel
             .on('broadcast', { event: 'chat_message' }, ({ payload }) => {
-                if (payload.type === "gif") {
-                    const newGif = { id: Date.now() + Math.random(), url: payload.gifUrl };
-                    setGifOverlays(prev => [...prev.slice(-4), newGif]);
-                    setReactionBuffer(prev => [...prev.slice(-10), Date.now()]);
-                    
-                    setTimeout(() => {
-                        setGifOverlays(prev => prev.filter(g => g.id !== newGif.id));
-                    }, 4000);
+                // GIFs from other users shown via addGifOverlay
+                if (payload.type === "gif" && payload.userId !== user?.id) {
+                    addGifOverlay(payload.gifUrl);
                 }
 
                 if (payload.userId !== user?.id) {
@@ -170,24 +169,7 @@ export default function WatchTogether({ roomName, onClose, isMinimized = false, 
             channelRef.current = null;
             supabase.removeChannel(channel);
         };
-    }, [roomName, user]);
-
-    useEffect(() => {
-        const now = Date.now();
-        const recentReactions = reactionBuffer.filter(t => now - t < 2000);
-        
-        if (recentReactions.length >= 5 && !isStorming) {
-            // Throttling: max 3 storms per minute
-            const oneMinuteAgo = now - 60000;
-            stormTimestampsRef.current = stormTimestampsRef.current.filter(t => t > oneMinuteAgo);
-            
-            if (stormTimestampsRef.current.length < 3) {
-                setIsStorming(true);
-                stormTimestampsRef.current.push(now);
-                setTimeout(() => setIsStorming(false), 5000);
-            }
-        }
-    }, [reactionBuffer, isStorming]);
+    }, [roomName, user, addGifOverlay]);
 
     // Sync state from hook
     useEffect(() => {
@@ -289,12 +271,8 @@ export default function WatchTogether({ roomName, onClose, isMinimized = false, 
     }, [isHost, updatePlayback]);
 
     // ── Reactions & GIFs ──────────────────────────────────────────────────────
-    const sendReaction = (type, content) => {
-        if (!room) return;
-        const player = playerRef.current;
-        const videoTimestamp = player?.getCurrentTime ? player.getCurrentTime() : 0;
-        
-        room.send("reaction", { type, content, videoTimestamp });
+    const handleQuickReaction = (type, content) => {
+        sendReaction({ type, content });
     };
 
     const sendGif = (gifUrl) => {
@@ -311,24 +289,17 @@ export default function WatchTogether({ roomName, onClose, isMinimized = false, 
 
         setMessages(prev => [...prev.slice(-50), message]);
 
-        channelRef.current.send({
-            type: "broadcast",
-            event: "chat_message",
-            payload: message
+        // Use central engine — sends to Colyseus + Supabase + shows locally
+        sendReaction({
+            type: 'gif',
+            gifUrl,
+            supabaseChannel: channelRef.current,
+            supabaseMeta: {
+                userId: user?.id,
+                username: profile?.username || 'Anon',
+                timestamp: Date.now()
+            }
         });
-
-        // Also send to Colyseus for persistent Reaction Timeline
-        if (room) {
-            const player = playerRef.current;
-            const videoTimestamp = player?.getCurrentTime ? player.getCurrentTime() : 0;
-            room.send("reaction", { type: "gif", content: gifUrl, videoTimestamp });
-        }
-
-        // Also trigger local overlay for the sender
-        const newGif = { id: Date.now() + Math.random(), url: gifUrl };
-        setGifOverlays(prev => [...prev.slice(-4), newGif]);
-        setReactionBuffer(prev => [...prev.slice(-10), Date.now()]);
-        setTimeout(() => setGifOverlays(prev => prev.filter(g => g.id !== newGif.id)), 4000);
     };
 
     // Filter reactions to show nearby ones on timeline? 
@@ -530,7 +501,7 @@ export default function WatchTogether({ roomName, onClose, isMinimized = false, 
                                                 {QUICK_REACTIONS.map((r, i) => (
                                                     <button 
                                                         key={i}
-                                                        onClick={() => sendReaction(r.type, r.content)}
+                                                        onClick={() => handleQuickReaction(r.type, r.content)}
                                                         className="p-2 bg-white/5 rounded-xl hover:bg-white/15 transition-all active:scale-90 border border-white/5"
                                                     >
                                                         {r.icon ? <r.icon size={18} className={r.color} /> : <span className="text-sm font-bold">{r.contentText}</span>}
