@@ -1,48 +1,37 @@
 import pkg from '@consumet/extensions';
+import animeFlvPkg from '@carlosnunezmx/animeflv';
 
 const { ANIME } = pkg;
+const { Search: animeFlvSearch, GetAnimeInfo: animeFlvGetInfo, GetResources: animeFlvGetResources } = animeFlvPkg;
 
-// Print detected providers for debugging (useful when library updates)
 console.log('[AnimeService] Available ANIME providers:', Object.keys(ANIME || {}));
 
-/**
- * Detection of available providers using prioritized list
- * We prefer Gogoanime/AnimePahe for faster scraping, Zoro/Hianime for quality/subtitles
- */
-// AnimeUnity is the primary provider — its CDN (vixcloud.co) is accessible
-// from server-side requests (Railway) without Cloudflare blocking.
-// AnimePahe's CDN (uwucdn.top) blocks server IPs even with correct Referer headers.
-const GogoProvider = ANIME.AnimeUnity || ANIME.AnimePahe || ANIME.Hianime;
-const ZoroProvider = ANIME.AnimePahe || ANIME.Hianime;
+const PrimaryFallbackProvider = ANIME.AnimeUnity || ANIME.AnimePahe || ANIME.Hianime;
+const SecondaryFallbackProvider = ANIME.AnimePahe || ANIME.Hianime;
+const fallbackPrimary = PrimaryFallbackProvider ? new PrimaryFallbackProvider() : null;
+const fallbackSecondary = SecondaryFallbackProvider ? new SecondaryFallbackProvider() : null;
 
-if (!GogoProvider) {
-    console.error('[AnimeService] NO PRIMARY PROVIDER DETECTED! Check @consumet/extensions version.');
+if (!fallbackPrimary) {
+  console.error('[AnimeService] No consumet fallback provider detected.');
 }
 
-const gogoanime = GogoProvider ? new GogoProvider() : null;
-const zoro = ZoroProvider ? new ZoroProvider() : null;
-
-// Memory cache for successful results (3 min TTL to avoid expired stream tokens)
 const sourceCache = new Map();
+const SOURCE_CACHE_TTL = 180000;
 
-/**
- * Normalizes the response from different providers to have a consistent structure
- */
-const normalizeSources = (data, providerName) => {
+const getCacheKey = (provider, id) => `${provider}:${id}`;
+
+const normalizeFallbackSources = (data, providerName) => {
   const sources = data.sources || [];
-  const subtitles = data.subtitles || [];
-  
-  // Try to find Spanish subtitles and move to front/mark as default
-  const spanishSub = subtitles.find(s => 
-    s.lang?.toLowerCase().includes('spanish') || 
-    s.lang?.toLowerCase().includes('español') ||
-    s.lang?.toLowerCase() === 'es-es' ||
-    s.lang?.toLowerCase() === 'es'
+  const subtitles = [...(data.subtitles || [])];
+  const spanishSub = subtitles.find((sub) =>
+    sub.lang?.toLowerCase().includes('spanish') ||
+    sub.lang?.toLowerCase().includes('español') ||
+    sub.lang?.toLowerCase() === 'es-es' ||
+    sub.lang?.toLowerCase() === 'es'
   );
 
-  // Move Spanish sub to the front if found
   if (spanishSub) {
-    const others = subtitles.filter(s => s !== spanishSub);
+    const others = subtitles.filter((sub) => sub !== spanishSub);
     subtitles.length = 0;
     subtitles.push(spanishSub, ...others);
   }
@@ -50,164 +39,260 @@ const normalizeSources = (data, providerName) => {
   return {
     sources,
     subtitles,
-    spanishSubFound: !!spanishSub,
+    spanishSubFound: Boolean(spanishSub),
     headers: data.headers || {},
     intro: data.intro || null,
     outro: data.outro || null,
     provider: providerName,
+    sourceType: 'hls',
     success: true,
-    timestamp: Date.now()
+    timestamp: Date.now(),
   };
 };
 
-/**
- * Search anime by query
- */
-export const searchAnime = async (query) => {
+const normalizeAnimeFlvSearchResult = (anime) => ({
+  id: anime.Id,
+  title: anime.Title,
+  image: anime.Image,
+  description: anime.Description,
+  type: anime.Type,
+  rating: anime.Review,
+  provider: 'animeflv',
+});
+
+const normalizeAnimeFlvInfo = (info) => ({
+  id: info.Id,
+  title: info.Title,
+  image: info.Image,
+  description: info.Description,
+  type: info.Type,
+  genres: info.Genders || [],
+  ongoing: info.OnGoing,
+  followers: info.Followers,
+  provider: 'animeflv',
+  episodes: (info.Episodes || []).map((episode) => ({
+    id: episode.Id,
+    number: episode.Number,
+    image: episode.Image,
+    provider: 'animeflv',
+  })),
+});
+
+const normalizeAnimeFlvSources = (resources) => {
+  const latSources = (resources?.LAT || []).map((source) => ({
+    url: source.code,
+    directUrl: source.url || source.code,
+    server: source.server,
+    quality: source.title || source.server?.toUpperCase() || 'LAT',
+    isDub: true,
+    lang: 'es-LAT',
+    allowMobile: source.allow_mobile !== false,
+    format: 'embed',
+  }));
+  const subSources = (resources?.SUB || []).map((source) => ({
+    url: source.code,
+    directUrl: source.url || source.code,
+    server: source.server,
+    quality: source.title || source.server?.toUpperCase() || 'SUB',
+    isDub: false,
+    lang: 'es',
+    allowMobile: source.allow_mobile !== false,
+    format: 'embed',
+  }));
+  const orderedSources = [...latSources, ...subSources].sort((a, b) => Number(b.allowMobile) - Number(a.allowMobile));
+
+  return {
+    sources: orderedSources,
+    subtitles: [],
+    spanishSubFound: latSources.length > 0 || subSources.length > 0,
+    headers: {},
+    intro: null,
+    outro: null,
+    provider: 'animeflv',
+    sourceType: 'embed',
+    success: orderedSources.length > 0,
+    timestamp: Date.now(),
+    message: orderedSources.length > 0 ? null : 'No se encontraron reproductores disponibles en AnimeFLV.',
+  };
+};
+
+const normalizeFallbackSearchResult = (anime, provider = 'consumet') => ({
+  ...anime,
+  image: anime.image || anime.img || anime.cover,
+  provider,
+});
+
+const normalizeFallbackInfo = (info, provider = 'consumet') => {
+  if (!info) return info;
+
+  info.image = info.image || info.img || info.cover;
+  info.provider = provider;
+  info.episodes = (info.episodes || []).map((episode) => ({
+    ...episode,
+    provider,
+  }));
+
+  return info;
+};
+
+const fetchFallbackInfo = async (animeId) => {
+  if (!fallbackPrimary) throw new Error('No fallback provider available for anime info');
+
   try {
-    if (!gogoanime) throw new Error("No primary provider available for search");
-    console.log(`[AnimeService] Search primary: ${query}`);
-    let results = await gogoanime.search(query);
-    let list = results.results || results || [];
-    
-    // Fallback search if primary returned nothing
-    if (list.length === 0 && zoro) {
-        console.warn(`[AnimeService] Primary search empty, trying fallback...`);
-        results = await zoro.search(query);
-        list = results.results || results || [];
+    const fetchFn = fallbackPrimary.fetchAnimeInfo || fallbackPrimary.getAnimeInfo || fallbackPrimary.fetchInfo;
+    if (!fetchFn) throw new Error('Primary fallback provider does not support anime info');
+    const info = await fetchFn.call(fallbackPrimary, animeId);
+    return normalizeFallbackInfo(info, 'consumet');
+  } catch (error) {
+    console.error('[AnimeService] Fallback info error (primary):', error.message);
+
+    if (!fallbackSecondary) {
+      throw error;
     }
 
-    // Normalize images and structure
-    return list.map(anime => ({
-        ...anime,
-        image: anime.image || anime.img || anime.cover
-    }));
+    const fetchFn = fallbackSecondary.fetchAnimeInfo || fallbackSecondary.getAnimeInfo || fallbackSecondary.fetchInfo;
+    if (!fetchFn) {
+      throw error;
+    }
+
+    const info = await fetchFn.call(fallbackSecondary, animeId);
+    return normalizeFallbackInfo(info, 'consumet-fallback');
+  }
+};
+
+const fetchFallbackSources = async (episodeId) => {
+  let response = null;
+
+  if (fallbackPrimary) {
+    try {
+      const fetchFn = fallbackPrimary.fetchEpisodeSources || fallbackPrimary.getEpisodeSources;
+      if (!fetchFn) throw new Error('Primary fallback provider cannot fetch sources');
+      const result = await fetchFn.call(fallbackPrimary, episodeId);
+      if (result?.sources?.length) {
+        response = normalizeFallbackSources(result, 'consumet');
+      }
+    } catch (error) {
+      console.warn(`[AnimeService] Fallback source provider failed for ${episodeId}:`, error.message);
+    }
+  }
+
+  if (!response && fallbackSecondary) {
+    const fetchFn = fallbackSecondary.fetchEpisodeSources || fallbackSecondary.getEpisodeSources;
+    if (!fetchFn) {
+      return null;
+    }
+
+    try {
+      const result = await fetchFn.call(fallbackSecondary, episodeId);
+      if (result?.sources?.length) {
+        response = normalizeFallbackSources(result, 'consumet-fallback');
+      }
+    } catch (error) {
+      console.error(`[AnimeService] Secondary fallback source provider failed for ${episodeId}:`, error.message);
+    }
+  }
+
+  return response;
+};
+
+export const searchAnime = async (query) => {
+  console.log(`[AnimeService] Search: ${query}`);
+
+  try {
+    const results = await animeFlvSearch(query);
+    const list = Array.isArray(results) ? results : results?.Series || [];
+    if (list.length > 0) {
+      return list.map(normalizeAnimeFlvSearchResult);
+    }
+  } catch (error) {
+    console.warn('[AnimeService] AnimeFLV search failed:', error.message);
+  }
+
+  try {
+    if (!fallbackPrimary) throw new Error('No fallback provider available for search');
+    let results = await fallbackPrimary.search(query);
+    let list = results.results || results || [];
+
+    if (list.length === 0 && fallbackSecondary) {
+      results = await fallbackSecondary.search(query);
+      list = results.results || results || [];
+    }
+
+    return list.map((anime) => normalizeFallbackSearchResult(anime));
   } catch (error) {
     console.error('[AnimeService] Search error:', error.message);
-    // Silent fallback if first failed
-    if (zoro) {
-       try {
-           const res = await zoro.search(query);
-           const list = res.results || res || [];
-           return list.map(anime => ({ ...anime, image: anime.image || anime.img || anime.cover }));
-       } catch (e) {
-           throw error;
-       }
-    }
     throw error;
   }
 };
 
-/**
- * Get anime info and episodes
- */
-export const getAnimeInfo = async (animeId) => {
-  console.log(`[AnimeService] getAnimeInfo: ${animeId}`);
-  try {
-    if (!gogoanime) throw new Error("No provider available for info");
-    const fetchFn = gogoanime.fetchAnimeInfo || gogoanime.getAnimeInfo || gogoanime.fetchInfo;
-    if (!fetchFn) throw new Error("Primary provider does not support fetching anime info");
-    const info = await fetchFn.call(gogoanime, animeId);
-    
-    // Normalize image in info
-    if (info) {
-        info.image = info.image || info.img || info.cover;
+export const getAnimeInfo = async (animeId, provider = 'auto') => {
+  console.log(`[AnimeService] getAnimeInfo: ${animeId} (${provider})`);
+
+  if (provider === 'animeflv' || provider === 'auto') {
+    try {
+      const info = await animeFlvGetInfo(animeId);
+      return normalizeAnimeFlvInfo(info);
+    } catch (error) {
+      console.warn('[AnimeService] AnimeFLV info failed:', error.message);
+      if (provider === 'animeflv') {
+        throw error;
+      }
     }
-    return info;
-  } catch (error) {
-    console.error('[AnimeService] Info error (primary):', error.message);
-    
-    // Fallback to secondary provider
-    if (zoro) {
-        try {
-            console.warn('[AnimeService] Trying fallback provider for info...');
-            const fetchFn2 = zoro.fetchAnimeInfo || zoro.getAnimeInfo || zoro.fetchInfo;
-            if (!fetchFn2) throw new Error("Fallback provider does not support fetching anime info");
-            const info2 = await fetchFn2.call(zoro, animeId);
-            if (info2) info2.image = info2.image || info2.img || info2.cover;
-            return info2;
-        } catch (err2) {
-            console.error('[AnimeService] Info error (fallback):', err2.message);
-        }
-    }
-    throw error;
   }
+
+  return fetchFallbackInfo(animeId);
 };
 
-/**
- * Get streaming sources for an episode with fallback and safety checks
- */
-export const getEpisodeSources = async (episodeId) => {
-  // 1. Check Cache (3 min TTL is safe for HLS sessions)
-  if (sourceCache.has(episodeId)) {
-    const cached = sourceCache.get(episodeId);
-    // Extra safety: check age even if TTL handles it
-    if (Date.now() - cached.timestamp < 180000) {
-        return cached;
+export const getEpisodeSources = async (episodeId, provider = 'auto') => {
+  const cacheKey = getCacheKey(provider, episodeId);
+  if (sourceCache.has(cacheKey)) {
+    const cached = sourceCache.get(cacheKey);
+    if (Date.now() - cached.timestamp < SOURCE_CACHE_TTL) {
+      return cached;
     }
-    sourceCache.delete(episodeId);
+    sourceCache.delete(cacheKey);
   }
 
   try {
     let response = null;
 
-    // 2. Primary Provider (Gogo)
-    if (gogoanime) {
-        try {
-          const fetchFn = gogoanime.fetchEpisodeSources || gogoanime.getEpisodeSources;
-          if (!fetchFn) throw new Error("Primary provider cannot fetch sources");
-          
-          const res = await fetchFn.call(gogoanime, episodeId);
-          if (res?.sources?.length > 0) {
-            response = normalizeSources(res, 'gogoanime');
-          } else {
-            throw new Error("Gogo returned empty sources list");
-          }
-        } catch (err) {
-          console.warn(`[AnimeService] Gogo fallback triggered for ${episodeId}:`, err.message);
-        }
-    }
-
-    // 3. Fallback Provider
-    if (!response && zoro) {
+    if (provider === 'animeflv' || provider === 'auto') {
       try {
-        console.warn(`[AnimeService] Attempting fallback provider...`);
-        const fetchFn = zoro.fetchEpisodeSources || zoro.getEpisodeSources;
-        if (!fetchFn) throw new Error("Fallback provider cannot fetch sources");
-
-        const zoroRes = await fetchFn.call(zoro, episodeId);
-        if (zoroRes?.sources?.length > 0) {
-          response = normalizeSources(zoroRes, 'fallback');
-        } else {
-          throw new Error("Fallback also returned empty sources");
+        const resources = await animeFlvGetResources(episodeId);
+        response = normalizeAnimeFlvSources(resources);
+      } catch (error) {
+        console.warn('[AnimeService] AnimeFLV sources failed:', error.message);
+        if (provider === 'animeflv') {
+          throw error;
         }
-      } catch (zoroErr) {
-        console.error(`[AnimeService] All providers failed for ${episodeId}:`, zoroErr.message);
       }
     }
 
-    // 4. Return or Error Object
-    if (response) {
-      console.log(`[AnimeService] Success! Found ${response.sources.length} sources and ${response.subtitles.length} subs.`);
-      sourceCache.set(episodeId, response);
-      setTimeout(() => sourceCache.delete(episodeId), 180000); 
+    if (!response || !response.sources?.length) {
+      response = await fetchFallbackSources(episodeId);
+    }
+
+    if (response?.sources?.length) {
+      sourceCache.set(cacheKey, response);
+      setTimeout(() => sourceCache.delete(cacheKey), SOURCE_CACHE_TTL);
       return response;
     }
 
     return {
       sources: [],
       subtitles: [],
+      provider,
       success: false,
-      message: "Este episodio no está disponible actualmente. No se encontraron fuentes de video funcionando."
+      message: 'Este episodio no está disponible actualmente. No se encontraron fuentes de video funcionando.',
     };
-
   } catch (error) {
     console.error('[AnimeService] Terminal sources error:', error.message);
     return {
       sources: [],
       subtitles: [],
+      provider,
       success: false,
-      message: "Error técnico al intentar obtener el video: " + error.message
+      message: `Error técnico al intentar obtener el video: ${error.message}`,
     };
   }
 };

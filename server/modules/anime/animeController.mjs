@@ -14,12 +14,13 @@ export const search = async (req, res) => {
 
 export const getInfo = async (req, res) => {
   const { id } = req.params;
+  const provider = req.query.provider || 'auto';
   if (!id) return res.status(400).json({ error: 'Anime ID is required' });
 
-  console.log(`[AnimeController] getInfo: ${id}`);
+  console.log(`[AnimeController] getInfo: ${id} (${provider})`);
 
   try {
-    const info = await animeService.getAnimeInfo(id);
+    const info = await animeService.getAnimeInfo(id, provider);
     res.json(info);
   } catch (error) {
     console.error('[AnimeController] getInfo error:', error.message);
@@ -28,22 +29,19 @@ export const getInfo = async (req, res) => {
 };
 
 export const watch = async (req, res) => {
-  // AnimePahe uses a composite format: animeId/sessionToken
-  // When the route is /watch/:animeId/:episodeId, Express splits it into two params.
-  // We rejoin them to reconstruct the full episodeId.
+  const provider = req.query.provider || 'auto';
   const { animeId, episodeId } = req.params;
-  
-  // Reconstruct composite ID if both parts are present
-  const fullEpisodeId = animeId && episodeId ? `${animeId}/${episodeId}` : (episodeId || animeId);
+  const queryEpisodeId = req.query.episodeId;
+  const fullEpisodeId = queryEpisodeId || (animeId && episodeId ? `${animeId}/${episodeId}` : (episodeId || animeId));
 
   if (!fullEpisodeId || fullEpisodeId.length < 5) {
     return res.status(400).json({ success: false, message: 'Invalid or missing Episode ID' });
   }
 
-  console.log(`[AnimeController] watch: ${fullEpisodeId}`);
+  console.log(`[AnimeController] watch: ${fullEpisodeId} (${provider})`);
 
   try {
-    const data = await animeService.getEpisodeSources(fullEpisodeId);
+    const data = await animeService.getEpisodeSources(fullEpisodeId, provider);
     
     if (!data?.sources?.length) {
       return res.json({

@@ -1,61 +1,78 @@
 import React from 'react';
-import { Play } from 'lucide-react';
+import { Play, Clapperboard, Languages } from 'lucide-react';
 
 const AnimeEpisodeList = ({ anime, episodes = [], onSelect, currentEpisodeId }) => {
-    return (
-        <div className="w-full max-w-4xl mx-auto p-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <div className="flex flex-col md:flex-row gap-8 mb-8">
-                <div className="w-full md:w-64 flex-shrink-0">
-                    <img 
-                        src={anime.image || anime.img || anime.cover} 
-                        alt={anime.title} 
-                        className="w-full rounded-2xl shadow-2xl border border-white/10"
-                    />
-                </div>
-                <div className="flex-1">
-                    <h1 className="text-4xl font-black text-white mb-2 bg-gradient-to-r from-white to-white/60 bg-clip-text text-transparent">
-                        {anime.title}
-                    </h1>
-                    <p className="text-white/60 text-lg leading-relaxed mb-6">
-                        {anime.description || 'No description available.'}
-                    </p>
-                    <div className="flex flex-wrap gap-4">
-                         {/* Stats could go here */}
-                         <div className="px-4 py-2 bg-white/5 rounded-full border border-white/10">
-                            <span className="text-purple-400 font-bold">{episodes.length}</span>
-                            <span className="text-white/40 ml-2">Episodes</span>
-                         </div>
-                    </div>
-                </div>
+  return (
+    <section className="mx-auto flex w-full max-w-6xl flex-col gap-5 px-4 pb-8 pt-4 sm:px-6">
+      <div className="overflow-hidden rounded-[28px] border border-white/10 bg-white/[0.04] p-4 shadow-[0_18px_50px_rgba(0,0,0,0.28)] sm:p-6">
+        <div className="flex flex-col gap-5 md:flex-row">
+          <img
+            src={anime.image || anime.img || anime.cover}
+            alt={anime.title}
+            className="mx-auto aspect-[3/4] w-full max-w-[220px] rounded-[24px] object-cover shadow-2xl"
+          />
+
+          <div className="flex-1 space-y-4">
+            <div className="space-y-2">
+              <span className="inline-flex rounded-full border border-cyan-300/20 bg-cyan-500/15 px-3 py-1 text-[10px] font-black uppercase tracking-[0.28em] text-cyan-200">
+                {anime.provider === 'animeflv' ? 'AnimeFLV' : 'Proveedor alterno'}
+              </span>
+              <h1 className="text-3xl font-black leading-none text-white sm:text-4xl">{anime.title}</h1>
+              <p className="text-sm leading-6 text-white/65 sm:text-base">
+                {anime.description || 'Sin descripción disponible.'}
+              </p>
             </div>
 
-            <h2 className="text-2xl font-bold text-white mb-6 flex items-center gap-3">
-                <span className="w-2 h-8 bg-purple-600 rounded-full"></span>
-                Episodes
-            </h2>
-
-            <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-3">
-                {episodes.map((ep) => (
-                    <button
-                        key={ep.id}
-                        onClick={() => onSelect(ep)}
-                        className={`group relative p-4 rounded-xl border transition-all ${
-                            currentEpisodeId === ep.id 
-                            ? 'bg-purple-600 border-purple-400 text-white shadow-lg shadow-purple-900/40' 
-                            : 'bg-white/5 border-white/10 text-white/70 hover:bg-white/10 hover:border-white/20'
-                        }`}
-                    >
-                        <span className="text-lg font-bold">{ep.number}</span>
-                        {currentEpisodeId === ep.id && (
-                             <div className="absolute -top-1 -right-1 w-4 h-4 bg-white rounded-full flex items-center justify-center">
-                                <Play size={8} fill="black" stroke="black" />
-                             </div>
-                        )}
-                    </button>
-                ))}
+            <div className="grid grid-cols-2 gap-3 sm:max-w-md">
+              <div className="rounded-2xl border border-white/10 bg-black/20 p-3">
+                <div className="mb-2 flex items-center gap-2 text-cyan-300">
+                  <Clapperboard size={16} />
+                  <span className="text-[11px] font-black uppercase tracking-[0.2em]">Episodios</span>
+                </div>
+                <div className="text-2xl font-black text-white">{episodes.length}</div>
+              </div>
+              <div className="rounded-2xl border border-white/10 bg-black/20 p-3">
+                <div className="mb-2 flex items-center gap-2 text-amber-300">
+                  <Languages size={16} />
+                  <span className="text-[11px] font-black uppercase tracking-[0.2em]">Audio</span>
+                </div>
+                <div className="text-sm font-bold text-white">LAT / SUB</div>
+              </div>
             </div>
+          </div>
         </div>
-    );
+      </div>
+
+      <div className="overflow-hidden rounded-[28px] border border-white/10 bg-white/[0.03] p-4 sm:p-5">
+        <div className="mb-4 flex items-center justify-between gap-3">
+          <h2 className="text-lg font-black uppercase tracking-[0.2em] text-white sm:text-xl">Lista de episodios</h2>
+          <span className="text-xs text-white/45">Toca un episodio para reproducir</span>
+        </div>
+
+        <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8">
+          {episodes.map((ep) => (
+            <button
+              key={ep.id}
+              onClick={() => onSelect(ep)}
+              className={`relative rounded-2xl border px-3 py-4 text-center transition ${
+                currentEpisodeId === ep.id
+                  ? 'border-cyan-300/60 bg-cyan-400 text-slate-950 shadow-[0_10px_30px_rgba(34,211,238,0.22)]'
+                  : 'border-white/10 bg-black/20 text-white hover:border-white/20 hover:bg-white/[0.06]'
+              }`}
+            >
+              <div className="text-[11px] font-black uppercase tracking-[0.18em] opacity-70">Ep</div>
+              <div className="text-lg font-black">{ep.number}</div>
+              {currentEpisodeId === ep.id && (
+                <div className="absolute right-2 top-2 rounded-full bg-slate-950/15 p-1">
+                  <Play size={10} fill="currentColor" />
+                </div>
+              )}
+            </button>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
 };
 
 export default AnimeEpisodeList;

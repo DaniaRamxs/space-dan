@@ -152,6 +152,7 @@ router.get('/proxy', async (req, res) => {
 
 router.get('/search', animeController.search);
 router.get('/info/:id', animeController.getInfo);
+router.get('/watch', animeController.watch);
 
 // Supports /api/anime/watch/:animeId/:episodeId (Most specific first)
 router.get('/watch/:animeId/:episodeId', animeController.watch);
