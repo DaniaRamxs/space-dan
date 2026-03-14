@@ -31,7 +31,9 @@
       "Bash(done)",
       "Bash(wc:*)",
       "Bash(rustc:*)",
-      "Bash(cargo --version:*)"
+      "Bash(cargo --version:*)",
+      "Bash(ls:*)",
+      "Bash(python3:*)"
     ]
   }
 }

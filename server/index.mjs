@@ -34,6 +34,8 @@ import { LiveActivityRoom } from "./rooms/LiveActivityRoom.mjs";
 import youtubeRoutes from "./youtubeSearch.mjs";
 import socialRoutes from "./modules/social/index.mjs";
 import audioRoutes from "./modules/audio/audioRoutes.mjs";
+import animeRoutes from "./modules/anime/animeRoutes.mjs";
+import { AnimeRoom } from "./rooms/AnimeRoom.mjs";
 
 const PORT = process.env.PORT || 2567;
 const IS_PROD = process.env.NODE_ENV === "production";
@@ -151,6 +153,7 @@ app.use("/api/activities", authenticateSupabase);
 app.use("/api", youtubeRoutes);
 app.use("/api", socialRoutes);
 app.use("/api/audio", audioRoutes);
+app.use("/api/anime", animeRoutes);
 
 console.log('[ROUTES] Social API mounted: /api/communities, /api/activities');
 console.log('[ROUTES] Audio API mounted: /api/audio');
@@ -212,6 +215,7 @@ gameServer.define("puzzle", PuzzleRoom).filterBy(['roomName']);
 gameServer.define("ludo", LudoRoom).filterBy(['roomName']);
 gameServer.define("beat_sound", BeatSoundRoom).filterBy(['roomName']);
 gameServer.define("live-activity", LiveActivityRoom).filterBy(['activityId']);
+gameServer.define("anime", AnimeRoom).filterBy(['roomId']);
 
 /* ==================== 404 HANDLER ==================== */
 

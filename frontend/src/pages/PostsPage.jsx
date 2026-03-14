@@ -60,8 +60,12 @@ export default function PostsPage() {
           className="px-4 md:px-0 mb-6"
         >
           <ActivityDiscoveryBanner joinActivity={(id) => {
-            // Navigate to voice chat with the selected activity
-            navigate(`/chat?activity=${id}`);
+            if (id === 'anime') {
+              navigate('/anime');
+            } else {
+              // Navigate to voice chat with the selected activity
+              navigate(`/chat?activity=${id}`);
+            }
           }} />
         </motion.div>
       )}

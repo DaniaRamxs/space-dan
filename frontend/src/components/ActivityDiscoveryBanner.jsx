@@ -26,6 +26,7 @@ const activities = [
   { id: "puzzle", name: "Co-Op Puzzle", icon: "🧩", description: "Puzles colaborativos en tiempo real" },
   { id: "ludo", name: "Ludo Classic", icon: "🎲", description: "Ludo clasico para 4 jugadores" },
   { id: "watch", name: "Watch Together", icon: "🎬", description: "Ve videos en sincronia con amigos" },
+  { id: "anime", name: "Anime Space", icon: "📺", description: "Mira anime con tus amigos en tiempo real" },
 ];
 
 const containerVariants = {
