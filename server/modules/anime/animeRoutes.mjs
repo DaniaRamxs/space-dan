@@ -6,7 +6,10 @@ const router = Router();
 router.get('/search', animeController.search);
 router.get('/info/:id', animeController.getInfo);
 
-// Supports both legacy /watch/:animeId/:episodeId and new /watch/:episodeId
-router.get('/watch/:id1/:id2?', animeController.watch);
+// Supports /api/anime/watch/:animeId/:episodeId (Most specific first)
+router.get('/watch/:animeId/:episodeId', animeController.watch);
+
+// Supports /api/anime/watch/:episodeId
+router.get('/watch/:episodeId', animeController.watch);
 
 export default router;

@@ -52,7 +52,7 @@ const AnimePlayer = ({
             }
             if (externalState.currentTime !== undefined) {
                 const diff = Math.abs(videoRef.current.currentTime - externalState.currentTime);
-                if (diff > 2) { // Only sync if diff > 2 seconds
+                if (diff > 1.5) { // Only sync if diff > 1.5 seconds (prevents stuttering)
                     videoRef.current.currentTime = externalState.currentTime;
                 }
             }

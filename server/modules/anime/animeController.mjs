@@ -25,16 +25,24 @@ export const getInfo = async (req, res) => {
 };
 
 export const watch = async (req, res) => {
-  // If id2 exists, we are in /watch/:animeId/:episodeId pattern
-  // Otherwise, id1 is the episodeId in /watch/:episodeId pattern
-  const { id1, id2 } = req.params;
-  const episodeId = id2 || id1;
+  // episodeId will be present in both /watch/:episodeId and /watch/:animeId/:episodeId
+  const { episodeId } = req.params;
 
-  if (!episodeId) return res.status(400).json({ error: 'Episode ID is required' });
+  if (!episodeId || episodeId.length < 5) {
+    return res.status(400).json({ success: false, message: 'Invalid or missing Episode ID' });
+  }
 
   try {
-    const sources = await animeService.getEpisodeSources(episodeId);
-    res.json(sources);
+    const data = await animeService.getEpisodeSources(episodeId);
+    
+    if (!data?.sources?.length) {
+      return res.json({
+        success: false,
+        message: "No streaming sources available for this episode."
+      });
+    }
+
+    res.json(data);
   } catch (error) {
     res.status(500).json({ error: 'Failed to get episode sources' });
   }
