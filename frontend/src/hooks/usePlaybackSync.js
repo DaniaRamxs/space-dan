@@ -75,7 +75,9 @@ export function usePlaybackSync({
             handleRemoteState(payload);
         };
 
-        const unsub = colyseusRoom.onStateChange((state) => {
+        // onStateChange returns an EventEmitter { handlers, clear(), remove(fn) }
+        // NOT a function — calling it as unsub() crashes: "n is not a function"
+        const stateEmitter = colyseusRoom.onStateChange((state) => {
             const newState = {
                 videoId: state.videoId || '',
                 playing: state.playing,
@@ -83,7 +85,7 @@ export function usePlaybackSync({
                 hostId: state.hostId,
                 lastUpdate: state.lastUpdate
             };
-            
+
             if (newState.hostId !== profile?.id) {
                 handleRemoteState(newState);
             } else {
@@ -95,14 +97,17 @@ export function usePlaybackSync({
             }
         });
 
-        // Listen for direct snapshots (late joins)
-        colyseusRoom.onMessage("STATE_UPDATE", handleUpdate);
+        // onMessage returns an unsubscribe function directly
+        const unsubMessage = colyseusRoom.onMessage("STATE_UPDATE", handleUpdate);
 
         return () => {
-            unsub?.();
-            // FIX: Colyseus has no .off() → use .removeListener() with guard
-            if (typeof colyseusRoom?.removeListener === 'function') {
-                colyseusRoom.removeListener("STATE_UPDATE", handleUpdate);
+            // Colyseus 0.16: onStateChange → EventEmitter.clear()
+            if (typeof stateEmitter?.clear === 'function') {
+                stateEmitter.clear();
+            }
+            // Colyseus 0.16: onMessage → returns unsubscribe fn
+            if (typeof unsubMessage === 'function') {
+                unsubMessage();
             }
         };
     }, [colyseusRoom, profile?.id]);

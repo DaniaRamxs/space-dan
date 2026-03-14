@@ -94,13 +94,12 @@ export function useReactionEngine({ room = null, getVideoTimestamp } = {}) {
     }, [checkStorm]);
 
     // ── Colyseus reaction listener ────────────────────────────────────────────
-    // FIX: Colyseus v0.15 does NOT have room.off() → use room.removeListener()
-    // with a safety guard to avoid crashes if room object changes shape.
+    // Colyseus 0.16: onMessage() returns an unsubscribe function.
+    // room.off() and room.removeListener() do NOT exist.
     //
     // dep array: [room] ONLY
     // addGifOverlay is stable (useCallback with [checkStorm])
     // checkStorm is stable (useCallback with [])
-    // Adding other deps here would re-register the listener on every render → duplicate handlers
     useEffect(() => {
         if (!room) return;
 
@@ -108,19 +107,16 @@ export function useReactionEngine({ room = null, getVideoTimestamp } = {}) {
             if (data?.type === 'gif' && data.content) {
                 addGifOverlay(data.content);
             } else if (data?.type === 'emoji') {
-                // Emoji reactions feed storm detection only
                 reactionBufferRef.current.push(Date.now());
                 checkStorm();
             }
         };
 
-        room.onMessage('reaction', handler);
+        const unsub = room.onMessage('reaction', handler);
 
         return () => {
-            // FIX: room.off() ← does NOT exist in Colyseus, crashes on cleanup
-            // Use removeListener() with guard for safety
-            if (typeof room?.removeListener === 'function') {
-                room.removeListener('reaction', handler);
+            if (typeof unsub === 'function') {
+                unsub();
             }
         };
     }, [room]); // eslint-disable-line react-hooks/exhaustive-deps
