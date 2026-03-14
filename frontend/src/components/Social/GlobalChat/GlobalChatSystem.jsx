@@ -127,6 +127,30 @@ export default function GlobalChat({ initialActivity = null }) {
     const activeGames = useRef({}); // { [userId]: { type, data } }
     const processedIds = useRef(new Set());
     const activeEventsRef = useRef({ meteor: null, boss: null, marketCrash: null, eclipse: null });
+    // ── Auto-Sincronización de Sala de Voz ──────────────────────
+    // Si otros usuarios ya están en una sala, actualizamos el nombre localmente
+    // para que al dar click en "Unirse" entremos a la misma sala que ellos.
+    useEffect(() => {
+        if (!onlineUsers || inVoiceRoom || hasJoinedVoice) return;
+        
+        const voices = Object.values(onlineUsers).filter(u => u.inVoice && u.voiceRoom);
+        if (voices.length > 0) {
+            // Contar usuarios por sala
+            const roomCounts = {};
+            voices.forEach(u => {
+                roomCounts[u.voiceRoom] = (roomCounts[u.voiceRoom] || 0) + 1;
+            });
+            
+            // Obtener la sala con más gente
+            const topRoom = Object.keys(roomCounts).sort((a, b) => roomCounts[b] - roomCounts[a])[0];
+            
+            if (topRoom && topRoom !== voiceRoomName) {
+                console.log('[GlobalChat] Sincronizando nombre de sala detectada:', topRoom);
+                setVoiceRoomName(topRoom);
+            }
+        }
+    }, [onlineUsers, inVoiceRoom, hasJoinedVoice, voiceRoomName]);
+
     const lastEventRollRef = useRef(0);
 
     // ── Auto-join voice room when coming from community ─────────────

@@ -4,7 +4,7 @@
  */
 
 import { Room } from "colyseus";
-import { LiveActivityState, ActivityParticipant } from "../schema/LiveActivityState.mjs";
+import { LiveActivityState, ActivityParticipant, Reaction } from "../schema/LiveActivityState.mjs";
 import { supabase } from "../supabaseClient.mjs";
 
 const IS_PROD = process.env.NODE_ENV === "production";
@@ -72,6 +72,21 @@ export class LiveActivityRoom extends Room {
       }
     });
 
+    // Update playback state (host only)
+    this.onMessage("update_state", (client, state) => {
+      const participant = this.state.participants.get(client.sessionId);
+      if (participant?.isHost) {
+        if (state.videoId !== undefined) this.state.videoId = state.videoId;
+        if (state.playing !== undefined) this.state.playing = state.playing;
+        if (state.currentTime !== undefined) this.state.currentTime = state.currentTime;
+        if (state.duration !== undefined) this.state.duration = state.duration;
+        this.state.lastUpdate = state.lastUpdate || Date.now();
+        
+        // Secondary broadcast for immediate sync
+        this.broadcast("STATE_UPDATE", state, { except: client });
+      }
+    });
+
     // Chat message
     this.onMessage("chat", (client, message) => {
       const participant = this.state.participants.get(client.sessionId);
@@ -83,6 +98,26 @@ export class LiveActivityRoom extends Room {
           message,
           timestamp: Date.now()
         });
+      }
+    });
+
+    // Reaction (emoji/gif)
+    this.onMessage("reaction", (client, { type, content, videoTimestamp }) => {
+      const participant = this.state.participants.get(client.sessionId);
+      if (participant) {
+        const reaction = new Reaction();
+        reaction.type = type;
+        reaction.content = content;
+        reaction.timestamp = videoTimestamp;
+        reaction.userId = participant.userId;
+        reaction.username = participant.username;
+        
+        this.state.reactions.push(reaction);
+        
+        // Mantener solo las últimas 100 reacciones para no saturar el estado
+        if (this.state.reactions.length > 100) {
+          this.state.reactions.shift();
+        }
       }
     });
   }

@@ -1,6 +1,8 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useMemo } from 'react';
 import Hls from 'hls.js';
-import { Play, Pause, Volume2, VolumeX, Maximize, MonitorPlay } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Play, Pause, Volume2, VolumeX, Maximize, MonitorPlay, Heart, Laugh, Ghost, Zap } from 'lucide-react';
+import ReactionOverlay from '../../components/reactions/ReactionOverlay';
 
 const API_URL = import.meta.env.VITE_API_URL || '';
 
@@ -17,6 +19,13 @@ const formatTime = (time) => {
   return `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
 };
 
+const QUICK_REACTIONS = [
+    { type: 'emoji', content: '😂', icon: Laugh, color: 'text-yellow-400' },
+    { type: 'emoji', content: '🔥', icon: Zap, color: 'text-orange-500' },
+    { type: 'emoji', content: '😱', icon: Ghost, color: 'text-purple-400' },
+    { type: 'emoji', content: '❤️', icon: Heart, color: 'text-red-500' },
+];
+
 const AnimePlayer = ({
   source,
   subtitles = [],
@@ -26,6 +35,10 @@ const AnimePlayer = ({
   onSeek,
   isHost = false,
   externalState = {},
+  reactions = [],
+  onReaction,
+  gifOverlays = [],
+  isStorming = false
 }) => {
   const videoRef = useRef(null);
   const hlsRef = useRef(null);
@@ -64,17 +77,10 @@ const AnimePlayer = ({
       hls.attachMedia(video);
       hls.on(Hls.Events.ERROR, (_, data) => {
         if (!data.fatal) return;
-
         switch (data.type) {
-          case Hls.ErrorTypes.NETWORK_ERROR:
-            hls.startLoad();
-            break;
-          case Hls.ErrorTypes.MEDIA_ERROR:
-            hls.recoverMediaError();
-            break;
-          default:
-            hls.destroy();
-            break;
+          case Hls.ErrorTypes.NETWORK_ERROR: hls.startLoad(); break;
+          case Hls.ErrorTypes.MEDIA_ERROR: hls.recoverMediaError(); break;
+          default: hls.destroy(); break;
         }
       });
       hlsRef.current = hls;
@@ -92,35 +98,28 @@ const AnimePlayer = ({
 
   useEffect(() => {
     if (isEmbed || !videoRef.current || isHost) return;
-
-    if (externalState.isPlaying !== undefined) {
-      if (externalState.isPlaying) videoRef.current.play().catch(() => {});
+    if (externalState.playing !== undefined) {
+      if (externalState.playing) videoRef.current.play().catch(() => {});
       else videoRef.current.pause();
     }
-
     if (externalState.currentTime !== undefined) {
       const diff = Math.abs(videoRef.current.currentTime - externalState.currentTime);
-      if (diff > 1.5) {
+      if (diff > 3) {
         videoRef.current.currentTime = externalState.currentTime;
       }
     }
   }, [externalState, isEmbed, isHost]);
-
-  useEffect(() => () => {
-    if (controlsTimeout.current) clearTimeout(controlsTimeout.current);
-  }, []);
 
   const autoHideControls = () => {
     setShowControls(true);
     if (controlsTimeout.current) clearTimeout(controlsTimeout.current);
     controlsTimeout.current = setTimeout(() => {
       if (isPlaying) setShowControls(false);
-    }, 3000);
+    }, 4000);
   };
 
   const handlePlayPause = () => {
     if (!videoRef.current) return;
-
     if (videoRef.current.paused) {
       videoRef.current.play();
       if (onPlay) onPlay(videoRef.current.currentTime);
@@ -136,149 +135,160 @@ const AnimePlayer = ({
     if (isHost && onTimeUpdate) onTimeUpdate(videoRef.current.currentTime);
   };
 
-  const handleLoadedMetadata = () => {
-    if (!videoRef.current) return;
-    setDuration(videoRef.current.duration);
-  };
-
   const handleSeek = (e) => {
-    if (!videoRef.current) return;
+    if (!videoRef.current || !isHost) return;
     const time = parseFloat(e.target.value);
     videoRef.current.currentTime = time;
     setCurrentTime(time);
     if (onSeek) onSeek(time);
   };
 
-  const toggleMute = () => {
-    if (!videoRef.current) return;
-    videoRef.current.muted = !isMuted;
-    setIsMuted(!isMuted);
-  };
+  const timelineReactions = useMemo(() => {
+    if (!reactions || duration === 0) return [];
+    
+    const WINDOW = 3; 
+    const sorted = [...reactions].sort((a, b) => a.timestamp - b.timestamp);
+    const groups = [];
 
-  const handleVolumeChange = (e) => {
-    if (!videoRef.current) return;
-    const nextVolume = parseFloat(e.target.value);
-    videoRef.current.volume = nextVolume;
-    setVolume(nextVolume);
-    setIsMuted(nextVolume === 0);
-  };
+    sorted.forEach(r => {
+        const lastGroup = groups[groups.length - 1];
+        if (lastGroup && (r.timestamp - lastGroup.timestamp) <= WINDOW) {
+            lastGroup.count = (lastGroup.count || 1) + 1;
+        } else {
+            groups.push({ ...r, count: 1 });
+        }
+    });
 
-  const toggleFullscreen = () => {
-    if (isEmbed) return;
-    const container = videoRef.current?.parentElement;
-    if (!container) return;
-    if (!document.fullscreenElement) container.requestFullscreen();
-    else document.exitFullscreen();
-  };
+    return groups.map(g => ({
+      ...g,
+      left: (g.timestamp / duration) * 100
+    }));
+  }, [reactions, duration]);
 
   return (
-    <div className="overflow-hidden rounded-[24px] border border-white/10 bg-[#080810] shadow-[0_20px_60px_rgba(0,0,0,0.35)] sm:rounded-[28px]">
+    <div className="overflow-hidden rounded-[24px] border border-white/10 bg-[#080810] shadow-[0_20px_60px_rgba(0,0,0,0.35)] sm:rounded-[40px]">
       <div
-        className="relative aspect-video w-full bg-black"
+        className="relative aspect-video w-full bg-black group/player"
         onMouseMove={!isEmbed ? autoHideControls : undefined}
-        onMouseLeave={!isEmbed && isPlaying ? () => setShowControls(false) : undefined}
       >
         {isEmbed ? (
-          <iframe
-            src={src}
-            title={source?.quality || 'Anime embed player'}
-            className="h-full w-full"
-            allow="autoplay; fullscreen; picture-in-picture"
-            allowFullScreen
-            referrerPolicy="strict-origin-when-cross-origin"
-          />
+          <iframe src={src} className="h-full w-full" allowFullScreen />
         ) : (
           <>
             <video
               ref={videoRef}
               className="h-full w-full"
               onTimeUpdate={handleTimeUpdate}
-              onLoadedMetadata={handleLoadedMetadata}
+              onLoadedMetadata={() => setDuration(videoRef.current.duration)}
               onPlay={() => setIsPlaying(true)}
               onPause={() => setIsPlaying(false)}
               onClick={handlePlayPause}
             >
-              {subtitles.map((sub, index) => (
-                <track
-                  key={`${sub.url}-${index}`}
-                  kind="subtitles"
-                  src={sub.url}
-                  srcLang={sub.lang || 'es'}
-                  label={sub.label || 'Español'}
-                  default={index === 0}
-                />
+              {subtitles.map((sub, i) => (
+                <track key={i} kind="subtitles" src={sub.url} srcLang={sub.lang} label={sub.label} default={i === 0} />
               ))}
             </video>
 
-            <div
-              className={`absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent px-3 py-3 transition-opacity sm:px-4 ${showControls ? 'opacity-100' : 'opacity-0'}`}
-            >
-              <input
-                type="range"
-                min="0"
-                max={duration || 0}
-                value={currentTime}
-                onChange={handleSeek}
-                className="mb-3 h-1 w-full cursor-pointer appearance-none rounded-lg bg-white/20 accent-cyan-400"
-                disabled={!isHost && Object.keys(externalState).length > 0}
-              />
+            <ReactionOverlay gifOverlays={gifOverlays} isStorming={isStorming} />
 
-              <div className="flex flex-wrap items-center justify-between gap-3 text-white">
-                <div className="flex min-w-0 items-center gap-2 sm:gap-3">
-                  <button onClick={handlePlayPause} className="rounded-full bg-white/10 p-2 transition hover:bg-white/20">
-                    {isPlaying ? <Pause size={18} fill="white" /> : <Play size={18} fill="white" />}
-                  </button>
-                  <button onClick={toggleMute} className="rounded-full bg-white/10 p-2 transition hover:bg-white/20">
-                    {isMuted ? <VolumeX size={18} /> : <Volume2 size={18} />}
-                  </button>
-                  <input
-                    type="range"
-                    min="0"
-                    max="1"
-                    step="0.1"
-                    value={volume}
-                    onChange={handleVolumeChange}
-                    className="hidden h-1 w-20 cursor-pointer appearance-none rounded-lg bg-white/20 accent-white sm:block"
-                  />
-                  <span className="min-w-0 text-xs font-semibold text-white/80 sm:text-sm">
-                    {formatTime(currentTime)} / {formatTime(duration)}
-                  </span>
-                </div>
+            <AnimatePresence>
+                {showControls && (
+                    <motion.div 
+                        initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                        className="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-black/40 p-4 flex flex-col justify-end"
+                    >
+                        {/* Reaction Markers */}
+                        <div className="relative h-6 mb-1">
+                            {timelineReactions.map((r, i) => (
+                                <div 
+                                    key={i} 
+                                    className="absolute bottom-0 bg-white/10 rounded-full backdrop-blur-sm border border-white/20 transform -translate-x-1/2 p-0.5 shadow-lg overflow-hidden" 
+                                    style={{ left: `${r.left}%` }}
+                                >
+                                    {r.type === 'gif' ? (
+                                        <div className="relative">
+                                            <img src={r.content} className="w-5 h-5 object-cover rounded-md" alt="marker" />
+                                            {r.count > 1 && (
+                                                <span className="absolute -top-1.5 -right-1.5 bg-cyan-500 text-white text-[7px] font-black px-1 rounded-full border border-white/20">
+                                                    {r.count}
+                                                </span>
+                                            )}
+                                        </div>
+                                    ) : (
+                                        <div className="flex items-center gap-0.5 px-0.5">
+                                            <span className="text-[10px]">{r.content}</span>
+                                            {r.count > 1 && (
+                                                <span className="text-[8px] font-black text-cyan-400">x{r.count}</span>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+                            ))}
+                        </div>
 
-                <button onClick={toggleFullscreen} className="ml-auto rounded-full bg-white/10 p-2 transition hover:bg-white/20">
-                  <Maximize size={18} />
-                </button>
-              </div>
-            </div>
+                        {/* Progress Bar */}
+                        <div className="relative h-1.5 w-full bg-white/20 rounded-full mb-4 group/progress cursor-pointer"
+                             onClick={(e) => {
+                                 if (!isHost) return;
+                                 const rect = e.currentTarget.getBoundingClientRect();
+                                 const time = ((e.clientX - rect.left) / rect.width) * duration;
+                                 videoRef.current.currentTime = time;
+                             }}>
+                            <div className="absolute h-full bg-cyan-400 rounded-full" style={{ width: `${(currentTime/duration)*100}%` }} />
+                            {isHost && (
+                                <div className="absolute top-1/2 -translate-y-1/2 w-3 h-3 bg-white rounded-full scale-0 group-hover/progress:scale-100 transition-transform" style={{ left: `${(currentTime/duration)*100}%` }} />
+                            )}
+                        </div>
+
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-4">
+                                <button onClick={handlePlayPause} className="w-10 h-10 bg-white text-black rounded-full flex items-center justify-center hover:scale-110 transition-all">
+                                    {isPlaying ? <Pause size={20} fill="black" /> : <Play size={20} fill="black" />}
+                                </button>
+                                <span className="text-xs font-mono text-white/70">{formatTime(currentTime)} / {formatTime(duration)}</span>
+                            </div>
+
+                            {/* Reactions panel */}
+                            <div className="flex items-center gap-2">
+                                {QUICK_REACTIONS.map((r, i) => (
+                                    <button 
+                                        key={i} 
+                                        onClick={() => onReaction?.(r.type, r.content)}
+                                        className="p-2 bg-white/5 rounded-xl hover:bg-white/15 transition-all active:scale-90 border border-white/5"
+                                    >
+                                        <r.icon size={16} className={r.color} />
+                                    </button>
+                                ))}
+                            </div>
+
+                            <button onClick={() => {
+                                const container = videoRef.current?.parentElement;
+                                if (!document.fullscreenElement) container.requestFullscreen();
+                                else document.exitFullscreen();
+                            }} className="p-2 bg-white/5 rounded-xl hover:bg-white/10">
+                                <Maximize size={18} />
+                            </button>
+                        </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
           </>
         )}
 
-        <div className="absolute left-3 top-3 flex flex-wrap gap-2">
-          {isHost && (
-            <span className="rounded-full border border-cyan-300/40 bg-cyan-500/20 px-2 py-1 text-[10px] font-black uppercase tracking-[0.2em] text-cyan-100">
-              Host
-            </span>
-          )}
-          {!isHost && Object.keys(externalState).length > 0 && !isEmbed && (
-            <span className="rounded-full border border-blue-300/40 bg-blue-500/20 px-2 py-1 text-[10px] font-black uppercase tracking-[0.2em] text-blue-100">
-              Synced
-            </span>
-          )}
-          {isEmbed && (
-            <span className="rounded-full border border-amber-300/40 bg-amber-500/20 px-2 py-1 text-[10px] font-black uppercase tracking-[0.2em] text-amber-100">
-              <span className="mr-1 inline-flex align-middle"><MonitorPlay size={12} /></span>
-              Embed
-            </span>
-          )}
+        <div className="absolute left-4 top-4 flex gap-2 pointer-events-none">
+          {isHost ? (
+            <div className="flex items-center gap-2 rounded-full border border-amber-300/40 bg-amber-500/20 px-3 py-1.5 shadow-[0_0_15px_rgba(245,158,11,0.2)]">
+                <span className="text-[14px]">👑</span>
+                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-amber-100">HOST</span>
+            </div>
+          ) : (externalState && externalState.videoId) ? (
+            <div className="flex items-center gap-2 rounded-full border border-blue-300/40 bg-blue-500/20 px-3 py-1.5 backdrop-blur-md">
+                <div className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" />
+                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-blue-100 text-shadow-glow">Synced</span>
+            </div>
+          ) : null}
         </div>
       </div>
-
-      {isEmbed && (
-        <div className="flex flex-col gap-1 border-t border-white/10 bg-white/[0.03] px-4 py-3 text-xs text-white/70 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
-          <span>{source?.isDub ? 'Audio latino disponible' : 'Subtitulado en español'}</span>
-          <span>{source?.quality || source?.server || 'Reproductor externo'}</span>
-        </div>
-      )}
     </div>
   );
 };

@@ -1,24 +1,33 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { ChevronLeft, MessageSquare, Tv, Users, Radio } from 'lucide-react';
-import toast from 'react-hot-toast';
-import { useAuthContext } from '../../contexts/AuthContext';
-import { supabase } from '../../supabaseClient';
-import { joinOrCreateRoom } from '../../services/colyseusClient';
-import { liveActivitiesService } from '../../services/liveActivitiesService';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
+import { Radio, Users, MessageSquare, ChevronLeft, Tv, Send } from 'lucide-react';
+import YouTubeSearchModal from '../Social/YouTubeSearchModal';
+import GifPickerModal from '../reactions/GifPickerModal';
+import { toast } from 'sonner';
+import { useAuthContext } from '../../../contexts/AuthContext';
+import { useLiveActivity } from '../../../hooks/useLiveActivity';
+import { usePlaybackSync } from '../../../hooks/usePlaybackSync';
+import { animeService } from '../../../services/animeService';
+import { liveActivitiesService } from '../../../services/liveActivitiesService';
+import { supabase } from '../../../supabaseClient';
+import { joinOrCreateRoom } from '../../../services/colyseusClient';
 import AnimeEpisodeList from './AnimeEpisodeList';
 import AnimePlayer from './AnimePlayer';
 import AnimeSearch from './AnimeSearch';
-import { animeService } from './animeService';
 
 const AnimeSpacePage = ({ onClose, roomName }) => {
   const { profile } = useAuthContext();
-  const [view, setView] = useState('search');
+  const [activeTab, setActiveTab] = useState('participants');
+  const [gifPickerOpen, setGifPickerOpen] = useState(false);
+  const [gifOverlays, setGifOverlays] = useState([]);
+  const [reactionBuffer, setReactionBuffer] = useState([]);
+  const [isStorming, setIsStorming] = useState(false);
   const [selectedAnime, setSelectedAnime] = useState(null);
+  const [view, setView] = useState('search');
+  const [mobilePanel, setMobilePanel] = useState('info');
   const [episodes, setEpisodes] = useState([]);
   const [currentEpisode, setCurrentEpisode] = useState(null);
   const [streamData, setStreamData] = useState(null);
   const [activeSourceIndex, setActiveSourceIndex] = useState(0);
-  const [mobilePanel, setMobilePanel] = useState('info');
   const [loading, setLoading] = useState(false);
 
   const [room, setRoom] = useState(null);
@@ -30,6 +39,18 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
   const leavingRoomRef = useRef(false);
   const syncChannelRef = useRef(null);
   const applyingRemoteStateRef = useRef(false);
+  const stormTimestampsRef = useRef([]);
+
+  const { 
+    playbackState, 
+    isHost: isSyncedHost, 
+    updatePlayback 
+  } = usePlaybackSync({
+    roomName: roomName || 'general',
+    colyseusRoom: room
+  });
+
+  const isHost = isSyncedHost || (roomState?.hostId === profile?.id);
 
   const clearRoomState = () => {
     setRoom(null);
@@ -43,30 +64,37 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
     }
   }, [chatMessages]);
 
+  // State refs for stable broadcasting
+  const stateRef = useRef({ view, selectedAnime, episodes, currentEpisode, streamData, activeSourceIndex, roomState });
+  useEffect(() => {
+    stateRef.current = { view, selectedAnime, episodes, currentEpisode, streamData, activeSourceIndex, roomState };
+  }, [view, selectedAnime, episodes, currentEpisode, streamData, activeSourceIndex, roomState]);
+
   useEffect(() => {
     if (!roomName || !onClose) return undefined;
 
-    const channelName = `anime-sync-${roomName.toLowerCase().replace(/[^a-z0-9]/g, '-')}`;
+    const channelName = `anime-sync-${roomName.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-')}`;
     const channel = supabase.channel(channelName);
     syncChannelRef.current = channel;
 
     const syncCurrentState = () => {
-      if (!selectedAnime) return;
+      const s = stateRef.current;
+      if (!s.selectedAnime) return;
       channel.send({
         type: 'broadcast',
         event: 'anime_state',
         payload: {
           senderId: profile?.id || null,
-          view,
-          selectedAnime,
-          episodes,
-          currentEpisode,
-          streamData,
-          activeSourceIndex,
-          roomState: roomState?.roomId
-            ? { roomId: roomState.roomId }
-            : currentEpisode && selectedAnime
-              ? { roomId: `anime-${selectedAnime.id?.slice(0, 8)}-${String(currentEpisode.number).padStart(3, '0')}` }
+          view: s.view,
+          selectedAnime: s.selectedAnime,
+          episodes: s.episodes,
+          currentEpisode: s.currentEpisode,
+          streamData: s.streamData,
+          activeSourceIndex: s.activeSourceIndex,
+          roomState: s.roomState?.roomId
+            ? { roomId: s.roomState.roomId }
+            : s.currentEpisode && s.selectedAnime
+              ? { roomId: `anime-${s.selectedAnime.id?.slice(0, 8)}-${String(s.currentEpisode.number).padStart(3, '0')}` }
               : null,
         },
       }).catch(() => {});
@@ -82,8 +110,8 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
         setCurrentEpisode(payload.currentEpisode || null);
         setStreamData(payload.streamData || null);
         setActiveSourceIndex(payload.activeSourceIndex || 0);
-        setView(payload.view || 'search');
-        setMobilePanel(payload.currentEpisode ? 'chat' : 'info');
+        // setView(payload.view || 'search'); // Removed as per new state
+        // setMobilePanel(payload.currentEpisode ? 'chat' : 'info'); // Removed as per new state
 
         if (payload.currentEpisode && payload.selectedAnime && payload.roomState?.roomId) {
           try {
@@ -98,9 +126,27 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
           }
         }
 
+        setView(payload.view || 'search');
+        if (payload.currentEpisode) setMobilePanel('chat');
+
         window.setTimeout(() => {
           applyingRemoteStateRef.current = false;
         }, 0);
+      })
+      .on('broadcast', { event: 'chat_message' }, ({ payload }) => {
+        if (payload.type === "gif") {
+            const newGif = { id: Date.now() + Math.random(), url: payload.gifUrl };
+            setGifOverlays(prev => [...prev.slice(-4), newGif]);
+            setReactionBuffer(prev => [...prev.slice(-10), Date.now()]);
+            
+            setTimeout(() => {
+                setGifOverlays(prev => prev.filter(g => g.id !== newGif.id));
+            }, 4000);
+        }
+
+        if (payload.userId !== profile?.id) {
+            setChatMessages(prev => [...prev.slice(-50), payload]);
+        }
       })
       .on('broadcast', { event: 'anime_sync_req' }, ({ payload }) => {
         if (payload?.senderId === profile?.id) return;
@@ -120,7 +166,7 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
       syncChannelRef.current = null;
       supabase.removeChannel(channel);
     };
-  }, [roomName, onClose, profile?.id, view, selectedAnime, episodes, currentEpisode, streamData, activeSourceIndex, roomState?.roomId]);
+  }, [roomName, onClose, profile?.id]);
 
   const resetWatchParty = () => {
     if (room) {
@@ -295,39 +341,70 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
 
   const handleSendMessage = (e) => {
     e.preventDefault();
-    const message = chatInput.trim();
-    if (!message || !room || !room.connection?.isOpen) {
-      toast.error('La sala no estÃ¡ conectada.');
+    const text = chatInput.trim();
+    if (!text) return;
+
+    if (!room) {
+      toast.error('La sala no está conectada.');
       return;
     }
 
-    room.send('chat', { message });
+    room.send('chat', text);
+    
+    // Broadcast via Supabase for unified stream
+    if (syncChannelRef.current) {
+        syncChannelRef.current.send({
+            type: 'broadcast',
+            event: 'chat_message',
+            payload: {
+                id: Date.now(),
+                userId: profile?.id,
+                username: profile?.username || "Anon",
+                avatar: profile?.avatar_url,
+                content: text,
+                timestamp: Date.now()
+            }
+        });
+    }
+
     setChatInput('');
   };
 
-  const handleTimeUpdate = (time) => {
-    if (room && isHost && Math.floor(time) % 5 === 0) {
-      room.send('seek', { currentTime: time });
+  const handlePlay = (currentTime) => {
+    if (isHost) {
+      updatePlayback({ playing: true, currentTime });
     }
   };
 
-  const handlePlay = (time) => {
-    if (room && roomState?.hostId === profile?.id) {
-      room.send('play', { currentTime: time });
+  const handlePause = (currentTime) => {
+    if (isHost) {
+      updatePlayback({ playing: false, currentTime });
     }
   };
 
-  const handlePause = (time) => {
-    if (room && roomState?.hostId === profile?.id) {
-      room.send('pause', { currentTime: time });
+  const handleSeek = (currentTime) => {
+    if (isHost) {
+      updatePlayback({ currentTime });
     }
   };
 
-  const handleSeek = (time) => {
-    if (room && roomState?.hostId === profile?.id) {
-      room.send('seek', { currentTime: time });
+  const handleTimeUpdate = (currentTime) => {
+    // Solo el host sincroniza periódicamente para mantener a todos juntos
+    if (isHost && Math.floor(currentTime) % 10 === 0) {
+      updatePlayback({ currentTime });
     }
   };
+
+  // Sincronizar videoId cuando cambia el episodio
+  useEffect(() => {
+    if (isHost && currentEpisode) {
+      updatePlayback({ 
+          videoId: currentEpisode.id, 
+          playing: true, 
+          currentTime: 0 
+      });
+    }
+  }, [currentEpisode?.id, isHost]);
 
   useEffect(() => {
     if (view !== 'player' || !streamData || !selectedAnime || !currentEpisode) return;
@@ -344,7 +421,6 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
   }, [activeSourceIndex]);
 
   const currentSource = streamData?.sources?.[activeSourceIndex] || null;
-  const isHost = roomState?.hostId === profile?.id;
   const visibleParticipants = participants.length
     ? participants
     : [{ username: profile?.username, avatar: profile?.avatar_url, isHost: true }];
@@ -354,18 +430,65 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
     { id: 'chat', label: 'Chat', icon: MessageSquare },
   ];
 
+  const sendGif = (gifUrl) => {
+    if (!syncChannelRef.current) return;
+    const message = {
+        id: Date.now(),
+        userId: profile?.id,
+        username: profile?.username || "Anon",
+        avatar: profile?.avatar_url,
+        type: "gif",
+        gifUrl,
+        timestamp: Date.now()
+    };
+    setChatMessages(prev => [...prev.slice(-50), message]);
+    syncChannelRef.current.send({
+        type: "broadcast",
+        event: "chat_message",
+        payload: message
+    });
+
+    // Also send to Colyseus for persistent Reaction Timeline
+    if (room) {
+        const time = playbackState.currentTime;
+        room.send("reaction", { type: "gif", content: gifUrl, videoTimestamp: time });
+    }
+
+    const newGif = { id: Date.now() + Math.random(), url: gifUrl };
+    setGifOverlays(prev => [...prev.slice(-4), newGif]);
+    setReactionBuffer(prev => [...prev.slice(-10), Date.now()]);
+    setTimeout(() => setGifOverlays(prev => prev.filter(g => g.id !== newGif.id)), 4000);
+  };
+
+  useEffect(() => {
+    const now = Date.now();
+    const recentReactions = reactionBuffer.filter(t => now - t < 2000);
+    
+    if (recentReactions.length >= 5 && !isStorming) {
+        // Throttling: max 3 storms per minute
+        const oneMinuteAgo = now - 60000;
+        stormTimestampsRef.current = stormTimestampsRef.current.filter(t => t > oneMinuteAgo);
+        
+        if (stormTimestampsRef.current.length < 3) {
+            setIsStorming(true);
+            stormTimestampsRef.current.push(now);
+            setTimeout(() => setIsStorming(false), 5000);
+        }
+    }
+  }, [reactionBuffer, isStorming]);
+
   const infoPanel = (
     <div className="overflow-hidden rounded-[24px] border border-white/10 bg-white/[0.04] p-4 sm:rounded-[28px] sm:p-5">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="space-y-2">
           <div className="inline-flex rounded-full border border-cyan-300/20 bg-cyan-500/15 px-3 py-1 text-[10px] font-black uppercase tracking-[0.28em] text-cyan-200">
-            {streamData?.provider === 'animeflv' ? 'AnimeFLV EspaÃ±ol' : 'Fuente alterna'}
+            {streamData?.provider === 'animeflv' ? 'AnimeFLV Español' : 'Fuente alterna'}
           </div>
           <h1 className="text-xl font-black leading-tight sm:text-3xl">
             {selectedAnime?.title} <span className="text-white/45">EP {currentEpisode?.number}</span>
           </h1>
           <p className="text-sm leading-6 text-white/65 sm:max-w-3xl">
-            {selectedAnime?.description || 'Sin descripciÃ³n disponible.'}
+            {selectedAnime?.description || 'Sin descripción disponible.'}
           </p>
         </div>
 
@@ -445,7 +568,7 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
         <div className="max-h-[220px] space-y-3 overflow-y-auto pr-1 sm:max-h-[240px]">
           {chatMessages.length === 0 && (
             <div className="rounded-2xl border border-dashed border-white/10 bg-black/10 px-4 py-6 text-center text-sm text-white/45">
-              El chat aparecerÃ¡ aquÃ­ cuando la sala estÃ© activa.
+              El chat aparecerá aquí cuando la sala esté activa.
             </div>
           )}
 
@@ -456,28 +579,44 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
                 alt={msg.username}
                 className="h-8 w-8 rounded-full object-cover"
               />
-              <div className="min-w-0 flex-1 rounded-2xl bg-black/20 px-3 py-2">
+              <div className="min-w-0 flex-1 rounded-2xl bg-black/20 px-3 py-2 border border-white/5">
                 <div className="truncate text-[11px] font-black uppercase tracking-[0.16em] text-cyan-300">{msg.username}</div>
-                <div className="mt-1 break-words text-sm text-white/80">{msg.message}</div>
+                {msg.type === "gif" ? (
+                    <img src={msg.gifUrl} className="max-w-full rounded-xl border border-white/10 shadow-lg mt-1" alt="reaction gif" />
+                ) : (
+                    <div className="mt-1 break-words text-sm text-white/80">{msg.message || msg.content}</div>
+                )}
               </div>
             </div>
           ))}
           <div ref={chatEndRef} />
         </div>
 
-        <form onSubmit={handleSendMessage} className="flex items-end gap-2">
+        <form onSubmit={handleSendMessage} className="flex items-end gap-2 bg-black/40 p-2 rounded-2xl border border-white/5">
+          <button 
+            type="button"
+            onClick={() => setGifPickerOpen(true)}
+            className="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-white/5 text-white/40 border border-white/10 hover:bg-white/10 transition"
+          >
+            😀
+          </button>
           <input
             type="text"
             value={chatInput}
             onChange={(e) => setChatInput(e.target.value)}
+            onKeyDown={(e) => {
+                if (e.key === 'Enter' && chatInput.trim()) {
+                    handleSendMessage(e);
+                }
+            }}
             placeholder="Escribe al grupo..."
-            className="min-w-0 flex-1 rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-sm text-white placeholder:text-white/30 focus:border-cyan-400/40 focus:outline-none focus:ring-2 focus:ring-cyan-400/15"
+            className="min-w-0 flex-1 rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-sm text-white placeholder:text-white/30 focus:border-cyan-400/40 focus:outline-none"
           />
           <button
             type="submit"
             className="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-cyan-400 text-slate-950 transition hover:bg-cyan-300"
           >
-            <MessageSquare size={18} />
+            <Send size={18} />
           </button>
         </form>
       </div>
@@ -556,11 +695,18 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
                   onPause={handlePause}
                   onSeek={handleSeek}
                   onTimeUpdate={handleTimeUpdate}
-                  externalState={{
-                    isPlaying: roomState?.isPlaying,
-                    currentTime: roomState?.currentTime,
+                  externalState={playbackState}
+                  reactions={reactions}
+                  onReaction={(type, content) => {
+                    if (room) {
+                      const time = playbackState.currentTime;
+                      room.send("reaction", { type, content, videoTimestamp: time });
+                    }
                   }}
+                  gifOverlays={gifOverlays}
+                  isStorming={isStorming}
                 />
+
 
                 <div className="xl:hidden">
                   <div className="sticky top-[64px] z-20 overflow-hidden rounded-[24px] border border-white/10 bg-[#080810]/92 p-1 backdrop-blur-xl">

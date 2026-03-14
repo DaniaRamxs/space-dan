@@ -14,28 +14,42 @@ export class AnimeRoom extends Room {
 
             this.state.animeId = options.animeId || "";
             this.state.animeTitle = options.animeTitle || "";
-            this.state.episodeId = options.episodeId || "";
-            this.state.episodeNumber = options.episodeNumber || 1;
+            this.state.videoId = options.videoId || options.episodeId || "";
             this.state.hostId = options.hostId || "";
             this.activityId = options.activityId || "";
+
+            // Authoritative State Update Handler
+            this.onMessage("update_state", (client, { videoId, currentTime, playing }) => {
+                const participant = this.state.participants.get(client.sessionId);
+                const isHost = participant && (participant.isHost || participant.userId === this.state.hostId);
+
+                if (isHost) {
+                    if (videoId !== undefined) this.state.videoId = videoId;
+                    if (currentTime !== undefined) this.state.currentTime = currentTime;
+                    if (playing !== undefined) this.state.playing = playing;
+                    
+                    this.state.lastUpdate = Date.now();
+                } else {
+                    // Unauthorized client trying to sync - force sync them back to current state
+                    client.send("STATE_UPDATE", this.getSnapshot());
+                }
+            });
 
             this.onMessage("play", (client, { currentTime }) => {
                 const participant = this.state.participants.get(client.sessionId);
                 if (participant && (participant.isHost || client.sessionId === this.state.hostId)) {
-                    this.state.isPlaying = true;
-                    this.state.currentTime = currentTime;
-                    this.state.lastSyncTime = Date.now();
-                    this.broadcast("player_sync", { isPlaying: true, currentTime });
+                    this.state.playing = true;
+                    if (currentTime !== undefined) this.state.currentTime = currentTime;
+                    this.state.lastUpdate = Date.now();
                 }
             });
 
             this.onMessage("pause", (client, { currentTime }) => {
                 const participant = this.state.participants.get(client.sessionId);
                 if (participant && (participant.isHost || client.sessionId === this.state.hostId)) {
-                    this.state.isPlaying = false;
-                    this.state.currentTime = currentTime;
-                    this.state.lastSyncTime = Date.now();
-                    this.broadcast("player_sync", { isPlaying: false, currentTime });
+                    this.state.playing = false;
+                    if (currentTime !== undefined) this.state.currentTime = currentTime;
+                    this.state.lastUpdate = Date.now();
                 }
             });
 
@@ -43,9 +57,13 @@ export class AnimeRoom extends Room {
                 const participant = this.state.participants.get(client.sessionId);
                 if (participant && (participant.isHost || client.sessionId === this.state.hostId)) {
                     this.state.currentTime = currentTime;
-                    this.state.lastSyncTime = Date.now();
-                    this.broadcast("player_sync", { isPlaying: this.state.isPlaying, currentTime });
+                    this.state.lastUpdate = Date.now();
                 }
+            });
+
+            // Late join request for snapshot
+            this.onMessage("request_sync", (client) => {
+                client.send("STATE_UPDATE", this.getSnapshot());
             });
 
             this.onMessage("chat", (client, payload) => {

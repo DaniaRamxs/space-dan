@@ -238,7 +238,7 @@ export default function VoiceRoomUI({
         if (!roomName || !isOpen) return;
 
         // Nombre del canal: normalizado para evitar caracteres inválidos
-        const chanName = `activity-sync-${roomName.toLowerCase().replace(/[^a-z0-9]/g, '-')}`;
+        const chanName = `activity-sync-${roomName.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-')}`;
         const channel  = supabase.channel(chanName);
         syncChannelRef.current = channel;
 
@@ -298,7 +298,7 @@ export default function VoiceRoomUI({
             return;
         }
 
-        const activityChanName = `activity-${activeActivity}-${roomName.toLowerCase().replace(/[^a-z0-9]/g, '-')}`;
+        const activityChanName = `activity-${activeActivity}-${roomName.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-')}`;
         const activityChannel = supabase.channel(activityChanName);
         activityChannelRef.current = activityChannel;
 
@@ -363,13 +363,7 @@ export default function VoiceRoomUI({
     const handleSetActiveActivity = (id) => {
         setActiveActivity(id);
         
-        // Si es una actividad personal (vino del feed), no hacer broadcast al canal general
-        // El canal específico de la actividad se manejará en el useEffect de activityChannelRef
-        if (hasPersonalActivityRef.current) {
-            return;
-        }
-        
-        // Solo hacer broadcast si no es una actividad personal
+        // Broadcast the change to all other participants in the room
         const channel = syncChannelRef.current;
         if (!channel) return;
 

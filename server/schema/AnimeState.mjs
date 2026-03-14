@@ -17,13 +17,12 @@ defineTypes(AnimeParticipant, {
 export class AnimeState extends Schema {
     animeId = "";
     animeTitle = "";
-    episodeId = "";
-    episodeNumber = 1;
+    videoId = ""; // episodeId or similar unique video identifier
     
-    isPlaying = false;
+    playing = false;
     currentTime = 0;
     duration = 0;
-    lastSyncTime = 0; // Server timestamp when last playing state change occurred
+    lastUpdate = 0; // Timestamp of the last authoritative change
 
     participants = new MapSchema();
     hostId = "";
@@ -32,12 +31,11 @@ export class AnimeState extends Schema {
 defineTypes(AnimeState, {
     animeId: "string",
     animeTitle: "string",
-    episodeId: "string",
-    episodeNumber: "number",
-    isPlaying: "boolean",
+    videoId: "string",
+    playing: "boolean",
     currentTime: "number",
     duration: "number",
-    lastSyncTime: "number",
+    lastUpdate: "number",
     participants: { map: AnimeParticipant },
     hostId: "string"
 });
