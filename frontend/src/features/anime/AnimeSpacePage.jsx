@@ -10,7 +10,7 @@ import { joinOrCreateRoom } from '../../services/colyseusClient';
 import { liveActivitiesService } from '../../services/liveActivitiesService';
 import toast from 'react-hot-toast';
 
-const AnimeSpacePage = () => {
+const AnimeSpacePage = ({ onClose }) => {
     const { profile } = useAuthContext();
     const navigate = useNavigate();
     const [view, setView] = useState('search'); // 'search', 'episodes', 'player'
@@ -146,8 +146,9 @@ const AnimeSpacePage = () => {
 
     return (
         <div className="min-h-screen bg-[#030308] text-white selection:bg-purple-500/30">
-            {/* Header */}
-            <header className="sticky top-0 z-50 bg-[#030308]/80 backdrop-blur-xl border-b border-white/5 px-6 py-4 flex items-center justify-between">
+            {/* Header - Only show if not in activity mode */}
+            {!onClose && (
+                <header className="sticky top-0 z-50 bg-[#030308]/80 backdrop-blur-xl border-b border-white/5 px-6 py-4 flex items-center justify-between">
                 <div className="flex items-center gap-4">
                     {view !== 'search' && (
                         <button 
@@ -173,6 +174,18 @@ const AnimeSpacePage = () => {
                     </nav>
                 </div>
             </header>
+        )}
+
+            {onClose && (
+                <div className="fixed top-6 right-6 z-[100] flex items-center gap-3">
+                    <button
+                        onClick={onClose}
+                        className="px-4 py-2 bg-rose-500/20 text-rose-400 border border-rose-500/30 rounded-full text-xs font-black uppercase tracking-widest hover:bg-rose-500/30 transition-all"
+                    >
+                        Cerrar Anime
+                    </button>
+                </div>
+            )}
 
             <main className="container mx-auto py-8">
                 {view === 'search' && (
