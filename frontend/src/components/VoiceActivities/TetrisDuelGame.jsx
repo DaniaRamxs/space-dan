@@ -56,6 +56,29 @@ export default function TetrisDuelGame({ roomName, onClose, isTheater, onToggleT
     const [connecting, setConnecting] = useState(true);
     const audio = useGameAudio('tetris');
     const prevPhaseRef = useRef(null);
+    const createSnapshot = (rawState) => ({
+        phase: rawState?.phase ?? 'waiting',
+        countdown: rawState?.countdown ?? 0,
+        winner: rawState?.winner ?? null,
+        hostId: rawState?.hostId ?? null,
+        p1: rawState?.p1 ?? null,
+        p2: rawState?.p2 ?? null,
+        players: rawState?.players ? Array.from(rawState.players.values()) : [],
+        board1: rawState?.board1 ? Array.from(rawState.board1) : [],
+        board2: rawState?.board2 ? Array.from(rawState.board2) : [],
+        p1Piece: rawState?.p1Piece ? {
+            x: rawState.p1Piece.get?.('x') ?? rawState.p1Piece.x ?? 0,
+            y: rawState.p1Piece.get?.('y') ?? rawState.p1Piece.y ?? 0,
+            type: rawState.p1Piece.get?.('type') ?? rawState.p1Piece.type,
+            rotation: rawState.p1Piece.get?.('rotation') ?? rawState.p1Piece.rotation ?? 0,
+        } : null,
+        p2Piece: rawState?.p2Piece ? {
+            x: rawState.p2Piece.get?.('x') ?? rawState.p2Piece.x ?? 0,
+            y: rawState.p2Piece.get?.('y') ?? rawState.p2Piece.y ?? 0,
+            type: rawState.p2Piece.get?.('type') ?? rawState.p2Piece.type,
+            rotation: rawState.p2Piece.get?.('rotation') ?? rawState.p2Piece.rotation ?? 0,
+        } : null,
+    });
 
     // ── Conexión a la sala de Colyseus ────────────────────────────────────────
     useEffect(() => {
@@ -71,12 +94,11 @@ export default function TetrisDuelGame({ roomName, onClose, isTheater, onToggleT
                 });
 
                 setRoom(activeRoom);
-                // Envolver en objeto literal para que React detecte el cambio
-                setState({ ...activeRoom.state });
+                setState(createSnapshot(activeRoom.state));
                 setConnecting(false);
 
                 activeRoom.onStateChange((newState) => {
-                    setState({ ...newState });
+                    setState(createSnapshot(newState));
                 });
 
             } catch (err) {
@@ -448,7 +470,7 @@ function Board({ board, piece, phase, isP1, hasPid }) {
         const newGrid = Array.from({ length: ROWS }, () => Array(COLS).fill('0'));
 
         // Volcar estado del tablero (celdas colocadas)
-        if (board && typeof board.forEach === 'function') {
+        if (Array.isArray(board)) {
             board.forEach((color, i) => {
                 const r = Math.floor(i / COLS);
                 const c = i % COLS;
@@ -459,14 +481,14 @@ function Board({ board, piece, phase, isP1, hasPid }) {
         }
 
         // Superponer la pieza en vuelo (solo durante la partida)
-        if (phase === 'playing' && piece && typeof piece.get === 'function' && piece.get('type') !== undefined) {
-            const typeIndex = piece.get('type');
+        if (phase === 'playing' && piece && piece.type !== undefined) {
+            const typeIndex = piece.type;
             const tetromino = TETROMINOS[typeIndex];
 
             if (tetromino?.shape) {
                 // Aplicar rotación (rotación matricial 90° sentido horario)
                 let shape = tetromino.shape;
-                const rotations = piece.get('rotation') ?? 0;
+                const rotations = piece.rotation ?? 0;
                 for (let i = 0; i < rotations; i++) {
                     shape = shape[0].map((_, colIdx) => shape.map(row => row[colIdx]).reverse());
                 }
@@ -475,8 +497,8 @@ function Board({ board, piece, phase, isP1, hasPid }) {
                 shape.forEach((row, dy) => {
                     row.forEach((value, dx) => {
                         if (!value) return;
-                        const bx = dx + piece.get('x');
-                        const by = dy + piece.get('y');
+                        const bx = dx + piece.x;
+                        const by = dy + piece.y;
                         if (by >= 0 && by < ROWS && bx >= 0 && bx < COLS) {
                             newGrid[by][bx] = typeIndex; // número → color via TETROMINOS
                         }
