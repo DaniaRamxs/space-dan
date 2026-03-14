@@ -44,13 +44,14 @@ const QUICK_REACTIONS = [
 ];
 
 export default function WatchTogether({ roomName, onClose, isMinimized = false, isPanelOpen = false }) {
+    // ── 1. Context ───────────────────────────────────────────────────────────────
     const { user, profile } = useAuthContext();
     const livekitParticipants = useLiveKitParticipants();
-    
-    // ── Colyseus Room State ─────────────────────────────────────────────────────
+
+    // ── 2. Service hooks (order matters: service hooks only depend on props/context) ─
     const [room, setRoom] = useState(null);
     const [colyseusParticipants, setColyseusParticipants] = useState([]);
-    
+
     const { 
         playbackState, 
         isHost, 
@@ -61,11 +62,7 @@ export default function WatchTogether({ roomName, onClose, isMinimized = false, 
         colyseusRoom: room
     });
 
-    const hostParticipant = useMemo(() => {
-        return colyseusParticipants.find(p => p.isHost || p.userId === playbackState.hostId);
-    }, [colyseusParticipants, playbackState.hostId]);
-
-    // ── Local State ─────────────────────────────────────────────────────────────
+    // ── 3. All local state ───────────────────────────────────────────────────────
     const [currentVideo, setCurrentVideo] = useState(null);
     const [isPlaying, setIsPlaying] = useState(false);
     const [progress, setProgress] = useState(0);
@@ -84,18 +81,24 @@ export default function WatchTogether({ roomName, onClose, isMinimized = false, 
     const [gifPickerOpen, setGifPickerOpen] = useState(false);
     const [showModeSelector, setShowModeSelector] = useState(false);
 
-    // ── Central Reaction Engine ────────────────────────────────────────────────
-    const { gifOverlays, isStorming, sendReaction, addGifOverlay } = useReactionEngine({
-        room,
-        supabaseChannel: channelRef.current,
-        getVideoTimestamp: () => playerRef.current?.getCurrentTime?.() ?? 0
-    });
-
+    // ── 4. All refs (MUST be declared before any hook that uses them) ─────────────
     const playerRef = useRef(null);
     const channelRef = useRef(null);
     const progressIntervalRef = useRef(null);
     const controlsTimeoutRef = useRef(null);
     const isPlayingRef = useRef(false);
+
+    // ── 5. Derived hooks (depend on refs/state declared above) ────────────────────
+    const { gifOverlays, isStorming, sendReaction, addGifOverlay } = useReactionEngine({
+        room,
+        getVideoTimestamp: () => playerRef.current?.getCurrentTime?.() ?? 0
+    });
+
+    // ── 6. Derived values (useMemo after all state/refs/hooks) ────────────────────
+    const hostParticipant = useMemo(() => {
+        if (!playbackState?.hostId) return null;
+        return colyseusParticipants.find(p => p.isHost || p.userId === playbackState.hostId) ?? null;
+    }, [colyseusParticipants, playbackState?.hostId]);
 
     // ── Connection Logic ──────────────────────────────────────────────────────
     useEffect(() => {

@@ -16,7 +16,10 @@ import AnimePlayer from './AnimePlayer';
 import AnimeSearch from './AnimeSearch';
 
 const AnimeSpacePage = ({ onClose, roomName }) => {
+  // ── 1. Context ───────────────────────────────────────────────────────────
   const { profile } = useAuthContext();
+
+  // ── 2. All state (declared first so service hooks can depend on them) ────
   const [gifPickerOpen, setGifPickerOpen] = useState(false);
   const [selectedAnime, setSelectedAnime] = useState(null);
   const [view, setView] = useState('search');
@@ -26,17 +29,19 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
   const [streamData, setStreamData] = useState(null);
   const [activeSourceIndex, setActiveSourceIndex] = useState(0);
   const [loading, setLoading] = useState(false);
-
   const [room, setRoom] = useState(null);
   const [roomState, setRoomState] = useState(null);
   const [participants, setParticipants] = useState([]);
   const [chatMessages, setChatMessages] = useState([]);
   const [chatInput, setChatInput] = useState('');
+
+  // ── 3. All refs (declared before any hook that references them) ───────────
   const chatEndRef = useRef(null);
   const leavingRoomRef = useRef(false);
   const syncChannelRef = useRef(null);
   const applyingRemoteStateRef = useRef(false);
 
+  // ── 4. Service hooks (depend on state/refs above) ─────────────────────────
   const { 
     playbackState, 
     isHost: isSyncedHost, 
@@ -49,15 +54,16 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
 
   const { gifOverlays, isStorming, sendReaction: engineSendReaction, addGifOverlay } = useReactionEngine({
     room,
-    supabaseChannel: syncChannelRef.current,
-    getVideoTimestamp: () => playbackState.currentTime ?? 0
+    getVideoTimestamp: () => playbackState?.currentTime ?? 0
   });
 
+  // ── 5. Derived values (useMemo after all hooks) ───────────────────────────
   const hostParticipant = useMemo(() => {
-    return participants.find(p => p.isHost || p.userId === playbackState.hostId);
-  }, [participants, playbackState.hostId]);
+    if (!playbackState?.hostId) return null;
+    return participants.find(p => p.isHost || p.userId === playbackState.hostId) ?? null;
+  }, [participants, playbackState?.hostId]);
 
-  const isHost = isSyncedHost || (playbackState.hostId === profile?.id);
+  const isHost = isSyncedHost || (playbackState?.hostId === profile?.id);
 
   const clearRoomState = () => {
     setRoom(null);

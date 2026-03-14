@@ -83,8 +83,9 @@ export default defineConfig(({ mode }) => {
     build: {
       // Reducir warnings de chunk size
       chunkSizeWarningLimit: 800,
-      // Configuración limpia sin timestamps
-      sourcemap: false,
+      // sourcemap: 'hidden' → genera .map files pero NO los enlaza en el bundle
+      // Vercel/Sentry los puede usar; los errores en consola serán legibles en dev
+      sourcemap: isProd ? 'hidden' : true,
       manifest: false,
       rollupOptions: {
         output: {
