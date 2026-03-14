@@ -9,9 +9,10 @@ console.log('[AnimeService] Available ANIME providers:', Object.keys(ANIME || {}
  * Detection of available providers using prioritized list
  * We prefer Gogoanime/AnimePahe for faster scraping, Zoro/Hianime for quality/subtitles
  */
-// Hianime (Zoro) is prioritized for quality and multiple subtitles (including Spanish)
-const GogoProvider = ANIME.Hianime || ANIME.Zoro || ANIME.Gogoanime || ANIME.AnimePahe;
-const ZoroProvider = ANIME.AnimePahe || ANIME.Gogoanime;
+// AnimePahe is used as primary since it returns results and working M3U8 streams.
+// Hianime is listed as fallback — it may work in production environments.
+const GogoProvider = ANIME.AnimePahe || ANIME.Hianime || ANIME.Zoro;
+const ZoroProvider = ANIME.Hianime || ANIME.Zoro;
 
 if (!GogoProvider) {
     console.error('[AnimeService] NO PRIMARY PROVIDER DETECTED! Check @consumet/extensions version.');
@@ -100,6 +101,7 @@ export const searchAnime = async (query) => {
  * Get anime info and episodes
  */
 export const getAnimeInfo = async (animeId) => {
+  console.log(`[AnimeService] getAnimeInfo: ${animeId}`);
   try {
     if (!gogoanime) throw new Error("No provider available for info");
     const fetchFn = gogoanime.fetchAnimeInfo || gogoanime.getAnimeInfo || gogoanime.fetchInfo;
@@ -112,7 +114,21 @@ export const getAnimeInfo = async (animeId) => {
     }
     return info;
   } catch (error) {
-    console.error('[AnimeService] Info error:', error.message);
+    console.error('[AnimeService] Info error (primary):', error.message);
+    
+    // Fallback to secondary provider
+    if (zoro) {
+        try {
+            console.warn('[AnimeService] Trying fallback provider for info...');
+            const fetchFn2 = zoro.fetchAnimeInfo || zoro.getAnimeInfo || zoro.fetchInfo;
+            if (!fetchFn2) throw new Error("Fallback provider does not support fetching anime info");
+            const info2 = await fetchFn2.call(zoro, animeId);
+            if (info2) info2.image = info2.image || info2.img || info2.cover;
+            return info2;
+        } catch (err2) {
+            console.error('[AnimeService] Info error (fallback):', err2.message);
+        }
+    }
     throw error;
   }
 };

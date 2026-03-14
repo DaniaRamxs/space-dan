@@ -35,9 +35,11 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
     }, [chatMessages]);
 
     const handleAnimeSelect = async (anime) => {
+        if (loading) return; // Prevent multiple clicks
         setLoading(true);
         setSelectedAnime(anime);
         try {
+            console.log('[AnimeSpace] Loading info for provider ID:', anime.id);
             const info = await animeService.getAnimeInfo(anime.id);
             setEpisodes(info.episodes || []);
             setView('episodes');
@@ -49,9 +51,11 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
     };
 
     const handleEpisodeSelect = async (episode) => {
+        if (loading) return; // Prevent multiple clicks
         setLoading(true);
         setCurrentEpisode(episode);
         try {
+            console.log('[AnimeSpace] Loading sources for episode ID:', episode.id);
             const sources = await animeService.getEpisodeSources(episode.id);
             
             if (sources.success === false) {
