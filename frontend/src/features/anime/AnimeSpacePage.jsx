@@ -85,40 +85,50 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
                 console.warn('Failed to create supabase activity, but continuing...', err);
             }
 
-            // Join Colyseus Room
-            const roomId = `anime-${episode.id}-${profile?.id?.slice(0, 5)}`;
-            const newRoom = await joinOrCreateRoom('anime', {
-                roomId,
-                activityId: supabaseActivity?.id,
-                animeId: selectedAnime.id,
-                animeTitle: selectedAnime.title,
-                episodeId: episode.id,
-                episodeNumber: episode.number,
-                userId: profile?.id,
-                username: profile?.username,
-                avatar: profile?.avatar_url,
-                hostId: profile?.id
-            });
+            // Join Colyseus Room (optional — if it fails, video still plays)
+            const roomId = `anime-${selectedAnime.id?.slice(0, 8)}-${String(episode.number).padStart(3, '0')}`;
+            try {
+                console.log('[AnimeSpace] Joining Colyseus room:', roomId);
+                const newRoom = await joinOrCreateRoom('anime', {
+                    roomId,
+                    activityId: supabaseActivity?.id || null,
+                    animeId: selectedAnime.id,
+                    animeTitle: selectedAnime.title,
+                    episodeId: episode.id,
+                    episodeNumber: episode.number,
+                    userId: profile?.id,
+                    username: profile?.username,
+                    avatar: profile?.avatar_url,
+                    hostId: profile?.id
+                });
 
-            setRoom(newRoom);
-            
-            // Listen for state changes
-            newRoom.onStateChange((state) => {
-                setRoomState(state.toJSON());
-                const parts = [];
-                state.participants.forEach(p => parts.push(p));
-                setParticipants(parts);
-            });
+                setRoom(newRoom);
+                
+                // Listen for state changes
+                newRoom.onStateChange((state) => {
+                    setRoomState(state.toJSON());
+                    const parts = [];
+                    state.participants.forEach(p => parts.push(p));
+                    setParticipants(parts);
+                });
 
-            // Listen for chat
-            newRoom.onMessage("chat", (message) => {
-                setChatMessages((prev) => [...prev, message]);
-            });
+                // Listen for chat
+                newRoom.onMessage("chat", (message) => {
+                    setChatMessages((prev) => [...prev, message]);
+                });
 
+                console.log('[AnimeSpace] Colyseus room joined successfully');
+            } catch (colyseusErr) {
+                // Colyseus failure is not fatal — video will still play in solo mode
+                console.warn('[AnimeSpace] Colyseus join failed (solo mode):', colyseusErr.message);
+                toast('Modo en solitario — sala de watch party no disponible', { icon: '📺' });
+            }
+
+            // Always transition to player, even if Colyseus failed
             setView('player');
         } catch (error) {
-            console.error(error);
-            toast.error('Failed to start episode');
+            console.error('[AnimeSpace] handleEpisodeSelect error:', error);
+            toast.error('Error al cargar el episodio');
         } finally {
             setLoading(false);
         }
