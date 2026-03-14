@@ -71,13 +71,13 @@ export function usePlaybackSync({
     useEffect(() => {
         if (!colyseusRoom) return;
 
-        const unbind = colyseusRoom.state.onChange(() => {
+        const unsub = colyseusRoom.onStateChange((state) => {
             const newState = {
-                videoId: colyseusRoom.state.videoId || '',
-                playing: colyseusRoom.state.playing,
-                currentTime: colyseusRoom.state.currentTime,
-                hostId: colyseusRoom.state.hostId,
-                lastUpdate: colyseusRoom.state.lastUpdate
+                videoId: state.videoId || '',
+                playing: state.playing,
+                currentTime: state.currentTime,
+                hostId: state.hostId,
+                lastUpdate: state.lastUpdate
             };
             
             if (newState.hostId !== profile?.id) {
@@ -86,8 +86,8 @@ export function usePlaybackSync({
                 setPlaybackState(newState);
             }
 
-            if (colyseusRoom.state.reactions) {
-                setReactions(Array.from(colyseusRoom.state.reactions));
+            if (state.reactions) {
+                setReactions(Array.from(state.reactions));
             }
         });
 
@@ -96,7 +96,7 @@ export function usePlaybackSync({
             handleRemoteState(payload);
         });
 
-        return () => unbind();
+        return () => unsub?.();
     }, [colyseusRoom, profile?.id]);
 
     const handleRemoteState = (remoteState) => {
