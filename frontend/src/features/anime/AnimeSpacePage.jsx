@@ -10,7 +10,7 @@ import { joinOrCreateRoom } from '../../services/colyseusClient';
 import { liveActivitiesService } from '../../services/liveActivitiesService';
 import toast from 'react-hot-toast';
 
-const AnimeSpacePage = ({ onClose }) => {
+const AnimeSpacePage = ({ onClose, roomName }) => {
     const { profile } = useAuthContext();
     const navigate = useNavigate();
     const [view, setView] = useState('search'); // 'search', 'episodes', 'player'
@@ -53,6 +53,13 @@ const AnimeSpacePage = ({ onClose }) => {
         setCurrentEpisode(episode);
         try {
             const sources = await animeService.getEpisodeSources(episode.id);
+            
+            if (sources.success === false) {
+                toast.error(sources.message || 'No sources available for this episode');
+                setLoading(false);
+                return;
+            }
+
             setStreamData(sources);
             
             // Create activity in Supabase so others see it in the stream
@@ -61,6 +68,7 @@ const AnimeSpacePage = ({ onClose }) => {
                 supabaseActivity = await liveActivitiesService.createActivity({
                     type: 'anime',
                     title: `${selectedAnime.title} - Ep ${episode.number}`,
+                    roomName: roomName || `Sala de ${profile?.username || 'Gamer'}`,
                     metadata: {
                         animeId: selectedAnime.id,
                         animeTitle: selectedAnime.title,
@@ -207,7 +215,7 @@ const AnimeSpacePage = ({ onClose }) => {
                     <div className="grid grid-cols-1 lg:grid-cols-4 gap-8 px-4 max-w-[1600px] mx-auto">
                         <div className="lg:col-span-3 space-y-6">
                             <AnimePlayer 
-                                src={streamData.sources[0]?.url} 
+                                src={streamData.sources?.[0]?.url} 
                                 subtitles={streamData.subtitles}
                                 isHost={isHost}
                                 onPlay={handlePlay}
