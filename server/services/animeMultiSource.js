@@ -560,6 +560,10 @@ class AnimeMultiSource {
             if (src.includes('streamtape.com')) {
               videoUrl = this.extractStreamTape(src);
             }
+            // StreamWish extraction
+            else if (src.includes('streamwish.to')) {
+              videoUrl = this.extractStreamWish(src);
+            }
             // Otros servicios de embed
             else if (src.includes('fembed.com')) {
               videoUrl = this.extractFembed(src);
@@ -629,6 +633,73 @@ class AnimeMultiSource {
       }
     } catch (error) {
       console.error('StreamTape extraction failed:', error);
+    }
+    
+    return null;
+  }
+
+  // Extract video from StreamWish
+  extractStreamWish(embedUrl) {
+    console.log(`[AnimeMultiSource] Extracting StreamWish video from: ${embedUrl}`);
+    
+    try {
+      // StreamWish usa un sistema similar a StreamTape
+      const idMatch = embedUrl.match(/\/e\/([a-zA-Z0-9]+)/);
+      if (!idMatch) return null;
+      
+      const videoId = idMatch[1];
+      
+      // Intentar diferentes métodos para StreamWish
+      // Método 1: API directa
+      const apiUrl = `https://streamwish.to/api/video/${videoId}`;
+      
+      const response = axios.get(apiUrl, {
+        timeout: 10000,
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+          'Referer': 'https://streamwish.to/'
+        }
+      });
+      
+      const videoUrl = response.data?.url || response.data?.file || response.data?.stream || null;
+      
+      if (videoUrl) {
+        console.log(`[AnimeMultiSource] StreamWish extracted: ${videoUrl}`);
+        return videoUrl;
+      }
+    } catch (error) {
+      console.error('StreamWish extraction failed:', error);
+      
+      // Método 2: Extraer de la página del embed
+      try {
+        const pageResponse = axios.get(embedUrl, {
+          timeout: 10000,
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+          }
+        });
+        
+        const $ = cheerio.load(pageResponse.data);
+        
+        // Buscar URLs de video en scripts
+        let videoUrl = null;
+        $('script').each((index, script) => {
+          const scriptContent = $(script).html();
+          if (scriptContent && scriptContent.includes('source')) {
+            const urlMatch = scriptContent.match(/https?:\/\/[^\s"']+\.(m3u8|mp4)/);
+            if (urlMatch) {
+              videoUrl = urlMatch[0];
+            }
+          }
+        });
+        
+        if (videoUrl) {
+          console.log(`[AnimeMultiSource] StreamWish page extracted: ${videoUrl}`);
+          return videoUrl;
+        }
+      } catch (pageError) {
+        console.error('StreamWish page extraction failed:', pageError);
+      }
     }
     
     return null;
