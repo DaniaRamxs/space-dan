@@ -542,7 +542,7 @@ class AnimeMultiSource {
       // Intentar encontrar en scripts
       $('script').each((index, script) => {
         const scriptContent = $(script).html();
-        if (scriptContent && scriptContent.includes('streaming') || scriptContent.includes('video')) {
+        if (scriptContent && (scriptContent.includes('streaming') || scriptContent.includes('video'))) {
           // Extraer URL del script
           const urlMatch = scriptContent.match(/https?:\/\/[^\s"']+\.(m3u8|mp4)/);
           if (urlMatch) {
@@ -555,8 +555,18 @@ class AnimeMultiSource {
       if (!videoUrl) {
         $('iframe').each((index, iframe) => {
           const src = $(iframe).attr('src');
-          if (src && (src.includes('streaming') || src.includes('player'))) {
-            videoUrl = src;
+          if (src) {
+            // StreamTape extraction
+            if (src.includes('streamtape.com')) {
+              videoUrl = this.extractStreamTape(src);
+            }
+            // Otros servicios de embed
+            else if (src.includes('fembed.com')) {
+              videoUrl = this.extractFembed(src);
+            }
+            else if (src.includes('doodstream')) {
+              videoUrl = this.extractDoodstream(src);
+            }
           }
         });
       }
@@ -570,7 +580,7 @@ class AnimeMultiSource {
       
       return [{
         url: videoUrl,
-        format: 'hls',
+        format: videoUrl.includes('.m3u8') ? 'hls' : 'mp4',
         quality: 'HD',
         isDefault: true
       }];
@@ -584,6 +594,108 @@ class AnimeMultiSource {
         isDefault: true
       }];
     }
+  }
+
+  // Extract video from StreamTape embed
+  extractStreamTape(embedUrl) {
+    console.log(`[AnimeMultiSource] Extracting StreamTape video from: ${embedUrl}`);
+    
+    // StreamTape usa un sistema de redirección y token
+    // Necesitamos hacer una petición adicional para obtener el video real
+    try {
+      // Extraer el ID del embed
+      const idMatch = embedUrl.match(/\/e\/([a-zA-Z0-9]+)/);
+      if (!idMatch) return null;
+      
+      const videoId = idMatch[1];
+      
+      // Construir URL de API de StreamTape
+      const apiUrl = `https://streamtape.com/api/video/${videoId}`;
+      
+      // Hacer petición para obtener el video real
+      const response = axios.get(apiUrl, {
+        timeout: 10000,
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+        }
+      });
+      
+      // Extraer URL del video de la respuesta
+      const videoUrl = response.data?.url || response.data?.file || null;
+      
+      if (videoUrl) {
+        console.log(`[AnimeMultiSource] StreamTape extracted: ${videoUrl}`);
+        return videoUrl;
+      }
+    } catch (error) {
+      console.error('StreamTape extraction failed:', error);
+    }
+    
+    return null;
+  }
+
+  // Extract video from Fembed
+  extractFembed(embedUrl) {
+    console.log(`[AnimeMultiSource] Extracting Fembed video from: ${embedUrl}`);
+    
+    try {
+      // Fembed tiene API directa
+      const idMatch = embedUrl.match(/\/v\/([a-zA-Z0-9-]+)/);
+      if (!idMatch) return null;
+      
+      const videoId = idMatch[1];
+      const apiUrl = `https://www.fembed.com/api/source/${videoId}`;
+      
+      const response = axios.get(apiUrl, {
+        timeout: 10000,
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+        }
+      });
+      
+      const videoUrl = response.data?.data?.file || null;
+      
+      if (videoUrl) {
+        console.log(`[AnimeMultiSource] Fembed extracted: ${videoUrl}`);
+        return videoUrl;
+      }
+    } catch (error) {
+      console.error('Fembed extraction failed:', error);
+    }
+    
+    return null;
+  }
+
+  // Extract video from Doodstream
+  extractDoodstream(embedUrl) {
+    console.log(`[AnimeMultiSource] Extracting Doodstream video from: ${embedUrl}`);
+    
+    try {
+      // Doodstream usa un sistema de token
+      const idMatch = embedUrl.match(/\/e\/([a-zA-Z0-9]+)/);
+      if (!idMatch) return null;
+      
+      const videoId = idMatch[1];
+      const apiUrl = `https://doodstream.com/api/video/${videoId}`;
+      
+      const response = axios.get(apiUrl, {
+        timeout: 10000,
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+        }
+      });
+      
+      const videoUrl = response.data?.url || response.data?.file || null;
+      
+      if (videoUrl) {
+        console.log(`[AnimeMultiSource] Doodstream extracted: ${videoUrl}`);
+        return videoUrl;
+      }
+    } catch (error) {
+      console.error('Doodstream extraction failed:', error);
+    }
+    
+    return null;
   }
 
   // Jkanime methods
