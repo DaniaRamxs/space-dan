@@ -278,16 +278,18 @@ export const getEpisodeSources = async (episodeId, provider = 'auto') => {
       const referer =
         response.provider === 'animeflv' ? 'https://www3.animeflv.net/' : undefined;
       const resolved = await resolveEmbedSources(response.sources, referer);
-      if (resolved.length > 0) {
-        response = { ...response, sources: resolved, sourceType: 'hls' };
-      }
-      // Fall through even if all extractions failed — frontend can show the error
 
-      if (response.sources.length > 0) {
-        sourceCache.set(cacheKey, response);
+      // Only return if we got at least one playable direct stream.
+      // If resolved is empty, all extractions failed — fall through to
+      // the "no sources" response so the player doesn't receive raw embed URLs.
+      if (resolved.length > 0) {
+        const final = { ...response, sources: resolved, sourceType: 'hls' };
+        sourceCache.set(cacheKey, final);
         setTimeout(() => sourceCache.delete(cacheKey), SOURCE_CACHE_TTL);
-        return response;
+        return final;
       }
+
+      console.warn(`[AnimeService] All embed extractions failed for ${episodeId}`);
     }
 
     return {

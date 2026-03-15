@@ -32,7 +32,7 @@ const QUICK_REACTIONS = [
     { type: 'emoji', content: '❤️', icon: Heart, color: 'text-red-500' },
 ];
 
-const AnimePlayer = ({
+const AnimePlayer = React.memo(({
   source,
   subtitles = [],
   onTimeUpdate,
@@ -59,8 +59,6 @@ const AnimePlayer = ({
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
-  const [volume, setVolume] = useState(1);
-  const [isMuted, setIsMuted] = useState(false);
   const [showControls, setShowControls] = useState(true);
 
   const src = source?.url;
@@ -154,14 +152,6 @@ const AnimePlayer = ({
     if (!videoRef.current) return;
     setCurrentTime(videoRef.current.currentTime);
     if (isHost && onTimeUpdate) onTimeUpdate(videoRef.current.currentTime);
-  };
-
-  const handleSeek = (e) => {
-    if (!videoRef.current || !isHost) return;
-    const time = parseFloat(e.target.value);
-    videoRef.current.currentTime = time;
-    setCurrentTime(time);
-    if (onSeek) onSeek(time);
   };
 
   const timelineReactions = useMemo(() => {
@@ -271,10 +261,12 @@ const AnimePlayer = ({
               {/* Progress Bar */}
               <div className="relative h-1.5 w-full bg-white/20 rounded-full mb-4 group/progress cursor-pointer pointer-events-auto"
                 onClick={(e) => {
-                  if (!isHost) return;
+                  if (!isHost || !videoRef.current) return;
                   const rect = e.currentTarget.getBoundingClientRect();
                   const time = ((e.clientX - rect.left) / rect.width) * duration;
                   videoRef.current.currentTime = time;
+                  setCurrentTime(time);
+                  onSeek?.(time);
                 }}>
                 <div className="absolute h-full bg-cyan-400 rounded-full" style={{ width: `${(currentTime/duration)*100}%` }} />
                 {isHost && (
@@ -361,6 +353,6 @@ const AnimePlayer = ({
       </div>
     </div>
   );
-};
+});
 
 export default AnimePlayer;
