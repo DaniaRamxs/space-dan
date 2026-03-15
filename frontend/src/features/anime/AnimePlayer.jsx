@@ -120,6 +120,10 @@ const AnimePlayer = ({
 
   const handlePlayPause = () => {
     if (!videoRef.current) return;
+    if (!isHost) {
+      // Mostrar indicación de que solo el host puede controlar
+      return;
+    }
     if (videoRef.current.paused) {
       videoRef.current.play();
       if (onPlay) onPlay(videoRef.current.currentTime);

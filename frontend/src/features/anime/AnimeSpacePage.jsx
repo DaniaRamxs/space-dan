@@ -513,19 +513,35 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
 
   const sourcesPanel = (
     <div className="overflow-hidden rounded-[24px] border border-white/10 bg-white/[0.03] p-4 sm:rounded-[28px] sm:p-5">
-      <div className="mb-4 flex items-center gap-2">
-        <Radio size={16} className="text-cyan-300" />
-        <h2 className="text-sm font-black uppercase tracking-[0.22em] text-white/90">Fuentes disponibles</h2>
+      <div className="mb-4 flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <Radio size={16} className="text-cyan-300" />
+          <h2 className="text-sm font-black uppercase tracking-[0.22em] text-white/90">Fuentes disponibles</h2>
+        </div>
+        {!isHost && (
+          <div className="text-[10px] uppercase tracking-[0.18em] text-white/40 bg-white/5 px-2 py-1 rounded-full border border-white/10">
+            Solo host
+          </div>
+        )}
       </div>
       <div className="mobile-scroll-x flex gap-3 overflow-x-auto pb-1">
         {(streamData?.sources || []).map((source, index) => (
           <button
             key={`${source.server || source.quality}-${index}`}
-            onClick={() => setActiveSourceIndex(index)}
+            onClick={() => {
+              if (!isHost) {
+                toast.error('Solo el host puede cambiar la fuente de video');
+                return;
+              }
+              setActiveSourceIndex(index);
+            }}
+            disabled={!isHost}
             className={`max-w-[180px] min-w-[140px] shrink-0 rounded-2xl border px-3 py-3 text-left transition sm:min-w-[180px] sm:px-4 ${
               activeSourceIndex === index
                 ? 'border-cyan-300/60 bg-cyan-400 text-slate-950'
-                : 'border-white/10 bg-black/20 text-white hover:bg-white/[0.06]'
+                : isHost
+                  ? 'border-white/10 bg-black/20 text-white hover:bg-white/[0.06] cursor-pointer'
+                  : 'border-white/5 bg-black/10 text-white/50 cursor-not-allowed opacity-60'
             }`}
           >
             <div className="text-[10px] font-black uppercase tracking-[0.2em] opacity-70">{source.server || 'source'}</div>
