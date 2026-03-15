@@ -345,7 +345,16 @@ const AstroPartyPage = ({ onClose, roomName }) => {
     if (roomParam) setJoinCode(roomParam.toUpperCase());
   }, []);
 
-  // localVideoRef and remoteVideoRef assignments handled by ref callbacks in JSX to avoid timing race
+  // Stable ref callbacks — must be memoized so React doesn't unmount/remount srcObject on every render
+  const localVideoRefCallback = useCallback((node) => {
+    localVideoRef.current = node;
+    if (node && screenStreamRef.current) node.srcObject = screenStreamRef.current;
+  }, []);
+
+  const remoteVideoRefCallback = useCallback((node) => {
+    remoteVideoRef.current = node;
+    if (node && remoteStreamRef.current) node.srcObject = remoteStreamRef.current;
+  }, []);
 
   // Cinema mode cleanup when leaving watching
   useEffect(() => {
@@ -359,7 +368,7 @@ const AstroPartyPage = ({ onClose, roomName }) => {
 
   const handleMouseMove = useCallback(() => {
     if (roomStep !== 'watching') return;
-    setCinemaMode(false);
+    setCinemaMode((prev) => prev ? false : prev); // only re-render if was true
     clearTimeout(cinemTimerRef.current);
     cinemTimerRef.current = setTimeout(() => setCinemaMode(true), 4000);
   }, [roomStep]);
@@ -1502,12 +1511,7 @@ const AstroPartyPage = ({ onClose, roomName }) => {
             {isHost ? (
               <div className="relative w-full h-full">
                 <video
-                  ref={(node) => {
-                    localVideoRef.current = node;
-                    if (node && screenStreamRef.current) {
-                      node.srcObject = screenStreamRef.current;
-                    }
-                  }}
+                  ref={localVideoRefCallback}
                   autoPlay
                   playsInline
                   muted
@@ -1528,12 +1532,7 @@ const AstroPartyPage = ({ onClose, roomName }) => {
             ) : remoteStream ? (
               <div className="relative w-full h-full">
                 <video
-                  ref={(node) => {
-                    remoteVideoRef.current = node;
-                    if (node && remoteStreamRef.current) {
-                      node.srcObject = remoteStreamRef.current;
-                    }
-                  }}
+                  ref={remoteVideoRefCallback}
                   autoPlay
                   playsInline
                   className="w-full h-full object-contain"
