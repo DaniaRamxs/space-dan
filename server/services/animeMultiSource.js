@@ -5,22 +5,22 @@ class AnimeMultiSource {
   constructor() {
     this.sources = [
       {
-        name: 'AnimeId',
-        baseUrl: 'https://www.animeid.tv',
+        name: 'JikanAPI',
+        baseUrl: 'https://api.jikan.moe/v4',
         priority: 1,
-        features: ['doblado', 'subtitulado', 'HD']
+        features: ['subtitulado', 'HD', 'API oficial']
       },
       {
-        name: 'AnimeOnline',
-        baseUrl: 'https://animeonline.ninja',
+        name: 'KitsuAPI',
+        baseUrl: 'https://api.kitsu.io/edge',
         priority: 2,
-        features: ['doblado', 'HD']
+        features: ['subtitulado', 'HD', 'API oficial']
       },
       {
-        name: 'AnimeFLV',
-        baseUrl: 'https://www3.animeflv.net',
+        name: 'AniListAPI',
+        baseUrl: 'https://graphql.anilist.co',
         priority: 3,
-        features: ['doblado', 'subtitulado', 'HD']
+        features: ['subtitulado', 'HD', 'API oficial']
       }
     ];
   }
@@ -52,126 +52,168 @@ class AnimeMultiSource {
 
   async searchInSource(source, query) {
     switch (source.name) {
-      case 'AnimeId':
-        return await this.searchAnimeId(query);
-      case 'AnimeOnline':
-        return await this.searchAnimeOnline(query);
-      case 'AnimeFLV':
-        return await this.searchAnimeFLV(query);
+      case 'JikanAPI':
+        return await this.searchJikanAPI(query);
+      case 'KitsuAPI':
+        return await this.searchKitsuAPI(query);
+      case 'AniListAPI':
+        return await this.searchAniListAPI(query);
       default:
         return [];
     }
   }
 
-  // AnimeId - Scraping
-  async searchAnimeId(query) {
-    console.log(`[AnimeMultiSource] AnimeId: Starting search for "${query}"`);
+  // JikanAPI - API oficial de MyAnimeList
+  async searchJikanAPI(query) {
+    console.log(`[AnimeMultiSource] JikanAPI: Starting search for "${query}"`);
     try {
-      const url = `${this.sources[0].baseUrl}/buscar?q=${encodeURIComponent(query)}`;
-      console.log(`[AnimeMultiSource] AnimeId: Fetching ${url}`);
-      
-      const html = await axios.get(url, {
-        timeout: 10000,
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-        }
-      });
-      
-      console.log(`[AnimeMultiSource] AnimeId: Got HTML, length: ${html.data.length}`);
-      const results = this.parseAnimeIdResults(html.data);
-      console.log(`[AnimeMultiSource] AnimeId: Parsed ${results.length} results`);
-      
-      return results.map(anime => ({
-        ...anime,
-        provider: 'animeid',
-        source: 'AnimeId',
-        hasDub: true,
-        quality: 'HD',
-        format: 'hls'
-      }));
-    } catch (error) {
-      console.error(`[AnimeMultiSource] AnimeId search failed:`, {
-        message: error.message,
-        code: error.code,
-        status: error.response?.status,
-        statusText: error.response?.statusText,
-        url: error.config?.url
-      });
-      throw new Error(`AnimeId search failed: ${error.message || 'Unknown error'}`);
-    }
-  }
-
-  // AnimeOnline - Scraping
-  async searchAnimeOnline(query) {
-    console.log(`[AnimeMultiSource] AnimeOnline: Starting search for "${query}"`);
-    try {
-      const url = `${this.sources[1].baseUrl}/buscar?q=${encodeURIComponent(query)}`;
-      console.log(`[AnimeMultiSource] AnimeOnline: Fetching ${url}`);
-      
-      const html = await axios.get(url, {
-        timeout: 10000,
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-        }
-      });
-      
-      console.log(`[AnimeMultiSource] AnimeOnline: Got HTML, length: ${html.data.length}`);
-      const results = this.parseAnimeOnlineResults(html.data);
-      console.log(`[AnimeMultiSource] AnimeOnline: Parsed ${results.length} results`);
-      
-      return results.map(anime => ({
-        ...anime,
-        provider: 'animeonline',
-        source: 'AnimeOnline',
-        hasDub: true,
-        quality: 'HD',
-        format: 'hls'
-      }));
-    } catch (error) {
-      console.error(`[AnimeMultiSource] AnimeOnline search failed:`, {
-        message: error.message,
-        code: error.code,
-        status: error.response?.status,
-        statusText: error.response?.statusText,
-        url: error.config?.url
-      });
-      throw new Error(`AnimeOnline search failed: ${error.message || 'Unknown error'}`);
-    }
-  }
-
-  // AnimeFLV - API directa
-  async searchAnimeFLV(query) {
-    console.log(`[AnimeMultiSource] AnimeFLV: Starting search for "${query}"`);
-    try {
-      const url = `${this.sources[2].baseUrl}/api/search?q=${encodeURIComponent(query)}`;
-      console.log(`[AnimeMultiSource] AnimeFLV: Fetching ${url}`);
+      const url = `${this.sources[0].baseUrl}/anime?q=${encodeURIComponent(query)}&limit=10`;
+      console.log(`[AnimeMultiSource] JikanAPI: Fetching ${url}`);
       
       const response = await axios.get(url, {
-        timeout: 10000, // Increased from 5000ms
+        timeout: 10000,
         headers: {
           'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
         }
       });
       
-      console.log(`[AnimeMultiSource] AnimeFLV: Got response, data length: ${JSON.stringify(response.data).length}`);
-      return response.data.map(anime => ({
-        ...anime,
-        provider: 'animeflv',
-        source: 'AnimeFLV',
-        hasDub: true,
+      console.log(`[AnimeMultiSource] JikanAPI: Got response, data length: ${JSON.stringify(response.data).length}`);
+      const results = response.data.data || [];
+      console.log(`[AnimeMultiSource] JikanAPI: Parsed ${results.length} results`);
+      
+      return results.map(anime => ({
+        id: anime.mal_id.toString(),
+        title: anime.title_english || anime.title || anime.title_japanese,
+        image: anime.images?.jpg?.image_url || anime.image_url,
+        type: anime.type || 'TV',
+        episodes: anime.episodes?.toString() || '?',
+        provider: 'jikan',
+        source: 'JikanAPI',
+        hasDub: false, // JikanAPI no especifica doblaje
         hasSub: true,
         quality: 'HD',
-        format: 'hls' // Importante: formato HLS para reproductor nativo
+        format: 'hls'
       }));
     } catch (error) {
-      console.error(`[AnimeMultiSource] AnimeFLV search failed:`, {
+      console.error(`[AnimeMultiSource] JikanAPI search failed:`, {
         message: error.message,
         code: error.code,
         status: error.response?.status,
         statusText: error.response?.statusText,
         url: error.config?.url
       });
-      throw new Error(`AnimeFLV search failed: ${error.message || 'Unknown error'}`);
+      throw new Error(`JikanAPI search failed: ${error.message || 'Unknown error'}`);
+    }
+  }
+
+  // KitsuAPI - API oficial
+  async searchKitsuAPI(query) {
+    console.log(`[AnimeMultiSource] KitsuAPI: Starting search for "${query}"`);
+    try {
+      const url = `${this.sources[1].baseUrl}/anime?filter[text]=${encodeURIComponent(query)}&page[limit]=10`;
+      console.log(`[AnimeMultiSource] KitsuAPI: Fetching ${url}`);
+      
+      const response = await axios.get(url, {
+        timeout: 10000,
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+          'Accept': 'application/vnd.api+json'
+        }
+      });
+      
+      console.log(`[AnimeMultiSource] KitsuAPI: Got response, data length: ${JSON.stringify(response.data).length}`);
+      const results = response.data.data || [];
+      console.log(`[AnimeMultiSource] KitsuAPI: Parsed ${results.length} results`);
+      
+      return results.map(anime => ({
+        id: anime.id,
+        title: anime.attributes?.canonicalTitle || anime.attributes?.titles?.en || anime.attributes?.titles?.en_jp,
+        image: anime.attributes?.posterImage?.original || anime.attributes?.posterImage?.small,
+        type: anime.attributes?.subtype || 'TV',
+        episodes: anime.attributes?.episodeCount?.toString() || '?',
+        provider: 'kitsu',
+        source: 'KitsuAPI',
+        hasDub: false,
+        hasSub: true,
+        quality: 'HD',
+        format: 'hls'
+      }));
+    } catch (error) {
+      console.error(`[AnimeMultiSource] KitsuAPI search failed:`, {
+        message: error.message,
+        code: error.code,
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        url: error.config?.url
+      });
+      throw new Error(`KitsuAPI search failed: ${error.message || 'Unknown error'}`);
+    }
+  }
+
+  // AniListAPI - GraphQL API oficial
+  async searchAniListAPI(query) {
+    console.log(`[AnimeMultiSource] AniListAPI: Starting search for "${query}"`);
+    try {
+      const url = this.sources[2].baseUrl;
+      const graphqlQuery = {
+        query: `
+          query ($search: String) {
+            Page(page: 1, perPage: 10) {
+              media(search: $search, type: ANIME) {
+                id
+                title {
+                  romaji
+                  english
+                  native
+                }
+                coverImage {
+                  large
+                }
+                type
+                episodes
+              }
+            }
+          }
+        `,
+        variables: { search: query }
+      };
+      
+      console.log(`[AnimeMultiSource] AniListAPI: Fetching ${url}`);
+      
+      const response = await axios.post(url, graphqlQuery, {
+        timeout: 10000,
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      console.log(`[AnimeMultiSource] AniListAPI: Got response, data length: ${JSON.stringify(response.data).length}`);
+      const results = response.data.data?.Page?.media || [];
+      console.log(`[AnimeMultiSource] AniListAPI: Parsed ${results.length} results`);
+      
+      return results.map(anime => ({
+        id: anime.id.toString(),
+        title: anime.title?.english || anime.title?.romaji || anime.title?.native,
+        image: anime.coverImage?.large,
+        type: anime.type || 'TV',
+        episodes: anime.episodes?.toString() || '?',
+        provider: 'anilist',
+        source: 'AniListAPI',
+        hasDub: false,
+        hasSub: true,
+        quality: 'HD',
+        format: 'hls'
+      }));
+    } catch (error) {
+      console.error(`[AnimeMultiSource] AniListAPI search failed:`, {
+        message: error.message,
+        code: error.code,
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        url: error.config?.url
+      });
+      throw new Error(`AniListAPI search failed: ${error.message || 'Unknown error'}`);
     }
   }
 
