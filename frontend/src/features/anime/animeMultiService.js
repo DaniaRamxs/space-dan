@@ -45,14 +45,9 @@ export const animeMultiService = {
       if (!response.ok) throw new Error('Failed to get episode sources');
       const data = await response.json();
       
-      // Formatear para compatibilidad con AnimePlayer
       return {
         success: true,
-        sources: data.data.sources.map(source => ({
-          ...source,
-          format: 'hls',
-          sourceType: 'hls'
-        })),
+        sources: data.data.sources,
         subtitles: data.data.subtitles || []
       };
     } catch (error) {
