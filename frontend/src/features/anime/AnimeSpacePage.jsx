@@ -619,7 +619,7 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
 
       if (controller.signal.aborted) return;
 
-      broadcastAnimeState({
+      const playerPayload = {
         view: 'player',
         selectedAnime,
         episodes,
@@ -628,7 +628,10 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
         activeSourceIndex: 0,
         colyseusRoomId: colyseusRoomIdRef.current || null,
         roomState: { roomId },
-      }, true);
+      };
+      broadcastAnimeState(playerPayload, true);
+      // Retry tras 1.5s por si el primer broadcast se perdió
+      setTimeout(() => broadcastAnimeState(playerPayload, true), 1500);
 
       setView('player');
     } catch (error) {
@@ -732,6 +735,15 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
       roomState: roomState?.roomId ? { roomId: roomState.roomId } : null,
     });
   }, [activeSourceIndex, broadcastAnimeState, currentEpisode, episodes, roomState?.roomId, selectedAnime, streamData, view]);
+
+  // Heartbeat: reenviar estado cada 8s mientras el host está en player (viewers que se unan tarde o reconecten se sincronizan)
+  useEffect(() => {
+    if (!onClose || !isHost || view !== 'player' || !selectedAnime || !currentEpisode) return;
+    const timer = setInterval(() => {
+      channelCallbacksRef.current.syncCurrentState?.();
+    }, 8000);
+    return () => clearInterval(timer);
+  }, [onClose, isHost, view, selectedAnime, currentEpisode]);
 
   const currentSource = streamData?.sources?.[activeSourceIndex] || null;
   // Presence es la fuente principal (incluye a todos), Colyseus enriquece con info adicional
