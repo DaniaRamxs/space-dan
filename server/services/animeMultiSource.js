@@ -5,28 +5,22 @@ class AnimeMultiSource {
   constructor() {
     this.sources = [
       {
-        name: 'Jkanime',
-        baseUrl: 'https://jkanime.net',
+        name: 'AnimeId',
+        baseUrl: 'https://www.animeid.tv',
         priority: 1,
-        features: ['doblado', 'HD']
+        features: ['doblado', 'subtitulado', 'HD']
       },
       {
-        name: 'TioAnime', 
-        baseUrl: 'https://tioanime.com',
+        name: 'AnimeOnline',
+        baseUrl: 'https://animeonline.ninja',
         priority: 2,
-        features: ['doblado', 'subtitulado']
+        features: ['doblado', 'HD']
       },
       {
         name: 'AnimeFLV',
         baseUrl: 'https://www3.animeflv.net',
         priority: 3,
         features: ['doblado', 'subtitulado', 'HD']
-      },
-      {
-        name: 'DirectSources',
-        baseUrl: 'https://commondatastorage.googleapis.com',
-        priority: 4,
-        features: ['direct', 'HD', 'funciona']
       }
     ];
   }
@@ -58,16 +52,90 @@ class AnimeMultiSource {
 
   async searchInSource(source, query) {
     switch (source.name) {
-      case 'Jkanime':
-        return await this.searchJkanime(query);
-      case 'TioAnime':
-        return await this.searchTioAnime(query);
+      case 'AnimeId':
+        return await this.searchAnimeId(query);
+      case 'AnimeOnline':
+        return await this.searchAnimeOnline(query);
       case 'AnimeFLV':
         return await this.searchAnimeFLV(query);
-      case 'DirectSources':
-        return await this.searchDirectSources(query);
       default:
         return [];
+    }
+  }
+
+  // AnimeId - Scraping
+  async searchAnimeId(query) {
+    console.log(`[AnimeMultiSource] AnimeId: Starting search for "${query}"`);
+    try {
+      const url = `${this.sources[0].baseUrl}/buscar?q=${encodeURIComponent(query)}`;
+      console.log(`[AnimeMultiSource] AnimeId: Fetching ${url}`);
+      
+      const html = await axios.get(url, {
+        timeout: 10000,
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+        }
+      });
+      
+      console.log(`[AnimeMultiSource] AnimeId: Got HTML, length: ${html.data.length}`);
+      const results = this.parseAnimeIdResults(html.data);
+      console.log(`[AnimeMultiSource] AnimeId: Parsed ${results.length} results`);
+      
+      return results.map(anime => ({
+        ...anime,
+        provider: 'animeid',
+        source: 'AnimeId',
+        hasDub: true,
+        quality: 'HD',
+        format: 'hls'
+      }));
+    } catch (error) {
+      console.error(`[AnimeMultiSource] AnimeId search failed:`, {
+        message: error.message,
+        code: error.code,
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        url: error.config?.url
+      });
+      throw new Error(`AnimeId search failed: ${error.message || 'Unknown error'}`);
+    }
+  }
+
+  // AnimeOnline - Scraping
+  async searchAnimeOnline(query) {
+    console.log(`[AnimeMultiSource] AnimeOnline: Starting search for "${query}"`);
+    try {
+      const url = `${this.sources[1].baseUrl}/buscar?q=${encodeURIComponent(query)}`;
+      console.log(`[AnimeMultiSource] AnimeOnline: Fetching ${url}`);
+      
+      const html = await axios.get(url, {
+        timeout: 10000,
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+        }
+      });
+      
+      console.log(`[AnimeMultiSource] AnimeOnline: Got HTML, length: ${html.data.length}`);
+      const results = this.parseAnimeOnlineResults(html.data);
+      console.log(`[AnimeMultiSource] AnimeOnline: Parsed ${results.length} results`);
+      
+      return results.map(anime => ({
+        ...anime,
+        provider: 'animeonline',
+        source: 'AnimeOnline',
+        hasDub: true,
+        quality: 'HD',
+        format: 'hls'
+      }));
+    } catch (error) {
+      console.error(`[AnimeMultiSource] AnimeOnline search failed:`, {
+        message: error.message,
+        code: error.code,
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        url: error.config?.url
+      });
+      throw new Error(`AnimeOnline search failed: ${error.message || 'Unknown error'}`);
     }
   }
 
@@ -227,6 +295,42 @@ class AnimeMultiSource {
       quality: 'HD',
       format: 'hls'
     }));
+  }
+
+  parseAnimeIdResults(html) {
+    const $ = cheerio.load(html);
+    const results = [];
+    
+    $('.anime-item, .item, .result').each((index, element) => {
+      const $item = $(element);
+      results.push({
+        id: $item.find('a').attr('href')?.replace('/anime/', '') || `animeid-${index}`,
+        title: $item.find('.title, .name, h3').text().trim() || $item.find('a').attr('title') || `Anime ${index + 1}`,
+        image: $item.find('img').attr('src'),
+        type: $item.find('.type, .genre').text() || 'TV',
+        episodes: $item.find('.episodes, .eps').text() || '12'
+      });
+    });
+    
+    return results;
+  }
+
+  parseAnimeOnlineResults(html) {
+    const $ = cheerio.load(html);
+    const results = [];
+    
+    $('.anime-card, .item, .result').each((index, element) => {
+      const $item = $(element);
+      results.push({
+        id: $item.find('a').attr('href')?.replace('/anime/', '') || `animeonline-${index}`,
+        title: $item.find('.title, .name, h3').text().trim() || $item.find('a').attr('title') || `Anime ${index + 1}`,
+        image: $item.find('img').attr('src'),
+        type: $item.find('.type, .genre').text() || 'TV',
+        episodes: $item.find('.episodes, .eps').text() || '12'
+      });
+    });
+    
+    return results;
   }
 
   parseJkanimeResults(html) {
