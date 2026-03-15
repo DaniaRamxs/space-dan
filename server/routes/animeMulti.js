@@ -7,15 +7,17 @@ const animeMulti = new AnimeMultiSource();
 
 // Búsqueda multi-fuente
 router.get('/search/:query', async (req, res) => {
+  console.log(`[AnimeMultiRoutes] Search request for: "${req.params.query}"`);
   try {
     const results = await animeMulti.searchAll(req.params.query);
+    console.log(`[AnimeMultiRoutes] Sending ${results.length} results`);
     res.json({
       success: true,
       data: results,
       sources: animeMulti.sources.map(s => s.name)
     });
   } catch (error) {
-    console.error('Multi-source search error:', error);
+    console.error('[AnimeMultiRoutes] Search error:', error);
     res.status(500).json({ 
       success: false, 
       error: error.message 

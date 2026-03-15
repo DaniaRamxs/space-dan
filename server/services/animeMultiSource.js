@@ -27,22 +27,27 @@ class AnimeMultiSource {
 
   // Buscar en todas las fuentes
   async searchAll(query) {
+    console.log(`[AnimeMultiSource] Starting search for: "${query}"`);
     const results = [];
     
     for (const source of this.sources) {
       try {
+        console.log(`[AnimeMultiSource] Searching in ${source.name}...`);
         const sourceResults = await this.searchInSource(source, query);
+        console.log(`[AnimeMultiSource] ${source.name} found ${sourceResults.length} results`);
         results.push({
           source: source.name,
           results: sourceResults,
           priority: source.priority
         });
       } catch (error) {
-        console.warn(`Error searching in ${source.name}:`, error.message);
+        console.warn(`[AnimeMultiSource] Error searching in ${source.name}:`, error.message);
       }
     }
     
-    return this.mergeResults(results);
+    const mergedResults = this.mergeResults(results);
+    console.log(`[AnimeMultiSource] Final merged results: ${mergedResults.length} items`);
+    return mergedResults;
   }
 
   async searchInSource(source, query) {
@@ -84,15 +89,22 @@ class AnimeMultiSource {
 
   // Jkanime - Scraping
   async searchJkanime(query) {
+    console.log(`[AnimeMultiSource] Jkanime: Starting search for "${query}"`);
     try {
-      const html = await axios.get(`${this.sources[1].baseUrl}/buscar?q=${encodeURIComponent(query)}`, {
+      const url = `${this.sources[0].baseUrl}/buscar?q=${encodeURIComponent(query)}`;
+      console.log(`[AnimeMultiSource] Jkanime: Fetching ${url}`);
+      
+      const html = await axios.get(url, {
         timeout: 5000,
         headers: {
           'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
         }
       });
       
+      console.log(`[AnimeMultiSource] Jkanime: Got HTML, length: ${html.data.length}`);
       const results = this.parseJkanimeResults(html.data);
+      console.log(`[AnimeMultiSource] Jkanime: Parsed ${results.length} results`);
+      
       return results.map(anime => ({
         ...anime,
         provider: 'jkanime',
@@ -102,6 +114,7 @@ class AnimeMultiSource {
         format: 'hls'
       }));
     } catch (error) {
+      console.error(`[AnimeMultiSource] Jkanime search failed:`, error.message);
       throw new Error(`Jkanime search failed: ${error.message}`);
     }
   }
