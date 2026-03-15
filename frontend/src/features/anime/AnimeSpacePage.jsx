@@ -32,6 +32,7 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
   const [chatInput, setChatInput] = useState('');
   const [remoteHostInfo, setRemoteHostInfo] = useState(null); // host info recibido via broadcast/presence antes de Colyseus
   const [presenceIsHost, setPresenceIsHost] = useState(false); // soy el primero en el canal (host por presencia)
+  const [presenceParticipants, setPresenceParticipants] = useState([]); // todos los usuarios en el canal via Presence
 
   // ── 3. All refs (declared before any hook that references them) ───────────
   const chatEndRef = useRef(null);
@@ -229,14 +230,13 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
         if (allPresence.length === 0) return;
         // El primero en llegar (menor joinedAt) es el host
         const sorted = [...allPresence].sort((a, b) => (a.joinedAt || 0) - (b.joinedAt || 0));
+        setPresenceParticipants(sorted);
         const hostPresence = sorted[0];
         if (!hostPresence?.userId) return;
         if (hostPresence.userId === profile?.id) {
-          // Soy el primero → soy el host
           setPresenceIsHost(true);
           setRemoteHostInfo(null);
         } else {
-          // Otro usuario es el host
           setPresenceIsHost(false);
           setRemoteHostInfo({ username: hostPresence.username, avatar: hostPresence.avatar || null, userId: hostPresence.userId });
         }
@@ -581,7 +581,9 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
   const currentSource = streamData?.sources?.[activeSourceIndex] || null;
   const visibleParticipants = participants.length
     ? participants
-    : [{ username: profile?.username, avatar: profile?.avatar_url, isHost: true }];
+    : presenceParticipants.length
+      ? presenceParticipants.map((p, i) => ({ username: p.username, avatar: p.avatar, userId: p.userId, isHost: i === 0 }))
+      : [{ username: profile?.username, avatar: profile?.avatar_url, isHost: true }];
   const mobileTabs = [
     { id: 'info', label: 'Info', icon: Tv },
     { id: 'sources', label: 'Fuentes', icon: Radio },
