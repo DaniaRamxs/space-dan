@@ -81,12 +81,16 @@ router.get('/episodes/:episodeId/:provider', async (req, res) => {
   try {
     const sources = await animeMulti.getEpisodeSources(req.params.episodeId, req.params.provider);
     
-    // Asegurar que todas las fuentes sean HLS para reproductor nativo
-    const hlsSources = sources.map(source => ({
-      ...source,
-      format: 'hls', // Forzar HLS
-      sourceType: 'hls' // Para compatibilidad con AnimePlayer
-    }));
+    // Preservar el formato real (hls/mp4) para que el player lo maneje correctamente
+    const hlsSources = sources.map(source => {
+      const url = source.url || '';
+      const isMp4 = url.includes('.mp4') || source.format === 'mp4';
+      return {
+        ...source,
+        format: isMp4 ? 'mp4' : 'hls',
+        sourceType: isMp4 ? 'mp4' : 'hls',
+      };
+    });
     
     res.json({
       success: true,

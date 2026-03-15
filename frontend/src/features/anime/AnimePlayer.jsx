@@ -62,7 +62,7 @@ const AnimePlayer = React.memo(({
   const [showControls, setShowControls] = useState(true);
 
   const src = source?.url;
-  const videoSrc = src;
+  const isMp4 = source?.format === 'mp4' || source?.sourceType === 'mp4';
 
   useEffect(() => {
     if (!src) {
@@ -74,7 +74,17 @@ const AnimePlayer = React.memo(({
     }
 
     const video = videoRef.current;
-    const proxiedSrc = proxyUrl(videoSrc);
+    const proxiedSrc = proxyUrl(src);
+
+    // MP4 directo — usar el elemento <video> nativo, no HLS.js
+    if (isMp4) {
+      if (hlsRef.current) { hlsRef.current.destroy(); hlsRef.current = null; }
+      video.src = proxiedSrc;
+      if (initialTime && initialTime > 10) {
+        video.addEventListener('loadedmetadata', () => { video.currentTime = initialTime; }, { once: true });
+      }
+      return () => { video.src = ''; };
+    }
 
     if (Hls.isSupported()) {
       if (hlsRef.current) hlsRef.current.destroy();
@@ -111,7 +121,7 @@ const AnimePlayer = React.memo(({
         hlsRef.current = null;
       }
     };
-  }, [videoSrc, initialTime]);
+  }, [src, isMp4, initialTime]);
 
   useEffect(() => {
     if (!videoRef.current || isHost) return;
