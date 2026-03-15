@@ -402,7 +402,6 @@ const AstroPartyPage = ({ onClose, roomName }) => {
   }, [myUsername]);
 
   const createRoom = useCallback(async () => {
-    if (!selectedContent) return;
     const code = Math.random().toString(36).substring(2, 8).toUpperCase();
     setRoomCode(code);
     setIsHost(true);
@@ -415,6 +414,22 @@ const AstroPartyPage = ({ onClose, roomName }) => {
     // Feature 1: push shareable URL
     window.history.pushState({}, '', `?room=${code}`);
   }, [selectedContent, setupChannel]);
+
+  // Re-track presence when host selects/changes content inside the room
+  const hostSelectContent = useCallback((item) => {
+    setSelectedContent(item);
+    if (channelRef.current && isHostRef.current) {
+      channelRef.current.track({
+        username: myUsername,
+        status: myStatus,
+        isHost: true,
+        content: item || null,
+        platform: selectedPlatforms[0] || 'netflix',
+        episode: selectedEpisode,
+      });
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [myUsername, myStatus, selectedPlatforms, selectedEpisode]);
 
   const joinRoom = useCallback(async () => {
     const code = joinCode.trim().toUpperCase();
@@ -696,15 +711,11 @@ const AstroPartyPage = ({ onClose, roomName }) => {
             </div>
 
             <motion.button
-              whileHover={selectedContent ? { scale: 1.02 } : {}}
-              whileTap={selectedContent ? { scale: 0.97 } : {}}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.97 }}
               onClick={createRoom}
-              disabled={!selectedContent}
-              className={`flex items-center gap-2.5 px-6 py-3 rounded-2xl font-bold text-sm transition-all duration-200
-                ${selectedContent
-                  ? 'bg-violet-600 hover:bg-violet-500 text-white shadow-[0_0_24px_rgba(124,58,237,0.5)] hover:shadow-[0_0_32px_rgba(124,58,237,0.7)]'
-                  : 'bg-white/5 text-white/25 cursor-not-allowed border border-white/10'
-                }`}
+              className="flex items-center gap-2.5 px-6 py-3 rounded-2xl font-bold text-sm transition-all duration-200
+                bg-violet-600 hover:bg-violet-500 text-white shadow-[0_0_24px_rgba(124,58,237,0.5)] hover:shadow-[0_0_32px_rgba(124,58,237,0.7)]"
             >
               <Rocket size={16} />
               Crear sala
@@ -896,10 +907,94 @@ const AstroPartyPage = ({ onClose, roomName }) => {
           className="absolute inset-0 w-full h-full object-cover opacity-20 blur-2xl scale-110 pointer-events-none"
         />
       ) : (
-        <div className={`absolute inset-0 bg-gradient-to-br ${gradientForTitle(contentTitle)} opacity-20 blur-2xl pointer-events-none`} />
+        <div className="absolute inset-0 bg-gradient-to-br from-violet-900 to-indigo-900 opacity-10 blur-2xl pointer-events-none" />
       )}
 
-      <div className="relative z-10 flex flex-col items-center gap-5 w-full max-w-xs text-center">
+      {/* ── No content yet ── */}
+      {!selectedContent && (
+        <div className="relative z-10 flex flex-col items-center gap-5 w-full max-w-sm text-center">
+          {/* Host badge */}
+          <div className="flex items-center gap-2.5 bg-white/5 border border-white/10 rounded-2xl px-4 py-3">
+            <div
+              className="w-10 h-10 rounded-full flex items-center justify-center text-white font-black text-sm flex-shrink-0 ring-2 ring-violet-500"
+              style={{ backgroundColor: avatarColor(myUsername) }}
+            >
+              {myUsername.charAt(0).toUpperCase()}
+            </div>
+            <div className="text-left">
+              <div className="flex items-center gap-1.5">
+                <span className="text-white font-bold text-sm">{myUsername}</span>
+                <Crown size={12} className="text-yellow-400" />
+              </div>
+              <span className="text-white/40 text-[11px]">{isHost ? 'Tú eres el host' : 'Host de la sala'}</span>
+            </div>
+          </div>
+
+          {isHost ? (
+            <>
+              <div className="w-16 h-16 rounded-2xl bg-violet-600/20 border border-violet-500/30 flex items-center justify-center">
+                <Search size={24} className="text-violet-400" />
+              </div>
+              <div>
+                <p className="text-white font-black text-lg">¿Qué vamos a ver?</p>
+                <p className="text-white/40 text-xs mt-1">Busca algo abajo y selecciónalo</p>
+              </div>
+              {/* Inline mini-search for host inside room */}
+              <div className="w-full">
+                <div className="relative mb-3">
+                  <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/30 pointer-events-none" />
+                  <input
+                    type="text"
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    placeholder="Buscar serie o película..."
+                    className="w-full bg-white/5 border border-white/10 rounded-xl pl-9 pr-3 py-2.5 text-white
+                      placeholder-white/25 text-sm focus:outline-none focus:border-violet-500/60 transition-all"
+                  />
+                </div>
+                <div className="grid grid-cols-3 gap-2 max-h-56 overflow-y-auto">
+                  {searchResults.slice(0, 9).map((item) => (
+                    <PosterCard
+                      key={item.id}
+                      item={item}
+                      selected={false}
+                      onSelect={hostSelectContent}
+                    />
+                  ))}
+                </div>
+              </div>
+            </>
+          ) : (
+            <>
+              {/* Guest waiting view */}
+              <motion.div
+                animate={{ scale: [1, 1.08, 1], opacity: [0.6, 1, 0.6] }}
+                transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+                className="w-16 h-16 rounded-2xl bg-violet-600/20 border border-violet-500/30 flex items-center justify-center"
+              >
+                <Rocket size={24} className="text-violet-400" />
+              </motion.div>
+              <div>
+                <p className="text-white font-black text-lg">El host está eligiendo</p>
+                <p className="text-white/40 text-sm mt-1">Espera un momento...</p>
+              </div>
+              <div className="flex gap-1.5 mt-1">
+                {[0, 1, 2].map((i) => (
+                  <motion.div
+                    key={i}
+                    animate={{ opacity: [0.2, 1, 0.2] }}
+                    transition={{ duration: 1.2, repeat: Infinity, delay: i * 0.2 }}
+                    className="w-2 h-2 rounded-full bg-violet-400"
+                  />
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+      )}
+
+      {/* ── Has content ── */}
+      {selectedContent && <div className="relative z-10 flex flex-col items-center gap-5 w-full max-w-xs text-center">
         {/* Poster */}
         {selectedContent?.poster_path ? (
           <img
@@ -989,6 +1084,7 @@ const AstroPartyPage = ({ onClose, roomName }) => {
         {/* Sync button */}
         <SyncButton />
       </div>
+      }
 
       {/* Sync banner notification */}
       <AnimatePresence>
@@ -1205,6 +1301,17 @@ const AstroPartyPage = ({ onClose, roomName }) => {
         </div>
 
         <div className="flex items-center gap-2">
+          {/* Host name + avatar in header */}
+          <div className="hidden sm:flex items-center gap-2 bg-white/5 border border-white/10 rounded-xl px-2.5 py-1.5">
+            <div
+              className="w-6 h-6 rounded-full flex items-center justify-center text-white font-bold text-xs flex-shrink-0"
+              style={{ backgroundColor: avatarColor(myUsername) }}
+            >
+              {myUsername.charAt(0).toUpperCase()}
+            </div>
+            <span className="text-white/70 text-xs font-semibold">{myUsername}</span>
+            {isHost && <Crown size={10} className="text-yellow-400" />}
+          </div>
           <button
             onClick={copyRoomCode}
             className="hidden sm:flex items-center gap-1.5 bg-white/5 hover:bg-white/10 border border-white/10
