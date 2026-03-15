@@ -9,6 +9,12 @@ const API_URL = import.meta.env.VITE_API_URL || '';
 const proxyUrl = (url) => {
   if (!url) return url;
   if (url.startsWith('/api/anime/proxy')) return url;
+  
+  // Skip proxy for direct extracted URLs (Fembed, etc.)
+  if (url.includes('fembed.com') || url.includes('hqq.tv')) {
+    return url;
+  }
+  
   return `${API_URL}/api/anime/proxy?url=${encodeURIComponent(url)}`;
 };
 
