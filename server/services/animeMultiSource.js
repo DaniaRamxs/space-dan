@@ -103,9 +103,15 @@ class AnimeMultiSource {
   constructor() {
     this.sources = [
       {
+        name: 'AnimeFLV',
+        baseUrl: 'https://www3.animeflv.net',
+        priority: 1,
+        features: ['doblado español', 'subtitulado español', 'HD', 'okru'],
+      },
+      {
         name: 'Latanime',
         baseUrl: 'https://latanime.org',
-        priority: 1,
+        priority: 2,
         features: ['castellano', 'doblado', 'subtitulado', 'doodstream', 'filemoon'],
       },
     ];
@@ -143,7 +149,8 @@ class AnimeMultiSource {
 
   // ── AnimeFLV search ─────────────────────────────────────────────────────────
   async searchAnimeFLV(query) {
-    const url = `${this.sources[0].baseUrl}/browse?search=${encodeURIComponent(query)}`;
+    const flv = this.sources.find((s) => s.name === 'AnimeFLV');
+    const url = `${flv.baseUrl}/browse?search=${encodeURIComponent(query)}`;
     const html = (await get(url)).data;
     return this._parseAnimeFLVList(html).map((a) => ({
       ...a,
@@ -250,9 +257,10 @@ class AnimeMultiSource {
   }
 
   async getAnimeFLVDirectory() {
+    const flv = this.sources.find((s) => s.name === 'AnimeFLV');
     // AnimeFLV paginates with ?page=N, ~24 items per page
     return this._fetchPaginatedDirectory(
-      (page) => `${this.sources[0].baseUrl}/browse?page=${page}`,
+      (page) => `${flv.baseUrl}/browse?page=${page}`,
       (html) => this._parseAnimeFLVList(html),
       (a) => ({ ...a, provider: 'animeflv', source: 'AnimeFLV', hasDub: true, hasSub: true }),
       8
@@ -303,7 +311,8 @@ class AnimeMultiSource {
   }
 
   async getAnimeFLVInfo(animeId) {
-    const url = `${this.sources[0].baseUrl}/anime/${animeId}`;
+    const flv = this.sources.find((s) => s.name === 'AnimeFLV');
+    const url = `${flv.baseUrl}/anime/${animeId}`;
     const html = (await get(url)).data;
     const $ = cheerio.load(html);
 
@@ -429,9 +438,10 @@ class AnimeMultiSource {
   }
 
   async getAnimeFLVSources(episodeId) {
-    const referer = this.sources[0].baseUrl + '/';
+    const flv = this.sources.find((s) => s.name === 'AnimeFLV');
+    const referer = flv.baseUrl + '/';
     try {
-      const url = `${this.sources[0].baseUrl}/ver/${episodeId}`;
+      const url = `${flv.baseUrl}/ver/${episodeId}`;
       const html = (await get(url, { Referer: referer })).data;
 
       const videosData = parseVideosVar(html);
