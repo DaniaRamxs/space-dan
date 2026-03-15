@@ -787,6 +787,18 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
   }, [isHost, view, selectedAnime, currentEpisode]);
 
   const currentSource = streamData?.sources?.[activeSourceIndex] || null;
+  
+  // Debug: Log available sources
+  useEffect(() => {
+    if (streamData?.sources) {
+      console.log('[AnimeSpace] Available sources:', streamData.sources.map(s => ({
+        format: s.format || s.sourceType,
+        quality: s.quality,
+        server: s.server,
+        url: s.url?.substring(0, 100) + '...'
+      })));
+    }
+  }, [streamData?.sources]);
   // Presence es la fuente principal (incluye a todos), Colyseus enriquece con info adicional
   const visibleParticipants = presenceParticipants.length
     ? presenceParticipants.map((p, i) => {
