@@ -1,109 +1,24 @@
 import React, {
-  useState, useEffect, useRef, useCallback, memo, useMemo,
+  useState, useEffect, useRef, useCallback, memo,
 } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Search, Users, MessageSquare, Copy, Rocket, Play, Pause,
-  X, Check, Send, Crown, ChevronLeft, ChevronRight, Clock,
-  Bell, Film, Tv, Loader2,
+  Users, MessageSquare, Copy, Rocket, X, Check, Send, Crown,
+  ChevronLeft, Clock, Bell, Loader2, Link, Monitor, Gift, Pause,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { supabase } from '@/supabaseClient';
 import AnimePlayer from './AnimePlayer';
+import GifPickerModal from '@/components/reactions/GifPickerModal';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const API_URL  = import.meta.env.VITE_API_URL || '';
-const TMDB_KEY = import.meta.env.VITE_TMDB_KEY;
-const TMDB_IMG = 'https://image.tmdb.org/t/p/w342';
-
-const SOURCES = [
-  { id: 'netflix',     label: 'Netflix',     color: '#E50914', type: 'external' },
-  { id: 'crunchyroll', label: 'Crunchyroll', color: '#F47521', type: 'external' },
-  { id: 'disney',      label: 'Disney+',     color: '#113CCF', type: 'external' },
-  { id: 'prime',       label: 'Prime Video', color: '#00A8E0', type: 'external' },
-  { id: 'hbo',         label: 'HBO Max',     color: '#5822b4', type: 'external' },
-  { id: 'anime',       label: 'Anime',       color: '#7c3aed', type: 'internal' },
-  { id: 'youtube',     label: 'YouTube',     color: '#FF0000', type: 'youtube'  },
-];
-
-const PLATFORM_LOGOS_SM = {
-  netflix: (
-    <svg viewBox="0 0 24 24" className="w-4 h-4 fill-current">
-      <path d="M5.398 0v.006c3.028 8.556 5.37 15.175 8.348 23.596 2.344.058 4.85.398 4.854.398-2.8-7.924-5.923-16.747-8.487-24zm8.489 0v9.63L18.6 24c-.01 0 2.317.038 4.402.059V0zm-8.489 14.364-4.536 9.594c2.228.04 4.485.106 6.731.176z"/>
-    </svg>
-  ),
-  crunchyroll: (
-    <svg viewBox="0 0 24 24" className="w-4 h-4 fill-current">
-      <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm0 4.5a7.5 7.5 0 1 1 0 15 7.5 7.5 0 0 1 0-15zm0 2a5.5 5.5 0 1 0 0 11A5.5 5.5 0 0 0 12 6.5zm0 2a3.5 3.5 0 1 1 0 7 3.5 3.5 0 0 1 0-7z"/>
-    </svg>
-  ),
-  disney: (
-    <svg viewBox="0 0 24 24" className="w-4 h-4 fill-current">
-      <path d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2zm-1 14.5v-9l7 4.5-7 4.5z"/>
-    </svg>
-  ),
-  prime: (
-    <svg viewBox="0 0 24 24" className="w-4 h-4 fill-current">
-      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z"/>
-    </svg>
-  ),
-  hbo: (
-    <svg viewBox="0 0 24 24" className="w-4 h-4 fill-current">
-      <path d="M4 6h4v12H4V6zm6 0h4v5h-4V6zm0 7h4v5h-4v-5zm6-7h4v12h-4V6z"/>
-    </svg>
-  ),
-  anime: (
-    <svg viewBox="0 0 24 24" className="w-4 h-4 fill-current">
-      <path d="M21 3H3c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h5v2h8v-2h5c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 14H3V5h18v12z"/>
-      <path d="M10 8.5l6 3.5-6 3.5V8.5z"/>
-    </svg>
-  ),
-  youtube: (
-    <svg viewBox="0 0 24 24" className="w-4 h-4 fill-current">
-      <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
-    </svg>
-  ),
-};
-
-const PLATFORM_LOGOS_LG = {
-  netflix: (
-    <svg viewBox="0 0 24 24" className="w-8 h-8 fill-current">
-      <path d="M5.398 0v.006c3.028 8.556 5.37 15.175 8.348 23.596 2.344.058 4.85.398 4.854.398-2.8-7.924-5.923-16.747-8.487-24zm8.489 0v9.63L18.6 24c-.01 0 2.317.038 4.402.059V0zm-8.489 14.364-4.536 9.594c2.228.04 4.485.106 6.731.176z"/>
-    </svg>
-  ),
-  crunchyroll: (
-    <svg viewBox="0 0 24 24" className="w-8 h-8 fill-current">
-      <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm0 4.5a7.5 7.5 0 1 1 0 15 7.5 7.5 0 0 1 0-15zm0 2a5.5 5.5 0 1 0 0 11A5.5 5.5 0 0 0 12 6.5zm0 2a3.5 3.5 0 1 1 0 7 3.5 3.5 0 0 1 0-7z"/>
-    </svg>
-  ),
-  disney: (
-    <svg viewBox="0 0 24 24" className="w-8 h-8 fill-current">
-      <path d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2zm-1 14.5v-9l7 4.5-7 4.5z"/>
-    </svg>
-  ),
-  prime: (
-    <svg viewBox="0 0 24 24" className="w-8 h-8 fill-current">
-      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z"/>
-    </svg>
-  ),
-  hbo: (
-    <svg viewBox="0 0 24 24" className="w-8 h-8 fill-current">
-      <path d="M4 6h4v12H4V6zm6 0h4v5h-4V6zm0 7h4v5h-4v-5zm6-7h4v12h-4V6z"/>
-    </svg>
-  ),
-  anime: (
-    <svg viewBox="0 0 24 24" className="w-8 h-8 fill-current">
-      <path d="M21 3H3c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h5v2h8v-2h5c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 14H3V5h18v12z"/>
-      <path d="M10 8.5l6 3.5-6 3.5V8.5z"/>
-    </svg>
-  ),
-  youtube: (
-    <svg viewBox="0 0 24 24" className="w-8 h-8 fill-current">
-      <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
-    </svg>
-  ),
+const PC_CONFIG = {
+  iceServers: [
+    { urls: 'stun:stun.l.google.com:19302' },
+    { urls: 'stun:stun1.l.google.com:19302' },
+  ],
 };
 
 const REACTIONS = ['😂', '🔥', '😱', '❤️', '👏', '🎉'];
@@ -112,12 +27,14 @@ const AVATAR_COLORS = ['#7c3aed', '#22d3ee', '#f59e0b', '#10b981', '#ef4444', '#
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 const avatarColor = (name) => AVATAR_COLORS[(name?.charCodeAt(0) || 0) % AVATAR_COLORS.length];
-
 const STATUS_RING  = { ready: 'ring-green-400', watching: 'ring-yellow-400', idle: 'ring-gray-600' };
 const STATUS_LABEL = { ready: 'Listo', watching: 'Viendo', idle: 'Inactivo' };
 
-const extractYoutubeId = (url) =>
-  url.match(/(?:v=|youtu\.be\/)([^&\s]+)/)?.[1] || null;
+const getVideoFormat = (url = '') => {
+  if (url.includes('.m3u8')) return 'hls';
+  if (url.includes('.webm')) return 'mp4';
+  return 'mp4';
+};
 
 // ─── Micro components ─────────────────────────────────────────────────────────
 
@@ -137,7 +54,7 @@ const AnimatedDots = () => (
 const Avatar = memo(({ name, size = 10, status }) => (
   <div className="relative flex-shrink-0">
     <div
-      className={`rounded-full flex items-center justify-center text-white font-bold text-sm
+      className={`rounded-full flex items-center justify-center text-white font-bold
         ${status ? `ring-2 ${STATUS_RING[status] || STATUS_RING.idle}` : ''}`}
       style={{
         backgroundColor: avatarColor(name),
@@ -164,46 +81,37 @@ const FloatingEmoji = memo(({ emoji, id, x }) => (
   </motion.div>
 ));
 
-const SearchResultItem = memo(({ item, onSelect }) => (
-  <motion.button
-    whileHover={{ backgroundColor: 'rgba(255,255,255,0.06)' }}
-    onClick={() => onSelect(item)}
-    className="flex items-center gap-3 w-full px-4 py-3 text-left transition-colors rounded-xl"
-  >
-    {(item.poster_path || item.animeImage) ? (
-      <img
-        src={item.poster_path ? `https://image.tmdb.org/t/p/w92${item.poster_path}` : item.animeImage}
-        alt={item.title}
-        className="rounded-lg object-cover flex-shrink-0"
-        style={{ width: 48, height: 64 }}
-        loading="lazy"
-      />
-    ) : (
-      <div
-        className="rounded-lg bg-white/5 flex items-center justify-center flex-shrink-0"
-        style={{ width: 48, height: 64 }}
-      >
-        <span className="text-white/30 font-black text-lg">{item.title?.charAt(0)}</span>
-      </div>
-    )}
-    <div className="flex-1 min-w-0">
-      <p className="text-white font-semibold text-sm truncate">{item.title}</p>
-      <div className="flex items-center gap-2 mt-0.5">
-        {item.year && <span className="text-white/40 text-xs">{item.year}</span>}
-        {item.vote_average > 0 && (
-          <span className="text-white/40 text-xs">★ {Number(item.vote_average).toFixed(1)}</span>
-        )}
-        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full
-          ${item.type === 'series'
-            ? 'bg-violet-500/20 text-violet-300'
-            : 'bg-cyan-500/20 text-cyan-300'}`}>
-          {item.type === 'series' ? 'Serie' : 'Película'}
-        </span>
-      </div>
-    </div>
-    <ChevronRight size={14} className="text-white/20 flex-shrink-0" />
-  </motion.button>
+// ─── GIF overlay ──────────────────────────────────────────────────────────────
+
+const GifOverlay = memo(({ gifUrl, id }) => (
+  <motion.img
+    key={id}
+    src={gifUrl}
+    initial={{ opacity: 0, scale: 0.7 }}
+    animate={{ opacity: 1, scale: 1 }}
+    exit={{ opacity: 0, scale: 0.7 }}
+    transition={{ duration: 0.3 }}
+    className="absolute top-1/4 left-1/2 -translate-x-1/2 max-w-[38%] rounded-xl shadow-2xl border border-white/10 pointer-events-none z-40"
+    alt="gif reaction"
+  />
 ));
+
+// ─── Screen share overlays wrapper ────────────────────────────────────────────
+
+const ScreenOverlays = ({ floatingEmojis, gifOverlays }) => (
+  <div className="absolute inset-0 pointer-events-none overflow-hidden">
+    <AnimatePresence>
+      {floatingEmojis.map((e) => (
+        <FloatingEmoji key={e.id} emoji={e.emoji || e.content} id={e.id} x={e.x} />
+      ))}
+    </AnimatePresence>
+    <AnimatePresence>
+      {gifOverlays.map((g) => (
+        <GifOverlay key={g.id} gifUrl={g.gifUrl} id={g.id} />
+      ))}
+    </AnimatePresence>
+  </div>
+);
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 
@@ -212,28 +120,26 @@ const AstroPartyPage = ({ onClose, roomName }) => {
 
   // ── Views & steps ────────────────────────────────────────────────────────────
   const [view, setView]         = useState('lobby');
-  const [roomStep, setRoomStep] = useState('platform');
-  // 'platform' | 'search' | 'episode' | 'loading' | 'watching'
+  const [roomStep, setRoomStep] = useState('content');
+  // 'content' | 'videolink' | 'screenshare' | 'watching'
 
-  // ── Source / content ─────────────────────────────────────────────────────────
-  const [roomSource, setRoomSource]   = useState(null);
-  const [roomContent, setRoomContent] = useState(null);
-  const [episodesList, setEpisodesList]         = useState([]);
-  const [selectedEpisode, setSelectedEpisode]   = useState({ season: 1, episode: 1 });
-  const [selectedAnimeEp, setSelectedAnimeEp]   = useState(null);
+  // ── Content mode ─────────────────────────────────────────────────────────────
+  const [contentMode, setContentMode] = useState(null); // 'videolink' | 'screenshare'
+  const [videoUrl, setVideoUrl]       = useState('');
 
-  // ── Stream ───────────────────────────────────────────────────────────────────
-  const [streamSources, setStreamSources]     = useState([]);
-  const [activeSourceIdx, setActiveSourceIdx] = useState(0);
-  const [streamSubtitles, setStreamSubtitles] = useState([]);
-  const [streamError, setStreamError]         = useState(null);
+  // ── Screen share (WebRTC) ────────────────────────────────────────────────────
+  const [screenStream, setScreenStream] = useState(null);   // host's MediaStream
+  const [remoteStream, setRemoteStream] = useState(null);   // guest's received stream
+  const localVideoRef  = useRef(null);
+  const remoteVideoRef = useRef(null);
+  const pcRef          = useRef({});       // { peerId: RTCPeerConnection }
+  const localStreamRef = useRef(null);
 
-  // ── Search ───────────────────────────────────────────────────────────────────
-  const [searchQuery, setSearchQuery]     = useState('');
-  const [searchResults, setSearchResults] = useState([]);
-  const [searchLoading, setSearchLoading] = useState(false);
+  // ── Sync refs (for callbacks inside setupChannel closure) ────────────────────
+  const webrtcCallbacksRef = useRef({ handleRequest: null, handleOffer: null, handleAnswer: null, handleIce: null });
+  const socialCallbacksRef = useRef({ addGifOverlay: null, addFloatingEmoji: null });
 
-  // ── External player sync ─────────────────────────────────────────────────────
+  // ── Stream (video link) ──────────────────────────────────────────────────────
   const [externalPlayerState, setExternalPlayerState] = useState({});
 
   // ── Room ─────────────────────────────────────────────────────────────────────
@@ -251,6 +157,8 @@ const AstroPartyPage = ({ onClose, roomName }) => {
   const [messages, setMessages]           = useState([]);
   const [chatInput, setChatInput]         = useState('');
   const [floatingEmojis, setFloatingEmojis] = useState([]);
+  const [gifOverlays, setGifOverlays]     = useState([]);
+  const [showGifPicker, setShowGifPicker] = useState(false);
 
   // ── Mobile ───────────────────────────────────────────────────────────────────
   const [mobileTab, setMobileTab] = useState('player');
@@ -259,21 +167,19 @@ const AstroPartyPage = ({ onClose, roomName }) => {
   const [showRating, setShowRating] = useState(false);
   const [myRating, setMyRating]     = useState(0);
 
-  // ── YouTube manual input ─────────────────────────────────────────────────────
-  const [youtubeUrl, setYoutubeUrl] = useState('');
-
   // ── Refs ─────────────────────────────────────────────────────────────────────
   const chatEndRef       = useRef(null);
   const channelRef       = useRef(null);
-  const searchTimeout    = useRef(null);
   const countdownTimer   = useRef(null);
   const isHostRef        = useRef(isHost);
   const prevHostRef      = useRef(true);
   const hasAutoJoinedRef = useRef(false);
+  const profileRef       = useRef(profile);
 
   const myUsername = profile?.username || profile?.email?.split('@')[0] || 'Tú';
 
   useEffect(() => { isHostRef.current = isHost; }, [isHost]);
+  useEffect(() => { profileRef.current = profile; }, [profile]);
 
   // Auto-join from URL param
   useEffect(() => {
@@ -281,6 +187,39 @@ const AstroPartyPage = ({ onClose, roomName }) => {
     const roomParam = params.get('room');
     if (roomParam) setJoinCode(roomParam.toUpperCase());
   }, []);
+
+  // Attach video elements to streams
+  useEffect(() => {
+    if (localVideoRef.current && screenStream) {
+      localVideoRef.current.srcObject = screenStream;
+    }
+  }, [screenStream]);
+
+  useEffect(() => {
+    if (remoteVideoRef.current && remoteStream) {
+      remoteVideoRef.current.srcObject = remoteStream;
+    }
+  }, [remoteStream]);
+
+  // ── Social helpers ────────────────────────────────────────────────────────────
+
+  const addGifOverlay = useCallback((gifUrl) => {
+    const id = Date.now() + Math.random();
+    setGifOverlays((prev) => [...prev.slice(-4), { id, gifUrl }]);
+    setTimeout(() => setGifOverlays((prev) => prev.filter((g) => g.id !== id)), 5000);
+  }, []);
+
+  const addFloatingEmojiLocal = useCallback((emoji) => {
+    const id = Date.now() + Math.random();
+    const x  = 10 + Math.random() * 80;
+    setFloatingEmojis((prev) => [...prev, { id, content: emoji, emoji, x }]);
+    setTimeout(() => setFloatingEmojis((prev) => prev.filter((e) => e.id !== id)), 2500);
+  }, []);
+
+  // Keep refs up to date (for channel handlers to call current versions)
+  useEffect(() => {
+    socialCallbacksRef.current = { addGifOverlay, addFloatingEmoji: addFloatingEmojiLocal };
+  }, [addGifOverlay, addFloatingEmojiLocal]);
 
   // ── Broadcast ────────────────────────────────────────────────────────────────
 
@@ -295,23 +234,102 @@ const AstroPartyPage = ({ onClose, roomName }) => {
     });
   }, [myUsername]);
 
-  // ── Presence tracking ────────────────────────────────────────────────────────
+  // ── WebRTC handlers ──────────────────────────────────────────────────────────
 
-  const trackPresence = useCallback((overrides = {}) => {
-    if (!channelRef.current) return;
-    channelRef.current.track({
-      username: myUsername,
-      isHost: isHostRef.current,
-      status: myStatus,
-      step: roomStep,
-      source: roomSource,
-      content: roomContent,
-      episode: selectedEpisode,
-      animeEp: selectedAnimeEp,
-      ...overrides,
+  // HOST: a guest is requesting the screen stream
+  const handleScreenRequest = useCallback(async ({ fromId, fromUsername }) => {
+    if (!isHostRef.current || !localStreamRef.current) return;
+    console.log('[AstroParty] screen_request from', fromUsername);
+
+    const pc = new RTCPeerConnection(PC_CONFIG);
+    pcRef.current[fromId] = pc;
+
+    localStreamRef.current.getTracks().forEach((track) => {
+      pc.addTrack(track, localStreamRef.current);
     });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [myUsername, myStatus, roomStep, roomSource, roomContent, selectedEpisode, selectedAnimeEp]);
+
+    pc.onicecandidate = ({ candidate }) => {
+      if (candidate) {
+        channelRef.current?.send({
+          type: 'broadcast', event: 'screen_ice',
+          payload: { fromId: profileRef.current?.id, toId: fromId, candidate: candidate.toJSON() },
+        }).catch(() => {});
+      }
+    };
+
+    const offer = await pc.createOffer();
+    await pc.setLocalDescription(offer);
+
+    channelRef.current?.send({
+      type: 'broadcast', event: 'screen_offer',
+      payload: { fromId: profileRef.current?.id, toId: fromId, sdp: offer.sdp, type: offer.type },
+    }).catch(() => {});
+  }, []);
+
+  // GUEST: received a screen offer from host
+  const handleScreenOffer = useCallback(async ({ fromId, toId, sdp, type: sdpType }) => {
+    if (isHostRef.current || toId !== profileRef.current?.id) return;
+    console.log('[AstroParty] screen_offer received from host');
+
+    const pc = new RTCPeerConnection(PC_CONFIG);
+    pcRef.current['host'] = pc;
+
+    pc.onicecandidate = ({ candidate }) => {
+      if (candidate) {
+        channelRef.current?.send({
+          type: 'broadcast', event: 'screen_ice',
+          payload: { fromId: profileRef.current?.id, toId: fromId, candidate: candidate.toJSON() },
+        }).catch(() => {});
+      }
+    };
+
+    pc.ontrack = ({ streams }) => {
+      if (streams?.[0]) {
+        setRemoteStream(streams[0]);
+        if (remoteVideoRef.current) {
+          remoteVideoRef.current.srcObject = streams[0];
+        }
+      }
+    };
+
+    await pc.setRemoteDescription({ type: sdpType, sdp });
+    const answer = await pc.createAnswer();
+    await pc.setLocalDescription(answer);
+
+    channelRef.current?.send({
+      type: 'broadcast', event: 'screen_answer',
+      payload: { fromId: profileRef.current?.id, toId: fromId, sdp: answer.sdp, type: answer.type },
+    }).catch(() => {});
+  }, []);
+
+  // HOST: received an answer from a guest
+  const handleScreenAnswer = useCallback(async ({ fromId, toId, sdp, type: sdpType }) => {
+    if (!isHostRef.current || toId !== profileRef.current?.id) return;
+    const pc = pcRef.current[fromId];
+    if (!pc) return;
+    await pc.setRemoteDescription({ type: sdpType, sdp });
+  }, []);
+
+  // Either side: ICE candidate
+  const handleScreenIce = useCallback(async ({ fromId, toId, candidate }) => {
+    if (toId !== profileRef.current?.id) return;
+    const pc = isHostRef.current ? pcRef.current[fromId] : pcRef.current['host'];
+    if (!pc || !candidate) return;
+    try {
+      await pc.addIceCandidate(new RTCIceCandidate(candidate));
+    } catch (err) {
+      console.warn('[AstroParty] ICE error:', err);
+    }
+  }, []);
+
+  useEffect(() => {
+    webrtcCallbacksRef.current = {
+      handleRequest: handleScreenRequest,
+      handleOffer:   handleScreenOffer,
+      handleAnswer:  handleScreenAnswer,
+      handleIce:     handleScreenIce,
+    };
+  }, [handleScreenRequest, handleScreenOffer, handleScreenAnswer, handleScreenIce]);
 
   // ── Channel setup ────────────────────────────────────────────────────────────
 
@@ -332,11 +350,9 @@ const AstroPartyPage = ({ onClose, roomName }) => {
 
         const hostPresence = Object.values(state).flat().find((p) => p.isHost);
         if (hostPresence && !isHostRef.current) {
-          if (hostPresence.step)    setRoomStep(hostPresence.step);
-          if (hostPresence.source)  setRoomSource(hostPresence.source);
-          if (hostPresence.content) setRoomContent(hostPresence.content);
-          if (hostPresence.episode) setSelectedEpisode(hostPresence.episode);
-          if (hostPresence.animeEp) setSelectedAnimeEp(hostPresence.animeEp);
+          if (hostPresence.step)        setRoomStep(hostPresence.step);
+          if (hostPresence.contentMode) setContentMode(hostPresence.contentMode);
+          if (hostPresence.videoUrl)    setVideoUrl(hostPresence.videoUrl);
         }
 
         const hostPresent = Object.values(state).flat().some((p) => p.isHost);
@@ -380,9 +396,6 @@ const AstroPartyPage = ({ onClose, roomName }) => {
           setSyncBanner({ text: `Estamos en el minuto ${payload.timestamp}`, type: 'time' });
           setTimeout(() => setSyncBanner(null), 6000);
         }
-        if (payload.type === 'episode_change') {
-          setSelectedEpisode(payload.episode);
-        }
         if (payload.type === 'play') {
           setExternalPlayerState({ playing: true, currentTime: payload.time });
           if (!asHost) {
@@ -401,17 +414,20 @@ const AstroPartyPage = ({ onClose, roomName }) => {
           setExternalPlayerState((prev) => ({ ...prev, currentTime: payload.time }));
         }
         if (payload.type === 'start_watch') {
-          if (!isHostRef.current) {
-            if (payload.sourceUrl) {
-              setStreamSources([{ url: payload.sourceUrl, format: payload.format || 'hls' }]);
-            }
-            if (payload.youtubeId) {
-              setRoomContent((prev) => ({
-                ...(prev || {}),
-                youtubeId: payload.youtubeId,
-              }));
-            }
+          if (!asHost) {
+            const mode = payload.contentMode;
+            setContentMode(mode || null);
+            if (payload.videoUrl) setVideoUrl(payload.videoUrl);
             setRoomStep('watching');
+            if (mode === 'screenshare') {
+              // Request screen stream from host after a short delay
+              setTimeout(() => {
+                channel.send({
+                  type: 'broadcast', event: 'screen_request',
+                  payload: { fromId: profileRef.current?.id, fromUsername: profileRef.current?.username || 'Anon' },
+                }).catch(() => {});
+              }, 600);
+            }
           }
         }
         if (payload.type === 'session_end') {
@@ -419,11 +435,11 @@ const AstroPartyPage = ({ onClose, roomName }) => {
           setTimeout(() => {
             setSyncBanner(null);
             setView('lobby');
-            setRoomStep('platform');
-            setRoomContent(null);
-            setRoomSource(null);
+            setRoomStep('content');
+            setContentMode(null);
+            setVideoUrl('');
             setSyncState('idle');
-            setStreamSources([]);
+            setRemoteStream(null);
           }, 3000);
         }
       })
@@ -431,16 +447,37 @@ const AstroPartyPage = ({ onClose, roomName }) => {
         if (!payload) return;
         setMessages((prev) => [...prev, payload]);
       })
+      .on('broadcast', { event: 'astro_gif' }, ({ payload }) => {
+        if (payload?.gifUrl && payload.fromId !== profileRef.current?.id) {
+          socialCallbacksRef.current.addGifOverlay?.(payload.gifUrl);
+        }
+      })
+      .on('broadcast', { event: 'astro_emoji' }, ({ payload }) => {
+        if (payload?.emoji && payload.fromId !== profileRef.current?.id) {
+          socialCallbacksRef.current.addFloatingEmoji?.(payload.emoji);
+        }
+      })
+      .on('broadcast', { event: 'screen_request' }, ({ payload }) => {
+        webrtcCallbacksRef.current.handleRequest?.(payload);
+      })
+      .on('broadcast', { event: 'screen_offer' }, ({ payload }) => {
+        webrtcCallbacksRef.current.handleOffer?.(payload);
+      })
+      .on('broadcast', { event: 'screen_answer' }, ({ payload }) => {
+        webrtcCallbacksRef.current.handleAnswer?.(payload);
+      })
+      .on('broadcast', { event: 'screen_ice' }, ({ payload }) => {
+        webrtcCallbacksRef.current.handleIce?.(payload);
+      })
       .subscribe(async (status) => {
         if (status === 'SUBSCRIBED') {
           await channel.track({
             username: myUsername,
             status:   'idle',
             isHost:   asHost,
-            step:     asHost ? 'platform' : undefined,
-            source:   null,
-            content:  null,
-            episode:  { season: 1, episode: 1 },
+            step:     asHost ? 'content' : undefined,
+            contentMode: null,
+            videoUrl: null,
           });
         }
       });
@@ -448,6 +485,22 @@ const AstroPartyPage = ({ onClose, roomName }) => {
     channelRef.current = channel;
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [myUsername]);
+
+  // ── Presence tracking ────────────────────────────────────────────────────────
+
+  const trackPresence = useCallback((overrides = {}) => {
+    if (!channelRef.current) return;
+    channelRef.current.track({
+      username:    myUsername,
+      isHost:      isHostRef.current,
+      status:      myStatus,
+      step:        roomStep,
+      contentMode,
+      videoUrl,
+      ...overrides,
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [myUsername, myStatus, roomStep, contentMode, videoUrl]);
 
   // ── Room create / join ────────────────────────────────────────────────────────
 
@@ -459,17 +512,22 @@ const AstroPartyPage = ({ onClose, roomName }) => {
     setSyncState('idle');
     setMyStatus('idle');
     setMessages([]);
-    setRoomStep('platform');
-    setRoomSource(null);
-    setRoomContent(null);
-    setSelectedEpisode({ season: 1, episode: 1 });
-    setStreamSources([]);
-    setStreamError(null);
-    setSearchQuery('');
-    setSearchResults([]);
+    setRoomStep('content');
+    setContentMode(null);
+    setVideoUrl('');
+    setScreenStream(null);
+    setRemoteStream(null);
     setupChannel(code, true);
     setView('room');
     window.history.pushState({}, '', `?room=${code}`);
+    toast.success(`¡Sala creada! Código: ${code}`, {
+      description: 'Comparte el link con tus amigos',
+      action: {
+        label: 'Copiar link',
+        onClick: () => navigator.clipboard.writeText(`${window.location.origin}${window.location.pathname}?room=${code}`),
+      },
+      duration: 10000,
+    });
   }, [setupChannel]);
 
   const joinRoom = useCallback(async () => {
@@ -496,140 +554,50 @@ const AstroPartyPage = ({ onClose, roomName }) => {
     }
   }, [joinCode, view, joinRoom]);
 
-  // ── Search ───────────────────────────────────────────────────────────────────
+  // ── Content mode entry ────────────────────────────────────────────────────────
 
-  const performSearch = useCallback(async (q) => {
-    if (!q.trim()) { setSearchResults([]); return; }
-    setSearchLoading(true);
+  const startVideoLink = useCallback(() => {
+    if (!videoUrl.trim()) { toast.error('Pega un link de video'); return; }
+    setContentMode('videolink');
+    setRoomStep('watching');
+    trackPresence({ step: 'watching', contentMode: 'videolink', videoUrl: videoUrl.trim() });
+    broadcastSync({ type: 'start_watch', contentMode: 'videolink', videoUrl: videoUrl.trim() });
+  }, [videoUrl, broadcastSync, trackPresence]);
+
+  const startScreenShare = useCallback(async () => {
     try {
-      if (roomSource?.type === 'internal') {
-        const res  = await fetch(`${API_URL}/api/anime-multi/search/${encodeURIComponent(q)}`);
-        const data = await res.json();
-        const results = (Array.isArray(data) ? data : data.data || []).slice(0, 15).map((a) => ({
-          id:         a.id,
-          title:      a.title,
-          type:       'series',
-          poster_path: null,
-          animeImage: a.image,
-          provider:   a.provider || (a.source || '').toLowerCase().replace(/\s/g, ''),
-          year:       '',
-          media_type: 'tv',
-        }));
-        setSearchResults(results);
-      } else if (TMDB_KEY) {
-        const res  = await fetch(
-          `https://api.themoviedb.org/3/search/multi?api_key=${TMDB_KEY}&query=${encodeURIComponent(q)}&language=es-ES&include_adult=false`
-        );
-        const data = await res.json();
-        const results = (data.results || [])
-          .filter((x) => x.media_type === 'tv' || x.media_type === 'movie')
-          .slice(0, 15)
-          .map((x) => ({
-            id:           x.id,
-            title:        x.title || x.name,
-            type:         x.media_type === 'tv' ? 'series' : 'movie',
-            poster_path:  x.poster_path,
-            year:         (x.first_air_date || x.release_date || '').slice(0, 4),
-            vote_average: x.vote_average,
-            media_type:   x.media_type,
-          }));
-        setSearchResults(results);
+      const stream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true });
+      localStreamRef.current = stream;
+      setScreenStream(stream);
+      setContentMode('screenshare');
+      setRoomStep('watching');
+      trackPresence({ step: 'watching', contentMode: 'screenshare' });
+      broadcastSync({ type: 'start_watch', contentMode: 'screenshare' });
+
+      // Detect when user stops sharing via browser UI
+      stream.getVideoTracks()[0].onended = () => {
+        stopScreenShareCleanup();
+      };
+    } catch (err) {
+      if (err.name !== 'NotAllowedError') {
+        toast.error('No se pudo iniciar la compartición de pantalla');
       }
-    } catch {
-      setSearchResults([]);
-    } finally {
-      setSearchLoading(false);
-    }
-  }, [roomSource]);
-
-  useEffect(() => {
-    clearTimeout(searchTimeout.current);
-    if (!searchQuery.trim()) { setSearchResults([]); return; }
-    searchTimeout.current = setTimeout(() => performSearch(searchQuery), 400);
-    return () => clearTimeout(searchTimeout.current);
-  }, [searchQuery, performSearch]);
-
-  // ── Host step helpers ─────────────────────────────────────────────────────────
-
-  const goToSearch = useCallback((source) => {
-    setRoomSource(source);
-    setRoomStep('search');
-    setSearchQuery('');
-    setSearchResults([]);
-    setYoutubeUrl('');
-    trackPresence({ step: 'search', source });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const selectContent = useCallback(async (content) => {
-    setRoomContent(content);
-    if (content.type === 'series') {
-      if (roomSource?.type === 'internal') {
-        try {
-          const res  = await fetch(`${API_URL}/api/anime-multi/info/${content.id}/${content.provider}`);
-          const data = await res.json();
-          setEpisodesList(data.episodes || []);
-        } catch {
-          setEpisodesList([]);
-        }
-      }
-      setRoomStep('episode');
-      trackPresence({ step: 'episode', content });
-    } else {
-      await startLoading(content, null);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [roomSource]);
+  }, [broadcastSync, trackPresence]);
 
-  const startLoading = useCallback(async (content, episodeInfo) => {
-    const src = roomSource;
-    setRoomStep('loading');
-    setStreamError(null);
-    trackPresence({ step: 'loading', content, episode: episodeInfo });
-
-    if (src?.type === 'internal' && episodeInfo) {
-      try {
-        const res  = await fetch(
-          `${API_URL}/api/anime-multi/episodes/${episodeInfo.id}/${episodeInfo.provider || content?.provider}`
-        );
-        const data = await res.json();
-        if (data.success && data.data?.sources?.length) {
-          setStreamSources(data.data.sources);
-          setStreamSubtitles(data.data.subtitles || []);
-          setActiveSourceIdx(0);
-          broadcastSync({
-            type: 'start_watch',
-            sourceUrl: data.data.sources[0].url,
-            format: data.data.sources[0].format || 'hls',
-          });
-          setRoomStep('watching');
-          trackPresence({ step: 'watching' });
-        } else {
-          setStreamError('No se encontraron fuentes de video.');
-        }
-      } catch (e) {
-        setStreamError(e.message || 'Error al cargar el video.');
-      }
-    } else if (src?.type === 'youtube' && content?.youtubeId) {
-      broadcastSync({ type: 'start_watch', youtubeId: content.youtubeId });
-      setRoomStep('watching');
-      trackPresence({ step: 'watching' });
-    } else if (src?.type === 'youtube' && youtubeUrl) {
-      const vid = extractYoutubeId(youtubeUrl);
-      if (!vid) { setStreamError('URL de YouTube no válida'); return; }
-      const updated = { ...(content || {}), youtubeId: vid, title: content?.title || 'YouTube' };
-      setRoomContent(updated);
-      broadcastSync({ type: 'start_watch', youtubeId: vid });
-      setRoomStep('watching');
-      trackPresence({ step: 'watching' });
-    } else {
-      // External honor system
-      broadcastSync({ type: 'start_watch', honorSystem: true });
-      setRoomStep('watching');
-      trackPresence({ step: 'watching' });
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [roomSource, youtubeUrl, broadcastSync]);
+  const stopScreenShareCleanup = useCallback(() => {
+    localStreamRef.current?.getTracks().forEach((t) => t.stop());
+    localStreamRef.current = null;
+    setScreenStream(null);
+    Object.values(pcRef.current).forEach((pc) => pc.close());
+    pcRef.current = {};
+    broadcastSync({ type: 'session_end' });
+    setView('lobby');
+    setRoomStep('content');
+    setContentMode(null);
+    setSyncState('idle');
+  }, [broadcastSync]);
 
   // ── Sync countdown ────────────────────────────────────────────────────────────
 
@@ -694,11 +662,21 @@ const AstroPartyPage = ({ onClose, roomName }) => {
   }, [messages]);
 
   const sendReaction = useCallback((emoji) => {
-    const id = Date.now() + Math.random();
-    const x  = 10 + Math.random() * 80;
-    setFloatingEmojis((prev) => [...prev, { id, emoji, x }]);
-    setTimeout(() => setFloatingEmojis((prev) => prev.filter((e) => e.id !== id)), 2500);
-  }, []);
+    addFloatingEmojiLocal(emoji);
+    channelRef.current?.send({
+      type: 'broadcast', event: 'astro_emoji',
+      payload: { fromId: profile?.id, emoji },
+    }).catch(() => {});
+  }, [profile?.id, addFloatingEmojiLocal]);
+
+  const sendGif = useCallback((gif) => {
+    addGifOverlay(gif.url);
+    setShowGifPicker(false);
+    channelRef.current?.send({
+      type: 'broadcast', event: 'astro_gif',
+      payload: { fromId: profile?.id, gifUrl: gif.url },
+    }).catch(() => {});
+  }, [profile?.id, addGifOverlay]);
 
   const copyRoomCode = useCallback(() => {
     navigator.clipboard.writeText(window.location.href).then(() => {
@@ -711,14 +689,14 @@ const AstroPartyPage = ({ onClose, roomName }) => {
   useEffect(() => {
     return () => {
       clearInterval(countdownTimer.current);
-      clearTimeout(searchTimeout.current);
       if (channelRef.current) supabase.removeChannel(channelRef.current);
+      localStreamRef.current?.getTracks().forEach((t) => t.stop());
+      Object.values(pcRef.current).forEach((pc) => pc.close());
     };
   }, []);
 
-  const contentTitle = roomContent?.title || 'Sin contenido';
-  const readyCount   = participants.filter((p) => p.status === 'ready').length;
-  const totalCount   = participants.length;
+  const readyCount = participants.filter((p) => p.status === 'ready').length;
+  const totalCount = participants.length;
 
   // ─────────────────────────────────────────────────────────────────────────────
   // LOBBY VIEW
@@ -726,10 +704,7 @@ const AstroPartyPage = ({ onClose, roomName }) => {
 
   if (view === 'lobby') {
     return (
-      <div
-        className="fixed inset-0 z-50 flex flex-col items-center justify-center"
-        style={{ background: '#0a0a0f' }}
-      >
+      <div className="fixed inset-0 z-50 flex flex-col items-center justify-center" style={{ background: '#0a0a0f' }}>
         {onClose && (
           <button
             onClick={onClose}
@@ -740,7 +715,6 @@ const AstroPartyPage = ({ onClose, roomName }) => {
         )}
 
         <div className="flex flex-col items-center gap-10 px-6 w-full max-w-sm">
-          {/* Logo */}
           <div className="flex flex-col items-center gap-3">
             <motion.div
               animate={{ boxShadow: ['0 0 24px rgba(124,58,237,0.5)', '0 0 48px rgba(124,58,237,0.8)', '0 0 24px rgba(124,58,237,0.5)'] }}
@@ -755,17 +729,13 @@ const AstroPartyPage = ({ onClose, roomName }) => {
             </div>
           </div>
 
-          {/* Actions */}
           <div className="flex flex-col gap-4 w-full">
             <motion.button
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.97 }}
               onClick={createRoom}
               className="w-full flex items-center justify-center gap-3 px-6 py-4 rounded-full font-black text-base text-white transition-all"
-              style={{
-                background: 'linear-gradient(135deg, #7c3aed, #6d28d9)',
-                boxShadow: '0 0 28px rgba(124,58,237,0.5)',
-              }}
+              style={{ background: 'linear-gradient(135deg, #7c3aed, #6d28d9)', boxShadow: '0 0 28px rgba(124,58,237,0.5)' }}
             >
               <Rocket size={20} />
               Crear sala
@@ -802,10 +772,8 @@ const AstroPartyPage = ({ onClose, roomName }) => {
   }
 
   // ─────────────────────────────────────────────────────────────────────────────
-  // ROOM INNER COMPONENTS (defined inside so they close over state)
+  // ROOM INNER COMPONENTS
   // ─────────────────────────────────────────────────────────────────────────────
-
-  // ─── Room Header ─────────────────────────────────────────────────────────────
 
   const RoomHeader = () => (
     <div
@@ -856,461 +824,278 @@ const AstroPartyPage = ({ onClose, roomName }) => {
     </div>
   );
 
-  // ─── Step: Platform picker ────────────────────────────────────────────────────
+  // ─── Step: Content mode selector ──────────────────────────────────────────────
 
-  const StepPlatform = () => (
+  const StepContent = () => (
     <motion.div
-      key="step-platform"
+      key="step-content"
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -16 }}
       className="flex flex-col items-center gap-6 w-full max-w-sm"
     >
-      <h2 className="text-white font-black text-xl">Donde quieres ver?</h2>
+      <div className="text-center">
+        <h2 className="text-white font-black text-xl">Qué quieres ver?</h2>
+        <p className="text-white/40 text-sm mt-1">Elige cómo compartir contenido</p>
+      </div>
 
-      <div className="grid grid-cols-3 gap-3 w-full">
-        {SOURCES.map((s) => (
-          <motion.button
-            key={s.id}
-            whileTap={{ scale: 0.96 }}
-            onClick={() => goToSearch(s)}
-            className="flex flex-col items-center justify-center gap-2 rounded-2xl border border-white/10 transition-all duration-200 focus:outline-none"
-            style={{
-              height: 80,
-              background: `${s.color}22`,
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.boxShadow = `0 0 20px ${s.color}55`;
-              e.currentTarget.style.borderColor = s.color;
-              e.currentTarget.style.transform = 'scale(1.02)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.boxShadow = '';
-              e.currentTarget.style.borderColor = '';
-              e.currentTarget.style.transform = '';
-            }}
-          >
-            <span style={{ color: s.color }}>{PLATFORM_LOGOS_LG[s.id]}</span>
-            <span className="text-white font-bold text-xs leading-tight text-center px-1">{s.label}</span>
-          </motion.button>
-        ))}
+      <div className="grid grid-cols-2 gap-4 w-full">
+        <motion.button
+          whileTap={{ scale: 0.96 }}
+          onClick={() => setRoomStep('videolink')}
+          className="flex flex-col items-center justify-center gap-3 rounded-2xl border border-white/10 bg-white/5 hover:bg-violet-500/15 hover:border-violet-500/40 transition-all p-6 focus:outline-none"
+        >
+          <div className="w-12 h-12 rounded-xl bg-violet-500/15 flex items-center justify-center">
+            <Link size={24} className="text-violet-400" />
+          </div>
+          <div className="text-center">
+            <div className="text-white font-bold text-sm">Link de video</div>
+            <div className="text-white/40 text-xs mt-0.5">.m3u8 · .mp4 · .webm</div>
+          </div>
+        </motion.button>
+
+        <motion.button
+          whileTap={{ scale: 0.96 }}
+          onClick={() => setRoomStep('screenshare')}
+          className="flex flex-col items-center justify-center gap-3 rounded-2xl border border-white/10 bg-white/5 hover:bg-cyan-500/15 hover:border-cyan-500/40 transition-all p-6 focus:outline-none"
+        >
+          <div className="w-12 h-12 rounded-xl bg-cyan-500/15 flex items-center justify-center">
+            <Monitor size={24} className="text-cyan-400" />
+          </div>
+          <div className="text-center">
+            <div className="text-white font-bold text-sm">Compartir pantalla</div>
+            <div className="text-white/40 text-xs mt-0.5">Netflix · YouTube · etc.</div>
+          </div>
+        </motion.button>
       </div>
     </motion.div>
   );
 
-  // ─── Step: Search ─────────────────────────────────────────────────────────────
+  // ─── Step: Video link input ────────────────────────────────────────────────────
 
-  const StepSearch = () => {
-    const isYoutube = roomSource?.type === 'youtube';
-    const noTmdb    = roomSource?.type === 'external' && !TMDB_KEY;
-
-    const handleYoutubeProceed = () => {
-      const vid = extractYoutubeId(youtubeUrl);
-      if (!vid) { toast.error('URL de YouTube no válida'); return; }
-      const content = { id: vid, title: 'YouTube', type: 'movie', youtubeId: vid };
-      startLoading(content, null);
-    };
-
+  const StepVideoLink = () => {
+    const fmt = videoUrl.includes('.m3u8') ? 'HLS' : videoUrl.includes('.mp4') ? 'MP4' : videoUrl.includes('.webm') ? 'WebM' : null;
     return (
       <motion.div
-        key="step-search"
+        key="step-videolink"
         initial={{ opacity: 0, x: 32 }}
         animate={{ opacity: 1, x: 0 }}
         exit={{ opacity: 0, x: -32 }}
-        className="flex flex-col gap-4 w-full max-w-md h-full"
-      >
-        {/* Header row */}
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => setRoomStep('platform')}
-            className="w-8 h-8 rounded-xl bg-white/5 hover:bg-white/10 flex items-center justify-center text-white/50 hover:text-white transition-colors flex-shrink-0"
-          >
-            <ChevronLeft size={16} />
-          </button>
-          {roomSource && (
-            <div className="flex items-center gap-2">
-              <span style={{ color: roomSource.color }}>{PLATFORM_LOGOS_SM[roomSource.id]}</span>
-              <span className="text-white font-bold text-sm">Buscar en {roomSource.label}</span>
-            </div>
-          )}
-        </div>
-
-        {/* YouTube special case */}
-        {isYoutube && (
-          <div className="flex flex-col gap-4">
-            <div className="relative">
-              <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-white/30 pointer-events-none" />
-              <input
-                type="text"
-                value={youtubeUrl}
-                onChange={(e) => setYoutubeUrl(e.target.value)}
-                placeholder="https://youtube.com/watch?v=..."
-                autoFocus
-                className="w-full bg-white/5 border border-white/10 rounded-2xl pl-11 pr-4 py-3 text-white placeholder-white/25 text-sm focus:outline-none focus:border-red-500/60 transition-all"
-              />
-            </div>
-            {youtubeUrl && extractYoutubeId(youtubeUrl) && (
-              <div className="rounded-2xl overflow-hidden border border-white/10">
-                <img
-                  src={`https://img.youtube.com/vi/${extractYoutubeId(youtubeUrl)}/hqdefault.jpg`}
-                  alt="YouTube thumbnail"
-                  className="w-full aspect-video object-cover"
-                />
-              </div>
-            )}
-            <motion.button
-              whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}
-              onClick={handleYoutubeProceed}
-              disabled={!youtubeUrl.trim()}
-              className={`w-full py-3 rounded-2xl font-bold text-sm transition-all
-                ${youtubeUrl.trim() ? 'bg-red-600 hover:bg-red-500 text-white' : 'bg-white/5 text-white/20 cursor-not-allowed'}`}
-            >
-              Continuar
-            </motion.button>
-          </div>
-        )}
-
-        {/* No TMDB fallback for external */}
-        {noTmdb && (
-          <NoTmdbFallback onSelect={(content) => selectContent(content)} />
-        )}
-
-        {/* Normal search */}
-        {!isYoutube && !noTmdb && (
-          <>
-            <div className="relative">
-              <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-white/30 pointer-events-none" />
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Buscar una serie o pelicula..."
-                autoFocus
-                className="w-full bg-white/5 border border-white/10 rounded-2xl pl-11 pr-4 py-3 text-white placeholder-white/25 text-sm focus:outline-none focus:border-violet-500/60 transition-all"
-              />
-            </div>
-
-            {searchLoading && (
-              <div className="flex items-center justify-center py-6">
-                <Loader2 size={24} className="animate-spin text-violet-400" />
-              </div>
-            )}
-
-            {!searchLoading && searchResults.length > 0 && (
-              <div className="flex flex-col overflow-y-auto" style={{ maxHeight: 380 }}>
-                {searchResults.map((item, i) => (
-                  <SearchResultItem key={`${item.id}-${i}`} item={item} onSelect={selectContent} />
-                ))}
-              </div>
-            )}
-
-            {!searchLoading && searchQuery && searchResults.length === 0 && (
-              <div className="text-center py-10 text-white/25">
-                <Search size={28} className="mx-auto mb-2 opacity-30" />
-                <p className="text-xs">Sin resultados para "{searchQuery}"</p>
-              </div>
-            )}
-
-            {!searchQuery && (
-              <p className="text-white/25 text-xs text-center mt-2">
-                Escribe para buscar
-              </p>
-            )}
-          </>
-        )}
-      </motion.div>
-    );
-  };
-
-  // ─── No TMDB fallback ─────────────────────────────────────────────────────────
-
-  const NoTmdbFallback = ({ onSelect }) => {
-    const [manualTitle, setManualTitle] = useState('');
-    const [manualType, setManualType]   = useState('movie');
-    return (
-      <div className="flex flex-col gap-4">
-        <p className="text-white/40 text-xs text-center">Ingresa el título manualmente</p>
-        <input
-          type="text"
-          value={manualTitle}
-          onChange={(e) => setManualTitle(e.target.value)}
-          placeholder="Ej: Breaking Bad"
-          autoFocus
-          className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-3 text-white placeholder-white/25 text-sm focus:outline-none focus:border-violet-500/60 transition-all"
-        />
-        <div className="flex gap-2">
-          {[{ id: 'movie', label: 'Película', icon: <Film size={14} /> }, { id: 'series', label: 'Serie', icon: <Tv size={14} /> }].map((opt) => (
-            <button
-              key={opt.id}
-              onClick={() => setManualType(opt.id)}
-              className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-bold transition-all
-                ${manualType === opt.id
-                  ? 'bg-violet-600 text-white shadow-[0_0_14px_rgba(124,58,237,0.4)]'
-                  : 'bg-white/5 border border-white/10 text-white/40 hover:text-white/70'}`}
-            >
-              {opt.icon}{opt.label}
-            </button>
-          ))}
-        </div>
-        <button
-          onClick={() => {
-            if (!manualTitle.trim()) { toast.error('Escribe un título'); return; }
-            onSelect({ id: Date.now(), title: manualTitle.trim(), type: manualType, poster_path: null, year: '' });
-          }}
-          disabled={!manualTitle.trim()}
-          className={`w-full py-3 rounded-2xl font-bold text-sm transition-all
-            ${manualTitle.trim()
-              ? 'bg-violet-600 hover:bg-violet-500 text-white'
-              : 'bg-white/5 text-white/20 cursor-not-allowed'}`}
-        >
-          Continuar con "{manualTitle || '...'}"
-        </button>
-      </div>
-    );
-  };
-
-  // ─── Step: Episode picker ─────────────────────────────────────────────────────
-
-  const StepEpisode = () => {
-    const isInternal = roomSource?.type === 'internal';
-    const poster     = roomContent?.animeImage || null;
-
-    return (
-      <motion.div
-        key="step-episode"
-        initial={{ opacity: 0, x: 32 }}
-        animate={{ opacity: 1, x: 0 }}
-        exit={{ opacity: 0, x: -32 }}
-        className="flex flex-col gap-5 w-full max-w-xs"
+        className="flex flex-col gap-4 w-full max-w-md"
       >
         <div className="flex items-center gap-3">
           <button
-            onClick={() => setRoomStep('search')}
+            onClick={() => setRoomStep('content')}
             className="w-8 h-8 rounded-xl bg-white/5 hover:bg-white/10 flex items-center justify-center text-white/50 hover:text-white transition-colors flex-shrink-0"
           >
             <ChevronLeft size={16} />
           </button>
           <div className="flex items-center gap-2">
-            {roomSource && (
-              <span style={{ color: roomSource.color }}>{PLATFORM_LOGOS_SM[roomSource.id]}</span>
-            )}
-            <span className="text-white font-black text-base truncate">
-              {roomContent?.title || 'Episodio'}
-            </span>
+            <Link size={15} className="text-violet-400" />
+            <span className="text-white font-bold text-sm">Pega el link del video</span>
           </div>
         </div>
 
-        {poster && (
-          <img
-            src={poster}
-            alt={roomContent?.title}
-            className="rounded-xl object-cover shadow-xl ring-1 ring-white/10 mx-auto"
-            style={{ width: 80, height: 120 }}
-          />
-        )}
+        <input
+          type="url"
+          value={videoUrl}
+          onChange={(e) => setVideoUrl(e.target.value)}
+          placeholder="https://... (.m3u8, .mp4 o .webm)"
+          autoFocus
+          className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-3 text-white placeholder-white/25 text-sm focus:outline-none focus:border-violet-500/60 transition-all"
+        />
 
-        {/* Anime: scrollable episode list */}
-        {isInternal && (
-          <div className="flex flex-col gap-1 overflow-y-auto" style={{ maxHeight: 320 }}>
-            {episodesList.length === 0 && (
-              <div className="flex items-center justify-center py-8">
-                <Loader2 size={22} className="animate-spin text-violet-400" />
-              </div>
-            )}
-            {episodesList.map((ep, i) => (
-              <motion.button
-                key={i}
-                whileHover={{ backgroundColor: 'rgba(124,58,237,0.12)' }}
-                onClick={() => {
-                  const animeEp = {
-                    id: ep.id,
-                    number: ep.number,
-                    provider: ep.provider || roomContent?.provider,
-                  };
-                  setSelectedAnimeEp(animeEp);
-                  startLoading(roomContent, animeEp);
-                }}
-                className="flex items-center gap-3 px-4 py-3 rounded-xl border border-white/5 hover:border-violet-500/30 transition-all text-left"
-              >
-                <span className="text-white/30 text-xs font-mono w-8 flex-shrink-0">
-                  {String(ep.number).padStart(2, '0')}
-                </span>
-                <span className="text-white text-sm font-medium flex-1 truncate">
-                  {ep.title || `Episodio ${ep.number}`}
-                </span>
-                <ChevronRight size={14} className="text-white/20 flex-shrink-0" />
-              </motion.button>
-            ))}
+        {fmt && (
+          <div className="flex items-center gap-2 px-1">
+            <div className="w-2 h-2 rounded-full bg-green-400" />
+            <span className="text-green-400/80 text-xs font-bold">Formato detectado: {fmt}</span>
           </div>
         )}
 
-        {/* External: T/E controls + Ver button */}
-        {!isInternal && (
-          <div className="flex flex-col items-center gap-5">
-            <div className="flex items-center gap-6">
-              <div className="flex flex-col items-center gap-2">
-                <span className="text-white/40 text-[10px] uppercase tracking-widest">Temporada</span>
-                <div className="flex items-center gap-1 bg-white/5 border border-white/10 rounded-2xl px-2 py-2">
-                  <button
-                    onClick={() => setSelectedEpisode((e) => ({ ...e, season: Math.max(1, e.season - 1) }))}
-                    className="w-8 h-8 rounded-xl hover:bg-white/10 flex items-center justify-center text-white/50 hover:text-white transition-all"
-                  >
-                    <ChevronLeft size={16} />
-                  </button>
-                  <span className="text-white font-black text-2xl w-10 text-center">{selectedEpisode.season}</span>
-                  <button
-                    onClick={() => setSelectedEpisode((e) => ({ ...e, season: e.season + 1 }))}
-                    className="w-8 h-8 rounded-xl hover:bg-white/10 flex items-center justify-center text-white/50 hover:text-white transition-all"
-                  >
-                    <ChevronRight size={16} />
-                  </button>
-                </div>
-              </div>
-
-              <div className="flex flex-col items-center gap-2">
-                <span className="text-white/40 text-[10px] uppercase tracking-widest">Episodio</span>
-                <div className="flex items-center gap-1 bg-white/5 border border-white/10 rounded-2xl px-2 py-2">
-                  <button
-                    onClick={() => setSelectedEpisode((e) => ({ ...e, episode: Math.max(1, e.episode - 1) }))}
-                    className="w-8 h-8 rounded-xl hover:bg-white/10 flex items-center justify-center text-white/50 hover:text-white transition-all"
-                  >
-                    <ChevronLeft size={16} />
-                  </button>
-                  <span className="text-white font-black text-2xl w-10 text-center">{selectedEpisode.episode}</span>
-                  <button
-                    onClick={() => setSelectedEpisode((e) => ({ ...e, episode: e.episode + 1 }))}
-                    className="w-8 h-8 rounded-xl hover:bg-white/10 flex items-center justify-center text-white/50 hover:text-white transition-all"
-                  >
-                    <ChevronRight size={16} />
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            <motion.button
-              whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
-              onClick={() => startLoading(roomContent, null)}
-              className="w-full flex items-center justify-center gap-2 py-4 rounded-2xl font-black text-white text-base transition-all"
-              style={{
-                background: 'linear-gradient(135deg, #7c3aed, #6d28d9)',
-                boxShadow: '0 0 20px rgba(124,58,237,0.4)',
-              }}
-            >
-              <Play size={18} className="fill-white" />
-              Ver
-            </motion.button>
-          </div>
-        )}
+        <motion.button
+          whileHover={{ scale: videoUrl.trim() ? 1.02 : 1 }}
+          whileTap={{ scale: videoUrl.trim() ? 0.97 : 1 }}
+          onClick={startVideoLink}
+          disabled={!videoUrl.trim()}
+          className={`w-full flex items-center justify-center gap-2 py-4 rounded-2xl font-black text-white text-base transition-all
+            ${videoUrl.trim() ? 'bg-violet-600 hover:bg-violet-500 shadow-[0_0_20px_rgba(124,58,237,0.4)]' : 'bg-white/5 text-white/20 cursor-not-allowed'}`}
+        >
+          Ver juntos
+        </motion.button>
       </motion.div>
     );
   };
 
-  // ─── Step: Loading ─────────────────────────────────────────────────────────────
+  // ─── Step: Screen share setup ──────────────────────────────────────────────────
 
-  const StepLoading = () => (
+  const StepScreenShare = () => (
     <motion.div
-      key="step-loading"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      className="flex flex-col items-center gap-4 text-center"
+      key="step-screenshare"
+      initial={{ opacity: 0, x: 32 }}
+      animate={{ opacity: 1, x: 0 }}
+      exit={{ opacity: 0, x: -32 }}
+      className="flex flex-col items-center gap-6 w-full max-w-sm text-center"
     >
-      <div className="relative w-16 h-16">
-        <div
-          className="absolute inset-0 rounded-full border-4 border-transparent animate-spin"
-          style={{ borderTopColor: '#7c3aed' }}
-        />
-        <div className="absolute inset-2 rounded-full bg-violet-600/10 flex items-center justify-center">
-          <Rocket size={18} className="text-violet-400" />
+      <div className="flex items-center gap-3 self-start">
+        <button
+          onClick={() => setRoomStep('content')}
+          className="w-8 h-8 rounded-xl bg-white/5 hover:bg-white/10 flex items-center justify-center text-white/50 hover:text-white transition-colors flex-shrink-0"
+        >
+          <ChevronLeft size={16} />
+        </button>
+        <div className="flex items-center gap-2">
+          <Monitor size={15} className="text-cyan-400" />
+          <span className="text-white font-bold text-sm">Compartir pantalla</span>
         </div>
       </div>
+
+      <div className="w-20 h-20 rounded-2xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center">
+        <Monitor size={36} className="text-cyan-400" />
+      </div>
+
       <div>
-        <p className="text-white font-black text-lg">Cargando stream...</p>
-        <p className="text-white/40 text-sm mt-1">
-          {roomContent?.title}
-          {selectedAnimeEp ? ` • Ep. ${selectedAnimeEp.number}` : ''}
-          {!selectedAnimeEp && roomContent?.type === 'series'
-            ? ` • T${selectedEpisode.season}E${selectedEpisode.episode}`
-            : ''}
+        <h3 className="text-white font-black text-xl">Comparte tu pantalla</h3>
+        <p className="text-white/40 text-sm mt-2 leading-relaxed max-w-xs">
+          Todos en la sala verán tu pantalla en tiempo real. Ideal para Netflix, YouTube, videos locales o cualquier app.
         </p>
       </div>
-      {streamError && (
-        <div className="flex flex-col items-center gap-3">
-          <p className="text-red-400 text-sm bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-2">{streamError}</p>
-          <button
-            onClick={() => setRoomStep('episode')}
-            className="text-white/50 hover:text-white text-xs underline transition-colors"
-          >
-            Volver a episodios
-          </button>
-        </div>
-      )}
+
+      <motion.button
+        whileHover={{ scale: 1.03 }}
+        whileTap={{ scale: 0.97 }}
+        onClick={startScreenShare}
+        className="w-full flex items-center justify-center gap-2 py-4 rounded-2xl font-black text-white text-base bg-cyan-600 hover:bg-cyan-500 transition-all shadow-[0_0_20px_rgba(6,182,212,0.35)]"
+      >
+        <Monitor size={18} />
+        Iniciar compartir pantalla
+      </motion.button>
     </motion.div>
   );
+
+  // ─── Guest waiting ─────────────────────────────────────────────────────────────
+
+  const GuestWaiting = () => {
+    const msg = {
+      content:     'El host está eligiendo contenido',
+      videolink:   'El host está configurando el video',
+      screenshare: 'El host está preparando la compartición',
+    }[roomStep] || 'Esperando al host';
+
+    return (
+      <motion.div
+        key="guest-waiting"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        className="flex flex-col items-center gap-4 text-center"
+      >
+        <motion.div
+          animate={{ scale: [1, 1.08, 1], opacity: [0.6, 1, 0.6] }}
+          transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+          className="w-14 h-14 rounded-2xl bg-violet-500/10 border border-violet-500/20 flex items-center justify-center"
+        >
+          {roomStep === 'screenshare'
+            ? <Monitor size={22} className="text-cyan-400" />
+            : roomStep === 'videolink'
+              ? <Link size={22} className="text-violet-400" />
+              : <Rocket size={22} className="text-violet-400" />}
+        </motion.div>
+        <div>
+          <p className="text-white font-black text-lg">
+            {msg}
+            {<AnimatedDots />}
+          </p>
+        </div>
+      </motion.div>
+    );
+  };
 
   // ─── Step: Watching ───────────────────────────────────────────────────────────
 
   const StepWatching = () => {
-    const isInternal = roomSource?.type === 'internal';
-    const isYoutube  = roomSource?.type === 'youtube';
-
-    if (isInternal) {
+    // Video link mode
+    if (contentMode === 'videolink') {
       return (
         <div className="flex flex-col h-full">
-          {streamSources.length > 1 && isHost && (
-            <div className="flex gap-2 px-4 pt-3 pb-1 flex-wrap flex-shrink-0">
-              {streamSources.map((src, i) => (
-                <button
-                  key={i}
-                  onClick={() => setActiveSourceIdx(i)}
-                  className={`px-3 py-1 rounded-lg text-xs font-bold transition-all
-                    ${activeSourceIdx === i ? 'bg-violet-600 text-white' : 'bg-white/5 text-white/50 border border-white/10'}`}
-                >
-                  {src.server || src.quality || `Fuente ${i + 1}`}
-                </button>
-              ))}
-            </div>
-          )}
           <div className="flex-1 relative min-h-0 p-3">
-            {streamSources[activeSourceIdx] ? (
-              <AnimePlayer
-                source={streamSources[activeSourceIdx]}
-                subtitles={streamSubtitles}
-                isHost={isHost}
-                externalState={externalPlayerState}
-                onPlay={(time) => broadcastSync({ type: 'play', time })}
-                onPause={(time) => broadcastSync({ type: 'pause_player', time })}
-                onSeek={(time) => broadcastSync({ type: 'seek', time })}
-                countdown={syncState === 'counting' ? countdown : null}
-                floatingEmojis={floatingEmojis}
-              />
+            <AnimePlayer
+              source={{ url: videoUrl, format: getVideoFormat(videoUrl), quality: 'Direct', server: 'direct' }}
+              subtitles={[]}
+              isHost={isHost}
+              externalState={externalPlayerState}
+              onPlay={(time) => broadcastSync({ type: 'play', time })}
+              onPause={(time) => broadcastSync({ type: 'pause_player', time })}
+              onSeek={(time) => broadcastSync({ type: 'seek', time })}
+              countdown={syncState === 'counting' ? countdown : null}
+              floatingEmojis={floatingEmojis}
+              gifOverlays={gifOverlays}
+            />
+          </div>
+          <div className="px-4 py-2 flex items-center justify-between border-t border-white/5 flex-shrink-0">
+            <div className="flex items-center gap-2 min-w-0">
+              <Link size={11} className="text-violet-400 flex-shrink-0" />
+              <span className="text-white/40 text-xs truncate max-w-[200px]">{videoUrl}</span>
+            </div>
+            {isHost && (
+              <button onClick={() => setShowRating(true)} className="text-white/20 hover:text-white/40 text-xs transition-colors flex-shrink-0 ml-2">
+                Terminar sesión
+              </button>
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    // Screen share mode
+    if (contentMode === 'screenshare') {
+      return (
+        <div className="flex flex-col h-full bg-black">
+          <div className="flex-1 relative min-h-0">
+            {isHost ? (
+              <div className="relative w-full h-full">
+                <video
+                  ref={localVideoRef}
+                  autoPlay
+                  playsInline
+                  muted
+                  className="w-full h-full object-contain"
+                />
+                <ScreenOverlays floatingEmojis={floatingEmojis} gifOverlays={gifOverlays} />
+                <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-2 bg-black/70 backdrop-blur-sm rounded-full px-4 py-2 border border-white/10">
+                  <div className="w-2 h-2 rounded-full bg-red-400 animate-pulse" />
+                  <span className="text-white text-xs font-bold">En vivo</span>
+                  <button
+                    onClick={stopScreenShareCleanup}
+                    className="ml-1 text-red-400 hover:text-red-300 text-xs font-bold transition-colors"
+                  >
+                    Detener
+                  </button>
+                </div>
+              </div>
+            ) : remoteStream ? (
+              <div className="relative w-full h-full">
+                <video
+                  ref={remoteVideoRef}
+                  autoPlay
+                  playsInline
+                  className="w-full h-full object-contain"
+                />
+                <ScreenOverlays floatingEmojis={floatingEmojis} gifOverlays={gifOverlays} />
+              </div>
             ) : (
-              <div className="flex items-center justify-center h-full">
+              <div className="flex flex-col items-center justify-center h-full gap-3">
                 <Loader2 size={32} className="animate-spin text-violet-400" />
+                <p className="text-white/50 text-sm">Conectando con el host...</p>
               </div>
             )}
           </div>
           <div className="px-4 py-2 flex items-center justify-between border-t border-white/5 flex-shrink-0">
-            <div>
-              <span className="text-white font-bold text-sm">{roomContent?.title}</span>
-              {selectedAnimeEp && (
-                <span className="text-white/40 text-xs ml-2">Ep. {selectedAnimeEp.number}</span>
-              )}
-              {roomSource && (
-                <span
-                  className="ml-2 text-[10px] font-bold px-1.5 py-0.5 rounded-full"
-                  style={{ backgroundColor: roomSource.color + '33', color: roomSource.color }}
-                >
-                  {roomSource.label}
-                </span>
-              )}
+            <div className="flex items-center gap-2">
+              <Monitor size={11} className="text-cyan-400" />
+              <span className="text-white/40 text-xs">Compartiendo pantalla</span>
             </div>
             {isHost && (
-              <button
-                onClick={() => setShowRating(true)}
-                className="text-white/20 hover:text-white/40 text-xs transition-colors"
-              >
-                Terminar sesión
+              <button onClick={stopScreenShareCleanup} className="text-red-400/60 hover:text-red-400 text-xs transition-colors">
+                Detener
               </button>
             )}
           </div>
@@ -1318,103 +1103,10 @@ const AstroPartyPage = ({ onClose, roomName }) => {
       );
     }
 
-    if (isYoutube) {
-      return (
-        <div className="flex flex-col h-full">
-          <div className="flex-1 relative min-h-0 p-3">
-            <div className="relative w-full h-full">
-              <iframe
-                src={`https://www.youtube.com/embed/${roomContent?.youtubeId}?autoplay=1`}
-                className="absolute inset-0 w-full h-full rounded-xl"
-                allow="autoplay; encrypted-media"
-                allowFullScreen
-                title="YouTube player"
-              />
-            </div>
-          </div>
-          <div className="px-4 py-2 flex items-center justify-between border-t border-white/5 flex-shrink-0">
-            <p className="text-white/40 text-xs">YouTube — sincroniza manualmente</p>
-            {isHost && (
-              <button
-                onClick={() => setShowRating(true)}
-                className="text-white/20 hover:text-white/40 text-xs transition-colors"
-              >
-                Terminar sesión
-              </button>
-            )}
-          </div>
-        </div>
-      );
-    }
-
-    // External — honor system in player area
-    return (
-      <div className="flex flex-col h-full">
-        <div className="flex-1 flex flex-col items-center justify-center relative p-6">
-          {/* Platform overlay in player area */}
-          <div className="flex flex-col items-center gap-5 max-w-xs text-center w-full">
-            <div
-              className="w-20 h-20 rounded-2xl flex items-center justify-center"
-              style={{ backgroundColor: roomSource ? (roomSource.color + '22') : 'transparent' }}
-            >
-              {roomSource && (
-                <span style={{ color: roomSource.color }}>
-                  {PLATFORM_LOGOS_LG[roomSource.id]}
-                </span>
-              )}
-            </div>
-            <div>
-              <p className="text-white font-black text-xl">{contentTitle}</p>
-              <p className="text-white/50 text-sm mt-1">
-                Abre {roomSource?.label} en tu dispositivo
-              </p>
-              {roomContent?.type === 'series' && (
-                <p className="text-white/35 text-xs mt-0.5">
-                  T{selectedEpisode.season} · E{selectedEpisode.episode}
-                </p>
-              )}
-            </div>
-
-            {/* AstroSync controls */}
-            <div className="w-full">
-              <HonorSyncControls />
-            </div>
-          </div>
-
-          {/* Floating emojis */}
-          <div className="absolute inset-0 pointer-events-none overflow-hidden">
-            <AnimatePresence>
-              {floatingEmojis.map((e) => <FloatingEmoji key={e.id} {...e} />)}
-            </AnimatePresence>
-          </div>
-        </div>
-
-        <div className="px-4 py-2 flex items-center justify-between border-t border-white/5 flex-shrink-0">
-          <div className="flex items-center gap-2">
-            <span className="text-white/50 text-xs font-semibold">{contentTitle}</span>
-            {roomSource && (
-              <span
-                className="text-[10px] font-bold px-1.5 py-0.5 rounded-full"
-                style={{ backgroundColor: roomSource.color + '33', color: roomSource.color }}
-              >
-                {roomSource.label}
-              </span>
-            )}
-          </div>
-          {isHost && (
-            <button
-              onClick={() => setShowRating(true)}
-              className="text-white/20 hover:text-white/40 text-xs transition-colors"
-            >
-              Terminar sesión
-            </button>
-          )}
-        </div>
-      </div>
-    );
+    return null;
   };
 
-  // ─── Honor sync controls ──────────────────────────────────────────────────────
+  // ─── Honor sync controls (video link mode only) ───────────────────────────────
 
   const HonorSyncControls = () => {
     if (!isHost) {
@@ -1537,64 +1229,6 @@ const AstroPartyPage = ({ onClose, roomName }) => {
     );
   };
 
-  // ─── Guest waiting ─────────────────────────────────────────────────────────────
-
-  const GuestWaiting = () => {
-    const accent = roomSource?.color || '#7c3aed';
-    const stepMsg = {
-      platform: 'El host está eligiendo la plataforma',
-      search:   `El host está buscando en ${roomSource?.label || '...'}`,
-      episode:  'El host está eligiendo el episodio',
-      loading:  'Preparando la watch party',
-    }[roomStep] || 'Esperando al host';
-
-    return (
-      <motion.div
-        key="guest-waiting"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        className="flex flex-col items-center gap-4 text-center"
-      >
-        <motion.div
-          animate={{ scale: [1, 1.08, 1], opacity: [0.6, 1, 0.6] }}
-          transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
-          className="w-14 h-14 rounded-2xl flex items-center justify-center border"
-          style={{
-            backgroundColor: `${accent}22`,
-            borderColor: `${accent}55`,
-          }}
-        >
-          {roomSource
-            ? <span style={{ color: accent }}>{PLATFORM_LOGOS_LG[roomSource.id]}</span>
-            : <Rocket size={22} className="text-violet-400" />}
-        </motion.div>
-        <div>
-          <p className="text-white font-black text-lg">
-            {stepMsg}
-            {roomStep !== 'loading' && <AnimatedDots />}
-          </p>
-          {roomStep === 'loading' && (
-            <div className="mt-2 flex justify-center">
-              <Loader2 size={18} className="animate-spin" style={{ color: accent }} />
-            </div>
-          )}
-          {roomSource && roomStep !== 'platform' && (
-            <span
-              className="inline-flex items-center gap-1 mt-2 text-xs font-bold px-2 py-0.5 rounded-full"
-              style={{ backgroundColor: `${accent}33`, color: accent }}
-            >
-              {PLATFORM_LOGOS_SM[roomSource.id]}
-              {roomSource.label}
-            </span>
-          )}
-          {roomContent && (
-            <p className="text-white/50 text-sm mt-1 font-semibold">{roomContent.title}</p>
-          )}
-        </div>
-      </motion.div>
-    );
-  };
-
   // ─── Social panel ──────────────────────────────────────────────────────────────
 
   const SocialPanel = () => (
@@ -1638,12 +1272,20 @@ const AstroPartyPage = ({ onClose, roomName }) => {
               {!isOwn && <Avatar name={msg.username} size={7} />}
               <div className={`max-w-[75%] ${isOwn ? 'items-end' : 'items-start'} flex flex-col gap-0.5`}>
                 {!isOwn && <span className="text-white/35 text-[10px] ml-1">{msg.username}</span>}
-                <div className={`px-3 py-2 rounded-2xl text-sm leading-snug
-                  ${isOwn
-                    ? 'bg-violet-600 text-white rounded-tr-sm'
-                    : 'bg-white/5 text-white/80 rounded-tl-sm border border-white/10'}`}>
-                  {msg.text}
-                </div>
+                {msg.gifUrl ? (
+                  <img
+                    src={msg.gifUrl}
+                    alt="gif"
+                    className="max-w-full rounded-xl border border-white/10 shadow-lg"
+                  />
+                ) : (
+                  <div className={`px-3 py-2 rounded-2xl text-sm leading-snug
+                    ${isOwn
+                      ? 'bg-violet-600 text-white rounded-tr-sm'
+                      : 'bg-white/5 text-white/80 rounded-tl-sm border border-white/10'}`}>
+                    {msg.text}
+                  </div>
+                )}
               </div>
             </div>
           );
@@ -1669,6 +1311,13 @@ const AstroPartyPage = ({ onClose, roomName }) => {
       {/* Chat input */}
       <div className="px-3 pb-4 pt-2 flex-shrink-0">
         <div className="flex items-center gap-2 bg-white/5 border border-white/10 rounded-2xl px-3 py-2 focus-within:border-violet-500/50 transition-colors">
+          <button
+            type="button"
+            onClick={() => setShowGifPicker(true)}
+            className="w-7 h-7 rounded-xl flex items-center justify-center text-white/30 hover:text-white/60 hover:bg-white/10 transition-all flex-shrink-0"
+          >
+            <Gift size={14} />
+          </button>
           <input
             type="text"
             value={chatInput}
@@ -1680,7 +1329,7 @@ const AstroPartyPage = ({ onClose, roomName }) => {
           <button
             onClick={sendMessage}
             disabled={!chatInput.trim()}
-            className={`w-7 h-7 rounded-xl flex items-center justify-center transition-all
+            className={`w-7 h-7 rounded-xl flex items-center justify-center transition-all flex-shrink-0
               ${chatInput.trim() ? 'bg-violet-600 hover:bg-violet-500 text-white' : 'bg-white/5 text-white/20'}`}
           >
             <Send size={13} />
@@ -1706,7 +1355,9 @@ const AstroPartyPage = ({ onClose, roomName }) => {
           >
             <div className="text-4xl mb-3">🎬</div>
             <h3 className="text-white font-black text-xl mb-1">Que tal estuvo?</h3>
-            <p className="text-white/40 text-sm mb-6">{contentTitle}</p>
+            <p className="text-white/40 text-sm mb-6">
+              {contentMode === 'screenshare' ? 'Compartición de pantalla' : videoUrl || 'Sin contenido'}
+            </p>
             <div className="flex justify-center gap-2 mb-6">
               {[1, 2, 3, 4, 5].map((star) => (
                 <button
@@ -1723,11 +1374,15 @@ const AstroPartyPage = ({ onClose, roomName }) => {
                 setShowRating(false);
                 broadcastSync({ type: 'session_end' });
                 setView('lobby');
-                setRoomStep('platform');
-                setRoomContent(null);
-                setRoomSource(null);
+                setRoomStep('content');
+                setContentMode(null);
+                setVideoUrl('');
                 setSyncState('idle');
-                setStreamSources([]);
+                localStreamRef.current?.getTracks().forEach((t) => t.stop());
+                localStreamRef.current = null;
+                setScreenStream(null);
+                Object.values(pcRef.current).forEach((pc) => pc.close());
+                pcRef.current = {};
               }}
               className="w-full py-3 bg-violet-600 hover:bg-violet-500 text-white rounded-2xl font-bold text-sm transition-colors"
             >
@@ -1773,16 +1428,15 @@ const AstroPartyPage = ({ onClose, roomName }) => {
       {/* Body */}
       {!isWatching ? (
         <div className="flex-1 flex overflow-hidden">
-          {/* Setup wizard — centered content */}
+          {/* Setup wizard */}
           <div className="flex-1 flex items-center justify-center p-6 overflow-y-auto relative">
             <SyncBanner />
             <AnimatePresence mode="wait">
               {isHost ? (
                 <React.Fragment key="host-steps">
-                  {roomStep === 'platform' && <StepPlatform />}
-                  {roomStep === 'search'   && <StepSearch />}
-                  {roomStep === 'episode'  && <StepEpisode />}
-                  {roomStep === 'loading'  && <StepLoading />}
+                  {roomStep === 'content'     && <StepContent />}
+                  {roomStep === 'videolink'   && <StepVideoLink />}
+                  {roomStep === 'screenshare' && <StepScreenShare />}
                 </React.Fragment>
               ) : (
                 <GuestWaiting key="guest-waiting" />
@@ -1791,10 +1445,7 @@ const AstroPartyPage = ({ onClose, roomName }) => {
           </div>
 
           {/* Social sidebar — desktop only */}
-          <div
-            className="hidden lg:flex flex-col border-l border-white/5 flex-shrink-0"
-            style={{ width: 280 }}
-          >
+          <div className="hidden lg:flex flex-col border-l border-white/5 flex-shrink-0" style={{ width: 280 }}>
             <SocialPanel />
           </div>
         </div>
@@ -1815,10 +1466,7 @@ const AstroPartyPage = ({ onClose, roomName }) => {
           </div>
 
           {/* Social sidebar — desktop only */}
-          <div
-            className="hidden lg:flex flex-col border-l border-white/5 flex-shrink-0"
-            style={{ width: 280 }}
-          >
+          <div className="hidden lg:flex flex-col border-l border-white/5 flex-shrink-0" style={{ width: 280 }}>
             <SocialPanel />
           </div>
         </div>
@@ -1826,10 +1474,7 @@ const AstroPartyPage = ({ onClose, roomName }) => {
 
       {/* Mobile tab bar — only while watching */}
       {isWatching && (
-        <div
-          className="flex sm:hidden border-t border-white/5 flex-shrink-0"
-          style={{ background: '#0a0a0f' }}
-        >
+        <div className="flex sm:hidden border-t border-white/5 flex-shrink-0" style={{ background: '#0a0a0f' }}>
           {[
             { id: 'player', icon: <Rocket size={18} />, label: 'Player' },
             { id: 'social', icon: <MessageSquare size={18} />, label: 'Chat' },
@@ -1848,6 +1493,12 @@ const AstroPartyPage = ({ onClose, roomName }) => {
       )}
 
       <RatingModal />
+
+      <GifPickerModal
+        isOpen={showGifPicker}
+        onClose={() => setShowGifPicker(false)}
+        onSelect={sendGif}
+      />
     </div>
   );
 };
