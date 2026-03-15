@@ -1158,7 +1158,11 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
           <div className="flex flex-col items-center gap-4">
             <div className="h-12 w-12 animate-spin rounded-full border-4 border-cyan-400/20 border-t-cyan-400" />
             <p className="text-xs font-black uppercase tracking-[0.26em] text-cyan-200">
-              {hostParticipant ? `Conectando con @${hostParticipant.username}...` : 'Cargando AnimeSpace'}
+              {!onClose || isHost
+                ? 'Cargando...'
+                : hostParticipant
+                  ? `Conectando con @${hostParticipant.username}...`
+                  : 'Conectando...'}
             </p>
           </div>
         </div>
