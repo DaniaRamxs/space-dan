@@ -264,7 +264,9 @@ const AstroPartyPage = ({ onClose, roomName }) => {
 
   // ── Host current time ref (for late joiner sync) ──────────────────────────────
   const hostCurrentTimeRef = useRef(0);
+  const currentVideoTimeRef = useRef(0);
   const [currentVideoTime, setCurrentVideoTime] = useState(0);
+  const lastTimeUpdateRef = useRef(0);
 
   // ── Room ─────────────────────────────────────────────────────────────────────
   const [roomCode, setRoomCode]   = useState('');
@@ -1000,13 +1002,14 @@ const AstroPartyPage = ({ onClose, roomName }) => {
   const sendMessage = useCallback(() => {
     const text = chatInput.trim();
     if (!text) return;
-    const extra = pinTimestamp && currentVideoTime > 0
-      ? { timestamp: currentVideoTime, timestampLabel: formatVideoTime(currentVideoTime) }
+    const t = currentVideoTimeRef.current;
+    const extra = pinTimestamp && t > 0
+      ? { timestamp: t, timestampLabel: formatVideoTime(t) }
       : {};
     setMessages((prev) => [...prev, { username: myUsername, text, time: Date.now(), own: true, ...extra }]);
     broadcastChat(text, extra);
     setChatInput('');
-  }, [chatInput, myUsername, broadcastChat, pinTimestamp, currentVideoTime]);
+  }, [chatInput, myUsername, broadcastChat, pinTimestamp]);
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -1465,7 +1468,13 @@ const AstroPartyPage = ({ onClose, roomName }) => {
                 onSeek={(time) => broadcastSync({ type: 'seek', time })}
                 onTimeUpdate={(time) => {
                   hostCurrentTimeRef.current = time;
-                  setCurrentVideoTime(time);
+                  currentVideoTimeRef.current = time;
+                  // Only trigger re-render at most once per second to avoid flickering
+                  const now = Date.now();
+                  if (now - lastTimeUpdateRef.current >= 1000) {
+                    lastTimeUpdateRef.current = now;
+                    setCurrentVideoTime(time);
+                  }
                 }}
                 countdown={syncState === 'counting' ? countdown : null}
                 floatingEmojis={floatingEmojis}
