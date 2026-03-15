@@ -414,7 +414,8 @@ export async function extractEmbedUrl(serverName, embedUrl, referer = 'https://w
   const full = raw.startsWith('//') ? 'https:' + raw : raw;
   if (!full || !full.startsWith('http')) return null;
 
-  const isDirectStream = full.includes('.m3u8') || full.includes('.mp4');
+  // Check .m3u8 / .mp4 as file extensions (not substrings in the domain like "mp4upload.com")
+  const isDirectStream = /\.m3u8(?:[?#]|$)/.test(full) || /\.mp4(?:[?#/]|$)/.test(full);
   if (!isDirectStream) {
     const safe = sanitizeEmbedUrl(full);
     if (!safe) return null; // blocked by allowlist
