@@ -3,10 +3,10 @@
  *
  * Multi-provider scraper for Latin American anime sites (Spanish sub/dub).
  * Providers:
- *  1. AnimeFLV   — https://www3.animeflv.net  (SUB español + LAT doblaje)
- *  2. TioAnime   — https://tioanime.com        (SUB español, limpio y rápido)
- *  3. Jkanime    — https://jkanime.net          (SUB/DUB español)
- *  4. AnimeFenix — https://www3.animefenix.tv  (SUB/DUB español, uses VOE/Mp4Upload)
+ *  1. AnimeFLV  — https://www3.animeflv.net  (SUB español + LAT doblaje)
+ *  2. TioAnime  — https://tioanime.com        (SUB español)
+ *  3. Jkanime   — https://jkanime.net          (SUB/DUB español)
+ *  4. Latanime  — https://latanime.org         (SUB/DUB castellano, uses Doodstream/Filemoon)
  *
  * Source extraction:
  *  AnimeFLV stores video server data in a `var videos = [...]` JS variable.
@@ -121,10 +121,10 @@ class AnimeMultiSource {
         features: ['doblado español', 'subtitulado español', 'HD'],
       },
       {
-        name: 'AnimeFenix',
-        baseUrl: 'https://www3.animefenix.tv',
-        priority: 1, // High priority — uses VOE/Mp4Upload which are extractable
-        features: ['doblado español', 'subtitulado español', 'HD', 'voe', 'mp4upload'],
+        name: 'Latanime',
+        baseUrl: 'https://latanime.org',
+        priority: 1, // High priority — exposes base64 embed URLs in HTML (no JS needed)
+        features: ['castellano', 'doblado', 'subtitulado', 'doodstream', 'filemoon'],
       },
     ];
   }
@@ -154,7 +154,7 @@ class AnimeMultiSource {
       case 'AnimeFLV': return this.searchAnimeFLV(query);
       case 'TioAnime': return this.searchTioAnime(query);
       case 'Jkanime': return this.searchJkanime(query);
-      case 'AnimeFenix': return this.searchAnimeFenix(query);
+      case 'Latanime': return this.searchLatanime(query);
       default: return [];
     }
   }
@@ -174,7 +174,7 @@ class AnimeMultiSource {
 
   // ── TioAnime search ─────────────────────────────────────────────────────────
   async searchTioAnime(query) {
-    const url = `${this.sources[1].baseUrl}/buscar?q=${encodeURIComponent(query)}`;
+    const url = `${this.sources[1].baseUrl}/directorio?q=${encodeURIComponent(query)}`;
     const html = (await get(url)).data;
     return this._parseTioAnimeList(html).map((a) => ({
       ...a,
@@ -185,15 +185,15 @@ class AnimeMultiSource {
     }));
   }
 
-  // ── AnimeFenix search ────────────────────────────────────────────────────────
-  async searchAnimeFenix(query) {
-    const fenix = this.sources.find((s) => s.name === 'AnimeFenix');
-    const url = `${fenix.baseUrl}/animes?q=${encodeURIComponent(query)}`;
-    const html = (await get(url, { Referer: fenix.baseUrl + '/' })).data;
-    return this._parseAnimeFenixList(html).map((a) => ({
+  // ── Latanime search ──────────────────────────────────────────────────────────
+  async searchLatanime(query) {
+    const lat = this.sources.find((s) => s.name === 'Latanime');
+    const url = `${lat.baseUrl}/buscar?q=${encodeURIComponent(query)}`;
+    const html = (await get(url, { Referer: lat.baseUrl + '/' })).data;
+    return this._parseLatanimeList(html).map((a) => ({
       ...a,
-      provider: 'animefenix',
-      source: 'AnimeFenix',
+      provider: 'latanime',
+      source: 'Latanime',
       hasDub: true,
       hasSub: true,
     }));
@@ -262,7 +262,7 @@ class AnimeMultiSource {
       case 'AnimeFLV': return this.getAnimeFLVDirectory();
       case 'TioAnime': return this.getTioAnimeDirectory();
       case 'Jkanime': return this.getJkanimeDirectory();
-      case 'AnimeFenix': return this.getAnimeFenixDirectory();
+      case 'Latanime': return this.getLatanimeDirectory();
       default: return [];
     }
   }
@@ -297,12 +297,12 @@ class AnimeMultiSource {
     );
   }
 
-  async getAnimeFenixDirectory() {
-    const fenix = this.sources.find((s) => s.name === 'AnimeFenix');
+  async getLatanimeDirectory() {
+    const lat = this.sources.find((s) => s.name === 'Latanime');
     return this._fetchPaginatedDirectory(
-      (page) => `${fenix.baseUrl}/animes?page=${page}`,
-      (html) => this._parseAnimeFenixList(html),
-      (a) => ({ ...a, provider: 'animefenix', source: 'AnimeFenix', hasDub: true, hasSub: true }),
+      (page) => `${lat.baseUrl}/animes?page=${page}`,
+      (html) => this._parseLatanimeList(html),
+      (a) => ({ ...a, provider: 'latanime', source: 'Latanime', hasDub: true, hasSub: true }),
       8
     );
   }
@@ -315,7 +315,7 @@ class AnimeMultiSource {
       case 'animeflv': return this.getAnimeFLVInfo(animeId);
       case 'tioanime': return this.getTioAnimeInfo(animeId);
       case 'jkanime': return this.getJkanimeInfo(animeId);
-      case 'animefenix': return this.getAnimeFenixInfo(animeId);
+      case 'latanime': return this.getLatanimeInfo(animeId);
       default: throw new Error(`Provider "${provider}" not supported`);
     }
   }
@@ -441,7 +441,7 @@ class AnimeMultiSource {
       case 'animeflv': return this.getAnimeFLVSources(episodeId);
       case 'tioanime': return this.getTioAnimeSources(episodeId);
       case 'jkanime': return this.getJkanimeSources(episodeId);
-      case 'animefenix': return this.getAnimeFenixSources(episodeId);
+      case 'latanime': return this.getLatanimeSources(episodeId);
       default: throw new Error(`Provider "${provider}" not supported`);
     }
   }
@@ -557,113 +557,94 @@ class AnimeMultiSource {
     }
   }
 
-  // ── AnimeFenix info + sources ────────────────────────────────────────────────
+  // ── Latanime info + sources ──────────────────────────────────────────────────
 
-  async getAnimeFenixInfo(animeId) {
-    const fenix = this.sources.find((s) => s.name === 'AnimeFenix');
-    const url = `${fenix.baseUrl}/anime/${animeId}`;
-    const html = (await get(url, { Referer: fenix.baseUrl + '/' })).data;
+  async getLatanimeInfo(animeId) {
+    const lat = this.sources.find((s) => s.name === 'Latanime');
+    const url = `${lat.baseUrl}/anime/${animeId}`;
+    const html = (await get(url, { Referer: lat.baseUrl + '/' })).data;
     const $ = cheerio.load(html);
 
     const title =
-      $('h1.anime-title, h1.Title, h1').first().text().trim() ||
+      $('h1.title, h1').first().text().trim() ||
       $('title').text().split('|')[0].trim() ||
       animeId;
 
     const image =
-      $('.cover img, .anime-cover img, .poster img, .thumb img').first().attr('src') ||
+      $('.poster img, .cover img, .anime-image img').first().attr('src') ||
       $('img[alt]').first().attr('src');
 
     const description =
-      $('.sinopsis p, .description p, .synopsis p').first().text().trim() || 'Sin descripción';
+      $('.sinopsis, .description, .synopsis').first().text().trim() || 'Sin descripción';
 
     const episodes = [];
-    // AnimeFenix episode list: links like /ver/{slug}-{N}
-    $('ul.episode-list li a, .episodes-list a, .list-eps a, a[href*="/ver/"]').each((i, el) => {
+    $('a[href*="/ver/"]').each((i, el) => {
       const href = $(el).attr('href') || '';
-      const slug = href.replace('/ver/', '').replace(/^\//, '');
-      const numMatch = slug.match(/[\-_](\d+)$/);
+      // latanime episode slugs: /ver/{animeId}-episodio-{N}
+      const slug = href.replace(lat.baseUrl, '').replace('/ver/', '').replace(/^\//, '');
+      const numMatch = slug.match(/episodio-(\d+)$/i) || slug.match(/[\-_](\d+)$/);
       const num = numMatch ? parseInt(numMatch[1]) : i + 1;
       if (slug && !episodes.find((e) => e.number === num)) {
-        episodes.push({ id: slug, number: num, title: `Episodio ${num}`, provider: 'animefenix' });
+        episodes.push({ id: slug, number: num, title: `Episodio ${num}`, provider: 'latanime' });
       }
     });
     episodes.sort((a, b) => a.number - b.number);
 
-    return {
-      id: animeId,
-      title,
-      image,
-      description,
-      episodes,
-      type: 'TV',
-      hasDub: true,
-      hasSub: true,
-      provider: 'animefenix',
-    };
+    return { id: animeId, title, image, description, episodes, type: 'TV', hasDub: true, hasSub: true, provider: 'latanime' };
   }
 
-  async getAnimeFenixSources(episodeId) {
-    const fenix = this.sources.find((s) => s.name === 'AnimeFenix');
-    const referer = fenix.baseUrl + '/';
+  async getLatanimeSources(episodeId) {
+    const lat = this.sources.find((s) => s.name === 'Latanime');
+    const referer = lat.baseUrl + '/';
     try {
-      const url = `${fenix.baseUrl}/ver/${episodeId}`;
+      const url = `${lat.baseUrl}/ver/${episodeId}`;
       const html = (await get(url, { Referer: referer })).data;
-
-      const videosData = parseVideosVar(html);
-      if (videosData) {
-        const entries = normalizeVideosVar(videosData);
-        console.log(
-          `[AnimeFenix] Found ${entries.length} server entries:`,
-          entries.map((e) => `${e.type}:${e.server}`).join(', ')
-        );
-        const sources = await resolveEntries(entries, referer);
-        if (sources.length > 0) return sources;
-      }
-
-      // AnimeFenix sometimes puts sources in a different var
       const $ = cheerio.load(html);
+
+      // Latanime stores embed URLs as base64 in data-player attributes
       const entries = [];
-      $('script').each((_, el) => {
-        const src = $(el).html() || '';
-        // Match server array: ["serverName", "url"] pairs
-        const matches = [...src.matchAll(/\[\s*["']([^"']+)["']\s*,\s*["'](https?[^"']+)["']\s*\]/g)];
-        for (const m of matches) {
-          entries.push({ type: 'SUB', server: m[1].toLowerCase(), url: m[2] });
-        }
+      $('[data-player]').each((_, el) => {
+        const b64 = $(el).attr('data-player') || '';
+        try {
+          const decoded = Buffer.from(b64, 'base64').toString('utf-8');
+          if (decoded.startsWith('http')) {
+            const serverName = $(el).text().trim().toLowerCase() || 'generic';
+            entries.push({ type: 'SUB', server: serverName, url: decoded });
+          }
+        } catch (_) {}
       });
 
+      console.log(`[Latanime] Found ${entries.length} data-player entries:`, entries.map((e) => `${e.server}`).join(', '));
+
       if (entries.length > 0) {
-        console.log(`[AnimeFenix] Script-parsed ${entries.length} entries`);
         const sources = await resolveEntries(entries, referer);
         if (sources.length > 0) return sources;
       }
 
-      console.warn('[AnimeFenix] All extractions failed — using demo');
+      console.warn('[Latanime] All extractions failed — using demo');
       return [DEMO_SOURCE];
     } catch (err) {
-      console.error('[AnimeFenix] getAnimeFenixSources error:', err.message);
+      console.error('[Latanime] getLatanimeSources error:', err.message);
       return [DEMO_SOURCE];
     }
   }
 
   // ── HTML parsers ────────────────────────────────────────────────────────────
 
-  _parseAnimeFenixList(html) {
+  _parseLatanimeList(html) {
     const $ = cheerio.load(html);
     const results = [];
     const seen = new Set();
 
-    // AnimeFenix anime cards: .grid-animes article, .anime-item, .list-item
-    $('.grid-animes article, .anime-item, .list-item, ul.animes li').each((_, el) => {
+    $('article, .anime-item, .item').each((_, el) => {
       const $item = $(el);
       const $a = $item.find('a[href*="/anime/"]').first();
       const $img = $item.find('img').first();
       const href = $a.attr('href') || '';
-      const id = href.replace('/anime/', '').replace(/^\//, '').replace(/\/$/, '');
+      const id = href.replace('https://latanime.org/anime/', '').replace('/anime/', '').replace(/^\//, '').replace(/\/$/, '');
       const title =
         $img.attr('alt') ||
-        $item.find('h3, .title, .anime-title').text().trim() ||
+        $item.find('h3, .title').text().trim() ||
         $a.attr('title') || '';
 
       if (id && title && title.length > 1 && !seen.has(id)) {
@@ -672,7 +653,7 @@ class AnimeMultiSource {
           id,
           title,
           image: $img.attr('src') || $img.attr('data-src'),
-          type: $item.find('.type, .badge').text().trim() || 'TV',
+          type: 'TV',
           episodes: '?',
           quality: 'HD',
           format: 'hls',

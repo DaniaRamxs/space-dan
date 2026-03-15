@@ -131,11 +131,15 @@ const ALLOWED_HOSTS = new Set([
   // Streamtape
   'streamtape.com',
   'streamtape.net',
-  // Doodstream family
+  // Doodstream family (doodstream.com redirects to myvidplay.com / dood.* mirrors)
   'dood.to',
   'dood.la',
   'dood.cx',
   'doodstream.com',
+  'myvidplay.com',
+  'www.myvidplay.com',
+  'd0000d.com',
+  'dood.watch',
   // Misc
   'uqload.co',
   'uqload.com',
@@ -265,12 +269,22 @@ export async function extractDoodstream(embedUrl) {
     const html = resp.data;
     const passMatch = html.match(/\/pass_md5\/([^'"?]+)/);
     if (!passMatch) return null;
-    const passUrl = 'https://dood.to' + passMatch[0];
+
+    // doodstream.com now redirects to myvidplay.com (and other mirrors).
+    // Get the actual domain from the response's final URL.
+    let finalOrigin = 'https://dood.to';
+    try {
+      const reqHost = resp.request?.host || resp.request?.socket?.servername;
+      const reqProto = resp.request?.protocol || 'https:';
+      if (reqHost) finalOrigin = `${reqProto}//${reqHost}`;
+    } catch (_) {}
+
+    const passUrl = finalOrigin + passMatch[0];
     const passResp = await httpGet(passUrl, { Referer: embedUrl });
     const base = passResp.data;
     const token = html.match(/\?token=([^&'"]+)/)?.[1] || '';
     if (base?.startsWith('http')) {
-      console.log('[extractor] doodstream OK');
+      console.log('[extractor] doodstream OK (via', finalOrigin, ')');
       return `${base}?token=${token}&expiry=${Date.now()}`;
     }
   } catch (err) {
