@@ -20,6 +20,7 @@ import { WebSocketTransport } from "@colyseus/ws-transport";
 
 // Importar rutas de anime multi-fuente
 import animeMultiRoutes from './routes/animeMulti.js';
+import animeTestRoutes from './routes/animeTest.js';
 
 import { BlackjackRoom } from "./rooms/BlackjackRoom.mjs";
 import { Connect4Room } from "./rooms/Connect4Room.mjs";
@@ -103,6 +104,7 @@ app.use('/api/anime-multi', cors({
 }));
 
 app.use('/api/anime-multi', animeMultiRoutes);
+app.use('/api/anime-test', animeTestRoutes);
 
 /* ---------------- HEALTH CHECK ---------------- */
 
