@@ -103,27 +103,9 @@ class AnimeMultiSource {
   constructor() {
     this.sources = [
       {
-        name: 'AnimeFLV',
-        baseUrl: 'https://www3.animeflv.net',
-        priority: 1,
-        features: ['doblado español', 'subtitulado español', 'HD'],
-      },
-      {
-        name: 'TioAnime',
-        baseUrl: 'https://tioanime.com',
-        priority: 2,
-        features: ['subtitulado español', 'HD', 'sin publicidad invasiva'],
-      },
-      {
-        name: 'Jkanime',
-        baseUrl: 'https://jkanime.net',
-        priority: 3,
-        features: ['doblado español', 'subtitulado español', 'HD'],
-      },
-      {
         name: 'Latanime',
         baseUrl: 'https://latanime.org',
-        priority: 1, // High priority — exposes base64 embed URLs in HTML (no JS needed)
+        priority: 1,
         features: ['castellano', 'doblado', 'subtitulado', 'doodstream', 'filemoon'],
       },
     ];
