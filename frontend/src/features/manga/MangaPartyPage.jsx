@@ -1,3 +1,4 @@
+// Manga Party — synchronized manga reading
 import React, {
   useState, useEffect, useRef, useCallback, memo, useMemo,
 } from 'react';
