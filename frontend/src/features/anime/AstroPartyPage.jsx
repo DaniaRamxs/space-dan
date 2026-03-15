@@ -1630,7 +1630,8 @@ const AstroPartyPage = ({ onClose, roomName }) => {
 
   // ─── Step: Watching ───────────────────────────────────────────────────────────
 
-  const StepWatching = () => {
+  // useMemo instead of inner component — prevents unmount/remount of <video> on every parent re-render
+  const stepWatchingJsx = useMemo(() => {
     const fmt = getVideoFormat(videoUrl);
 
     // Video link mode
@@ -1821,7 +1822,14 @@ const AstroPartyPage = ({ onClose, roomName }) => {
     }
 
     return null;
-  };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [contentMode, videoUrl, isHost, externalPlayerState, syncState, countdown,
+      floatingEmojis, gifOverlays, streamPaused, remoteStream,
+      webrtcStatus, webrtcLatencyMs, guestQualitySummary,
+      broadcastSync, toggleStreamPause, changeDisplayWindow,
+      requestLocalFullscreen, stopScreenShareCleanup,
+      localVideoRefCallback, remoteVideoRefCallback,
+      requestRemoteFullscreen, requestPiP, manualReconnect]);
 
   // ─── Honor sync controls (video link mode only) ───────────────────────────────
 
@@ -2268,11 +2276,11 @@ const AstroPartyPage = ({ onClose, roomName }) => {
             <SyncBanner />
             {/* Desktop: full player */}
             <div className="hidden sm:flex flex-col h-full">
-              <StepWatching />
+              {stepWatchingJsx}
             </div>
             {/* Mobile: player or social based on tab */}
             <div className="flex sm:hidden flex-col h-full">
-              {mobileTab === 'player' ? <StepWatching /> : <SocialPanel />}
+              {mobileTab === 'player' ? stepWatchingJsx : <SocialPanel />}
             </div>
           </div>
 
