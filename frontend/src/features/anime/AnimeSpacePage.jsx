@@ -55,6 +55,7 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
   const isSyncedHostRef = useRef(false);
   const presenceHostDeterminedRef = useRef(false);
   const presenceHostTimerRef = useRef(null);
+  const channelCallbacksRef = useRef({ syncCurrentState: null, addGifOverlay: null, addFloatingEmoji: null });
   const runCountdownRef = useRef(null);
   const heartbeatRef = useRef(null);
   const joinedAtRef = useRef(null);
@@ -249,6 +250,11 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
     setTimeout(() => setFloatingEmojis(prev => prev.filter(e => e.id !== id)), 2500);
   }, []);
 
+  // Mantener ref de callbacks estables para el canal Supabase (evita que el canal se recree)
+  useEffect(() => {
+    channelCallbacksRef.current = { syncCurrentState, addGifOverlay, addFloatingEmoji };
+  }, [syncCurrentState, addGifOverlay, addFloatingEmoji]);
+
   // Cuando el usuario se convierte en host (lobby), anunciarse a los viewers que esperan
   useEffect(() => {
     if (!isSyncedHost || !onClose || !syncChannelRef.current) return;
@@ -348,7 +354,7 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
       })
       .on('broadcast', { event: 'chat_message' }, ({ payload }) => {
         if (payload.type === "gif" && payload.userId !== profile?.id) {
-          addGifOverlay(payload.gifUrl);
+          channelCallbacksRef.current.addGifOverlay?.(payload.gifUrl);
         }
         // Solo procesar via Supabase si no estamos en Colyseus (evita duplicados)
         if (payload.userId !== profile?.id && !roomRef.current?.connection?.isOpen) {
@@ -357,7 +363,7 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
       })
       .on('broadcast', { event: 'anime_sync_req' }, ({ payload }) => {
         if (payload?.senderId === profile?.id) return;
-        syncCurrentState();
+        channelCallbacksRef.current.syncCurrentState?.();
       })
       .on('broadcast', { event: 'viewer_buffering' }, ({ payload }) => {
         if (!payload?.userId) return;
@@ -380,7 +386,7 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
       })
       .on('broadcast', { event: 'emoji_reaction' }, ({ payload }) => {
         if (payload?.userId !== profile?.id && payload?.content) {
-          addFloatingEmoji(payload.content);
+          channelCallbacksRef.current.addFloatingEmoji?.(payload.content);
         }
       })
       .subscribe(async (status) => {
@@ -420,7 +426,7 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
       syncChannelRef.current = null;
       supabase.removeChannel(channel);
     };
-  }, [roomName, onClose, profile?.id, profile?.username, profile?.avatar_url, addGifOverlay, clearRoomState, syncCurrentState, addFloatingEmoji]);
+  }, [roomName, onClose, profile?.id, profile?.username, profile?.avatar_url]);
 
   useEffect(() => {
     return () => {
