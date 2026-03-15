@@ -265,12 +265,14 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
       .on('presence', { event: 'sync' }, () => {
         const state = channel.presenceState();
         const allPresence = Object.values(state).flat();
+        console.log('[Presence sync]', { count: allPresence.length, users: allPresence.map(p => `${p.username}(${p.joinedAt})`), myId: profile?.id, alreadyDetermined: presenceHostDeterminedRef.current });
         if (allPresence.length === 0) return;
         // El primero en llegar (menor joinedAt) es el host
         const sorted = [...allPresence].sort((a, b) => (a.joinedAt || 0) - (b.joinedAt || 0));
         setPresenceParticipants(sorted);
+        console.log('[Presence sorted]', sorted.map(p => `${p.username}(joinedAt=${p.joinedAt})`), '→ host sería:', sorted[0]?.username);
         // Si ya se determinó el host, no volver a evaluar (evita flickering por heartbeats)
-        if (presenceHostDeterminedRef.current) return;
+        if (presenceHostDeterminedRef.current) { console.log('[Presence] host ya determinado, skip'); return; }
         // Debounce 1.5s: esperar a que todas las presencias propaguen antes de decidir host
         // (el primer sync de un usuario nuevo solo se ve a sí mismo — race condition)
         if (presenceHostTimerRef.current) clearTimeout(presenceHostTimerRef.current);
@@ -282,6 +284,7 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
             ? [...freshAll].sort((a, b) => (a.joinedAt || 0) - (b.joinedAt || 0))
             : sorted;
           const hostPresence = freshSorted[0];
+          console.log('[Presence timer fired] freshUsers:', freshSorted.map(p => `${p.username}(${p.joinedAt})`), '→ host:', hostPresence?.username, 'yo:', profile?.username, 'soyHost:', hostPresence?.userId === profile?.id);
           if (!hostPresence?.userId) { setPresenceReady(true); return; }
           if (hostPresence.userId === profile?.id) {
             setPresenceIsHost(true);
