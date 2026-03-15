@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Users, MessageSquare, Copy, Rocket, X, Check, Send, Crown,
   ChevronLeft, Clock, Bell, Loader2, Link, Monitor, Gift, Pause,
+  MapPin, BarChart2, Wifi, WifiOff, Volume2,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuthContext } from '@/contexts/AuthContext';
@@ -14,15 +15,23 @@ import GifPickerModal from '@/components/reactions/GifPickerModal';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const PC_CONFIG = {
-  iceServers: [
+const buildPcConfig = () => {
+  const iceServers = [
     { urls: 'stun:stun.l.google.com:19302' },
     { urls: 'stun:stun1.l.google.com:19302' },
-  ],
+  ];
+  const turnUrl  = import.meta.env.VITE_TURN_URL;
+  const turnUser = import.meta.env.VITE_TURN_USER || '';
+  const turnPass = import.meta.env.VITE_TURN_PASS || '';
+  if (turnUrl) {
+    iceServers.push({ urls: turnUrl, username: turnUser, credential: turnPass });
+  }
+  return { iceServers };
 };
 
 const REACTIONS = ['😂', '🔥', '😱', '❤️', '👏', '🎉'];
 const AVATAR_COLORS = ['#7c3aed', '#22d3ee', '#f59e0b', '#10b981', '#ef4444', '#8b5cf6'];
+const WEBRTC_RETRY_DELAYS = [2000, 4000, 8000];
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -31,9 +40,54 @@ const STATUS_RING  = { ready: 'ring-green-400', watching: 'ring-yellow-400', idl
 const STATUS_LABEL = { ready: 'Listo', watching: 'Viendo', idle: 'Inactivo' };
 
 const getVideoFormat = (url = '') => {
-  if (url.includes('.m3u8')) return 'hls';
-  if (url.includes('.webm')) return 'mp4';
-  return 'mp4';
+  if (url.includes('.m3u8')) return 'HLS';
+  if (url.includes('.webm')) return 'WebM';
+  return 'MP4';
+};
+
+const formatVideoTime = (t) =>
+  Math.floor(t / 60) + ':' + String(Math.floor(t % 60)).padStart(2, '0');
+
+const loadRoomHistory = () => {
+  try {
+    return JSON.parse(localStorage.getItem('astroparty_rooms') || '[]');
+  } catch {
+    return [];
+  }
+};
+
+const saveRoomHistory = (entry) => {
+  try {
+    const existing = loadRoomHistory();
+    const filtered = existing.filter((r) => r.code !== entry.code);
+    const next = [entry, ...filtered].slice(0, 5);
+    localStorage.setItem('astroparty_rooms', JSON.stringify(next));
+  } catch {}
+};
+
+const updateRoomHistoryContentMode = (code, contentMode) => {
+  try {
+    const existing = loadRoomHistory();
+    const next = existing.map((r) => r.code === code ? { ...r, contentMode } : r);
+    localStorage.setItem('astroparty_rooms', JSON.stringify(next));
+  } catch {}
+};
+
+const playArrival = () => {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(880, ctx.currentTime);
+    osc.frequency.setValueAtTime(1100, ctx.currentTime + 0.08);
+    gain.gain.setValueAtTime(0.08, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4);
+    osc.start();
+    osc.stop(ctx.currentTime + 0.4);
+  } catch (e) {}
 };
 
 // ─── Micro components ─────────────────────────────────────────────────────────
@@ -51,11 +105,12 @@ const AnimatedDots = () => (
   </span>
 );
 
-const Avatar = memo(({ name, size = 10, status }) => (
+const Avatar = memo(({ name, size = 10, status, highlight }) => (
   <div className="relative flex-shrink-0">
     <div
       className={`rounded-full flex items-center justify-center text-white font-bold
-        ${status ? `ring-2 ${STATUS_RING[status] || STATUS_RING.idle}` : ''}`}
+        ${status ? `ring-2 ${STATUS_RING[status] || STATUS_RING.idle}` : ''}
+        ${highlight ? 'ring-2 ring-cyan-400 ring-offset-1 ring-offset-black' : ''}`}
       style={{
         backgroundColor: avatarColor(name),
         width: `${size * 4}px`,
@@ -65,6 +120,17 @@ const Avatar = memo(({ name, size = 10, status }) => (
     >
       {name?.charAt(0)?.toUpperCase() || '?'}
     </div>
+    {highlight && (
+      <motion.div
+        initial={{ opacity: 0, scale: 0.5 }}
+        animate={{ opacity: 1, scale: 1 }}
+        exit={{ opacity: 0, scale: 0.5 }}
+        className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-cyan-400 border border-black flex items-center justify-center"
+        style={{ fontSize: 7 }}
+      >
+        +
+      </motion.div>
+    )}
   </div>
 ));
 
@@ -113,6 +179,49 @@ const ScreenOverlays = ({ floatingEmojis, gifOverlays }) => (
   </div>
 );
 
+// ─── WebRTC status dot ────────────────────────────────────────────────────────
+
+const WebrtcDot = ({ status }) => {
+  const color =
+    status === 'connected'    ? 'bg-green-400'
+    : status === 'poor'       ? 'bg-yellow-400'
+    : status === 'reconnecting' ? 'bg-yellow-400'
+    : status === 'failed'     ? 'bg-red-400'
+    : 'bg-gray-500';
+  const pulse = status === 'reconnecting' || status === 'connecting';
+  return (
+    <div
+      className={`w-2 h-2 rounded-full flex-shrink-0 ${color} ${pulse ? 'animate-pulse' : ''}`}
+      title={status}
+    />
+  );
+};
+
+// ─── Poll bar ─────────────────────────────────────────────────────────────────
+
+const PollBar = ({ label, votes, total, onVote, hasVoted }) => {
+  const pct = total > 0 ? Math.round((votes / total) * 100) : 0;
+  return (
+    <button
+      onClick={onVote}
+      disabled={hasVoted}
+      className={`w-full text-left rounded-xl overflow-hidden border transition-all
+        ${hasVoted ? 'border-white/10 cursor-default' : 'border-violet-500/30 hover:border-violet-500/60 cursor-pointer'}`}
+    >
+      <div className="relative px-3 py-2">
+        <div
+          className="absolute inset-0 bg-violet-600/20 transition-all duration-700"
+          style={{ width: `${pct}%` }}
+        />
+        <div className="relative flex items-center justify-between">
+          <span className="text-white/80 text-xs font-medium">{label}</span>
+          {hasVoted && <span className="text-white/50 text-xs">{pct}%</span>}
+        </div>
+      </div>
+    </button>
+  );
+};
+
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 const AstroPartyPage = ({ onClose, roomName }) => {
@@ -128,19 +237,33 @@ const AstroPartyPage = ({ onClose, roomName }) => {
   const [videoUrl, setVideoUrl]       = useState('');
 
   // ── Screen share (WebRTC) ────────────────────────────────────────────────────
-  const [screenStream, setScreenStream] = useState(null);   // host's MediaStream
-  const [remoteStream, setRemoteStream] = useState(null);   // guest's received stream
+  const [screenStream, setScreenStream] = useState(null);
+  const [remoteStream, setRemoteStream] = useState(null);
   const localVideoRef  = useRef(null);
   const remoteVideoRef = useRef(null);
-  const pcRef          = useRef({});       // { peerId: RTCPeerConnection }
+  const pcRef          = useRef({});
   const localStreamRef = useRef(null);
 
-  // ── Sync refs (for callbacks inside setupChannel closure) ────────────────────
+  // ── WebRTC reconnection ──────────────────────────────────────────────────────
+  const [webrtcStatus, setWebrtcStatus] = useState('idle'); // 'idle'|'connecting'|'connected'|'reconnecting'|'poor'|'failed'
+  const webrtcRetryCountRef = useRef(0);
+  const webrtcRetryTimerRef = useRef(null);
+  const statsTimerRef       = useRef(null);
+  const statsSnapshotRef    = useRef(0);
+
+  // ── Sync refs ────────────────────────────────────────────────────────────────
   const webrtcCallbacksRef = useRef({ handleRequest: null, handleOffer: null, handleAnswer: null, handleIce: null });
   const socialCallbacksRef = useRef({ addGifOverlay: null, addFloatingEmoji: null });
+  const pollCallbacksRef   = useRef({ onLaunch: null, onVote: null });
+  const syncCallbacksRef   = useRef({ onSyncReq: null });
 
   // ── Stream (video link) ──────────────────────────────────────────────────────
   const [externalPlayerState, setExternalPlayerState] = useState({});
+  const [activeSourceIdx, setActiveSourceIdx]         = useState(0);
+
+  // ── Host current time ref (for late joiner sync) ──────────────────────────────
+  const hostCurrentTimeRef = useRef(0);
+  const [currentVideoTime, setCurrentVideoTime] = useState(0);
 
   // ── Room ─────────────────────────────────────────────────────────────────────
   const [roomCode, setRoomCode]   = useState('');
@@ -167,6 +290,27 @@ const AstroPartyPage = ({ onClose, roomName }) => {
   const [showRating, setShowRating] = useState(false);
   const [myRating, setMyRating]     = useState(0);
 
+  // ── Chat timestamp pin ────────────────────────────────────────────────────────
+  const [pinTimestamp, setPinTimestamp] = useState(false);
+
+  // ── Live poll ─────────────────────────────────────────────────────────────────
+  const [activePoll, setActivePoll] = useState(null); // { id, question, options, votes, closesAt }
+  const pollTimerRef = useRef(null);
+
+  // ── Cinema mode ───────────────────────────────────────────────────────────────
+  const [cinemaMode, setCinemaMode] = useState(false);
+  const cinemTimerRef = useRef(null);
+
+  // ── Room history ──────────────────────────────────────────────────────────────
+  const [roomHistory, setRoomHistory] = useState([]);
+
+  // ── Arrival notification ──────────────────────────────────────────────────────
+  const [newArrival, setNewArrival] = useState(null); // username string
+  const prevParticipantNamesRef = useRef(new Set());
+
+  // ── Host preview for guests ────────────────────────────────────────────────────
+  const [hostPreviewInfo, setHostPreviewInfo] = useState(null); // { contentMode, videoUrl }|null
+
   // ── Refs ─────────────────────────────────────────────────────────────────────
   const chatEndRef       = useRef(null);
   const channelRef       = useRef(null);
@@ -175,11 +319,20 @@ const AstroPartyPage = ({ onClose, roomName }) => {
   const prevHostRef      = useRef(true);
   const hasAutoJoinedRef = useRef(false);
   const profileRef       = useRef(profile);
+  const videoUrlRef      = useRef(videoUrl);
+  const contentModeRef   = useRef(contentMode);
 
-  const myUsername = profile?.username || profile?.email?.split('@')[0] || 'Tú';
+  const myUsername = profile?.username || profile?.email?.split('@')[0] || 'Tu';
 
   useEffect(() => { isHostRef.current = isHost; }, [isHost]);
   useEffect(() => { profileRef.current = profile; }, [profile]);
+  useEffect(() => { videoUrlRef.current = videoUrl; }, [videoUrl]);
+  useEffect(() => { contentModeRef.current = contentMode; }, [contentMode]);
+
+  // Load history on mount
+  useEffect(() => {
+    setRoomHistory(loadRoomHistory());
+  }, []);
 
   // Auto-join from URL param
   useEffect(() => {
@@ -201,6 +354,23 @@ const AstroPartyPage = ({ onClose, roomName }) => {
     }
   }, [remoteStream]);
 
+  // Cinema mode cleanup when leaving watching
+  useEffect(() => {
+    if (roomStep !== 'watching') {
+      setCinemaMode(false);
+      clearTimeout(cinemTimerRef.current);
+    }
+  }, [roomStep]);
+
+  // ── Cinema mode mouse handler ──────────────────────────────────────────────────
+
+  const handleMouseMove = useCallback(() => {
+    if (roomStep !== 'watching') return;
+    setCinemaMode(false);
+    clearTimeout(cinemTimerRef.current);
+    cinemTimerRef.current = setTimeout(() => setCinemaMode(true), 4000);
+  }, [roomStep]);
+
   // ── Social helpers ────────────────────────────────────────────────────────────
 
   const addGifOverlay = useCallback((gifUrl) => {
@@ -216,12 +386,11 @@ const AstroPartyPage = ({ onClose, roomName }) => {
     setTimeout(() => setFloatingEmojis((prev) => prev.filter((e) => e.id !== id)), 2500);
   }, []);
 
-  // Keep refs up to date (for channel handlers to call current versions)
   useEffect(() => {
     socialCallbacksRef.current = { addGifOverlay, addFloatingEmoji: addFloatingEmojiLocal };
   }, [addGifOverlay, addFloatingEmojiLocal]);
 
-  // ICE candidate queue: candidates that arrived before the PC was ready
+  // ICE candidate queue
   const pendingIceRef = useRef([]);
 
   // ── Broadcast ────────────────────────────────────────────────────────────────
@@ -230,21 +399,74 @@ const AstroPartyPage = ({ onClose, roomName }) => {
     channelRef.current?.send({ type: 'broadcast', event: 'astro_sync', payload });
   }, []);
 
-  const broadcastChat = useCallback((text) => {
+  const broadcastChat = useCallback((text, extra = {}) => {
     channelRef.current?.send({
       type: 'broadcast', event: 'astro_chat',
-      payload: { username: myUsername, text, time: Date.now() },
+      payload: { username: myUsername, text, time: Date.now(), ...extra },
     });
   }, [myUsername]);
 
+  // ── Poll actions ──────────────────────────────────────────────────────────────
+
+  const launchPoll = useCallback(() => {
+    if (!isHostRef.current) return;
+    const id = Date.now();
+    const poll = {
+      id,
+      question: '¿Como va?',
+      options: ['🔥 Fuego', '👍 Bueno', '😐 Regular', '💤 Aburrido'],
+      votes: {},
+      closesAt: Date.now() + 30000,
+    };
+    setActivePoll(poll);
+    channelRef.current?.send({ type: 'broadcast', event: 'astro_poll_launch', payload: poll });
+    clearTimeout(pollTimerRef.current);
+    pollTimerRef.current = setTimeout(() => setActivePoll(null), 30000);
+  }, []);
+
+  const votePoll = useCallback((optionIndex) => {
+    const uid = profileRef.current?.id || myUsername;
+    setActivePoll((prev) => {
+      if (!prev || prev.votes[uid] !== undefined) return prev;
+      const next = { ...prev, votes: { ...prev.votes, [uid]: optionIndex } };
+      channelRef.current?.send({
+        type: 'broadcast', event: 'astro_poll_vote',
+        payload: { pollId: prev.id, userId: uid, optionIndex },
+      });
+      return next;
+    });
+  }, [myUsername]);
+
+  useEffect(() => {
+    pollCallbacksRef.current = { onLaunch: null, onVote: null };
+  }, []);
+
+  // ── Sync req handler refs ─────────────────────────────────────────────────────
+
+  useEffect(() => {
+    syncCallbacksRef.current.onSyncReq = ({ fromId }) => {
+      if (!isHostRef.current) return;
+      channelRef.current?.send({
+        type: 'broadcast', event: 'astro_sync',
+        payload: {
+          type: 'state_snapshot',
+          toId: fromId,
+          currentTime: hostCurrentTimeRef.current,
+          playing: true,
+          videoUrl: videoUrlRef.current,
+          contentMode: contentModeRef.current,
+        },
+      });
+    };
+  });
+
   // ── WebRTC handlers ──────────────────────────────────────────────────────────
 
-  // HOST: a guest is requesting the screen stream
   const handleScreenRequest = useCallback(async ({ fromId, fromUsername }) => {
     if (!isHostRef.current || !localStreamRef.current) return;
     console.log('[AstroParty] screen_request from', fromUsername);
 
-    const pc = new RTCPeerConnection(PC_CONFIG);
+    const pc = new RTCPeerConnection(buildPcConfig());
     pcRef.current[fromId] = pc;
 
     localStreamRef.current.getTracks().forEach((track) => {
@@ -269,13 +491,58 @@ const AstroPartyPage = ({ onClose, roomName }) => {
     }).catch(() => {});
   }, []);
 
-  // GUEST: received a screen offer from host
   const handleScreenOffer = useCallback(async ({ fromId, toId, sdp, type: sdpType }) => {
     if (isHostRef.current || toId !== profileRef.current?.id) return;
     console.log('[AstroParty] screen_offer received from host');
 
-    const pc = new RTCPeerConnection(PC_CONFIG);
+    setWebrtcStatus('connecting');
+    const pc = new RTCPeerConnection(buildPcConfig());
     pcRef.current['host'] = pc;
+
+    // Stats polling for connection quality
+    const startStats = () => {
+      clearInterval(statsTimerRef.current);
+      statsSnapshotRef.current = 0;
+      statsTimerRef.current = setInterval(async () => {
+        try {
+          const stats = await pc.getStats();
+          let bytesReceived = 0;
+          const prev = statsSnapshotRef.current || 0;
+          stats.forEach((s) => {
+            if (s.type === 'inbound-rtp' && s.kind === 'video') bytesReceived = s.bytesReceived;
+          });
+          const bps = ((bytesReceived - prev) / 3) * 8;
+          statsSnapshotRef.current = bytesReceived;
+          setWebrtcStatus(bps > 400_000 ? 'connected' : bps > 100_000 ? 'poor' : 'connecting');
+        } catch {}
+      }, 3000);
+    };
+
+    pc.onconnectionstatechange = () => {
+      const state = pc.connectionState;
+      if (state === 'connected') {
+        webrtcRetryCountRef.current = 0;
+        clearTimeout(webrtcRetryTimerRef.current);
+        setWebrtcStatus('connected');
+        startStats();
+      } else if (state === 'disconnected' || state === 'failed') {
+        setWebrtcStatus('reconnecting');
+        clearInterval(statsTimerRef.current);
+        const attempt = webrtcRetryCountRef.current;
+        if (attempt < WEBRTC_RETRY_DELAYS.length) {
+          webrtcRetryCountRef.current = attempt + 1;
+          const delay = WEBRTC_RETRY_DELAYS[attempt];
+          webrtcRetryTimerRef.current = setTimeout(() => {
+            channelRef.current?.send({
+              type: 'broadcast', event: 'screen_request',
+              payload: { fromId: profileRef.current?.id, fromUsername: profileRef.current?.username || 'Anon' },
+            }).catch(() => {});
+          }, delay);
+        } else {
+          setWebrtcStatus('failed');
+        }
+      }
+    };
 
     pc.onicecandidate = ({ candidate }) => {
       if (candidate) {
@@ -287,13 +554,11 @@ const AstroPartyPage = ({ onClose, roomName }) => {
     };
 
     pc.ontrack = (event) => {
-      // Some browsers send tracks without streams — build one if needed
       const stream = event.streams?.[0] ?? new MediaStream([event.track]);
       setRemoteStream(stream);
       if (remoteVideoRef.current) {
         remoteVideoRef.current.srcObject = stream;
       }
-      // Flush any ICE candidates that arrived before the PC was ready
       pendingIceRef.current.forEach((c) => pc.addIceCandidate(c).catch(() => {}));
       pendingIceRef.current = [];
     };
@@ -308,7 +573,6 @@ const AstroPartyPage = ({ onClose, roomName }) => {
     }).catch(() => {});
   }, []);
 
-  // HOST: received an answer from a guest
   const handleScreenAnswer = useCallback(async ({ fromId, toId, sdp, type: sdpType }) => {
     if (!isHostRef.current || toId !== profileRef.current?.id) return;
     const pc = pcRef.current[fromId];
@@ -316,12 +580,10 @@ const AstroPartyPage = ({ onClose, roomName }) => {
     await pc.setRemoteDescription({ type: sdpType, sdp });
   }, []);
 
-  // Either side: ICE candidate
   const handleScreenIce = useCallback(async ({ fromId, toId, candidate }) => {
     if (toId !== profileRef.current?.id || !candidate) return;
     const pc = isHostRef.current ? pcRef.current[fromId] : pcRef.current['host'];
     if (!pc) {
-      // PC not ready yet — queue the candidate
       pendingIceRef.current.push(new RTCIceCandidate(candidate));
       return;
     }
@@ -341,12 +603,11 @@ const AstroPartyPage = ({ onClose, roomName }) => {
     };
   }, [handleScreenRequest, handleScreenOffer, handleScreenAnswer, handleScreenIce]);
 
-  // Send screen_request whenever we enter screenshare watching mode as a guest.
-  // Using useEffect (not inside setupChannel) ensures late joiners also request the stream.
+  // Send screen_request whenever we enter screenshare watching mode as a guest
   const screenRequestSentRef = useRef(false);
   useEffect(() => {
     if (isHost || contentMode !== 'screenshare' || roomStep !== 'watching') {
-      screenRequestSentRef.current = false; // reset so next session works
+      screenRequestSentRef.current = false;
       return;
     }
     if (screenRequestSentRef.current) return;
@@ -357,7 +618,6 @@ const AstroPartyPage = ({ onClose, roomName }) => {
         payload: { fromId: profileRef.current?.id, fromUsername: profileRef.current?.username || 'Anon' },
       }).catch(() => {});
     };
-    // Slight delay so channel is fully ready and host has the stream
     const t = setTimeout(send, 800);
     return () => clearTimeout(t);
   }, [isHost, contentMode, roomStep]);
@@ -373,7 +633,7 @@ const AstroPartyPage = ({ onClose, roomName }) => {
       .on('presence', { event: 'sync' }, () => {
         const state = channel.presenceState();
         const parts = Object.values(state).flat().map((p) => ({
-          username: p.username || p.presence_ref || 'Anónimo',
+          username: p.username || p.presence_ref || 'Anonimo',
           status:   p.status  || 'idle',
           isHost:   p.isHost  || false,
         }));
@@ -384,17 +644,49 @@ const AstroPartyPage = ({ onClose, roomName }) => {
           if (hostPresence.step)        setRoomStep(hostPresence.step);
           if (hostPresence.contentMode) setContentMode(hostPresence.contentMode);
           if (hostPresence.videoUrl)    setVideoUrl(hostPresence.videoUrl);
+          if (hostPresence.contentMode || hostPresence.videoUrl) {
+            setHostPreviewInfo({
+              contentMode: hostPresence.contentMode || null,
+              videoUrl: hostPresence.videoUrl || null,
+            });
+          }
         }
 
         const hostPresent = Object.values(state).flat().some((p) => p.isHost);
         if (prevHostRef.current && !hostPresent && !isHostRef.current) {
-          setSyncBanner({ text: 'El host abandonó la sala', type: 'pause' });
+          setSyncBanner({ text: 'El host abandono la sala', type: 'pause' });
           setTimeout(() => setSyncBanner(null), 8000);
         }
         prevHostRef.current = hostPresent;
       })
+      .on('presence', { event: 'join' }, ({ key, newPresences }) => {
+        const joinedUsername = newPresences?.[0]?.username || key;
+        if (joinedUsername && joinedUsername !== myUsername) {
+          playArrival();
+          setNewArrival(joinedUsername);
+          setTimeout(() => setNewArrival(null), 2500);
+        }
+      })
       .on('broadcast', { event: 'astro_sync' }, ({ payload }) => {
         if (!payload) return;
+
+        if (payload.type === 'state_snapshot' && payload.toId === profileRef.current?.id) {
+          setExternalPlayerState({
+            playing: payload.playing,
+            currentTime: payload.currentTime,
+          });
+          if (payload.videoUrl)    setVideoUrl(payload.videoUrl);
+          if (payload.contentMode) setContentMode(payload.contentMode);
+          return;
+        }
+        if (payload.type === 'seek' && !isHostRef.current) {
+          setExternalPlayerState((prev) => ({ ...prev, currentTime: payload.time }));
+          return;
+        }
+        if (payload.type === 'source_change' && !isHostRef.current) {
+          setActiveSourceIdx(payload.idx || 0);
+          return;
+        }
 
         if (payload.type === 'countdown_start') {
           setSyncState('counting');
@@ -413,14 +705,14 @@ const AstroPartyPage = ({ onClose, roomName }) => {
           setSyncState('paused');
           setMyStatus('idle');
           const label = payload.timestamp ? ` en ${payload.timestamp}` : '';
-          setSyncBanner({ text: `Host pausó${label} — detente`, type: 'pause' });
+          setSyncBanner({ text: `Host pauso${label} — detente`, type: 'pause' });
           setTimeout(() => setSyncBanner(null), 6000);
         }
         if (payload.type === 'resume') {
           setSyncState('synced');
           setMyStatus('watching');
           const label = payload.timestamp ? ` desde ${payload.timestamp}` : '';
-          setSyncBanner({ text: `Host reanudó${label} — dale play`, type: 'resume' });
+          setSyncBanner({ text: `Host reanudo${label} — dale play`, type: 'resume' });
           setTimeout(() => setSyncBanner(null), 5000);
         }
         if (payload.type === 'time_check') {
@@ -437,12 +729,12 @@ const AstroPartyPage = ({ onClose, roomName }) => {
         if (payload.type === 'pause_player') {
           setExternalPlayerState({ playing: false, currentTime: payload.time });
           if (!asHost) {
-            setSyncBanner({ text: 'El host pausó', type: 'pause' });
+            setSyncBanner({ text: 'El host pauso', type: 'pause' });
             setTimeout(() => setSyncBanner(null), 3000);
           }
         }
-        if (payload.type === 'seek') {
-          setExternalPlayerState((prev) => ({ ...prev, currentTime: payload.time }));
+        if (payload.type === 'seek' && isHostRef.current) {
+          // host itself seeking — no-op for host
         }
         if (payload.type === 'start_watch') {
           if (!asHost) {
@@ -450,11 +742,17 @@ const AstroPartyPage = ({ onClose, roomName }) => {
             setContentMode(mode || null);
             if (payload.videoUrl) setVideoUrl(payload.videoUrl);
             setRoomStep('watching');
-            // screen_request is handled via useEffect below (also covers late joiners)
+            // After entering watching mode as guest, broadcast sync req for late join
+            setTimeout(() => {
+              channelRef.current?.send({
+                type: 'broadcast', event: 'astro_sync_req',
+                payload: { fromId: profileRef.current?.id },
+              }).catch(() => {});
+            }, 600);
           }
         }
         if (payload.type === 'session_end') {
-          setSyncBanner({ text: 'El host terminó la sesión', type: 'pause' });
+          setSyncBanner({ text: 'El host termino la sesion', type: 'pause' });
           setTimeout(() => {
             setSyncBanner(null);
             setView('lobby');
@@ -463,8 +761,13 @@ const AstroPartyPage = ({ onClose, roomName }) => {
             setVideoUrl('');
             setSyncState('idle');
             setRemoteStream(null);
+            setActivePoll(null);
           }, 3000);
         }
+      })
+      .on('broadcast', { event: 'astro_sync_req' }, ({ payload }) => {
+        if (!payload) return;
+        syncCallbacksRef.current.onSyncReq?.(payload);
       })
       .on('broadcast', { event: 'astro_chat' }, ({ payload }) => {
         if (!payload) return;
@@ -479,6 +782,20 @@ const AstroPartyPage = ({ onClose, roomName }) => {
         if (payload?.emoji && payload.fromId !== profileRef.current?.id) {
           socialCallbacksRef.current.addFloatingEmoji?.(payload.emoji);
         }
+      })
+      .on('broadcast', { event: 'astro_poll_launch' }, ({ payload }) => {
+        if (!payload) return;
+        setActivePoll({ ...payload, votes: {} });
+        clearTimeout(pollTimerRef.current);
+        const msLeft = Math.max(0, payload.closesAt - Date.now());
+        pollTimerRef.current = setTimeout(() => setActivePoll(null), msLeft);
+      })
+      .on('broadcast', { event: 'astro_poll_vote' }, ({ payload }) => {
+        if (!payload) return;
+        setActivePoll((prev) => {
+          if (!prev || prev.id !== payload.pollId) return prev;
+          return { ...prev, votes: { ...prev.votes, [payload.userId]: payload.optionIndex } };
+        });
       })
       .on('broadcast', { event: 'screen_request' }, ({ payload }) => {
         webrtcCallbacksRef.current.handleRequest?.(payload);
@@ -540,10 +857,13 @@ const AstroPartyPage = ({ onClose, roomName }) => {
     setVideoUrl('');
     setScreenStream(null);
     setRemoteStream(null);
+    setActivePoll(null);
     setupChannel(code, true);
     setView('room');
     window.history.pushState({}, '', `?room=${code}`);
-    toast.success(`¡Sala creada! Código: ${code}`, {
+    saveRoomHistory({ code, date: Date.now(), contentMode: null, isHost: true });
+    setRoomHistory(loadRoomHistory());
+    toast.success(`Sala creada! Codigo: ${code}`, {
       description: 'Comparte el link con tus amigos',
       action: {
         label: 'Copiar link',
@@ -555,7 +875,7 @@ const AstroPartyPage = ({ onClose, roomName }) => {
 
   const joinRoom = useCallback(async () => {
     const code = joinCode.trim().toUpperCase();
-    if (code.length < 4) { toast.error('Ingresa un código válido'); return; }
+    if (code.length < 4) { toast.error('Ingresa un codigo valido'); return; }
     setRoomCode(code);
     setIsHost(false);
     isHostRef.current = false;
@@ -564,6 +884,8 @@ const AstroPartyPage = ({ onClose, roomName }) => {
     setMessages([]);
     setupChannel(code, false);
     setView('room');
+    saveRoomHistory({ code, date: Date.now(), contentMode: null, isHost: false });
+    setRoomHistory(loadRoomHistory());
   }, [joinCode, setupChannel]);
 
   // Auto-join from URL
@@ -583,9 +905,11 @@ const AstroPartyPage = ({ onClose, roomName }) => {
     if (!videoUrl.trim()) { toast.error('Pega un link de video'); return; }
     setContentMode('videolink');
     setRoomStep('watching');
+    updateRoomHistoryContentMode(roomCode, 'videolink');
+    setRoomHistory(loadRoomHistory());
     trackPresence({ step: 'watching', contentMode: 'videolink', videoUrl: videoUrl.trim() });
     broadcastSync({ type: 'start_watch', contentMode: 'videolink', videoUrl: videoUrl.trim() });
-  }, [videoUrl, broadcastSync, trackPresence]);
+  }, [videoUrl, roomCode, broadcastSync, trackPresence]);
 
   const startScreenShare = useCallback(async () => {
     try {
@@ -594,20 +918,21 @@ const AstroPartyPage = ({ onClose, roomName }) => {
       setScreenStream(stream);
       setContentMode('screenshare');
       setRoomStep('watching');
+      updateRoomHistoryContentMode(roomCode, 'screenshare');
+      setRoomHistory(loadRoomHistory());
       trackPresence({ step: 'watching', contentMode: 'screenshare' });
       broadcastSync({ type: 'start_watch', contentMode: 'screenshare' });
 
-      // Detect when user stops sharing via browser UI
       stream.getVideoTracks()[0].onended = () => {
         stopScreenShareCleanup();
       };
     } catch (err) {
       if (err.name !== 'NotAllowedError') {
-        toast.error('No se pudo iniciar la compartición de pantalla');
+        toast.error('No se pudo iniciar la comparticion de pantalla');
       }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [broadcastSync, trackPresence]);
+  }, [broadcastSync, trackPresence, roomCode]);
 
   const stopScreenShareCleanup = useCallback(() => {
     localStreamRef.current?.getTracks().forEach((t) => t.stop());
@@ -615,6 +940,8 @@ const AstroPartyPage = ({ onClose, roomName }) => {
     setScreenStream(null);
     Object.values(pcRef.current).forEach((pc) => pc.close());
     pcRef.current = {};
+    clearInterval(statsTimerRef.current);
+    setWebrtcStatus('idle');
     broadcastSync({ type: 'session_end' });
     setView('lobby');
     setRoomStep('content');
@@ -675,10 +1002,13 @@ const AstroPartyPage = ({ onClose, roomName }) => {
   const sendMessage = useCallback(() => {
     const text = chatInput.trim();
     if (!text) return;
-    setMessages((prev) => [...prev, { username: myUsername, text, time: Date.now(), own: true }]);
-    broadcastChat(text);
+    const extra = pinTimestamp && currentVideoTime > 0
+      ? { timestamp: currentVideoTime, timestampLabel: formatVideoTime(currentVideoTime) }
+      : {};
+    setMessages((prev) => [...prev, { username: myUsername, text, time: Date.now(), own: true, ...extra }]);
+    broadcastChat(text, extra);
     setChatInput('');
-  }, [chatInput, myUsername, broadcastChat]);
+  }, [chatInput, myUsername, broadcastChat, pinTimestamp, currentVideoTime]);
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -707,11 +1037,21 @@ const AstroPartyPage = ({ onClose, roomName }) => {
     });
   }, []);
 
+  const seekToTimestamp = useCallback((t) => {
+    if (!isHost) return;
+    broadcastSync({ type: 'seek', time: t });
+    setExternalPlayerState((prev) => ({ ...prev, currentTime: t }));
+  }, [isHost, broadcastSync]);
+
   // ── Cleanup ──────────────────────────────────────────────────────────────────
 
   useEffect(() => {
     return () => {
       clearInterval(countdownTimer.current);
+      clearTimeout(pollTimerRef.current);
+      clearTimeout(cinemTimerRef.current);
+      clearInterval(statsTimerRef.current);
+      clearTimeout(webrtcRetryTimerRef.current);
       if (channelRef.current) supabase.removeChannel(channelRef.current);
       localStreamRef.current?.getTracks().forEach((t) => t.stop());
       Object.values(pcRef.current).forEach((pc) => pc.close());
@@ -726,6 +1066,7 @@ const AstroPartyPage = ({ onClose, roomName }) => {
   // ─────────────────────────────────────────────────────────────────────────────
 
   if (view === 'lobby') {
+    const recentRooms = roomHistory.slice(0, 3);
     return (
       <div className="fixed inset-0 z-50 flex flex-col items-center justify-center" style={{ background: '#0a0a0f' }}>
         {onClose && (
@@ -771,7 +1112,7 @@ const AstroPartyPage = ({ onClose, roomName }) => {
                   value={joinCode}
                   onChange={(e) => setJoinCode(e.target.value.toUpperCase().slice(0, 8))}
                   onKeyDown={(e) => e.key === 'Enter' && joinCode.length >= 4 && joinRoom()}
-                  placeholder="Código de sala"
+                  placeholder="Codigo de sala"
                   className="flex-1 bg-transparent text-white placeholder-white/25 text-sm font-mono tracking-widest focus:outline-none"
                 />
               </div>
@@ -788,6 +1129,24 @@ const AstroPartyPage = ({ onClose, roomName }) => {
                 Unirse
               </motion.button>
             </div>
+
+            {recentRooms.length > 0 && (
+              <div className="flex flex-col gap-2 mt-1">
+                <span className="text-white/30 text-xs font-semibold tracking-wider uppercase px-1">Recientes</span>
+                <div className="flex flex-wrap gap-2">
+                  {recentRooms.map((r) => (
+                    <button
+                      key={r.code}
+                      onClick={() => setJoinCode(r.code)}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 hover:border-violet-500/40 hover:bg-violet-500/10 transition-all"
+                    >
+                      <span className="text-white/60 text-xs font-mono font-bold">{r.code}</span>
+                      {r.isHost && <Crown size={9} className="text-yellow-400/60" />}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -797,6 +1156,8 @@ const AstroPartyPage = ({ onClose, roomName }) => {
   // ─────────────────────────────────────────────────────────────────────────────
   // ROOM INNER COMPONENTS
   // ─────────────────────────────────────────────────────────────────────────────
+
+  const isWatching = roomStep === 'watching';
 
   const RoomHeader = () => (
     <div
@@ -858,8 +1219,8 @@ const AstroPartyPage = ({ onClose, roomName }) => {
       className="flex flex-col items-center gap-6 w-full max-w-sm"
     >
       <div className="text-center">
-        <h2 className="text-white font-black text-xl">Qué quieres ver?</h2>
-        <p className="text-white/40 text-sm mt-1">Elige cómo compartir contenido</p>
+        <h2 className="text-white font-black text-xl">Que quieres ver?</h2>
+        <p className="text-white/40 text-sm mt-1">Elige como compartir contenido</p>
       </div>
 
       <div className="grid grid-cols-2 gap-4 w-full">
@@ -897,7 +1258,8 @@ const AstroPartyPage = ({ onClose, roomName }) => {
   // ─── Step: Video link input ────────────────────────────────────────────────────
 
   const StepVideoLink = () => {
-    const fmt = videoUrl.includes('.m3u8') ? 'HLS' : videoUrl.includes('.mp4') ? 'MP4' : videoUrl.includes('.webm') ? 'WebM' : null;
+    const fmt = getVideoFormat(videoUrl);
+    const hasFmt = videoUrl.trim().length > 0;
     return (
       <motion.div
         key="step-videolink"
@@ -928,7 +1290,7 @@ const AstroPartyPage = ({ onClose, roomName }) => {
           className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-3 text-white placeholder-white/25 text-sm focus:outline-none focus:border-violet-500/60 transition-all"
         />
 
-        {fmt && (
+        {hasFmt && (
           <div className="flex items-center gap-2 px-1">
             <div className="w-2 h-2 rounded-full bg-green-400" />
             <span className="text-green-400/80 text-xs font-bold">Formato detectado: {fmt}</span>
@@ -951,57 +1313,88 @@ const AstroPartyPage = ({ onClose, roomName }) => {
 
   // ─── Step: Screen share setup ──────────────────────────────────────────────────
 
-  const StepScreenShare = () => (
-    <motion.div
-      key="step-screenshare"
-      initial={{ opacity: 0, x: 32 }}
-      animate={{ opacity: 1, x: 0 }}
-      exit={{ opacity: 0, x: -32 }}
-      className="flex flex-col items-center gap-6 w-full max-w-sm text-center"
-    >
-      <div className="flex items-center gap-3 self-start">
-        <button
-          onClick={() => setRoomStep('content')}
-          className="w-8 h-8 rounded-xl bg-white/5 hover:bg-white/10 flex items-center justify-center text-white/50 hover:text-white transition-colors flex-shrink-0"
-        >
-          <ChevronLeft size={16} />
-        </button>
-        <div className="flex items-center gap-2">
-          <Monitor size={15} className="text-cyan-400" />
-          <span className="text-white font-bold text-sm">Compartir pantalla</span>
-        </div>
-      </div>
-
-      <div className="w-20 h-20 rounded-2xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center">
-        <Monitor size={36} className="text-cyan-400" />
-      </div>
-
-      <div>
-        <h3 className="text-white font-black text-xl">Comparte tu pantalla</h3>
-        <p className="text-white/40 text-sm mt-2 leading-relaxed max-w-xs">
-          Todos en la sala verán tu pantalla en tiempo real. Ideal para Netflix, YouTube, videos locales o cualquier app.
-        </p>
-      </div>
-
-      <motion.button
-        whileHover={{ scale: 1.03 }}
-        whileTap={{ scale: 0.97 }}
-        onClick={startScreenShare}
-        className="w-full flex items-center justify-center gap-2 py-4 rounded-2xl font-black text-white text-base bg-cyan-600 hover:bg-cyan-500 transition-all shadow-[0_0_20px_rgba(6,182,212,0.35)]"
+  const StepScreenShare = () => {
+    const [showAudioTip, setShowAudioTip] = React.useState(false);
+    return (
+      <motion.div
+        key="step-screenshare"
+        initial={{ opacity: 0, x: 32 }}
+        animate={{ opacity: 1, x: 0 }}
+        exit={{ opacity: 0, x: -32 }}
+        className="flex flex-col items-center gap-6 w-full max-w-sm text-center"
       >
-        <Monitor size={18} />
-        Iniciar compartir pantalla
-      </motion.button>
-    </motion.div>
-  );
+        <div className="flex items-center gap-3 self-start">
+          <button
+            onClick={() => setRoomStep('content')}
+            className="w-8 h-8 rounded-xl bg-white/5 hover:bg-white/10 flex items-center justify-center text-white/50 hover:text-white transition-colors flex-shrink-0"
+          >
+            <ChevronLeft size={16} />
+          </button>
+          <div className="flex items-center gap-2">
+            <Monitor size={15} className="text-cyan-400" />
+            <span className="text-white font-bold text-sm">Compartir pantalla</span>
+          </div>
+        </div>
+
+        <div className="w-20 h-20 rounded-2xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center">
+          <Monitor size={36} className="text-cyan-400" />
+        </div>
+
+        <div>
+          <h3 className="text-white font-black text-xl">Comparte tu pantalla</h3>
+          <p className="text-white/40 text-sm mt-2 leading-relaxed max-w-xs">
+            Todos en la sala veran tu pantalla en tiempo real. Ideal para Netflix, YouTube, videos locales o cualquier app.
+          </p>
+        </div>
+
+        <motion.button
+          whileHover={{ scale: 1.03 }}
+          whileTap={{ scale: 0.97 }}
+          onClick={startScreenShare}
+          className="w-full flex items-center justify-center gap-2 py-4 rounded-2xl font-black text-white text-base bg-cyan-600 hover:bg-cyan-500 transition-all shadow-[0_0_20px_rgba(6,182,212,0.35)]"
+        >
+          <Monitor size={18} />
+          Iniciar compartir pantalla
+        </motion.button>
+
+        {/* Audio tip */}
+        <div className="w-full">
+          <button
+            onClick={() => setShowAudioTip((v) => !v)}
+            className="flex items-center gap-2 text-yellow-400/60 hover:text-yellow-400/90 text-xs transition-colors"
+          >
+            <Volume2 size={12} />
+            <span>Tip: compartir audio en Chrome</span>
+            <ChevronLeft size={10} className={`transition-transform ${showAudioTip ? '-rotate-90' : 'rotate-180'}`} />
+          </button>
+          <AnimatePresence>
+            {showAudioTip && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                className="overflow-hidden"
+              >
+                <div className="mt-2 px-3 py-2.5 rounded-xl bg-yellow-500/10 border border-yellow-500/20 text-left">
+                  <p className="text-yellow-300/80 text-xs leading-relaxed">
+                    Para compartir audio en Chrome: selecciona la pestana o ventana y marca "Compartir audio"
+                  </p>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+      </motion.div>
+    );
+  };
 
   // ─── Guest waiting ─────────────────────────────────────────────────────────────
 
   const GuestWaiting = () => {
     const msg = {
-      content:     'El host está eligiendo contenido',
-      videolink:   'El host está configurando el video',
-      screenshare: 'El host está preparando la compartición',
+      content:     'El host esta eligiendo contenido',
+      videolink:   'El host esta configurando el video',
+      screenshare: 'El host esta preparando la comparticion',
     }[roomStep] || 'Esperando al host';
 
     return (
@@ -1028,6 +1421,27 @@ const AstroPartyPage = ({ onClose, roomName }) => {
             {<AnimatedDots />}
           </p>
         </div>
+
+        {/* Content preview */}
+        {hostPreviewInfo && (
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mt-2 w-full max-w-xs"
+          >
+            {hostPreviewInfo.contentMode === 'videolink' && hostPreviewInfo.videoUrl ? (
+              <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-violet-500/10 border border-violet-500/20">
+                <Link size={13} className="text-violet-400 flex-shrink-0" />
+                <span className="text-violet-300/80 text-xs truncate">{hostPreviewInfo.videoUrl}</span>
+              </div>
+            ) : hostPreviewInfo.contentMode === 'screenshare' ? (
+              <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-cyan-500/10 border border-cyan-500/20">
+                <Monitor size={13} className="text-cyan-400 flex-shrink-0" />
+                <span className="text-cyan-300/80 text-xs">Compartiendo pantalla</span>
+              </div>
+            ) : null}
+          </motion.div>
+        )}
       </motion.div>
     );
   };
@@ -1035,32 +1449,42 @@ const AstroPartyPage = ({ onClose, roomName }) => {
   // ─── Step: Watching ───────────────────────────────────────────────────────────
 
   const StepWatching = () => {
+    const fmt = getVideoFormat(videoUrl);
+
     // Video link mode
     if (contentMode === 'videolink') {
       return (
         <div className="flex flex-col h-full">
           <div className="flex-1 relative min-h-0 p-3">
-            <AnimePlayer
-              source={{ url: videoUrl, format: getVideoFormat(videoUrl), quality: 'Direct', server: 'direct' }}
-              subtitles={[]}
-              isHost={isHost}
-              externalState={externalPlayerState}
-              onPlay={(time) => broadcastSync({ type: 'play', time })}
-              onPause={(time) => broadcastSync({ type: 'pause_player', time })}
-              onSeek={(time) => broadcastSync({ type: 'seek', time })}
-              countdown={syncState === 'counting' ? countdown : null}
-              floatingEmojis={floatingEmojis}
-              gifOverlays={gifOverlays}
-            />
+            <div className="relative w-full h-full">
+              <AnimePlayer
+                source={{ url: videoUrl, format: fmt.toLowerCase() === 'hls' ? 'hls' : 'mp4', quality: 'Direct', server: 'direct' }}
+                subtitles={[]}
+                isHost={isHost}
+                externalState={externalPlayerState}
+                onPlay={(time) => broadcastSync({ type: 'play', time })}
+                onPause={(time) => broadcastSync({ type: 'pause_player', time })}
+                onSeek={(time) => broadcastSync({ type: 'seek', time })}
+                onTimeUpdate={(time) => {
+                  hostCurrentTimeRef.current = time;
+                  setCurrentVideoTime(time);
+                }}
+                countdown={syncState === 'counting' ? countdown : null}
+                floatingEmojis={floatingEmojis}
+                gifOverlays={gifOverlays}
+              />
+              <ScreenOverlays floatingEmojis={floatingEmojis} gifOverlays={gifOverlays} />
+            </div>
           </div>
           <div className="px-4 py-2 flex items-center justify-between border-t border-white/5 flex-shrink-0">
             <div className="flex items-center gap-2 min-w-0">
               <Link size={11} className="text-violet-400 flex-shrink-0" />
               <span className="text-white/40 text-xs truncate max-w-[200px]">{videoUrl}</span>
+              <span className="text-white/20 text-[10px] font-bold px-1.5 py-0.5 rounded bg-white/5 flex-shrink-0">{fmt}</span>
             </div>
             {isHost && (
               <button onClick={() => setShowRating(true)} className="text-white/20 hover:text-white/40 text-xs transition-colors flex-shrink-0 ml-2">
-                Terminar sesión
+                Terminar sesion
               </button>
             )}
           </div>
@@ -1115,6 +1539,13 @@ const AstroPartyPage = ({ onClose, roomName }) => {
             <div className="flex items-center gap-2">
               <Monitor size={11} className="text-cyan-400" />
               <span className="text-white/40 text-xs">Compartiendo pantalla</span>
+              {!isHost && <WebrtcDot status={webrtcStatus} />}
+              {!isHost && webrtcStatus === 'reconnecting' && (
+                <span className="text-yellow-400/70 text-[10px] font-semibold">Reconectando...</span>
+              )}
+              {!isHost && webrtcStatus === 'failed' && (
+                <span className="text-red-400/70 text-[10px] font-semibold">Fallo la conexion</span>
+              )}
             </div>
             {isHost && (
               <button onClick={stopScreenShareCleanup} className="text-red-400/60 hover:text-red-400 text-xs transition-colors">
@@ -1252,10 +1683,58 @@ const AstroPartyPage = ({ onClose, roomName }) => {
     );
   };
 
+  // ─── Live Poll ────────────────────────────────────────────────────────────────
+
+  const LivePoll = () => {
+    if (!activePoll) return null;
+    const myUid = profileRef.current?.id || myUsername;
+    const myVote = activePoll.votes[myUid];
+    const hasVoted = myVote !== undefined;
+    const totalVotes = Object.keys(activePoll.votes).length;
+    const secondsLeft = Math.max(0, Math.round((activePoll.closesAt - Date.now()) / 1000));
+
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: -8 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: -8 }}
+        className="mx-4 mb-3 p-3 rounded-2xl border border-violet-500/20 bg-violet-500/5"
+      >
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center gap-1.5">
+            <BarChart2 size={12} className="text-violet-400" />
+            <span className="text-violet-300/80 text-xs font-bold">{activePoll.question}</span>
+          </div>
+          <span className="text-white/30 text-[10px]">{secondsLeft}s</span>
+        </div>
+        <div className="flex flex-col gap-1.5">
+          {activePoll.options.map((opt, i) => {
+            const optVotes = Object.values(activePoll.votes).filter((v) => v === i).length;
+            return (
+              <PollBar
+                key={i}
+                label={opt}
+                votes={optVotes}
+                total={totalVotes}
+                hasVoted={hasVoted}
+                onVote={() => votePoll(i)}
+              />
+            );
+          })}
+        </div>
+        {hasVoted && (
+          <p className="text-white/30 text-[10px] mt-2 text-center">
+            {totalVotes} voto{totalVotes !== 1 ? 's' : ''}
+          </p>
+        )}
+      </motion.div>
+    );
+  };
+
   // ─── Social panel ──────────────────────────────────────────────────────────────
 
   const SocialPanel = () => (
-    <div className="flex flex-col h-full" style={{ background: 'rgba(255,255,255,0.015)' }}>
+    <div className={`flex flex-col h-full transition-all duration-500 ${cinemaMode && isWatching ? 'opacity-20 hover:opacity-100' : ''}`} style={{ background: 'rgba(255,255,255,0.015)' }}>
       {/* Participants */}
       <div className="px-4 pt-4 pb-3 border-b border-white/5 flex-shrink-0">
         <div className="flex items-center gap-1.5 mb-2">
@@ -1265,7 +1744,13 @@ const AstroPartyPage = ({ onClose, roomName }) => {
         <div className="flex flex-col gap-1.5 max-h-28 overflow-y-auto">
           {participants.map((p, i) => (
             <div key={i} className="flex items-center gap-2">
-              <Avatar name={p.username} size={7} status={p.status} />
+              <AnimatePresence>
+                {newArrival === p.username ? (
+                  <Avatar name={p.username} size={7} status={p.status} highlight />
+                ) : (
+                  <Avatar name={p.username} size={7} status={p.status} />
+                )}
+              </AnimatePresence>
               <span className="text-white/70 text-xs font-medium flex-1 truncate">{p.username}</span>
               {p.isHost && <Crown size={11} className="text-yellow-400 flex-shrink-0" />}
               <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full flex-shrink-0
@@ -1277,7 +1762,23 @@ const AstroPartyPage = ({ onClose, roomName }) => {
             </div>
           ))}
         </div>
+
+        {/* Host poll launch button */}
+        {isHost && isWatching && (
+          <button
+            onClick={launchPoll}
+            className="mt-2 flex items-center gap-1.5 text-violet-400/60 hover:text-violet-400/90 text-[11px] transition-colors"
+          >
+            <BarChart2 size={11} />
+            Lanzar vibe check
+          </button>
+        )}
       </div>
+
+      {/* Live poll */}
+      <AnimatePresence>
+        {activePoll && <LivePoll />}
+      </AnimatePresence>
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto px-4 py-3 flex flex-col gap-2.5 min-h-0">
@@ -1308,6 +1809,16 @@ const AstroPartyPage = ({ onClose, roomName }) => {
                       : 'bg-white/5 text-white/80 rounded-tl-sm border border-white/10'}`}>
                     {msg.text}
                   </div>
+                )}
+                {msg.timestamp !== undefined && (
+                  <button
+                    onClick={() => seekToTimestamp(msg.timestamp)}
+                    className="flex items-center gap-1 text-[10px] text-cyan-400/70 hover:text-cyan-400 transition-colors mt-0.5"
+                    title={isHost ? 'Click para saltar a este momento' : 'Timestamp del video'}
+                  >
+                    <MapPin size={9} />
+                    {msg.timestampLabel || formatVideoTime(msg.timestamp)}
+                  </button>
                 )}
               </div>
             </div>
@@ -1341,12 +1852,23 @@ const AstroPartyPage = ({ onClose, roomName }) => {
           >
             <Gift size={14} />
           </button>
+          {isWatching && (
+            <button
+              type="button"
+              onClick={() => setPinTimestamp((v) => !v)}
+              title={pinTimestamp ? 'Quitar timestamp' : 'Agregar timestamp del video'}
+              className={`w-7 h-7 rounded-xl flex items-center justify-center transition-all flex-shrink-0
+                ${pinTimestamp ? 'text-cyan-400 bg-cyan-500/15' : 'text-white/25 hover:text-white/50 hover:bg-white/10'}`}
+            >
+              <MapPin size={13} />
+            </button>
+          )}
           <input
             type="text"
             value={chatInput}
             onChange={(e) => setChatInput(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && sendMessage()}
-            placeholder="Mensaje..."
+            placeholder={pinTimestamp && currentVideoTime > 0 ? `Mensaje @ ${formatVideoTime(currentVideoTime)}` : 'Mensaje...'}
             className="flex-1 bg-transparent text-white placeholder-white/25 text-sm focus:outline-none"
           />
           <button
@@ -1379,7 +1901,7 @@ const AstroPartyPage = ({ onClose, roomName }) => {
             <div className="text-4xl mb-3">🎬</div>
             <h3 className="text-white font-black text-xl mb-1">Que tal estuvo?</h3>
             <p className="text-white/40 text-sm mb-6">
-              {contentMode === 'screenshare' ? 'Compartición de pantalla' : videoUrl || 'Sin contenido'}
+              {contentMode === 'screenshare' ? 'Comparticion de pantalla' : videoUrl || 'Sin contenido'}
             </p>
             <div className="flex justify-center gap-2 mb-6">
               {[1, 2, 3, 4, 5].map((star) => (
@@ -1401,6 +1923,7 @@ const AstroPartyPage = ({ onClose, roomName }) => {
                 setContentMode(null);
                 setVideoUrl('');
                 setSyncState('idle');
+                setActivePoll(null);
                 localStreamRef.current?.getTracks().forEach((t) => t.stop());
                 localStreamRef.current = null;
                 setScreenStream(null);
@@ -1442,10 +1965,12 @@ const AstroPartyPage = ({ onClose, roomName }) => {
   // ROOM VIEW
   // ─────────────────────────────────────────────────────────────────────────────
 
-  const isWatching = roomStep === 'watching';
-
   return (
-    <div className="fixed inset-0 z-50 flex flex-col" style={{ background: '#0a0a0f' }}>
+    <div
+      className="fixed inset-0 z-50 flex flex-col"
+      style={{ background: '#0a0a0f' }}
+      onMouseMove={isWatching ? handleMouseMove : undefined}
+    >
       <RoomHeader />
 
       {/* Body */}
@@ -1497,7 +2022,10 @@ const AstroPartyPage = ({ onClose, roomName }) => {
 
       {/* Mobile tab bar — only while watching */}
       {isWatching && (
-        <div className="flex sm:hidden border-t border-white/5 flex-shrink-0" style={{ background: '#0a0a0f' }}>
+        <div
+          className={`flex sm:hidden border-t border-white/5 flex-shrink-0 transition-opacity duration-500 ${cinemaMode ? 'opacity-30' : 'opacity-100'}`}
+          style={{ background: '#0a0a0f' }}
+        >
           {[
             { id: 'player', icon: <Rocket size={18} />, label: 'Player' },
             { id: 'social', icon: <MessageSquare size={18} />, label: 'Chat' },
