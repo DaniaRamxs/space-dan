@@ -10,7 +10,7 @@ const AnimeSearch = ({ onSelect }) => {
   const [error, setError] = useState(null);
   const [emergencyMode, setEmergencyMode] = useState(false);
   const [directUrl, setDirectUrl] = useState('');
-  const [showDirectory, setShowDirectory] = useState(true);
+  const [showDirectory, setShowDirectory] = useState(true); // Always start with directory
 
   // Load directory on mount
   useEffect(() => {
@@ -20,15 +20,60 @@ const AnimeSearch = ({ onSelect }) => {
   const loadDirectory = async () => {
     setLoading(true);
     setError(null);
+    setShowDirectory(true); // Force directory mode
+    
     try {
+      console.log('[AnimeSearch] Loading directory...');
       const data = await animeMultiService.getDirectory();
+      console.log('[AnimeSearch] Directory loaded:', data.length, 'items');
       setResults(data);
       setShowDirectory(true);
     } catch (error) {
-      console.error('Directory load error:', error);
+      console.error('[AnimeSearch] Directory load error:', error);
       setError(error.message);
-      // Fallback to search if directory fails
-      setShowDirectory(false);
+      
+      // If directory fails, show demo data
+      console.log('[AnimeSearch] Directory failed, showing demo data...');
+      const demoData = [
+        {
+          id: 'demo-1',
+          title: 'Nana',
+          image: 'https://via.placeholder.com/300x400/1e40af/ffffff?text=Nana',
+          provider: 'animeflv',
+          source: 'AnimeFLV',
+          hasDub: true,
+          hasSub: true,
+          quality: 'HD',
+          format: 'hls',
+          episodes: '47 episodios'
+        },
+        {
+          id: 'demo-2',
+          title: 'One Piece',
+          image: 'https://via.placeholder.com/300x400/dc2626/ffffff?text=One+Piece',
+          provider: 'jkanime',
+          source: 'Jkanime',
+          hasDub: true,
+          hasSub: true,
+          quality: 'HD',
+          format: 'hls',
+          episodes: '1000+ episodios'
+        },
+        {
+          id: 'demo-3',
+          title: 'Naruto',
+          image: 'https://via.placeholder.com/300x400/059669/ffffff?text=Naruto',
+          provider: 'animeid',
+          source: 'AnimeID',
+          hasDub: true,
+          hasSub: true,
+          quality: 'HD',
+          format: 'hls',
+          episodes: '220 episodios'
+        }
+      ];
+      setResults(demoData);
+      setShowDirectory(true);
     } finally {
       setLoading(false);
     }
@@ -46,19 +91,21 @@ const AnimeSearch = ({ onSelect }) => {
     setError(null);
     setShowDirectory(false);
     try {
+      console.log('[AnimeSearch] Searching for:', query);
       // Intentar con multi-source primero
       let data;
       try {
         data = await animeMultiService.searchAnime(query);
       } catch (multiError) {
-        console.warn('Multi-source search failed, trying fallback:', multiError);
+        console.warn('[AnimeSearch] Multi-source search failed, trying fallback:', multiError);
         // Fallback al servicio original
         data = await animeService.searchAnime(query);
       }
       
+      console.log('[AnimeSearch] Search results:', data.length, 'items');
       setResults(data);
     } catch (error) {
-      console.error('Search error:', error);
+      console.error('[AnimeSearch] Search error:', error);
       setResults([]);
       setError(error.message);
       
