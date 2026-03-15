@@ -146,6 +146,16 @@ const ALLOWED_HOSTS = new Set([
   'sendvid.com',
   'mixdrop.co',
   'mixdrop.to',
+  'mixdrop.top',
+  'mixdrop.ch',
+  // Hexload / Savefiles — used by Latanime
+  'hexload.com',
+  'www.hexload.com',
+  'savefiles.com',
+  'www.savefiles.com',
+  // Dsvplay — Latanime embed mirror
+  'dsvplay.com',
+  'www.dsvplay.com',
 ]);
 
 /**
@@ -338,7 +348,9 @@ export async function extractMp4upload(embedUrl, referer = 'https://animefenix.t
   try {
     const resp = await httpGet(embedUrl, {
       Referer: referer,
+      Origin: referer.replace(/\/$/, ''),
       'sec-fetch-dest': 'iframe',
+      'sec-fetch-mode': 'navigate',
     });
     const html = resp.data;
     // Mp4upload stores video in a jwplayer config or <source> tag
@@ -346,9 +358,15 @@ export async function extractMp4upload(embedUrl, referer = 'https://animefenix.t
     if (m1) { console.log('[extractor] mp4upload #1 OK'); return m1[1]; }
     const m2 = html.match(/<source[^>]+src=["']([^"']+\.mp4[^"']*)/i);
     if (m2) { console.log('[extractor] mp4upload #2 OK'); return m2[1]; }
-    // Sometimes has .m3u8
     const m3 = html.match(/["']file["']\s*:\s*["']([^"']+\.m3u8[^"']*)/i);
     if (m3) { console.log('[extractor] mp4upload #3 OK'); return m3[1]; }
+    // Wider net: any cdn.mp4upload.com direct URL
+    const m4 = html.match(/https?:\/\/cdn\d*\.mp4upload\.com\/[^\s"'\\]+/);
+    if (m4) { console.log('[extractor] mp4upload #4 OK'); return m4[0]; }
+    // source attribute anywhere
+    const m5 = html.match(/src=["'](https?:\/\/[^"']+\.(?:mp4|m3u8)[^"']*)/i);
+    if (m5) { console.log('[extractor] mp4upload #5 OK'); return m5[1]; }
+    console.warn('[extractor] mp4upload: no video URL found in page');
   } catch (err) {
     console.warn('[extractor] Mp4upload failed:', err.code === 'ERR_CANCELED' ? 'timeout' : err.message);
   }
