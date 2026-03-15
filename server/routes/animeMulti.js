@@ -1,6 +1,6 @@
 import express from 'express';
 import axios from 'axios';
-const AnimeMultiSource = require('../services/animeMultiSource');
+import AnimeMultiSource from '../services/animeMultiSource.js';
 const router = express.Router();
 
 const animeMulti = new AnimeMultiSource();
