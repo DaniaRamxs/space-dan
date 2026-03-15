@@ -565,11 +565,44 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
 
     return () => {
       if (typeof unsubChat === 'function') unsubChat();
-      if (typeof stateEmitter?.clear === 'function') stateEmitter.clear();
     };
   }, [room, clearRoomState, profile?.id]);
 
   const handleAnimeSelect = async (anime) => {
+    if (!anime) return;
+    
+    // Handle direct URL emergency mode
+    if (anime.provider === 'direct') {
+      console.log('[AnimeSpace] Using direct URL mode:', anime.url);
+      
+      // Create mock stream data for direct URL
+      const mockStreamData = {
+        sources: [{
+          format: 'hls',
+          quality: 'Direct',
+          server: 'direct',
+          url: anime.url
+        }],
+        subtitles: []
+      };
+      
+      setSelectedAnime(anime);
+      setStreamData(mockStreamData);
+      setEpisodes([{
+        id: 'direct-episode',
+        number: 1,
+        title: 'Direct URL Video',
+        image: anime.image
+      }]);
+      setCurrentEpisode({
+        id: 'direct-episode',
+        number: 1,
+        title: 'Direct URL Video',
+        image: anime.image
+      });
+      setView('episodes');
+      return;
+    }
     if (loading) return;
     if (onClose && !isHost) {
       toast.error('Solo el host puede elegir el anime');

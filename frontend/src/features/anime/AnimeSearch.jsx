@@ -7,6 +7,8 @@ const AnimeSearch = ({ onSelect }) => {
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [emergencyMode, setEmergencyMode] = useState(false);
+  const [directUrl, setDirectUrl] = useState('');
 
   const handleSearch = async (e) => {
     e.preventDefault();
@@ -21,9 +23,31 @@ const AnimeSearch = ({ onSelect }) => {
       console.error('Search error:', error);
       setResults([]);
       setError(error.message);
+      
+      // Auto-enable emergency mode on server error
+      if (error.message.includes('500') || error.message.includes('Server error')) {
+        setEmergencyMode(true);
+      }
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleEmergencySubmit = (e) => {
+    e.preventDefault();
+    if (!directUrl.trim()) return;
+    
+    // Create a mock anime object for direct URLs
+    const mockAnime = {
+      id: 'direct-url',
+      title: 'Direct URL Video',
+      image: '/default-avatar.png',
+      description: 'Direct video URL - no metadata available',
+      provider: 'direct',
+      url: directUrl.trim()
+    };
+    
+    onSelect(mockAnime);
   };
 
   return (
@@ -62,6 +86,33 @@ const AnimeSearch = ({ onSelect }) => {
             Buscar
           </button>
         </form>
+
+        {/* Emergency Mode */}
+        {emergencyMode && (
+          <div className="mt-4 rounded-2xl border border-amber-400/30 bg-amber-500/10 p-4">
+            <div className="mb-3 flex items-center gap-2 text-amber-300">
+              <span className="text-[10px] font-black uppercase tracking-[0.28em]">Modo Emergencia</span>
+            </div>
+            <p className="mb-3 text-xs text-amber-200/80">
+              El servidor está caído. Usa URLs directas de video (HLS, MP4, etc.)
+            </p>
+            <form onSubmit={handleEmergencySubmit} className="flex flex-col gap-2">
+              <input
+                type="url"
+                value={directUrl}
+                onChange={(e) => setDirectUrl(e.target.value)}
+                placeholder="https://ejemplo.com/video.m3u8"
+                className="w-full rounded-lg border border-amber-400/30 bg-amber-500/5 py-2 px-3 text-sm text-white placeholder:text-amber-300/50 focus:border-amber-400/50 focus:outline-none focus:ring-1 focus:ring-amber-400/20"
+              />
+              <button
+                type="submit"
+                className="rounded-lg bg-amber-500 px-3 py-2 text-xs font-black uppercase tracking-[0.2em] text-slate-950 transition hover:bg-amber-400"
+              >
+                Usar URL Directa
+              </button>
+            </form>
+          </div>
+        )}
       </div>
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
