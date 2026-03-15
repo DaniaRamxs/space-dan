@@ -6,12 +6,24 @@ const router = express.Router();
 
 const animeMulti = new AnimeMultiSource();
 
+// Directory cache — TTL 30 min so pagination requests aren't repeated on every page load
+let directoryCache = null;
+let directoryCacheAt = 0;
+const DIRECTORY_TTL = 30 * 60 * 1000;
+
 // Directorio de anime - todos los animes disponibles
-router.get('/directory', async (req, res) => {
+router.get('/directory', async (_req, res) => {
   console.log('[AnimeMultiRoutes] Directory request');
   try {
+    const now = Date.now();
+    if (directoryCache && now - directoryCacheAt < DIRECTORY_TTL) {
+      console.log(`[AnimeMultiRoutes] Serving cached directory (${directoryCache.length} anime)`);
+      return res.json({ success: true, data: directoryCache, sources: animeMulti.sources.map(s => s.name), cached: true });
+    }
     const directory = await animeMulti.getAnimeDirectory();
     console.log(`[AnimeMultiRoutes] Sending directory with ${directory.length} anime`);
+    directoryCache = directory;
+    directoryCacheAt = now;
     res.json({
       success: true,
       data: directory,
@@ -19,10 +31,11 @@ router.get('/directory', async (req, res) => {
     });
   } catch (error) {
     console.error('[AnimeMultiRoutes] Directory error:', error);
-    res.status(500).json({ 
-      success: false, 
-      error: error.message 
-    });
+    // Serve stale cache on error if available
+    if (directoryCache) {
+      return res.json({ success: true, data: directoryCache, sources: animeMulti.sources.map(s => s.name), stale: true });
+    }
+    res.status(500).json({ success: false, error: error.message });
   }
 });
 
@@ -92,7 +105,7 @@ router.get('/episodes/:episodeId/:provider', async (req, res) => {
 });
 
 // Verificar estado de las fuentes
-router.get('/status', async (req, res) => {
+router.get('/status', async (_req, res) => {
   try {
     const status = [];
     

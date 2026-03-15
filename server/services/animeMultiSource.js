@@ -192,6 +192,33 @@ class AnimeMultiSource {
 
   // ── Directories ─────────────────────────────────────────────────────────────
 
+  /**
+   * Fetch pages 1..maxPages in parallel, stop collecting once a page is empty.
+   * Returns all items merged from all successful pages.
+   */
+  async _fetchPaginatedDirectory(pageUrlFn, parseFn, decorateFn, maxPages = 8) {
+    const pageNums = Array.from({ length: maxPages }, (_, i) => i + 1);
+    const results = await Promise.allSettled(
+      pageNums.map(async (page) => {
+        try {
+          const html = (await get(pageUrlFn(page))).data;
+          return parseFn(html);
+        } catch {
+          return [];
+        }
+      })
+    );
+
+    const all = [];
+    for (const r of results) {
+      const items = r.status === 'fulfilled' ? r.value : [];
+      // Stop as soon as a page returned 0 items (end of catalogue)
+      if (items.length === 0) break;
+      all.push(...items.map(decorateFn));
+    }
+    return all;
+  }
+
   async getAnimeDirectory() {
     const tasks = this.sources.map(async (src) => {
       try {
@@ -218,39 +245,33 @@ class AnimeMultiSource {
   }
 
   async getAnimeFLVDirectory() {
-    const url = `${this.sources[0].baseUrl}/browse`;
-    const html = (await get(url)).data;
-    return this._parseAnimeFLVList(html).map((a) => ({
-      ...a,
-      provider: 'animeflv',
-      source: 'AnimeFLV',
-      hasDub: true,
-      hasSub: true,
-    }));
+    // AnimeFLV paginates with ?page=N, ~24 items per page
+    return this._fetchPaginatedDirectory(
+      (page) => `${this.sources[0].baseUrl}/browse?page=${page}`,
+      (html) => this._parseAnimeFLVList(html),
+      (a) => ({ ...a, provider: 'animeflv', source: 'AnimeFLV', hasDub: true, hasSub: true }),
+      8
+    );
   }
 
   async getTioAnimeDirectory() {
-    const url = `${this.sources[1].baseUrl}/directorio`;
-    const html = (await get(url)).data;
-    return this._parseTioAnimeList(html).map((a) => ({
-      ...a,
-      provider: 'tioanime',
-      source: 'TioAnime',
-      hasDub: false,
-      hasSub: true,
-    }));
+    // TioAnime paginates with ?p=N
+    return this._fetchPaginatedDirectory(
+      (page) => `${this.sources[1].baseUrl}/directorio?p=${page}`,
+      (html) => this._parseTioAnimeList(html),
+      (a) => ({ ...a, provider: 'tioanime', source: 'TioAnime', hasDub: false, hasSub: true }),
+      6
+    );
   }
 
   async getJkanimeDirectory() {
-    const url = `${this.sources[2].baseUrl}/directorio`;
-    const html = (await get(url)).data;
-    return this._parseJkanimeList(html).map((a) => ({
-      ...a,
-      provider: 'jkanime',
-      source: 'Jkanime',
-      hasDub: true,
-      hasSub: true,
-    }));
+    // Jkanime paginates with /directorio/N/
+    return this._fetchPaginatedDirectory(
+      (page) => `${this.sources[2].baseUrl}/directorio/${page}/`,
+      (html) => this._parseJkanimeList(html),
+      (a) => ({ ...a, provider: 'jkanime', source: 'Jkanime', hasDub: true, hasSub: true }),
+      6
+    );
   }
 
   // ── Anime info + episodes ───────────────────────────────────────────────────
