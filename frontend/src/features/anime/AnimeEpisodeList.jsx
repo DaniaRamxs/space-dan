@@ -1,7 +1,7 @@
 import React from 'react';
 import { Play, Clapperboard, Languages } from 'lucide-react';
 
-const AnimeEpisodeList = ({ anime, episodes = [], onSelect, currentEpisodeId }) => {
+const AnimeEpisodeList = ({ anime, episodes = [], onSelect, currentEpisodeId, isHost = true }) => {
   return (
     <section className="mx-auto flex w-full max-w-6xl flex-col gap-5 px-3 pb-8 pt-4 sm:px-6">
       <div className="overflow-hidden rounded-[24px] border border-white/10 bg-white/[0.04] p-4 shadow-[0_18px_50px_rgba(0,0,0,0.28)] sm:rounded-[28px] sm:p-6">
@@ -54,10 +54,13 @@ const AnimeEpisodeList = ({ anime, episodes = [], onSelect, currentEpisodeId }) 
             <button
               key={ep.id}
               onClick={() => onSelect(ep)}
+              disabled={!isHost}
               className={`relative rounded-2xl border px-3 py-3 text-center transition sm:py-4 ${
                 currentEpisodeId === ep.id
                   ? 'border-cyan-300/60 bg-cyan-400 text-slate-950 shadow-[0_10px_30px_rgba(34,211,238,0.22)]'
-                  : 'border-white/10 bg-black/20 text-white hover:border-white/20 hover:bg-white/[0.06]'
+                  : isHost
+                    ? 'border-white/10 bg-black/20 text-white hover:border-white/20 hover:bg-white/[0.06] cursor-pointer'
+                    : 'border-white/5 bg-black/10 text-white/40 cursor-not-allowed opacity-50'
               }`}
             >
               <div className="text-[11px] font-black uppercase tracking-[0.18em] opacity-70">Ep</div>

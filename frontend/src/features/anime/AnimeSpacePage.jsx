@@ -396,6 +396,10 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
 
   const handleAnimeSelect = async (anime) => {
     if (loading) return;
+    if (onClose && !isHost) {
+      toast.error('Solo el host puede elegir el anime');
+      return;
+    }
 
     animeSelectAbortRef.current?.abort();
     const controller = new AbortController();
@@ -890,6 +894,7 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
             episodes={episodes}
             onSelect={handleEpisodeSelect}
             currentEpisodeId={currentEpisode?.id}
+            isHost={!onClose || isHost}
           />
         )}
 
