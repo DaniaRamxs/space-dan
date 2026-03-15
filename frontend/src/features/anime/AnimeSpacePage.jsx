@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState, useMemo } from 'react';
+import React, { useEffect, useRef, useState, useMemo, useCallback } from 'react';
 import { Radio, Users, MessageSquare, ChevronLeft, Tv, Send, Crown } from 'lucide-react';
 import YouTubeSearchModal from '@/components/Social/YouTubeSearchModal';
 import GifPickerModal from '@/components/reactions/GifPickerModal';
@@ -50,7 +50,7 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
     colyseusRoom: room
   });
 
-  const { gifOverlays, isStorming, sendReaction: engineSendReaction, addGifOverlay } = useReactionEngine({
+  const { gifOverlays, isStorming, addGifOverlay } = useReactionEngine({
     room,
     getVideoTimestamp: () => playbackState?.currentTime ?? 0
   });
@@ -75,11 +75,11 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
 
   const isHost = isSyncedHost || hostParticipant?.userId === profile?.id;
 
-  const clearRoomState = () => {
+  const clearRoomState = useCallback(() => {
     setRoom(null);
     setRoomState(null);
     setParticipants([]);
-  };
+  }, []);
 
   useEffect(() => {
     if (chatEndRef.current) {
@@ -184,7 +184,7 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
       syncChannelRef.current = null;
       supabase.removeChannel(channel);
     };
-  }, [roomName, onClose, profile?.id, addGifOverlay, connectToWatchParty]);
+  }, [roomName, onClose, profile?.id, addGifOverlay, connectToWatchParty, clearRoomState]);
 
   useEffect(() => {
     return () => {
@@ -203,7 +203,7 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
     setChatMessages([]);
   };
 
-  const broadcastAnimeState = (payload) => {
+  const broadcastAnimeState = useCallback((payload) => {
     if (!syncChannelRef.current || applyingRemoteStateRef.current || !onClose) return;
 
     syncChannelRef.current.httpSend({
@@ -214,9 +214,9 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
         ...payload,
       },
     }).catch(() => {});
-  };
+  }, [onClose, profile?.id]);
 
-  const connectToWatchParty = async ({ anime, episode, roomId, announceActivity }) => {
+  const connectToWatchParty = useCallback(async ({ anime, episode, roomId, announceActivity }) => {
     let activityId = null;
 
     if (announceActivity) {
@@ -260,10 +260,10 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
     } catch (error) {
       console.warn('[AnimeSpace] Colyseus unavailable, solo mode enabled:', error.message);
       if (announceActivity) {
-        toast('Modo solitario: la watch party no respondiÃ³.', { icon: 'ðŸ“º' });
+        toast('Modo solitario: la watch party no respondiÃ³.', { icon: 'ðŸ"º' });
       }
     }
-  };
+  }, [roomName, profile?.id, profile?.username, profile?.avatar_url]);
 
   useEffect(() => {
     if (!room) return;
@@ -302,7 +302,7 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
       if (typeof unsubChat === 'function') unsubChat();
       if (typeof stateEmitter?.clear === 'function') stateEmitter.clear();
     };
-  }, [room]);
+  }, [room, clearRoomState]);
 
   const handleAnimeSelect = async (anime) => {
     if (loading) return;
@@ -452,7 +452,7 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
           currentTime: 0 
       });
     }
-  }, [currentEpisode?.id, isHost, updatePlayback]);
+  }, [currentEpisode?.id, isHost, updatePlayback, currentEpisode]);
 
   useEffect(() => {
     if (view !== 'player' || !streamData || !selectedAnime || !currentEpisode) return;
@@ -730,7 +730,9 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
                   onReaction={(type, content) => {
                     if (room?.connection?.isOpen) {
                       const time = playbackState.currentTime;
-                      try { room.send("reaction", { type, content, videoTimestamp: time }); } catch {}
+                      try { room.send("reaction", { type, content, videoTimestamp: time }); } catch (err) {
+                        console.warn('[AnimeSpace] Failed to send reaction:', err);
+                      }
                     }
                   }}
                   gifOverlays={gifOverlays}
