@@ -1,6 +1,7 @@
 import express from 'express';
 import axios from 'axios';
 import AnimeMultiSource from '../services/animeMultiSource.js';
+import { getCacheStats } from '../modules/anime/animeExtractor.mjs';
 const router = express.Router();
 
 const animeMulti = new AnimeMultiSource();
@@ -122,6 +123,11 @@ router.get('/status', async (req, res) => {
       error: error.message 
     });
   }
+});
+
+// Estadísticas del cache del extractor
+router.get('/cache-stats', (_req, res) => {
+  res.json({ success: true, data: getCacheStats() });
 });
 
 export default router;
