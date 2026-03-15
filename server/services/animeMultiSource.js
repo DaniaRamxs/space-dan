@@ -5,22 +5,22 @@ class AnimeMultiSource {
   constructor() {
     this.sources = [
       {
-        name: 'JikanAPI',
-        baseUrl: 'https://api.jikan.moe/v4',
+        name: 'GogoAnime',
+        baseUrl: 'https://gogoanime3.co',
         priority: 1,
-        features: ['subtitulado', 'HD', 'API oficial']
+        features: ['subtitulado', 'HD', 'videos funcionales']
       },
       {
-        name: 'KitsuAPI',
-        baseUrl: 'https://api.kitsu.io/edge',
+        name: 'ZoroAnime',
+        baseUrl: 'https://zoro.to',
         priority: 2,
-        features: ['subtitulado', 'HD', 'API oficial']
+        features: ['subtitulado', 'HD', 'videos funcionales']
       },
       {
-        name: 'AniListAPI',
-        baseUrl: 'https://graphql.anilist.co',
+        name: 'AnimePahe',
+        baseUrl: 'https://animepahe.com',
         priority: 3,
-        features: ['subtitulado', 'HD', 'API oficial']
+        features: ['subtitulado', 'HD', 'videos funcionales']
       }
     ];
   }
@@ -52,23 +52,101 @@ class AnimeMultiSource {
 
   async searchInSource(source, query) {
     switch (source.name) {
-      case 'JikanAPI':
-        return await this.searchJikanAPI(query);
-      case 'KitsuAPI':
-        return await this.searchKitsuAPI(query);
-      case 'AniListAPI':
-        return await this.searchAniListAPI(query);
+      case 'GogoAnime':
+        return await this.searchGogoAnime(query);
+      case 'ZoroAnime':
+        return await this.searchZoroAnime(query);
+      case 'AnimePahe':
+        return await this.searchAnimePahe(query);
       default:
         return [];
     }
   }
 
-  // JikanAPI - API oficial de MyAnimeList
-  async searchJikanAPI(query) {
-    console.log(`[AnimeMultiSource] JikanAPI: Starting search for "${query}"`);
+  // GogoAnime - Streaming con videos funcionales
+  async searchGogoAnime(query) {
+    console.log(`[AnimeMultiSource] GogoAnime: Starting search for "${query}"`);
     try {
-      const url = `${this.sources[0].baseUrl}/anime?q=${encodeURIComponent(query)}&limit=10`;
-      console.log(`[AnimeMultiSource] JikanAPI: Fetching ${url}`);
+      const url = `${this.sources[0].baseUrl}/search.html?keyword=${encodeURIComponent(query)}`;
+      console.log(`[AnimeMultiSource] GogoAnime: Fetching ${url}`);
+      
+      const html = await axios.get(url, {
+        timeout: 10000,
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+        }
+      });
+      
+      console.log(`[AnimeMultiSource] GogoAnime: Got HTML, length: ${html.data.length}`);
+      const results = this.parseGogoAnimeResults(html.data);
+      console.log(`[AnimeMultiSource] GogoAnime: Parsed ${results.length} results`);
+      
+      return results.map(anime => ({
+        ...anime,
+        provider: 'gogoanime',
+        source: 'GogoAnime',
+        hasDub: true,
+        hasSub: true,
+        quality: 'HD',
+        format: 'hls'
+      }));
+    } catch (error) {
+      console.error(`[AnimeMultiSource] GogoAnime search failed:`, {
+        message: error.message,
+        code: error.code,
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        url: error.config?.url
+      });
+      throw new Error(`GogoAnime search failed: ${error.message || 'Unknown error'}`);
+    }
+  }
+
+  // ZoroAnime - Streaming con videos funcionales
+  async searchZoroAnime(query) {
+    console.log(`[AnimeMultiSource] ZoroAnime: Starting search for "${query}"`);
+    try {
+      const url = `${this.sources[1].baseUrl}/search?keyword=${encodeURIComponent(query)}`;
+      console.log(`[AnimeMultiSource] ZoroAnime: Fetching ${url}`);
+      
+      const html = await axios.get(url, {
+        timeout: 10000,
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+        }
+      });
+      
+      console.log(`[AnimeMultiSource] ZoroAnime: Got HTML, length: ${html.data.length}`);
+      const results = this.parseZoroAnimeResults(html.data);
+      console.log(`[AnimeMultiSource] ZoroAnime: Parsed ${results.length} results`);
+      
+      return results.map(anime => ({
+        ...anime,
+        provider: 'zoroto',
+        source: 'ZoroAnime',
+        hasDub: true,
+        hasSub: true,
+        quality: 'HD',
+        format: 'hls'
+      }));
+    } catch (error) {
+      console.error(`[AnimeMultiSource] ZoroAnime search failed:`, {
+        message: error.message,
+        code: error.code,
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        url: error.config?.url
+      });
+      throw new Error(`ZoroAnime search failed: ${error.message || 'Unknown error'}`);
+    }
+  }
+
+  // AnimePahe - Streaming con videos funcionales
+  async searchAnimePahe(query) {
+    console.log(`[AnimeMultiSource] AnimePahe: Starting search for "${query}"`);
+    try {
+      const url = `${this.sources[2].baseUrl}/api?m=search&q=${encodeURIComponent(query)}`;
+      console.log(`[AnimeMultiSource] AnimePahe: Fetching ${url}`);
       
       const response = await axios.get(url, {
         timeout: 10000,
@@ -77,143 +155,32 @@ class AnimeMultiSource {
         }
       });
       
-      console.log(`[AnimeMultiSource] JikanAPI: Got response, data length: ${JSON.stringify(response.data).length}`);
+      console.log(`[AnimeMultiSource] AnimePahe: Got response, data length: ${JSON.stringify(response.data).length}`);
       const results = response.data.data || [];
-      console.log(`[AnimeMultiSource] JikanAPI: Parsed ${results.length} results`);
-      
-      return results.map(anime => ({
-        id: anime.mal_id.toString(),
-        title: anime.title_english || anime.title || anime.title_japanese,
-        image: anime.images?.jpg?.image_url || anime.image_url,
-        type: anime.type || 'TV',
-        episodes: anime.episodes?.toString() || '?',
-        provider: 'jikan',
-        source: 'JikanAPI',
-        hasDub: false, // JikanAPI no especifica doblaje
-        hasSub: true,
-        quality: 'HD',
-        format: 'hls'
-      }));
-    } catch (error) {
-      console.error(`[AnimeMultiSource] JikanAPI search failed:`, {
-        message: error.message,
-        code: error.code,
-        status: error.response?.status,
-        statusText: error.response?.statusText,
-        url: error.config?.url
-      });
-      throw new Error(`JikanAPI search failed: ${error.message || 'Unknown error'}`);
-    }
-  }
-
-  // KitsuAPI - API oficial
-  async searchKitsuAPI(query) {
-    console.log(`[AnimeMultiSource] KitsuAPI: Starting search for "${query}"`);
-    try {
-      const url = `${this.sources[1].baseUrl}/anime?filter[text]=${encodeURIComponent(query)}&page[limit]=10`;
-      console.log(`[AnimeMultiSource] KitsuAPI: Fetching ${url}`);
-      
-      const response = await axios.get(url, {
-        timeout: 10000,
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-          'Accept': 'application/vnd.api+json'
-        }
-      });
-      
-      console.log(`[AnimeMultiSource] KitsuAPI: Got response, data length: ${JSON.stringify(response.data).length}`);
-      const results = response.data.data || [];
-      console.log(`[AnimeMultiSource] KitsuAPI: Parsed ${results.length} results`);
+      console.log(`[AnimeMultiSource] AnimePahe: Parsed ${results.length} results`);
       
       return results.map(anime => ({
         id: anime.id,
-        title: anime.attributes?.canonicalTitle || anime.attributes?.titles?.en || anime.attributes?.titles?.en_jp,
-        image: anime.attributes?.posterImage?.original || anime.attributes?.posterImage?.small,
-        type: anime.attributes?.subtype || 'TV',
-        episodes: anime.attributes?.episodeCount?.toString() || '?',
-        provider: 'kitsu',
-        source: 'KitsuAPI',
-        hasDub: false,
-        hasSub: true,
-        quality: 'HD',
-        format: 'hls'
-      }));
-    } catch (error) {
-      console.error(`[AnimeMultiSource] KitsuAPI search failed:`, {
-        message: error.message,
-        code: error.code,
-        status: error.response?.status,
-        statusText: error.response?.statusText,
-        url: error.config?.url
-      });
-      throw new Error(`KitsuAPI search failed: ${error.message || 'Unknown error'}`);
-    }
-  }
-
-  // AniListAPI - GraphQL API oficial
-  async searchAniListAPI(query) {
-    console.log(`[AnimeMultiSource] AniListAPI: Starting search for "${query}"`);
-    try {
-      const url = this.sources[2].baseUrl;
-      const graphqlQuery = {
-        query: `
-          query ($search: String) {
-            Page(page: 1, perPage: 10) {
-              media(search: $search, type: ANIME) {
-                id
-                title {
-                  romaji
-                  english
-                  native
-                }
-                coverImage {
-                  large
-                }
-                type
-                episodes
-              }
-            }
-          }
-        `,
-        variables: { search: query }
-      };
-      
-      console.log(`[AnimeMultiSource] AniListAPI: Fetching ${url}`);
-      
-      const response = await axios.post(url, graphqlQuery, {
-        timeout: 10000,
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-          'Content-Type': 'application/json'
-        }
-      });
-      
-      console.log(`[AnimeMultiSource] AniListAPI: Got response, data length: ${JSON.stringify(response.data).length}`);
-      const results = response.data.data?.Page?.media || [];
-      console.log(`[AnimeMultiSource] AniListAPI: Parsed ${results.length} results`);
-      
-      return results.map(anime => ({
-        id: anime.id.toString(),
-        title: anime.title?.english || anime.title?.romaji || anime.title?.native,
-        image: anime.coverImage?.large,
+        title: anime.title,
+        image: anime.poster,
         type: anime.type || 'TV',
         episodes: anime.episodes?.toString() || '?',
-        provider: 'anilist',
-        source: 'AniListAPI',
+        provider: 'animepahe',
+        source: 'AnimePahe',
         hasDub: false,
         hasSub: true,
         quality: 'HD',
         format: 'hls'
       }));
     } catch (error) {
-      console.error(`[AnimeMultiSource] AniListAPI search failed:`, {
+      console.error(`[AnimeMultiSource] AnimePahe search failed:`, {
         message: error.message,
         code: error.code,
         status: error.response?.status,
         statusText: error.response?.statusText,
         url: error.config?.url
       });
-      throw new Error(`AniListAPI search failed: ${error.message || 'Unknown error'}`);
+      throw new Error(`AnimePahe search failed: ${error.message || 'Unknown error'}`);
     }
   }
 
@@ -370,6 +337,52 @@ class AnimeMultiSource {
         type: $item.find('.type, .genre').text() || 'TV',
         episodes: $item.find('.episodes, .eps').text() || '12'
       });
+    });
+    
+    return results;
+  }
+
+  parseGogoAnimeResults(html) {
+    const $ = cheerio.load(html);
+    const results = [];
+    
+    $('.items .item, .last_episodes > li').each((index, element) => {
+      const $item = $(element);
+      const $link = $item.find('a').first();
+      const $img = $item.find('img');
+      
+      if ($link.length && $img.length) {
+        results.push({
+          id: $link.attr('href')?.replace('/category/', '') || `gogo-${index}`,
+          title: $img.attr('alt') || $link.text().trim() || `Anime ${index + 1}`,
+          image: $img.attr('src'),
+          type: 'TV',
+          episodes: '?'
+        });
+      }
+    });
+    
+    return results;
+  }
+
+  parseZoroAnimeResults(html) {
+    const $ = cheerio.load(html);
+    const results = [];
+    
+    $('.film_list-wrap .flw-item, .search-list .film-item').each((index, element) => {
+      const $item = $(element);
+      const $link = $item.find('a').first();
+      const $img = $item.find('img');
+      
+      if ($link.length && $img.length) {
+        results.push({
+          id: $link.attr('href')?.replace('/', '') || `zoro-${index}`,
+          title: $img.attr('alt') || $link.attr('title') || $link.find('.film-name').text().trim() || `Anime ${index + 1}`,
+          image: $img.attr('data-src') || $img.attr('src'),
+          type: 'TV',
+          episodes: $item.find('.fdi-item').first().text().trim() || '?'
+        });
+      }
     });
     
     return results;
