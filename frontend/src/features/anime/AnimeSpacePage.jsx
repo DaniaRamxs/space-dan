@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState, useMemo, useCallback } from 'react';
-import { Radio, Users, MessageSquare, ChevronLeft, Tv, Send, Crown, Share2 } from 'lucide-react';
+import { Radio, Users, MessageSquare, ChevronLeft, Tv, Send, Crown, Share2, Gift } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { usePlaybackSync } from '@/hooks/usePlaybackSync';
