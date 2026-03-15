@@ -61,7 +61,7 @@ class AnimeMultiSource {
   // AnimeFLV - API directa
   async searchAnimeFLV(query) {
     try {
-      const response = await axios.get(`${source.baseUrl}/api/search?q=${encodeURIComponent(query)}`, {
+      const response = await axios.get(`${this.sources[0].baseUrl}/api/search?q=${encodeURIComponent(query)}`, {
         timeout: 5000,
         headers: {
           'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
@@ -85,7 +85,7 @@ class AnimeMultiSource {
   // Jkanime - Scraping
   async searchJkanime(query) {
     try {
-      const html = await axios.get(`${source.baseUrl}/buscar?q=${encodeURIComponent(query)}`, {
+      const html = await axios.get(`${this.sources[1].baseUrl}/buscar?q=${encodeURIComponent(query)}`, {
         timeout: 5000,
         headers: {
           'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
@@ -109,7 +109,7 @@ class AnimeMultiSource {
   // TioAnime - Scraping
   async searchTioAnime(query) {
     try {
-      const html = await axios.get(`${source.baseUrl}/buscar?q=${encodeURIComponent(query)}`, {
+      const html = await axios.get(`${this.sources[2].baseUrl}/buscar?q=${encodeURIComponent(query)}`, {
         timeout: 5000,
         headers: {
           'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'

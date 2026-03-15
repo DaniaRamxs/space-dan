@@ -95,6 +95,13 @@ app.use(express.urlencoded({ extended: true }));
 
 /* ---------------- ANIME MULTI-SOURCE ROUTES ---------------- */
 
+// Add CORS for anime-multi routes
+app.use('/api/anime-multi', cors({
+  origin: ['https://www.joinspacely.com', 'http://localhost:5173', 'http://localhost:3000'],
+  methods: ['GET', 'OPTIONS'],
+  credentials: true
+}));
+
 app.use('/api/anime-multi', animeMultiRoutes);
 
 /* ---------------- HEALTH CHECK ---------------- */
