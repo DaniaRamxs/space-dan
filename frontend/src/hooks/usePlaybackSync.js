@@ -24,10 +24,11 @@ export function usePlaybackSync({
     });
     const [isHost, setIsHost] = useState(false);
     const [reactions, setReactions] = useState([]);
-    
+
     // Using refs to avoid stale closures in event listeners
     const stateRef = useRef(playbackState);
     const isApplyingRemoteRef = useRef(false);
+    const syncChannelRef = useRef(null); // canal suscrito para reusar en broadcastState
 
     useEffect(() => {
         stateRef.current = playbackState;
@@ -40,6 +41,7 @@ export function usePlaybackSync({
 
         const channelName = `sync-${roomName.toLowerCase().replace(/[^a-z0-9]/g, '-')}`;
         const channel = supabase.channel(channelName);
+        syncChannelRef.current = channel;
 
         channel
             .on('broadcast', { event: 'STATE_UPDATE' }, ({ payload }) => {
@@ -150,13 +152,14 @@ export function usePlaybackSync({
         }
 
         // Always broadcast through Supabase for redundancy
-        const channelName = `sync-${roomName.toLowerCase().replace(/[^a-z0-9]/g, '-')}`;
-        supabase.channel(channelName).send({
-            type: 'broadcast',
-            event: 'STATE_UPDATE',
-            payload
-        });
-    }, [colyseusRoom, roomName, profile?.id]);
+        if (syncChannelRef.current) {
+            syncChannelRef.current.send({
+                type: 'broadcast',
+                event: 'STATE_UPDATE',
+                payload
+            });
+        }
+    }, [colyseusRoom, profile?.id]);
 
     const updatePlayback = useCallback((updates) => {
         // Only host can update state
