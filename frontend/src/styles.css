@@ -1295,6 +1295,52 @@ textarea,
   box-shadow: none;
 }
 
+/* ---------- Mobile Chat Input Fix ---------- */
+@media (max-width: 640px) {
+  /* Ensure chat input is always visible */
+  .text-channel-mobile-fix {
+    padding-bottom: 80px !important;
+  }
+  
+  /* Fixed input container for mobile */
+  .chat-input-fixed {
+    position: fixed !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    background: rgba(15, 15, 19, 0.98) !important;
+    backdrop-filter: blur(10px) !important;
+    border-top: 1px solid rgba(255, 255, 255, 0.1) !important;
+    padding: 8px 12px !important;
+    z-index: 30 !important;
+  }
+  
+  /* Adjust input container on mobile */
+  .chat-input-container {
+    padding: 8px !important;
+    gap: 4px !important;
+  }
+  
+  /* Ensure input has proper height */
+  .chat-input-field {
+    min-height: 36px !important;
+    font-size: 14px !important;
+    padding: 8px !important;
+  }
+  
+  /* Adjust button sizes on mobile */
+  .chat-input-button {
+    padding: 6px !important;
+  }
+}
+
+/* For very small screens (height) */
+@media (max-height: 600px) {
+  .text-channel-mobile-fix {
+    padding-bottom: 70px !important;
+  }
+}
+
 /* ---------- Posts ---------- */
 .postLink {
   text-decoration: none;

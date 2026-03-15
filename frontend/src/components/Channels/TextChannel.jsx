@@ -608,7 +608,7 @@ export default function TextChannel({ channel, communityId, isMember, isOwner })
       )}
 
       {/* Messages Area */}
-      <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-1" onClick={() => showChannelMenu && setShowChannelMenu(false)}>
+      <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-1 text-channel-mobile-fix" onClick={() => showChannelMenu && setShowChannelMenu(false)}>
         {messages.length === 0 ? (
           <div className="h-full flex flex-col items-center justify-center text-center p-8">
             <div className="w-20 h-20 rounded-full bg-white/5 flex items-center justify-center mb-4">
@@ -728,8 +728,8 @@ export default function TextChannel({ channel, communityId, isMember, isOwner })
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Input Area */}
-      <div className="shrink-0 p-4 border-t border-white/5 bg-[#0f0f13]">
+      {/* Input Area - Fixed for mobile */}
+      <div className="shrink-0 p-3 sm:p-4 border-t border-white/5 bg-[#0f0f13] relative z-20 chat-input-fixed">
         {/* Reply Preview */}
         {replyingTo && (
           <div className="mb-2 px-3 py-2 bg-white/5 rounded-t-lg border-l-2 border-cyan-500 flex items-center justify-between">
@@ -747,8 +747,8 @@ export default function TextChannel({ channel, communityId, isMember, isOwner })
         )}
 
         {!isMember ? (
-          <div className="bg-white/5 border border-white/10 rounded-xl p-4 text-center">
-            <p className="text-gray-400">Únete a la comunidad para participar en el chat</p>
+          <div className="bg-white/5 border border-white/10 rounded-xl p-3 sm:p-4 text-center">
+            <p className="text-gray-400 text-sm sm:text-base">Únete a la comunidad para participar en el chat</p>
           </div>
         ) : (
           <form onSubmit={handleSendMessage} className="relative">
@@ -773,25 +773,25 @@ export default function TextChannel({ channel, communityId, isMember, isOwner })
               />
             )}
 
-            <div className="flex items-end gap-1 sm:gap-2 bg-[#1a1a24] border border-white/10 rounded-xl p-2 focus-within:border-cyan-500/50 transition-colors">
+            <div className="flex items-end gap-1 sm:gap-2 bg-[#1a1a24] border border-white/10 rounded-xl p-2 focus-within:border-cyan-500/50 transition-colors chat-input-container">
               {/* Emoji button */}
               <button
                 type="button"
                 onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-                className="p-1.5 sm:p-2 text-gray-400 hover:text-white hover:bg-white/5 rounded-lg transition-colors"
+                className="p-1.5 sm:p-2 text-gray-400 hover:text-white hover:bg-white/5 rounded-lg transition-colors flex-shrink-0 chat-input-button"
                 title="Emojis"
               >
-                <Smile size={18} className="sm:w-5 sm:h-5" />
+                <Smile size={16} className="sm:w-4 sm:h-4" />
               </button>
 
-              {/* Poll button */}
+              {/* Poll button - Hidden on very small screens */}
               <button
                 type="button"
                 onClick={() => { setShowPollModal(v => !v); setShowEmojiPicker(false); }}
-                className={`p-1.5 sm:p-2 hover:bg-white/5 rounded-lg transition-colors ${showPollModal ? 'text-indigo-400' : 'text-gray-400 hover:text-white'}`}
+                className={`hidden sm:flex p-2 hover:bg-white/5 rounded-lg transition-colors flex-shrink-0 chat-input-button ${showPollModal ? 'text-indigo-400' : 'text-gray-400 hover:text-white'}`}
                 title="Crear encuesta"
               >
-                <BarChart2 size={18} className="sm:w-5 sm:h-5" />
+                <BarChart2 size={16} className="w-4 h-4" />
               </button>
               
               <input
@@ -807,15 +807,16 @@ export default function TextChannel({ channel, communityId, isMember, isOwner })
                 }}
                 placeholder={`Mensaje #${channel?.name}`}
                 disabled={sending}
-                className="flex-1 min-w-0 bg-transparent px-2 py-1.5 sm:py-2 text-sm sm:text-base text-white placeholder:text-gray-500 outline-none"
+                className="flex-1 min-w-0 bg-transparent px-2 py-1.5 sm:py-2 text-sm sm:text-base text-white placeholder:text-gray-500 outline-none chat-input-field"
+                style={{ minHeight: '40px' }}
               />
               
               <button
                 type="submit"
                 disabled={!newMessage.trim() || sending}
-                className="p-1.5 sm:p-2 bg-cyan-500 hover:bg-cyan-400 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg text-cyan-950 transition-colors"
+                className="p-1.5 sm:p-2 bg-cyan-500 hover:bg-cyan-400 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg text-cyan-950 transition-colors flex-shrink-0 chat-input-button"
               >
-                <Send size={18} className="sm:w-5 sm:h-5" />
+                <Send size={16} className="sm:w-4 sm:h-4" />
               </button>
             </div>
           </form>
