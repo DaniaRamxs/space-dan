@@ -5,22 +5,22 @@ class AnimeMultiSource {
   constructor() {
     this.sources = [
       {
-        name: 'GogoAnime',
-        baseUrl: 'https://gogoanime3.co',
+        name: 'AnimeFLV',
+        baseUrl: 'https://www3.animeflv.net',
         priority: 1,
-        features: ['subtitulado', 'HD', 'videos funcionales']
+        features: ['doblado español', 'subtitulado español', 'HD', 'videos funcionales']
       },
       {
-        name: 'ZoroAnime',
-        baseUrl: 'https://zoro.to',
+        name: 'Jkanime',
+        baseUrl: 'https://jkanime.net',
         priority: 2,
-        features: ['subtitulado', 'HD', 'videos funcionales']
+        features: ['doblado español', 'HD', 'videos funcionales']
       },
       {
-        name: 'AnimePahe',
-        baseUrl: 'https://animepahe.com',
+        name: 'TioAnime',
+        baseUrl: 'https://tioanime.com',
         priority: 3,
-        features: ['subtitulado', 'HD', 'videos funcionales']
+        features: ['doblado español', 'subtitulado español', 'videos funcionales']
       }
     ];
   }
@@ -52,23 +52,23 @@ class AnimeMultiSource {
 
   async searchInSource(source, query) {
     switch (source.name) {
-      case 'GogoAnime':
-        return await this.searchGogoAnime(query);
-      case 'ZoroAnime':
-        return await this.searchZoroAnime(query);
-      case 'AnimePahe':
-        return await this.searchAnimePahe(query);
+      case 'AnimeFLV':
+        return await this.searchAnimeFLV(query);
+      case 'Jkanime':
+        return await this.searchJkanime(query);
+      case 'TioAnime':
+        return await this.searchTioAnime(query);
       default:
         return [];
     }
   }
 
-  // GogoAnime - Streaming con videos funcionales
-  async searchGogoAnime(query) {
-    console.log(`[AnimeMultiSource] GogoAnime: Starting search for "${query}"`);
+  // AnimeFLV - Doblaje español + videos funcionales
+  async searchAnimeFLV(query) {
+    console.log(`[AnimeMultiSource] AnimeFLV: Starting search for "${query}"`);
     try {
-      const url = `${this.sources[0].baseUrl}/search.html?keyword=${encodeURIComponent(query)}`;
-      console.log(`[AnimeMultiSource] GogoAnime: Fetching ${url}`);
+      const url = `${this.sources[0].baseUrl}/browse?search=${encodeURIComponent(query)}`;
+      console.log(`[AnimeMultiSource] AnimeFLV: Fetching ${url}`);
       
       const html = await axios.get(url, {
         timeout: 10000,
@@ -77,37 +77,37 @@ class AnimeMultiSource {
         }
       });
       
-      console.log(`[AnimeMultiSource] GogoAnime: Got HTML, length: ${html.data.length}`);
-      const results = this.parseGogoAnimeResults(html.data);
-      console.log(`[AnimeMultiSource] GogoAnime: Parsed ${results.length} results`);
+      console.log(`[AnimeMultiSource] AnimeFLV: Got HTML, length: ${html.data.length}`);
+      const results = this.parseAnimeFLVResults(html.data);
+      console.log(`[AnimeMultiSource] AnimeFLV: Parsed ${results.length} results`);
       
       return results.map(anime => ({
         ...anime,
-        provider: 'gogoanime',
-        source: 'GogoAnime',
-        hasDub: true,
-        hasSub: true,
+        provider: 'animeflv',
+        source: 'AnimeFLV',
+        hasDub: true, // AnimeFLV tiene doblaje español
+        hasSub: true, // También tiene subtítulos español
         quality: 'HD',
         format: 'hls'
       }));
     } catch (error) {
-      console.error(`[AnimeMultiSource] GogoAnime search failed:`, {
+      console.error(`[AnimeMultiSource] AnimeFLV search failed:`, {
         message: error.message,
         code: error.code,
         status: error.response?.status,
         statusText: error.response?.statusText,
         url: error.config?.url
       });
-      throw new Error(`GogoAnime search failed: ${error.message || 'Unknown error'}`);
+      throw new Error(`AnimeFLV search failed: ${error.message || 'Unknown error'}`);
     }
   }
 
-  // ZoroAnime - Streaming con videos funcionales
-  async searchZoroAnime(query) {
-    console.log(`[AnimeMultiSource] ZoroAnime: Starting search for "${query}"`);
+  // Jkanime - Doblaje español + videos funcionales
+  async searchJkanime(query) {
+    console.log(`[AnimeMultiSource] Jkanime: Starting search for "${query}"`);
     try {
-      const url = `${this.sources[1].baseUrl}/search?keyword=${encodeURIComponent(query)}`;
-      console.log(`[AnimeMultiSource] ZoroAnime: Fetching ${url}`);
+      const url = `${this.sources[1].baseUrl}/buscar?q=${encodeURIComponent(query)}`;
+      console.log(`[AnimeMultiSource] Jkanime: Fetching ${url}`);
       
       const html = await axios.get(url, {
         timeout: 10000,
@@ -116,71 +116,67 @@ class AnimeMultiSource {
         }
       });
       
-      console.log(`[AnimeMultiSource] ZoroAnime: Got HTML, length: ${html.data.length}`);
-      const results = this.parseZoroAnimeResults(html.data);
-      console.log(`[AnimeMultiSource] ZoroAnime: Parsed ${results.length} results`);
+      console.log(`[AnimeMultiSource] Jkanime: Got HTML, length: ${html.data.length}`);
+      const results = this.parseJkanimeResults(html.data);
+      console.log(`[AnimeMultiSource] Jkanime: Parsed ${results.length} results`);
       
       return results.map(anime => ({
         ...anime,
-        provider: 'zoroto',
-        source: 'ZoroAnime',
-        hasDub: true,
+        provider: 'jkanime',
+        source: 'Jkanime',
+        hasDub: true, // Jkanime tiene doblaje español
         hasSub: true,
         quality: 'HD',
         format: 'hls'
       }));
     } catch (error) {
-      console.error(`[AnimeMultiSource] ZoroAnime search failed:`, {
+      console.error(`[AnimeMultiSource] Jkanime search failed:`, {
         message: error.message,
         code: error.code,
         status: error.response?.status,
         statusText: error.response?.statusText,
         url: error.config?.url
       });
-      throw new Error(`ZoroAnime search failed: ${error.message || 'Unknown error'}`);
+      throw new Error(`Jkanime search failed: ${error.message || 'Unknown error'}`);
     }
   }
 
-  // AnimePahe - Streaming con videos funcionales
-  async searchAnimePahe(query) {
-    console.log(`[AnimeMultiSource] AnimePahe: Starting search for "${query}"`);
+  // TioAnime - Doblaje español + videos funcionales
+  async searchTioAnime(query) {
+    console.log(`[AnimeMultiSource] TioAnime: Starting search for "${query}"`);
     try {
-      const url = `${this.sources[2].baseUrl}/api?m=search&q=${encodeURIComponent(query)}`;
-      console.log(`[AnimeMultiSource] AnimePahe: Fetching ${url}`);
+      const url = `${this.sources[2].baseUrl}/buscar?q=${encodeURIComponent(query)}`;
+      console.log(`[AnimeMultiSource] TioAnime: Fetching ${url}`);
       
-      const response = await axios.get(url, {
+      const html = await axios.get(url, {
         timeout: 10000,
         headers: {
           'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
         }
       });
       
-      console.log(`[AnimeMultiSource] AnimePahe: Got response, data length: ${JSON.stringify(response.data).length}`);
-      const results = response.data.data || [];
-      console.log(`[AnimeMultiSource] AnimePahe: Parsed ${results.length} results`);
+      console.log(`[AnimeMultiSource] TioAnime: Got HTML, length: ${html.data.length}`);
+      const results = this.parseTioAnimeResults(html.data);
+      console.log(`[AnimeMultiSource] TioAnime: Parsed ${results.length} results`);
       
       return results.map(anime => ({
-        id: anime.id,
-        title: anime.title,
-        image: anime.poster,
-        type: anime.type || 'TV',
-        episodes: anime.episodes?.toString() || '?',
-        provider: 'animepahe',
-        source: 'AnimePahe',
-        hasDub: false,
+        ...anime,
+        provider: 'tioanime',
+        source: 'TioAnime',
+        hasDub: true, // TioAnime tiene doblaje español
         hasSub: true,
         quality: 'HD',
         format: 'hls'
       }));
     } catch (error) {
-      console.error(`[AnimeMultiSource] AnimePahe search failed:`, {
+      console.error(`[AnimeMultiSource] TioAnime search failed:`, {
         message: error.message,
         code: error.code,
         status: error.response?.status,
         statusText: error.response?.statusText,
         url: error.config?.url
       });
-      throw new Error(`AnimePahe search failed: ${error.message || 'Unknown error'}`);
+      throw new Error(`TioAnime search failed: ${error.message || 'Unknown error'}`);
     }
   }
 
@@ -342,22 +338,22 @@ class AnimeMultiSource {
     return results;
   }
 
-  parseGogoAnimeResults(html) {
+  parseAnimeFLVResults(html) {
     const $ = cheerio.load(html);
     const results = [];
     
-    $('.items .item, .last_episodes > li').each((index, element) => {
+    $('.AnimeList .item, .ListAnimes .article').each((index, element) => {
       const $item = $(element);
       const $link = $item.find('a').first();
       const $img = $item.find('img');
       
       if ($link.length && $img.length) {
         results.push({
-          id: $link.attr('href')?.replace('/category/', '') || `gogo-${index}`,
-          title: $img.attr('alt') || $link.text().trim() || `Anime ${index + 1}`,
+          id: $link.attr('href')?.replace('/anime/', '') || `flv-${index}`,
+          title: $img.attr('alt') || $link.attr('title') || $item.find('.Title').text().trim() || `Anime ${index + 1}`,
           image: $img.attr('src'),
-          type: 'TV',
-          episodes: '?'
+          type: $item.find('.type').text() || 'TV',
+          episodes: $item.find('.episodes').text().trim() || '?'
         });
       }
     });
@@ -365,22 +361,22 @@ class AnimeMultiSource {
     return results;
   }
 
-  parseZoroAnimeResults(html) {
+  parseTioAnimeResults(html) {
     const $ = cheerio.load(html);
     const results = [];
     
-    $('.film_list-wrap .flw-item, .search-list .film-item').each((index, element) => {
+    $('.anime-list .item, .search-results .anime-item').each((index, element) => {
       const $item = $(element);
       const $link = $item.find('a').first();
       const $img = $item.find('img');
       
       if ($link.length && $img.length) {
         results.push({
-          id: $link.attr('href')?.replace('/', '') || `zoro-${index}`,
-          title: $img.attr('alt') || $link.attr('title') || $link.find('.film-name').text().trim() || `Anime ${index + 1}`,
-          image: $img.attr('data-src') || $img.attr('src'),
+          id: $link.attr('href')?.replace('/anime/', '') || `tio-${index}`,
+          title: $img.attr('alt') || $link.text().trim() || $item.find('.title').text().trim() || `Anime ${index + 1}`,
+          image: $img.attr('src'),
           type: 'TV',
-          episodes: $item.find('.fdi-item').first().text().trim() || '?'
+          episodes: $item.find('.episodes').text().trim() || '?'
         });
       }
     });
