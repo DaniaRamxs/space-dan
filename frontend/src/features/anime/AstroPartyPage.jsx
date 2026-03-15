@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Search, Users, MessageSquare, Copy, ExternalLink,
   Rocket, Play, Pause, X, Check, Send, Crown, Share2, ChevronLeft,
+  Clock, Bell,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuthContext } from '@/contexts/AuthContext';
@@ -172,11 +173,16 @@ const AstroPartyPage = ({ onClose, roomName }) => {
 
   // Room
   const [roomCode, setRoomCode]             = useState('');
+  const [joinCode, setJoinCode]             = useState('');
+  const [isHost, setIsHost]                 = useState(false);
   const [selectedEpisode, setSelectedEpisode] = useState({ season: 1, episode: 1 });
 
   // Sync state machine
   const [syncState, setSyncState]           = useState('idle'); // idle | counting | synced | paused
   const [countdown, setCountdown]           = useState(null);
+  const [syncBanner, setSyncBanner]         = useState(null); // { text, type } notification banner
+  const [currentTimestamp, setCurrentTimestamp] = useState(''); // manual time input e.g. "14:32"
+  const [myStatus, setMyStatus]             = useState('idle'); // idle | ready | watching
 
   // Social
   const [participants, setParticipants]     = useState([]);
@@ -236,14 +242,7 @@ const AstroPartyPage = ({ onClose, roomName }) => {
 
   // ── Room creation ────────────────────────────────────────────────────────────
 
-  const createRoom = useCallback(async () => {
-    if (!selectedContent) return;
-    const code = Math.random().toString(36).substring(2, 8).toUpperCase();
-    setRoomCode(code);
-    setSyncState('idle');
-    setMessages([]);
-    setParticipants([{ username: myUsername, status: 'idle', isHost: true }]);
-
+  const setupChannel = useCallback((code, asHost, content) => {
     const channel = supabase.channel(`astro-${code}`, {
       config: { presence: { key: myUsername } },
     });
@@ -256,14 +255,41 @@ const AstroPartyPage = ({ onClose, roomName }) => {
           status: p.status || 'idle',
           isHost: p.isHost || false,
         }));
-        setParticipants(parts.length ? parts : [{ username: myUsername, status: 'idle', isHost: true }]);
+        setParticipants(parts.length ? parts : [{ username: myUsername, status: 'idle', isHost: asHost }]);
       })
       .on('broadcast', { event: 'astro_sync' }, ({ payload }) => {
         if (!payload) return;
-        if (payload.type === 'countdown_start') setSyncState('counting');
-        if (payload.type === 'sync_go')         { setSyncState('synced'); setCountdown(null); }
-        if (payload.type === 'pause')           setSyncState('paused');
-        if (payload.type === 'resume')          setSyncState('synced');
+        if (payload.type === 'countdown_start') {
+          setSyncState('counting');
+          setSyncBanner(null);
+        }
+        if (payload.type === 'sync_go') {
+          setSyncState('synced');
+          setCountdown(null);
+          setMyStatus('watching');
+          if (!asHost) {
+            setSyncBanner({ text: '🚀 ¡Dale PLAY ahora!', type: 'go' });
+            setTimeout(() => setSyncBanner(null), 4000);
+          }
+        }
+        if (payload.type === 'pause') {
+          setSyncState('paused');
+          setMyStatus('idle');
+          const label = payload.timestamp ? ` en ${payload.timestamp}` : '';
+          setSyncBanner({ text: `⏸ Host pausó${label} — detente`, type: 'pause' });
+          setTimeout(() => setSyncBanner(null), 6000);
+        }
+        if (payload.type === 'resume') {
+          setSyncState('synced');
+          setMyStatus('watching');
+          const label = payload.timestamp ? ` desde ${payload.timestamp}` : '';
+          setSyncBanner({ text: `▶ Host reanudó${label} — dale play`, type: 'resume' });
+          setTimeout(() => setSyncBanner(null), 5000);
+        }
+        if (payload.type === 'time_check') {
+          setSyncBanner({ text: `🕐 Estamos en el minuto ${payload.timestamp}`, type: 'time' });
+          setTimeout(() => setSyncBanner(null), 6000);
+        }
       })
       .on('broadcast', { event: 'astro_chat' }, ({ payload }) => {
         if (!payload) return;
@@ -271,13 +297,37 @@ const AstroPartyPage = ({ onClose, roomName }) => {
       })
       .subscribe(async (status) => {
         if (status === 'SUBSCRIBED') {
-          await channel.track({ username: myUsername, status: 'idle', isHost: true });
+          await channel.track({ username: myUsername, status: 'idle', isHost: asHost });
         }
       });
 
     channelRef.current = channel;
+  }, [myUsername]);
+
+  const createRoom = useCallback(async () => {
+    if (!selectedContent) return;
+    const code = Math.random().toString(36).substring(2, 8).toUpperCase();
+    setRoomCode(code);
+    setIsHost(true);
+    setSyncState('idle');
+    setMyStatus('idle');
+    setMessages([]);
+    setupChannel(code, true, selectedContent);
     setView('room');
-  }, [selectedContent, myUsername]);
+  }, [selectedContent, setupChannel]);
+
+  const joinRoom = useCallback(async () => {
+    const code = joinCode.trim().toUpperCase();
+    if (code.length < 4) { toast.error('Ingresa un código válido'); return; }
+    setRoomCode(code);
+    setIsHost(false);
+    setSyncState('idle');
+    setMyStatus('idle');
+    setMessages([]);
+    setSelectedContent(selectedContent || MOCK_RESULTS[0]);
+    setupChannel(code, false, selectedContent);
+    setView('room');
+  }, [joinCode, selectedContent, setupChannel]);
 
   // ── Sync countdown ───────────────────────────────────────────────────────────
 
@@ -295,6 +345,7 @@ const AstroPartyPage = ({ onClose, roomName }) => {
       if (count <= 0) {
         clearInterval(countdownTimer.current);
         setSyncState('synced');
+        setMyStatus('watching');
         setCountdown(null);
         broadcastSync({ type: 'sync_go' });
       }
@@ -303,8 +354,29 @@ const AstroPartyPage = ({ onClose, roomName }) => {
 
   const pauseSync = useCallback(() => {
     setSyncState('paused');
-    broadcastSync({ type: 'pause' });
-  }, [broadcastSync]);
+    setMyStatus('idle');
+    broadcastSync({ type: 'pause', timestamp: currentTimestamp || null });
+    setSyncBanner({ text: `⏸ Pausaste${currentTimestamp ? ` en ${currentTimestamp}` : ''} — avisando...`, type: 'pause' });
+    setTimeout(() => setSyncBanner(null), 3000);
+  }, [broadcastSync, currentTimestamp]);
+
+  const resumeSync = useCallback(() => {
+    setSyncState('synced');
+    setMyStatus('watching');
+    broadcastSync({ type: 'resume', timestamp: currentTimestamp || null });
+  }, [broadcastSync, currentTimestamp]);
+
+  const markReady = useCallback(async () => {
+    const newStatus = myStatus === 'ready' ? 'idle' : 'ready';
+    setMyStatus(newStatus);
+    await channelRef.current?.track({ username: myUsername, status: newStatus, isHost });
+  }, [myStatus, myUsername, isHost]);
+
+  const sendTimeCheck = useCallback(() => {
+    if (!currentTimestamp.trim()) { toast.error('Ingresa el minuto actual (ej: 14:32)'); return; }
+    broadcastSync({ type: 'time_check', timestamp: currentTimestamp });
+    toast.success(`Enviaste el minuto ${currentTimestamp} a la sala`);
+  }, [currentTimestamp, broadcastSync]);
 
   // ── Chat ─────────────────────────────────────────────────────────────────────
 
@@ -489,6 +561,26 @@ const AstroPartyPage = ({ onClose, roomName }) => {
               </motion.div>
             )}
 
+            <div className="flex items-center gap-2 bg-white/5 border border-white/10 rounded-2xl px-3 py-2">
+              <input
+                type="text"
+                value={joinCode}
+                onChange={(e) => setJoinCode(e.target.value.toUpperCase().slice(0, 8))}
+                placeholder="Código de sala"
+                className="bg-transparent text-white placeholder-white/20 text-sm font-mono tracking-widest w-28 focus:outline-none"
+              />
+              <button
+                onClick={joinRoom}
+                disabled={joinCode.length < 4}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all
+                  ${joinCode.length >= 4
+                    ? 'bg-cyan-600 hover:bg-cyan-500 text-white'
+                    : 'text-white/20 cursor-not-allowed'}`}
+              >
+                Unirse
+              </button>
+            </div>
+
             <motion.button
               whileHover={selectedContent ? { scale: 1.02 } : {}}
               whileTap={selectedContent ? { scale: 0.97 } : {}}
@@ -518,20 +610,73 @@ const AstroPartyPage = ({ onClose, roomName }) => {
   const platformInfo    = PLATFORMS.find((p) => p.id === primaryPlatform) || PLATFORMS[0];
 
   const SyncButton = () => {
+    // Non-host: just show status + ready button
+    if (!isHost) {
+      return (
+        <div className="flex flex-col items-center gap-3 w-full">
+          {syncState === 'counting' && (
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={countdown}
+                initial={{ scale: 1.8, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.5, opacity: 0 }}
+                transition={{ duration: 0.35 }}
+                className="text-7xl font-black text-white"
+                style={{ textShadow: '0 0 40px rgba(124,58,237,0.8)' }}
+              >
+                {countdown === 0 ? '🚀' : countdown}
+              </motion.div>
+            </AnimatePresence>
+          )}
+          {syncState === 'synced' && (
+            <a
+              href={PLATFORM_LINKS[platformInfo.id]?.(contentTitle) || '#'}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 px-6 py-3 rounded-xl text-white font-bold text-sm transition-all hover:brightness-110"
+              style={{ backgroundColor: platformInfo.color, boxShadow: `0 0 20px ${platformInfo.color}66` }}
+            >
+              Abrir en {platformInfo.label} <ExternalLink size={14} />
+            </a>
+          )}
+          <motion.button
+            whileTap={{ scale: 0.95 }}
+            onClick={markReady}
+            className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-sm transition-all
+              ${myStatus === 'ready'
+                ? 'bg-green-500/20 border border-green-500/40 text-green-400'
+                : 'bg-white/5 border border-white/10 text-white/50 hover:border-white/20 hover:text-white/70'}`}
+          >
+            <Check size={15} strokeWidth={2.5} />
+            {myStatus === 'ready' ? '¡Listo!' : 'Marcarme listo'}
+          </motion.button>
+          {syncState === 'idle' && (
+            <p className="text-white/25 text-xs text-center">Esperando que el host inicie la sincronía</p>
+          )}
+        </div>
+      );
+    }
+
+    // Host controls
     if (syncState === 'idle' || syncState === 'paused') {
       return (
-        <motion.button
-          whileHover={{ scale: 1.04 }}
-          whileTap={{ scale: 0.96 }}
-          onClick={startSync}
-          animate={{ boxShadow: ['0 0 20px rgba(124,58,237,0.4)', '0 0 40px rgba(124,58,237,0.7)', '0 0 20px rgba(124,58,237,0.4)'] }}
-          transition={{ duration: 2, repeat: Infinity }}
-          className="flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-violet-600 to-violet-500 rounded-2xl
-            font-black text-white text-base tracking-tight"
-        >
-          <Rocket size={20} />
-          {syncState === 'paused' ? '▶ Reanudar AstroSync' : '🚀 ¡Iniciar AstroSync!'}
-        </motion.button>
+        <div className="flex flex-col items-center gap-3 w-full">
+          <motion.button
+            whileHover={{ scale: 1.04 }}
+            whileTap={{ scale: 0.96 }}
+            onClick={syncState === 'paused' ? resumeSync : startSync}
+            animate={{ boxShadow: ['0 0 20px rgba(124,58,237,0.4)', '0 0 40px rgba(124,58,237,0.7)', '0 0 20px rgba(124,58,237,0.4)'] }}
+            transition={{ duration: 2, repeat: Infinity }}
+            className="flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-violet-600 to-violet-500 rounded-2xl font-black text-white text-base"
+          >
+            <Rocket size={20} />
+            {syncState === 'paused' ? '▶ Reanudar AstroSync' : '🚀 ¡Iniciar AstroSync!'}
+          </motion.button>
+          {syncState === 'paused' && (
+            <p className="text-white/30 text-xs">Pausado — todos esperan tu señal</p>
+          )}
+        </div>
       );
     }
 
@@ -559,29 +704,37 @@ const AstroPartyPage = ({ onClose, roomName }) => {
     if (syncState === 'synced') {
       return (
         <div className="flex flex-col items-center gap-3 w-full">
-          <motion.div
-            initial={{ scale: 0.8, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            className="flex items-center gap-2 text-green-400 font-black text-lg"
-          >
-            <Check size={22} strokeWidth={3} />
-            ¡A ver!
+          <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
+            className="flex items-center gap-2 text-green-400 font-black text-lg">
+            <Check size={22} strokeWidth={3} /> ¡A ver!
           </motion.div>
           <a
             href={PLATFORM_LINKS[platformInfo.id]?.(contentTitle) || '#'}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-2 px-6 py-3 rounded-xl text-white font-bold text-sm transition-all
-              hover:brightness-110 active:scale-95"
+            target="_blank" rel="noopener noreferrer"
+            className="flex items-center gap-2 px-6 py-3 rounded-xl text-white font-bold text-sm hover:brightness-110 active:scale-95 transition-all"
             style={{ backgroundColor: platformInfo.color, boxShadow: `0 0 20px ${platformInfo.color}66` }}
           >
-            Abrir en {platformInfo.label}
-            <ExternalLink size={14} />
+            Abrir en {platformInfo.label} <ExternalLink size={14} />
           </a>
-          <button
-            onClick={pauseSync}
-            className="flex items-center gap-1.5 text-white/30 hover:text-white/60 text-xs transition-colors"
-          >
+          {/* Host time controls */}
+          <div className="flex items-center gap-2 w-full">
+            <div className="flex items-center gap-1.5 bg-white/5 border border-white/10 rounded-xl px-3 py-2 flex-1">
+              <Clock size={12} className="text-white/30 flex-shrink-0" />
+              <input
+                type="text"
+                value={currentTimestamp}
+                onChange={(e) => setCurrentTimestamp(e.target.value)}
+                placeholder="14:32"
+                className="bg-transparent text-white/70 text-xs w-full focus:outline-none placeholder-white/20"
+              />
+            </div>
+            <button onClick={sendTimeCheck}
+              className="px-3 py-2 bg-cyan-600/20 border border-cyan-500/30 rounded-xl text-cyan-400 text-xs font-bold hover:bg-cyan-600/30 transition-all whitespace-nowrap">
+              <Bell size={12} className="inline mr-1" />Avisar
+            </button>
+          </div>
+          <button onClick={pauseSync}
+            className="flex items-center gap-1.5 text-white/30 hover:text-white/60 text-xs transition-colors">
             <Pause size={12} /> Pausar para todos
           </button>
         </div>
@@ -662,6 +815,25 @@ const AstroPartyPage = ({ onClose, roomName }) => {
         {/* Sync button */}
         <SyncButton />
       </div>
+
+      {/* Sync banner notification */}
+      <AnimatePresence>
+        {syncBanner && (
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className={`absolute top-4 left-1/2 -translate-x-1/2 z-20 px-5 py-3 rounded-2xl font-bold text-sm
+              shadow-xl backdrop-blur-md border whitespace-nowrap
+              ${syncBanner.type === 'go'     ? 'bg-green-500/20 border-green-500/40 text-green-300'
+              : syncBanner.type === 'pause'  ? 'bg-red-500/20 border-red-500/40 text-red-300'
+              : syncBanner.type === 'resume' ? 'bg-cyan-500/20 border-cyan-500/40 text-cyan-300'
+              :                               'bg-violet-500/20 border-violet-500/40 text-violet-300'}`}
+          >
+            {syncBanner.text}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Floating emojis */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
