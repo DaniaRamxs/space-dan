@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState, useMemo } from 'react';
 import Hls from 'hls.js';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Play, Pause, Volume2, VolumeX, Maximize, MonitorPlay, Heart, Laugh, Ghost, Zap, Crown } from 'lucide-react';
+import { Play, Pause, Maximize, Heart, Laugh, Ghost, Zap, Crown } from 'lucide-react';
 import ReactionOverlay from '@/components/reactions/ReactionOverlay';
 
 const API_URL = import.meta.env.VITE_API_URL || '';
@@ -9,12 +9,18 @@ const API_URL = import.meta.env.VITE_API_URL || '';
 const proxyUrl = (url) => {
   if (!url) return url;
   if (url.startsWith('/api/anime/proxy')) return url;
-  
+
   // Skip proxy for direct extracted URLs (Fembed, etc.)
   if (url.includes('fembed.com') || url.includes('hqq.tv')) {
     return url;
   }
-  
+
+  // mp4upload CDN usa puerto 183 — Railway no puede conectar a puertos no-estándar.
+  // El token es para el browser, igual que en el embed normal.
+  if (url.includes('mp4upload.com') && url.includes('/d/')) {
+    return url;
+  }
+
   return `${API_URL}/api/anime/proxy?url=${encodeURIComponent(url)}`;
 };
 
