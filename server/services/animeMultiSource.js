@@ -185,28 +185,30 @@ class AnimeMultiSource {
     const $ = cheerio.load(html);
     const results = [];
     
-    // Selectores más amplios para AnimeFLV
-    $('.article, .item, .anime-item, .serie-item, .movie-item').each((index, element) => {
+    // Debug: Mostrar estructura del HTML
+    console.log(`[AnimeMultiSource] AnimeFLV HTML structure sample:`, html.substring(0, 500));
+    
+    // Buscar CUALQUIER elemento con imagen y enlace
+    $('*').each((index, element) => {
       const $item = $(element);
       const $link = $item.find('a').first();
       const $img = $item.find('img').first();
-      const $title = $item.find('.Title, .title, h1, h2, h3').first();
       
       if ($link.length && $img.length) {
-        const title = $img.attr('alt') || $link.attr('title') || $title.text().trim() || $link.text().trim();
-        if (title && title.length > 2) {
+        const title = $img.attr('alt') || $link.attr('title') || $item.text().trim();
+        if (title && title.length > 2 && title.length < 100) {
           results.push({
             id: $link.attr('href')?.replace('/anime/', '').replace('/ver/', '') || `flv-${index}`,
             title: title,
             image: $img.attr('src') || $img.attr('data-src'),
-            type: $item.find('.type, .genre').text() || 'TV',
-            episodes: $item.find('.episodes, .eps').text().trim() || '?'
+            type: 'TV',
+            episodes: '?'
           });
         }
       }
     });
     
-    console.log(`[AnimeMultiSource] AnimeFLV parser found ${results.length} items with selectors`);
+    console.log(`[AnimeMultiSource] AnimeFLV parser found ${results.length} items with universal selector`);
     return results;
   }
 
@@ -214,28 +216,30 @@ class AnimeMultiSource {
     const $ = cheerio.load(html);
     const results = [];
     
-    // Selectores más amplios para Jkanime
-    $('.item, .anime-item, .serie-item, .card, .post').each((index, element) => {
+    // Debug: Mostrar estructura del HTML
+    console.log(`[AnimeMultiSource] Jkanime HTML structure sample:`, html.substring(0, 500));
+    
+    // Buscar CUALQUIER elemento con imagen y enlace
+    $('*').each((index, element) => {
       const $item = $(element);
       const $link = $item.find('a').first();
       const $img = $item.find('img').first();
-      const $title = $item.find('.title, .name, h3, h2').first();
       
       if ($link.length && $img.length) {
-        const title = $img.attr('alt') || $title.text().trim() || $link.text().trim();
-        if (title && title.length > 2) {
+        const title = $img.attr('alt') || $link.attr('title') || $item.text().trim();
+        if (title && title.length > 2 && title.length < 100) {
           results.push({
             id: $link.attr('href')?.replace('/anime/', '').replace('/ver/', '') || `jk-${index}`,
             title: title,
             image: $img.attr('src') || $img.attr('data-src'),
             type: 'TV',
-            episodes: $item.find('.type, .episodes, .eps').text().trim() || '?'
+            episodes: '?'
           });
         }
       }
     });
     
-    console.log(`[AnimeMultiSource] Jkanime parser found ${results.length} items with selectors`);
+    console.log(`[AnimeMultiSource] Jkanime parser found ${results.length} items with universal selector`);
     return results;
   }
 
@@ -243,28 +247,30 @@ class AnimeMultiSource {
     const $ = cheerio.load(html);
     const results = [];
     
-    // Selectores más amplios para AnimeID
-    $('.item, .anime-item, .serie-item, .card, .post, .entry').each((index, element) => {
+    // Debug: Mostrar estructura del HTML
+    console.log(`[AnimeMultiSource] AnimeID HTML structure sample:`, html.substring(0, 500));
+    
+    // Buscar CUALQUIER elemento con imagen y enlace
+    $('*').each((index, element) => {
       const $item = $(element);
       const $link = $item.find('a').first();
       const $img = $item.find('img').first();
-      const $title = $item.find('.title, .name, h3, h2').first();
       
       if ($link.length && $img.length) {
-        const title = $img.attr('alt') || $title.text().trim() || $link.text().trim();
-        if (title && title.length > 2) {
+        const title = $img.attr('alt') || $link.attr('title') || $item.text().trim();
+        if (title && title.length > 2 && title.length < 100) {
           results.push({
             id: $link.attr('href')?.replace('/anime/', '').replace('/ver/', '') || `animeid-${index}`,
             title: title,
             image: $img.attr('src') || $img.attr('data-src'),
             type: 'TV',
-            episodes: $item.find('.episodes, .eps').text().trim() || '?'
+            episodes: '?'
           });
         }
       }
     });
     
-    console.log(`[AnimeMultiSource] AnimeID parser found ${results.length} items with selectors`);
+    console.log(`[AnimeMultiSource] AnimeID parser found ${results.length} items with universal selector`);
     return results;
   }
 
