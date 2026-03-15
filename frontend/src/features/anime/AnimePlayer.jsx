@@ -57,9 +57,45 @@ const AnimePlayer = ({
   const src = source?.url;
   const sourceFormat = source?.format || source?.sourceType || 'hls';
   const isEmbed = sourceFormat === 'embed';
+  
+  // Try to extract direct video URL from embed sources
+  const getDirectVideoUrl = (embedUrl) => {
+    // Fembed pattern
+    if (embedUrl.includes('embedsito.com') || embedUrl.includes('fembed')) {
+      // Try to extract video ID and construct direct URL
+      const match = embedUrl.match(/\/v\/([a-zA-Z0-9-]+)/);
+      if (match) {
+        return `https://www.fembed.com/v/${match[1]}`;
+      }
+    }
+    
+    // Netu/HQQ pattern
+    if (embedUrl.includes('hqq.tv') || embedUrl.includes('netu')) {
+      // Extract video ID from embed URL
+      const match = embedUrl.match(/vid=([a-zA-Z0-9]+)/);
+      if (match) {
+        return `https://hqq.tv/player/streaming.php?vid=${match[1]}`;
+      }
+    }
+    
+    return embedUrl;
+  };
+  
+  const videoSrc = isEmbed ? getDirectVideoUrl(src) : src;
+  const actualIsEmbed = isEmbed && videoSrc === src; // Still embed if we couldn't extract direct URL
+  
+  // Debug: Log URL extraction attempts
+  console.log('[AnimePlayer] Source analysis:', {
+    originalFormat: sourceFormat,
+    isEmbed,
+    originalSrc: src?.substring(0, 100) + '...',
+    extractedSrc: videoSrc?.substring(0, 100) + '...',
+    actualIsEmbed,
+    server: source?.server
+  });
 
   useEffect(() => {
-    if (!src || isEmbed) {
+    if (!src || actualIsEmbed) {
       if (hlsRef.current) {
         hlsRef.current.destroy();
         hlsRef.current = null;
@@ -68,7 +104,7 @@ const AnimePlayer = ({
     }
 
     const video = videoRef.current;
-    const proxiedSrc = proxyUrl(src);
+    const proxiedSrc = proxyUrl(videoSrc);
 
     if (Hls.isSupported()) {
       if (hlsRef.current) hlsRef.current.destroy();
@@ -105,10 +141,10 @@ const AnimePlayer = ({
         hlsRef.current = null;
       }
     };
-  }, [isEmbed, src, initialTime]);
+  }, [actualIsEmbed, videoSrc, initialTime]);
 
   useEffect(() => {
-    if (isEmbed || !videoRef.current || isHost) return;
+    if (actualIsEmbed || !videoRef.current || isHost) return;
     if (externalState.playing !== undefined) {
       if (externalState.playing) videoRef.current.play().catch(() => {});
       else videoRef.current.pause();
@@ -119,7 +155,7 @@ const AnimePlayer = ({
         videoRef.current.currentTime = externalState.currentTime;
       }
     }
-  }, [externalState, isEmbed, isHost]);
+  }, [externalState, actualIsEmbed, isHost]);
 
   const autoHideControls = () => {
     setShowControls(true);
@@ -184,10 +220,10 @@ const AnimePlayer = ({
     <div className="overflow-hidden rounded-[24px] border border-white/10 bg-[#080810] shadow-[0_20px_60px_rgba(0,0,0,0.35)] sm:rounded-[40px]">
       <div
         className="relative aspect-video w-full bg-black group/player"
-        onMouseMove={!isEmbed ? autoHideControls : undefined}
+        onMouseMove={!actualIsEmbed ? autoHideControls : undefined}
       >
-        {isEmbed ? (
-          <iframe src={src} className="h-full w-full" allowFullScreen />
+        {actualIsEmbed ? (
+          <iframe src={videoSrc} className="h-full w-full" allowFullScreen />
         ) : (
           <>
             <video
