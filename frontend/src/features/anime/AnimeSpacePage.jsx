@@ -495,7 +495,7 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
     if (!onCloseRef.current) return;
 
     const now = Date.now();
-    if (!force && now - lastBroadcastRef.current < 500) { console.warn('[broadcastAnimeState] skip: throttled'); return; }
+    if (!force && now - lastBroadcastRef.current < 200) { console.warn('[broadcastAnimeState] skip: throttled'); return; }
     lastBroadcastRef.current = now;
 
     syncChannelRef.current.send({
@@ -768,7 +768,7 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
       colyseusRoomId: colyseusRoomIdRef.current || null,
       roomState: roomState?.roomId ? { roomId: roomState.roomId } : null,
     });
-  }, [activeSourceIndex, broadcastAnimeState, currentEpisode, episodes, roomState?.roomId, selectedAnime, streamData, view]);
+  }, [view, selectedAnime?.id, currentEpisode?.id, activeSourceIndex, roomState?.roomId, broadcastAnimeState]);
 
   // Heartbeat: reenviar estado cada 8s mientras el host está en player (viewers que se unan tarde o reconecten se sincronizan)
   useEffect(() => {
