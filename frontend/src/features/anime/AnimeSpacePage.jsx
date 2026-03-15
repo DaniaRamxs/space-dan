@@ -53,6 +53,7 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
   const episodeSelectAbortRef = useRef(null);
   const isSyncedHostRef = useRef(false);
   const presenceHostDeterminedRef = useRef(false);
+  const presenceHostTimerRef = useRef(null);
   const runCountdownRef = useRef(null);
   const heartbeatRef = useRef(null);
   const joinedAtRef = useRef(null);
@@ -264,23 +265,33 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
       .on('presence', { event: 'sync' }, () => {
         const state = channel.presenceState();
         const allPresence = Object.values(state).flat();
-        setPresenceReady(true);
         if (allPresence.length === 0) return;
         // El primero en llegar (menor joinedAt) es el host
         const sorted = [...allPresence].sort((a, b) => (a.joinedAt || 0) - (b.joinedAt || 0));
         setPresenceParticipants(sorted);
-        // Determinar host solo una vez para evitar flickering en syncs posteriores (heartbeats, etc.)
+        // Si ya se determinó el host, no volver a evaluar (evita flickering por heartbeats)
         if (presenceHostDeterminedRef.current) return;
-        presenceHostDeterminedRef.current = true;
-        const hostPresence = sorted[0];
-        if (!hostPresence?.userId) return;
-        if (hostPresence.userId === profile?.id) {
-          setPresenceIsHost(true);
-          setRemoteHostInfo(null);
-        } else {
-          setPresenceIsHost(false);
-          setRemoteHostInfo({ username: hostPresence.username, avatar: hostPresence.avatar || null, userId: hostPresence.userId });
-        }
+        // Debounce 1.5s: esperar a que todas las presencias propaguen antes de decidir host
+        // (el primer sync de un usuario nuevo solo se ve a sí mismo — race condition)
+        if (presenceHostTimerRef.current) clearTimeout(presenceHostTimerRef.current);
+        presenceHostTimerRef.current = setTimeout(() => {
+          if (presenceHostDeterminedRef.current) return;
+          presenceHostDeterminedRef.current = true;
+          const freshAll = Object.values(channel.presenceState()).flat();
+          const freshSorted = freshAll.length
+            ? [...freshAll].sort((a, b) => (a.joinedAt || 0) - (b.joinedAt || 0))
+            : sorted;
+          const hostPresence = freshSorted[0];
+          if (!hostPresence?.userId) { setPresenceReady(true); return; }
+          if (hostPresence.userId === profile?.id) {
+            setPresenceIsHost(true);
+            setRemoteHostInfo(null);
+          } else {
+            setPresenceIsHost(false);
+            setRemoteHostInfo({ username: hostPresence.username, avatar: hostPresence.avatar || null, userId: hostPresence.userId });
+          }
+          setPresenceReady(true);
+        }, 1500);
       })
       .on('presence', { event: 'join' }, ({ newPresences }) => {
         newPresences?.forEach(p => {
@@ -395,6 +406,7 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
 
     return () => {
       clearInterval(heartbeatRef.current);
+      clearTimeout(presenceHostTimerRef.current);
       syncChannelRef.current = null;
       supabase.removeChannel(channel);
     };
