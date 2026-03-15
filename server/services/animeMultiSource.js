@@ -316,25 +316,30 @@ class AnimeMultiSource {
     const html = (await get(url)).data;
     const $ = cheerio.load(html);
 
+    // AnimeFLV stores episodes as: var episodes = [[num, id], ...]
+    // and the anime slug in: var anime_info = ["id", "Title", "slug", "date"]
+    const episodesMatch = html.match(/var\s+episodes\s*=\s*(\[\[[\s\S]*?\]\])\s*;/);
     const episodes = [];
-    $('.ListEpisodios li').each((i, el) => {
-      const $a = $(el).find('a');
-      if ($a.length) {
-        const href = $a.attr('href') || '';
-        const id = href.replace('/ver/', '').replace(/^\//, '');
-        const numText = $a.find('.Num, .num').text().trim();
-        const num = parseInt(numText) || i + 1;
-        episodes.push({ id, number: num, title: `Episodio ${num}`, provider: 'animeflv' });
-      }
-    });
-    // AnimeFLV lists newest first — reverse to ascending
-    episodes.reverse();
+    if (episodesMatch) {
+      try {
+        const rawEps = JSON.parse(episodesMatch[1]);
+        // rawEps is [[num, internalId], ...], newest first — reverse to ascending
+        rawEps.reverse().forEach(([num]) => {
+          episodes.push({
+            id: `${animeId}-${num}`,
+            number: num,
+            title: `Episodio ${num}`,
+            provider: 'animeflv',
+          });
+        });
+      } catch (_) { /* ignore parse error */ }
+    }
 
     return {
       id: animeId,
-      title: $('.Title h1, h1.Title, h2.Title').first().text().trim() || 'Desconocido',
-      image: $('.AnimeCover img, .Image img').first().attr('src'),
-      description: $('.Description p, .sinopsis p').first().text().trim() || 'Sin descripción',
+      title: $('h1.Title, h2.Title, h1').first().text().trim() || 'Desconocido',
+      image: $('.AnimeCover img, .Image img, img[itemprop="image"]').first().attr('src'),
+      description: $('[itemprop="description"] p, .Description p, .sinopsis p').first().text().trim() || 'Sin descripción',
       episodes,
       type: 'TV',
       hasDub: true,
