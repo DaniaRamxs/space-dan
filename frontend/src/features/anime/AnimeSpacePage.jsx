@@ -61,6 +61,7 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
   const joinedAtRef = useRef(null);
   const lastBroadcastRef = useRef(0);
   const savedPositionRef = useRef(null);
+  const isHostRef = useRef(false);
 
   // ── 4. Service hooks (depend on state/refs above) ─────────────────────────
   const {
@@ -124,6 +125,8 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
 
   // Keep isSyncedHostRef in sync so syncCurrentState can read it without deps
   useEffect(() => { isSyncedHostRef.current = isSyncedHost; }, [isSyncedHost]);
+  // Keep isHostRef in sync (full isHost: Colyseus + presence)
+  useEffect(() => { isHostRef.current = isHost; }, [isHost]);
 
   // Función de sincronización movida fuera del useEffect para evitar condiciones de carrera
   const syncCurrentState = useCallback(() => {
@@ -136,7 +139,7 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
         senderId: profile?.id || null,
         senderUsername: profile?.username || null,
         senderAvatar: profile?.avatar_url || null,
-        isHostBroadcast: isSyncedHostRef.current,
+        isHostBroadcast: isHostRef.current,
         view: s.view,
         selectedAnime: s.selectedAnime || null,
         episodes: s.episodes,
@@ -236,7 +239,7 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
   // broadcastBuffering needs isHost - declared after isHost is derived
   const broadcastBuffering = useCallback((isBuffering) => {
     if (!syncChannelRef.current || !onClose || isHost) return; // only viewers broadcast
-    syncChannelRef.current.httpSend({
+    syncChannelRef.current.send({
       type: 'broadcast',
       event: 'viewer_buffering',
       payload: { userId: profile?.id, username: profile?.username, isBuffering },
@@ -364,6 +367,7 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
       })
       .on('broadcast', { event: 'anime_sync_req' }, ({ payload }) => {
         if (payload?.senderId === profile?.id) return;
+        if (!isHostRef.current) return; // solo el host responde con su estado
         channelCallbacksRef.current.syncCurrentState?.();
       })
       .on('broadcast', { event: 'viewer_buffering' }, ({ payload }) => {
@@ -424,6 +428,7 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
     return () => {
       clearInterval(heartbeatRef.current);
       clearTimeout(presenceHostTimerRef.current);
+      presenceHostDeterminedRef.current = false;
       syncChannelRef.current = null;
       supabase.removeChannel(channel);
     };
@@ -651,29 +656,26 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
     const text = chatInput.trim();
     if (!text) return;
 
-    if (!room?.connection?.isOpen) {
-      toast.error('La sala no está conectada.');
-      return;
+    if (room?.connection?.isOpen) {
+      try { room.send('chat', text); } catch (err) {
+        console.warn('[AnimeSpace] Failed to send chat message:', err);
+      }
     }
 
-    try { room.send('chat', text); } catch (err) {
-      console.warn('[AnimeSpace] Failed to send chat message:', err);
-    }
-
-    // Broadcast via Supabase for unified stream
+    // Broadcast via Supabase (fallback cuando Colyseus no está conectado, y stream unificado)
     if (syncChannelRef.current) {
-        syncChannelRef.current.httpSend({
-            type: 'broadcast',
-            event: 'chat_message',
-            payload: {
-                id: Date.now(),
-                userId: profile?.id,
-                username: profile?.username || "Anon",
-                avatar: profile?.avatar_url,
-                content: text,
-                timestamp: Date.now()
-            }
-        });
+      syncChannelRef.current.send({
+        type: 'broadcast',
+        event: 'chat_message',
+        payload: {
+          id: Date.now(),
+          userId: profile?.id,
+          username: profile?.username || 'Anon',
+          avatar: profile?.avatar_url,
+          content: text,
+          timestamp: Date.now(),
+        },
+      }).catch(() => {});
     }
 
     setChatInput('');
@@ -682,7 +684,7 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
   const handlePlay = (currentTime) => {
     if (!isHost) return;
     if (syncChannelRef.current) {
-      syncChannelRef.current.httpSend({
+      syncChannelRef.current.send({
         type: 'broadcast', event: 'play_countdown',
         payload: { hostId: profile?.id, currentTime },
       }).catch(() => {});
@@ -1120,7 +1122,7 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
                       }
                     }
                     if (syncChannelRef.current) {
-                      syncChannelRef.current.httpSend({
+                      syncChannelRef.current.send({
                         type: 'broadcast', event: 'emoji_reaction',
                         payload: { type, content, userId: profile?.id },
                       }).catch(() => {});
