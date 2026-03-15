@@ -77,7 +77,7 @@ const CommunitiesPage = lazy(() => import("./pages/CommunitiesPage"));
 const CommunityChannelsPage = lazy(() => import("./pages/CommunityChannelsPage"));
 const SpotifyCallback = lazy(() => import("./pages/SpotifyCallback"));
 const AuthCallback = lazy(() => import("./pages/AuthCallback"));
-const AnimeSpacePage = lazy(() => import("./features/anime/AnimeSpacePage"));
+const AnimeSpacePage = lazy(() => import("./features/anime/AstroPartyPage"));
 
 const NAV_TRACE_KEY = "spacely_nav_trace_v1";
 const FORCE_NAV_TRACE = false

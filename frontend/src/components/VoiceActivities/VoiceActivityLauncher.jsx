@@ -49,7 +49,7 @@ const CoOpPuzzleGame     = lazy(() => import('./CoOpPuzzle/CoOpPuzzleGame'));
 const LudoGame           = lazy(() => import('./Ludo/LudoGame'));
 const WatchTogether      = lazy(() => import('./WatchTogether'));
 const BeatSound          = lazy(() => import('./BeatSound'));
-const AnimeSpace         = lazy(() => import('../../features/anime/AnimeSpacePage'));
+const AnimeSpace         = lazy(() => import('../../features/anime/AstroPartyPage'));
 
 // ─── Catálogo de actividades ──────────────────────────────────────────────────
 // Cada actividad define su ID, nombre, tag de categoría, modo de red
@@ -186,9 +186,9 @@ const ACTIVITIES = [
         tagBg: 'bg-cyan-500/20 text-cyan-400',
     },
     {
-        id: 'anime', name: 'Anime Space', tag: 'Social', mode: 'api',
+        id: 'anime', name: 'AstroParty', tag: 'Social', mode: 'api',
         icon: Tv,
-        description: 'Mira tus animes favoritos con amigos en tiempo real',
+        description: 'Watch party con Netflix, Crunchyroll y más — sincronizados',
         reward: null,
         border: 'border-purple-500/30', bg: 'bg-purple-500/5',
         hover: 'hover:bg-purple-500/10 hover:border-purple-500/50',
