@@ -381,6 +381,10 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
 
   const handleEpisodeSelect = async (episode) => {
     if (loading || !selectedAnime) return;
+    if (onClose && !isHost) {
+      toast.error('Solo el host puede elegir el episodio');
+      return;
+    }
 
     episodeSelectAbortRef.current?.abort();
     const controller = new AbortController();
@@ -753,7 +757,75 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
       )}
 
       <main className="mx-auto flex w-full max-w-6xl flex-col gap-5 py-4 sm:gap-6 sm:py-6">
-        {view === 'search' && <AnimeSearch onSelect={handleAnimeSelect} />}
+        {view === 'search' && !onClose && <AnimeSearch onSelect={handleAnimeSelect} />}
+
+      {view === 'search' && onClose && isHost && (
+        <div className="flex flex-col gap-4 px-3 sm:px-6">
+          <div className="flex items-center gap-3 rounded-[20px] border border-yellow-400/20 bg-yellow-500/10 px-4 py-3">
+            <Crown size={16} className="shrink-0 text-yellow-400" />
+            <div className="min-w-0">
+              <div className="text-xs font-black uppercase tracking-[0.22em] text-yellow-300">Eres el host</div>
+              <div className="mt-0.5 text-[11px] text-white/60">Selecciona un anime para comenzar la watch party</div>
+            </div>
+          </div>
+          <AnimeSearch onSelect={handleAnimeSelect} />
+        </div>
+      )}
+
+      {view === 'search' && onClose && !isHost && (
+        <div className="flex flex-col items-center justify-center gap-6 px-4 py-16 text-center sm:px-6 sm:py-24">
+          <div className="flex h-20 w-20 items-center justify-center rounded-full border border-cyan-300/20 bg-cyan-500/10">
+            <Tv size={36} className="text-cyan-300" />
+          </div>
+          <div className="space-y-2">
+            <h2 className="text-xl font-black uppercase tracking-[0.14em] text-white">Esperando al host...</h2>
+            <p className="max-w-xs text-sm leading-6 text-white/55">
+              El host aún no ha seleccionado un anime. El video comenzará automáticamente cuando lo haga.
+            </p>
+          </div>
+          {hostParticipant && (
+            <div className="flex items-center gap-3 rounded-full border border-white/10 bg-white/[0.04] px-4 py-3">
+              <img
+                src={hostParticipant.avatar || '/default-avatar.png'}
+                alt={hostParticipant.username}
+                className="h-9 w-9 rounded-full object-cover"
+              />
+              <div className="text-left">
+                <div className="flex items-center gap-1.5 text-sm font-black text-white">
+                  <Crown size={12} className="text-yellow-400" />
+                  {hostParticipant.username}
+                </div>
+                <div className="text-[10px] uppercase tracking-[0.2em] text-yellow-500 font-black">Host</div>
+              </div>
+            </div>
+          )}
+          <div className="flex items-center gap-2">
+            <div className="h-1.5 w-1.5 animate-bounce rounded-full bg-cyan-400 [animation-delay:0ms]" />
+            <div className="h-1.5 w-1.5 animate-bounce rounded-full bg-cyan-400 [animation-delay:150ms]" />
+            <div className="h-1.5 w-1.5 animate-bounce rounded-full bg-cyan-400 [animation-delay:300ms]" />
+          </div>
+        </div>
+      )}
+
+        {view === 'episodes' && selectedAnime && onClose && !isHost && (
+          <div className="mx-3 mb-2 flex items-center gap-3 rounded-[18px] border border-white/10 bg-white/[0.04] px-4 py-3 sm:mx-6">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-cyan-300/20 bg-cyan-500/10">
+              <Crown size={14} className="text-cyan-300" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="text-[11px] font-black uppercase tracking-[0.2em] text-white/60">
+                Esperando al host para elegir episodio
+              </div>
+              {hostParticipant && (
+                <div className="mt-0.5 flex items-center gap-1.5">
+                  <img src={hostParticipant.avatar || '/default-avatar.png'} alt="" className="h-5 w-5 rounded-full object-cover" />
+                  <span className="text-xs font-bold text-yellow-300">{hostParticipant.username}</span>
+                  <Crown size={10} className="text-yellow-400" />
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         {view === 'episodes' && selectedAnime && (
           <AnimeEpisodeList
