@@ -117,6 +117,55 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
     }).catch(() => {});
   }, [profile?.id]);
 
+  const connectToWatchParty = useCallback(async ({ anime, episode, roomId, announceActivity }) => {
+    let activityId = null;
+
+    if (announceActivity) {
+      try {
+        const supabaseActivity = await liveActivitiesService.createActivity({
+          type: 'anime',
+          title: `${anime.title} - Ep ${episode.number}`,
+          roomName: roomName || `Sala de ${profile?.username || 'Gamer'}`,
+          metadata: {
+            animeId: anime.id,
+            animeTitle: anime.title,
+            episodeId: episode.id,
+            episodeNumber: episode.number,
+            image: anime.image,
+          },
+        });
+        activityId = supabaseActivity?.id || null;
+        console.log('[AnimeSpace] Created activity:', activityId);
+      } catch (error) {
+        console.warn('[AnimeSpace] Failed to create activity:', error);
+      }
+    }
+
+    try {
+      const newRoom = await joinOrCreateRoom('live_activity', {
+        instanceId: roomName,
+        activityId: roomId,
+        activityType: 'anime',
+        animeId: anime.id,
+        animeTitle: anime.title,
+        episodeId: episode.id,
+        episodeNumber: episode.number,
+        videoId: episode.id,
+        userId: profile?.id,
+        username: profile?.username,
+        avatar: profile?.avatar_url,
+        hostId: profile?.id,
+      });
+
+      setRoom(newRoom);
+    } catch (error) {
+      console.warn('[AnimeSpace] Colyseus unavailable, solo mode enabled:', error.message);
+      if (announceActivity) {
+        toast('Modo solitario: la watch party no respondiÃ³.', { icon: 'ðŸ"º' });
+      }
+    }
+  }, [roomName, profile?.id, profile?.username, profile?.avatar_url]);
+
   useEffect(() => {
     if (!roomName || !onClose) return undefined;
 
@@ -203,55 +252,6 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
     clearRoomState();
     setChatMessages([]);
   };
-
-  const connectToWatchParty = useCallback(async ({ anime, episode, roomId, announceActivity }) => {
-    let activityId = null;
-
-    if (announceActivity) {
-      try {
-        const supabaseActivity = await liveActivitiesService.createActivity({
-          type: 'anime',
-          title: `${anime.title} - Ep ${episode.number}`,
-          roomName: roomName || `Sala de ${profile?.username || 'Gamer'}`,
-          metadata: {
-            animeId: anime.id,
-            animeTitle: anime.title,
-            episodeId: episode.id,
-            episodeNumber: episode.number,
-            image: anime.image,
-          },
-        });
-        activityId = supabaseActivity?.id || null;
-        console.log('[AnimeSpace] Created activity:', activityId);
-      } catch (error) {
-        console.warn('[AnimeSpace] Failed to create activity:', error);
-      }
-    }
-
-    try {
-      const newRoom = await joinOrCreateRoom('live_activity', {
-        instanceId: roomName,
-        activityId: roomId,
-        activityType: 'anime',
-        animeId: anime.id,
-        animeTitle: anime.title,
-        episodeId: episode.id,
-        episodeNumber: episode.number,
-        videoId: episode.id,
-        userId: profile?.id,
-        username: profile?.username,
-        avatar: profile?.avatar_url,
-        hostId: profile?.id,
-      });
-
-      setRoom(newRoom);
-    } catch (error) {
-      console.warn('[AnimeSpace] Colyseus unavailable, solo mode enabled:', error.message);
-      if (announceActivity) {
-        toast('Modo solitario: la watch party no respondiÃ³.', { icon: 'ðŸ"º' });
-      }
-    }
-  }, [roomName, profile?.id, profile?.username, profile?.avatar_url]);
 
   const broadcastAnimeState = useCallback((payload) => {
     if (!syncChannelRef.current || applyingRemoteStateRef.current || !onClose) return;
