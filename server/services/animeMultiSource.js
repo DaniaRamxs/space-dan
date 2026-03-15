@@ -645,13 +645,18 @@ class AnimeMultiSource {
     try {
       // StreamWish usa un sistema similar a StreamTape
       const idMatch = embedUrl.match(/\/e\/([a-zA-Z0-9]+)/);
-      if (!idMatch) return null;
+      if (!idMatch) {
+        console.log('[AnimeMultiSource] StreamWish: No ID match found');
+        return null;
+      }
       
       const videoId = idMatch[1];
+      console.log(`[AnimeMultiSource] StreamWish: Extracted ID: ${videoId}`);
       
       // Intentar diferentes métodos para StreamWish
       // Método 1: API directa
       const apiUrl = `https://streamwish.to/api/video/${videoId}`;
+      console.log(`[AnimeMultiSource] StreamWish: Trying API: ${apiUrl}`);
       
       const response = axios.get(apiUrl, {
         timeout: 10000,
@@ -661,16 +666,22 @@ class AnimeMultiSource {
         }
       });
       
+      console.log('[AnimeMultiSource] StreamWish: API response received');
+      console.log('[AnimeMultiSource] StreamWish: Response data:', response.data);
+      
       const videoUrl = response.data?.url || response.data?.file || response.data?.stream || null;
       
       if (videoUrl) {
         console.log(`[AnimeMultiSource] StreamWish extracted: ${videoUrl}`);
         return videoUrl;
+      } else {
+        console.log('[AnimeMultiSource] StreamWish: No video URL in API response');
       }
     } catch (error) {
-      console.error('StreamWish extraction failed:', error);
+      console.error('[AnimeMultiSource] StreamWish extraction failed:', error.message);
       
       // Método 2: Extraer de la página del embed
+      console.log('[AnimeMultiSource] StreamWish: Trying page extraction...');
       try {
         const pageResponse = axios.get(embedUrl, {
           timeout: 10000,
@@ -679,29 +690,46 @@ class AnimeMultiSource {
           }
         });
         
+        console.log('[AnimeMultiSource] StreamWish: Page response received, length:', pageResponse.data.length);
+        
         const $ = cheerio.load(pageResponse.data);
         
         // Buscar URLs de video en scripts
         let videoUrl = null;
         $('script').each((index, script) => {
           const scriptContent = $(script).html();
-          if (scriptContent && scriptContent.includes('source')) {
+          if (scriptContent && (scriptContent.includes('source') || scriptContent.includes('video') || scriptContent.includes('stream'))) {
             const urlMatch = scriptContent.match(/https?:\/\/[^\s"']+\.(m3u8|mp4)/);
             if (urlMatch) {
               videoUrl = urlMatch[0];
+              console.log(`[AnimeMultiSource] StreamWish: Found URL in script: ${videoUrl}`);
             }
           }
         });
         
+        // Buscar en iframes también
+        if (!videoUrl) {
+          $('iframe').each((index, iframe) => {
+            const src = $(iframe).attr('src');
+            if (src && (src.includes('.m3u8') || src.includes('.mp4'))) {
+              videoUrl = src;
+              console.log(`[AnimeMultiSource] StreamWish: Found URL in iframe: ${videoUrl}`);
+            }
+          });
+        }
+        
         if (videoUrl) {
           console.log(`[AnimeMultiSource] StreamWish page extracted: ${videoUrl}`);
           return videoUrl;
+        } else {
+          console.log('[AnimeMultiSource] StreamWish: No video URL found in page');
         }
       } catch (pageError) {
-        console.error('StreamWish page extraction failed:', pageError);
+        console.error('[AnimeMultiSource] StreamWish page extraction failed:', pageError.message);
       }
     }
     
+    console.log('[AnimeMultiSource] StreamWish: All extraction methods failed, returning null');
     return null;
   }
 
