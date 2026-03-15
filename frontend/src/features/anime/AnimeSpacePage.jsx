@@ -30,6 +30,7 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
   const [participants, setParticipants] = useState([]);
   const [chatMessages, setChatMessages] = useState([]);
   const [chatInput, setChatInput] = useState('');
+  const [remoteHostInfo, setRemoteHostInfo] = useState(null); // host info recibido via broadcast antes de Colyseus
 
   // ── 3. All refs (declared before any hook that references them) ───────────
   const chatEndRef = useRef(null);
@@ -43,6 +44,7 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
   const lastSyncedEpisodeIdRef = useRef(null);
   const animeSelectAbortRef = useRef(null);
   const episodeSelectAbortRef = useRef(null);
+  const isSyncedHostRef = useRef(false);
 
   // ── 4. Service hooks (depend on state/refs above) ─────────────────────────
   const { 
@@ -62,21 +64,23 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
 
   // ── 5. Derived values (useMemo after all hooks) ───────────────────────────
   const hostParticipant = useMemo(() => {
-    // Prioridad: 1) isSyncedHost (determinación de Colyseus), 2) primer participante con isHost, 3) playbackState.hostId
+    // Prioridad: 1) isSyncedHost (Colyseus), 2) participante con isHost, 3) playbackState.hostId, 4) remoteHostInfo (broadcast)
     if (isSyncedHost) {
       return participants.find(p => p.userId === profile?.id) || { username: profile?.username, avatar: profile?.avatar_url, isHost: true, userId: profile?.id };
     }
-    
-      const explicitHost = participants.find(p => p.isHost === true);
-      if (explicitHost) return explicitHost;
-      
-      // Fallback a playbackState.hostId
-      if (playbackState?.hostId) {
-        return participants.find(p => p.userId === playbackState.hostId) || null;
-      }
-      
-      return null;
-  }, [participants, playbackState?.hostId, isSyncedHost, profile?.id, profile?.username, profile?.avatar_url]);
+
+    const explicitHost = participants.find(p => p.isHost === true);
+    if (explicitHost) return explicitHost;
+
+    if (playbackState?.hostId) {
+      return participants.find(p => p.userId === playbackState.hostId) || null;
+    }
+
+    // Fallback: info del host recibida via broadcast (antes de que Colyseus se conecte)
+    if (remoteHostInfo) return { ...remoteHostInfo, isHost: true };
+
+    return null;
+  }, [participants, playbackState?.hostId, isSyncedHost, profile?.id, profile?.username, profile?.avatar_url, remoteHostInfo]);
 
   const isHost = isSyncedHost || hostParticipant?.userId === profile?.id;
 
@@ -102,17 +106,29 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
   // Keep roomRef in sync so callbacks don't need room in their deps
   useEffect(() => { roomRef.current = room; }, [room]);
 
+  // Keep isSyncedHostRef in sync so syncCurrentState can read it without deps
+  useEffect(() => { isSyncedHostRef.current = isSyncedHost; }, [isSyncedHost]);
+
+  // Cuando el usuario se convierte en host (lobby), anunciarse a los viewers que esperan
+  useEffect(() => {
+    if (!isSyncedHost || !onClose || !syncChannelRef.current) return;
+    syncCurrentState();
+  }, [isSyncedHost, onClose, syncCurrentState]);
+
   // Función de sincronización movida fuera del useEffect para evitar condiciones de carrera
   const syncCurrentState = useCallback(() => {
     const s = stateRef.current;
-    if (!s.selectedAnime || !syncChannelRef.current) return;
+    if (!syncChannelRef.current) return;
     syncChannelRef.current.httpSend({
       type: 'broadcast',
       event: 'anime_state',
       payload: {
         senderId: profile?.id || null,
+        senderUsername: profile?.username || null,
+        senderAvatar: profile?.avatar_url || null,
+        isHostBroadcast: isSyncedHostRef.current,
         view: s.view,
-        selectedAnime: s.selectedAnime,
+        selectedAnime: s.selectedAnime || null,
         episodes: s.episodes,
         currentEpisode: s.currentEpisode,
         streamData: s.streamData,
@@ -125,7 +141,7 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
             : null,
       },
     }).catch(() => {});
-  }, [profile?.id]);
+  }, [profile?.id, profile?.username, profile?.avatar_url]);
 
   const connectToWatchParty = useCallback(async ({ anime, episode, roomId, colyseusRoomId, announceActivity }) => {
     console.log('[AnimeSpace] connectToWatchParty called:', { anime: anime?.title, episode: episode?.number, roomId, colyseusRoomId, announceActivity });
@@ -198,6 +214,36 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
   }, [roomName, profile?.id, profile?.username, profile?.avatar_url, syncCurrentState]);
   connectToWatchPartyRef.current = connectToWatchParty;
 
+  // ── Conexión al lobby de Colyseus al entrar en modo watch party ──────────────
+  // Igual que WatchTogether: el primero en llegar es host (server-side, por orden de llegada)
+  useEffect(() => {
+    if (!onClose || !roomName || !profile?.id || room || currentEpisode) return;
+
+    let cancelled = false;
+    const connectLobby = async () => {
+      try {
+        const joinedRoom = await joinOrCreateRoom('live_activity', {
+          instanceId: roomName,
+          userId: profile?.id,
+          username: profile?.username || 'Anon',
+          avatar: profile?.avatar_url,
+          activityType: 'anime',
+          activityId: `anime-lobby-${roomName}`,
+        });
+        if (cancelled) {
+          joinedRoom.leave(true).catch(() => {});
+          return;
+        }
+        colyseusRoomIdRef.current = joinedRoom.roomId;
+        setRoom(joinedRoom);
+      } catch (err) {
+        console.warn('[AnimeSpace] Lobby Colyseus connect failed:', err);
+      }
+    };
+    connectLobby();
+    return () => { cancelled = true; };
+  }, [onClose, roomName, profile?.id, profile?.username, profile?.avatar_url, room, currentEpisode]);
+
   useEffect(() => {
     if (!roomName || !onClose) return undefined;
 
@@ -208,6 +254,13 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
     channel
       .on('broadcast', { event: 'anime_state' }, async ({ payload }) => {
         if (!payload || payload.senderId === profile?.id) return;
+
+        // Capturar info del host aunque no haya anime seleccionado aún
+        if (payload.isHostBroadcast && payload.senderUsername) {
+          setRemoteHostInfo({ username: payload.senderUsername, avatar: payload.senderAvatar || null, userId: payload.senderId });
+        }
+
+        if (!payload.selectedAnime) return; // solo actualizar UI si hay anime
 
         applyingRemoteStateRef.current = true;
 
