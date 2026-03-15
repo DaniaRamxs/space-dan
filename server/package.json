@@ -21,6 +21,8 @@
     "@colyseus/ws-transport": "^0.16.5",
     "@consumet/extensions": "^1.8.8",
     "@supabase/supabase-js": "^2.98.0",
+    "axios": "^1.13.6",
+    "cheerio": "^1.2.0",
     "chess.js": "^1.4.0",
     "colyseus": "^0.16.5",
     "cors": "^2.8.6",

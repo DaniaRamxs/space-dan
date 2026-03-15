@@ -18,6 +18,9 @@ import cors from "cors";
 import { Server } from "colyseus";
 import { WebSocketTransport } from "@colyseus/ws-transport";
 
+// Importar rutas de anime multi-fuente
+import animeMultiRoutes from './routes/animeMulti.js';
+
 import { BlackjackRoom } from "./rooms/BlackjackRoom.mjs";
 import { Connect4Room } from "./rooms/Connect4Room.mjs";
 import { SnakeDuelRoom } from "./rooms/SnakeDuelRoom.mjs";
@@ -89,6 +92,10 @@ app.options(/.*/, cors(corsOptions));
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+/* ---------------- ANIME MULTI-SOURCE ROUTES ---------------- */
+
+app.use('/api/anime-multi', animeMultiRoutes);
 
 /* ---------------- HEALTH CHECK ---------------- */
 

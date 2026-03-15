@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Search, Loader2, Sparkles } from 'lucide-react';
 import { animeService } from './animeService';
+import { animeMultiService } from './animeMultiService';
 
 const AnimeSearch = ({ onSelect }) => {
   const [query, setQuery] = useState('');
@@ -17,7 +18,16 @@ const AnimeSearch = ({ onSelect }) => {
     setLoading(true);
     setError(null);
     try {
-      const data = await animeService.searchAnime(query);
+      // Intentar con multi-source primero
+      let data;
+      try {
+        data = await animeMultiService.searchAnime(query);
+      } catch (multiError) {
+        console.warn('Multi-source search failed, trying fallback:', multiError);
+        // Fallback al servicio original
+        data = await animeService.searchAnime(query);
+      }
+      
       setResults(data);
     } catch (error) {
       console.error('Search error:', error);
