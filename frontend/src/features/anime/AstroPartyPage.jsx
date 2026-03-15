@@ -221,6 +221,9 @@ const AstroPartyPage = ({ onClose, roomName }) => {
     socialCallbacksRef.current = { addGifOverlay, addFloatingEmoji: addFloatingEmojiLocal };
   }, [addGifOverlay, addFloatingEmojiLocal]);
 
+  // ICE candidate queue: candidates that arrived before the PC was ready
+  const pendingIceRef = useRef([]);
+
   // ── Broadcast ────────────────────────────────────────────────────────────────
 
   const broadcastSync = useCallback((payload) => {
@@ -283,13 +286,16 @@ const AstroPartyPage = ({ onClose, roomName }) => {
       }
     };
 
-    pc.ontrack = ({ streams }) => {
-      if (streams?.[0]) {
-        setRemoteStream(streams[0]);
-        if (remoteVideoRef.current) {
-          remoteVideoRef.current.srcObject = streams[0];
-        }
+    pc.ontrack = (event) => {
+      // Some browsers send tracks without streams — build one if needed
+      const stream = event.streams?.[0] ?? new MediaStream([event.track]);
+      setRemoteStream(stream);
+      if (remoteVideoRef.current) {
+        remoteVideoRef.current.srcObject = stream;
       }
+      // Flush any ICE candidates that arrived before the PC was ready
+      pendingIceRef.current.forEach((c) => pc.addIceCandidate(c).catch(() => {}));
+      pendingIceRef.current = [];
     };
 
     await pc.setRemoteDescription({ type: sdpType, sdp });
@@ -312,9 +318,13 @@ const AstroPartyPage = ({ onClose, roomName }) => {
 
   // Either side: ICE candidate
   const handleScreenIce = useCallback(async ({ fromId, toId, candidate }) => {
-    if (toId !== profileRef.current?.id) return;
+    if (toId !== profileRef.current?.id || !candidate) return;
     const pc = isHostRef.current ? pcRef.current[fromId] : pcRef.current['host'];
-    if (!pc || !candidate) return;
+    if (!pc) {
+      // PC not ready yet — queue the candidate
+      pendingIceRef.current.push(new RTCIceCandidate(candidate));
+      return;
+    }
     try {
       await pc.addIceCandidate(new RTCIceCandidate(candidate));
     } catch (err) {
@@ -330,6 +340,27 @@ const AstroPartyPage = ({ onClose, roomName }) => {
       handleIce:     handleScreenIce,
     };
   }, [handleScreenRequest, handleScreenOffer, handleScreenAnswer, handleScreenIce]);
+
+  // Send screen_request whenever we enter screenshare watching mode as a guest.
+  // Using useEffect (not inside setupChannel) ensures late joiners also request the stream.
+  const screenRequestSentRef = useRef(false);
+  useEffect(() => {
+    if (isHost || contentMode !== 'screenshare' || roomStep !== 'watching') {
+      screenRequestSentRef.current = false; // reset so next session works
+      return;
+    }
+    if (screenRequestSentRef.current) return;
+    screenRequestSentRef.current = true;
+    const send = () => {
+      channelRef.current?.send({
+        type: 'broadcast', event: 'screen_request',
+        payload: { fromId: profileRef.current?.id, fromUsername: profileRef.current?.username || 'Anon' },
+      }).catch(() => {});
+    };
+    // Slight delay so channel is fully ready and host has the stream
+    const t = setTimeout(send, 800);
+    return () => clearTimeout(t);
+  }, [isHost, contentMode, roomStep]);
 
   // ── Channel setup ────────────────────────────────────────────────────────────
 
@@ -419,15 +450,7 @@ const AstroPartyPage = ({ onClose, roomName }) => {
             setContentMode(mode || null);
             if (payload.videoUrl) setVideoUrl(payload.videoUrl);
             setRoomStep('watching');
-            if (mode === 'screenshare') {
-              // Request screen stream from host after a short delay
-              setTimeout(() => {
-                channel.send({
-                  type: 'broadcast', event: 'screen_request',
-                  payload: { fromId: profileRef.current?.id, fromUsername: profileRef.current?.username || 'Anon' },
-                }).catch(() => {});
-              }, 600);
-            }
+            // screen_request is handled via useEffect below (also covers late joiners)
           }
         }
         if (payload.type === 'session_end') {
