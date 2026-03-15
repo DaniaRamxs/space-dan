@@ -58,13 +58,15 @@
   <div id="error-log" style="position:fixed;z-index:999999;top:0;left:0;background:red;color:white;font-size:12px;padding:10px;white-space:pre-wrap;display:none;max-height:100vh;overflow:auto;width:100%;"></div>
   <script>
     window.onerror = function(msg, url, lineNo, columnNo, error) {
-      document.getElementById('error-log').style.display = 'block';
-      document.getElementById('error-log').innerText += 'ERROR: ' + msg + '\n' + (error && error.stack ? error.stack : '') + '\n\n';
+      // Silently log to console instead of displaying on screen
+      console.error('ERROR:', msg, error && error.stack ? error.stack : '');
       return false;
     };
     window.addEventListener('unhandledrejection', function(event) {
-      document.getElementById('error-log').style.display = 'block';
-      document.getElementById('error-log').innerText += 'PROMISE ERROR: ' + (event.reason ? event.reason.stack || event.reason : 'Unknown') + '\n\n';
+      // Silently log to console instead of displaying on screen
+      console.error('PROMISE ERROR:', event.reason ? event.reason.stack || event.reason : 'Unknown');
+      // Prevent the default browser behavior
+      event.preventDefault();
     });
   </script>
   <div id="root"></div>

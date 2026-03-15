@@ -1,5 +1,5 @@
 import React, { Suspense, lazy, useEffect, useRef } from "react";
-import { BrowserRouter, HashRouter, Routes, Route, useLocation, Navigate, useParams } from "react-router-dom";
+import { BrowserRouter, HashRouter, Routes, Route, useLocation, Navigate } from "react-router-dom";
 import { AnimatePresence } from "framer-motion";
 import { Capacitor } from "@capacitor/core";
 import { App as CapApp } from "@capacitor/app";
@@ -17,11 +17,9 @@ import PageTransition from "./components/PageTransition";
 import ScrollToTop from "./components/ScrollToTop";
 import RedemptionInvite from "./components/Social/RedemptionInvite";
 import TycoonInvite from "./components/Social/TycoonInvite";
-import { unlockAchievement } from "./hooks/useAchievements";
 import { trackPageVisit } from "./hooks/useStarlys";
-import { applyTheme } from "./hooks/useTheme";
 import { AuthProvider, useAuthContext } from "./contexts/AuthContext";
-import { EconomyProvider, useEconomy } from "./contexts/EconomyContext";
+import { EconomyProvider } from "./contexts/EconomyContext";
 import { UniverseProvider, useUniverse } from "./contexts/UniverseContext.jsx";
 import { spotifyService } from "./services/spotifyService";
 import CosmicEventBanner from "./components/Social/CosmicEventBanner";
@@ -29,7 +27,7 @@ import WelcomeExperience from "./components/WelcomeExperience";
 import StarfieldBg from "./components/StarfieldBg";
 import ClickRipple from "./components/ClickRipple";
 import ActivityRadar from "./components/ActivityRadar";
-import { CosmicProvider, useCosmic } from "./components/Effects/CosmicProvider";
+import { CosmicProvider } from "./components/Effects/CosmicProvider";
 
 // Lazy Pages
 const PostsPage = lazy(() => import("./pages/PostsPage"));
@@ -370,7 +368,7 @@ function PresenceTracker() {
     if (finalStatus !== lastStatus.current) {
       updatePresence({ status: finalStatus }).then(s => { if (s !== false) lastStatus.current = finalStatus; });
     }
-  }, [location.pathname, profile?.id, updatePresence, activeStation, isPresenceReady]);
+  }, [location.pathname, profile?.id, updatePresence, activeStation, isPresenceReady, profile]);
   return null;
 }
 
@@ -378,7 +376,19 @@ function MusicSyncTracker() {
   const { user } = useAuthContext();
   useEffect(() => {
     if (!user || window.location.pathname === '/spotify-callback') return;
-    const interval = setInterval(() => spotifyService.syncCurrentSoundState(), 60000);
+    const interval = setInterval(async () => {
+      try {
+        await spotifyService.syncCurrentSoundState();
+      } catch (error) {
+        // Silently handle Spotify auth errors - they're expected when token expires
+        if (spotifyService.isAuthError(error)) {
+          console.log('[MusicSync] Spotify authorization expired, stopping sync');
+          clearInterval(interval);
+        } else {
+          console.error('[MusicSync] Unexpected error:', error);
+        }
+      }
+    }, 60000);
     return () => clearInterval(interval);
   }, [user]);
   return null;
