@@ -93,35 +93,36 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
     stateRef.current = { view, selectedAnime, episodes, currentEpisode, streamData, activeSourceIndex, roomState };
   }, [view, selectedAnime, episodes, currentEpisode, streamData, activeSourceIndex, roomState]);
 
+  // Función de sincronización movida fuera del useEffect para evitar condiciones de carrera
+  const syncCurrentState = useCallback(() => {
+    const s = stateRef.current;
+    if (!s.selectedAnime || !syncChannelRef.current) return;
+    syncChannelRef.current.httpSend({
+      type: 'broadcast',
+      event: 'anime_state',
+      payload: {
+        senderId: profile?.id || null,
+        view: s.view,
+        selectedAnime: s.selectedAnime,
+        episodes: s.episodes,
+        currentEpisode: s.currentEpisode,
+        streamData: s.streamData,
+        activeSourceIndex: s.activeSourceIndex,
+        roomState: s.roomState?.roomId
+          ? { roomId: s.roomState.roomId }
+          : s.currentEpisode && s.selectedAnime
+            ? { roomId: `anime-${s.selectedAnime.id?.slice(0, 8)}-${String(s.currentEpisode.number).padStart(3, '0')}` }
+            : null,
+      },
+    }).catch(() => {});
+  }, [profile?.id]);
+
   useEffect(() => {
     if (!roomName || !onClose) return undefined;
 
     const channelName = `anime-sync-${roomName.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-')}`;
     const channel = supabase.channel(channelName);
     syncChannelRef.current = channel;
-
-    const syncCurrentState = () => {
-      const s = stateRef.current;
-      if (!s.selectedAnime) return;
-      channel.httpSend({
-        type: 'broadcast',
-        event: 'anime_state',
-        payload: {
-          senderId: profile?.id || null,
-          view: s.view,
-          selectedAnime: s.selectedAnime,
-          episodes: s.episodes,
-          currentEpisode: s.currentEpisode,
-          streamData: s.streamData,
-          activeSourceIndex: s.activeSourceIndex,
-          roomState: s.roomState?.roomId
-            ? { roomId: s.roomState.roomId }
-            : s.currentEpisode && s.selectedAnime
-              ? { roomId: `anime-${s.selectedAnime.id?.slice(0, 8)}-${String(s.currentEpisode.number).padStart(3, '0')}` }
-              : null,
-        },
-      }).catch(() => {});
-    };
 
     channel
       .on('broadcast', { event: 'anime_state' }, async ({ payload }) => {
@@ -184,7 +185,7 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
       syncChannelRef.current = null;
       supabase.removeChannel(channel);
     };
-  }, [roomName, onClose, profile?.id, addGifOverlay, connectToWatchParty, clearRoomState]);
+  }, [roomName, onClose, profile?.id, addGifOverlay, connectToWatchParty, clearRoomState, syncCurrentState]);
 
   useEffect(() => {
     return () => {
