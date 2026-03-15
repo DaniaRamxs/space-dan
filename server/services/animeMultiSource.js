@@ -618,23 +618,23 @@ class AnimeMultiSource {
     const results = [];
     const seen = new Set();
 
-    $('article, .anime-item, .item').each((_, el) => {
-      const $item = $(el);
-      const $a = $item.find('a[href*="/anime/"]').first();
-      const $img = $item.find('img').first();
+    // Latanime structure: <div class="col-6 ..."><a href="https://latanime.org/anime/{slug}">
+    $('a[href*="/anime/"]').each((_, el) => {
+      const $a = $(el);
       const href = $a.attr('href') || '';
       const id = href.replace('https://latanime.org/anime/', '').replace('/anime/', '').replace(/^\//, '').replace(/\/$/, '');
+      const $img = $a.find('img').first();
       const title =
         $img.attr('alt') ||
-        $item.find('h3, .title').text().trim() ||
-        $a.attr('title') || '';
+        $a.find('h3').text().trim() ||
+        '';
 
       if (id && title && title.length > 1 && !seen.has(id)) {
         seen.add(id);
         results.push({
           id,
           title,
-          image: $img.attr('src') || $img.attr('data-src'),
+          image: $img.attr('data-src') || $img.attr('src'),
           type: 'TV',
           episodes: '?',
           quality: 'HD',
