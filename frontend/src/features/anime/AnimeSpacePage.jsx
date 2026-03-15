@@ -719,13 +719,20 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
   };
 
   const handlePlay = (currentTime) => {
-    if (!isHost) return;
+    console.log('[handlePlay] called', { isHost, currentTime });
+    if (!isHost) {
+      console.warn('[handlePlay] skip: not host');
+      return;
+    }
     updatePlayback({ playing: true, currentTime });
   };
 
   const handlePause = (currentTime) => {
+    console.log('[handlePause] called', { isHost, currentTime });
     if (isHost) {
       updatePlayback({ playing: false, currentTime });
+    } else {
+      console.warn('[handlePause] skip: not host');
     }
   };
 

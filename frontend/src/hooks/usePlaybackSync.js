@@ -188,9 +188,14 @@ export function usePlaybackSync({
     }, [colyseusRoom, profile?.id]);
 
     const updatePlayback = useCallback((updates) => {
+        console.log('[updatePlayback] called', { updates, hostId: playbackState.hostId, profileId: profile?.id });
+        
         // Only host can update state
         if (playbackState.hostId && playbackState.hostId !== profile?.id) {
-            console.warn('[PlaybackSync] Non-host attempted to modify state');
+            console.warn('[PlaybackSync] Non-host attempted to modify state', { 
+                playbackHostId: playbackState.hostId, 
+                profileId: profile?.id 
+            });
             return;
         }
 
@@ -200,6 +205,7 @@ export function usePlaybackSync({
             hostId: profile?.id || stateRef.current.hostId
         };
 
+        console.log('[updatePlayback] updating state', nextState);
         setPlaybackState(nextState);
         broadcastState(nextState);
     }, [playbackState.hostId, profile?.id, broadcastState]);
