@@ -141,6 +141,13 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
   // Keep isHostRef in sync (full isHost: Colyseus + presence)
   useEffect(() => { isHostRef.current = isHost; }, [isHost]);
 
+  // Initialize hostId in playbackState when user becomes host via presence
+  useEffect(() => {
+    if (presenceIsHost && playbackState?.hostId !== profile?.id) {
+      updatePlayback({ hostId: profile?.id });
+    }
+  }, [presenceIsHost, playbackState?.hostId, profile?.id, updatePlayback]);
+
   // Función de sincronización movida fuera del useEffect para evitar condiciones de carrera
   const syncCurrentState = useCallback(() => {
     const s = stateRef.current;
