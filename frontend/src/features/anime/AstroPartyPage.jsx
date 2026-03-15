@@ -233,7 +233,7 @@ const PollBar = ({ label, votes, total, onVote, hasVoted }) => {
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 
-const AstroPartyPage = ({ onClose, roomName }) => {
+const ScreenSharingPage = ({ onClose, roomName }) => {
   const { profile } = useAuthContext();
 
   // ── Views & steps ────────────────────────────────────────────────────────────
@@ -498,7 +498,7 @@ const AstroPartyPage = ({ onClose, roomName }) => {
 
   const handleScreenRequest = useCallback(async ({ fromId, fromUsername }) => {
     if (!isHostRef.current || !localStreamRef.current) return;
-    console.log('[AstroParty] screen_request from', fromUsername);
+    console.log('[Screen Sharing] screen_request from', fromUsername);
 
     const pc = new RTCPeerConnection(buildPcConfig());
     pcRef.current[fromId] = pc;
@@ -527,7 +527,7 @@ const AstroPartyPage = ({ onClose, roomName }) => {
 
   const handleScreenOffer = useCallback(async ({ fromId, toId, sdp, type: sdpType }) => {
     if (isHostRef.current || toId !== profileRef.current?.id) return;
-    console.log('[AstroParty] screen_offer received from host');
+    console.log('[Screen Sharing] screen_offer received from host');
 
     setWebrtcStatus('connecting');
     const pc = new RTCPeerConnection(buildPcConfig());
@@ -650,7 +650,7 @@ const AstroPartyPage = ({ onClose, roomName }) => {
     try {
       await pc.addIceCandidate(new RTCIceCandidate(candidate));
     } catch (err) {
-      console.warn('[AstroParty] ICE error:', err);
+      console.warn('[Screen Sharing] ICE error:', err);
     }
   }, []);
 
@@ -935,8 +935,8 @@ const AstroPartyPage = ({ onClose, roomName }) => {
     setSyncState('idle');
     setMyStatus('idle');
     setMessages([]);
-    setRoomStep('content');
-    setContentMode(null);
+    setRoomStep('screenshare');
+    setContentMode('screenshare');
     setVideoUrl('');
     setScreenStream(null);
     setRemoteStream(null);
@@ -1270,7 +1270,7 @@ const AstroPartyPage = ({ onClose, roomName }) => {
               <Rocket size={24} className="text-white" />
             </motion.div>
             <div className="text-center">
-              <h1 className="text-white font-black text-3xl tracking-tight leading-none">AstroParty</h1>
+              <h1 className="text-white font-black text-3xl tracking-tight leading-none">Screen Sharing</h1>
               <p className="text-white/30 text-xs tracking-widest uppercase mt-1">Watch Together</p>
             </div>
           </div>
@@ -1356,7 +1356,7 @@ const AstroPartyPage = ({ onClose, roomName }) => {
         <div className="w-6 h-6 rounded-md bg-violet-600 flex items-center justify-center shadow-[0_0_10px_rgba(124,58,237,0.5)]">
           <Rocket size={12} className="text-white" />
         </div>
-        <span className="text-white font-black text-sm tracking-tight">AstroParty</span>
+        <span className="text-white font-black text-sm tracking-tight">Screen Sharing</span>
         {roomName && <span className="text-white/30 text-xs hidden sm:inline">— {roomName}</span>}
       </div>
 
@@ -2253,8 +2253,6 @@ const AstroPartyPage = ({ onClose, roomName }) => {
             <AnimatePresence mode="wait">
               {isHost ? (
                 <React.Fragment key="host-steps">
-                  {roomStep === 'content'     && <StepContent />}
-                  {roomStep === 'videolink'   && <StepVideoLink />}
                   {roomStep === 'screenshare' && <StepScreenShare />}
                 </React.Fragment>
               ) : (
@@ -2325,4 +2323,4 @@ const AstroPartyPage = ({ onClose, roomName }) => {
   );
 };
 
-export default memo(AstroPartyPage);
+export default memo(ScreenSharingPage);
