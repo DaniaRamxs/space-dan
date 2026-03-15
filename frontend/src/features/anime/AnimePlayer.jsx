@@ -53,6 +53,9 @@ const AnimePlayer = ({
   const videoRef = useRef(null);
   const hlsRef = useRef(null);
   const controlsTimeout = useRef(null);
+  // Prevents the DOM play/pause events from bubbling back to the parent
+  // while we're applying an external (sync) state update.
+  const applyingExternalRef = useRef(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
@@ -61,19 +64,7 @@ const AnimePlayer = ({
   const [showControls, setShowControls] = useState(true);
 
   const src = source?.url;
-  const sourceFormat = source?.format || source?.sourceType || 'hls';
-  
-  // Force HLS native - NO embed fallbacks
-  const videoSrc = src; // Direct HLS URL
-  
-  // Debug: Log URL extraction attempts
-  console.log('[AnimePlayer] Native HLS mode:', {
-    originalFormat: sourceFormat,
-    originalSrc: src?.substring(0, 100) + '...',
-    videoSrc: videoSrc?.substring(0, 100) + '...',
-    server: source?.server,
-    format: 'hls'
-  });
+  const videoSrc = src;
 
   useEffect(() => {
     if (!src) {
@@ -126,16 +117,17 @@ const AnimePlayer = ({
 
   useEffect(() => {
     if (!videoRef.current || isHost) return;
+    applyingExternalRef.current = true;
     if (externalState.playing !== undefined) {
       if (externalState.playing) videoRef.current.play().catch(() => {});
       else videoRef.current.pause();
     }
     if (externalState.currentTime !== undefined) {
       const diff = Math.abs(videoRef.current.currentTime - externalState.currentTime);
-      if (diff > 3) {
-        videoRef.current.currentTime = externalState.currentTime;
-      }
+      if (diff > 3) videoRef.current.currentTime = externalState.currentTime;
     }
+    // Reset flag after microtask so DOM events fired synchronously are swallowed
+    Promise.resolve().then(() => { applyingExternalRef.current = false; });
   }, [externalState, isHost]);
 
   const autoHideControls = () => {
@@ -147,17 +139,14 @@ const AnimePlayer = ({
   };
 
   const handlePlayPause = () => {
-    if (!videoRef.current) return;
-    if (!isHost) {
-      // Mostrar indicación de que solo el host puede controlar
-      return;
-    }
+    if (!videoRef.current || !isHost) return;
+    // Only touch the video element — the DOM onPlay/onPause events will
+    // propagate to the parent. Calling onPlay/onPause here too would cause
+    // a double-trigger (once from DOM event, once explicit).
     if (videoRef.current.paused) {
-      videoRef.current.play();
-      if (onPlay) onPlay(videoRef.current.currentTime);
+      videoRef.current.play().catch(() => {});
     } else {
       videoRef.current.pause();
-      if (onPause) onPause(videoRef.current.currentTime);
     }
   };
 
@@ -210,11 +199,11 @@ const AnimePlayer = ({
           onLoadedMetadata={() => setDuration(videoRef.current.duration)}
           onPlay={(e) => {
             setIsPlaying(true);
-            onPlay?.(e.target.currentTime);
+            if (!applyingExternalRef.current) onPlay?.(e.target.currentTime);
           }}
           onPause={(e) => {
             setIsPlaying(false);
-            onPause?.(e.target.currentTime);
+            if (!applyingExternalRef.current) onPause?.(e.target.currentTime);
           }}
           onClick={handlePlayPause}
           onWaiting={() => onBuffering?.(true)}
