@@ -807,11 +807,12 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
 
   // Sincronizar videoId cuando cambia el episodio (solo una vez por episodio)
   useEffect(() => {
-    if (!isHost || !currentEpisode) return;
-    if (currentEpisode.id === lastSyncedEpisodeIdRef.current) return;
-    lastSyncedEpisodeIdRef.current = currentEpisode.id;
-    updatePlayback({ videoId: currentEpisode.id, playing: true, currentTime: 0 });
-  }, [currentEpisode?.id, currentEpisode, isHost, updatePlayback]);
+    const epId = currentEpisode?.id;
+    if (!isHost || !epId) return;
+    if (epId === lastSyncedEpisodeIdRef.current) return;
+    lastSyncedEpisodeIdRef.current = epId;
+    updatePlayback({ videoId: epId, playing: true, currentTime: 0 });
+  }, [currentEpisode?.id, isHost, updatePlayback]);
 
   useEffect(() => {
     if (view !== 'player' || !streamData || !selectedAnime || !currentEpisode) return;

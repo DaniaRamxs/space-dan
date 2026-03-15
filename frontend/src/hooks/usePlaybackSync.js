@@ -32,16 +32,13 @@ export function usePlaybackSync({
     const stateRef = useRef(playbackState);
     const syncChannelRef = useRef(null); // canal suscrito para reusar en broadcastState
 
-    const handleRemoteState = (remoteState) => {
+    const handleRemoteState = useCallback((remoteState) => {
         if (!remoteState) return;
-        
-        // Prevent feedback loops
+
         setIsApplyingRemote(true);
-        
+
         setPlaybackState(prev => {
-            // Only update if the incoming state is newer or vital
             if (remoteState.lastUpdate < prev.lastUpdate && remoteState.videoId === prev.videoId) {
-                setIsApplyingRemote(false);
                 return prev;
             }
             return { ...prev, ...remoteState };
@@ -51,11 +48,10 @@ export function usePlaybackSync({
             onStateUpdate(remoteState);
         }
 
-        // Reset the flag after a tick to allow the player to react
         setTimeout(() => {
             setIsApplyingRemote(false);
         }, 50);
-    };
+    }, [onStateUpdate]);
 
     const broadcastState = useCallback((nextState) => {
         const payload = {
@@ -188,27 +184,24 @@ export function usePlaybackSync({
     }, [colyseusRoom, profile?.id]);
 
     const updatePlayback = useCallback((updates) => {
-        console.log('[updatePlayback] called', { updates, hostId: playbackState.hostId, profileId: profile?.id });
-        
-        // Only host can update state
-        if (playbackState.hostId && playbackState.hostId !== profile?.id) {
-            console.warn('[PlaybackSync] Non-host attempted to modify state', { 
-                playbackHostId: playbackState.hostId, 
-                profileId: profile?.id 
-            });
+        // Use stateRef (not playbackState) so this callback is stable across renders.
+        // If we used playbackState.hostId in deps, updatePlayback would be recreated
+        // on every setPlaybackState call, causing cascading useEffect re-runs in consumers.
+        const currentHostId = stateRef.current.hostId;
+        if (currentHostId && currentHostId !== profile?.id) {
+            console.warn('[PlaybackSync] Non-host attempted to modify state');
             return;
         }
 
         const nextState = {
             ...stateRef.current,
             ...updates,
-            hostId: profile?.id || stateRef.current.hostId
+            hostId: profile?.id || currentHostId
         };
 
-        console.log('[updatePlayback] updating state', nextState);
         setPlaybackState(nextState);
         broadcastState(nextState);
-    }, [playbackState.hostId, profile?.id, broadcastState]);
+    }, [profile?.id, broadcastState]);
 
     return {
         playbackState,
