@@ -6,6 +6,7 @@
  *  1. AnimeFLV   — https://www3.animeflv.net  (SUB español + LAT doblaje)
  *  2. TioAnime   — https://tioanime.com        (SUB español, limpio y rápido)
  *  3. Jkanime    — https://jkanime.net          (SUB/DUB español)
+ *  4. AnimeFenix — https://www3.animefenix.tv  (SUB/DUB español, uses VOE/Mp4Upload)
  *
  * Source extraction:
  *  AnimeFLV stores video server data in a `var videos = [...]` JS variable.
@@ -119,6 +120,12 @@ class AnimeMultiSource {
         priority: 3,
         features: ['doblado español', 'subtitulado español', 'HD'],
       },
+      {
+        name: 'AnimeFenix',
+        baseUrl: 'https://www3.animefenix.tv',
+        priority: 1, // High priority — uses VOE/Mp4Upload which are extractable
+        features: ['doblado español', 'subtitulado español', 'HD', 'voe', 'mp4upload'],
+      },
     ];
   }
 
@@ -147,6 +154,7 @@ class AnimeMultiSource {
       case 'AnimeFLV': return this.searchAnimeFLV(query);
       case 'TioAnime': return this.searchTioAnime(query);
       case 'Jkanime': return this.searchJkanime(query);
+      case 'AnimeFenix': return this.searchAnimeFenix(query);
       default: return [];
     }
   }
@@ -173,6 +181,20 @@ class AnimeMultiSource {
       provider: 'tioanime',
       source: 'TioAnime',
       hasDub: false,
+      hasSub: true,
+    }));
+  }
+
+  // ── AnimeFenix search ────────────────────────────────────────────────────────
+  async searchAnimeFenix(query) {
+    const fenix = this.sources.find((s) => s.name === 'AnimeFenix');
+    const url = `${fenix.baseUrl}/animes?q=${encodeURIComponent(query)}`;
+    const html = (await get(url, { Referer: fenix.baseUrl + '/' })).data;
+    return this._parseAnimeFenixList(html).map((a) => ({
+      ...a,
+      provider: 'animefenix',
+      source: 'AnimeFenix',
+      hasDub: true,
       hasSub: true,
     }));
   }
@@ -240,6 +262,7 @@ class AnimeMultiSource {
       case 'AnimeFLV': return this.getAnimeFLVDirectory();
       case 'TioAnime': return this.getTioAnimeDirectory();
       case 'Jkanime': return this.getJkanimeDirectory();
+      case 'AnimeFenix': return this.getAnimeFenixDirectory();
       default: return [];
     }
   }
@@ -274,6 +297,16 @@ class AnimeMultiSource {
     );
   }
 
+  async getAnimeFenixDirectory() {
+    const fenix = this.sources.find((s) => s.name === 'AnimeFenix');
+    return this._fetchPaginatedDirectory(
+      (page) => `${fenix.baseUrl}/animes?page=${page}`,
+      (html) => this._parseAnimeFenixList(html),
+      (a) => ({ ...a, provider: 'animefenix', source: 'AnimeFenix', hasDub: true, hasSub: true }),
+      8
+    );
+  }
+
   // ── Anime info + episodes ───────────────────────────────────────────────────
 
   async getAnimeInfo(animeId, provider) {
@@ -282,6 +315,7 @@ class AnimeMultiSource {
       case 'animeflv': return this.getAnimeFLVInfo(animeId);
       case 'tioanime': return this.getTioAnimeInfo(animeId);
       case 'jkanime': return this.getJkanimeInfo(animeId);
+      case 'animefenix': return this.getAnimeFenixInfo(animeId);
       default: throw new Error(`Provider "${provider}" not supported`);
     }
   }
@@ -407,6 +441,7 @@ class AnimeMultiSource {
       case 'animeflv': return this.getAnimeFLVSources(episodeId);
       case 'tioanime': return this.getTioAnimeSources(episodeId);
       case 'jkanime': return this.getJkanimeSources(episodeId);
+      case 'animefenix': return this.getAnimeFenixSources(episodeId);
       default: throw new Error(`Provider "${provider}" not supported`);
     }
   }
@@ -522,7 +557,131 @@ class AnimeMultiSource {
     }
   }
 
+  // ── AnimeFenix info + sources ────────────────────────────────────────────────
+
+  async getAnimeFenixInfo(animeId) {
+    const fenix = this.sources.find((s) => s.name === 'AnimeFenix');
+    const url = `${fenix.baseUrl}/anime/${animeId}`;
+    const html = (await get(url, { Referer: fenix.baseUrl + '/' })).data;
+    const $ = cheerio.load(html);
+
+    const title =
+      $('h1.anime-title, h1.Title, h1').first().text().trim() ||
+      $('title').text().split('|')[0].trim() ||
+      animeId;
+
+    const image =
+      $('.cover img, .anime-cover img, .poster img, .thumb img').first().attr('src') ||
+      $('img[alt]').first().attr('src');
+
+    const description =
+      $('.sinopsis p, .description p, .synopsis p').first().text().trim() || 'Sin descripción';
+
+    const episodes = [];
+    // AnimeFenix episode list: links like /ver/{slug}-{N}
+    $('ul.episode-list li a, .episodes-list a, .list-eps a, a[href*="/ver/"]').each((i, el) => {
+      const href = $(el).attr('href') || '';
+      const slug = href.replace('/ver/', '').replace(/^\//, '');
+      const numMatch = slug.match(/[\-_](\d+)$/);
+      const num = numMatch ? parseInt(numMatch[1]) : i + 1;
+      if (slug && !episodes.find((e) => e.number === num)) {
+        episodes.push({ id: slug, number: num, title: `Episodio ${num}`, provider: 'animefenix' });
+      }
+    });
+    episodes.sort((a, b) => a.number - b.number);
+
+    return {
+      id: animeId,
+      title,
+      image,
+      description,
+      episodes,
+      type: 'TV',
+      hasDub: true,
+      hasSub: true,
+      provider: 'animefenix',
+    };
+  }
+
+  async getAnimeFenixSources(episodeId) {
+    const fenix = this.sources.find((s) => s.name === 'AnimeFenix');
+    const referer = fenix.baseUrl + '/';
+    try {
+      const url = `${fenix.baseUrl}/ver/${episodeId}`;
+      const html = (await get(url, { Referer: referer })).data;
+
+      const videosData = parseVideosVar(html);
+      if (videosData) {
+        const entries = normalizeVideosVar(videosData);
+        console.log(
+          `[AnimeFenix] Found ${entries.length} server entries:`,
+          entries.map((e) => `${e.type}:${e.server}`).join(', ')
+        );
+        const sources = await resolveEntries(entries, referer);
+        if (sources.length > 0) return sources;
+      }
+
+      // AnimeFenix sometimes puts sources in a different var
+      const $ = cheerio.load(html);
+      const entries = [];
+      $('script').each((_, el) => {
+        const src = $(el).html() || '';
+        // Match server array: ["serverName", "url"] pairs
+        const matches = [...src.matchAll(/\[\s*["']([^"']+)["']\s*,\s*["'](https?[^"']+)["']\s*\]/g)];
+        for (const m of matches) {
+          entries.push({ type: 'SUB', server: m[1].toLowerCase(), url: m[2] });
+        }
+      });
+
+      if (entries.length > 0) {
+        console.log(`[AnimeFenix] Script-parsed ${entries.length} entries`);
+        const sources = await resolveEntries(entries, referer);
+        if (sources.length > 0) return sources;
+      }
+
+      console.warn('[AnimeFenix] All extractions failed — using demo');
+      return [DEMO_SOURCE];
+    } catch (err) {
+      console.error('[AnimeFenix] getAnimeFenixSources error:', err.message);
+      return [DEMO_SOURCE];
+    }
+  }
+
   // ── HTML parsers ────────────────────────────────────────────────────────────
+
+  _parseAnimeFenixList(html) {
+    const $ = cheerio.load(html);
+    const results = [];
+    const seen = new Set();
+
+    // AnimeFenix anime cards: .grid-animes article, .anime-item, .list-item
+    $('.grid-animes article, .anime-item, .list-item, ul.animes li').each((_, el) => {
+      const $item = $(el);
+      const $a = $item.find('a[href*="/anime/"]').first();
+      const $img = $item.find('img').first();
+      const href = $a.attr('href') || '';
+      const id = href.replace('/anime/', '').replace(/^\//, '').replace(/\/$/, '');
+      const title =
+        $img.attr('alt') ||
+        $item.find('h3, .title, .anime-title').text().trim() ||
+        $a.attr('title') || '';
+
+      if (id && title && title.length > 1 && !seen.has(id)) {
+        seen.add(id);
+        results.push({
+          id,
+          title,
+          image: $img.attr('src') || $img.attr('data-src'),
+          type: $item.find('.type, .badge').text().trim() || 'TV',
+          episodes: '?',
+          quality: 'HD',
+          format: 'hls',
+        });
+      }
+    });
+
+    return results;
+  }
 
   _parseAnimeFLVList(html) {
     const $ = cheerio.load(html);

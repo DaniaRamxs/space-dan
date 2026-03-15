@@ -40,16 +40,18 @@ function cacheSet(key, result) {
 const SERVER_META = {
   okru:        { priority: 1, qualityHint: '1080p' },
   ok:          { priority: 1, qualityHint: '1080p' },
-  streamwish:  { priority: 2, qualityHint: '720p'  },
-  sw:          { priority: 2, qualityHint: '720p'  },
-  filelions:   { priority: 2, qualityHint: '720p'  },
-  streamhide:  { priority: 2, qualityHint: '720p'  },
-  yourupload:  { priority: 3, qualityHint: '720p'  },
+  voe:         { priority: 2, qualityHint: '1080p' },
+  filemoon:    { priority: 2, qualityHint: '1080p' },
   mp4upload:   { priority: 3, qualityHint: '720p'  },
-  streamtape:  { priority: 4, qualityHint: '480p'  },
-  tape:        { priority: 4, qualityHint: '480p'  },
-  doodstream:  { priority: 5, qualityHint: '480p'  },
-  dood:        { priority: 5, qualityHint: '480p'  },
+  yourupload:  { priority: 3, qualityHint: '720p'  },
+  streamwish:  { priority: 4, qualityHint: '720p'  },
+  sw:          { priority: 4, qualityHint: '720p'  },
+  filelions:   { priority: 4, qualityHint: '720p'  },
+  streamhide:  { priority: 4, qualityHint: '720p'  },
+  streamtape:  { priority: 5, qualityHint: '480p'  },
+  tape:        { priority: 5, qualityHint: '480p'  },
+  doodstream:  { priority: 6, qualityHint: '480p'  },
+  dood:        { priority: 6, qualityHint: '480p'  },
   generic:     { priority: 10, qualityHint: 'HD'   },
 };
 
@@ -84,7 +86,7 @@ function buildSource(directUrl, serverName, extra = {}) {
 }
 
 // ── 3. Timeouts via AbortController ───────────────────────────────────────────
-const EXTRACTOR_TIMEOUT = 4000; // ms per embed fetch
+const EXTRACTOR_TIMEOUT = 10000; // ms per embed fetch
 
 const UA =
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36';
@@ -106,22 +108,35 @@ function httpGet(url, headers = {}, timeoutMs = EXTRACTOR_TIMEOUT) {
 const ALLOWED_HOSTS = new Set([
   'ok.ru',
   'www.ok.ru',
+  // VOE — reliable HLS, used by AnimeFenix/TioAnime
+  'voe.sx',
+  'www.voe.sx',
+  // Filemoon — HLS, widely used by Spanish sites
+  'filemoon.sx',
+  'filemoon.to',
+  'moon.to',
+  // Mp4Upload — MP4 direct link in page
+  'mp4upload.com',
+  'www.mp4upload.com',
+  // Yourupload
   'yourupload.com',
   'www.yourupload.com',
+  // StreamWish family
   'streamwish.to',
   'streamwish.com',
   'filelions.to',
   'filelions.com',
   'streamhide.to',
   'streamhide.com',
+  // Streamtape
   'streamtape.com',
   'streamtape.net',
+  // Doodstream family
   'dood.to',
   'dood.la',
   'dood.cx',
   'doodstream.com',
-  'mp4upload.com',
-  'www.mp4upload.com',
+  // Misc
   'uqload.co',
   'uqload.com',
   'sendvid.com',
@@ -264,6 +279,68 @@ export async function extractDoodstream(embedUrl) {
   return null;
 }
 
+export async function extractVoe(embedUrl, referer = 'https://animefenix.tv/') {
+  try {
+    const resp = await httpGet(embedUrl, { Referer: referer });
+    const html = resp.data;
+
+    // VOE stores the HLS URL as a JS variable: 'hls': 'https://...'
+    const m1 = html.match(/'hls'\s*:\s*'([^']+\.m3u8[^']*)'/i);
+    if (m1) { console.log('[extractor] voe #1 OK'); return m1[1]; }
+    const m2 = html.match(/"hls"\s*:\s*"([^"]+\.m3u8[^"]*)"/i);
+    if (m2) { console.log('[extractor] voe #2 OK'); return m2[1]; }
+    // Newer VOE: sources array with file key
+    const m3 = html.match(/file\s*:\s*['"]([^'"]+\.m3u8[^'"]*)['"]/i);
+    if (m3) { console.log('[extractor] voe #3 OK'); return m3[1]; }
+    // Fallback: any .m3u8 in page
+    const m4 = html.match(/https?:\/\/[^\s"'\\]+\.m3u8[^\s"'\\]*/);
+    if (m4) { console.log('[extractor] voe #4 OK'); return m4[0]; }
+
+    console.warn('[extractor] voe: no HLS found');
+  } catch (err) {
+    console.warn('[extractor] VOE failed:', err.code === 'ERR_CANCELED' ? 'timeout' : err.message);
+  }
+  return null;
+}
+
+export async function extractFilemoon(embedUrl, referer = 'https://animefenix.tv/') {
+  try {
+    const resp = await httpGet(embedUrl, { Referer: referer });
+    const html = resp.data;
+    // Filemoon uses eval(atob(…)) but sometimes leaks the URL
+    const m1 = html.match(/sources\s*:\s*\[\s*\{[^}]*file\s*:\s*['"]([^'"]+\.m3u8[^'"]*)['"]/i);
+    if (m1) { console.log('[extractor] filemoon #1 OK'); return m1[1]; }
+    const m2 = html.match(/file\s*:\s*['"]([^'"]+\.m3u8[^'"]*)['"]/i);
+    if (m2) { console.log('[extractor] filemoon #2 OK'); return m2[1]; }
+    const m3 = html.match(/https?:\/\/[^\s"'\\]+\.m3u8[^\s"'\\]*/);
+    if (m3) { console.log('[extractor] filemoon #3 OK'); return m3[0]; }
+  } catch (err) {
+    console.warn('[extractor] Filemoon failed:', err.code === 'ERR_CANCELED' ? 'timeout' : err.message);
+  }
+  return null;
+}
+
+export async function extractMp4upload(embedUrl, referer = 'https://animefenix.tv/') {
+  try {
+    const resp = await httpGet(embedUrl, {
+      Referer: referer,
+      'sec-fetch-dest': 'iframe',
+    });
+    const html = resp.data;
+    // Mp4upload stores video in a jwplayer config or <source> tag
+    const m1 = html.match(/["']file["']\s*:\s*["']([^"']+\.mp4[^"']*)/i);
+    if (m1) { console.log('[extractor] mp4upload #1 OK'); return m1[1]; }
+    const m2 = html.match(/<source[^>]+src=["']([^"']+\.mp4[^"']*)/i);
+    if (m2) { console.log('[extractor] mp4upload #2 OK'); return m2[1]; }
+    // Sometimes has .m3u8
+    const m3 = html.match(/["']file["']\s*:\s*["']([^"']+\.m3u8[^"']*)/i);
+    if (m3) { console.log('[extractor] mp4upload #3 OK'); return m3[1]; }
+  } catch (err) {
+    console.warn('[extractor] Mp4upload failed:', err.code === 'ERR_CANCELED' ? 'timeout' : err.message);
+  }
+  return null;
+}
+
 async function extractGeneric(embedUrl, referer) {
   try {
     const resp = await httpGet(embedUrl, { Referer: referer });
@@ -318,6 +395,12 @@ export async function extractEmbedUrl(serverName, embedUrl, referer = 'https://w
 
   if (server === 'okru' || server === 'ok' || full.includes('ok.ru')) {
     result = await extractOkru(full, referer);
+  } else if (server === 'voe' || full.includes('voe.sx')) {
+    result = await extractVoe(full, referer);
+  } else if (server === 'filemoon' || full.includes('filemoon')) {
+    result = await extractFilemoon(full, referer);
+  } else if (server === 'mp4upload' || full.includes('mp4upload.com')) {
+    result = await extractMp4upload(full, referer);
   } else if (server === 'yourupload' || full.includes('yourupload.com')) {
     result = await extractYourupload(full, referer);
   } else if (
