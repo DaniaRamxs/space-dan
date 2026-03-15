@@ -214,36 +214,6 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
     syncCurrentState();
   }, [isSyncedHost, onClose, syncCurrentState]);
 
-  // ── Conexión al lobby de Colyseus al entrar en modo watch party ──────────────
-  // Igual que WatchTogether: el primero en llegar es host (server-side, por orden de llegada)
-  useEffect(() => {
-    if (!onClose || !roomName || !profile?.id || room || currentEpisode) return;
-
-    let cancelled = false;
-    const connectLobby = async () => {
-      try {
-        const joinedRoom = await joinOrCreateRoom('live_activity', {
-          instanceId: roomName,
-          userId: profile?.id,
-          username: profile?.username || 'Anon',
-          avatar: profile?.avatar_url,
-          activityType: 'anime',
-          activityId: `anime-lobby-${roomName}`,
-        });
-        if (cancelled) {
-          joinedRoom.leave(true).catch(() => {});
-          return;
-        }
-        colyseusRoomIdRef.current = joinedRoom.roomId;
-        setRoom(joinedRoom);
-      } catch (err) {
-        console.warn('[AnimeSpace] Lobby Colyseus connect failed:', err);
-      }
-    };
-    connectLobby();
-    return () => { cancelled = true; };
-  }, [onClose, roomName, profile?.id, profile?.username, profile?.avatar_url, room, currentEpisode]);
-
   useEffect(() => {
     if (!roomName || !onClose) return undefined;
 
@@ -336,6 +306,7 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
       leavingRoomRef.current = true;
       room.leave(true).catch(() => {});
     }
+    roomRef.current = null; // limpiar ref inmediatamente para que connectToWatchParty no lo vea
     clearRoomState();
     setChatMessages([]);
   };
@@ -362,6 +333,11 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
 
     // Colyseus 0.16: onMessage returns an unsubscribe function
     const unsubChat = room.onMessage('chat', chatHandler);
+    room.onMessage('user_joined', () => {});
+    room.onMessage('user_left', () => {});
+    room.onMessage('host_changed', ({ newHostUsername }) => {
+      console.log(`[AnimeSpace] Host changed to: ${newHostUsername}`);
+    });
 
     // Colyseus 0.16: onStateChange returns an EventEmitter { clear(), remove() }
     const stateEmitter = room.onStateChange((state) => {
