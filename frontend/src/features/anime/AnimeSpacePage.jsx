@@ -203,19 +203,6 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
     setChatMessages([]);
   };
 
-  const broadcastAnimeState = useCallback((payload) => {
-    if (!syncChannelRef.current || applyingRemoteStateRef.current || !onClose) return;
-
-    syncChannelRef.current.httpSend({
-      type: 'broadcast',
-      event: 'anime_state',
-      payload: {
-        senderId: profile?.id || null,
-        ...payload,
-      },
-    }).catch(() => {});
-  }, [onClose, profile?.id]);
-
   const connectToWatchParty = useCallback(async ({ anime, episode, roomId, announceActivity }) => {
     let activityId = null;
 
@@ -264,6 +251,19 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
       }
     }
   }, [roomName, profile?.id, profile?.username, profile?.avatar_url]);
+
+  const broadcastAnimeState = useCallback((payload) => {
+    if (!syncChannelRef.current || applyingRemoteStateRef.current || !onClose) return;
+
+    syncChannelRef.current.httpSend({
+      type: 'broadcast',
+      event: 'anime_state',
+      payload: {
+        senderId: profile?.id || null,
+        ...payload,
+      },
+    }).catch(() => {});
+  }, [onClose, profile?.id]);
 
   useEffect(() => {
     if (!room) return;
