@@ -15,12 +15,6 @@ const proxyUrl = (url) => {
     return url;
   }
 
-  // mp4upload CDN usa puerto 183 — Railway no puede conectar a puertos no-estándar.
-  // El token es para el browser, igual que en el embed normal.
-  if (url.includes('mp4upload.com') && url.includes('/d/')) {
-    return url;
-  }
-
   return `${API_URL}/api/anime/proxy?url=${encodeURIComponent(url)}`;
 };
 

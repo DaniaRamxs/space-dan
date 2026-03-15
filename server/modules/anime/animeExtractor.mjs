@@ -361,13 +361,22 @@ export async function extractMp4upload(embedUrl, referer = 'https://animefenix.t
     });
     const html = resp.data;
 
+    // Strip non-standard ports (e.g. :183) so Railway/proxy can reach via HTTPS 443
+    const stripPort = (url) => {
+      try {
+        const u = new URL(url);
+        if (u.port && u.port !== '80' && u.port !== '443') { u.port = ''; return u.toString(); }
+      } catch (_) {}
+      return url;
+    };
+
     // Mp4upload uses VideoJS: player.src({ type:"video/mp4", src:"https://aN.mp4upload.com:PORT/d/.../video.mp4" })
     const m1 = html.match(/src\s*:\s*["'](https?:\/\/[a-z0-9]+\.mp4upload\.com[^"']+\.mp4[^"']*)/i);
-    if (m1) { console.log('[extractor] mp4upload #1 (videojs src) OK'); return m1[1]; }
+    if (m1) { console.log('[extractor] mp4upload #1 (videojs src) OK'); return stripPort(m1[1]); }
 
     // Fallback: any *.mp4upload.com direct URL with video path
     const m2 = html.match(/https?:\/\/[a-z0-9]+\.mp4upload\.com[^\s"'\\]+\.mp4[^\s"'\\]*/i);
-    if (m2) { console.log('[extractor] mp4upload #2 (cdn url) OK'); return m2[0]; }
+    if (m2) { console.log('[extractor] mp4upload #2 (cdn url) OK'); return stripPort(m2[0]); }
 
     // jwplayer "file" key (older pages)
     const m3 = html.match(/["']file["']\s*:\s*["']([^"']+\.mp4[^"']*)/i);
