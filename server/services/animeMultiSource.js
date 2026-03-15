@@ -5,22 +5,22 @@ class AnimeMultiSource {
   constructor() {
     this.sources = [
       {
-        name: 'AnimeFLV',
-        baseUrl: 'https://www3.animeflv.net',
-        priority: 1,
-        features: ['doblado', 'subtitulado', 'HD']
-      },
-      {
         name: 'Jkanime',
         baseUrl: 'https://jkanime.net',
-        priority: 2,
+        priority: 1,
         features: ['doblado', 'HD']
       },
       {
-        name: 'TioAnime',
+        name: 'TioAnime', 
         baseUrl: 'https://tioanime.com',
-        priority: 3,
+        priority: 2,
         features: ['doblado', 'subtitulado']
+      },
+      {
+        name: 'AnimeFLV',
+        baseUrl: 'https://www3.animeflv.net',
+        priority: 3,
+        features: ['doblado', 'subtitulado', 'HD']
       }
     ];
   }
@@ -47,12 +47,12 @@ class AnimeMultiSource {
 
   async searchInSource(source, query) {
     switch (source.name) {
-      case 'AnimeFLV':
-        return await this.searchAnimeFLV(query);
       case 'Jkanime':
         return await this.searchJkanime(query);
       case 'TioAnime':
         return await this.searchTioAnime(query);
+      case 'AnimeFLV':
+        return await this.searchAnimeFLV(query);
       default:
         return [];
     }
@@ -61,7 +61,7 @@ class AnimeMultiSource {
   // AnimeFLV - API directa
   async searchAnimeFLV(query) {
     try {
-      const response = await axios.get(`${this.sources[0].baseUrl}/api/search?q=${encodeURIComponent(query)}`, {
+      const response = await axios.get(`${this.sources[2].baseUrl}/api/search?q=${encodeURIComponent(query)}`, {
         timeout: 5000,
         headers: {
           'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
