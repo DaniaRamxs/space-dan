@@ -195,8 +195,14 @@ const AnimePlayer = ({
               className="absolute inset-0 h-full w-full object-contain"
               onTimeUpdate={handleTimeUpdate}
               onLoadedMetadata={() => setDuration(videoRef.current.duration)}
-              onPlay={() => setIsPlaying(true)}
-              onPause={() => setIsPlaying(false)}
+              onPlay={(e) => {
+                setIsPlaying(true);
+                onPlay?.(e.target.currentTime);
+              }}
+              onPause={(e) => {
+                setIsPlaying(false);
+                onPause?.(e.target.currentTime);
+              }}
               onClick={handlePlayPause}
               onWaiting={() => onBuffering?.(true)}
               onCanPlay={() => onBuffering?.(false)}
