@@ -1,7 +1,5 @@
 import React, { useEffect, useRef, useState, useMemo, useCallback } from 'react';
 import { Radio, Users, MessageSquare, ChevronLeft, Tv, Send, Crown } from 'lucide-react';
-import YouTubeSearchModal from '@/components/Social/YouTubeSearchModal';
-import GifPickerModal from '@/components/reactions/GifPickerModal';
 import { toast } from 'sonner';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { usePlaybackSync } from '@/hooks/usePlaybackSync';
@@ -41,6 +39,10 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
   const roomRef = useRef(null);
   const connectToWatchPartyRef = useRef(null);
   const colyseusRoomIdRef = useRef(null);
+  const lastSyncedSecondRef = useRef(-1);
+  const lastSyncedEpisodeIdRef = useRef(null);
+  const animeSelectAbortRef = useRef(null);
+  const episodeSelectAbortRef = useRef(null);
 
   // ── 4. Service hooks (depend on state/refs above) ─────────────────────────
   const { 
@@ -82,6 +84,7 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
     setRoom(null);
     setRoomState(null);
     setParticipants([]);
+    colyseusRoomIdRef.current = null;
   }, []);
 
   useEffect(() => {
@@ -241,13 +244,12 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
         }, 0);
       })
       .on('broadcast', { event: 'chat_message' }, ({ payload }) => {
-        // GIFs from others: show via central engine
         if (payload.type === "gif" && payload.userId !== profile?.id) {
-            addGifOverlay(payload.gifUrl);
+          addGifOverlay(payload.gifUrl);
         }
-
-        if (payload.userId !== profile?.id) {
-            setChatMessages(prev => [...prev.slice(-50), payload]);
+        // Solo procesar via Supabase si no estamos en Colyseus (evita duplicados)
+        if (payload.userId !== profile?.id && !roomRef.current?.connection?.isOpen) {
+          setChatMessages(prev => [...prev.slice(-50), payload]);
         }
       })
       .on('broadcast', { event: 'anime_sync_req' }, ({ payload }) => {
@@ -304,7 +306,7 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
     if (!room) return;
 
     const chatHandler = (message) => {
-      setChatMessages((prev) => [...prev, message]);
+      setChatMessages((prev) => [...prev.slice(-49), message]);
     };
 
     // Colyseus 0.16: onMessage returns an unsubscribe function
@@ -314,7 +316,7 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
     const stateEmitter = room.onStateChange((state) => {
       setRoomState(state.toJSON());
       const nextParticipants = [];
-      state.participants.forEach((participant) => nextParticipants.push(participant));
+      state.participants.forEach((p) => nextParticipants.push(p.toJSON ? p.toJSON() : { ...p }));
       setParticipants(nextParticipants);
     });
 
@@ -342,6 +344,10 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
   const handleAnimeSelect = async (anime) => {
     if (loading) return;
 
+    animeSelectAbortRef.current?.abort();
+    const controller = new AbortController();
+    animeSelectAbortRef.current = controller;
+
     setLoading(true);
     setSelectedAnime(anime);
     setCurrentEpisode(null);
@@ -351,6 +357,7 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
 
     try {
       const info = await animeService.getAnimeInfo(anime.id, anime.provider);
+      if (controller.signal.aborted) return;
       const hydratedAnime = { ...anime, ...info };
       const nextEpisodes = info.episodes || [];
       setSelectedAnime(hydratedAnime);
@@ -366,18 +373,22 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
         roomState: null,
       });
     } catch (error) {
+      if (controller.signal.aborted) return;
       console.error('[AnimeSpace] handleAnimeSelect error:', error);
       toast.error('No pude cargar los episodios.');
     } finally {
-      setLoading(false);
+      if (!controller.signal.aborted) setLoading(false);
     }
   };
 
   const handleEpisodeSelect = async (episode) => {
     if (loading || !selectedAnime) return;
 
+    episodeSelectAbortRef.current?.abort();
+    const controller = new AbortController();
+    episodeSelectAbortRef.current = controller;
+
     setLoading(true);
-    setCurrentEpisode(episode);
     setActiveSourceIndex(0);
     setMobilePanel('info');
 
@@ -385,11 +396,14 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
       const provider = episode.provider || selectedAnime.provider;
       const sources = await animeService.getEpisodeSources(episode.id, provider);
 
+      if (controller.signal.aborted) return;
+
       if (sources.success === false || !sources.sources?.length) {
         toast.error(sources.message || 'No hay fuentes disponibles para este episodio.');
         return;
       }
 
+      setCurrentEpisode(episode);
       setStreamData(sources);
       resetWatchParty();
 
@@ -400,6 +414,8 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
         roomId,
         announceActivity: true,
       });
+
+      if (controller.signal.aborted) return;
 
       broadcastAnimeState({
         view: 'player',
@@ -414,10 +430,11 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
 
       setView('player');
     } catch (error) {
+      if (controller.signal.aborted) return;
       console.error('[AnimeSpace] handleEpisodeSelect error:', error);
       toast.error('Error al cargar el episodio.');
     } finally {
-      setLoading(false);
+      if (!controller.signal.aborted) setLoading(false);
     }
   };
 
@@ -473,22 +490,21 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
   };
 
   const handleTimeUpdate = (currentTime) => {
-    // Solo el host sincroniza periódicamente para mantener a todos juntos
-    if (isHost && Math.floor(currentTime) % 10 === 0) {
+    if (!isHost) return;
+    const sec = Math.floor(currentTime);
+    if (sec % 10 === 0 && sec !== lastSyncedSecondRef.current) {
+      lastSyncedSecondRef.current = sec;
       updatePlayback({ currentTime });
     }
   };
 
-  // Sincronizar videoId cuando cambia el episodio
+  // Sincronizar videoId cuando cambia el episodio (solo una vez por episodio)
   useEffect(() => {
-    if (isHost && currentEpisode) {
-      updatePlayback({ 
-          videoId: currentEpisode.id, 
-          playing: true, 
-          currentTime: 0 
-      });
-    }
-  }, [currentEpisode?.id, isHost, updatePlayback, currentEpisode]);
+    if (!isHost || !currentEpisode) return;
+    if (currentEpisode.id === lastSyncedEpisodeIdRef.current) return;
+    lastSyncedEpisodeIdRef.current = currentEpisode.id;
+    updatePlayback({ videoId: currentEpisode.id, playing: true, currentTime: 0 });
+  }, [currentEpisode?.id, currentEpisode, isHost, updatePlayback]);
 
   useEffect(() => {
     if (view !== 'player' || !streamData || !selectedAnime || !currentEpisode) return;
@@ -500,6 +516,7 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
       currentEpisode,
       streamData,
       activeSourceIndex,
+      colyseusRoomId: colyseusRoomIdRef.current || null,
       roomState: roomState?.roomId ? { roomId: roomState.roomId } : null,
     });
   }, [activeSourceIndex, broadcastAnimeState, currentEpisode, episodes, roomState?.roomId, selectedAnime, streamData, view]);
@@ -644,7 +661,7 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
               />
               <div className="min-w-0 flex-1 rounded-2xl bg-black/20 px-3 py-2 border border-white/5">
                 <div className="truncate text-[11px] font-black uppercase tracking-[0.16em] text-cyan-300">{msg.username}</div>
-                {msg.type === "gif" ? (
+                {msg.type === "gif" && /^https:\/\/(media\d*\.giphy\.com|c\.tenor\.com|tenor\.com)/.test(msg.gifUrl) ? (
                     <img src={msg.gifUrl} className="max-w-full rounded-xl border border-white/10 shadow-lg mt-1" alt="reaction gif" />
                 ) : (
                     <div className="mt-1 break-words text-sm text-white/80">{msg.message || msg.content}</div>
@@ -782,18 +799,17 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
                 <div className="lg:hidden">
                   <div className="sticky top-[64px] z-20 overflow-hidden rounded-[24px] border border-white/10 bg-[#080810]/92 p-1 backdrop-blur-xl">
                     <div className="grid grid-cols-3 gap-1">
-                      {mobileTabs.map(({ id, label }) => (
+                      {mobileTabs.map(({ id, label, icon }) => (
                         <button
                           key={id}
                           onClick={() => setMobilePanel(id)}
-                          className={`flex items-center justify-center gap-2 rounded-[20px] px-3 py-3 text-[11px] font-black uppercase tracking-[0.18em] transition ${
+                          className={`flex items-center justify-center gap-1.5 rounded-[20px] px-3 py-3 text-[11px] font-black uppercase tracking-[0.18em] transition ${
                             mobilePanel === id
                               ? 'bg-cyan-400 text-slate-950 shadow-[0_8px_24px_rgba(34,211,238,0.28)]'
                               : 'bg-transparent text-white/55'
                           }`}
                         >
-                          {/* Icon placeholder - add icon component if needed */}
-                          <span className="text-xs">{label}</span>
+                          {React.createElement(icon, { size: 13 })}
                           <span>{label}</span>
                         </button>
                       ))}
