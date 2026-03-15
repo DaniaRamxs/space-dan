@@ -71,7 +71,8 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
     updatePlayback
   } = usePlaybackSync({
     roomName: roomName || 'general',
-    colyseusRoom: room
+    colyseusRoom: room,
+    onStateUpdate: handlePlaybackStateUpdate
   });
 
   const { gifOverlays, isStorming, addGifOverlay } = useReactionEngine({
@@ -164,6 +165,12 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
     setTimeout(() => { setCountdown(null); updatePlayback({ playing: true, currentTime }); }, 3000);
   }, [updatePlayback]);
   runCountdownRef.current = runCountdown;
+
+  const handlePlaybackStateUpdate = useCallback((state) => {
+    if (state.type === 'play_countdown') {
+      runCountdownRef.current?.(state.payload?.currentTime ?? 0);
+    }
+  }, []);
 
   const connectToWatchParty = useCallback(async ({ anime, episode, roomId, colyseusRoomId, announceActivity }) => {
     console.log('[AnimeSpace] connectToWatchParty called:', { anime: anime?.title, episode: episode?.number, roomId, colyseusRoomId, announceActivity });
@@ -683,15 +690,7 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
 
   const handlePlay = (currentTime) => {
     if (!isHost) return;
-    if (syncChannelRef.current) {
-      syncChannelRef.current.send({
-        type: 'broadcast', event: 'play_countdown',
-        payload: { hostId: profile?.id, currentTime },
-      }).catch(() => {});
-      runCountdownRef.current?.(currentTime);
-    } else {
-      updatePlayback({ playing: true, currentTime });
-    }
+    updatePlayback({ playing: true, currentTime });
   };
 
   const handlePause = (currentTime) => {

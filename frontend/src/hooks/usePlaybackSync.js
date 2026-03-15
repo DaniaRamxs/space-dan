@@ -53,6 +53,13 @@ export function usePlaybackSync({
                     broadcastState(stateRef.current);
                 }
             })
+            .on('broadcast', { event: 'play_countdown' }, ({ payload }) => {
+                if (payload?.hostId === profile?.id) return;
+                // Trigger countdown for viewers - this will be handled by parent component
+                if (onStateUpdate) {
+                    onStateUpdate({ type: 'play_countdown', payload });
+                }
+            })
             .subscribe((status) => {
                 if (status === 'SUBSCRIBED') {
                     // Ask for current state when joining
@@ -158,6 +165,15 @@ export function usePlaybackSync({
                 event: 'STATE_UPDATE',
                 payload
             });
+            
+            // If state changed to playing, also send play_countdown for countdown functionality
+            if (nextState.playing && !stateRef.current.playing) {
+                syncChannelRef.current.send({
+                    type: 'broadcast',
+                    event: 'play_countdown',
+                    payload: { hostId: profile?.id, currentTime: nextState.currentTime || 0 }
+                });
+            }
         }
     }, [colyseusRoom, profile?.id]);
 
