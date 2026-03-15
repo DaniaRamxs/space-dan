@@ -15,6 +15,8 @@ import AnimeSearch from './AnimeSearch';
 const AnimeSpacePage = ({ onClose, roomName }) => {
   // ── 1. Context ───────────────────────────────────────────────────────────
   const { profile } = useAuthContext();
+  const onCloseRef = useRef(onClose);
+  useEffect(() => { onCloseRef.current = onClose; }, [onClose]);
 
   // ── 2. All state (declared first so service hooks can depend on them) ────
   const [selectedAnime, setSelectedAnime] = useState(null);
@@ -249,13 +251,13 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
 
   // broadcastBuffering needs isHost - declared after isHost is derived
   const broadcastBuffering = useCallback((isBuffering) => {
-    if (!syncChannelRef.current || !onClose || isHost) return; // only viewers broadcast
+    if (!syncChannelRef.current || !onCloseRef.current || isHost) return; // only viewers broadcast
     syncChannelRef.current.send({
       type: 'broadcast',
       event: 'viewer_buffering',
       payload: { userId: profile?.id, username: profile?.username, isBuffering },
     }).catch(() => {});
-  }, [onClose, isHost, profile?.id, profile?.username]);
+  }, [isHost, profile?.id, profile?.username]);
 
   const addFloatingEmoji = useCallback((content) => {
     const id = Date.now() + Math.random();
@@ -271,12 +273,12 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
 
   // Cuando el usuario se convierte en host (lobby), anunciarse a los viewers que esperan
   useEffect(() => {
-    if (!isSyncedHost || !onClose || !syncChannelRef.current) return;
+    if (!isSyncedHost || !onCloseRef.current || !syncChannelRef.current) return;
     syncCurrentState();
-  }, [isSyncedHost, onClose, syncCurrentState]);
+  }, [isSyncedHost, syncCurrentState]);
 
   useEffect(() => {
-    if (!roomName || !onClose) return undefined;
+    if (!roomName || !onCloseRef.current) return undefined;
 
     const channelName = `anime-sync-${roomName.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-')}`;
     const channel = supabase.channel(channelName);
@@ -443,7 +445,7 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
       syncChannelRef.current = null;
       supabase.removeChannel(channel);
     };
-  }, [roomName, onClose, profile?.id, profile?.username, profile?.avatar_url]);
+  }, [roomName, profile?.id, profile?.username, profile?.avatar_url]);
 
   useEffect(() => {
     return () => {
@@ -466,7 +468,7 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
   const broadcastAnimeState = useCallback((payload, force = false) => {
     if (!syncChannelRef.current) { console.warn('[broadcastAnimeState] skip: no channel'); return; }
     if (applyingRemoteStateRef.current) { console.warn('[broadcastAnimeState] skip: applyingRemoteState'); return; }
-    if (!onClose) return;
+    if (!onCloseRef.current) return;
 
     const now = Date.now();
     if (!force && now - lastBroadcastRef.current < 4000) { console.warn('[broadcastAnimeState] skip: throttled'); return; }
@@ -480,7 +482,7 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
         ...payload,
       },
     }).then(r => console.log('[broadcastAnimeState] send:', r, 'force:', force)).catch(err => console.error('[broadcastAnimeState] error:', err));
-  }, [onClose, profile?.id]);
+  }, [profile?.id]);
 
   const handleShareLink = () => {
     navigator.clipboard.writeText(window.location.href).then(() => {
@@ -746,12 +748,12 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
 
   // Heartbeat: reenviar estado cada 8s mientras el host está en player (viewers que se unan tarde o reconecten se sincronizan)
   useEffect(() => {
-    if (!onClose || !isHost || view !== 'player' || !selectedAnime || !currentEpisode) return;
+    if (!onCloseRef.current || !isHost || view !== 'player' || !selectedAnime || !currentEpisode) return;
     const timer = setInterval(() => {
       channelCallbacksRef.current.syncCurrentState?.();
     }, 8000);
     return () => clearInterval(timer);
-  }, [onClose, isHost, view, selectedAnime, currentEpisode]);
+  }, [isHost, view, selectedAnime, currentEpisode]);
 
   const currentSource = streamData?.sources?.[activeSourceIndex] || null;
   // Presence es la fuente principal (incluye a todos), Colyseus enriquece con info adicional
