@@ -118,6 +118,14 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
   }, [profile?.id]);
 
   const connectToWatchParty = useCallback(async ({ anime, episode, roomId, announceActivity }) => {
+    console.log('[AnimeSpace] connectToWatchParty called:', { anime: anime?.title, episode: episode?.number, roomId, announceActivity });
+    
+    // Si ya estamos en una sala, no crear otra
+    if (room && room.connection?.isOpen) {
+      console.log('[AnimeSpace] Already in room, skipping connection');
+      return;
+    }
+
     let activityId = null;
 
     if (announceActivity) {
@@ -142,6 +150,7 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
     }
 
     try {
+      console.log('[AnimeSpace] Joining Colyseus room with instanceId:', roomName);
       const newRoom = await joinOrCreateRoom('live_activity', {
         instanceId: roomName,
         activityId: roomId,
@@ -157,14 +166,21 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
         hostId: profile?.id,
       });
 
+      console.log('[AnimeSpace] Successfully joined room:', newRoom?.roomId);
       setRoom(newRoom);
+      
+      // Forzar sincronización inicial al unirse
+      setTimeout(() => {
+        syncCurrentState();
+      }, 500);
+      
     } catch (error) {
       console.warn('[AnimeSpace] Colyseus unavailable, solo mode enabled:', error.message);
       if (announceActivity) {
         toast('Modo solitario: la watch party no respondiÃ³.', { icon: 'ðŸ"º' });
       }
     }
-  }, [roomName, profile?.id, profile?.username, profile?.avatar_url]);
+  }, [roomName, profile?.id, profile?.username, profile?.avatar_url, room, syncCurrentState]);
 
   useEffect(() => {
     if (!roomName || !onClose) return undefined;
@@ -188,12 +204,17 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
 
         if (payload.currentEpisode && payload.selectedAnime && payload.roomState?.roomId) {
           try {
-            await connectToWatchParty({
-              anime: payload.selectedAnime,
-              episode: payload.currentEpisode,
-              roomId: payload.roomState.roomId,
-              announceActivity: false,
-            });
+            // Solo unirse a la sala si no estamos ya en una sala activa
+            if (!room || !room.connection?.isOpen) {
+              await connectToWatchParty({
+                anime: payload.selectedAnime,
+                episode: payload.currentEpisode,
+                roomId: payload.roomState.roomId,
+                announceActivity: false,
+              });
+            } else {
+              console.log('[AnimeSpace] Already in room, syncing state only');
+            }
           } catch (error) {
             console.warn('[AnimeSpace] Failed to join synced room:', error);
           }
@@ -234,7 +255,7 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
       syncChannelRef.current = null;
       supabase.removeChannel(channel);
     };
-  }, [roomName, onClose, profile?.id, addGifOverlay, connectToWatchParty, clearRoomState, syncCurrentState]);
+  }, [roomName, onClose, profile?.id, addGifOverlay, connectToWatchParty, clearRoomState, syncCurrentState, room]);
 
   useEffect(() => {
     return () => {
