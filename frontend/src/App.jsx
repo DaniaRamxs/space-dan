@@ -78,6 +78,7 @@ const CommunityChannelsPage = lazy(() => import("./pages/CommunityChannelsPage")
 const SpotifyCallback = lazy(() => import("./pages/SpotifyCallback"));
 const AuthCallback = lazy(() => import("./pages/AuthCallback"));
 const AnimeSpacePage = lazy(() => import("./features/anime/AstroPartyPage"));
+const MangaPartyPage = lazy(() => import("./features/manga/MangaPartyPage"));
 
 const NAV_TRACE_KEY = "spacely_nav_trace_v1";
 const FORCE_NAV_TRACE = false
@@ -597,6 +598,11 @@ function AnimatedRoutes() {
         <Route path="/anime" element={
           loading ? <Layout><RouteLoader /></Layout> :
             user ? <Layout><AnimeSpacePage /></Layout> :
+              <Layout><LoginGate /></Layout>
+        } />
+        <Route path="/manga-party" element={
+          loading ? <Layout><RouteLoader /></Layout> :
+            user ? <Layout><MangaPartyPage /></Layout> :
               <Layout><LoginGate /></Layout>
         } />
         <Route path="/desktop" element={<Layout><DesktopPage /></Layout>} />
