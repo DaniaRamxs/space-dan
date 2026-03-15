@@ -9,7 +9,7 @@ import { useReactionEngine } from '@/hooks/useReactionEngine';
 import { animeService } from './animeService';
 import { liveActivitiesService } from '@/services/liveActivitiesService';
 import { supabase } from '@/supabaseClient';
-import { joinOrCreateRoom } from '@/services/colyseusClient';
+import { joinOrCreateRoom, client as colyseusClient } from '@/services/colyseusClient';
 import AnimeEpisodeList from './AnimeEpisodeList';
 import AnimePlayer from './AnimePlayer';
 import AnimeSearch from './AnimeSearch';
@@ -40,6 +40,7 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
   const applyingRemoteStateRef = useRef(false);
   const roomRef = useRef(null);
   const connectToWatchPartyRef = useRef(null);
+  const colyseusRoomIdRef = useRef(null);
 
   // ── 4. Service hooks (depend on state/refs above) ─────────────────────────
   const { 
@@ -113,6 +114,7 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
         currentEpisode: s.currentEpisode,
         streamData: s.streamData,
         activeSourceIndex: s.activeSourceIndex,
+        colyseusRoomId: colyseusRoomIdRef.current || null,
         roomState: s.roomState?.roomId
           ? { roomId: s.roomState.roomId }
           : s.currentEpisode && s.selectedAnime
@@ -122,20 +124,17 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
     }).catch(() => {});
   }, [profile?.id]);
 
-  const connectToWatchParty = useCallback(async ({ anime, episode, roomId, announceActivity }) => {
-    console.log('[AnimeSpace] connectToWatchParty called:', { anime: anime?.title, episode: episode?.number, roomId, announceActivity });
+  const connectToWatchParty = useCallback(async ({ anime, episode, roomId, colyseusRoomId, announceActivity }) => {
+    console.log('[AnimeSpace] connectToWatchParty called:', { anime: anime?.title, episode: episode?.number, roomId, colyseusRoomId, announceActivity });
 
-    // Si ya estamos en una sala, no crear otra
     if (roomRef.current?.connection?.isOpen) {
       console.log('[AnimeSpace] Already in room, skipping connection');
       return;
     }
 
-    let activityId = null;
-
     if (announceActivity) {
       try {
-        const supabaseActivity = await liveActivitiesService.createActivity({
+        await liveActivitiesService.createActivity({
           type: 'anime',
           title: `${anime.title} - Ep ${episode.number}`,
           roomName: roomName || `Sala de ${profile?.username || 'Gamer'}`,
@@ -147,42 +146,50 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
             image: anime.image,
           },
         });
-        activityId = supabaseActivity?.id || null;
-        console.log('[AnimeSpace] Created activity:', activityId);
       } catch (error) {
         console.warn('[AnimeSpace] Failed to create activity:', error);
       }
     }
 
     try {
-      console.log('[AnimeSpace] Joining Colyseus room with instanceId:', roomName);
-      const newRoom = await joinOrCreateRoom('live_activity', {
-        instanceId: roomName,
-        activityId: roomId,
-        activityType: 'anime',
-        animeId: anime.id,
-        animeTitle: anime.title,
-        episodeId: episode.id,
-        episodeNumber: episode.number,
-        videoId: episode.id,
-        userId: profile?.id,
-        username: profile?.username,
-        avatar: profile?.avatar_url,
-        hostId: profile?.id,
-      });
+      let newRoom;
+      if (colyseusRoomId) {
+        // Viewer: unirse a la sala exacta del host por ID
+        console.log('[AnimeSpace] Joining exact room by ID:', colyseusRoomId);
+        newRoom = await colyseusClient.joinById(colyseusRoomId, {
+          userId: profile?.id,
+          username: profile?.username,
+          avatar: profile?.avatar_url,
+        });
+      } else {
+        // Host: crear o encontrar sala por instanceId
+        console.log('[AnimeSpace] Creating/joining room with instanceId:', roomName);
+        newRoom = await joinOrCreateRoom('live_activity', {
+          instanceId: roomName,
+          activityId: roomId,
+          activityType: 'anime',
+          animeId: anime.id,
+          animeTitle: anime.title,
+          episodeId: episode.id,
+          episodeNumber: episode.number,
+          videoId: episode.id,
+          userId: profile?.id,
+          username: profile?.username,
+          avatar: profile?.avatar_url,
+          hostId: profile?.id,
+        });
+      }
 
       console.log('[AnimeSpace] Successfully joined room:', newRoom?.roomId);
+      colyseusRoomIdRef.current = newRoom.roomId;
       setRoom(newRoom);
-      
-      // Forzar sincronización inicial al unirse
-      setTimeout(() => {
-        syncCurrentState();
-      }, 500);
-      
+
+      setTimeout(() => { syncCurrentState(); }, 500);
+
     } catch (error) {
       console.warn('[AnimeSpace] Colyseus unavailable, solo mode enabled:', error.message);
       if (announceActivity) {
-        toast('Modo solitario: la watch party no respondiÃ³.', { icon: 'ðŸ"º' });
+        toast('Modo solitario: la watch party no respondió.', { icon: '📺' });
       }
     }
   }, [roomName, profile?.id, profile?.username, profile?.avatar_url, syncCurrentState]);
@@ -215,6 +222,7 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
                 anime: payload.selectedAnime,
                 episode: payload.currentEpisode,
                 roomId: payload.roomState.roomId,
+                colyseusRoomId: payload.colyseusRoomId || null,
                 announceActivity: false,
               });
             } else {
@@ -400,6 +408,7 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
         currentEpisode: episode,
         streamData: sources,
         activeSourceIndex: 0,
+        colyseusRoomId: colyseusRoomIdRef.current || null,
         roomState: { roomId },
       });
 
