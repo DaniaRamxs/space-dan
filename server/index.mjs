@@ -21,6 +21,7 @@ import { WebSocketTransport } from "@colyseus/ws-transport";
 // Importar rutas de anime multi-fuente
 import animeMultiRoutes from './routes/animeMulti.js';
 import animeTestRoutes from './routes/animeTest.js';
+import mangaRoutes from './routes/mangaRoutes.js';
 
 import { BlackjackRoom } from "./rooms/BlackjackRoom.mjs";
 import { Connect4Room } from "./rooms/Connect4Room.mjs";
@@ -85,6 +86,8 @@ const corsOptions = {
 //   3. We need *, not a specific origin, for the player to work
 app.use('/api/anime/proxy', cors({ origin: '*', methods: ['GET', 'OPTIONS'] }));
 app.options('/api/anime/proxy', cors({ origin: '*' }));
+app.use('/api/manga', cors({ origin: '*', methods: ['GET', 'OPTIONS'] }));
+app.options('/api/manga', cors({ origin: '*' }));
 
 app.use(cors(corsOptions));
 app.options(/.*/, cors(corsOptions));
@@ -183,6 +186,7 @@ app.use("/api", youtubeRoutes);
 app.use("/api", socialRoutes);
 app.use("/api/audio", audioRoutes);
 app.use("/api/anime", animeRoutes);
+app.use("/api/manga", mangaRoutes);
 
 console.log('[ROUTES] Social API mounted: /api/communities, /api/activities');
 console.log('[ROUTES] Audio API mounted: /api/audio');

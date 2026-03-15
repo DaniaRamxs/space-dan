@@ -4,10 +4,11 @@ import React, {
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, X, BookOpen, ChevronRight, Loader2, Globe } from 'lucide-react';
 
-// ─── MangaDex API constants ───────────────────────────────────────────────────
+// ─── API proxy (backend) — avoids CORS from browser ──────────────────────────
 
-const MANGADEX = 'https://api.mangadex.org';
-const UPLOADS  = 'https://uploads.mangadex.org';
+const API_URL   = import.meta.env.VITE_API_URL || '';
+const MANGA_API = `${API_URL}/api/manga`;
+const UPLOADS   = 'https://uploads.mangadex.org';
 
 const STATUS_COLORS = {
   ongoing:   'text-green-400 bg-green-400/10 border-green-400/20',
@@ -196,7 +197,7 @@ const MangaSearchModal = memo(({ isOpen, onClose, onSelect }) => {
     setError(null);
     debounceRef.current = setTimeout(async () => {
       try {
-        const url = `${MANGADEX}/manga?title=${encodeURIComponent(query)}&limit=20&includes[]=cover_art&contentRating[]=safe&contentRating[]=suggestive`;
+        const url = `${MANGA_API}/search?title=${encodeURIComponent(query)}&limit=20`;
         const res = await fetch(url);
         if (!res.ok) throw new Error('Error al buscar manga');
         const data = await res.json();
@@ -216,7 +217,7 @@ const MangaSearchModal = memo(({ isOpen, onClose, onSelect }) => {
     setChapters([]);
     setChaptersLoading(true);
     try {
-      const url = `${MANGADEX}/chapter?manga=${manga.id}&translatedLanguage[]=es&translatedLanguage[]=en&order[chapter]=asc&limit=100`;
+      const url = `${MANGA_API}/${manga.id}/chapters?lang=es&limit=100`;
       const res = await fetch(url);
       if (!res.ok) throw new Error('Error al cargar capítulos');
       const data = await res.json();

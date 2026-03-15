@@ -12,16 +12,16 @@ import { supabase } from '@/supabaseClient';
 import MangaReader from './MangaReader';
 import MangaSearchModal from './MangaSearchModal';
 
-// ─── MangaDex API ─────────────────────────────────────────────────────────────
+// ─── MangaDex proxy (routed through backend to avoid CORS) ────────────────────
 
-const MANGADEX = 'https://api.mangadex.org';
-const UPLOADS  = 'https://uploads.mangadex.org';
+const API_URL   = import.meta.env.VITE_API_URL || '';
+const MANGA_API = `${API_URL}/api/manga`;
 
 async function getChapterPages(chapterId) {
-  const res  = await fetch(`${MANGADEX}/at-home/server/${chapterId}`);
+  const res  = await fetch(`${MANGA_API}/pages/${chapterId}`);
+  if (!res.ok) throw new Error(`Pages fetch failed: ${res.status}`);
   const data = await res.json();
-  const { baseUrl, chapter } = data;
-  return chapter.data.map((f) => `${baseUrl}/data/${chapter.hash}/${f}`);
+  return data.pages;
 }
 
 // ─── Constants ────────────────────────────────────────────────────────────────
