@@ -265,15 +265,26 @@ export async function extractStreamWish(embedUrl, referer = 'https://www3.animef
 
 export async function extractStreamtape(embedUrl) {
   try {
-    const resp = await httpGet(embedUrl);
+    const resp = await httpGet(embedUrl, { Referer: 'https://www3.animeflv.net/' });
     const html = resp.data;
-    const block = html.match(/document\.getElementById\('norobotlink'\)[^<]+/);
-    if (block) {
-      const parts = block[0].match(/https?:\/\/[^"'\s]+/g);
-      if (parts) { console.log('[extractor] streamtape OK'); return parts[0]; }
+
+    // #robotlink contains the direct URL path (protocol-relative or path-only)
+    const robot = html.match(/id="robotlink"[^>]*>([^<]+)/);
+    if (robot) {
+      let path = robot[1].trim();
+      // path may be: "/streamtape.com/get_video?..." or "//streamtape.com/get_video?..."
+      if (path.startsWith('//')) path = 'https:' + path;
+      else if (path.startsWith('/')) path = 'https:/' + path; // "/streamtape.com/..." → "https://streamtape.com/..."
+      if (path.includes('get_video')) { console.log('[extractor] streamtape robotlink OK'); return path; }
     }
-    const direct = html.match(/https:\/\/streamtape\.(?:com|net)\/get_video\?[^"'\s]+/);
-    if (direct) return direct[0];
+
+    // Fallback: any get_video URL in the page (with or without protocol)
+    const m1 = html.match(/https?:\/\/streamtape\.(?:com|net)\/get_video\?[^"'\s<]+/);
+    if (m1) { console.log('[extractor] streamtape #1 OK'); return m1[0]; }
+    const m2 = html.match(/\/\/streamtape\.(?:com|net)\/get_video\?[^"'\s<]+/);
+    if (m2) { console.log('[extractor] streamtape #2 OK'); return 'https:' + m2[0]; }
+
+    console.warn('[extractor] Streamtape: no get_video URL found');
   } catch (err) {
     console.warn('[extractor] Streamtape failed:', err.code === 'ERR_CANCELED' ? 'timeout' : err.message);
   }
