@@ -32,6 +32,7 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
   const [chatInput, setChatInput] = useState('');
   const [remoteHostInfo, setRemoteHostInfo] = useState(null); // host info recibido via broadcast/presence antes de Colyseus
   const [presenceIsHost, setPresenceIsHost] = useState(false); // soy el primero en el canal (host por presencia)
+  const [presenceReady, setPresenceReady] = useState(false); // al menos un sync de presencia completado
   const [presenceParticipants, setPresenceParticipants] = useState([]); // todos los usuarios en el canal via Presence
   const [bufferingUsers, setBufferingUsers] = useState({});
   const [countdown, setCountdown] = useState(null);
@@ -51,6 +52,7 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
   const animeSelectAbortRef = useRef(null);
   const episodeSelectAbortRef = useRef(null);
   const isSyncedHostRef = useRef(false);
+  const presenceHostDeterminedRef = useRef(false);
   const runCountdownRef = useRef(null);
   const heartbeatRef = useRef(null);
   const joinedAtRef = useRef(null);
@@ -262,10 +264,14 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
       .on('presence', { event: 'sync' }, () => {
         const state = channel.presenceState();
         const allPresence = Object.values(state).flat();
+        setPresenceReady(true);
         if (allPresence.length === 0) return;
         // El primero en llegar (menor joinedAt) es el host
         const sorted = [...allPresence].sort((a, b) => (a.joinedAt || 0) - (b.joinedAt || 0));
         setPresenceParticipants(sorted);
+        // Determinar host solo una vez para evitar flickering en syncs posteriores (heartbeats, etc.)
+        if (presenceHostDeterminedRef.current) return;
+        presenceHostDeterminedRef.current = true;
         const hostPresence = sorted[0];
         if (!hostPresence?.userId) return;
         if (hostPresence.userId === profile?.id) {
@@ -944,7 +950,13 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
       <main className="mx-auto flex w-full max-w-6xl flex-col gap-5 py-4 sm:gap-6 sm:py-6">
         {view === 'search' && !onClose && <AnimeSearch onSelect={handleAnimeSelect} />}
 
-      {view === 'search' && onClose && isHost && (
+      {view === 'search' && onClose && !presenceReady && (
+        <div className="flex items-center justify-center py-24">
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-cyan-400/20 border-t-cyan-400" />
+        </div>
+      )}
+
+      {view === 'search' && onClose && presenceReady && isHost && (
         <div className="flex flex-col gap-4 px-3 sm:px-6">
           <div className="flex items-center gap-3 rounded-[20px] border border-yellow-400/20 bg-yellow-500/10 px-4 py-3">
             <Crown size={16} className="shrink-0 text-yellow-400" />
@@ -957,7 +969,7 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
         </div>
       )}
 
-      {view === 'search' && onClose && !isHost && (
+      {view === 'search' && onClose && presenceReady && !isHost && (
         <div className="flex flex-col items-center justify-center gap-6 px-4 py-16 text-center sm:px-6 sm:py-24">
           <div className="flex h-20 w-20 items-center justify-center rounded-full border border-cyan-300/20 bg-cyan-500/10">
             <Tv size={36} className="text-cyan-300" />
