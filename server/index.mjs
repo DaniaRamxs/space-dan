@@ -98,12 +98,17 @@ app.use(express.urlencoded({ extended: true }));
 
 // Add CORS for anime-multi routes
 app.use('/api/anime-multi', cors({
-  origin: ['https://www.joinspacely.com', 'http://localhost:5173', 'http://localhost:3000'],
+  origin: ['https://www.joinspacely.com', 'https://space-dan.vercel.app', 'http://localhost:5173', 'http://localhost:3000'],
   methods: ['GET', 'OPTIONS'],
   credentials: true
 }));
 
 app.use('/api/anime-multi', animeMultiRoutes);
+app.use('/api/anime-test', cors({
+  origin: ['https://www.joinspacely.com', 'https://space-dan.vercel.app', 'http://localhost:5173', 'http://localhost:3000'],
+  methods: ['GET', 'OPTIONS'],
+  credentials: true
+}));
 app.use('/api/anime-test', animeTestRoutes);
 
 /* ---------------- HEALTH CHECK ---------------- */
