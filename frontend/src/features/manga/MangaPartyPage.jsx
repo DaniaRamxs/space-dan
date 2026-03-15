@@ -4,7 +4,7 @@ import React, {
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Users, MessageSquare, Copy, X, Check, Send, Crown,
-  BookOpen, Pencil, Link, ExternalLink, AlertTriangle,
+  BookOpen, Pencil, Link, ExternalLink, AlertTriangle, ChevronRight,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuthContext } from '@/contexts/AuthContext';
