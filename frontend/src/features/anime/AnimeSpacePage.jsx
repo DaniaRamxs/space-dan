@@ -210,14 +210,17 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
         if (!payload || payload.senderId === profile?.id) return;
 
         applyingRemoteStateRef.current = true;
+
+        // Actualizar UI inmediatamente (no esperar a Colyseus)
         setSelectedAnime(payload.selectedAnime || null);
         setEpisodes(payload.episodes || []);
         setCurrentEpisode(payload.currentEpisode || null);
         setStreamData(payload.streamData || null);
         setActiveSourceIndex(payload.activeSourceIndex || 0);
-        // setView(payload.view || 'search'); // Removed as per new state
-        // setMobilePanel(payload.currentEpisode ? 'chat' : 'info'); // Removed as per new state
+        setView(payload.view || 'search');
+        if (payload.currentEpisode) setMobilePanel('chat');
 
+        // Unirse a sala Colyseus en segundo plano
         if (payload.currentEpisode && payload.selectedAnime && payload.roomState?.roomId) {
           try {
             if (!roomRef.current?.connection?.isOpen) {
@@ -228,16 +231,11 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
                 colyseusRoomId: payload.colyseusRoomId || null,
                 announceActivity: false,
               });
-            } else {
-              console.log('[AnimeSpace] Already in room, syncing state only');
             }
           } catch (error) {
             console.warn('[AnimeSpace] Failed to join synced room:', error);
           }
         }
-
-        setView(payload.view || 'search');
-        if (payload.currentEpisode) setMobilePanel('chat');
 
         window.setTimeout(() => {
           applyingRemoteStateRef.current = false;
