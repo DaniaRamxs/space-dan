@@ -19,7 +19,7 @@ import { Server } from "colyseus";
 import { WebSocketTransport } from "@colyseus/ws-transport";
 
 // Importar rutas de anime multi-fuente
-const animeMultiRoutes = require('./routes/animeMulti.js');
+import animeMultiRoutes from './routes/animeMulti.js';
 
 import { BlackjackRoom } from "./rooms/BlackjackRoom.mjs";
 import { Connect4Room } from "./rooms/Connect4Room.mjs";

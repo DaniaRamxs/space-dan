@@ -1,5 +1,5 @@
-const express = require('express');
-const axios = require('axios');
+import express from 'express';
+import axios from 'axios';
 const AnimeMultiSource = require('../services/animeMultiSource');
 const router = express.Router();
 
@@ -102,4 +102,4 @@ router.get('/status', async (req, res) => {
   }
 });
 
-module.exports = router;
+export default router;
