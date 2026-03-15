@@ -129,7 +129,7 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
   const syncCurrentState = useCallback(() => {
     const s = stateRef.current;
     if (!syncChannelRef.current) return;
-    syncChannelRef.current.httpSend({
+    syncChannelRef.current.send({
       type: 'broadcast',
       event: 'anime_state',
       payload: {
@@ -150,7 +150,7 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
             ? { roomId: `anime-${s.selectedAnime.id?.slice(0, 8)}-${String(s.currentEpisode.number).padStart(3, '0')}` }
             : null,
       },
-    }).catch(() => {});
+    }).then(r => console.log('[syncCurrentState] send:', r)).catch(err => console.error('[syncCurrentState] error:', err));
   }, [profile?.id, profile?.username, profile?.avatar_url]);
 
   // runCountdown needs updatePlayback - declared after updatePlayback is available
@@ -311,6 +311,7 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
         });
       })
       .on('broadcast', { event: 'anime_state' }, async ({ payload }) => {
+        console.log('[anime_state received]', { senderId: payload?.senderId, view: payload?.view, hasAnime: !!payload?.selectedAnime, hasEpisode: !!payload?.currentEpisode });
         if (!payload || payload.senderId === profile?.id) return;
 
         // Capturar info del host aunque no haya anime seleccionado aún
@@ -412,11 +413,11 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
               joinedAt: joinedAtRef.current,
             }).catch(() => {});
           }, 30000);
-          channel.httpSend({
+          channel.send({
             type: 'broadcast',
             event: 'anime_sync_req',
             payload: { senderId: profile?.id || null },
-          }).catch(() => {});
+          }).then(r => console.log('[anime_sync_req] send:', r)).catch(err => console.error('[anime_sync_req] error:', err));
         }
       });
 
@@ -447,20 +448,22 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
   };
 
   const broadcastAnimeState = useCallback((payload, force = false) => {
-    if (!syncChannelRef.current || applyingRemoteStateRef.current || !onClose) return;
+    if (!syncChannelRef.current) { console.warn('[broadcastAnimeState] skip: no channel'); return; }
+    if (applyingRemoteStateRef.current) { console.warn('[broadcastAnimeState] skip: applyingRemoteState'); return; }
+    if (!onClose) return;
 
     const now = Date.now();
-    if (!force && now - lastBroadcastRef.current < 4000) return;
+    if (!force && now - lastBroadcastRef.current < 4000) { console.warn('[broadcastAnimeState] skip: throttled'); return; }
     lastBroadcastRef.current = now;
 
-    syncChannelRef.current.httpSend({
+    syncChannelRef.current.send({
       type: 'broadcast',
       event: 'anime_state',
       payload: {
         senderId: profile?.id || null,
         ...payload,
       },
-    }).catch(() => {});
+    }).then(r => console.log('[broadcastAnimeState] send:', r, 'force:', force)).catch(err => console.error('[broadcastAnimeState] error:', err));
   }, [onClose, profile?.id]);
 
   const handleShareLink = () => {
