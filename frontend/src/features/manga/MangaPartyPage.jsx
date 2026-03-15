@@ -4,7 +4,7 @@ import React, {
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Users, MessageSquare, Copy, X, Check, Send, Crown,
-  BookOpen, Pencil, Smile, ChevronRight,
+  BookOpen, Pencil, Link, ExternalLink, AlertTriangle,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuthContext } from '@/contexts/AuthContext';
@@ -142,6 +142,11 @@ const MangaPartyPage = memo(() => {
   // ── External scroll (guest receives host scroll) ──────────────────────────────
   const [externalScrollY, setExternalScrollY] = useState(null);
 
+  // ── URL mode ──────────────────────────────────────────────────────────────────
+  const [externalUrl, setExternalUrl]   = useState('');  // active URL for all
+  const [showUrlInput, setShowUrlInput] = useState(false);
+  const [urlDraft, setUrlDraft]         = useState('');
+
   // ── Drawing ───────────────────────────────────────────────────────────────────
   const [drawingEnabled, setDrawingEnabled] = useState(false);
   const [drawEvents, setDrawEvents]         = useState([]);
@@ -161,8 +166,9 @@ const MangaPartyPage = memo(() => {
   const mangaTitleRef = useRef('');
   const chapterIdRef  = useRef(null);
   const currentPageRef = useRef(0);
-  const pagesRef      = useRef([]);
-  const prevNamesRef  = useRef(new Set());
+  const pagesRef         = useRef([]);
+  const externalUrlRef   = useRef('');
+  const prevNamesRef     = useRef(new Set());
   const chatEndRef    = useRef(null);
   const arrivalTimerRef = useRef(null);
 
@@ -174,7 +180,8 @@ const MangaPartyPage = memo(() => {
   useEffect(() => { mangaIdRef.current  = mangaId; },      [mangaId]);
   useEffect(() => { chapterIdRef.current = chapterId; },   [chapterId]);
   useEffect(() => { currentPageRef.current = currentPage; }, [currentPage]);
-  useEffect(() => { pagesRef.current    = pages; },        [pages]);
+  useEffect(() => { pagesRef.current      = pages; },       [pages]);
+  useEffect(() => { externalUrlRef.current = externalUrl; }, [externalUrl]);
 
   // Load room history on mount
   useEffect(() => {
@@ -251,6 +258,7 @@ const MangaPartyPage = memo(() => {
           setTimeout(() => {
             broadcast('manga_sync', {
               type:        'state_snapshot',
+              externalUrl: externalUrlRef.current,
               mangaId:     mangaIdRef.current,
               mangaTitle,
               chapterId:   chapterIdRef.current,
@@ -270,6 +278,9 @@ const MangaPartyPage = memo(() => {
           case 'state_snapshot':
             // Guest receives host's current state
             if (isHostRef.current) return;
+            if (payload.externalUrl) {
+              setExternalUrl(payload.externalUrl);
+            }
             if (payload.mangaId && payload.mangaId !== mangaIdRef.current) {
               setMangaId(payload.mangaId);
               setMangaTitle(payload.mangaTitle || '');
@@ -282,6 +293,17 @@ const MangaPartyPage = memo(() => {
             setCurrentPage(payload.currentPage ?? 0);
             setExternalScrollY(payload.scrollY ?? 0);
             setZoom(payload.zoom ?? 1);
+            break;
+
+          case 'url_change':
+            if (isHostRef.current) return;
+            setExternalUrl(payload.url || '');
+            if (payload.url) toast(`🔗 El host abrió una URL`, { duration: 3000 });
+            break;
+
+          case 'url_clear':
+            if (isHostRef.current) return;
+            setExternalUrl('');
             break;
 
           case 'chapter_change':
@@ -482,6 +504,27 @@ const MangaPartyPage = memo(() => {
 
     toast.success(`📚 ${mTitle} — Cap. ${cNum}`, { duration: 3000 });
   }, [broadcast, loadPages]);
+
+  // ── URL mode ──────────────────────────────────────────────────────────────────
+  const handleUrlSet = useCallback(() => {
+    if (!isHostRef.current) return;
+    const raw = urlDraft.trim();
+    if (!raw) return;
+    const url = raw.startsWith('http') ? raw : `https://${raw}`;
+    setExternalUrl(url);
+    setShowUrlInput(false);
+    setUrlDraft('');
+    broadcast('manga_sync', { type: 'url_change', url });
+    toast.success('URL compartida con la sala');
+  }, [urlDraft, broadcast]);
+
+  const handleUrlClear = useCallback(() => {
+    if (!isHostRef.current) return;
+    setExternalUrl('');
+    setShowUrlInput(false);
+    setUrlDraft('');
+    broadcast('manga_sync', { type: 'url_clear' });
+  }, [broadcast]);
 
   // ── Scroll sync (host → guests) ───────────────────────────────────────────────
   const handleScroll = useCallback((sy) => {
@@ -814,6 +857,22 @@ const MangaPartyPage = memo(() => {
           </motion.button>
         )}
 
+        {/* URL mode button (host only) */}
+        {isHost && (
+          <motion.button
+            whileTap={{ scale: 0.95 }}
+            onClick={() => { setShowUrlInput((p) => !p); setUrlDraft(externalUrl); }}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-bold transition-all ${
+              externalUrl
+                ? 'bg-cyan-600/30 border-cyan-500/40 text-cyan-400'
+                : 'bg-white/5 border-white/10 text-white/50 hover:text-white/70'
+            }`}
+          >
+            <Link size={13} />
+            <span className="hidden sm:inline">{externalUrl ? 'URL activa' : 'URL'}</span>
+          </motion.button>
+        )}
+
         {/* Drawing toggle (host only) */}
         {isHost && (
           <motion.button
@@ -860,6 +919,55 @@ const MangaPartyPage = memo(() => {
         </motion.button>
       </div>
 
+      {/* URL input bar (host only, collapsible) */}
+      <AnimatePresence>
+        {isHost && showUrlInput && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            className="flex-shrink-0 border-b border-white/10 bg-[#0d0d14] overflow-hidden"
+          >
+            <div className="flex items-center gap-2 px-4 py-2.5">
+              <Link size={13} className="text-cyan-400 flex-shrink-0" />
+              <input
+                autoFocus
+                type="url"
+                value={urlDraft}
+                onChange={(e) => setUrlDraft(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') handleUrlSet(); if (e.key === 'Escape') setShowUrlInput(false); }}
+                placeholder="https://mangaonline.com/manga/titulo/capitulo-1"
+                className="flex-1 bg-white/5 border border-white/10 rounded-lg px-3 py-1.5
+                           text-xs text-white placeholder-white/30 outline-none
+                           focus:border-cyan-500/50 transition-all font-mono"
+              />
+              <motion.button
+                whileTap={{ scale: 0.95 }}
+                onClick={handleUrlSet}
+                disabled={!urlDraft.trim()}
+                className="px-3 py-1.5 rounded-lg bg-cyan-600 hover:bg-cyan-500
+                           text-white text-xs font-black disabled:opacity-30 transition-colors flex-shrink-0"
+              >
+                Compartir
+              </motion.button>
+              {externalUrl && (
+                <motion.button
+                  whileTap={{ scale: 0.95 }}
+                  onClick={handleUrlClear}
+                  className="px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10
+                             text-white/50 hover:text-red-400 text-xs font-bold transition-all flex-shrink-0"
+                >
+                  Quitar URL
+                </motion.button>
+              )}
+              <p className="text-white/20 text-[10px] hidden md:block flex-shrink-0">
+                Todos verán esta página en tiempo real
+              </p>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Body */}
       <div className="flex flex-1 overflow-hidden">
 
@@ -874,7 +982,54 @@ const MangaPartyPage = memo(() => {
             </div>
           )}
 
-          {!mangaId && !pagesLoading && (
+          {/* URL iframe mode */}
+          {externalUrl && (
+            <div className="absolute inset-0 flex flex-col z-10 bg-[#0a0a0f]">
+              {/* iframe bar */}
+              <div className="flex items-center gap-2 px-3 py-1.5 bg-[#0d0d14] border-b border-white/10 flex-shrink-0">
+                <div className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse flex-shrink-0" />
+                <span className="text-cyan-400/70 text-[10px] font-mono truncate flex-1">{externalUrl}</span>
+                <a
+                  href={externalUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-white/30 hover:text-white/60 transition-colors flex-shrink-0"
+                  title="Abrir en nueva pestaña"
+                >
+                  <ExternalLink size={12} />
+                </a>
+                {isHost && (
+                  <button
+                    onClick={handleUrlClear}
+                    className="text-white/20 hover:text-red-400 transition-colors flex-shrink-0"
+                    title="Cerrar URL"
+                  >
+                    <X size={12} />
+                  </button>
+                )}
+              </div>
+              {/* iframe */}
+              <div className="flex-1 relative">
+                <iframe
+                  key={externalUrl}
+                  src={externalUrl}
+                  className="w-full h-full border-0"
+                  title="Manga URL"
+                  sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
+                  referrerPolicy="no-referrer"
+                />
+                {/* Blocked overlay hint — shown via CSS if iframe is empty, not detectable via JS */}
+                <div className="pointer-events-none absolute bottom-3 left-1/2 -translate-x-1/2
+                                flex items-center gap-1.5 bg-black/60 backdrop-blur-sm rounded-full
+                                px-3 py-1.5 border border-white/10 opacity-40">
+                  <AlertTriangle size={10} className="text-yellow-400" />
+                  <span className="text-white/50 text-[10px]">Algunos sitios bloquean el embed — usa "Abrir en pestaña"</span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {!externalUrl && !mangaId && !pagesLoading && (
             <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 text-white/20">
               <BookOpen size={56} className="opacity-20" />
               <p className="text-sm font-medium">
@@ -883,14 +1038,25 @@ const MangaPartyPage = memo(() => {
                   : 'Esperando que el host elija un manga'}
               </p>
               {isHost && (
-                <motion.button
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => setShowSearch(true)}
-                  className="mt-2 px-5 py-2.5 rounded-xl bg-violet-600 hover:bg-violet-500
-                             text-white font-black text-sm transition-colors"
-                >
-                  Buscar manga
-                </motion.button>
+                <div className="flex items-center gap-3 mt-2">
+                  <motion.button
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => setShowSearch(true)}
+                    className="px-5 py-2.5 rounded-xl bg-violet-600 hover:bg-violet-500
+                               text-white font-black text-sm transition-colors"
+                  >
+                    Buscar manga
+                  </motion.button>
+                  <span className="text-white/20 text-xs">o</span>
+                  <motion.button
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => setShowUrlInput(true)}
+                    className="px-5 py-2.5 rounded-xl bg-cyan-600/20 border border-cyan-500/30
+                               hover:bg-cyan-600/30 text-cyan-400 font-black text-sm transition-colors"
+                  >
+                    Pegar URL
+                  </motion.button>
+                </div>
               )}
             </div>
           )}
