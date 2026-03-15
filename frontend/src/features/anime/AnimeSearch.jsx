@@ -6,18 +6,21 @@ const AnimeSearch = ({ onSelect }) => {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
   const handleSearch = async (e) => {
     e.preventDefault();
     if (!query.trim()) return;
 
     setLoading(true);
+    setError(null);
     try {
       const data = await animeService.searchAnime(query);
       setResults(data);
     } catch (error) {
       console.error('Search error:', error);
       setResults([]);
+      setError(error.message);
     } finally {
       setLoading(false);
     }
@@ -90,7 +93,24 @@ const AnimeSearch = ({ onSelect }) => {
         ))}
       </div>
 
-      {results.length === 0 && !loading && query && (
+      {error && (
+        <div className="rounded-[24px] border border-rose-400/20 bg-rose-500/10 px-5 py-4 text-center">
+          <div className="text-sm font-medium text-rose-200">
+            Error al buscar anime
+          </div>
+          <div className="mt-1 text-xs text-rose-300/80">
+            {error.includes('500') ? 'El servidor está temporalmente caído. Intenta de nuevo en unos minutos.' : error}
+          </div>
+          <button
+            onClick={() => setError(null)}
+            className="mt-3 rounded-full border border-rose-400/30 bg-rose-500/20 px-4 py-2 text-xs font-medium text-rose-200 hover:bg-rose-500/30 transition"
+          >
+            Cerrar
+          </button>
+        </div>
+      )}
+
+      {results.length === 0 && !loading && query && !error && (
         <div className="rounded-[24px] border border-dashed border-white/10 bg-white/[0.03] px-5 py-10 text-center text-sm text-white/45">
           No encontré resultados para "{query}".
         </div>

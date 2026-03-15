@@ -12,10 +12,28 @@ const buildUrl = (path, params = {}) => {
 };
 
 export const animeService = {
-  async searchAnime(query) {
-    const response = await fetch(buildUrl('/api/anime/search', { q: query }));
-    if (!response.ok) throw new Error('Failed to search anime');
-    return response.json();
+  async searchAnime(query, retryCount = 0) {
+    try {
+      const response = await fetch(buildUrl('/api/anime/search', { q: query }));
+      
+      if (!response.ok) {
+        if (response.status === 500 && retryCount < 2) {
+          // Retry once after 1 second for server errors
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          return this.searchAnime(query, retryCount + 1);
+        }
+        throw new Error(`Server error ${response.status}: ${response.statusText}`);
+      }
+      
+      return response.json();
+    } catch (error) {
+      if (error.message.includes('Failed to fetch') && retryCount < 2) {
+        // Network error, retry once
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        return this.searchAnime(query, retryCount + 1);
+      }
+      throw error;
+    }
   },
 
   async getAnimeInfo(id, provider) {
