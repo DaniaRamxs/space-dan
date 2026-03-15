@@ -11,6 +11,7 @@ import { joinOrCreateRoom, client as colyseusClient } from '@/services/colyseusC
 import AnimeEpisodeList from './AnimeEpisodeList';
 import AnimePlayer from './AnimePlayer';
 import AnimeSearch from './AnimeSearch';
+import GifPickerModal from '@/components/reactions/GifPickerModal';
 
 const AnimeSpacePage = ({ onClose, roomName }) => {
   // ── 1. Context ───────────────────────────────────────────────────────────
@@ -37,6 +38,7 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
   const [presenceReady, setPresenceReady] = useState(false); // al menos un sync de presencia completado
   const [presenceParticipants, setPresenceParticipants] = useState([]); // todos los usuarios en el canal via Presence
   const [bufferingUsers, setBufferingUsers] = useState({});
+  const [showGifPicker, setShowGifPicker] = useState(false);
   const [countdown, setCountdown] = useState(null);
   const [floatingEmojis, setFloatingEmojis] = useState([]);
   const [copiedLink, setCopiedLink] = useState(false);
@@ -87,10 +89,25 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
     onStateUpdate: handlePlaybackStateUpdate
   });
 
-  const { gifOverlays, isStorming, addGifOverlay } = useReactionEngine({
+  const { gifOverlays, isStorming, addGifOverlay, sendReaction } = useReactionEngine({
     room,
     getVideoTimestamp: () => playbackState?.currentTime ?? 0
   });
+
+  // sendGif function
+  const sendGif = (gif) => {
+    sendReaction({
+      type: 'gif',
+      gifUrl: gif.url,
+      supabaseChannel: syncChannelRef.current,
+      supabaseMeta: {
+        userId: profile?.id,
+        username: profile?.username || 'Anon',
+        avatar: profile?.avatar_url,
+        timestamp: Date.now()
+      }
+    });
+  };
 
   // ── 5. Derived values (useMemo after all hooks) ───────────────────────────
   const hostParticipant = useMemo(() => {
@@ -922,13 +939,10 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
         <form onSubmit={handleSendMessage} className="flex items-end gap-2 bg-black/40 p-2 rounded-2xl border border-white/5">
           <button
             type="button"
-            onClick={() => {
-              // Implementar picker de GIFs si es necesario
-              console.log('GIF picker clicked');
-            }}
+            onClick={() => setShowGifPicker(true)}
             className="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-white/5 text-white/40 border border-white/10 hover:bg-white/10 transition"
           >
-            😀
+            <Gift className="w-5 h-5" />
           </button>
           <input
             type="text"
@@ -1206,6 +1220,13 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
           </div>
         </div>
       )}
+
+      {/* GIF Picker Modal */}
+      <GifPickerModal
+        isOpen={showGifPicker}
+        onClose={() => setShowGifPicker(false)}
+        onSelect={sendGif}
+      />
     </div>
   );
 };
