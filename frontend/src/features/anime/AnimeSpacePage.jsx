@@ -471,7 +471,7 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
     if (!onCloseRef.current) return;
 
     const now = Date.now();
-    if (!force && now - lastBroadcastRef.current < 4000) { console.warn('[broadcastAnimeState] skip: throttled'); return; }
+    if (!force && now - lastBroadcastRef.current < 500) { console.warn('[broadcastAnimeState] skip: throttled'); return; }
     lastBroadcastRef.current = now;
 
     syncChannelRef.current.send({
