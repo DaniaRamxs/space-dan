@@ -22,18 +22,76 @@ export function usePlaybackSync({
         hostId: '',
         lastUpdate: 0
     });
-    const [isHost, setIsHost] = useState(false);
     const [reactions, setReactions] = useState([]);
+    const [isApplyingRemote, setIsApplyingRemote] = useState(false);
+    
+    // Calculate isHost directly
+    const isHost = profile?.id === playbackState.hostId;
 
     // Using refs to avoid stale closures in event listeners
     const stateRef = useRef(playbackState);
-    const isApplyingRemoteRef = useRef(false);
     const syncChannelRef = useRef(null); // canal suscrito para reusar en broadcastState
 
+    const handleRemoteState = (remoteState) => {
+        if (!remoteState) return;
+        
+        // Prevent feedback loops
+        setIsApplyingRemote(true);
+        
+        setPlaybackState(prev => {
+            // Only update if the incoming state is newer or vital
+            if (remoteState.lastUpdate < prev.lastUpdate && remoteState.videoId === prev.videoId) {
+                setIsApplyingRemote(false);
+                return prev;
+            }
+            return { ...prev, ...remoteState };
+        });
+
+        if (onStateUpdate) {
+            onStateUpdate(remoteState);
+        }
+
+        // Reset the flag after a tick to allow the player to react
+        setTimeout(() => {
+            setIsApplyingRemote(false);
+        }, 50);
+    };
+
+    const broadcastState = useCallback((nextState) => {
+        const payload = {
+            ...nextState,
+            lastUpdate: Date.now(),
+            hostId: profile?.id
+        };
+
+        // Broadcast through Colyseus if available (Authorized)
+        if (colyseusRoom?.connection?.isOpen) {
+            try { colyseusRoom.send("update_state", payload); } catch {}
+        }
+
+        // Always broadcast through Supabase for redundancy
+        if (syncChannelRef.current) {
+            syncChannelRef.current.send({
+                type: 'broadcast',
+                event: 'STATE_UPDATE',
+                payload
+            });
+            
+            // If state changed to playing, also send play_countdown for countdown functionality
+            if (nextState.playing && !stateRef.current.playing) {
+                syncChannelRef.current.send({
+                    type: 'broadcast',
+                    event: 'play_countdown',
+                    payload: { hostId: profile?.id, currentTime: nextState.currentTime || 0 }
+                });
+            }
+        }
+    }, [colyseusRoom, profile?.id]);
+
+    // Update refs and derived state
     useEffect(() => {
         stateRef.current = playbackState;
-        setIsHost(profile?.id === playbackState.hostId);
-    }, [playbackState, profile?.id]);
+    }, [playbackState]);
 
     // 1. Supabase Broadcast Fallback / Secondary Sync
     useEffect(() => {
@@ -51,6 +109,14 @@ export function usePlaybackSync({
             .on('broadcast', { event: 'SYNC_REQUEST' }, () => {
                 if (stateRef.current.hostId === profile?.id) {
                     broadcastState(stateRef.current);
+                    // If currently playing, also send countdown for new joiners
+                    if (stateRef.current.playing) {
+                        syncChannelRef.current.send({
+                            type: 'broadcast',
+                            event: 'play_countdown',
+                            payload: { hostId: profile?.id, currentTime: stateRef.current.currentTime || 0 }
+                        });
+                    }
                 }
             })
             .on('broadcast', { event: 'play_countdown' }, ({ payload }) => {
@@ -121,62 +187,6 @@ export function usePlaybackSync({
         };
     }, [colyseusRoom, profile?.id]);
 
-    const handleRemoteState = (remoteState) => {
-        if (!remoteState) return;
-        
-        // Prevent feedback loops
-        isApplyingRemoteRef.current = true;
-        
-        setPlaybackState(prev => {
-            // Only update if the incoming state is newer or vital
-            if (remoteState.lastUpdate < prev.lastUpdate && remoteState.videoId === prev.videoId) {
-                isApplyingRemoteRef.current = false;
-                return prev;
-            }
-            return { ...prev, ...remoteState };
-        });
-
-        if (onStateUpdate) {
-            onStateUpdate(remoteState);
-        }
-
-        // Reset the flag after a tick to allow the player to react
-        setTimeout(() => {
-            isApplyingRemoteRef.current = false;
-        }, 50);
-    };
-
-    const broadcastState = useCallback((nextState) => {
-        const payload = {
-            ...nextState,
-            lastUpdate: Date.now(),
-            hostId: profile?.id
-        };
-
-        // Broadcast through Colyseus if available (Authorized)
-        if (colyseusRoom?.connection?.isOpen) {
-            try { colyseusRoom.send("update_state", payload); } catch {}
-        }
-
-        // Always broadcast through Supabase for redundancy
-        if (syncChannelRef.current) {
-            syncChannelRef.current.send({
-                type: 'broadcast',
-                event: 'STATE_UPDATE',
-                payload
-            });
-            
-            // If state changed to playing, also send play_countdown for countdown functionality
-            if (nextState.playing && !stateRef.current.playing) {
-                syncChannelRef.current.send({
-                    type: 'broadcast',
-                    event: 'play_countdown',
-                    payload: { hostId: profile?.id, currentTime: nextState.currentTime || 0 }
-                });
-            }
-        }
-    }, [colyseusRoom, profile?.id]);
-
     const updatePlayback = useCallback((updates) => {
         // Only host can update state
         if (playbackState.hostId && playbackState.hostId !== profile?.id) {
@@ -198,7 +208,7 @@ export function usePlaybackSync({
         playbackState,
         isHost,
         reactions,
-        isApplyingRemote: isApplyingRemoteRef.current,
+        isApplyingRemote,
         updatePlayback,
         setPlaybackState // Internal use only
     };
