@@ -1,11 +1,11 @@
 import React, {
-  useState, useEffect, useRef, useCallback, memo,
+  useState, useEffect, useRef, useCallback, memo, useMemo,
 } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Users, MessageSquare, Copy, Rocket, X, Check, Send, Crown,
   ChevronLeft, Clock, Bell, Loader2, Link, Monitor, Gift, Pause,
-  MapPin, BarChart2, Wifi, WifiOff, Volume2,
+  MapPin, BarChart2, Volume2, Maximize2, PictureInPicture2,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuthContext } from '@/contexts/AuthContext';
@@ -149,7 +149,7 @@ const FloatingEmoji = memo(({ emoji, id, x }) => (
 
 // ─── GIF overlay ──────────────────────────────────────────────────────────────
 
-const GifOverlay = memo(({ gifUrl, id }) => (
+const GifOverlay = memo(({ gifUrl, id, x, y }) => (
   <motion.img
     key={id}
     src={gifUrl}
@@ -157,31 +157,35 @@ const GifOverlay = memo(({ gifUrl, id }) => (
     animate={{ opacity: 1, scale: 1 }}
     exit={{ opacity: 0, scale: 0.7 }}
     transition={{ duration: 0.3 }}
-    className="absolute top-1/4 left-1/2 -translate-x-1/2 max-w-[38%] rounded-xl shadow-2xl border border-white/10 pointer-events-none z-40"
+    className="absolute max-w-[38%] rounded-xl shadow-2xl border border-white/10 pointer-events-none z-40"
+    style={{ left: `${x}%`, top: `${y}%`, transform: 'translate(-50%, -50%)' }}
     alt="gif reaction"
   />
 ));
 
 // ─── Screen share overlays wrapper ────────────────────────────────────────────
 
-const ScreenOverlays = ({ floatingEmojis, gifOverlays }) => (
-  <div className="absolute inset-0 pointer-events-none overflow-hidden">
-    <AnimatePresence>
-      {floatingEmojis.map((e) => (
-        <FloatingEmoji key={e.id} emoji={e.emoji || e.content} id={e.id} x={e.x} />
-      ))}
-    </AnimatePresence>
-    <AnimatePresence>
-      {gifOverlays.map((g) => (
-        <GifOverlay key={g.id} gifUrl={g.gifUrl} id={g.id} />
-      ))}
-    </AnimatePresence>
-  </div>
-);
+const ScreenOverlays = ({ floatingEmojis, gifOverlays }) => {
+  const memoizedEmojis = useMemo(() => floatingEmojis, [floatingEmojis]);
+  return (
+    <div className="absolute inset-0 pointer-events-none overflow-hidden">
+      <AnimatePresence>
+        {memoizedEmojis.map((e) => (
+          <FloatingEmoji key={e.id} emoji={e.emoji || e.content} id={e.id} x={e.x} />
+        ))}
+      </AnimatePresence>
+      <AnimatePresence>
+        {gifOverlays.map((g) => (
+          <GifOverlay key={g.id} gifUrl={g.gifUrl} id={g.id} x={g.x} y={g.y} />
+        ))}
+      </AnimatePresence>
+    </div>
+  );
+};
 
 // ─── WebRTC status dot ────────────────────────────────────────────────────────
 
-const WebrtcDot = ({ status }) => {
+const WebrtcDot = ({ status, latencyMs }) => {
   const color =
     status === 'connected'    ? 'bg-green-400'
     : status === 'poor'       ? 'bg-yellow-400'
@@ -190,10 +194,15 @@ const WebrtcDot = ({ status }) => {
     : 'bg-gray-500';
   const pulse = status === 'reconnecting' || status === 'connecting';
   return (
-    <div
-      className={`w-2 h-2 rounded-full flex-shrink-0 ${color} ${pulse ? 'animate-pulse' : ''}`}
-      title={status}
-    />
+    <div className="flex items-center gap-1">
+      <div
+        className={`w-2 h-2 rounded-full flex-shrink-0 ${color} ${pulse ? 'animate-pulse' : ''}`}
+        title={status}
+      />
+      {latencyMs != null && (
+        <span className="text-white/40 text-[10px] font-mono">~{latencyMs}ms</span>
+      )}
+    </div>
   );
 };
 
@@ -248,10 +257,18 @@ const AstroPartyPage = ({ onClose, roomName }) => {
 
   // ── WebRTC reconnection ──────────────────────────────────────────────────────
   const [webrtcStatus, setWebrtcStatus] = useState('idle'); // 'idle'|'connecting'|'connected'|'reconnecting'|'poor'|'failed'
+  const [webrtcLatencyMs, setWebrtcLatencyMs] = useState(null);
   const webrtcRetryCountRef = useRef(0);
   const webrtcRetryTimerRef = useRef(null);
   const statsTimerRef       = useRef(null);
   const statsSnapshotRef    = useRef(0);
+
+  // ── Stream paused state ──────────────────────────────────────────────────────
+  const [streamPaused, setStreamPaused] = useState(false); // host: is stream paused; guest: is host stream frozen
+
+  // ── Guest quality tracking (host side) ──────────────────────────────────────
+  const guestQualityRef = useRef({}); // { [guestId]: 'good' | 'poor' | 'failed' }
+  const [guestQualitySummary, setGuestQualitySummary] = useState({ good: 0, poor: 0, failed: 0 });
 
   // ── Sync refs ────────────────────────────────────────────────────────────────
   const webrtcCallbacksRef = useRef({ handleRequest: null, handleOffer: null, handleAnswer: null, handleIce: null });
@@ -377,14 +394,16 @@ const AstroPartyPage = ({ onClose, roomName }) => {
 
   const addGifOverlay = useCallback((gifUrl) => {
     const id = Date.now() + Math.random();
-    setGifOverlays((prev) => [...prev.slice(-4), { id, gifUrl }]);
+    const x = 10 + Math.random() * 75;
+    const y = 10 + Math.random() * 70;
+    setGifOverlays((prev) => [...prev.slice(-4), { id, gifUrl, x, y }]);
     setTimeout(() => setGifOverlays((prev) => prev.filter((g) => g.id !== id)), 5000);
   }, []);
 
   const addFloatingEmojiLocal = useCallback((emoji) => {
     const id = Date.now() + Math.random();
     const x  = 10 + Math.random() * 80;
-    setFloatingEmojis((prev) => [...prev, { id, content: emoji, emoji, x }]);
+    setFloatingEmojis((prev) => [...prev.slice(-14), { id, content: emoji, emoji, x }]);
     setTimeout(() => setFloatingEmojis((prev) => prev.filter((e) => e.id !== id)), 2500);
   }, []);
 
@@ -462,6 +481,19 @@ const AstroPartyPage = ({ onClose, roomName }) => {
     };
   });
 
+  // ── Helper: recompute guest quality summary ────────────────────────────────────
+
+  const recomputeGuestQuality = useCallback(() => {
+    const values = Object.values(guestQualityRef.current);
+    const summary = { good: 0, poor: 0, failed: 0 };
+    values.forEach((q) => {
+      if (q === 'good') summary.good++;
+      else if (q === 'poor') summary.poor++;
+      else if (q === 'failed') summary.failed++;
+    });
+    setGuestQualitySummary(summary);
+  }, []);
+
   // ── WebRTC handlers ──────────────────────────────────────────────────────────
 
   const handleScreenRequest = useCallback(async ({ fromId, fromUsername }) => {
@@ -501,7 +533,7 @@ const AstroPartyPage = ({ onClose, roomName }) => {
     const pc = new RTCPeerConnection(buildPcConfig());
     pcRef.current['host'] = pc;
 
-    // Stats polling for connection quality
+    // Stats polling for connection quality + latency
     const startStats = () => {
       clearInterval(statsTimerRef.current);
       statsSnapshotRef.current = 0;
@@ -509,13 +541,38 @@ const AstroPartyPage = ({ onClose, roomName }) => {
         try {
           const stats = await pc.getStats();
           let bytesReceived = 0;
+          let roundTripTime = null;
           const prev = statsSnapshotRef.current || 0;
           stats.forEach((s) => {
             if (s.type === 'inbound-rtp' && s.kind === 'video') bytesReceived = s.bytesReceived;
+            if (s.type === 'candidate-pair' && s.state === 'succeeded' && s.currentRoundTripTime != null) {
+              roundTripTime = s.currentRoundTripTime;
+            }
           });
           const bps = ((bytesReceived - prev) / 3) * 8;
           statsSnapshotRef.current = bytesReceived;
-          setWebrtcStatus(bps > 400_000 ? 'connected' : bps > 100_000 ? 'poor' : 'connecting');
+
+          if (roundTripTime != null) {
+            setWebrtcLatencyMs(Math.round(roundTripTime * 1000));
+          }
+
+          const newStatus = bps > 400_000 ? 'connected' : bps > 100_000 ? 'poor' : 'connecting';
+          setWebrtcStatus(newStatus);
+
+          // Send quality report to host
+          const qualityLevel = newStatus === 'connected' ? 'good' : newStatus === 'poor' ? 'poor' : 'failed';
+          channelRef.current?.send({
+            type: 'broadcast', event: 'screen_quality',
+            payload: { fromId: profileRef.current?.id, quality: qualityLevel },
+          }).catch(() => {});
+
+          // Adaptive quality: if poor, request lower bitrate from host
+          if (newStatus === 'poor') {
+            channelRef.current?.send({
+              type: 'broadcast', event: 'screen_quality_req',
+              payload: { fromId: profileRef.current?.id, quality: 'low' },
+            }).catch(() => {});
+          }
         } catch {}
       }, 3000);
     };
@@ -767,6 +824,11 @@ const AstroPartyPage = ({ onClose, roomName }) => {
             setActivePoll(null);
           }, 3000);
         }
+        if (payload.type === 'stream_paused') {
+          if (!asHost) {
+            setStreamPaused(payload.paused);
+          }
+        }
       })
       .on('broadcast', { event: 'astro_sync_req' }, ({ payload }) => {
         if (!payload) return;
@@ -812,6 +874,24 @@ const AstroPartyPage = ({ onClose, roomName }) => {
       .on('broadcast', { event: 'screen_ice' }, ({ payload }) => {
         webrtcCallbacksRef.current.handleIce?.(payload);
       })
+      .on('broadcast', { event: 'screen_quality' }, ({ payload }) => {
+        // Host receives guest quality reports
+        if (!isHostRef.current || !payload?.fromId) return;
+        guestQualityRef.current[payload.fromId] = payload.quality;
+        recomputeGuestQuality();
+      })
+      .on('broadcast', { event: 'screen_quality_req' }, ({ payload }) => {
+        // Host handles adaptive bitrate request from guest
+        if (!isHostRef.current || !payload?.fromId) return;
+        const pc = pcRef.current[payload.fromId];
+        if (!pc) return;
+        const sender = pc.getSenders().find((s) => s.track?.kind === 'video');
+        if (!sender) return;
+        const params = sender.getParameters();
+        if (!params.encodings || params.encodings.length === 0) return;
+        params.encodings[0].maxBitrate = payload.quality === 'low' ? 500_000 : 2_500_000;
+        sender.setParameters(params).catch(() => {});
+      })
       .subscribe(async (status) => {
         if (status === 'SUBSCRIBED') {
           await channel.track({
@@ -827,7 +907,7 @@ const AstroPartyPage = ({ onClose, roomName }) => {
 
     channelRef.current = channel;
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [myUsername]);
+  }, [myUsername, recomputeGuestQuality]);
 
   // ── Presence tracking ────────────────────────────────────────────────────────
 
@@ -920,6 +1000,7 @@ const AstroPartyPage = ({ onClose, roomName }) => {
       localStreamRef.current = stream;
       screenStreamRef.current = stream;
       setScreenStream(stream);
+      setStreamPaused(false);
       setContentMode('screenshare');
       setRoomStep('watching');
       updateRoomHistoryContentMode(roomCode, 'screenshare');
@@ -946,12 +1027,108 @@ const AstroPartyPage = ({ onClose, roomName }) => {
     pcRef.current = {};
     clearInterval(statsTimerRef.current);
     setWebrtcStatus('idle');
+    setWebrtcLatencyMs(null);
     broadcastSync({ type: 'session_end' });
     setView('lobby');
     setRoomStep('content');
     setContentMode(null);
     setSyncState('idle');
   }, [broadcastSync]);
+
+  // ── Host: toggle stream pause ─────────────────────────────────────────────────
+
+  const toggleStreamPause = useCallback(() => {
+    if (!localStreamRef.current) return;
+    const videoTrack = localStreamRef.current.getVideoTracks()[0];
+    if (!videoTrack) return;
+    const nextPaused = !streamPaused;
+    videoTrack.enabled = !nextPaused;
+    setStreamPaused(nextPaused);
+    channelRef.current?.send({
+      type: 'broadcast', event: 'astro_sync',
+      payload: { type: 'stream_paused', paused: nextPaused },
+    }).catch(() => {});
+  }, [streamPaused]);
+
+  // ── Host: change display window without disconnecting guests ──────────────────
+
+  const changeDisplayWindow = useCallback(async () => {
+    try {
+      const newStream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true });
+      const newTrack = newStream.getVideoTracks()[0];
+
+      // Replace track on all existing peer connections
+      await Promise.all(
+        Object.values(pcRef.current).map(async (pc) => {
+          const sender = pc.getSenders().find((s) => s.track?.kind === 'video');
+          if (sender) await sender.replaceTrack(newTrack).catch(() => {});
+        })
+      );
+
+      // Stop old tracks
+      localStreamRef.current?.getVideoTracks().forEach((t) => t.stop());
+
+      // Update refs and state
+      // Keep audio tracks from old stream if any
+      const audioTracks = localStreamRef.current?.getAudioTracks() || [];
+      audioTracks.forEach((t) => newStream.addTrack(t));
+
+      localStreamRef.current = newStream;
+      screenStreamRef.current = newStream;
+      setScreenStream(newStream);
+      setStreamPaused(false);
+
+      if (localVideoRef.current) {
+        localVideoRef.current.srcObject = newStream;
+      }
+
+      newTrack.onended = () => {
+        stopScreenShareCleanup();
+      };
+
+      toast.success('Ventana cambiada sin desconectar a los invitados');
+    } catch (err) {
+      if (err.name !== 'NotAllowedError') {
+        toast.error('No se pudo cambiar la ventana');
+      }
+    }
+  }, [stopScreenShareCleanup]);
+
+  // ── Guest: fullscreen ─────────────────────────────────────────────────────────
+
+  const requestRemoteFullscreen = useCallback(() => {
+    if (remoteVideoRef.current) {
+      remoteVideoRef.current.requestFullscreen?.().catch(() => {});
+    }
+  }, []);
+
+  // ── Guest: picture-in-picture ─────────────────────────────────────────────────
+
+  const requestPiP = useCallback(() => {
+    if (remoteVideoRef.current) {
+      remoteVideoRef.current.requestPictureInPicture?.().catch(() => {});
+    }
+  }, []);
+
+  // ── Host: local fullscreen ────────────────────────────────────────────────────
+
+  const requestLocalFullscreen = useCallback(() => {
+    if (localVideoRef.current) {
+      localVideoRef.current.requestFullscreen?.().catch(() => {});
+    }
+  }, []);
+
+  // ── Manual reconnect (guest, when failed) ─────────────────────────────────────
+
+  const manualReconnect = useCallback(() => {
+    setWebrtcStatus('connecting');
+    webrtcRetryCountRef.current = 0;
+    clearTimeout(webrtcRetryTimerRef.current);
+    channelRef.current?.send({
+      type: 'broadcast', event: 'screen_request',
+      payload: { fromId: profileRef.current?.id, fromUsername: profileRef.current?.username || 'Anon' },
+    }).catch(() => {});
+  }, []);
 
   // ── Sync countdown ────────────────────────────────────────────────────────────
 
@@ -1382,7 +1559,7 @@ const AstroPartyPage = ({ onClose, roomName }) => {
               >
                 <div className="mt-2 px-3 py-2.5 rounded-xl bg-yellow-500/10 border border-yellow-500/20 text-left">
                   <p className="text-yellow-300/80 text-xs leading-relaxed">
-                    Para compartir audio en Chrome: selecciona la pestana o ventana y marca "Compartir audio"
+                    Para compartir audio del sistema, en el dialogo de Chrome marca "Compartir audio de la pestana/sistema"
                   </p>
                 </div>
               </motion.div>
@@ -1505,6 +1682,9 @@ const AstroPartyPage = ({ onClose, roomName }) => {
 
     // Screen share mode
     if (contentMode === 'screenshare') {
+      // Guest quality badge for host
+      const hasGuestQuality = isHost && (guestQualitySummary.good + guestQualitySummary.poor + guestQualitySummary.failed) > 0;
+
       return (
         <div className="flex flex-col h-full bg-black">
           <div className="flex-1 relative min-h-0">
@@ -1521,6 +1701,28 @@ const AstroPartyPage = ({ onClose, roomName }) => {
                 <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-2 bg-black/70 backdrop-blur-sm rounded-full px-4 py-2 border border-white/10">
                   <div className="w-2 h-2 rounded-full bg-red-400 animate-pulse" />
                   <span className="text-white text-xs font-bold">En vivo</span>
+                  {streamPaused && (
+                    <span className="text-yellow-400 text-xs font-bold ml-1">Pausado</span>
+                  )}
+                  <button
+                    onClick={toggleStreamPause}
+                    className={`ml-1 text-xs font-bold transition-colors ${streamPaused ? 'text-green-400 hover:text-green-300' : 'text-yellow-400/80 hover:text-yellow-300'}`}
+                  >
+                    {streamPaused ? 'Reanudar' : 'Pausar'}
+                  </button>
+                  <button
+                    onClick={changeDisplayWindow}
+                    className="ml-1 text-cyan-400/80 hover:text-cyan-300 text-xs font-bold transition-colors"
+                  >
+                    Cambiar ventana
+                  </button>
+                  <button
+                    onClick={requestLocalFullscreen}
+                    className="ml-1 text-white/50 hover:text-white/80 transition-colors"
+                    title="Pantalla completa"
+                  >
+                    <Maximize2 size={13} />
+                  </button>
                   <button
                     onClick={stopScreenShareCleanup}
                     className="ml-1 text-red-400 hover:text-red-300 text-xs font-bold transition-colors"
@@ -1538,6 +1740,32 @@ const AstroPartyPage = ({ onClose, roomName }) => {
                   className="w-full h-full object-contain"
                 />
                 <ScreenOverlays floatingEmojis={floatingEmojis} gifOverlays={gifOverlays} />
+                {/* Stream paused badge for guests */}
+                {streamPaused && (
+                  <div className="absolute top-4 left-1/2 -translate-x-1/2 flex items-center gap-1.5 bg-black/70 backdrop-blur-sm rounded-full px-3 py-1.5 border border-yellow-500/30">
+                    <Pause size={11} className="text-yellow-400" />
+                    <span className="text-yellow-400 text-xs font-bold">Pausado</span>
+                  </div>
+                )}
+                {/* Guest video controls */}
+                <div className="absolute bottom-4 right-4 flex items-center gap-2">
+                  <button
+                    onClick={requestRemoteFullscreen}
+                    className="w-8 h-8 flex items-center justify-center bg-black/60 hover:bg-black/80 rounded-full border border-white/10 text-white/60 hover:text-white transition-all"
+                    title="Pantalla completa"
+                  >
+                    <Maximize2 size={14} />
+                  </button>
+                  {document.pictureInPictureEnabled && (
+                    <button
+                      onClick={requestPiP}
+                      className="w-8 h-8 flex items-center justify-center bg-black/60 hover:bg-black/80 rounded-full border border-white/10 text-white/60 hover:text-white transition-all"
+                      title="Picture in picture"
+                    >
+                      <PictureInPicture2 size={14} />
+                    </button>
+                  )}
+                </div>
               </div>
             ) : (
               <div className="flex flex-col items-center justify-center h-full gap-3">
@@ -1550,12 +1778,36 @@ const AstroPartyPage = ({ onClose, roomName }) => {
             <div className="flex items-center gap-2">
               <Monitor size={11} className="text-cyan-400" />
               <span className="text-white/40 text-xs">Compartiendo pantalla</span>
-              {!isHost && <WebrtcDot status={webrtcStatus} />}
+              {!isHost && (
+                <WebrtcDot status={webrtcStatus} latencyMs={webrtcLatencyMs} />
+              )}
               {!isHost && webrtcStatus === 'reconnecting' && (
                 <span className="text-yellow-400/70 text-[10px] font-semibold">Reconectando...</span>
               )}
               {!isHost && webrtcStatus === 'failed' && (
-                <span className="text-red-400/70 text-[10px] font-semibold">Fallo la conexion</span>
+                <>
+                  <span className="text-red-400/70 text-[10px] font-semibold">Fallo la conexion</span>
+                  <button
+                    onClick={manualReconnect}
+                    className="text-violet-400/80 hover:text-violet-300 text-[10px] font-bold underline transition-colors"
+                  >
+                    Reconectar
+                  </button>
+                </>
+              )}
+              {/* Host guest quality indicator */}
+              {isHost && hasGuestQuality && (
+                <div className="flex items-center gap-1 ml-2">
+                  {guestQualitySummary.good > 0 && (
+                    <span className="text-[10px] font-bold text-green-400">{guestQualitySummary.good} verde</span>
+                  )}
+                  {guestQualitySummary.poor > 0 && (
+                    <span className="text-[10px] font-bold text-yellow-400 ml-1">{guestQualitySummary.poor} amarillo</span>
+                  )}
+                  {guestQualitySummary.failed > 0 && (
+                    <span className="text-[10px] font-bold text-red-400 ml-1">{guestQualitySummary.failed} rojo</span>
+                  )}
+                </div>
               )}
             </div>
             {isHost && (
