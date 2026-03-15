@@ -383,14 +383,18 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
         }
       })
       .subscribe(async (status) => {
+        console.log('[Presence subscribe] status:', status, 'channel:', channelName, 'userId:', profile?.id, 'username:', profile?.username);
         if (status === 'SUBSCRIBED') {
           if (!joinedAtRef.current) joinedAtRef.current = Date.now();
-          await channel.track({
+          const trackPayload = {
             userId: profile?.id,
             username: profile?.username || 'Anon',
             avatar: profile?.avatar_url || null,
             joinedAt: joinedAtRef.current,
-          }).catch(() => {});
+          };
+          console.log('[Presence track]', trackPayload);
+          const trackResult = await channel.track(trackPayload).catch((err) => { console.error('[Presence track ERROR]', err); return null; });
+          console.log('[Presence track result]', trackResult);
           heartbeatRef.current = setInterval(() => {
             channel.track({
               userId: profile?.id,
