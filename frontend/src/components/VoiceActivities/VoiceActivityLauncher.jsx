@@ -50,6 +50,7 @@ const LudoGame           = lazy(() => import('./Ludo/LudoGame'));
 const WatchTogether      = lazy(() => import('./WatchTogether'));
 const BeatSound          = lazy(() => import('./BeatSound'));
 const AnimeSpace         = lazy(() => import('../../features/anime/AstroPartyPage'));
+const MangaParty         = lazy(() => import('../../features/manga/MangaPartyPage'));
 
 // ─── Catálogo de actividades ──────────────────────────────────────────────────
 // Cada actividad define su ID, nombre, tag de categoría, modo de red
@@ -186,14 +187,24 @@ const ACTIVITIES = [
         tagBg: 'bg-cyan-500/20 text-cyan-400',
     },
     {
-        id: 'anime', name: 'AstroParty', tag: 'Social', mode: 'api',
+        id: 'anime', name: 'Screen Sharing', tag: 'Social', mode: 'api',
         icon: Tv,
-        description: 'Watch party con Netflix, Crunchyroll y más — sincronizados',
+        description: 'Comparte tu pantalla en tiempo real con toda la sala',
         reward: null,
         border: 'border-purple-500/30', bg: 'bg-purple-500/5',
         hover: 'hover:bg-purple-500/10 hover:border-purple-500/50',
         accent: 'bg-purple-500', text: 'text-purple-400',
         tagBg: 'bg-purple-500/20 text-purple-400',
+    },
+    {
+        id: 'manga', name: 'Manga Party', tag: 'Social', mode: 'api',
+        icon: Sparkles,
+        description: 'Lee manga sincronizado con tus amigos en tiempo real',
+        reward: null,
+        border: 'border-pink-500/30', bg: 'bg-pink-500/5',
+        hover: 'hover:bg-pink-500/10 hover:border-pink-500/50',
+        accent: 'bg-pink-500', text: 'text-pink-400',
+        tagBg: 'bg-pink-500/20 text-pink-400',
     },
 ];
 
@@ -216,6 +227,7 @@ const ACTIVITY_COMPONENTS = {
     watch:          WatchTogether,
     'beat-sound':   BeatSound,
     anime:          AnimeSpace,
+    manga:          MangaParty,
 };
 
 // Actividades que gestionan su propio botón de minimizar (no mostrar el genérico)
