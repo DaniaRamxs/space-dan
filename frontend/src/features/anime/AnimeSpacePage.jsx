@@ -446,11 +446,11 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
     setChatMessages([]);
   };
 
-  const broadcastAnimeState = useCallback((payload) => {
+  const broadcastAnimeState = useCallback((payload, force = false) => {
     if (!syncChannelRef.current || applyingRemoteStateRef.current || !onClose) return;
 
     const now = Date.now();
-    if (now - lastBroadcastRef.current < 4000) return;
+    if (!force && now - lastBroadcastRef.current < 4000) return;
     lastBroadcastRef.current = now;
 
     syncChannelRef.current.httpSend({
@@ -558,7 +558,7 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
         streamData: null,
         activeSourceIndex: 0,
         roomState: null,
-      });
+      }, true);
     } catch (error) {
       if (controller.signal.aborted) return;
       console.error('[AnimeSpace] handleAnimeSelect error:', error);
@@ -628,7 +628,7 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
         activeSourceIndex: 0,
         colyseusRoomId: colyseusRoomIdRef.current || null,
         roomState: { roomId },
-      });
+      }, true);
 
       setView('player');
     } catch (error) {
