@@ -109,12 +109,6 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
   // Keep isSyncedHostRef in sync so syncCurrentState can read it without deps
   useEffect(() => { isSyncedHostRef.current = isSyncedHost; }, [isSyncedHost]);
 
-  // Cuando el usuario se convierte en host (lobby), anunciarse a los viewers que esperan
-  useEffect(() => {
-    if (!isSyncedHost || !onClose || !syncChannelRef.current) return;
-    syncCurrentState();
-  }, [isSyncedHost, onClose, syncCurrentState]);
-
   // Función de sincronización movida fuera del useEffect para evitar condiciones de carrera
   const syncCurrentState = useCallback(() => {
     const s = stateRef.current;
@@ -213,6 +207,12 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
     }
   }, [roomName, profile?.id, profile?.username, profile?.avatar_url, syncCurrentState]);
   connectToWatchPartyRef.current = connectToWatchParty;
+
+  // Cuando el usuario se convierte en host (lobby), anunciarse a los viewers que esperan
+  useEffect(() => {
+    if (!isSyncedHost || !onClose || !syncChannelRef.current) return;
+    syncCurrentState();
+  }, [isSyncedHost, onClose, syncCurrentState]);
 
   // ── Conexión al lobby de Colyseus al entrar en modo watch party ──────────────
   // Igual que WatchTogether: el primero en llegar es host (server-side, por orden de llegada)
