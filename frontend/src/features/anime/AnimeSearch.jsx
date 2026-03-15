@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Search, Loader2, Sparkles } from 'lucide-react';
 import { animeService } from './animeService';
 import { animeMultiService } from './animeMultiService';
@@ -10,13 +10,41 @@ const AnimeSearch = ({ onSelect }) => {
   const [error, setError] = useState(null);
   const [emergencyMode, setEmergencyMode] = useState(false);
   const [directUrl, setDirectUrl] = useState('');
+  const [showDirectory, setShowDirectory] = useState(true);
+
+  // Load directory on mount
+  useEffect(() => {
+    loadDirectory();
+  }, []);
+
+  const loadDirectory = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await animeMultiService.getDirectory();
+      setResults(data);
+      setShowDirectory(true);
+    } catch (error) {
+      console.error('Directory load error:', error);
+      setError(error.message);
+      // Fallback to search if directory fails
+      setShowDirectory(false);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleSearch = async (e) => {
     e.preventDefault();
-    if (!query.trim()) return;
+    if (!query.trim()) {
+      // If empty query, show directory
+      loadDirectory();
+      return;
+    }
 
     setLoading(true);
     setError(null);
+    setShowDirectory(false);
     try {
       // Intentar con multi-source primero
       let data;
@@ -65,14 +93,19 @@ const AnimeSearch = ({ onSelect }) => {
       <div className="overflow-hidden rounded-[24px] border border-white/10 bg-[radial-gradient(circle_at_top_left,rgba(56,189,248,0.2),transparent_35%),linear-gradient(180deg,rgba(9,9,18,0.96),rgba(5,5,10,0.96))] p-4 shadow-[0_18px_50px_rgba(0,0,0,0.35)] sm:rounded-[28px] sm:p-7">
         <div className="mb-5 flex items-center gap-2 text-cyan-300">
           <Sparkles size={16} />
-          <span className="text-[11px] font-black uppercase tracking-[0.28em]">AnimeFLV First</span>
+          <span className="text-[11px] font-black uppercase tracking-[0.28em]">
+            {showDirectory ? 'Directorio Anime' : 'Búsqueda Anime'}
+          </span>
         </div>
         <div className="space-y-3">
           <h1 className="max-w-xl text-2xl font-black leading-none text-white sm:text-5xl">
-            AnimeSpace pensado primero para móvil.
+            {showDirectory ? 'Explora todo el catálogo' : 'Busca tu anime favorito'}
           </h1>
           <p className="max-w-2xl text-sm leading-6 text-white/65 sm:text-base">
-            Busca anime en español, entra a un episodio en pocos toques y comparte la sala cuando quieras.
+            {showDirectory 
+              ? 'Descubre nuevos animes en español con doblaje. Explora nuestro catálogo completo.'
+              : 'Busca anime en español, entra a un episodio en pocos toques y comparte la sala cuando quieras.'
+            }
           </p>
         </div>
 

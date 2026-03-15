@@ -274,6 +274,182 @@ class AnimeMultiSource {
     return results;
   }
 
+  // Get anime directory - all available anime
+  async getAnimeDirectory() {
+    console.log(`[AnimeMultiSource] Getting anime directory...`);
+    const allAnime = [];
+    
+    for (const source of this.sources) {
+      try {
+        console.log(`[AnimeMultiSource] Getting directory from ${source.name}...`);
+        const sourceAnime = await this.getDirectoryFromSource(source);
+        console.log(`[AnimeMultiSource] ${source.name} found ${sourceAnime.length} anime`);
+        allAnime.push(...sourceAnime);
+      } catch (error) {
+        console.warn(`[AnimeMultiSource] Error getting directory from ${source.name}:`, error.message);
+      }
+    }
+    
+    // Remove duplicates and sort
+    const uniqueAnime = this.mergeResults([{ results: allAnime, priority: 1 }]);
+    console.log(`[AnimeMultiSource] Directory complete: ${uniqueAnime.length} unique anime`);
+    
+    return uniqueAnime;
+  }
+
+  // Get directory from specific source
+  async getDirectoryFromSource(source) {
+    switch (source.name) {
+      case 'AnimeFLV':
+        return await this.getAnimeFLVDirectory();
+      case 'Jkanime':
+        return await this.getJkanimeDirectory();
+      case 'AnimeID':
+        return await this.getAnimeIDDirectory();
+      default:
+        return [];
+    }
+  }
+
+  // AnimeFLV directory
+  async getAnimeFLVDirectory() {
+    try {
+      const url = `${this.sources[0].baseUrl}/browse`;
+      const html = await axios.get(url, {
+        timeout: 10000,
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+        }
+      });
+      
+      const $ = cheerio.load(html.data);
+      const results = [];
+      
+      $('.AnimeList .item, .ListAnimes .article').each((index, element) => {
+        const $item = $(element);
+        const $link = $item.find('a').first();
+        const $img = $item.find('img').first();
+        const $title = $item.find('.Title, .title, h3').first();
+        
+        if ($link.length && $img.length) {
+          const title = $img.attr('alt') || $link.attr('title') || $title.text().trim() || $link.text().trim();
+          if (title && title.length > 2 && title.length < 100) {
+            results.push({
+              id: $link.attr('href')?.replace('/anime/', '') || `flv-${index}`,
+              title: title,
+              image: $img.attr('src') || $img.attr('data-src'),
+              type: $item.find('.type').text() || 'TV',
+              episodes: $item.find('.episodes').text().trim() || '?',
+              provider: 'animeflv',
+              source: 'AnimeFLV',
+              hasDub: true,
+              hasSub: true,
+              quality: 'HD',
+              format: 'hls'
+            });
+          }
+        }
+      });
+      
+      return results;
+    } catch (error) {
+      console.error('AnimeFLV directory error:', error);
+      return [];
+    }
+  }
+
+  // Jkanime directory
+  async getJkanimeDirectory() {
+    try {
+      const url = `${this.sources[1].baseUrl}/directorio`;
+      const html = await axios.get(url, {
+        timeout: 10000,
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+        }
+      });
+      
+      const $ = cheerio.load(html.data);
+      const results = [];
+      
+      $('.hermes .items .item, .anime-item').each((index, element) => {
+        const $item = $(element);
+        const $link = $item.find('a').first();
+        const $img = $item.find('img').first();
+        
+        if ($link.length && $img.length) {
+          const title = $img.attr('alt') || $item.find('.title').text().trim();
+          if (title && title.length > 2 && title.length < 100) {
+            results.push({
+              id: $link.attr('href')?.replace('/anime/', '') || `jk-${index}`,
+              title: title,
+              image: $img.attr('src') || $img.attr('data-src'),
+              type: 'TV',
+              episodes: '?',
+              provider: 'jkanime',
+              source: 'Jkanime',
+              hasDub: true,
+              hasSub: true,
+              quality: 'HD',
+              format: 'hls'
+            });
+          }
+        }
+      });
+      
+      return results;
+    } catch (error) {
+      console.error('Jkanime directory error:', error);
+      return [];
+    }
+  }
+
+  // AnimeID directory
+  async getAnimeIDDirectory() {
+    try {
+      const url = `${this.sources[2].baseUrl}/directorio`;
+      const html = await axios.get(url, {
+        timeout: 10000,
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+        }
+      });
+      
+      const $ = cheerio.load(html.data);
+      const results = [];
+      
+      $('.anime-item, .series-item, .card').each((index, element) => {
+        const $item = $(element);
+        const $link = $item.find('a').first();
+        const $img = $item.find('img').first();
+        
+        if ($link.length && $img.length) {
+          const title = $img.attr('alt') || $item.find('.title, .name').text().trim();
+          if (title && title.length > 2 && title.length < 100) {
+            results.push({
+              id: $link.attr('href')?.replace('/anime/', '') || `animeid-${index}`,
+              title: title,
+              image: $img.attr('src') || $img.attr('data-src'),
+              type: 'TV',
+              episodes: '?',
+              provider: 'animeid',
+              source: 'AnimeID',
+              hasDub: true,
+              hasSub: true,
+              quality: 'HD',
+              format: 'hls'
+            });
+          }
+        }
+      });
+      
+      return results;
+    } catch (error) {
+      console.error('AnimeID directory error:', error);
+      return [];
+    }
+  }
+
   // Get anime info and episodes
   async getAnimeInfo(animeId, provider) {
     console.log(`[AnimeMultiSource] Getting info for ${animeId} from ${provider}`);

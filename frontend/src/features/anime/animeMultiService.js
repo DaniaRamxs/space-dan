@@ -1,6 +1,19 @@
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:2567';
 
 export const animeMultiService = {
+  async getDirectory() {
+    try {
+      const response = await fetch(`${API_URL}/api/anime-multi/directory`);
+      if (!response.ok) throw new Error('Directory fetch failed');
+      const data = await response.json();
+      console.log('[animeMultiService] Directory response:', data);
+      return data.data || [];
+    } catch (error) {
+      console.error('Directory fetch error:', error);
+      throw error;
+    }
+  },
+
   async searchAnime(query) {
     try {
       const response = await fetch(`${API_URL}/api/anime-multi/search/${encodeURIComponent(query)}`);

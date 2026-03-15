@@ -5,6 +5,26 @@ const router = express.Router();
 
 const animeMulti = new AnimeMultiSource();
 
+// Directorio de anime - todos los animes disponibles
+router.get('/directory', async (req, res) => {
+  console.log('[AnimeMultiRoutes] Directory request');
+  try {
+    const directory = await animeMulti.getAnimeDirectory();
+    console.log(`[AnimeMultiRoutes] Sending directory with ${directory.length} anime`);
+    res.json({
+      success: true,
+      data: directory,
+      sources: animeMulti.sources.map(s => s.name)
+    });
+  } catch (error) {
+    console.error('[AnimeMultiRoutes] Directory error:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: error.message 
+    });
+  }
+});
+
 // Búsqueda multi-fuente
 router.get('/search/:query', async (req, res) => {
   console.log(`[AnimeMultiRoutes] Search request for: "${req.params.query}"`);
