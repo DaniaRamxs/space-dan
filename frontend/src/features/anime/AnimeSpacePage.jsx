@@ -38,6 +38,7 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
   const [countdown, setCountdown] = useState(null);
   const [floatingEmojis, setFloatingEmojis] = useState([]);
   const [copiedLink, setCopiedLink] = useState(false);
+  const [debugInfo, setDebugInfo] = useState({ channel: '', trackOk: null, subscribeStatus: '' });
 
   // ── 3. All refs (declared before any hook that references them) ───────────
   const chatEndRef = useRef(null);
@@ -384,6 +385,7 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
       })
       .subscribe(async (status) => {
         console.log('[Presence subscribe] status:', status, 'channel:', channelName, 'userId:', profile?.id, 'username:', profile?.username);
+        setDebugInfo(prev => ({ ...prev, channel: channelName, subscribeStatus: status }));
         if (status === 'SUBSCRIBED') {
           if (!joinedAtRef.current) joinedAtRef.current = Date.now();
           const trackPayload = {
@@ -395,6 +397,7 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
           console.log('[Presence track]', trackPayload);
           const trackResult = await channel.track(trackPayload).catch((err) => { console.error('[Presence track ERROR]', err); return null; });
           console.log('[Presence track result]', trackResult);
+          setDebugInfo(prev => ({ ...prev, trackOk: trackResult !== null }));
           heartbeatRef.current = setInterval(() => {
             channel.track({
               userId: profile?.id,
@@ -913,6 +916,18 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
 
   return (
     <div className="min-h-full overflow-x-hidden bg-[radial-gradient(circle_at_top,rgba(34,211,238,0.12),transparent_28%),linear-gradient(180deg,#04040a_0%,#070711_45%,#030308_100%)] text-white">
+      {onClose && (
+        <div className="fixed bottom-2 left-2 z-[9999] rounded-xl bg-black/90 p-2 text-[9px] font-mono text-white/80 border border-white/10 max-w-[220px] leading-4">
+          <div>ch: {debugInfo.channel.slice(-20)}</div>
+          <div>sub: {debugInfo.subscribeStatus}</div>
+          <div>track: {debugInfo.trackOk === null ? '...' : debugInfo.trackOk ? 'ok' : 'FAIL'}</div>
+          <div>presence: {presenceParticipants.length} users</div>
+          <div>isHost: {String(isHost)} | pHost: {String(presenceIsHost)}</div>
+          <div>ready: {String(presenceReady)}</div>
+          <div>me: {profile?.username?.slice(0,12)}</div>
+          <div>users: {presenceParticipants.map(p => p.username).join(', ')}</div>
+        </div>
+      )}
       {!onClose && (
         <header className="sticky top-0 z-40 border-b border-white/5 bg-[#030308]/80 px-4 py-3 backdrop-blur-xl sm:px-6">
           <div className="mx-auto flex max-w-6xl items-center justify-between gap-3">
