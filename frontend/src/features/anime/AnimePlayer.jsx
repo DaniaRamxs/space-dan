@@ -226,23 +226,6 @@ const AnimePlayer = ({
             </AnimatePresence>
 
             <AnimatePresence>
-              {countdown !== null && (
-                <motion.div
-                  key={countdown}
-                  className="absolute inset-0 flex items-center justify-center z-40 pointer-events-none bg-black/20"
-                  initial={{ opacity: 0, scale: 2 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.3 }}
-                  transition={{ duration: 0.35 }}
-                >
-                  <span className="text-[120px] font-black text-white drop-shadow-[0_0_60px_rgba(34,211,238,0.9)] select-none leading-none">
-                    {countdown}
-                  </span>
-                </motion.div>
-              )}
-            </AnimatePresence>
-
-            <AnimatePresence>
                 {showControls && (
                     <motion.div
                         initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
@@ -338,6 +321,23 @@ const AnimePlayer = ({
             </AnimatePresence>
           </>
         )}
+
+        <AnimatePresence>
+          {countdown !== null && (
+            <motion.div
+              key={countdown}
+              className="absolute inset-0 flex items-center justify-center z-40 pointer-events-none bg-black/20"
+              initial={{ opacity: 0, scale: 2 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.3 }}
+              transition={{ duration: 0.35 }}
+            >
+              <span className="text-[120px] font-black text-white drop-shadow-[0_0_60px_rgba(34,211,238,0.9)] select-none leading-none">
+                {countdown}
+              </span>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         <div className="absolute left-4 top-4 flex gap-2 pointer-events-none">
           {isHost ? (
