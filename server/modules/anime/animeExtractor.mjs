@@ -115,9 +115,16 @@ const ALLOWED_HOSTS = new Set([
   'filemoon.sx',
   'filemoon.to',
   'moon.to',
-  // Mp4Upload — MP4 direct link in page
+  // Mp4Upload — VideoJS player, CDN on aN.mp4upload.com:183
   'mp4upload.com',
   'www.mp4upload.com',
+  // CDN subdomains: a1.mp4upload.com, a2.mp4upload.com, a3.mp4upload.com, etc.
+  // Matched dynamically — proxy route doesn't check allowlist for direct streams,
+  // but we keep a static entry for the most common ones:
+  'a1.mp4upload.com',
+  'a2.mp4upload.com',
+  'a3.mp4upload.com',
+  'a4.mp4upload.com',
   // Yourupload
   'yourupload.com',
   'www.yourupload.com',
@@ -353,19 +360,23 @@ export async function extractMp4upload(embedUrl, referer = 'https://animefenix.t
       'sec-fetch-mode': 'navigate',
     });
     const html = resp.data;
-    // Mp4upload stores video in a jwplayer config or <source> tag
-    const m1 = html.match(/["']file["']\s*:\s*["']([^"']+\.mp4[^"']*)/i);
-    if (m1) { console.log('[extractor] mp4upload #1 OK'); return m1[1]; }
-    const m2 = html.match(/<source[^>]+src=["']([^"']+\.mp4[^"']*)/i);
-    if (m2) { console.log('[extractor] mp4upload #2 OK'); return m2[1]; }
-    const m3 = html.match(/["']file["']\s*:\s*["']([^"']+\.m3u8[^"']*)/i);
-    if (m3) { console.log('[extractor] mp4upload #3 OK'); return m3[1]; }
-    // Wider net: any cdn.mp4upload.com direct URL
-    const m4 = html.match(/https?:\/\/cdn\d*\.mp4upload\.com\/[^\s"'\\]+/);
-    if (m4) { console.log('[extractor] mp4upload #4 OK'); return m4[0]; }
-    // source attribute anywhere
-    const m5 = html.match(/src=["'](https?:\/\/[^"']+\.(?:mp4|m3u8)[^"']*)/i);
-    if (m5) { console.log('[extractor] mp4upload #5 OK'); return m5[1]; }
+
+    // Mp4upload uses VideoJS: player.src({ type:"video/mp4", src:"https://aN.mp4upload.com:PORT/d/.../video.mp4" })
+    const m1 = html.match(/src\s*:\s*["'](https?:\/\/[a-z0-9]+\.mp4upload\.com[^"']+\.mp4[^"']*)/i);
+    if (m1) { console.log('[extractor] mp4upload #1 (videojs src) OK'); return m1[1]; }
+
+    // Fallback: any *.mp4upload.com direct URL with video path
+    const m2 = html.match(/https?:\/\/[a-z0-9]+\.mp4upload\.com[^\s"'\\]+\.mp4[^\s"'\\]*/i);
+    if (m2) { console.log('[extractor] mp4upload #2 (cdn url) OK'); return m2[0]; }
+
+    // jwplayer "file" key (older pages)
+    const m3 = html.match(/["']file["']\s*:\s*["']([^"']+\.mp4[^"']*)/i);
+    if (m3) { console.log('[extractor] mp4upload #3 (file key) OK'); return m3[1]; }
+
+    // <source> HTML tag
+    const m4 = html.match(/<source[^>]+src=["']([^"']+\.mp4[^"']*)/i);
+    if (m4) { console.log('[extractor] mp4upload #4 (source tag) OK'); return m4[1]; }
+
     console.warn('[extractor] mp4upload: no video URL found in page');
   } catch (err) {
     console.warn('[extractor] Mp4upload failed:', err.code === 'ERR_CANCELED' ? 'timeout' : err.message);

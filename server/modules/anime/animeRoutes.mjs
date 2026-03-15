@@ -44,6 +44,12 @@ function buildCdnHeaders(targetUrl) {
     } else if (hostname.includes('tioanime')) {
       referer = 'https://tioanime.com/';
       origin  = 'https://tioanime.com';
+    } else if (hostname.includes('mp4upload')) {
+      referer = 'https://www.mp4upload.com/';
+      origin  = 'https://www.mp4upload.com';
+    } else if (hostname.includes('latanime')) {
+      referer = 'https://latanime.org/';
+      origin  = 'https://latanime.org';
     }
   } catch { /* keep defaults */ }
 
