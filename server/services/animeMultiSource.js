@@ -65,14 +65,19 @@ class AnimeMultiSource {
 
   // AnimeFLV - API directa
   async searchAnimeFLV(query) {
+    console.log(`[AnimeMultiSource] AnimeFLV: Starting search for "${query}"`);
     try {
-      const response = await axios.get(`${this.sources[2].baseUrl}/api/search?q=${encodeURIComponent(query)}`, {
+      const url = `${this.sources[2].baseUrl}/api/search?q=${encodeURIComponent(query)}`;
+      console.log(`[AnimeMultiSource] AnimeFLV: Fetching ${url}`);
+      
+      const response = await axios.get(url, {
         timeout: 5000,
         headers: {
           'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
         }
       });
       
+      console.log(`[AnimeMultiSource] AnimeFLV: Got response, data length: ${JSON.stringify(response.data).length}`);
       return response.data.map(anime => ({
         ...anime,
         provider: 'animeflv',
@@ -83,7 +88,14 @@ class AnimeMultiSource {
         format: 'hls' // Importante: formato HLS para reproductor nativo
       }));
     } catch (error) {
-      throw new Error(`AnimeFLV search failed: ${error.message}`);
+      console.error(`[AnimeMultiSource] AnimeFLV search failed:`, {
+        message: error.message,
+        code: error.code,
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        url: error.config?.url
+      });
+      throw new Error(`AnimeFLV search failed: ${error.message || 'Unknown error'}`);
     }
   }
 
@@ -114,22 +126,35 @@ class AnimeMultiSource {
         format: 'hls'
       }));
     } catch (error) {
-      console.error(`[AnimeMultiSource] Jkanime search failed:`, error.message);
-      throw new Error(`Jkanime search failed: ${error.message}`);
+      console.error(`[AnimeMultiSource] Jkanime search failed:`, {
+        message: error.message,
+        code: error.code,
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        url: error.config?.url
+      });
+      throw new Error(`Jkanime search failed: ${error.message || 'Unknown error'}`);
     }
   }
 
   // TioAnime - Scraping
   async searchTioAnime(query) {
+    console.log(`[AnimeMultiSource] TioAnime: Starting search for "${query}"`);
     try {
-      const html = await axios.get(`${this.sources[2].baseUrl}/buscar?q=${encodeURIComponent(query)}`, {
+      const url = `${this.sources[1].baseUrl}/buscar?q=${encodeURIComponent(query)}`;
+      console.log(`[AnimeMultiSource] TioAnime: Fetching ${url}`);
+      
+      const html = await axios.get(url, {
         timeout: 5000,
         headers: {
           'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
         }
       });
       
+      console.log(`[AnimeMultiSource] TioAnime: Got HTML, length: ${html.data.length}`);
       const results = this.parseTioAnimeResults(html.data);
+      console.log(`[AnimeMultiSource] TioAnime: Parsed ${results.length} results`);
+      
       return results.map(anime => ({
         ...anime,
         provider: 'tioanime',
@@ -139,7 +164,14 @@ class AnimeMultiSource {
         format: 'hls'
       }));
     } catch (error) {
-      throw new Error(`TioAnime search failed: ${error.message}`);
+      console.error(`[AnimeMultiSource] TioAnime search failed:`, {
+        message: error.message,
+        code: error.code,
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        url: error.config?.url
+      });
+      throw new Error(`TioAnime search failed: ${error.message || 'Unknown error'}`);
     }
   }
 
