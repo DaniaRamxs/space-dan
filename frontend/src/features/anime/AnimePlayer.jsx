@@ -38,7 +38,11 @@ const AnimePlayer = ({
   reactions = [],
   onReaction,
   gifOverlays = [],
-  isStorming = false
+  isStorming = false,
+  countdown = null,
+  floatingEmojis = [],
+  onBuffering,
+  initialTime = null
 }) => {
   const videoRef = useRef(null);
   const hlsRef = useRef(null);
@@ -75,6 +79,10 @@ const AnimePlayer = ({
       });
       hls.loadSource(proxiedSrc);
       hls.attachMedia(video);
+      const onMetadata = () => {
+        if (initialTime && initialTime > 10) video.currentTime = initialTime;
+      };
+      video.addEventListener('loadedmetadata', onMetadata, { once: true });
       hls.on(Hls.Events.ERROR, (_, data) => {
         if (!data.fatal) return;
         switch (data.type) {
@@ -86,6 +94,9 @@ const AnimePlayer = ({
       hlsRef.current = hls;
     } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
       video.src = proxiedSrc;
+      if (initialTime && initialTime > 10) {
+        video.addEventListener('loadedmetadata', () => { video.currentTime = initialTime; }, { once: true });
+      }
     }
 
     return () => {
@@ -94,7 +105,7 @@ const AnimePlayer = ({
         hlsRef.current = null;
       }
     };
-  }, [isEmbed, src]);
+  }, [isEmbed, src, initialTime]);
 
   useEffect(() => {
     if (isEmbed || !videoRef.current || isHost) return;
@@ -149,8 +160,8 @@ const AnimePlayer = ({
 
   const timelineReactions = useMemo(() => {
     if (!reactions || duration === 0) return [];
-    
-    const WINDOW = 3; 
+
+    const WINDOW = 3;
     const sorted = [...reactions].sort((a, b) => a.timestamp - b.timestamp);
     const groups = [];
 
@@ -187,6 +198,9 @@ const AnimePlayer = ({
               onPlay={() => setIsPlaying(true)}
               onPause={() => setIsPlaying(false)}
               onClick={handlePlayPause}
+              onWaiting={() => onBuffering?.(true)}
+              onCanPlay={() => onBuffering?.(false)}
+              onPlaying={() => onBuffering?.(false)}
             >
               {subtitles.map((sub, i) => (
                 <track key={i} kind="subtitles" src={sub.url} srcLang={sub.lang} label={sub.label} default={i === 0} />
@@ -194,6 +208,39 @@ const AnimePlayer = ({
             </video>
 
             <ReactionOverlay gifOverlays={gifOverlays} isStorming={isStorming} />
+
+            <AnimatePresence>
+              {floatingEmojis.map(e => (
+                <motion.div
+                  key={e.id}
+                  className="absolute bottom-16 text-4xl pointer-events-none select-none z-30"
+                  style={{ left: `${e.x}%` }}
+                  initial={{ opacity: 0, y: 0, scale: 0.5 }}
+                  animate={{ opacity: [0, 1, 1, 0], y: -130, scale: [0.5, 1.4, 1.2, 0.8] }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 2.5, ease: 'easeOut' }}
+                >
+                  {e.content}
+                </motion.div>
+              ))}
+            </AnimatePresence>
+
+            <AnimatePresence>
+              {countdown !== null && (
+                <motion.div
+                  key={countdown}
+                  className="absolute inset-0 flex items-center justify-center z-40 pointer-events-none bg-black/20"
+                  initial={{ opacity: 0, scale: 2 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.3 }}
+                  transition={{ duration: 0.35 }}
+                >
+                  <span className="text-[120px] font-black text-white drop-shadow-[0_0_60px_rgba(34,211,238,0.9)] select-none leading-none">
+                    {countdown}
+                  </span>
+                </motion.div>
+              )}
+            </AnimatePresence>
 
             <AnimatePresence>
                 {showControls && (
@@ -204,9 +251,9 @@ const AnimePlayer = ({
                         {/* Reaction Markers */}
                         <div className="relative h-6 mb-1 pointer-events-auto">
                             {timelineReactions.map((r, i) => (
-                                <div 
-                                    key={i} 
-                                    className="absolute bottom-0 bg-white/10 rounded-full backdrop-blur-sm border border-white/20 transform -translate-x-1/2 p-0.5 shadow-lg overflow-hidden" 
+                                <div
+                                    key={i}
+                                    className="absolute bottom-0 bg-white/10 rounded-full backdrop-blur-sm border border-white/20 transform -translate-x-1/2 p-0.5 shadow-lg overflow-hidden"
                                     style={{ left: `${r.left}%` }}
                                 >
                                     {r.type === 'gif' ? (
@@ -268,8 +315,8 @@ const AnimePlayer = ({
                             {/* Reactions panel */}
                             <div className="flex items-center gap-2">
                                 {QUICK_REACTIONS.map((r, i) => (
-                                    <button 
-                                        key={i} 
+                                    <button
+                                        key={i}
                                         onClick={() => onReaction?.(r.type, r.content)}
                                         className="p-2 bg-white/5 rounded-xl hover:bg-white/15 transition-all active:scale-90 border border-white/5"
                                     >

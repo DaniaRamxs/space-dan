@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState, useMemo, useCallback } from 'react';
-import { Radio, Users, MessageSquare, ChevronLeft, Tv, Send, Crown } from 'lucide-react';
+import { Radio, Users, MessageSquare, ChevronLeft, Tv, Send, Crown, Share2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { usePlaybackSync } from '@/hooks/usePlaybackSync';
@@ -33,6 +33,10 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
   const [remoteHostInfo, setRemoteHostInfo] = useState(null); // host info recibido via broadcast/presence antes de Colyseus
   const [presenceIsHost, setPresenceIsHost] = useState(false); // soy el primero en el canal (host por presencia)
   const [presenceParticipants, setPresenceParticipants] = useState([]); // todos los usuarios en el canal via Presence
+  const [bufferingUsers, setBufferingUsers] = useState({});
+  const [countdown, setCountdown] = useState(null);
+  const [floatingEmojis, setFloatingEmojis] = useState([]);
+  const [copiedLink, setCopiedLink] = useState(false);
 
   // ── 3. All refs (declared before any hook that references them) ───────────
   const chatEndRef = useRef(null);
@@ -47,13 +51,18 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
   const animeSelectAbortRef = useRef(null);
   const episodeSelectAbortRef = useRef(null);
   const isSyncedHostRef = useRef(false);
+  const runCountdownRef = useRef(null);
+  const heartbeatRef = useRef(null);
+  const joinedAtRef = useRef(null);
+  const lastBroadcastRef = useRef(0);
+  const savedPositionRef = useRef(null);
 
   // ── 4. Service hooks (depend on state/refs above) ─────────────────────────
-  const { 
-    playbackState, 
-    isHost: isSyncedHost, 
+  const {
+    playbackState,
+    isHost: isSyncedHost,
     reactions,
-    updatePlayback 
+    updatePlayback
   } = usePlaybackSync({
     roomName: roomName || 'general',
     colyseusRoom: room
@@ -139,6 +148,15 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
     }).catch(() => {});
   }, [profile?.id, profile?.username, profile?.avatar_url]);
 
+  // runCountdown needs updatePlayback - declared after updatePlayback is available
+  const runCountdown = useCallback((currentTime) => {
+    setCountdown(3);
+    setTimeout(() => setCountdown(2), 1000);
+    setTimeout(() => setCountdown(1), 2000);
+    setTimeout(() => { setCountdown(null); updatePlayback({ playing: true, currentTime }); }, 3000);
+  }, [updatePlayback]);
+  runCountdownRef.current = runCountdown;
+
   const connectToWatchParty = useCallback(async ({ anime, episode, roomId, colyseusRoomId, announceActivity }) => {
     console.log('[AnimeSpace] connectToWatchParty called:', { anime: anime?.title, episode: episode?.number, roomId, colyseusRoomId, announceActivity });
 
@@ -210,6 +228,23 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
   }, [roomName, profile?.id, profile?.username, profile?.avatar_url, syncCurrentState]);
   connectToWatchPartyRef.current = connectToWatchParty;
 
+  // broadcastBuffering needs isHost - declared after isHost is derived
+  const broadcastBuffering = useCallback((isBuffering) => {
+    if (!syncChannelRef.current || !onClose || isHost) return; // only viewers broadcast
+    syncChannelRef.current.httpSend({
+      type: 'broadcast',
+      event: 'viewer_buffering',
+      payload: { userId: profile?.id, username: profile?.username, isBuffering },
+    }).catch(() => {});
+  }, [onClose, isHost, profile?.id, profile?.username]);
+
+  const addFloatingEmoji = useCallback((content) => {
+    const id = Date.now() + Math.random();
+    const x = 20 + Math.random() * 60;
+    setFloatingEmojis(prev => [...prev.slice(-8), { id, content, x }]);
+    setTimeout(() => setFloatingEmojis(prev => prev.filter(e => e.id !== id)), 2500);
+  }, []);
+
   // Cuando el usuario se convierte en host (lobby), anunciarse a los viewers que esperan
   useEffect(() => {
     if (!isSyncedHost || !onClose || !syncChannelRef.current) return;
@@ -240,6 +275,13 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
           setPresenceIsHost(false);
           setRemoteHostInfo({ username: hostPresence.username, avatar: hostPresence.avatar || null, userId: hostPresence.userId });
         }
+      })
+      .on('presence', { event: 'join' }, ({ newPresences }) => {
+        newPresences?.forEach(p => {
+          if (p.userId && p.userId !== profile?.id) {
+            toast(`${p.username || 'Alguien'} se unió 👋`, { duration: 3000 });
+          }
+        });
       })
       .on('broadcast', { event: 'anime_state' }, async ({ payload }) => {
         if (!payload || payload.senderId === profile?.id) return;
@@ -296,15 +338,47 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
         if (payload?.senderId === profile?.id) return;
         syncCurrentState();
       })
+      .on('broadcast', { event: 'viewer_buffering' }, ({ payload }) => {
+        if (!payload?.userId) return;
+        setBufferingUsers(prev => {
+          const next = { ...prev };
+          if (payload.isBuffering) {
+            next[payload.userId] = payload.username || 'Alguien';
+          } else {
+            delete next[payload.userId];
+          }
+          return next;
+        });
+        if (payload.isBuffering) {
+          setTimeout(() => setBufferingUsers(prev => { const n = {...prev}; delete n[payload.userId]; return n; }), 10000);
+        }
+      })
+      .on('broadcast', { event: 'play_countdown' }, ({ payload }) => {
+        if (payload?.hostId === profile?.id) return;
+        runCountdownRef.current?.(payload?.currentTime ?? 0);
+      })
+      .on('broadcast', { event: 'emoji_reaction' }, ({ payload }) => {
+        if (payload?.userId !== profile?.id && payload?.content) {
+          addFloatingEmoji(payload.content);
+        }
+      })
       .subscribe(async (status) => {
         if (status === 'SUBSCRIBED') {
-          // Registrar presencia para detección de host por orden de llegada
+          if (!joinedAtRef.current) joinedAtRef.current = Date.now();
           await channel.track({
             userId: profile?.id,
             username: profile?.username || 'Anon',
             avatar: profile?.avatar_url || null,
-            joinedAt: Date.now(),
+            joinedAt: joinedAtRef.current,
           }).catch(() => {});
+          heartbeatRef.current = setInterval(() => {
+            channel.track({
+              userId: profile?.id,
+              username: profile?.username || 'Anon',
+              avatar: profile?.avatar_url || null,
+              joinedAt: joinedAtRef.current,
+            }).catch(() => {});
+          }, 30000);
           channel.httpSend({
             type: 'broadcast',
             event: 'anime_sync_req',
@@ -314,10 +388,11 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
       });
 
     return () => {
+      clearInterval(heartbeatRef.current);
       syncChannelRef.current = null;
       supabase.removeChannel(channel);
     };
-  }, [roomName, onClose, profile?.id, profile?.username, profile?.avatar_url, addGifOverlay, clearRoomState, syncCurrentState]);
+  }, [roomName, onClose, profile?.id, profile?.username, profile?.avatar_url, addGifOverlay, clearRoomState, syncCurrentState, addFloatingEmoji]);
 
   useEffect(() => {
     return () => {
@@ -340,6 +415,10 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
   const broadcastAnimeState = useCallback((payload) => {
     if (!syncChannelRef.current || applyingRemoteStateRef.current || !onClose) return;
 
+    const now = Date.now();
+    if (now - lastBroadcastRef.current < 4000) return;
+    lastBroadcastRef.current = now;
+
     syncChannelRef.current.httpSend({
       type: 'broadcast',
       event: 'anime_state',
@@ -349,6 +428,14 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
       },
     }).catch(() => {});
   }, [onClose, profile?.id]);
+
+  const handleShareLink = () => {
+    navigator.clipboard.writeText(window.location.href).then(() => {
+      setCopiedLink(true);
+      toast.success('Enlace copiado');
+      setTimeout(() => setCopiedLink(false), 2000);
+    }).catch(() => toast.error('No se pudo copiar'));
+  };
 
   useEffect(() => {
     if (!room) return;
@@ -361,8 +448,17 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
     const unsubChat = room.onMessage('chat', chatHandler);
     room.onMessage('user_joined', () => {});
     room.onMessage('user_left', () => {});
-    room.onMessage('host_changed', ({ newHostUsername }) => {
+    room.onMessage('host_changed', ({ newHostId, newHostUsername }) => {
       console.log(`[AnimeSpace] Host changed to: ${newHostUsername}`);
+      if (newHostId === profile?.id) {
+        setPresenceIsHost(true);
+        setRemoteHostInfo(null);
+        toast.success('Ahora eres el host 👑', { duration: 4000 });
+      } else {
+        setPresenceIsHost(false);
+        setRemoteHostInfo(prev => ({ ...(prev || {}), userId: newHostId, username: newHostUsername }));
+        toast(`${newHostUsername} ahora es el host`, { icon: '👑' });
+      }
     });
 
     // Colyseus 0.16: onStateChange returns an EventEmitter { clear(), remove() }
@@ -392,7 +488,7 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
       if (typeof unsubChat === 'function') unsubChat();
       if (typeof stateEmitter?.clear === 'function') stateEmitter.clear();
     };
-  }, [room, clearRoomState]);
+  }, [room, clearRoomState, profile?.id]);
 
   const handleAnimeSelect = async (anime) => {
     if (loading) return;
@@ -464,6 +560,17 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
         return;
       }
 
+      // Persist position: restore saved position before resetWatchParty
+      const savedRaw = localStorage.getItem(`anime-pos-${episode.id}`);
+      if (savedRaw) {
+        try {
+          const saved = JSON.parse(savedRaw);
+          if (Date.now() - saved.savedAt < 7 * 24 * 3600 * 1000) {
+            savedPositionRef.current = saved.currentTime;
+          }
+        } catch { savedPositionRef.current = null; }
+      } else { savedPositionRef.current = null; }
+
       setCurrentEpisode(episode);
       setStreamData(sources);
       resetWatchParty();
@@ -512,7 +619,7 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
     try { room.send('chat', text); } catch (err) {
       console.warn('[AnimeSpace] Failed to send chat message:', err);
     }
-    
+
     // Broadcast via Supabase for unified stream
     if (syncChannelRef.current) {
         syncChannelRef.current.httpSend({
@@ -533,7 +640,14 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
   };
 
   const handlePlay = (currentTime) => {
-    if (isHost) {
+    if (!isHost) return;
+    if (syncChannelRef.current) {
+      syncChannelRef.current.httpSend({
+        type: 'broadcast', event: 'play_countdown',
+        payload: { hostId: profile?.id, currentTime },
+      }).catch(() => {});
+      runCountdownRef.current?.(currentTime);
+    } else {
       updatePlayback({ playing: true, currentTime });
     }
   };
@@ -556,6 +670,9 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
     if (sec % 10 === 0 && sec !== lastSyncedSecondRef.current) {
       lastSyncedSecondRef.current = sec;
       updatePlayback({ currentTime });
+    }
+    if (currentEpisode?.id && sec > 0 && sec % 5 === 0) {
+      localStorage.setItem(`anime-pos-${currentEpisode.id}`, JSON.stringify({ currentTime, savedAt: Date.now() }));
     }
   };
 
@@ -619,8 +736,8 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
             <div className="mt-1 text-xl font-black text-white">{streamData?.sources?.length || 0}</div>
           </div>
           <div className="rounded-2xl border border-white/10 bg-black/20 p-3">
-            <div className="text-[10px] font-black uppercase tracking-[0.22em] text-white/45">Sala</div>
-            <div className="mt-1 text-xl font-black text-white">{participants.length || 1}</div>
+            <div className="text-[10px] font-black uppercase tracking-[0.22em] text-white/45">Viendo</div>
+            <div className="mt-1 text-xl font-black text-white">{visibleParticipants.length}</div>
           </div>
         </div>
       </div>
@@ -736,7 +853,7 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
         </div>
 
         <form onSubmit={handleSendMessage} className="flex items-end gap-2 bg-black/40 p-2 rounded-2xl border border-white/5">
-          <button 
+          <button
             type="button"
             onClick={() => {
               // Implementar picker de GIFs si es necesario
@@ -807,7 +924,14 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
       )}
 
       {onClose && (
-        <div className="fixed right-3 top-3 z-[60] sm:right-4 sm:top-4">
+        <div className="fixed right-3 top-3 z-[60] flex items-center gap-2 sm:right-4 sm:top-4">
+          <button
+            onClick={handleShareLink}
+            className="rounded-full border border-white/15 bg-white/[0.06] px-3 py-2 text-[10px] font-black uppercase tracking-[0.18em] text-white/60 backdrop-blur-md hover:bg-white/10 transition flex items-center gap-1.5"
+          >
+            <Share2 size={11} />
+            {copiedLink ? 'Copiado ✓' : 'Compartir'}
+          </button>
           <button
             onClick={onClose}
             className="rounded-full border border-rose-400/30 bg-rose-500/10 px-3 py-2 text-[10px] font-black uppercase tracking-[0.18em] text-rose-200 backdrop-blur-md sm:px-4 sm:text-[11px] sm:tracking-[0.22em]"
@@ -902,6 +1026,12 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
           <section className="flex flex-col gap-4 px-3 pb-8 sm:px-6">
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_380px]">
               <div className="min-w-0 space-y-4">
+                {isHost && Object.keys(bufferingUsers).length > 0 && (
+                  <div className="flex items-center gap-2 rounded-xl border border-amber-400/20 bg-amber-500/10 px-3 py-2 text-xs text-amber-200 mb-2">
+                    <div className="h-2 w-2 animate-pulse rounded-full bg-amber-400 shrink-0" />
+                    <span>{Object.values(bufferingUsers).join(', ')} {Object.keys(bufferingUsers).length > 1 ? 'están' : 'está'} cargando...</span>
+                  </div>
+                )}
                 <AnimePlayer
                   source={currentSource}
                   subtitles={streamData.subtitles}
@@ -914,14 +1044,24 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
                   reactions={reactions}
                   onReaction={(type, content) => {
                     if (room?.connection?.isOpen) {
-                      const time = playbackState.currentTime;
-                      try { room.send("reaction", { type, content, videoTimestamp: time }); } catch (err) {
+                      try { room.send("reaction", { type, content, videoTimestamp: playbackState.currentTime }); } catch (err) {
                         console.warn('[AnimeSpace] Failed to send reaction:', err);
                       }
                     }
+                    if (syncChannelRef.current) {
+                      syncChannelRef.current.httpSend({
+                        type: 'broadcast', event: 'emoji_reaction',
+                        payload: { type, content, userId: profile?.id },
+                      }).catch(() => {});
+                    }
+                    addFloatingEmoji(content);
                   }}
                   gifOverlays={gifOverlays}
                   isStorming={isStorming}
+                  countdown={countdown}
+                  floatingEmojis={floatingEmojis}
+                  onBuffering={broadcastBuffering}
+                  initialTime={savedPositionRef.current}
                 />
 
                 {/* Shared Overlay (can be moved here if we want it to stay above player controls) */}
