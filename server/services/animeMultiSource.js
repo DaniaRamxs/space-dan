@@ -21,6 +21,24 @@ class AnimeMultiSource {
         baseUrl: 'https://tioanime.com',
         priority: 3,
         features: ['doblado español', 'subtitulado español', 'videos funcionales']
+      },
+      {
+        name: 'AnimeMovil',
+        baseUrl: 'https://animemovil.net',
+        priority: 4,
+        features: ['doblado español', 'HD', 'videos funcionales']
+      },
+      {
+        name: 'AnimeID',
+        baseUrl: 'https://www.animeid.tv',
+        priority: 5,
+        features: ['doblado español', 'subtitulado español', 'videos funcionales']
+      },
+      {
+        name: 'VerAnime',
+        baseUrl: 'https://veranime.com',
+        priority: 6,
+        features: ['doblado español', 'HD', 'videos funcionales']
       }
     ];
   }
@@ -58,6 +76,12 @@ class AnimeMultiSource {
         return await this.searchJkanime(query);
       case 'TioAnime':
         return await this.searchTioAnime(query);
+      case 'AnimeMovil':
+        return await this.searchAnimeMovil(query);
+      case 'AnimeID':
+        return await this.searchAnimeID(query);
+      case 'VerAnime':
+        return await this.searchVerAnime(query);
       default:
         return [];
     }
@@ -177,6 +201,123 @@ class AnimeMultiSource {
         url: error.config?.url
       });
       throw new Error(`TioAnime search failed: ${error.message || 'Unknown error'}`);
+    }
+  }
+
+  // AnimeMovil - Doblaje español + videos funcionales
+  async searchAnimeMovil(query) {
+    console.log(`[AnimeMultiSource] AnimeMovil: Starting search for "${query}"`);
+    try {
+      const url = `${this.sources[3].baseUrl}/buscar?q=${encodeURIComponent(query)}`;
+      console.log(`[AnimeMultiSource] AnimeMovil: Fetching ${url}`);
+      
+      const html = await axios.get(url, {
+        timeout: 10000,
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+        }
+      });
+      
+      console.log(`[AnimeMultiSource] AnimeMovil: Got HTML, length: ${html.data.length}`);
+      const results = this.parseAnimeMovilResults(html.data);
+      console.log(`[AnimeMultiSource] AnimeMovil: Parsed ${results.length} results`);
+      
+      return results.map(anime => ({
+        ...anime,
+        provider: 'animemovil',
+        source: 'AnimeMovil',
+        hasDub: true, // AnimeMovil tiene doblaje español
+        hasSub: true,
+        quality: 'HD',
+        format: 'hls'
+      }));
+    } catch (error) {
+      console.error(`[AnimeMultiSource] AnimeMovil search failed:`, {
+        message: error.message,
+        code: error.code,
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        url: error.config?.url
+      });
+      throw new Error(`AnimeMovil search failed: ${error.message || 'Unknown error'}`);
+    }
+  }
+
+  // AnimeID - Doblaje español + videos funcionales
+  async searchAnimeID(query) {
+    console.log(`[AnimeMultiSource] AnimeID: Starting search for "${query}"`);
+    try {
+      const url = `${this.sources[4].baseUrl}/buscar?q=${encodeURIComponent(query)}`;
+      console.log(`[AnimeMultiSource] AnimeID: Fetching ${url}`);
+      
+      const html = await axios.get(url, {
+        timeout: 10000,
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+        }
+      });
+      
+      console.log(`[AnimeMultiSource] AnimeID: Got HTML, length: ${html.data.length}`);
+      const results = this.parseAnimeIDResults(html.data);
+      console.log(`[AnimeMultiSource] AnimeID: Parsed ${results.length} results`);
+      
+      return results.map(anime => ({
+        ...anime,
+        provider: 'animeid',
+        source: 'AnimeID',
+        hasDub: true, // AnimeID tiene doblaje español
+        hasSub: true,
+        quality: 'HD',
+        format: 'hls'
+      }));
+    } catch (error) {
+      console.error(`[AnimeMultiSource] AnimeID search failed:`, {
+        message: error.message,
+        code: error.code,
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        url: error.config?.url
+      });
+      throw new Error(`AnimeID search failed: ${error.message || 'Unknown error'}`);
+    }
+  }
+
+  // VerAnime - Doblaje español + videos funcionales
+  async searchVerAnime(query) {
+    console.log(`[AnimeMultiSource] VerAnime: Starting search for "${query}"`);
+    try {
+      const url = `${this.sources[5].baseUrl}/buscar?q=${encodeURIComponent(query)}`;
+      console.log(`[AnimeMultiSource] VerAnime: Fetching ${url}`);
+      
+      const html = await axios.get(url, {
+        timeout: 10000,
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+        }
+      });
+      
+      console.log(`[AnimeMultiSource] VerAnime: Got HTML, length: ${html.data.length}`);
+      const results = this.parseVerAnimeResults(html.data);
+      console.log(`[AnimeMultiSource] VerAnime: Parsed ${results.length} results`);
+      
+      return results.map(anime => ({
+        ...anime,
+        provider: 'veranime',
+        source: 'VerAnime',
+        hasDub: true, // VerAnime tiene doblaje español
+        hasSub: true,
+        quality: 'HD',
+        format: 'hls'
+      }));
+    } catch (error) {
+      console.error(`[AnimeMultiSource] VerAnime search failed:`, {
+        message: error.message,
+        code: error.code,
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        url: error.config?.url
+      });
+      throw new Error(`VerAnime search failed: ${error.message || 'Unknown error'}`);
     }
   }
 
@@ -373,6 +514,52 @@ class AnimeMultiSource {
       if ($link.length && $img.length) {
         results.push({
           id: $link.attr('href')?.replace('/anime/', '') || `tio-${index}`,
+          title: $img.attr('alt') || $link.text().trim() || $item.find('.title').text().trim() || `Anime ${index + 1}`,
+          image: $img.attr('src'),
+          type: 'TV',
+          episodes: $item.find('.episodes').text().trim() || '?'
+        });
+      }
+    });
+    
+    return results;
+  }
+
+  parseAnimeMovilResults(html) {
+    const $ = cheerio.load(html);
+    const results = [];
+    
+    $('.anime-item, .series-item, .item-anime').each((index, element) => {
+      const $item = $(element);
+      const $link = $item.find('a').first();
+      const $img = $item.find('img');
+      
+      if ($link.length && $img.length) {
+        results.push({
+          id: $link.attr('href')?.replace('/anime/', '') || `movil-${index}`,
+          title: $img.attr('alt') || $link.text().trim() || $item.find('.title').text().trim() || `Anime ${index + 1}`,
+          image: $img.attr('src'),
+          type: 'TV',
+          episodes: $item.find('.episodes').text().trim() || '?'
+        });
+      }
+    });
+    
+    return results;
+  }
+
+  parseVerAnimeResults(html) {
+    const $ = cheerio.load(html);
+    const results = [];
+    
+    $('.anime-card, .series-card, .item').each((index, element) => {
+      const $item = $(element);
+      const $link = $item.find('a').first();
+      const $img = $item.find('img');
+      
+      if ($link.length && $img.length) {
+        results.push({
+          id: $link.attr('href')?.replace('/anime/', '') || `ver-${index}`,
           title: $img.attr('alt') || $link.text().trim() || $item.find('.title').text().trim() || `Anime ${index + 1}`,
           image: $img.attr('src'),
           type: 'TV',
