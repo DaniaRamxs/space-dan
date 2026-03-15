@@ -6,7 +6,8 @@ export const animeMultiService = {
       const response = await fetch(`${API_URL}/api/anime-multi/search/${encodeURIComponent(query)}`);
       if (!response.ok) throw new Error('Search failed');
       const data = await response.json();
-      return data.data || [];
+      console.log('[animeMultiService] Search response:', data);
+      return data.data || []; // Backend sends { success: true, data: results }
     } catch (error) {
       console.error('Multi-source search error:', error);
       throw error;
