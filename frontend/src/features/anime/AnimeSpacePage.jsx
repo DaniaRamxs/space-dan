@@ -30,7 +30,8 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
   const [participants, setParticipants] = useState([]);
   const [chatMessages, setChatMessages] = useState([]);
   const [chatInput, setChatInput] = useState('');
-  const [remoteHostInfo, setRemoteHostInfo] = useState(null); // host info recibido via broadcast antes de Colyseus
+  const [remoteHostInfo, setRemoteHostInfo] = useState(null); // host info recibido via broadcast/presence antes de Colyseus
+  const [presenceIsHost, setPresenceIsHost] = useState(false); // soy el primero en el canal (host por presencia)
 
   // ── 3. All refs (declared before any hook that references them) ───────────
   const chatEndRef = useRef(null);
@@ -82,7 +83,7 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
     return null;
   }, [participants, playbackState?.hostId, isSyncedHost, profile?.id, profile?.username, profile?.avatar_url, remoteHostInfo]);
 
-  const isHost = isSyncedHost || hostParticipant?.userId === profile?.id;
+  const isHost = isSyncedHost || presenceIsHost || hostParticipant?.userId === profile?.id;
 
   const clearRoomState = useCallback(() => {
     setRoom(null);
@@ -229,7 +230,14 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
         // El primero en llegar (menor joinedAt) es el host
         const sorted = [...allPresence].sort((a, b) => (a.joinedAt || 0) - (b.joinedAt || 0));
         const hostPresence = sorted[0];
-        if (hostPresence?.userId && hostPresence.userId !== profile?.id) {
+        if (!hostPresence?.userId) return;
+        if (hostPresence.userId === profile?.id) {
+          // Soy el primero → soy el host
+          setPresenceIsHost(true);
+          setRemoteHostInfo(null);
+        } else {
+          // Otro usuario es el host
+          setPresenceIsHost(false);
           setRemoteHostInfo({ username: hostPresence.username, avatar: hostPresence.avatar || null, userId: hostPresence.userId });
         }
       })
