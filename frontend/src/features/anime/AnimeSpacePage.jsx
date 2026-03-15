@@ -3,7 +3,6 @@ import { Radio, Users, MessageSquare, ChevronLeft, Tv, Send, Crown, Share2, Gift
 import { toast } from 'sonner';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { animeMultiService } from './animeMultiService';
-import { animeService } from './animeService';
 import { usePlaybackSync } from '@/hooks/usePlaybackSync';
 import { useReactionEngine } from '@/hooks/useReactionEngine';
 import { liveActivitiesService } from '@/services/liveActivitiesService';
@@ -623,15 +622,7 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
     setMobilePanel('info');
 
     try {
-      // Usar multi-source service
-      let info;
-      if (anime.provider && anime.provider !== 'animeflv') {
-        // Para proveedores específicos, usar el servicio multi-fuente
-        info = await animeMultiService.getAnimeInfo(anime.id, anime.provider);
-      } else {
-        // Fallback al servicio original
-        info = await animeService.getAnimeInfo(anime.id, anime.provider || 'animeflv');
-      }
+      const info = await animeMultiService.getAnimeInfo(anime.id, anime.provider || 'animeflv');
       
       if (controller.signal.aborted) return;
       const hydratedAnime = { ...anime, ...info };
@@ -674,14 +665,7 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
 
     try {
       const provider = episode.provider || selectedAnime.provider;
-      let sources;
-      
-      // Usar multi-source service para proveedores no-animeflv
-      if (provider && provider !== 'animeflv') {
-        sources = await animeMultiService.getEpisodeSources(episode.id, provider);
-      } else {
-        sources = await animeService.getEpisodeSources(episode.id, provider || 'animeflv');
-      }
+      const sources = await animeMultiService.getEpisodeSources(episode.id, provider || 'animeflv');
 
       if (controller.signal.aborted) return;
 
