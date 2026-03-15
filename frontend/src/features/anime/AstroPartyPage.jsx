@@ -239,6 +239,7 @@ const AstroPartyPage = ({ onClose, roomName }) => {
   // ── Screen share (WebRTC) ────────────────────────────────────────────────────
   const [screenStream, setScreenStream] = useState(null);
   const [remoteStream, setRemoteStream] = useState(null);
+  const remoteStreamRef = useRef(null);
   const localVideoRef  = useRef(null);
   const remoteVideoRef = useRef(null);
   const pcRef          = useRef({});
@@ -348,11 +349,7 @@ const AstroPartyPage = ({ onClose, roomName }) => {
     }
   }, [screenStream]);
 
-  useEffect(() => {
-    if (remoteVideoRef.current && remoteStream) {
-      remoteVideoRef.current.srcObject = remoteStream;
-    }
-  }, [remoteStream]);
+  // remoteVideoRef assignment handled by ref callback in JSX to avoid timing race
 
   // Cinema mode cleanup when leaving watching
   useEffect(() => {
@@ -555,6 +552,7 @@ const AstroPartyPage = ({ onClose, roomName }) => {
 
     pc.ontrack = (event) => {
       const stream = event.streams?.[0] ?? new MediaStream([event.track]);
+      remoteStreamRef.current = stream;
       setRemoteStream(stream);
       if (remoteVideoRef.current) {
         remoteVideoRef.current.srcObject = stream;
@@ -1521,7 +1519,12 @@ const AstroPartyPage = ({ onClose, roomName }) => {
             ) : remoteStream ? (
               <div className="relative w-full h-full">
                 <video
-                  ref={remoteVideoRef}
+                  ref={(node) => {
+                    remoteVideoRef.current = node;
+                    if (node && remoteStreamRef.current) {
+                      node.srcObject = remoteStreamRef.current;
+                    }
+                  }}
                   autoPlay
                   playsInline
                   className="w-full h-full object-contain"
