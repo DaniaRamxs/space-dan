@@ -38,6 +38,8 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
   const leavingRoomRef = useRef(false);
   const syncChannelRef = useRef(null);
   const applyingRemoteStateRef = useRef(false);
+  const roomRef = useRef(null);
+  const connectToWatchPartyRef = useRef(null);
 
   // ── 4. Service hooks (depend on state/refs above) ─────────────────────────
   const { 
@@ -93,6 +95,9 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
     stateRef.current = { view, selectedAnime, episodes, currentEpisode, streamData, activeSourceIndex, roomState };
   }, [view, selectedAnime, episodes, currentEpisode, streamData, activeSourceIndex, roomState]);
 
+  // Keep roomRef in sync so callbacks don't need room in their deps
+  useEffect(() => { roomRef.current = room; }, [room]);
+
   // Función de sincronización movida fuera del useEffect para evitar condiciones de carrera
   const syncCurrentState = useCallback(() => {
     const s = stateRef.current;
@@ -119,9 +124,9 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
 
   const connectToWatchParty = useCallback(async ({ anime, episode, roomId, announceActivity }) => {
     console.log('[AnimeSpace] connectToWatchParty called:', { anime: anime?.title, episode: episode?.number, roomId, announceActivity });
-    
+
     // Si ya estamos en una sala, no crear otra
-    if (room && room.connection?.isOpen) {
+    if (roomRef.current?.connection?.isOpen) {
       console.log('[AnimeSpace] Already in room, skipping connection');
       return;
     }
@@ -180,7 +185,8 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
         toast('Modo solitario: la watch party no respondiÃ³.', { icon: 'ðŸ"º' });
       }
     }
-  }, [roomName, profile?.id, profile?.username, profile?.avatar_url, room, syncCurrentState]);
+  }, [roomName, profile?.id, profile?.username, profile?.avatar_url, syncCurrentState]);
+  connectToWatchPartyRef.current = connectToWatchParty;
 
   useEffect(() => {
     if (!roomName || !onClose) return undefined;
@@ -204,9 +210,8 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
 
         if (payload.currentEpisode && payload.selectedAnime && payload.roomState?.roomId) {
           try {
-            // Solo unirse a la sala si no estamos ya en una sala activa
-            if (!room || !room.connection?.isOpen) {
-              await connectToWatchParty({
+            if (!roomRef.current?.connection?.isOpen) {
+              await connectToWatchPartyRef.current({
                 anime: payload.selectedAnime,
                 episode: payload.currentEpisode,
                 roomId: payload.roomState.roomId,
@@ -255,7 +260,7 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
       syncChannelRef.current = null;
       supabase.removeChannel(channel);
     };
-  }, [roomName, onClose, profile?.id, addGifOverlay, connectToWatchParty, clearRoomState, syncCurrentState, room]);
+  }, [roomName, onClose, profile?.id, addGifOverlay, clearRoomState, syncCurrentState]);
 
   useEffect(() => {
     return () => {
