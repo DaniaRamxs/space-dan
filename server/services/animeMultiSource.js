@@ -1,6 +1,103 @@
+/**
+ * animeMultiSource.js
+ *
+ * Multi-provider scraper for Latin American anime sites (Spanish sub/dub).
+ * Providers:
+ *  1. AnimeFLV   — https://www3.animeflv.net  (SUB español + LAT doblaje)
+ *  2. TioAnime   — https://tioanime.com        (SUB español, limpio y rápido)
+ *  3. Jkanime    — https://jkanime.net          (SUB/DUB español)
+ *
+ * Source extraction:
+ *  AnimeFLV stores video server data in a `var videos = [...]` JS variable.
+ *  Each entry is [type, serverName, embedUrl]. We use animeExtractor to resolve
+ *  those embed URLs to direct HLS/MP4 streams for the native player.
+ */
+
 import axios from 'axios';
 import * as cheerio from 'cheerio';
+import { extractEmbedUrl } from '../modules/anime/animeExtractor.mjs';
 
+const UA =
+  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36';
+
+const DEMO_SOURCE = {
+  url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
+  format: 'mp4',
+  quality: 'Demo',
+  server: 'demo',
+  isDub: false,
+  isDefault: true,
+};
+
+const get = (url, extraHeaders = {}) =>
+  axios.get(url, {
+    timeout: 15000,
+    headers: { 'User-Agent': UA, ...extraHeaders },
+  });
+
+// ── Helpers ────────────────────────────────────────────────────────────────────
+
+/** Extract and parse the `var videos = ...` JS variable from a page's HTML */
+function parseVideosVar(html) {
+  // Match array or object form, across newlines
+  const m = html.match(/var\s+videos\s*=\s*(\[[\s\S]*?\]|\{[\s\S]*?\})\s*;/);
+  if (!m) return null;
+  try {
+    return JSON.parse(m[1]);
+  } catch (_) {
+    return null;
+  }
+}
+
+/** Normalise the videos var to [{type, server, url}] regardless of format */
+function normalizeVideosVar(data) {
+  if (!data) return [];
+  const entries = [];
+  if (Array.isArray(data)) {
+    for (const item of data) {
+      if (Array.isArray(item) && item.length >= 3) {
+        entries.push({ type: String(item[0]).toUpperCase(), server: item[1], url: item[2] });
+      } else if (Array.isArray(item) && item.length === 2) {
+        // TioAnime: [serverName, url]
+        entries.push({ type: 'SUB', server: item[0], url: item[1] });
+      }
+    }
+  } else if (typeof data === 'object') {
+    for (const [type, list] of Object.entries(data)) {
+      for (const item of list || []) {
+        entries.push({
+          type: type.toUpperCase(),
+          server: item.server || item.s || '',
+          url: item.url || item.code || item.u || '',
+        });
+      }
+    }
+  }
+  return entries;
+}
+
+/** Resolve an array of {type, server, url} entries to direct HLS/MP4 sources */
+async function resolveEntries(entries, referer) {
+  const results = await Promise.allSettled(
+    entries.map(async (entry) => {
+      const directUrl = await extractEmbedUrl(entry.server, entry.url, referer);
+      if (!directUrl) return null;
+      return {
+        url: directUrl,
+        format: directUrl.includes('.m3u8') ? 'hls' : 'mp4',
+        sourceType: directUrl.includes('.m3u8') ? 'hls' : 'mp4',
+        quality: entry.type === 'LAT' ? 'Latino' : 'Subtitulado',
+        server: entry.server || 'auto',
+        isDub: entry.type === 'LAT',
+        lang: entry.type === 'LAT' ? 'es-LAT' : 'es',
+        isDefault: entry.type === 'LAT', // prefer dub if available
+      };
+    })
+  );
+  return results.filter((r) => r.status === 'fulfilled' && r.value).map((r) => r.value);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
 class AnimeMultiSource {
   constructor() {
     this.sources = [
@@ -8,987 +105,514 @@ class AnimeMultiSource {
         name: 'AnimeFLV',
         baseUrl: 'https://www3.animeflv.net',
         priority: 1,
-        features: ['doblado español', 'subtitulado español', 'HD', 'videos funcionales']
+        features: ['doblado español', 'subtitulado español', 'HD'],
+      },
+      {
+        name: 'TioAnime',
+        baseUrl: 'https://tioanime.com',
+        priority: 2,
+        features: ['subtitulado español', 'HD', 'sin publicidad invasiva'],
       },
       {
         name: 'Jkanime',
         baseUrl: 'https://jkanime.net',
-        priority: 2,
-        features: ['doblado español', 'HD', 'videos funcionales']
-      },
-      {
-        name: 'AnimeID',
-        baseUrl: 'https://www.animeid.tv',
         priority: 3,
-        features: ['doblado español', 'subtitulado español', 'videos funcionales']
-      }
+        features: ['doblado español', 'subtitulado español', 'HD'],
+      },
     ];
   }
 
-  // Buscar en todas las fuentes
+  // ── Search ──────────────────────────────────────────────────────────────────
+
   async searchAll(query) {
-    console.log(`[AnimeMultiSource] Starting search for: "${query}"`);
-    const results = [];
-    
-    for (const source of this.sources) {
+    console.log(`[AnimeMultiSource] Search: "${query}"`);
+    const tasks = this.sources.map(async (src) => {
       try {
-        console.log(`[AnimeMultiSource] Searching in ${source.name}...`);
-        const sourceResults = await this.searchInSource(source, query);
-        console.log(`[AnimeMultiSource] ${source.name} found ${sourceResults.length} results`);
-        results.push({
-          source: source.name,
-          results: sourceResults,
-          priority: source.priority
-        });
-      } catch (error) {
-        console.warn(`[AnimeMultiSource] Error searching in ${source.name}:`, error.message);
+        const results = await this.searchInSource(src, query);
+        return { source: src.name, results, priority: src.priority };
+      } catch (err) {
+        console.warn(`[AnimeMultiSource] ${src.name} search failed:`, err.message);
+        return { source: src.name, results: [], priority: src.priority };
       }
-    }
-    
-    const mergedResults = this.mergeResults(results);
-    console.log(`[AnimeMultiSource] Final merged results: ${mergedResults.length} items`);
-    return mergedResults;
+    });
+    const all = await Promise.allSettled(tasks);
+    const groups = all
+      .filter((r) => r.status === 'fulfilled')
+      .map((r) => r.value);
+    return this.mergeResults(groups);
   }
 
   async searchInSource(source, query) {
     switch (source.name) {
-      case 'AnimeFLV':
-        return await this.searchAnimeFLV(query);
-      case 'Jkanime':
-        return await this.searchJkanime(query);
-      case 'AnimeID':
-        return await this.searchAnimeID(query);
-      default:
-        return [];
+      case 'AnimeFLV': return this.searchAnimeFLV(query);
+      case 'TioAnime': return this.searchTioAnime(query);
+      case 'Jkanime': return this.searchJkanime(query);
+      default: return [];
     }
   }
 
-  // AnimeFLV - Doblaje español + videos funcionales
+  // ── AnimeFLV search ─────────────────────────────────────────────────────────
   async searchAnimeFLV(query) {
-    console.log(`[AnimeMultiSource] AnimeFLV: Starting search for "${query}"`);
-    try {
-      const url = `${this.sources[0].baseUrl}/browse?search=${encodeURIComponent(query)}`;
-      console.log(`[AnimeMultiSource] AnimeFLV: Fetching ${url}`);
-      
-      const html = await axios.get(url, {
-        timeout: 10000,
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-        }
-      });
-      
-      console.log(`[AnimeMultiSource] AnimeFLV: Got HTML, length: ${html.data.length}`);
-      const results = this.parseAnimeFLVResults(html.data);
-      console.log(`[AnimeMultiSource] AnimeFLV: Parsed ${results.length} results`);
-      
-      return results.map(anime => ({
-        ...anime,
-        provider: 'animeflv',
-        source: 'AnimeFLV',
-        hasDub: true,
-        hasSub: true,
-        quality: 'HD',
-        format: 'hls'
-      }));
-    } catch (error) {
-      console.error(`[AnimeMultiSource] AnimeFLV search failed:`, {
-        message: error.message,
-        code: error.code,
-        status: error.response?.status,
-        statusText: error.response?.statusText,
-        url: error.config?.url
-      });
-      throw new Error(`AnimeFLV search failed: ${error.message || 'Unknown error'}`);
-    }
+    const url = `${this.sources[0].baseUrl}/browse?search=${encodeURIComponent(query)}`;
+    const html = (await get(url)).data;
+    return this._parseAnimeFLVList(html).map((a) => ({
+      ...a,
+      provider: 'animeflv',
+      source: 'AnimeFLV',
+      hasDub: true,
+      hasSub: true,
+    }));
   }
 
-  // Jkanime - Doblaje español + videos funcionales
+  // ── TioAnime search ─────────────────────────────────────────────────────────
+  async searchTioAnime(query) {
+    const url = `${this.sources[1].baseUrl}/buscar?q=${encodeURIComponent(query)}`;
+    const html = (await get(url)).data;
+    return this._parseTioAnimeList(html).map((a) => ({
+      ...a,
+      provider: 'tioanime',
+      source: 'TioAnime',
+      hasDub: false,
+      hasSub: true,
+    }));
+  }
+
+  // ── Jkanime search ──────────────────────────────────────────────────────────
   async searchJkanime(query) {
-    console.log(`[AnimeMultiSource] Jkanime: Starting search for "${query}"`);
-    try {
-      const url = `${this.sources[1].baseUrl}/buscar?q=${encodeURIComponent(query)}`;
-      console.log(`[AnimeMultiSource] Jkanime: Fetching ${url}`);
-      
-      const html = await axios.get(url, {
-        timeout: 10000,
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-        }
-      });
-      
-      console.log(`[AnimeMultiSource] Jkanime: Got HTML, length: ${html.data.length}`);
-      const results = this.parseJkanimeResults(html.data);
-      console.log(`[AnimeMultiSource] Jkanime: Parsed ${results.length} results`);
-      
-      return results.map(anime => ({
-        ...anime,
-        provider: 'jkanime',
-        source: 'Jkanime',
-        hasDub: true,
-        hasSub: true,
-        quality: 'HD',
-        format: 'hls'
-      }));
-    } catch (error) {
-      console.error(`[AnimeMultiSource] Jkanime search failed:`, {
-        message: error.message,
-        code: error.code,
-        status: error.response?.status,
-        statusText: error.response?.statusText,
-        url: error.config?.url
-      });
-      throw new Error(`Jkanime search failed: ${error.message || 'Unknown error'}`);
-    }
+    const url = `${this.sources[2].baseUrl}/buscar?q=${encodeURIComponent(query)}`;
+    const html = (await get(url)).data;
+    return this._parseJkanimeList(html).map((a) => ({
+      ...a,
+      provider: 'jkanime',
+      source: 'Jkanime',
+      hasDub: true,
+      hasSub: true,
+    }));
   }
 
-  // AnimeID - Doblaje español + videos funcionales
-  async searchAnimeID(query) {
-    console.log(`[AnimeMultiSource] AnimeID: Starting search for "${query}"`);
-    try {
-      const url = `${this.sources[2].baseUrl}/buscar?q=${encodeURIComponent(query)}`;
-      console.log(`[AnimeMultiSource] AnimeID: Fetching ${url}`);
-      
-      const html = await axios.get(url, {
-        timeout: 10000,
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-        }
-      });
-      
-      console.log(`[AnimeMultiSource] AnimeID: Got HTML, length: ${html.data.length}`);
-      const results = this.parseAnimeIDResults(html.data);
-      console.log(`[AnimeMultiSource] AnimeID: Parsed ${results.length} results`);
-      
-      return results.map(anime => ({
-        ...anime,
-        provider: 'animeid',
-        source: 'AnimeID',
-        hasDub: true,
-        hasSub: true,
-        quality: 'HD',
-        format: 'hls'
-      }));
-    } catch (error) {
-      console.error(`[AnimeMultiSource] AnimeID search failed:`, {
-        message: error.message,
-        code: error.code,
-        status: error.response?.status,
-        statusText: error.response?.statusText,
-        url: error.config?.url
-      });
-      throw new Error(`AnimeID search failed: ${error.message || 'Unknown error'}`);
-    }
-  }
+  // ── Directories ─────────────────────────────────────────────────────────────
 
-  // Parser methods
-  parseAnimeFLVResults(html) {
-    const $ = cheerio.load(html);
-    const results = [];
-    
-    // Debug: Mostrar estructura del HTML
-    console.log(`[AnimeMultiSource] AnimeFLV HTML structure sample:`, html.substring(0, 500));
-    
-    // Buscar CUALQUIER elemento con imagen y enlace
-    $('*').each((index, element) => {
-      const $item = $(element);
-      const $link = $item.find('a').first();
-      const $img = $item.find('img').first();
-      
-      if ($link.length && $img.length) {
-        const title = $img.attr('alt') || $link.attr('title') || $item.text().trim();
-        if (title && title.length > 2 && title.length < 100) {
-          results.push({
-            id: $link.attr('href')?.replace('/anime/', '').replace('/ver/', '') || `flv-${index}`,
-            title: title,
-            image: $img.attr('src') || $img.attr('data-src'),
-            type: 'TV',
-            episodes: '?'
-          });
-        }
-      }
-    });
-    
-    console.log(`[AnimeMultiSource] AnimeFLV parser found ${results.length} items with universal selector`);
-    return results;
-  }
-
-  parseJkanimeResults(html) {
-    const $ = cheerio.load(html);
-    const results = [];
-    
-    // Debug: Mostrar estructura del HTML
-    console.log(`[AnimeMultiSource] Jkanime HTML structure sample:`, html.substring(0, 500));
-    
-    // Buscar CUALQUIER elemento con imagen y enlace
-    $('*').each((index, element) => {
-      const $item = $(element);
-      const $link = $item.find('a').first();
-      const $img = $item.find('img').first();
-      
-      if ($link.length && $img.length) {
-        const title = $img.attr('alt') || $link.attr('title') || $item.text().trim();
-        if (title && title.length > 2 && title.length < 100) {
-          results.push({
-            id: $link.attr('href')?.replace('/anime/', '').replace('/ver/', '') || `jk-${index}`,
-            title: title,
-            image: $img.attr('src') || $img.attr('data-src'),
-            type: 'TV',
-            episodes: '?'
-          });
-        }
-      }
-    });
-    
-    console.log(`[AnimeMultiSource] Jkanime parser found ${results.length} items with universal selector`);
-    return results;
-  }
-
-  parseAnimeIDResults(html) {
-    const $ = cheerio.load(html);
-    const results = [];
-    
-    // Debug: Mostrar estructura del HTML
-    console.log(`[AnimeMultiSource] AnimeID HTML structure sample:`, html.substring(0, 500));
-    
-    // Buscar CUALQUIER elemento con imagen y enlace
-    $('*').each((index, element) => {
-      const $item = $(element);
-      const $link = $item.find('a').first();
-      const $img = $item.find('img').first();
-      
-      if ($link.length && $img.length) {
-        const title = $img.attr('alt') || $link.attr('title') || $item.text().trim();
-        if (title && title.length > 2 && title.length < 100) {
-          results.push({
-            id: $link.attr('href')?.replace('/anime/', '').replace('/ver/', '') || `animeid-${index}`,
-            title: title,
-            image: $img.attr('src') || $img.attr('data-src'),
-            type: 'TV',
-            episodes: '?'
-          });
-        }
-      }
-    });
-    
-    console.log(`[AnimeMultiSource] AnimeID parser found ${results.length} items with universal selector`);
-    return results;
-  }
-
-  // Get anime directory - all available anime
   async getAnimeDirectory() {
-    console.log(`[AnimeMultiSource] Getting anime directory...`);
-    const allAnime = [];
-    
-    for (const source of this.sources) {
+    const tasks = this.sources.map(async (src) => {
       try {
-        console.log(`[AnimeMultiSource] Getting directory from ${source.name}...`);
-        const sourceAnime = await this.getDirectoryFromSource(source);
-        console.log(`[AnimeMultiSource] ${source.name} found ${sourceAnime.length} anime`);
-        allAnime.push(...sourceAnime);
-      } catch (error) {
-        console.warn(`[AnimeMultiSource] Error getting directory from ${source.name}:`, error.message);
+        return await this.getDirectoryFromSource(src);
+      } catch (err) {
+        console.warn(`[AnimeMultiSource] ${src.name} directory failed:`, err.message);
+        return [];
       }
-    }
-    
-    // Remove duplicates and sort
-    const uniqueAnime = this.mergeResults([{ results: allAnime, priority: 1 }]);
-    console.log(`[AnimeMultiSource] Directory complete: ${uniqueAnime.length} unique anime`);
-    
-    return uniqueAnime;
+    });
+    const groups = await Promise.allSettled(tasks);
+    const all = groups
+      .filter((r) => r.status === 'fulfilled')
+      .flatMap((r) => r.value);
+    return this.mergeResults([{ results: all, priority: 1 }]);
   }
 
-  // Get directory from specific source
   async getDirectoryFromSource(source) {
     switch (source.name) {
-      case 'AnimeFLV':
-        return await this.getAnimeFLVDirectory();
-      case 'Jkanime':
-        return await this.getJkanimeDirectory();
-      case 'AnimeID':
-        return await this.getAnimeIDDirectory();
-      default:
-        return [];
+      case 'AnimeFLV': return this.getAnimeFLVDirectory();
+      case 'TioAnime': return this.getTioAnimeDirectory();
+      case 'Jkanime': return this.getJkanimeDirectory();
+      default: return [];
     }
   }
 
-  // AnimeFLV directory
   async getAnimeFLVDirectory() {
-    try {
-      const url = `${this.sources[0].baseUrl}/browse`;
-      const html = await axios.get(url, {
-        timeout: 10000,
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-        }
-      });
-      
-      const $ = cheerio.load(html.data);
-      const results = [];
-      
-      $('.AnimeList .item, .ListAnimes .article').each((index, element) => {
-        const $item = $(element);
-        const $link = $item.find('a').first();
-        const $img = $item.find('img').first();
-        const $title = $item.find('.Title, .title, h3').first();
-        
-        if ($link.length && $img.length) {
-          const title = $img.attr('alt') || $link.attr('title') || $title.text().trim() || $link.text().trim();
-          if (title && title.length > 2 && title.length < 100) {
-            results.push({
-              id: $link.attr('href')?.replace('/anime/', '') || `flv-${index}`,
-              title: title,
-              image: $img.attr('src') || $img.attr('data-src'),
-              type: $item.find('.type').text() || 'TV',
-              episodes: $item.find('.episodes').text().trim() || '?',
-              provider: 'animeflv',
-              source: 'AnimeFLV',
-              hasDub: true,
-              hasSub: true,
-              quality: 'HD',
-              format: 'hls'
-            });
-          }
-        }
-      });
-      
-      return results;
-    } catch (error) {
-      console.error('AnimeFLV directory error:', error);
-      return [];
-    }
+    const url = `${this.sources[0].baseUrl}/browse`;
+    const html = (await get(url)).data;
+    return this._parseAnimeFLVList(html).map((a) => ({
+      ...a,
+      provider: 'animeflv',
+      source: 'AnimeFLV',
+      hasDub: true,
+      hasSub: true,
+    }));
   }
 
-  // Jkanime directory
+  async getTioAnimeDirectory() {
+    const url = `${this.sources[1].baseUrl}/directorio`;
+    const html = (await get(url)).data;
+    return this._parseTioAnimeList(html).map((a) => ({
+      ...a,
+      provider: 'tioanime',
+      source: 'TioAnime',
+      hasDub: false,
+      hasSub: true,
+    }));
+  }
+
   async getJkanimeDirectory() {
-    try {
-      const url = `${this.sources[1].baseUrl}/directorio`;
-      const html = await axios.get(url, {
-        timeout: 10000,
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-        }
-      });
-      
-      const $ = cheerio.load(html.data);
-      const results = [];
-      
-      $('.hermes .items .item, .anime-item').each((index, element) => {
-        const $item = $(element);
-        const $link = $item.find('a').first();
-        const $img = $item.find('img').first();
-        
-        if ($link.length && $img.length) {
-          const title = $img.attr('alt') || $item.find('.title').text().trim();
-          if (title && title.length > 2 && title.length < 100) {
-            results.push({
-              id: $link.attr('href')?.replace('/anime/', '') || `jk-${index}`,
-              title: title,
-              image: $img.attr('src') || $img.attr('data-src'),
-              type: 'TV',
-              episodes: '?',
-              provider: 'jkanime',
-              source: 'Jkanime',
-              hasDub: true,
-              hasSub: true,
-              quality: 'HD',
-              format: 'hls'
-            });
-          }
-        }
-      });
-      
-      return results;
-    } catch (error) {
-      console.error('Jkanime directory error:', error);
-      return [];
-    }
+    const url = `${this.sources[2].baseUrl}/directorio`;
+    const html = (await get(url)).data;
+    return this._parseJkanimeList(html).map((a) => ({
+      ...a,
+      provider: 'jkanime',
+      source: 'Jkanime',
+      hasDub: true,
+      hasSub: true,
+    }));
   }
 
-  // AnimeID directory
-  async getAnimeIDDirectory() {
-    try {
-      const url = `${this.sources[2].baseUrl}/directorio`;
-      const html = await axios.get(url, {
-        timeout: 10000,
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-        }
-      });
-      
-      const $ = cheerio.load(html.data);
-      const results = [];
-      
-      $('.anime-item, .series-item, .card').each((index, element) => {
-        const $item = $(element);
-        const $link = $item.find('a').first();
-        const $img = $item.find('img').first();
-        
-        if ($link.length && $img.length) {
-          const title = $img.attr('alt') || $item.find('.title, .name').text().trim();
-          if (title && title.length > 2 && title.length < 100) {
-            results.push({
-              id: $link.attr('href')?.replace('/anime/', '') || `animeid-${index}`,
-              title: title,
-              image: $img.attr('src') || $img.attr('data-src'),
-              type: 'TV',
-              episodes: '?',
-              provider: 'animeid',
-              source: 'AnimeID',
-              hasDub: true,
-              hasSub: true,
-              quality: 'HD',
-              format: 'hls'
-            });
-          }
-        }
-      });
-      
-      return results;
-    } catch (error) {
-      console.error('AnimeID directory error:', error);
-      return [];
-    }
-  }
+  // ── Anime info + episodes ───────────────────────────────────────────────────
 
-  // Get anime info and episodes
   async getAnimeInfo(animeId, provider) {
-    console.log(`[AnimeMultiSource] Getting info for ${animeId} from ${provider}`);
-    
+    console.log(`[AnimeMultiSource] getAnimeInfo: ${animeId} (${provider})`);
     switch (provider) {
-      case 'animeflv':
-        return await this.getAnimeFLVInfo(animeId);
-      case 'jkanime':
-        return await this.getJkanimeInfo(animeId);
-      case 'animeid':
-        return await this.getAnimeIDInfo(animeId);
-      default:
-        throw new Error(`Provider ${provider} not supported`);
+      case 'animeflv': return this.getAnimeFLVInfo(animeId);
+      case 'tioanime': return this.getTioAnimeInfo(animeId);
+      case 'jkanime': return this.getJkanimeInfo(animeId);
+      default: throw new Error(`Provider "${provider}" not supported`);
     }
   }
 
-  // Get episode sources (HLS URLs)
-  async getEpisodeSources(episodeId, provider) {
-    console.log(`[AnimeMultiSource] Getting sources for ${episodeId} from ${provider}`);
-    
-    switch (provider) {
-      case 'animeflv':
-        return await this.getAnimeFLVSources(episodeId);
-      case 'jkanime':
-        return await this.getJkanimeSources(episodeId);
-      case 'animeid':
-        return await this.getAnimeIDSources(episodeId);
-      default:
-        throw new Error(`Provider ${provider} not supported`);
-    }
-  }
-
-  // AnimeFLV methods
   async getAnimeFLVInfo(animeId) {
-    try {
-      const url = `${this.sources[0].baseUrl}/anime/${animeId}`;
-      const html = await axios.get(url, {
-        timeout: 10000,
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-        }
+    const url = `${this.sources[0].baseUrl}/anime/${animeId}`;
+    const html = (await get(url)).data;
+    const $ = cheerio.load(html);
+
+    const episodes = [];
+    $('.ListEpisodios li').each((i, el) => {
+      const $a = $(el).find('a');
+      if ($a.length) {
+        const href = $a.attr('href') || '';
+        const id = href.replace('/ver/', '').replace(/^\//, '');
+        const numText = $a.find('.Num, .num').text().trim();
+        const num = parseInt(numText) || i + 1;
+        episodes.push({ id, number: num, title: `Episodio ${num}`, provider: 'animeflv' });
+      }
+    });
+    // AnimeFLV lists newest first — reverse to ascending
+    episodes.reverse();
+
+    return {
+      id: animeId,
+      title: $('.Title h1, h1.Title, h2.Title').first().text().trim() || 'Desconocido',
+      image: $('.AnimeCover img, .Image img').first().attr('src'),
+      description: $('.Description p, .sinopsis p').first().text().trim() || 'Sin descripción',
+      episodes,
+      type: 'TV',
+      hasDub: true,
+      hasSub: true,
+      provider: 'animeflv',
+    };
+  }
+
+  async getTioAnimeInfo(animeId) {
+    const url = `${this.sources[1].baseUrl}/anime/${animeId}`;
+    const html = (await get(url, { Referer: this.sources[1].baseUrl })).data;
+    const $ = cheerio.load(html);
+
+    const title =
+      $('h1.anime-title, h1').first().text().trim() ||
+      $('title').text().split('|')[0].trim() ||
+      animeId;
+
+    const image =
+      $('.anime-cover img, .cover img, .thumb img').first().attr('src') ||
+      $('.poster img').first().attr('src');
+
+    const description =
+      $('.sinopsis p, .description p, .anime-description').first().text().trim() ||
+      'Sin descripción';
+
+    const episodes = [];
+    // TioAnime lists episodes as <ul class="episodes-list"> <li> <a href="/ver/slug-N">
+    $('ul.episodes-list li a, .episodes-list a, .list-eps a').each((i, el) => {
+      const href = $(el).attr('href') || '';
+      const slug = href.replace('/ver/', '').replace(/^\//, '');
+      const numMatch = slug.match(/[\-_](\d+)$/);
+      const num = numMatch ? parseInt(numMatch[1]) : i + 1;
+      if (slug) episodes.push({ id: slug, number: num, title: `Episodio ${num}`, provider: 'tioanime' });
+    });
+    episodes.sort((a, b) => a.number - b.number);
+
+    return {
+      id: animeId,
+      title,
+      image,
+      description,
+      episodes,
+      type: 'TV',
+      hasDub: false,
+      hasSub: true,
+      provider: 'tioanime',
+    };
+  }
+
+  async getJkanimeInfo(animeId) {
+    const url = `${this.sources[2].baseUrl}/${animeId}`;
+    const html = (await get(url)).data;
+    const $ = cheerio.load(html);
+
+    const episodes = [];
+    // Jkanime uses numeric episode list in the page
+    const totalEps = parseInt($('.anime-info .episodes, .info-anime strong').text()) || 0;
+    for (let n = 1; n <= totalEps; n++) {
+      episodes.push({
+        id: `${animeId}/${n}`,
+        number: n,
+        title: `Episodio ${n}`,
+        provider: 'jkanime',
       });
-      
-      const $ = cheerio.load(html.data);
-      const episodes = [];
-      
-      $('.ListEpisodios li').each((index, element) => {
-        const $item = $(element);
-        const $link = $item.find('a');
-        if ($link.length) {
-          episodes.push({
-            id: $link.attr('href')?.replace('/ver/', '') || `ep-${index}`,
-            number: index + 1,
-            title: $link.text().trim() || `Episodio ${index + 1}`
-          });
-        }
+    }
+
+    // If total not found, try listing links
+    if (episodes.length === 0) {
+      $('ul.list-episodes a, .episodes-container a').each((i, el) => {
+        const href = $(el).attr('href') || '';
+        const slug = href.replace(/^\//, '');
+        if (slug) episodes.push({ id: slug, number: i + 1, title: `Episodio ${i + 1}`, provider: 'jkanime' });
       });
-      
-      return {
-        id: animeId,
-        title: $('.Title h1, .Title h2').first().text().trim() || 'Unknown',
-        image: $('.AnimeCover img').attr('src'),
-        description: $('.Description p').text().trim() || 'Sin descripción',
-        episodes: episodes,
-        type: 'TV',
-        hasDub: true,
-        hasSub: true
-      };
-    } catch (error) {
-      console.error('AnimeFLV info error:', error);
-      throw new Error('Failed to get anime info');
+    }
+
+    return {
+      id: animeId,
+      title: $('h1.title, h1').first().text().trim() || animeId,
+      image: $('.anime-poster img, .cover img').first().attr('src'),
+      description: $('.anime-synopsis p, .sinopsis').first().text().trim() || 'Sin descripción',
+      episodes,
+      type: 'TV',
+      hasDub: true,
+      hasSub: true,
+      provider: 'jkanime',
+    };
+  }
+
+  // ── Episode sources ─────────────────────────────────────────────────────────
+
+  async getEpisodeSources(episodeId, provider) {
+    console.log(`[AnimeMultiSource] getEpisodeSources: ${episodeId} (${provider})`);
+    switch (provider) {
+      case 'animeflv': return this.getAnimeFLVSources(episodeId);
+      case 'tioanime': return this.getTioAnimeSources(episodeId);
+      case 'jkanime': return this.getJkanimeSources(episodeId);
+      default: throw new Error(`Provider "${provider}" not supported`);
     }
   }
 
   async getAnimeFLVSources(episodeId) {
+    const referer = this.sources[0].baseUrl + '/';
     try {
       const url = `${this.sources[0].baseUrl}/ver/${episodeId}`;
-      const html = await axios.get(url, {
-        timeout: 10000,
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-        }
-      });
-      
-      const $ = cheerio.load(html.data);
-      
-      // Buscar URLs de video en diferentes contenedores
-      let videoUrl = null;
-      
-      // Intentar encontrar en scripts
-      $('script').each((index, script) => {
-        const scriptContent = $(script).html();
-        if (scriptContent && (scriptContent.includes('streaming') || scriptContent.includes('video'))) {
-          // Extraer URL del script
-          const urlMatch = scriptContent.match(/https?:\/\/[^\s"']+\.(m3u8|mp4)/);
-          if (urlMatch) {
-            videoUrl = urlMatch[0];
-          }
-        }
-      });
-      
-      // Si no encuentra en scripts, buscar en iframes
-      if (!videoUrl) {
-        $('iframe').each((index, iframe) => {
-          const src = $(iframe).attr('src');
-          if (src) {
-            // StreamTape extraction
-            if (src.includes('streamtape.com')) {
-              videoUrl = this.extractStreamTape(src);
-            }
-            // StreamWish extraction
-            else if (src.includes('streamwish.to')) {
-              videoUrl = this.extractStreamWish(src);
-            }
-            // Otros servicios de embed
-            else if (src.includes('fembed.com')) {
-              videoUrl = this.extractFembed(src);
-            }
-            else if (src.includes('doodstream')) {
-              videoUrl = this.extractDoodstream(src);
-            }
-          }
-        });
+      const html = (await get(url, { Referer: referer })).data;
+
+      const videosData = parseVideosVar(html);
+      if (!videosData) {
+        console.warn('[AnimeFLV] var videos not found in page');
+        return [DEMO_SOURCE];
       }
-      
-      if (!videoUrl) {
-        // URL de demo como fallback
-        videoUrl = 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4';
+
+      const entries = normalizeVideosVar(videosData);
+      console.log(
+        `[AnimeFLV] Found ${entries.length} server entries:`,
+        entries.map((e) => `${e.type}:${e.server}`).join(', ')
+      );
+
+      const sources = await resolveEntries(entries, referer);
+      if (sources.length === 0) {
+        console.warn('[AnimeFLV] All server extractions failed — using demo');
+        return [DEMO_SOURCE];
       }
-      
-      console.log(`[AnimeMultiSource] Found video URL: ${videoUrl}`);
-      
-      return [{
-        url: videoUrl,
-        format: videoUrl.includes('.m3u8') ? 'hls' : 'mp4',
-        quality: 'HD',
-        isDefault: true
-      }];
-    } catch (error) {
-      console.error('AnimeFLV sources error:', error);
-      // Fallback a video demo
-      return [{
-        url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
-        format: 'hls',
-        quality: 'HD',
-        isDefault: true
-      }];
+
+      return sources;
+    } catch (err) {
+      console.error('[AnimeFLV] getAnimeFLVSources error:', err.message);
+      return [DEMO_SOURCE];
     }
   }
 
-  // Extract video from StreamTape embed
-  extractStreamTape(embedUrl) {
-    console.log(`[AnimeMultiSource] Extracting StreamTape video from: ${embedUrl}`);
-    
-    // StreamTape usa un sistema de redirección y token
-    // Necesitamos hacer una petición adicional para obtener el video real
+  async getTioAnimeSources(episodeId) {
+    const referer = this.sources[1].baseUrl + '/';
     try {
-      // Extraer el ID del embed
-      const idMatch = embedUrl.match(/\/e\/([a-zA-Z0-9]+)/);
-      if (!idMatch) return null;
-      
-      const videoId = idMatch[1];
-      
-      // Construir URL de API de StreamTape
-      const apiUrl = `https://streamtape.com/api/video/${videoId}`;
-      
-      // Hacer petición para obtener el video real
-      const response = axios.get(apiUrl, {
-        timeout: 10000,
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-        }
-      });
-      
-      // Extraer URL del video de la respuesta
-      const videoUrl = response.data?.url || response.data?.file || null;
-      
-      if (videoUrl) {
-        console.log(`[AnimeMultiSource] StreamTape extracted: ${videoUrl}`);
-        return videoUrl;
-      }
-    } catch (error) {
-      console.error('StreamTape extraction failed:', error);
-    }
-    
-    return null;
-  }
+      const url = `${this.sources[1].baseUrl}/ver/${episodeId}`;
+      const html = (await get(url, { Referer: referer })).data;
 
-  // Extract video from StreamWish
-  extractStreamWish(embedUrl) {
-    console.log(`[AnimeMultiSource] Extracting StreamWish video from: ${embedUrl}`);
-    
-    try {
-      // StreamWish usa un sistema similar a StreamTape
-      const idMatch = embedUrl.match(/\/e\/([a-zA-Z0-9]+)/);
-      if (!idMatch) {
-        console.log('[AnimeMultiSource] StreamWish: No ID match found');
-        return null;
+      const videosData = parseVideosVar(html);
+      if (!videosData) {
+        console.warn('[TioAnime] var videos not found');
+        return [DEMO_SOURCE];
       }
-      
-      const videoId = idMatch[1];
-      console.log(`[AnimeMultiSource] StreamWish: Extracted ID: ${videoId}`);
-      
-      // Intentar diferentes métodos para StreamWish
-      // Método 1: API directa
-      const apiUrl = `https://streamwish.to/api/video/${videoId}`;
-      console.log(`[AnimeMultiSource] StreamWish: Trying API: ${apiUrl}`);
-      
-      const response = axios.get(apiUrl, {
-        timeout: 10000,
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-          'Referer': 'https://streamwish.to/'
-        }
-      });
-      
-      console.log('[AnimeMultiSource] StreamWish: API response received');
-      console.log('[AnimeMultiSource] StreamWish: Response data:', response.data);
-      
-      const videoUrl = response.data?.url || response.data?.file || response.data?.stream || null;
-      
-      if (videoUrl) {
-        console.log(`[AnimeMultiSource] StreamWish extracted: ${videoUrl}`);
-        return videoUrl;
-      } else {
-        console.log('[AnimeMultiSource] StreamWish: No video URL in API response');
-      }
-    } catch (error) {
-      console.error('[AnimeMultiSource] StreamWish extraction failed:', error.message);
-      
-      // Método 2: Extraer de la página del embed
-      console.log('[AnimeMultiSource] StreamWish: Trying page extraction...');
-      try {
-        const pageResponse = axios.get(embedUrl, {
-          timeout: 10000,
-          headers: {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-          }
-        });
-        
-        console.log('[AnimeMultiSource] StreamWish: Page response received, length:', pageResponse.data.length);
-        
-        const $ = cheerio.load(pageResponse.data);
-        
-        // Buscar URLs de video en scripts
-        let videoUrl = null;
-        $('script').each((index, script) => {
-          const scriptContent = $(script).html();
-          if (scriptContent && (scriptContent.includes('source') || scriptContent.includes('video') || scriptContent.includes('stream'))) {
-            const urlMatch = scriptContent.match(/https?:\/\/[^\s"']+\.(m3u8|mp4)/);
-            if (urlMatch) {
-              videoUrl = urlMatch[0];
-              console.log(`[AnimeMultiSource] StreamWish: Found URL in script: ${videoUrl}`);
-            }
-          }
-        });
-        
-        // Buscar en iframes también
-        if (!videoUrl) {
-          $('iframe').each((index, iframe) => {
-            const src = $(iframe).attr('src');
-            if (src && (src.includes('.m3u8') || src.includes('.mp4'))) {
-              videoUrl = src;
-              console.log(`[AnimeMultiSource] StreamWish: Found URL in iframe: ${videoUrl}`);
-            }
-          });
-        }
-        
-        if (videoUrl) {
-          console.log(`[AnimeMultiSource] StreamWish page extracted: ${videoUrl}`);
-          return videoUrl;
-        } else {
-          console.log('[AnimeMultiSource] StreamWish: No video URL found in page');
-        }
-      } catch (pageError) {
-        console.error('[AnimeMultiSource] StreamWish page extraction failed:', pageError.message);
-      }
-    }
-    
-    console.log('[AnimeMultiSource] StreamWish: All extraction methods failed, returning null');
-    return null;
-  }
 
-  // Extract video from Fembed
-  extractFembed(embedUrl) {
-    console.log(`[AnimeMultiSource] Extracting Fembed video from: ${embedUrl}`);
-    
-    try {
-      // Fembed tiene API directa
-      const idMatch = embedUrl.match(/\/v\/([a-zA-Z0-9-]+)/);
-      if (!idMatch) return null;
-      
-      const videoId = idMatch[1];
-      const apiUrl = `https://www.fembed.com/api/source/${videoId}`;
-      
-      const response = axios.get(apiUrl, {
-        timeout: 10000,
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-        }
-      });
-      
-      const videoUrl = response.data?.data?.file || null;
-      
-      if (videoUrl) {
-        console.log(`[AnimeMultiSource] Fembed extracted: ${videoUrl}`);
-        return videoUrl;
-      }
-    } catch (error) {
-      console.error('Fembed extraction failed:', error);
-    }
-    
-    return null;
-  }
+      const entries = normalizeVideosVar(videosData);
+      console.log(
+        `[TioAnime] Found ${entries.length} entries:`,
+        entries.map((e) => `${e.server}`).join(', ')
+      );
 
-  // Extract video from Doodstream
-  extractDoodstream(embedUrl) {
-    console.log(`[AnimeMultiSource] Extracting Doodstream video from: ${embedUrl}`);
-    
-    try {
-      // Doodstream usa un sistema de token
-      const idMatch = embedUrl.match(/\/e\/([a-zA-Z0-9]+)/);
-      if (!idMatch) return null;
-      
-      const videoId = idMatch[1];
-      const apiUrl = `https://doodstream.com/api/video/${videoId}`;
-      
-      const response = axios.get(apiUrl, {
-        timeout: 10000,
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-        }
-      });
-      
-      const videoUrl = response.data?.url || response.data?.file || null;
-      
-      if (videoUrl) {
-        console.log(`[AnimeMultiSource] Doodstream extracted: ${videoUrl}`);
-        return videoUrl;
-      }
-    } catch (error) {
-      console.error('Doodstream extraction failed:', error);
-    }
-    
-    return null;
-  }
-
-  // Jkanime methods
-  async getJkanimeInfo(animeId) {
-    try {
-      const url = `${this.sources[1].baseUrl}/anime/${animeId}`;
-      const html = await axios.get(url, {
-        timeout: 10000,
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-        }
-      });
-      
-      const $ = cheerio.load(html.data);
-      const episodes = [];
-      
-      $('.episode-list .episode').each((index, element) => {
-        const $item = $(element);
-        const $link = $item.find('a');
-        if ($link.length) {
-          episodes.push({
-            id: $link.attr('href')?.replace('/ver/', '') || `jk-ep-${index}`,
-            number: index + 1,
-            title: $link.text().trim() || `Episodio ${index + 1}`
-          });
-        }
-      });
-      
-      return {
-        id: animeId,
-        title: $('.anime-title h1').text().trim() || 'Unknown',
-        image: $('.anime-poster img').attr('src'),
-        description: $('.anime-synopsis p').text().trim() || 'Sin descripción',
-        episodes: episodes,
-        type: 'TV',
-        hasDub: true,
-        hasSub: true
-      };
-    } catch (error) {
-      console.error('Jkanime info error:', error);
-      throw new Error('Failed to get anime info');
+      const sources = await resolveEntries(entries, referer);
+      return sources.length > 0 ? sources : [DEMO_SOURCE];
+    } catch (err) {
+      console.error('[TioAnime] getTioAnimeSources error:', err.message);
+      return [DEMO_SOURCE];
     }
   }
 
   async getJkanimeSources(episodeId) {
+    const referer = this.sources[2].baseUrl + '/';
     try {
-      const url = `${this.sources[1].baseUrl}/ver/${episodeId}`;
-      const html = await axios.get(url, {
-        timeout: 10000,
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-        }
-      });
-      
-      const $ = cheerio.load(html.data);
+      const url = `${this.sources[2].baseUrl}/${episodeId}`;
+      const html = (await get(url, { Referer: referer })).data;
+      const $ = cheerio.load(html);
+
+      // Jkanime puts video source in a script: var video = [{...}]
       let videoUrl = null;
-      
-      // Buscar URL de video
-      $('script').each((index, script) => {
-        const scriptContent = $(script).html();
-        if (scriptContent && scriptContent.includes('src')) {
-          const urlMatch = scriptContent.match(/https?:\/\/[^\s"']+\.(m3u8|mp4)/);
-          if (urlMatch) {
-            videoUrl = urlMatch[0];
-          }
-        }
+      $('script').each((_, el) => {
+        const src = $(el).html() || '';
+        const m = src.match(/https?:\/\/[^\s"']+\.m3u8[^\s"']*/);
+        if (m && !videoUrl) videoUrl = m[0];
+        // Also try var video = [{file:'...'}]
+        const fm = src.match(/file\s*:\s*['"]([^'"]+\.m3u8[^'"]*)['"]/i);
+        if (fm && !videoUrl) videoUrl = fm[1];
       });
-      
-      if (!videoUrl) {
-        videoUrl = 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4';
+
+      if (videoUrl) {
+        return [{
+          url: videoUrl,
+          format: 'hls',
+          sourceType: 'hls',
+          quality: 'HD',
+          server: 'jkanime',
+          isDub: false,
+          isDefault: true,
+        }];
       }
-      
-      return [{
-        url: videoUrl,
-        format: 'hls',
-        quality: 'HD',
-        isDefault: true
-      }];
-    } catch (error) {
-      console.error('Jkanime sources error:', error);
-      return [{
-        url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
-        format: 'hls',
-        quality: 'HD',
-        isDefault: true
-      }];
-    }
-  }
 
-  // AnimeID methods
-  async getAnimeIDInfo(animeId) {
-    try {
-      const url = `${this.sources[2].baseUrl}/anime/${animeId}`;
-      const html = await axios.get(url, {
-        timeout: 10000,
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+      // Fallback: try iframe embeds
+      const iframeSrc = $('iframe').first().attr('src');
+      if (iframeSrc) {
+        const extracted = await extractEmbedUrl('', iframeSrc, referer);
+        if (extracted) {
+          return [{
+            url: extracted,
+            format: extracted.includes('.m3u8') ? 'hls' : 'mp4',
+            sourceType: 'hls',
+            quality: 'HD',
+            server: 'jkanime',
+            isDub: false,
+            isDefault: true,
+          }];
         }
-      });
-      
-      const $ = cheerio.load(html.data);
-      const episodes = [];
-      
-      $('.episode-list .episode-item').each((index, element) => {
-        const $item = $(element);
-        const $link = $item.find('a');
-        if ($link.length) {
-          episodes.push({
-            id: $link.attr('href')?.replace('/episode/', '') || `id-ep-${index}`,
-            number: index + 1,
-            title: $link.text().trim() || `Episodio ${index + 1}`
-          });
-        }
-      });
-      
-      return {
-        id: animeId,
-        title: $('.anime-title h1').text().trim() || 'Unknown',
-        image: $('.anime-cover img').attr('src'),
-        description: $('.anime-description p').text().trim() || 'Sin descripción',
-        episodes: episodes,
-        type: 'TV',
-        hasDub: true,
-        hasSub: true
-      };
-    } catch (error) {
-      console.error('AnimeID info error:', error);
-      throw new Error('Failed to get anime info');
-    }
-  }
-
-  async getAnimeIDSources(episodeId) {
-    try {
-      const url = `${this.sources[2].baseUrl}/episode/${episodeId}`;
-      const html = await axios.get(url, {
-        timeout: 10000,
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-        }
-      });
-      
-      const $ = cheerio.load(html.data);
-      let videoUrl = null;
-      
-      $('script').each((index, script) => {
-        const scriptContent = $(script).html();
-        if (scriptContent && scriptContent.includes('src')) {
-          const urlMatch = scriptContent.match(/https?:\/\/[^\s"']+\.(m3u8|mp4)/);
-          if (urlMatch) {
-            videoUrl = urlMatch[0];
-          }
-        }
-      });
-      
-      if (!videoUrl) {
-        videoUrl = 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4';
       }
-      
-      return [{
-        url: videoUrl,
-        format: 'hls',
-        quality: 'HD',
-        isDefault: true
-      }];
-    } catch (error) {
-      console.error('AnimeID sources error:', error);
-      return [{
-        url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
-        format: 'hls',
-        quality: 'HD',
-        isDefault: true
-      }];
+
+      return [DEMO_SOURCE];
+    } catch (err) {
+      console.error('[Jkanime] getJkanimeSources error:', err.message);
+      return [DEMO_SOURCE];
     }
   }
 
-  // Merge results from multiple sources
+  // ── HTML parsers ────────────────────────────────────────────────────────────
+
+  _parseAnimeFLVList(html) {
+    const $ = cheerio.load(html);
+    const results = [];
+    const seen = new Set();
+
+    $('.AnimeList .item, .ListAnimes article, ul.ListAnimes li').each((_, el) => {
+      const $item = $(el);
+      const $a = $item.find('a').first();
+      const $img = $item.find('img').first();
+      const href = $a.attr('href') || '';
+      const id = href.replace('/anime/', '').replace(/^\//, '');
+      const title =
+        $img.attr('alt') ||
+        $item.find('.Title, h3').text().trim() ||
+        $a.attr('title') || '';
+
+      if (id && title && title.length > 1 && !seen.has(id)) {
+        seen.add(id);
+        results.push({
+          id,
+          title,
+          image: $img.attr('src') || $img.attr('data-src'),
+          type: $item.find('.Type').text().trim() || 'TV',
+          episodes: $item.find('.Eps').text().trim() || '?',
+          quality: 'HD',
+          format: 'hls',
+        });
+      }
+    });
+
+    return results;
+  }
+
+  _parseTioAnimeList(html) {
+    const $ = cheerio.load(html);
+    const results = [];
+    const seen = new Set();
+
+    // TioAnime search results: .animes .row .col-6 or similar
+    $('ul.animes li, .animes li, .row .col-6, .row .col-md-4, .anime-item').each((_, el) => {
+      const $item = $(el);
+      const $a = $item.find('a').first();
+      const $img = $item.find('img').first();
+      const href = $a.attr('href') || '';
+      const id = href.replace('/anime/', '').replace(/^\//, '');
+      const title = $img.attr('alt') || $item.find('h3, .title, p').first().text().trim();
+
+      if (id && title && title.length > 1 && !seen.has(id)) {
+        seen.add(id);
+        results.push({
+          id,
+          title,
+          image: $img.attr('src') || $img.attr('data-src'),
+          type: 'TV',
+          episodes: '?',
+          quality: 'HD',
+          format: 'hls',
+        });
+      }
+    });
+
+    return results;
+  }
+
+  _parseJkanimeList(html) {
+    const $ = cheerio.load(html);
+    const results = [];
+    const seen = new Set();
+
+    $('.hermes .items .item, .anime-item, article.anime').each((_, el) => {
+      const $item = $(el);
+      const $a = $item.find('a').first();
+      const $img = $item.find('img').first();
+      const href = $a.attr('href') || '';
+      // jkanime uses /slug/ paths
+      const id = href.replace(/^\//, '').replace(/\/$/, '');
+      const title = $img.attr('alt') || $item.find('.title, h3').text().trim();
+
+      if (id && title && title.length > 1 && !seen.has(id)) {
+        seen.add(id);
+        results.push({
+          id,
+          title,
+          image: $img.attr('src') || $img.attr('data-src'),
+          type: 'TV',
+          episodes: '?',
+          quality: 'HD',
+          format: 'hls',
+        });
+      }
+    });
+
+    return results;
+  }
+
+  // ── Dedup merge ─────────────────────────────────────────────────────────────
   mergeResults(sourceResults) {
-    const allResults = [];
-    const seenTitles = new Set();
-    
-    // Sort by priority (lower number = higher priority)
-    sourceResults.sort((a, b) => a.priority - b.priority);
-    
-    for (const sourceResult of sourceResults) {
-      for (const anime of sourceResult.results) {
-        const titleKey = anime.title.toLowerCase().trim();
-        if (!seenTitles.has(titleKey)) {
-          seenTitles.add(titleKey);
-          allResults.push(anime);
+    const seen = new Set();
+    const out = [];
+    const sorted = [...sourceResults].sort((a, b) => a.priority - b.priority);
+    for (const group of sorted) {
+      for (const anime of group.results || []) {
+        const key = anime.title.toLowerCase().trim();
+        if (!seen.has(key)) {
+          seen.add(key);
+          out.push(anime);
         }
       }
     }
-    
-    return allResults;
+    return out;
   }
 }
 

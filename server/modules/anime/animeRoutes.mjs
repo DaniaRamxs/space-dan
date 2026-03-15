@@ -35,6 +35,15 @@ function buildCdnHeaders(targetUrl) {
     } else if (hostname.includes('vixcloud') || hostname.includes('animeunity')) {
       referer = 'https://animeunity.so/';
       origin  = 'https://animeunity.so';
+    } else if (hostname.includes('mycdn.me') || hostname.includes('ustore.me') || hostname.includes('ok.ru')) {
+      referer = 'https://ok.ru/';
+      origin  = 'https://ok.ru';
+    } else if (hostname.includes('animeflv') || hostname.includes('flv')) {
+      referer = 'https://www3.animeflv.net/';
+      origin  = 'https://www3.animeflv.net';
+    } else if (hostname.includes('tioanime')) {
+      referer = 'https://tioanime.com/';
+      origin  = 'https://tioanime.com';
     }
   } catch { /* keep defaults */ }
 

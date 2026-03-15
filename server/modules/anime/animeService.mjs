@@ -1,5 +1,6 @@
 import pkg from '@consumet/extensions';
 import animeFlvPkg from '@carlosnunezmx/animeflv';
+import { resolveEmbedSources } from './animeExtractor.mjs';
 
 const { ANIME } = pkg;
 const { Search: animeFlvSearch, GetAnimeInfo: animeFlvGetInfo, GetResources: animeFlvGetResources } = animeFlvPkg;
@@ -273,9 +274,20 @@ export const getEpisodeSources = async (episodeId, provider = 'auto') => {
     }
 
     if (response?.sources?.length) {
-      sourceCache.set(cacheKey, response);
-      setTimeout(() => sourceCache.delete(cacheKey), SOURCE_CACHE_TTL);
-      return response;
+      // Resolve embed URLs → direct HLS/MP4 so the native player can play them
+      const referer =
+        response.provider === 'animeflv' ? 'https://www3.animeflv.net/' : undefined;
+      const resolved = await resolveEmbedSources(response.sources, referer);
+      if (resolved.length > 0) {
+        response = { ...response, sources: resolved, sourceType: 'hls' };
+      }
+      // Fall through even if all extractions failed — frontend can show the error
+
+      if (response.sources.length > 0) {
+        sourceCache.set(cacheKey, response);
+        setTimeout(() => sourceCache.delete(cacheKey), SOURCE_CACHE_TTL);
+        return response;
+      }
     }
 
     return {
