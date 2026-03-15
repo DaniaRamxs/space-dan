@@ -222,6 +222,17 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
     syncChannelRef.current = channel;
 
     channel
+      .on('presence', { event: 'sync' }, () => {
+        const state = channel.presenceState();
+        const allPresence = Object.values(state).flat();
+        if (allPresence.length === 0) return;
+        // El primero en llegar (menor joinedAt) es el host
+        const sorted = [...allPresence].sort((a, b) => (a.joinedAt || 0) - (b.joinedAt || 0));
+        const hostPresence = sorted[0];
+        if (hostPresence?.userId && hostPresence.userId !== profile?.id) {
+          setRemoteHostInfo({ username: hostPresence.username, avatar: hostPresence.avatar || null, userId: hostPresence.userId });
+        }
+      })
       .on('broadcast', { event: 'anime_state' }, async ({ payload }) => {
         if (!payload || payload.senderId === profile?.id) return;
 
@@ -277,8 +288,15 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
         if (payload?.senderId === profile?.id) return;
         syncCurrentState();
       })
-      .subscribe((status) => {
+      .subscribe(async (status) => {
         if (status === 'SUBSCRIBED') {
+          // Registrar presencia para detección de host por orden de llegada
+          await channel.track({
+            userId: profile?.id,
+            username: profile?.username || 'Anon',
+            avatar: profile?.avatar_url || null,
+            joinedAt: Date.now(),
+          }).catch(() => {});
           channel.httpSend({
             type: 'broadcast',
             event: 'anime_sync_req',
@@ -291,7 +309,7 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
       syncChannelRef.current = null;
       supabase.removeChannel(channel);
     };
-  }, [roomName, onClose, profile?.id, addGifOverlay, clearRoomState, syncCurrentState]);
+  }, [roomName, onClose, profile?.id, profile?.username, profile?.avatar_url, addGifOverlay, clearRoomState, syncCurrentState]);
 
   useEffect(() => {
     return () => {
