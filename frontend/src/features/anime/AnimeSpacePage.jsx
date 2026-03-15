@@ -734,10 +734,14 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
   }, [activeSourceIndex, broadcastAnimeState, currentEpisode, episodes, roomState?.roomId, selectedAnime, streamData, view]);
 
   const currentSource = streamData?.sources?.[activeSourceIndex] || null;
-  const visibleParticipants = participants.length
-    ? participants
-    : presenceParticipants.length
-      ? presenceParticipants.map((p, i) => ({ username: p.username, avatar: p.avatar, userId: p.userId, isHost: i === 0 }))
+  // Presence es la fuente principal (incluye a todos), Colyseus enriquece con info adicional
+  const visibleParticipants = presenceParticipants.length
+    ? presenceParticipants.map((p, i) => {
+        const cp = participants.find(c => c.userId === p.userId);
+        return cp || { username: p.username, avatar: p.avatar, userId: p.userId, isHost: i === 0 };
+      })
+    : participants.length
+      ? participants
       : [{ username: profile?.username, avatar: profile?.avatar_url, isHost: true }];
   const mobileTabs = [
     { id: 'info', label: 'Info', icon: Tv },
