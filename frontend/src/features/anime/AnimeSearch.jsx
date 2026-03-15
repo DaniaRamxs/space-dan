@@ -116,7 +116,7 @@ const AnimeSearch = ({ onSelect }) => {
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Naruto, One Piece, Bleach..."
+              placeholder={showDirectory ? "Buscar anime específico..." : "Naruto, One Piece, Bleach..."}
               className="w-full rounded-2xl border border-white/10 bg-white/5 py-4 pl-12 pr-4 text-base text-white placeholder:text-white/30 focus:border-cyan-400/50 focus:outline-none focus:ring-2 focus:ring-cyan-400/20"
             />
           </label>
@@ -126,9 +126,21 @@ const AnimeSearch = ({ onSelect }) => {
             className="inline-flex items-center justify-center gap-2 rounded-2xl bg-cyan-400 px-5 py-4 text-sm font-black uppercase tracking-[0.2em] text-slate-950 transition hover:bg-cyan-300 disabled:cursor-not-allowed disabled:opacity-60 sm:min-w-[180px]"
           >
             {loading ? <Loader2 className="animate-spin" size={18} /> : <Search size={18} />}
-            Buscar
+            {showDirectory ? 'Buscar' : 'Buscar'}
           </button>
         </form>
+
+        {/* Directory Mode Indicator */}
+        {showDirectory && !loading && results.length > 0 && (
+          <div className="mt-4 rounded-2xl border border-cyan-400/30 bg-cyan-500/10 p-4">
+            <div className="flex items-center gap-2 text-cyan-300">
+              <span className="text-[10px] font-black uppercase tracking-[0.28em]">Directorio Completo</span>
+            </div>
+            <p className="mt-2 text-xs text-cyan-200/80">
+              Mostrando {results.length} animes disponibles. Usa el buscador para filtrar resultados.
+            </p>
+          </div>
+        )}
 
         {/* Emergency Mode */}
         {emergencyMode && (
@@ -158,33 +170,52 @@ const AnimeSearch = ({ onSelect }) => {
         )}
       </div>
 
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-        {results.map((anime) => (
-          <button
-            key={`${anime.provider || 'anime'}-${anime.id}`}
-            onClick={() => onSelect(anime)}
-            className="overflow-hidden rounded-[20px] border border-white/10 bg-white/[0.04] text-left transition hover:-translate-y-1 hover:border-cyan-400/40 hover:bg-white/[0.07] sm:rounded-[24px]"
-          >
-            <div className="relative aspect-[3/4] overflow-hidden">
-              <img
-                src={anime.image || anime.img || anime.cover}
-                alt={anime.title}
-                className="h-full w-full object-cover transition duration-500 hover:scale-105"
-              />
-              <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 to-transparent p-3">
-                <span className="rounded-full border border-cyan-300/20 bg-cyan-500/15 px-2 py-1 text-[10px] font-black uppercase tracking-[0.2em] text-cyan-200">
-                  {anime.provider === 'animeflv' ? 'ESP' : 'ALT'}
-                </span>
+      <div className="mt-6">
+        {/* Results Header */}
+        {results.length > 0 && !loading && (
+          <div className="mb-4 flex items-center justify-between">
+            <h2 className="text-lg font-bold text-white">
+              {showDirectory ? `Directorio (${results.length} animes)` : `Resultados (${results.length})`}
+            </h2>
+            {showDirectory && (
+              <button
+                onClick={loadDirectory}
+                className="rounded-lg border border-cyan-400/30 bg-cyan-500/10 px-3 py-1 text-xs font-medium text-cyan-300 hover:bg-cyan-500/20 transition"
+              >
+                Actualizar
+              </button>
+            )}
+          </div>
+        )}
+
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+          {results.map((anime) => (
+            <button
+              key={`${anime.provider || 'anime'}-${anime.id}`}
+              onClick={() => onSelect(anime)}
+              className="overflow-hidden rounded-[20px] border border-white/10 bg-white/[0.04] text-left transition hover:-translate-y-1 hover:border-cyan-400/40 hover:bg-white/[0.07] sm:rounded-[24px]"
+            >
+              <div className="relative aspect-[3/4] overflow-hidden">
+                <img
+                  src={anime.image || anime.img || anime.cover}
+                  alt={anime.title}
+                  className="h-full w-full object-cover transition duration-500 hover:scale-105"
+                />
+                <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 to-transparent p-3">
+                  <span className="rounded-full border border-cyan-300/20 bg-cyan-500/15 px-2 py-1 text-[10px] font-black uppercase tracking-[0.2em] text-cyan-200">
+                    {anime.provider === 'animeflv' ? 'ESP' : anime.provider === 'jkanime' ? 'LAT' : 'SUB'}
+                  </span>
+                </div>
               </div>
-            </div>
-            <div className="space-y-2 p-3">
-              <p className="line-clamp-2 text-[13px] font-bold leading-5 text-white sm:text-sm">{anime.title}</p>
-              <p className="line-clamp-2 text-xs leading-5 text-white/50 sm:line-clamp-3">
-                {anime.description || 'Sin descripción disponible.'}
-              </p>
-            </div>
-          </button>
-        ))}
+              <div className="space-y-2 p-3">
+                <p className="line-clamp-2 text-[13px] font-bold leading-5 text-white sm:text-sm">{anime.title}</p>
+                <p className="line-clamp-2 text-xs leading-5 text-white/50 sm:line-clamp-3">
+                  {anime.episodes && anime.episodes !== '?' ? `${anime.episodes} episodios` : 'Episodios disponibles'}
+                </p>
+              </div>
+            </button>
+          ))}
+        </div>
       </div>
 
       {error && (
