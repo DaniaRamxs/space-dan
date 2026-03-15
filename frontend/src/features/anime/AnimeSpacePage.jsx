@@ -63,6 +63,16 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
   const savedPositionRef = useRef(null);
   const isHostRef = useRef(false);
 
+  // Temporary handlePlaybackStateUpdate before usePlaybackSync (to avoid initialization error)
+  const handlePlaybackStateUpdate = useCallback((state) => {
+    if (state.type === 'play_countdown') {
+      // Will be updated later when runCountdownRef is available
+      setTimeout(() => {
+        runCountdownRef.current?.(state.payload?.currentTime ?? 0);
+      }, 0);
+    }
+  }, []);
+
   // ── 4. Service hooks (depend on state/refs above) ─────────────────────────
   const {
     playbackState,
@@ -165,12 +175,6 @@ const AnimeSpacePage = ({ onClose, roomName }) => {
     setTimeout(() => { setCountdown(null); updatePlayback({ playing: true, currentTime }); }, 3000);
   }, [updatePlayback]);
   runCountdownRef.current = runCountdown;
-
-  const handlePlaybackStateUpdate = useCallback((state) => {
-    if (state.type === 'play_countdown') {
-      runCountdownRef.current?.(state.payload?.currentTime ?? 0);
-    }
-  }, []);
 
   const connectToWatchParty = useCallback(async ({ anime, episode, roomId, colyseusRoomId, announceActivity }) => {
     console.log('[AnimeSpace] connectToWatchParty called:', { anime: anime?.title, episode: episode?.number, roomId, colyseusRoomId, announceActivity });
