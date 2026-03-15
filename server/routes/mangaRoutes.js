@@ -92,13 +92,13 @@ router.get('/image', async (req, res) => {
     if (!url) return res.status(400).send('Missing url');
 
     const decoded = decodeURIComponent(url);
-    const allowed = [
-      'https://uploads.mangadex.org',
-      'https://cmdxd98sb0x3yprd.mangadex.network',
-      'https://s5.mangadex.org',
-      'https://s2.mangadex.org',
-    ];
-    if (!allowed.some((prefix) => decoded.startsWith(prefix))) {
+    // MangaDex at-home uses dynamic CDN hostnames (*.mangadex.network, *.mangadex.org)
+    // Allow any subdomain/host from these two domains only.
+    let parsedHost;
+    try { parsedHost = new URL(decoded).hostname; } catch { return res.status(400).send('Invalid url'); }
+    const allowed = parsedHost.endsWith('.mangadex.org') || parsedHost === 'mangadex.org'
+      || parsedHost.endsWith('.mangadex.network') || parsedHost === 'mangadex.network';
+    if (!allowed) {
       return res.status(400).send('URL not allowed');
     }
 
