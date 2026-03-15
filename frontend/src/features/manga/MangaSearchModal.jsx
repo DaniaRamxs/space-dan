@@ -1,5 +1,5 @@
 import React, {
-  useState, useEffect, useRef, useCallback, memo,
+  useState, useEffect, useRef, useCallback, memo, useMemo,
 } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, X, BookOpen, ChevronRight, Loader2, Globe } from 'lucide-react';
@@ -31,7 +31,9 @@ function getCoverUrl(mangaId, relationships) {
   const coverRel = relationships?.find((r) => r.type === 'cover_art');
   const fileName = coverRel?.attributes?.fileName;
   if (!mangaId || !fileName) return null;
-  return `${UPLOADS}/covers/${mangaId}/${fileName}.256.jpg`;
+  // Proxy through backend to avoid any CDN CORS issues on cover images
+  const direct = `https://uploads.mangadex.org/covers/${mangaId}/${fileName}.256.jpg`;
+  return `${MANGA_API}/image?url=${encodeURIComponent(direct)}`;
 }
 
 function getMangaTitle(attributes) {
@@ -169,6 +171,7 @@ const MangaSearchModal = memo(({ isOpen, onClose, onSelect }) => {
   const [selectedManga, setSelectedManga] = useState(null);
   const [chapters, setChapters]           = useState([]);
   const [chaptersLoading, setChaptersLoading] = useState(false);
+  const [langFilter, setLangFilter]       = useState('es'); // 'es' | 'en'
 
   const debounceRef = useRef(null);
   const inputRef    = useRef(null);
@@ -228,6 +231,23 @@ const MangaSearchModal = memo(({ isOpen, onClose, onSelect }) => {
       setChaptersLoading(false);
     }
   }, []);
+
+  // Filter chapters by lang and deduplicate by chapter number (keep first match)
+  const filteredChapters = useMemo(() => {
+    const byLang = chapters.filter((c) => {
+      const l = c.attributes?.translatedLanguage || '';
+      return langFilter === 'es' ? (l === 'es' || l === 'es-la') : l === 'en';
+    });
+    // If no chapters in selected lang, show all
+    const list = byLang.length > 0 ? byLang : chapters;
+    const seen = new Set();
+    return list.filter((c) => {
+      const num = c.attributes?.chapter ?? c.id;
+      if (seen.has(num)) return false;
+      seen.add(num);
+      return true;
+    });
+  }, [chapters, langFilter]);
 
   const handleSelectChapter = useCallback((chapter) => {
     if (!selectedManga) return;
@@ -332,21 +352,42 @@ const MangaSearchModal = memo(({ isOpen, onClose, onSelect }) => {
               {selectedManga ? (
                 chaptersLoading ? (
                   <ChapterSkeleton />
-                ) : chapters.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center min-h-[200px] gap-3 text-white/30 p-8 text-center">
-                    <BookOpen size={32} className="opacity-30" />
-                    <p className="text-sm">No se encontraron capítulos en español o inglés</p>
-                  </div>
                 ) : (
-                  <div className="space-y-1.5 p-4">
-                    {chapters.map((ch) => (
-                      <ChapterRow
-                        key={ch.id}
-                        chapter={ch}
-                        onSelect={handleSelectChapter}
-                      />
-                    ))}
-                  </div>
+                  <>
+                    {/* Language toggle */}
+                    <div className="flex items-center gap-2 px-4 pt-3 pb-1">
+                      {['es', 'en'].map((l) => (
+                        <button
+                          key={l}
+                          onClick={() => setLangFilter(l)}
+                          className={`px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider border transition-all ${
+                            langFilter === l
+                              ? 'bg-violet-600 border-violet-500 text-white'
+                              : 'bg-white/5 border-white/10 text-white/40 hover:text-white/70'
+                          }`}
+                        >
+                          {l === 'es' ? 'Español' : 'English'}
+                        </button>
+                      ))}
+                      <span className="text-white/20 text-xs ml-auto">{filteredChapters.length} caps</span>
+                    </div>
+                    {filteredChapters.length === 0 ? (
+                      <div className="flex flex-col items-center justify-center min-h-[200px] gap-3 text-white/30 p-8 text-center">
+                        <BookOpen size={32} className="opacity-30" />
+                        <p className="text-sm">Sin capítulos en {langFilter === 'es' ? 'español' : 'inglés'} — prueba el otro idioma</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-1.5 p-4">
+                        {filteredChapters.map((ch) => (
+                          <ChapterRow
+                            key={ch.id}
+                            chapter={ch}
+                            onSelect={handleSelectChapter}
+                          />
+                        ))}
+                      </div>
+                    )}
+                  </>
                 )
               ) : (
                 /* Search results view */
