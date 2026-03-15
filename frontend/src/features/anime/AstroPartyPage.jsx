@@ -22,6 +22,35 @@ const PLATFORMS = [
   { id: 'hbo',         label: 'HBO Max',      color: '#5822b4' },
 ];
 
+// Feature 5: SVG platform logos
+const PLATFORM_LOGOS = {
+  netflix: (
+    <svg viewBox="0 0 24 24" className="w-4 h-4 fill-current">
+      <path d="M5.398 0v.006c3.028 8.556 5.37 15.175 8.348 23.596 2.344.058 4.85.398 4.854.398-2.8-7.924-5.923-16.747-8.487-24zm8.489 0v9.63L18.6 24c-.01 0 2.317.038 4.402.059V0zm-8.489 14.364-4.536 9.594c2.228.04 4.485.106 6.731.176z"/>
+    </svg>
+  ),
+  crunchyroll: (
+    <svg viewBox="0 0 24 24" className="w-4 h-4 fill-current">
+      <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm0 4.5a7.5 7.5 0 1 1 0 15 7.5 7.5 0 0 1 0-15zm0 2a5.5 5.5 0 1 0 0 11A5.5 5.5 0 0 0 12 6.5zm0 2a3.5 3.5 0 1 1 0 7 3.5 3.5 0 0 1 0-7z"/>
+    </svg>
+  ),
+  disney: (
+    <svg viewBox="0 0 24 24" className="w-4 h-4 fill-current">
+      <path d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2zm-1 14.5v-9l7 4.5-7 4.5z"/>
+    </svg>
+  ),
+  prime: (
+    <svg viewBox="0 0 24 24" className="w-4 h-4 fill-current">
+      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z"/>
+    </svg>
+  ),
+  hbo: (
+    <svg viewBox="0 0 24 24" className="w-4 h-4 fill-current">
+      <path d="M2 6h4v5H2V6zm0 7h4v5H2v-5zm6-7h3v12H8V6zm5 0h3l2 5 2-5h3v12h-3v-7l-2 5-2-5v7h-3V6z"/>
+    </svg>
+  ),
+};
+
 const PLATFORM_LINKS = {
   netflix:     (t) => `https://www.netflix.com/search?q=${encodeURIComponent(t)}`,
   crunchyroll: (t) => `https://www.crunchyroll.com/search?q=${encodeURIComponent(t)}`,
@@ -193,12 +222,35 @@ const AstroPartyPage = ({ onClose, roomName }) => {
   // Mobile
   const [activeTab, setActiveTab]           = useState('content');
 
+  // Feature 7: post-watch rating
+  const [showRating, setShowRating]         = useState(false);
+  const [myRating, setMyRating]             = useState(0);
+
   // Refs
   const chatEndRef     = useRef(null);
   const channelRef     = useRef(null);
   const searchTimeout  = useRef(null);
   const countdownTimer = useRef(null);
+
+  // Feature 2 & 4: refs to avoid stale closures in presence handler
+  const isHostRef      = useRef(isHost);
+  const prevHostRef    = useRef(true);
+
   const myUsername     = profile?.username || profile?.email?.split('@')[0] || 'Tú';
+
+  // Keep isHostRef in sync
+  useEffect(() => {
+    isHostRef.current = isHost;
+  }, [isHost]);
+
+  // Feature 1: auto-join from URL param on mount
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const roomParam = params.get('room');
+    if (roomParam) {
+      setJoinCode(roomParam.toUpperCase());
+    }
+  }, []);
 
   // ── TMDB Search ─────────────────────────────────────────────────────────────
 
@@ -256,6 +308,28 @@ const AstroPartyPage = ({ onClose, roomName }) => {
           isHost: p.isHost || false,
         }));
         setParticipants(parts.length ? parts : [{ username: myUsername, status: 'idle', isHost: asHost }]);
+
+        // Feature 2: guest syncs content from host presence
+        const hostPresence = Object.values(state).flat().find(p => p.isHost);
+        if (hostPresence?.content && !isHostRef.current) {
+          setSelectedContent(prev => {
+            if (!prev || prev.id !== hostPresence.content.id) {
+              toast.success(`Viendo: ${getTitle(hostPresence.content)}`);
+              return hostPresence.content;
+            }
+            return prev;
+          });
+          if (hostPresence.platform) setSelectedPlatforms([hostPresence.platform]);
+          if (hostPresence.episode) setSelectedEpisode(hostPresence.episode);
+        }
+
+        // Feature 4: detect when host leaves
+        const hostPresent = Object.values(state).flat().some(p => p.isHost);
+        if (prevHostRef.current && !hostPresent && !isHostRef.current) {
+          setSyncBanner({ text: '👋 El host abandonó la sala', type: 'pause' });
+          setTimeout(() => setSyncBanner(null), 8000);
+        }
+        prevHostRef.current = hostPresent;
       })
       .on('broadcast', { event: 'astro_sync' }, ({ payload }) => {
         if (!payload) return;
@@ -290,6 +364,20 @@ const AstroPartyPage = ({ onClose, roomName }) => {
           setSyncBanner({ text: `🕐 Estamos en el minuto ${payload.timestamp}`, type: 'time' });
           setTimeout(() => setSyncBanner(null), 6000);
         }
+        // Feature 3: episode change sync
+        if (payload.type === 'episode_change') {
+          setSelectedEpisode(payload.episode);
+        }
+        // Feature 7: session end
+        if (payload.type === 'session_end') {
+          setSyncBanner({ text: '👋 El host terminó la sesión', type: 'pause' });
+          setTimeout(() => {
+            setSyncBanner(null);
+            setView('search');
+            setSelectedContent(null);
+            setSyncState('idle');
+          }, 3000);
+        }
       })
       .on('broadcast', { event: 'astro_chat' }, ({ payload }) => {
         if (!payload) return;
@@ -297,11 +385,20 @@ const AstroPartyPage = ({ onClose, roomName }) => {
       })
       .subscribe(async (status) => {
         if (status === 'SUBSCRIBED') {
-          await channel.track({ username: myUsername, status: 'idle', isHost: asHost });
+          // Feature 2: include content info in presence track
+          await channel.track({
+            username: myUsername,
+            status: 'idle',
+            isHost: asHost,
+            content: content || null,
+            platform: asHost ? (selectedPlatforms[0] || 'netflix') : undefined,
+            episode: asHost ? selectedEpisode : undefined,
+          });
         }
       });
 
     channelRef.current = channel;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [myUsername]);
 
   const createRoom = useCallback(async () => {
@@ -309,11 +406,14 @@ const AstroPartyPage = ({ onClose, roomName }) => {
     const code = Math.random().toString(36).substring(2, 8).toUpperCase();
     setRoomCode(code);
     setIsHost(true);
+    isHostRef.current = true;
     setSyncState('idle');
     setMyStatus('idle');
     setMessages([]);
     setupChannel(code, true, selectedContent);
     setView('room');
+    // Feature 1: push shareable URL
+    window.history.pushState({}, '', `?room=${code}`);
   }, [selectedContent, setupChannel]);
 
   const joinRoom = useCallback(async () => {
@@ -321,13 +421,27 @@ const AstroPartyPage = ({ onClose, roomName }) => {
     if (code.length < 4) { toast.error('Ingresa un código válido'); return; }
     setRoomCode(code);
     setIsHost(false);
+    isHostRef.current = false;
     setSyncState('idle');
     setMyStatus('idle');
     setMessages([]);
-    setSelectedContent(selectedContent || MOCK_RESULTS[0]);
-    setupChannel(code, false, selectedContent);
+    // Guest can join without knowing content — host presence will sync it
+    setupChannel(code, false, selectedContent || null);
     setView('room');
   }, [joinCode, selectedContent, setupChannel]);
+
+  // Feature 1: auto-join if URL has ?room= param (runs after joinCode is set)
+  const hasAutoJoinedRef = useRef(false);
+  useEffect(() => {
+    if (joinCode && !hasAutoJoinedRef.current && view === 'search') {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('room')) {
+        hasAutoJoinedRef.current = true;
+        // Small defer to ensure state is settled
+        setTimeout(() => joinRoom(), 50);
+      }
+    }
+  }, [joinCode, view, joinRoom]);
 
   // ── Sync countdown ───────────────────────────────────────────────────────────
 
@@ -402,13 +516,12 @@ const AstroPartyPage = ({ onClose, roomName }) => {
     setTimeout(() => setFloatingEmojis((prev) => prev.filter((e) => e.id !== id)), 2500);
   }, []);
 
-  // ── Copy room code ────────────────────────────────────────────────────────────
-
+  // Feature 1: copy full URL (not just code)
   const copyRoomCode = useCallback(() => {
-    navigator.clipboard.writeText(roomCode).then(() => {
-      toast.success('Código copiado al portapapeles');
+    navigator.clipboard.writeText(window.location.href).then(() => {
+      toast.success('URL copiada al portapapeles');
     });
-  }, [roomCode]);
+  }, []);
 
   // ── Platform toggle ──────────────────────────────────────────────────────────
 
@@ -493,10 +606,11 @@ const AstroPartyPage = ({ onClose, roomName }) => {
                   <button
                     key={p.id}
                     onClick={() => togglePlatform(p.id)}
-                    className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all duration-150
+                    className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold transition-all duration-150
                       ${active ? 'text-white shadow-lg' : 'text-white/50 bg-white/5 hover:bg-white/10 border border-white/10'}`}
                     style={active ? { backgroundColor: p.color, boxShadow: `0 0 14px ${p.color}55` } : {}}
                   >
+                    {PLATFORM_LOGOS[p.id]}
                     {p.label}
                   </button>
                 );
@@ -605,9 +719,13 @@ const AstroPartyPage = ({ onClose, roomName }) => {
   // RENDER: ROOM VIEW
   // ─────────────────────────────────────────────────────────────────────────────
 
-  const contentTitle    = getTitle(selectedContent);
+  const contentTitle    = getTitle(selectedContent || { name: 'Sin contenido' });
   const primaryPlatform = selectedPlatforms[0];
   const platformInfo    = PLATFORMS.find((p) => p.id === primaryPlatform) || PLATFORMS[0];
+
+  // Feature 6: ready count
+  const readyCount = participants.filter(p => p.status === 'ready').length;
+  const totalCount = participants.length;
 
   const SyncButton = () => {
     // Non-host: just show status + ready button
@@ -662,6 +780,23 @@ const AstroPartyPage = ({ onClose, roomName }) => {
     if (syncState === 'idle' || syncState === 'paused') {
       return (
         <div className="flex flex-col items-center gap-3 w-full">
+          {/* Feature 6: ready count display */}
+          {syncState === 'idle' && totalCount > 1 && (
+            <div className="flex items-center gap-2 mb-1">
+              <div className="flex -space-x-1">
+                {participants.filter(p => p.status === 'ready').slice(0, 4).map((p, i) => (
+                  <div key={i}
+                    className="w-6 h-6 rounded-full ring-2 ring-[#07070f] flex items-center justify-center text-[10px] font-bold text-white"
+                    style={{ backgroundColor: avatarColor(p.username) }}>
+                    {p.username.charAt(0).toUpperCase()}
+                  </div>
+                ))}
+              </div>
+              <span className={`text-xs font-bold ${readyCount === totalCount ? 'text-green-400' : 'text-white/40'}`}>
+                {readyCount}/{totalCount} listos
+              </span>
+            </div>
+          )}
           <motion.button
             whileHover={{ scale: 1.04 }}
             whileTap={{ scale: 0.96 }}
@@ -737,6 +872,11 @@ const AstroPartyPage = ({ onClose, roomName }) => {
             className="flex items-center gap-1.5 text-white/30 hover:text-white/60 text-xs transition-colors">
             <Pause size={12} /> Pausar para todos
           </button>
+          {/* Feature 7: end session button (host only) */}
+          <button onClick={() => setShowRating(true)}
+            className="text-white/20 hover:text-white/40 text-[10px] mt-1 transition-colors">
+            Terminar sesión
+          </button>
         </div>
       );
     }
@@ -777,22 +917,56 @@ const AstroPartyPage = ({ onClose, roomName }) => {
         {/* Title & info */}
         <div>
           <h2 className="text-white font-black text-xl tracking-tight leading-tight">{contentTitle}</h2>
-          <p className="text-white/40 text-xs mt-1">{getYear(selectedContent)}</p>
+          <p className="text-white/40 text-xs mt-1">{selectedContent ? getYear(selectedContent) : ''}</p>
 
-          {/* Platform badge */}
+          {/* Feature 5: Platform badge with SVG logo */}
           <div className="flex items-center justify-center gap-2 mt-2">
             <span
-              className="px-3 py-1 rounded-full text-xs font-bold text-white"
+              className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold text-white"
               style={{ backgroundColor: platformInfo.color }}
             >
+              {PLATFORM_LOGOS[platformInfo.id]}
               {platformInfo.label}
             </span>
-            {selectedContent.media_type === 'tv' && (
+            {selectedContent?.media_type === 'tv' && (
               <span className="text-white/40 text-xs">
                 T{selectedEpisode.season} E{selectedEpisode.episode}
               </span>
             )}
           </div>
+
+          {/* Feature 3: Episode/season selector for TV series */}
+          {selectedContent?.media_type === 'tv' && (
+            <div className="flex items-center justify-center gap-2 mt-2">
+              <div className="flex items-center gap-1 bg-white/5 rounded-xl px-2 py-1 border border-white/10">
+                <span className="text-white/40 text-[10px]">T</span>
+                <button
+                  onClick={() => setSelectedEpisode(e => ({ ...e, season: Math.max(1, e.season - 1) }))}
+                  className="text-white/40 hover:text-white px-1">‹</button>
+                <span className="text-white text-xs font-bold w-4 text-center">{selectedEpisode.season}</span>
+                <button
+                  onClick={() => setSelectedEpisode(e => ({ ...e, season: e.season + 1 }))}
+                  className="text-white/40 hover:text-white px-1">›</button>
+              </div>
+              <div className="flex items-center gap-1 bg-white/5 rounded-xl px-2 py-1 border border-white/10">
+                <span className="text-white/40 text-[10px]">E</span>
+                <button
+                  onClick={() => setSelectedEpisode(e => ({ ...e, episode: Math.max(1, e.episode - 1) }))}
+                  className="text-white/40 hover:text-white px-1">‹</button>
+                <span className="text-white text-xs font-bold w-4 text-center">{selectedEpisode.episode}</span>
+                <button
+                  onClick={() => setSelectedEpisode(e => ({ ...e, episode: e.episode + 1 }))}
+                  className="text-white/40 hover:text-white px-1">›</button>
+              </div>
+              {isHost && (
+                <button
+                  onClick={() => broadcastSync({ type: 'episode_change', episode: selectedEpisode })}
+                  className="text-white/30 hover:text-white/60 text-[10px] transition-colors">
+                  Sync
+                </button>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Participants row */}
@@ -843,6 +1017,49 @@ const AstroPartyPage = ({ onClose, roomName }) => {
           ))}
         </AnimatePresence>
       </div>
+
+      {/* Feature 7: Rating modal */}
+      <AnimatePresence>
+        {showRating && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="absolute inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
+            <motion.div
+              initial={{ scale: 0.9, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              className="bg-[#0f0f1a] border border-white/10 rounded-3xl p-8 max-w-sm w-full mx-4 text-center shadow-2xl">
+              <div className="text-4xl mb-3">🎬</div>
+              <h3 className="text-white font-black text-xl mb-1">¿Qué tal estuvo?</h3>
+              <p className="text-white/40 text-sm mb-6">{contentTitle}</p>
+              <div className="flex justify-center gap-2 mb-6">
+                {[1, 2, 3, 4, 5].map(star => (
+                  <button
+                    key={star}
+                    onClick={() => setMyRating(star)}
+                    className={`text-3xl transition-transform hover:scale-110 active:scale-95 ${myRating >= star ? '' : 'opacity-30'}`}>
+                    ⭐
+                  </button>
+                ))}
+              </div>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => {
+                    setShowRating(false);
+                    broadcastSync({ type: 'session_end' });
+                    setView('search');
+                    setSelectedContent(null);
+                    setSyncState('idle');
+                  }}
+                  className="flex-1 py-3 bg-violet-600 hover:bg-violet-500 text-white rounded-2xl font-bold text-sm transition-colors">
+                  {myRating > 0 ? `¡${myRating}⭐ y hasta la próxima!` : 'Terminar sin calificar'}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 
