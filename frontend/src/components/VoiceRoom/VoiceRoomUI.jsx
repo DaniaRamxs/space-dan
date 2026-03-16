@@ -43,7 +43,7 @@ import { Track } from 'livekit-client';
 import {
     Mic, MicOff, LogOut, Users, Radio, X, ChevronDown, ChevronUp,
     MessageSquare, Send, Gamepad2, Music, Flame, Volume2, VolumeX,
-    Monitor, MonitorOff, Maximize2, Minimize2, Tv, Tv2,
+    Maximize2, Minimize2, Tv, Tv2,
 } from 'lucide-react';
 import { supabase } from '../../supabaseClient';
 import { getNicknameClass } from '../../utils/user';
@@ -457,7 +457,7 @@ function VoiceRoomInner({
     isFullView, setIsFullView, isTheaterMode, setIsTheaterMode,
     jukeboxEverStarted, activityChannelRef,
 }) {
-    // useTracks debe llamarse aquí (dentro de LiveKitRoom) para tener contexto
+    // useTracks para detectar transmisiones activas (solo panel, no botón de compartir)
     const screenTracks = useTracks([Track.Source.ScreenShare]);
     const { chatMessages } = useChat();
     const unreadCount = activeTab !== 'chat' ? chatMessages.length : 0;
@@ -712,10 +712,7 @@ function VoiceRoomInner({
                                                 {/* Mute / Unmute */}
                                                 <MuteToggle />
 
-                                                {/* Compartir pantalla */}
-                                                <ScreenShareToggle />
-
-                                                {/* Modo Cine (solo visible si hay una transmisión activa) */}
+                                                {/* Modo Cine (solo visible si hay una transmisión activa recibida) */}
                                                 {screenTracks.length > 0 && (
                                                     <button
                                                         onClick={() => {
@@ -1084,35 +1081,6 @@ function MuteToggle() {
             title={isMicrophoneEnabled ? 'Silenciar micrófono' : 'Activar micrófono'}
         >
             {isMicrophoneEnabled ? <Mic size={24} /> : <MicOff size={24} />}
-        </button>
-    );
-}
-
-/** Botón de toggle de compartir pantalla */
-function ScreenShareToggle() {
-    const { isScreenShareEnabled, localParticipant } = useLocalParticipant();
-
-    const handleToggle = async () => {
-        if (!localParticipant) return;
-        try {
-            await localParticipant.setScreenShareEnabled(!isScreenShareEnabled);
-        } catch (err) {
-            console.error('[Voice] Error al cambiar pantalla compartida:', err);
-            toast.error('No se pudo iniciar la transmisión de pantalla');
-        }
-    };
-
-    return (
-        <button
-            onClick={handleToggle}
-            className={`w-14 h-14 rounded-full flex items-center justify-center transition-all shadow-xl ${
-                isScreenShareEnabled
-                    ? 'bg-cyan-500 text-black scale-110 shadow-cyan-500/20'
-                    : 'bg-white/5 text-white/40 border border-white/10 hover:bg-white/10'
-            }`}
-            title={isScreenShareEnabled ? 'Dejar de compartir pantalla' : 'Transmitir pantalla'}
-        >
-            {isScreenShareEnabled ? <MonitorOff size={24} /> : <Monitor size={24} />}
         </button>
     );
 }

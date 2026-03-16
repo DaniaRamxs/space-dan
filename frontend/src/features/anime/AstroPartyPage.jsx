@@ -244,6 +244,7 @@ const ScreenSharingPage = ({ onClose, roomName }) => {
   // ── Content mode ─────────────────────────────────────────────────────────────
   const [contentMode, setContentMode] = useState(null); // 'videolink' | 'screenshare'
   const [videoUrl, setVideoUrl]       = useState('');
+  const [showAudioTip, setShowAudioTip] = useState(false); // used by StepScreenShare (lifted to avoid inner-component hook)
 
   // ── Screen share (WebRTC) ────────────────────────────────────────────────────
   const [screenStream, setScreenStream] = useState(null);
@@ -1496,7 +1497,6 @@ const ScreenSharingPage = ({ onClose, roomName }) => {
   // ─── Step: Screen share setup ──────────────────────────────────────────────────
 
   const StepScreenShare = () => {
-    const [showAudioTip, setShowAudioTip] = React.useState(false);
     return (
       <motion.div
         key="step-screenshare"
