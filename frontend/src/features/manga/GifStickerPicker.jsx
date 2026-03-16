@@ -71,9 +71,10 @@ const GifStickerPicker = memo(({
       animate={{ opacity: 1, scale: 1, y: 0 }}
       exit={{ opacity: 0, scale: 0.95, y: 12 }}
       transition={{ type: 'spring', stiffness: 380, damping: 28 }}
-      className="fixed bottom-24 left-1/2 -translate-x-1/2 z-[10050]
-                 w-80 max-w-[92vw] bg-[#0d0d14]/97 border border-white/10
-                 rounded-2xl shadow-2xl backdrop-blur-xl overflow-hidden"
+      className="fixed z-[10050] bg-[#0d0d14]/97 border border-white/10
+                 rounded-2xl shadow-2xl backdrop-blur-xl overflow-hidden
+                 bottom-20 left-2 right-2
+                 sm:bottom-24 sm:left-1/2 sm:right-auto sm:w-80 sm:-translate-x-1/2"
     >
       {/* Header */}
       <div className="flex items-center justify-between px-3 pt-3 pb-2 flex-shrink-0">
@@ -124,7 +125,7 @@ const GifStickerPicker = memo(({
       {/* Results grid */}
       <div
         className="overflow-y-auto px-2 pb-3"
-        style={{ maxHeight: '240px', scrollbarWidth: 'thin', scrollbarColor: '#7c3aed33 transparent' }}
+        style={{ maxHeight: 'min(240px, 38vh)', scrollbarWidth: 'thin', scrollbarColor: '#7c3aed33 transparent' }}
       >
         {error && (
           <p className="text-red-400 text-xs text-center py-3">{error}</p>
