@@ -11,7 +11,7 @@ import {
 import { toast } from 'sonner';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { supabase } from '@/supabaseClient';
-import MangaReader from './MangaReader';
+import PaginatedReader from './PaginatedReader';
 import MangaSearchModal from './MangaSearchModal';
 
 // ─── MangaDex proxy (routed through backend to avoid CORS) ────────────────────
@@ -334,7 +334,7 @@ const MangaPartyPage = memo(() => {
             setChapterId(payload.chapterId);
             setChapterNum(payload.chapterNum || '');
             setCurrentPage(0);
-            setExternalScrollY(0);
+            currentPageRef.current = 0;
             setDrawEvents([]);
             loadPages(payload.chapterId);
             toast(`📚 ${payload.mangaTitle} — Cap. ${payload.chapterNum}`, { duration: 3000 });
@@ -359,8 +359,9 @@ const MangaPartyPage = memo(() => {
           case 'draw_move':
           case 'draw_end':
           case 'draw_clear':
-            if (isHostRef.current) return;
-            setDrawEvents((prev) => [...prev, payload]);
+          case 'draw_undo':
+            // All clients receive draw events; PageCanvas deduplicates by ID
+            setDrawEvents((prev) => [...prev.slice(-500), payload]);
             break;
 
           case 'drawing_toggle':
@@ -528,9 +529,7 @@ const MangaPartyPage = memo(() => {
     setChapterId(cId);
     setChapterNum(cNum);
     setCurrentPage(0);
-    setScrollY(0);
-    setExternalScrollY(null);
-    setZoom(1);
+    currentPageRef.current = 0;
     setDrawEvents([]);
     await loadPages(cId);
 
@@ -574,14 +573,14 @@ const MangaPartyPage = memo(() => {
     broadcast('manga_sync', { type: 'scroll', scrollY: sy });
   }, [broadcast]);
 
-  // ── Page change (detect which page is visible) ────────────────────────────────
-  const handlePageChange = useCallback((page) => {
-    if (page === currentPageRef.current) return;
-    setCurrentPage(page);
-    currentPageRef.current = page;
-    if (isHostRef.current) {
-      broadcast('manga_sync', { type: 'page_change', page });
-    }
+  // ── Page change — host navigates, broadcasts to guests ───────────────────────
+  const handlePageChange = useCallback((newPage) => {
+    if (!isHostRef.current) return;
+    const clamped = Math.max(0, Math.min(newPage, pagesRef.current.length - 1));
+    if (clamped === currentPageRef.current) return;
+    setCurrentPage(clamped);
+    currentPageRef.current = clamped;
+    broadcast('manga_sync', { type: 'page_change', page: clamped });
   }, [broadcast]);
 
   // ── Zoom ──────────────────────────────────────────────────────────────────────
@@ -593,9 +592,8 @@ const MangaPartyPage = memo(() => {
     }
   }, [broadcast]);
 
-  // ── Drawing events ────────────────────────────────────────────────────────────
+  // ── Drawing events — anyone with canDraw can broadcast ───────────────────────
   const handleDrawEvent = useCallback((ev) => {
-    if (!isHostRef.current) return;
     broadcast('manga_sync', { ...ev });
   }, [broadcast]);
 
@@ -1173,16 +1171,11 @@ const MangaPartyPage = memo(() => {
             </div>
           )}
 
-          <MangaReader
+          <PaginatedReader
             pages={pages}
             currentPage={currentPage}
-            zoom={zoom}
             isHost={isHost}
-            drawingEnabled={drawingEnabled}
-            onScroll={handleScroll}
-            onZoom={handleZoom}
             onPageChange={handlePageChange}
-            externalScrollY={isHost ? null : externalScrollY}
             drawEvents={drawEvents}
             onDrawEvent={handleDrawEvent}
             reactions={reactions}
