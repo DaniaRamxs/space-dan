@@ -14,6 +14,8 @@ import { supabase } from '@/supabaseClient';
 import PaginatedReader from './PaginatedReader';
 import MangaSearchModal from './MangaSearchModal';
 import HostTransferModal from './HostTransferModal';
+import { useMangaMusic } from './useMangaMusic';
+import MangaMusicPlayer from './MangaMusicPlayer';
 
 // ─── MangaDex proxy (routed through backend to avoid CORS) ────────────────────
 
@@ -199,6 +201,7 @@ const MangaPartyPage = memo(({ onClose } = {}) => {
   const autoTimerRef    = useRef(null);
   const autoReadRef     = useRef(false);
   const autoSpeedRef    = useRef(15);
+  const musicRef        = useRef(null);
 
   // Keep refs in sync
   useEffect(() => { profileRef.current  = profile; },      [profile]);
@@ -468,6 +471,15 @@ const MangaPartyPage = memo(({ onClose } = {}) => {
             }
             break;
           }
+
+          case 'music_change':
+          case 'music_pause':
+          case 'music_resume':
+          case 'music_volume':
+          case 'music_vote':
+          case 'music_add':
+            musicRef.current?.onMusicEvent(payload);
+            break;
 
           default:
             break;
@@ -840,6 +852,11 @@ const MangaPartyPage = memo(({ onClose } = {}) => {
       broadcast('manga_sync', { type: 'auto_toggle', enabled: true, speed: s });
     }
   }, [handleStartAutoRead, broadcast]);
+
+  // ── Music ─────────────────────────────────────────────────────────────────────
+  const music = useMangaMusic({ isHost, myUsername, broadcast });
+  // Keep a ref so setupChannel's stale closure always calls the latest onMusicEvent
+  musicRef.current = music;
 
   // ── Memoized sidebar content ──────────────────────────────────────────────────
   const sidebarContent = useMemo(() => {
@@ -1471,6 +1488,9 @@ const MangaPartyPage = memo(({ onClose } = {}) => {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* ── Music player ─────────────────────────────────────────────────────── */}
+      <MangaMusicPlayer {...music} isHost={isHost} />
 
       {/* ── Mobile chat FAB (< lg) ───────────────────────────────────────────── */}
       <div className="fixed bottom-20 right-3 z-40 lg:hidden">
