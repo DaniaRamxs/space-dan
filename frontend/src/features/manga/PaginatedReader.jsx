@@ -4,7 +4,7 @@ import React, {
 import { AnimatePresence, motion } from 'framer-motion';
 import { BookOpen } from 'lucide-react';
 import { useSwipeable } from 'react-swipeable';
-import PageCanvas from './PageCanvas';
+import GraffitiCanvas from './GraffitiCanvas';
 import PanelNotesLayer from './PanelNotesLayer';
 import ReactionsOverlay from './ReactionsOverlay';
 import GraffitiToolbar from './GraffitiToolbar';
@@ -226,13 +226,13 @@ const PaginatedReader = memo(({
         />
       </div>
 
-      {/* ── Per-page graffiti canvas ──────────────────────────────────────────── */}
-      <PageCanvas
+      {/* ── Per-page graffiti canvas (native Canvas 2D + Pointer Events) ─────── */}
+      <GraffitiCanvas
+        key={`gc-${chapterId ?? 'x'}`}
         ref={canvasRef}
         page={currentPage}
         chapterId={chapterId}
-        width={containerSize.w}
-        height={containerSize.h}
+        imageRect={imageRect}
         enabled={graffitiMode}
         canDraw={canDraw}
         tool={graffitiTool}

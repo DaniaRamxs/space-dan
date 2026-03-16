@@ -1,6 +1,6 @@
 import React, { memo, useCallback, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { Pencil, Eraser, RotateCcw, Trash2 } from 'lucide-react';
+import { Pencil, Eraser, RotateCcw, Trash2, Highlighter, Sparkles } from 'lucide-react';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -62,6 +62,32 @@ const GraffitiToolbar = memo(({
           }`}
         >
           <Pencil size={15} />
+        </motion.button>
+        {/* Highlighter */}
+        <motion.button
+          whileTap={{ scale: 0.88 }}
+          onClick={() => setTool('highlighter')}
+          title="Resaltador"
+          className={`w-8 h-8 rounded-xl flex items-center justify-center transition-all ${
+            tool === 'highlighter'
+              ? 'bg-yellow-600/40 border border-yellow-500/50 text-yellow-300'
+              : 'text-white/40 hover:text-white/70 hover:bg-white/5'
+          }`}
+        >
+          <Highlighter size={15} />
+        </motion.button>
+        {/* Sparkle */}
+        <motion.button
+          whileTap={{ scale: 0.88 }}
+          onClick={() => setTool('sparkle')}
+          title="Destellos"
+          className={`w-8 h-8 rounded-xl flex items-center justify-center transition-all ${
+            tool === 'sparkle'
+              ? 'bg-cyan-600/40 border border-cyan-500/50 text-cyan-300'
+              : 'text-white/40 hover:text-white/70 hover:bg-white/5'
+          }`}
+        >
+          <Sparkles size={15} />
         </motion.button>
         {/* Eraser */}
         <motion.button

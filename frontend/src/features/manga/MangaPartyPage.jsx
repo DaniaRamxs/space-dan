@@ -443,12 +443,13 @@ const MangaPartyPage = memo(({ onClose } = {}) => {
             setZoom(payload.zoom);
             break;
 
+          case 'draw_stroke': // new protocol: complete stroke on pointerup
+          case 'draw_clear':
+          case 'draw_undo':
+          // Legacy streaming protocol (kept for backward compat — GraffitiCanvas ignores them)
           case 'draw_start':
           case 'draw_move':
           case 'draw_end':
-          case 'draw_clear':
-          case 'draw_undo':
-            // All clients receive draw events; PageCanvas deduplicates by ID
             setDrawEvents((prev) => [...prev.slice(-500), payload]);
             break;
 
