@@ -336,21 +336,6 @@ export default function VoiceActivityLauncher({
                         </Suspense>
                     </div>
 
-                    {/* Botón de minimizar flotante — no mostrar en actividades con botón propio */}
-                    {!ACTIVITIES_WITH_CUSTOM_MINIMIZE.has(activeActivity) && (
-                        <div className="fixed bottom-5 right-5 z-[10025] flex items-center gap-2">
-                            <motion.button
-                                initial={{ opacity: 0, y: 12, scale: 0.9 }}
-                                animate={{ opacity: 1, y: 0, scale: 1 }}
-                                transition={{ delay: 0.6, type: 'spring', damping: 20 }}
-                                onClick={() => setMinimized(true)}
-                                className="flex items-center gap-1.5 px-3 py-2 rounded-full bg-black/70 border border-white/15 text-white/50 hover:text-white text-[10px] font-black uppercase tracking-widest backdrop-blur-xl transition-all hover:bg-black/90 shadow-2xl active:scale-95"
-                            >
-                                <Minimize2 size={11} />
-                                Minimizar
-                            </motion.button>
-                        </div>
-                    )}
                 </>,
                 document.body
             );
