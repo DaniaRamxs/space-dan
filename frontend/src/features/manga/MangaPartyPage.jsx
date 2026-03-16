@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Users, MessageSquare, Copy, X, Check, Send, Crown,
   BookOpen, Link, ExternalLink, AlertTriangle, ChevronLeft, ChevronRight,
-  BookMarked, Brush, Play, Square,
+  BookMarked, Brush, Play, Square, Sticker, Eye, EyeOff,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuthContext } from '@/contexts/AuthContext';
@@ -16,6 +16,7 @@ import MangaSearchModal from './MangaSearchModal';
 import HostTransferModal from './HostTransferModal';
 import { useMangaMusic } from './useMangaMusic';
 import MangaMusicPlayer from './MangaMusicPlayer';
+import GifStickerPicker from './GifStickerPicker';
 
 // ─── MangaDex proxy (routed through backend to avoid CORS) ────────────────────
 
@@ -172,6 +173,14 @@ const MangaPartyPage = memo(({ onClose } = {}) => {
   // ── Auto-read ─────────────────────────────────────────────────────────────────
   const [autoRead, setAutoRead]   = useState(false);
   const [autoSpeed, setAutoSpeed] = useState(15); // seconds per page
+
+  // ── Stickers ──────────────────────────────────────────────────────────────────
+  const [stickersByPage, setStickersByPage]   = useState({});
+  const [stickerMode, setStickerMode]         = useState(false);
+  const [pendingGif, setPendingGif]           = useState(null);
+  const [stickerSize, setStickerSize]         = useState(80);
+  const [showStickerPicker, setShowStickerPicker] = useState(false);
+  const [stickersVisible, setStickersVisible] = useState(true);
 
   // ── Host transfer ─────────────────────────────────────────────────────────────
   const [hostUsername, setHostUsername]       = useState('');
@@ -501,6 +510,29 @@ const MangaPartyPage = memo(({ onClose } = {}) => {
             break;
           }
 
+          case 'sticker_add':
+            setStickersByPage((prev) => {
+              const pageKey = payload.page ?? 0;
+              const existing = prev[pageKey] || [];
+              if (existing.some((s) => s.id === payload.sticker?.id)) return prev;
+              return { ...prev, [pageKey]: [...existing, payload.sticker] };
+            });
+            break;
+
+          case 'sticker_remove':
+            setStickersByPage((prev) => {
+              const pageKey = payload.page ?? 0;
+              return {
+                ...prev,
+                [pageKey]: (prev[pageKey] || []).filter((s) => s.id !== payload.stickerId),
+              };
+            });
+            break;
+
+          case 'sticker_clear':
+            setStickersByPage((prev) => ({ ...prev, [payload.page ?? 0]: [] }));
+            break;
+
           case 'music_change':
           case 'music_pause':
           case 'music_resume':
@@ -583,6 +615,26 @@ const MangaPartyPage = memo(({ onClose } = {}) => {
       autoReadRef.current = false;
     }
   }, [chapterId]);
+
+  // ── Clear stickers on chapter change ─────────────────────────────────────────
+  useEffect(() => {
+    setStickersByPage({});
+    setStickerMode(false);
+    setPendingGif(null);
+  }, [chapterId]);
+
+  // ── ESC cancels sticker placement mode ───────────────────────────────────────
+  useEffect(() => {
+    const handler = (e) => {
+      if (e.key === 'Escape') {
+        setStickerMode(false);
+        setPendingGif(null);
+        setShowStickerPicker(false);
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, []);
 
   // ── Create room ───────────────────────────────────────────────────────────────
   const handleCreateRoom = useCallback(() => {
@@ -843,6 +895,48 @@ const MangaPartyPage = memo(({ onClose } = {}) => {
       broadcast('manga_sync', { type: 'graffiti_toggle', enabled: next });
       return next;
     });
+  }, [broadcast]);
+
+  // ── Sticker handlers ──────────────────────────────────────────────────────────
+  const handleSelectGif = useCallback((gifData) => {
+    setPendingGif(gifData);
+    setStickerMode(true);
+    setShowStickerPicker(false);
+  }, []);
+
+  const handlePlaceSticker = useCallback((rx, ry) => {
+    if (!pendingGif) return;
+    const sticker = {
+      id:       `sticker-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+      gifUrl:   pendingGif.gifUrl,
+      x:        rx,
+      y:        ry,
+      width:    stickerSize,
+      username: myUsername,
+      page:     currentPageRef.current,
+    };
+    setStickersByPage((prev) => {
+      const pageKey = currentPageRef.current;
+      return { ...prev, [pageKey]: [...(prev[pageKey] || []), sticker] };
+    });
+    broadcast('manga_sync', { type: 'sticker_add', page: currentPageRef.current, sticker });
+    setStickerMode(false);
+    setPendingGif(null);
+  }, [pendingGif, stickerSize, myUsername, broadcast]);
+
+  const handleRemoveSticker = useCallback((stickerId) => {
+    const pageKey = currentPageRef.current;
+    setStickersByPage((prev) => ({
+      ...prev,
+      [pageKey]: (prev[pageKey] || []).filter((s) => s.id !== stickerId),
+    }));
+    broadcast('manga_sync', { type: 'sticker_remove', page: pageKey, stickerId });
+  }, [broadcast]);
+
+  const handleClearStickers = useCallback(() => {
+    const pageKey = currentPageRef.current;
+    setStickersByPage((prev) => ({ ...prev, [pageKey]: [] }));
+    broadcast('manga_sync', { type: 'sticker_clear', page: pageKey });
   }, [broadcast]);
 
   // ── Auto-read ─────────────────────────────────────────────────────────────────
@@ -1348,6 +1442,55 @@ const MangaPartyPage = memo(({ onClose } = {}) => {
           </motion.button>
         )}
 
+        {/* Sticker picker button (all users, when manga loaded) */}
+        {pages.length > 0 && (
+          <div className="flex items-center gap-1">
+            <motion.button
+              whileTap={{ scale: 0.95 }}
+              onClick={() => {
+                if (stickerMode) {
+                  setStickerMode(false);
+                  setPendingGif(null);
+                } else {
+                  setShowStickerPicker((p) => !p);
+                }
+              }}
+              title="Stickers GIF"
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-bold transition-all ${
+                stickerMode || showStickerPicker
+                  ? 'bg-pink-600/30 border-pink-500/40 text-pink-400'
+                  : 'bg-white/5 border-white/10 text-white/50 hover:text-white/70'
+              }`}
+            >
+              <span className="text-sm leading-none">🎯</span>
+              <span className="hidden sm:inline">{stickerMode ? 'Colocando…' : 'Stickers'}</span>
+            </motion.button>
+            {/* Toggle sticker visibility */}
+            <motion.button
+              whileTap={{ scale: 0.9 }}
+              onClick={() => setStickersVisible((p) => !p)}
+              title={stickersVisible ? 'Ocultar stickers' : 'Mostrar stickers'}
+              className="flex items-center justify-center w-7 h-7 rounded-xl border text-xs
+                         bg-white/5 border-white/10 text-white/40 hover:text-white/70 transition-all"
+            >
+              {stickersVisible ? <Eye size={12} /> : <EyeOff size={12} />}
+            </motion.button>
+            {/* Host: clear stickers from current page */}
+            {isHost && (stickersByPage[currentPage] || []).length > 0 && (
+              <motion.button
+                whileTap={{ scale: 0.9 }}
+                onClick={handleClearStickers}
+                title="Borrar stickers de esta página"
+                className="flex items-center justify-center w-7 h-7 rounded-xl border text-xs
+                           bg-white/5 border-white/10 text-red-400/50 hover:text-red-400
+                           hover:bg-red-500/10 transition-all"
+              >
+                🧽
+              </motion.button>
+            )}
+          </div>
+        )}
+
         {/* Auto-read (host only, only when manga is loaded) */}
         {isHost && pages.length > 0 && (
           <div className="flex items-center gap-1">
@@ -1592,6 +1735,11 @@ const MangaPartyPage = memo(({ onClose } = {}) => {
             onGraffitiColorChange={setGraffitiColor}
             onGraffitiSizeChange={setGraffitiSize}
             canDraw={graffitiMode}
+            stickers={stickersByPage[currentPage] || []}
+            stickerMode={stickerMode}
+            onPlaceSticker={handlePlaceSticker}
+            onRemoveSticker={handleRemoveSticker}
+            stickersVisible={stickersVisible}
           />
         </div>
 
@@ -1715,6 +1863,15 @@ const MangaPartyPage = memo(({ onClose } = {}) => {
           </>
         )}
       </AnimatePresence>
+
+      {/* GIF Sticker picker */}
+      <GifStickerPicker
+        isOpen={showStickerPicker}
+        onClose={() => setShowStickerPicker(false)}
+        onSelectGif={handleSelectGif}
+        stickerSize={stickerSize}
+        onSizeChange={setStickerSize}
+      />
 
       {/* Manga search modal */}
       <MangaSearchModal

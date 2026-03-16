@@ -9,6 +9,7 @@ import PanelNotesLayer from './PanelNotesLayer';
 import ReactionsOverlay from './ReactionsOverlay';
 import GraffitiToolbar from './GraffitiToolbar';
 import ReaderControls from './ReaderControls';
+import StickerLayer, { getImageRect } from './StickerLayer';
 
 // ─── PaginatedReader ──────────────────────────────────────────────────────────
 // Mobile-first one-page-at-a-time manga reader.
@@ -66,18 +67,27 @@ const PaginatedReader = memo(({
   onGraffitiSizeChange,
   onGraffitiUndo,
   onGraffitiClear,
+  // Stickers
+  stickers = [],
+  stickerMode = false,
+  onPlaceSticker,
+  onRemoveSticker,
+  stickersVisible = true,
 }) => {
   const canvasRef    = useRef(null);
   const containerRef = useRef(null);
   const [imgLoaded, setImgLoaded]   = useState(false);
   const [imgError, setImgError]     = useState(false);
   const [containerSize, setContainerSize] = useState({ w: 0, h: 0 });
+  const [imgNatSize, setImgNatSize] = useState({ w: 0, h: 0 });
 
   const total = pages.length;
   const src   = pages[currentPage] ?? null;
 
   // ── Reset image loaded/error state on page/chapter change ────────────────────
   useEffect(() => { setImgLoaded(false); setImgError(false); }, [currentPage, chapterId]);
+
+  useEffect(() => { setImgNatSize({ w: 0, h: 0 }); }, [currentPage, chapterId]);
 
   // ── Preload adjacent pages ────────────────────────────────────────────────────
   useEffect(() => {
@@ -102,6 +112,9 @@ const PaginatedReader = memo(({
     ro.observe(el);
     return () => ro.disconnect();
   }, []);
+
+  // ── Computed image rect for sticker positioning ───────────────────────────────
+  const imageRect = getImageRect(containerSize.w, containerSize.h, imgNatSize.w, imgNatSize.h);
 
   // ── Host navigation helpers ───────────────────────────────────────────────────
   const goPrev = useCallback(() => {
@@ -188,7 +201,7 @@ const PaginatedReader = memo(({
               key={`${chapterId ?? ''}-${currentPage}`}
               src={src}
               alt={`Página ${currentPage + 1}`}
-              onLoad={() => setImgLoaded(true)}
+              onLoad={(e) => { setImgLoaded(true); setImgNatSize({ w: e.target.naturalWidth, h: e.target.naturalHeight }); }}
               onError={() => { setImgError(true); setImgLoaded(false); }}
               initial={{ opacity: 0 }}
               animate={{ opacity: imgLoaded ? 1 : 0 }}
@@ -249,6 +262,18 @@ const PaginatedReader = memo(({
 
       {/* ── TikTok-style floating reactions ───────────────────────────────────── */}
       <ReactionsOverlay reactions={reactions} />
+
+      {/* ── GIF Sticker layer ─────────────────────────────────────────────────── */}
+      <StickerLayer
+        stickers={stickers}
+        imageRect={imageRect}
+        placementMode={stickerMode}
+        onPlace={onPlaceSticker}
+        onRemove={onRemoveSticker}
+        visible={stickersVisible}
+        myUsername={myUsername}
+        isHost={isHost}
+      />
 
       {/* ── Page indicator + navigation arrows ───────────────────────────────── */}
       <ReaderControls
