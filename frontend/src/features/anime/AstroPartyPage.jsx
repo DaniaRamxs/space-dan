@@ -6,6 +6,7 @@ import {
   Users, MessageSquare, Copy, Rocket, X, Check, Send, Crown,
   ChevronLeft, Clock, Bell, Loader2, Link, Monitor, Gift, Pause,
   MapPin, BarChart2, Volume2, Maximize2, PictureInPicture2,
+  Globe, Lock, ChevronRight,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuthContext } from '@/contexts/AuthContext';
@@ -246,6 +247,11 @@ const ScreenSharingPage = ({ onClose, roomName }) => {
   const [videoUrl, setVideoUrl]       = useState('');
   const [showAudioTip, setShowAudioTip] = useState(false); // used by StepScreenShare (lifted to avoid inner-component hook)
 
+  // ── Room privacy & lobby ────────────────────────────────────────────────────
+  const [isPublic, setIsPublic]         = useState(true);
+  const [publicRooms, setPublicRooms]   = useState([]);
+  const [lobbyLoading, setLobbyLoading] = useState(true);
+
   // ── Screen share (WebRTC) ────────────────────────────────────────────────────
   const [screenStream, setScreenStream] = useState(null);
   const screenStreamRef = useRef(null);
@@ -343,6 +349,9 @@ const ScreenSharingPage = ({ onClose, roomName }) => {
   const profileRef       = useRef(profile);
   const videoUrlRef      = useRef(videoUrl);
   const contentModeRef   = useRef(contentMode);
+  const lobbyChannelRef  = useRef(null);
+  const isPublicRef      = useRef(true);
+  const roomCodeRef      = useRef('');
 
   const myUsername = profile?.username || profile?.email?.split('@')[0] || 'Tu';
 
@@ -350,11 +359,59 @@ const ScreenSharingPage = ({ onClose, roomName }) => {
   useEffect(() => { profileRef.current = profile; }, [profile]);
   useEffect(() => { videoUrlRef.current = videoUrl; }, [videoUrl]);
   useEffect(() => { contentModeRef.current = contentMode; }, [contentMode]);
+  useEffect(() => { isPublicRef.current = isPublic; }, [isPublic]);
+  useEffect(() => { roomCodeRef.current = roomCode; }, [roomCode]);
 
   // Load history on mount
   useEffect(() => {
     setRoomHistory(loadRoomHistory());
   }, []);
+
+  // ── Lobby discovery channel ─────────────────────────────────────────────────
+  useEffect(() => {
+    const ch = supabase.channel('screen-party-lobby', {
+      config: { presence: { key: myUsername } },
+    });
+    ch.on('presence', { event: 'sync' }, () => {
+      const state = ch.presenceState();
+      const allUsers = Object.values(state).flat();
+      const roomMap = {};
+      allUsers.forEach((u) => {
+        if (!u.code || !u.isPublic) return;
+        if (!roomMap[u.code]) {
+          roomMap[u.code] = {
+            code:         u.code,
+            hostUsername: u.hostUsername || '?',
+            contentMode:  u.contentMode  || null,
+            participants: 0,
+          };
+        }
+        roomMap[u.code].participants += 1;
+      });
+      setPublicRooms(Object.values(roomMap));
+      setLobbyLoading(false);
+    }).subscribe((status) => {
+      if (status === 'SUBSCRIBED' || status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+        setLobbyLoading(false);
+      }
+    });
+    lobbyChannelRef.current = ch;
+    return () => {
+      supabase.removeChannel(ch).catch(() => {});
+      lobbyChannelRef.current = null;
+    };
+  }, [myUsername]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Track in lobby while in a room
+  useEffect(() => {
+    if (view !== 'room' || !roomCode || !lobbyChannelRef.current) return;
+    lobbyChannelRef.current.track({
+      code:         roomCode,
+      isPublic,
+      hostUsername: isHost ? myUsername : '',
+      contentMode:  contentMode || null,
+    }).catch(() => {});
+  }, [view, roomCode, isPublic, isHost, myUsername, contentMode]);
 
   // Auto-join from URL param
   useEffect(() => {
@@ -928,32 +985,37 @@ const ScreenSharingPage = ({ onClose, roomName }) => {
 
   // ── Room create / join ────────────────────────────────────────────────────────
 
-  const createRoom = useCallback(async () => {
+  const createRoom = useCallback(async (publicRoom = true) => {
     const code = Math.random().toString(36).substring(2, 8).toUpperCase();
+    setIsPublic(publicRoom);
+    isPublicRef.current = publicRoom;
     setRoomCode(code);
+    roomCodeRef.current = code;
     setIsHost(true);
     isHostRef.current = true;
     setSyncState('idle');
     setMyStatus('idle');
     setMessages([]);
-    setRoomStep('screenshare');
-    setContentMode('screenshare');
+    setRoomStep('content');
+    setContentMode(null);
     setVideoUrl('');
     setScreenStream(null);
     setRemoteStream(null);
     setActivePoll(null);
     setupChannel(code, true);
     setView('room');
-    window.history.pushState({}, '', `?room=${code}`);
-    saveRoomHistory({ code, date: Date.now(), contentMode: null, isHost: true });
+    if (publicRoom) {
+      window.history.pushState({}, '', `?room=${code}`);
+    }
+    saveRoomHistory({ code, date: Date.now(), contentMode: null, isHost: true, isPublic: publicRoom });
     setRoomHistory(loadRoomHistory());
-    toast.success(`Sala creada! Codigo: ${code}`, {
-      description: 'Comparte el link con tus amigos',
-      action: {
-        label: 'Copiar link',
-        onClick: () => navigator.clipboard.writeText(`${window.location.origin}${window.location.pathname}?room=${code}`),
+    toast.success(`Sala ${publicRoom ? 'pública' : 'privada'} creada: ${code}`, {
+      description: publicRoom ? 'Visible en el lobby público' : 'Solo accesible por código de invitación',
+      action: publicRoom ? undefined : {
+        label: 'Copiar código',
+        onClick: () => navigator.clipboard.writeText(code),
       },
-      duration: 10000,
+      duration: 6000,
     });
   }, [setupChannel]);
 
@@ -1030,6 +1092,7 @@ const ScreenSharingPage = ({ onClose, roomName }) => {
     setWebrtcStatus('idle');
     setWebrtcLatencyMs(null);
     broadcastSync({ type: 'session_end' });
+    lobbyChannelRef.current?.untrack().catch(() => {});
     setView('lobby');
     setRoomStep('content');
     setContentMode(null);
@@ -1249,88 +1312,188 @@ const ScreenSharingPage = ({ onClose, roomName }) => {
   // ─────────────────────────────────────────────────────────────────────────────
 
   if (view === 'lobby') {
-    const recentRooms = roomHistory.slice(0, 3);
+    const recentRooms = roomHistory.slice(0, 5);
     return (
-      <div className="fixed inset-0 z-50 flex flex-col items-center justify-center" style={{ background: '#0a0a0f' }}>
-        {onClose && (
-          <button
-            onClick={onClose}
-            className="absolute top-5 right-5 w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-white/50 hover:text-white transition-colors"
-          >
-            <X size={16} />
-          </button>
-        )}
+      <div className="fixed inset-0 z-50 flex flex-col" style={{ background: '#0a0a0f' }}>
 
-        <div className="flex flex-col items-center gap-10 px-6 w-full max-w-sm">
-          <div className="flex flex-col items-center gap-3">
+        {/* ── Top bar ─────────────────────────────────────────────────────── */}
+        <div className="flex items-center justify-between px-4 py-3 border-b border-white/10 flex-shrink-0" style={{ background: '#0d0d14' }}>
+          <div className="flex items-center gap-2">
             <motion.div
-              animate={{ boxShadow: ['0 0 24px rgba(124,58,237,0.5)', '0 0 48px rgba(124,58,237,0.8)', '0 0 24px rgba(124,58,237,0.5)'] }}
+              animate={{ boxShadow: ['0 0 12px rgba(124,58,237,0.4)', '0 0 24px rgba(124,58,237,0.7)', '0 0 12px rgba(124,58,237,0.4)'] }}
               transition={{ duration: 2.5, repeat: Infinity }}
-              className="w-12 h-12 rounded-2xl bg-violet-600 flex items-center justify-center"
+              className="w-7 h-7 rounded-lg bg-violet-600 flex items-center justify-center"
             >
-              <Rocket size={24} className="text-white" />
+              <Rocket size={14} className="text-white" />
             </motion.div>
-            <div className="text-center">
-              <h1 className="text-white font-black text-3xl tracking-tight leading-none">Screen Sharing</h1>
-              <p className="text-white/30 text-xs tracking-widest uppercase mt-1">Watch Together</p>
-            </div>
+            <h1 className="text-white font-black text-lg">Screen Sharing</h1>
+          </div>
+          {onClose && (
+            <button
+              onClick={onClose}
+              className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-white/50 hover:text-white transition-colors"
+            >
+              <X size={14} />
+            </button>
+          )}
+        </div>
+
+        {/* ── Room browser ────────────────────────────────────────────────── */}
+        <div className="flex-1 overflow-y-auto p-4" style={{ scrollbarWidth: 'thin', scrollbarColor: '#7c3aed33 transparent' }}>
+
+          {/* Create room actions */}
+          <div className="flex flex-col sm:flex-row gap-2 mb-6">
+            <motion.button
+              whileTap={{ scale: 0.97 }}
+              onClick={() => createRoom(true)}
+              className="flex-1 py-3.5 rounded-xl font-black text-sm text-white transition-all
+                         flex items-center justify-center gap-2"
+              style={{ background: 'linear-gradient(135deg, #7c3aed, #6d28d9)', boxShadow: '0 0 20px rgba(124,58,237,0.35)' }}
+            >
+              <Globe size={15} />
+              Nueva sala pública
+            </motion.button>
+            <motion.button
+              whileTap={{ scale: 0.97 }}
+              onClick={() => createRoom(false)}
+              className="sm:w-auto py-3.5 px-5 rounded-xl bg-white/5 border border-white/15
+                         hover:bg-white/10 text-white/60 hover:text-white/80
+                         font-black text-sm transition-all
+                         flex items-center justify-center gap-2"
+            >
+              <Lock size={14} />
+              Sala privada
+            </motion.button>
           </div>
 
-          <div className="flex flex-col gap-4 w-full">
-            <motion.button
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.97 }}
-              onClick={createRoom}
-              className="w-full flex items-center justify-center gap-3 px-6 py-4 rounded-full font-black text-base text-white transition-all"
-              style={{ background: 'linear-gradient(135deg, #7c3aed, #6d28d9)', boxShadow: '0 0 28px rgba(124,58,237,0.5)' }}
-            >
-              <Rocket size={20} />
-              Crear sala
-            </motion.button>
-
-            <div className="flex items-center gap-2">
-              <div className="flex-1 flex items-center bg-transparent border border-white/15 rounded-full px-4 py-3 focus-within:border-violet-500/50 transition-colors">
-                <input
-                  type="text"
-                  value={joinCode}
-                  onChange={(e) => setJoinCode(e.target.value.toUpperCase().slice(0, 8))}
-                  onKeyDown={(e) => e.key === 'Enter' && joinCode.length >= 4 && joinRoom()}
-                  placeholder="Codigo de sala"
-                  className="flex-1 bg-transparent text-white placeholder-white/25 text-sm font-mono tracking-widest focus:outline-none"
-                />
-              </div>
-              <motion.button
-                whileHover={{ scale: 1.03 }}
-                whileTap={{ scale: 0.97 }}
-                onClick={joinRoom}
-                disabled={joinCode.length < 4}
-                className={`px-5 py-3 rounded-full text-sm font-bold transition-all border
-                  ${joinCode.length >= 4
-                    ? 'border-violet-500/60 text-violet-300 hover:bg-violet-500/10'
-                    : 'border-white/10 text-white/20 cursor-not-allowed'}`}
-              >
-                Unirse
-              </motion.button>
-            </div>
-
-            {recentRooms.length > 0 && (
-              <div className="flex flex-col gap-2 mt-1">
-                <span className="text-white/30 text-xs font-semibold tracking-wider uppercase px-1">Recientes</span>
-                <div className="flex flex-wrap gap-2">
-                  {recentRooms.map((r) => (
-                    <button
-                      key={r.code}
-                      onClick={() => setJoinCode(r.code)}
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 hover:border-violet-500/40 hover:bg-violet-500/10 transition-all"
-                    >
-                      <span className="text-white/60 text-xs font-mono font-bold">{r.code}</span>
-                      {r.isHost && <Crown size={9} className="text-yellow-400/60" />}
-                    </button>
-                  ))}
-                </div>
-              </div>
+          {/* Active rooms */}
+          <div className="mb-3 flex items-center gap-2">
+            <p className="text-white/30 text-xs font-bold uppercase tracking-wider">Salas activas</p>
+            {!lobbyLoading && (
+              <span className="text-white/20 text-xs">— {publicRooms.length} sala{publicRooms.length !== 1 ? 's' : ''}</span>
             )}
           </div>
+
+          {lobbyLoading ? (
+            <div className="flex items-center justify-center py-16 text-white/20">
+              <Loader2 size={20} className="animate-spin mr-2" />
+              <span className="text-sm">Buscando salas…</span>
+            </div>
+          ) : publicRooms.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 text-center">
+              <span className="text-5xl mb-4">🚀</span>
+              <p className="text-white/50 font-bold mb-1">No hay salas activas</p>
+              <p className="text-white/25 text-sm">¡Sé el primero en crear una sala pública!</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              {publicRooms.map((room) => (
+                <motion.div
+                  key={room.code}
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="bg-[#0d0d14] border border-white/10 rounded-2xl p-4
+                             hover:border-violet-500/30 transition-all group"
+                >
+                  <div className="flex items-start justify-between gap-2 mb-3">
+                    <div className="min-w-0">
+                      <p className="text-white font-black text-sm">
+                        {room.contentMode === 'videolink' ? '🎬 Video Link' :
+                         room.contentMode === 'screenshare' ? '🖥️ Pantalla compartida' :
+                         '✨ Sala nueva'}
+                      </p>
+                      <div className="flex items-center gap-1.5 mt-0.5">
+                        <Crown size={9} className="text-amber-400" />
+                        <span className="text-white/40 text-[11px] truncate">{room.hostUsername}</span>
+                      </div>
+                    </div>
+                    <span className="flex-shrink-0 text-[10px] font-mono text-white/20 bg-white/5 rounded px-1.5 py-0.5">
+                      {room.code}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-1 text-white/30 text-xs">
+                      <Users size={11} />
+                      <span>{room.participants} participante{room.participants !== 1 ? 's' : ''}</span>
+                    </div>
+                    <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
+                  </div>
+
+                  <motion.button
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => {
+                      const code = room.code;
+                      setRoomCode(code);
+                      roomCodeRef.current = code;
+                      setIsHost(false);
+                      isHostRef.current = false;
+                      setSyncState('idle');
+                      setMyStatus('idle');
+                      setMessages([]);
+                      setupChannel(code, false);
+                      setView('room');
+                      saveRoomHistory({ code, date: Date.now(), contentMode: null, isHost: false, isPublic: true });
+                      setRoomHistory(loadRoomHistory());
+                    }}
+                    className="w-full py-2 rounded-xl bg-violet-600/20 border border-violet-500/30
+                               text-violet-400 font-black text-xs transition-all
+                               hover:bg-violet-600/40 hover:border-violet-500/50"
+                  >
+                    Unirse
+                  </motion.button>
+                </motion.div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* ── Private room join ──────────────────────────────────────────── */}
+        <div className="border-t border-white/10 p-4 flex-shrink-0" style={{ background: '#0d0d14' }}>
+          <p className="text-white/25 text-[11px] text-center mb-2.5">¿Tienes un código de invitación?</p>
+          <div className="flex gap-2 max-w-sm mx-auto">
+            <input
+              type="text"
+              value={joinCode}
+              onChange={(e) => setJoinCode(e.target.value.toUpperCase().slice(0, 8))}
+              onKeyDown={(e) => e.key === 'Enter' && joinCode.length >= 4 && joinRoom()}
+              placeholder="Código de sala"
+              className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-2.5
+                         text-white font-mono text-sm placeholder-white/20 outline-none
+                         focus:border-violet-500/50 transition-all uppercase tracking-widest"
+            />
+            <motion.button
+              whileTap={{ scale: 0.95 }}
+              onClick={joinRoom}
+              disabled={joinCode.length < 4}
+              className={`px-4 py-2.5 rounded-xl font-black text-sm transition-all flex items-center gap-1.5 flex-shrink-0
+                ${joinCode.length >= 4
+                  ? 'bg-violet-600/80 hover:bg-violet-500 text-white'
+                  : 'bg-white/5 text-white/20 cursor-not-allowed border border-white/10'}`}
+            >
+              Entrar
+              <ChevronRight size={13} />
+            </motion.button>
+          </div>
+
+          {recentRooms.length > 0 && (
+            <div className="mt-3 flex flex-wrap gap-1.5 justify-center">
+              {recentRooms.map((r) => (
+                <button
+                  key={r.code}
+                  onClick={() => setJoinCode(r.code)}
+                  className="flex items-center gap-1 px-2.5 py-1 rounded-lg
+                             bg-white/5 border border-white/8 hover:border-white/20
+                             text-white/40 hover:text-white/70 text-[10px] font-mono
+                             transition-all"
+                >
+                  {r.isHost && <Crown size={8} className="text-violet-400/60" />}
+                  {r.isPublic === false && <Lock size={8} className="text-white/30" />}
+                  {r.code}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     );
@@ -1349,7 +1512,7 @@ const ScreenSharingPage = ({ onClose, roomName }) => {
     >
       <div className="flex items-center gap-2.5">
         <button
-          onClick={() => setView('lobby')}
+          onClick={() => { lobbyChannelRef.current?.untrack().catch(() => {}); setView('lobby'); }}
           className="w-7 h-7 rounded-lg bg-white/5 hover:bg-white/10 flex items-center justify-center text-white/50 hover:text-white transition-colors"
         >
           <ChevronLeft size={15} />
@@ -1372,6 +1535,20 @@ const ScreenSharingPage = ({ onClose, roomName }) => {
           <span className="text-white/70 text-xs font-semibold">{myUsername}</span>
           {isHost && <Crown size={10} className="text-yellow-400" />}
         </div>
+        {/* Privacy toggle (host only) */}
+        {isHost && (
+          <button
+            onClick={() => setIsPublic((p) => !p)}
+            title={isPublic ? 'Sala pública — click para hacer privada' : 'Sala privada — click para hacer pública'}
+            className={`flex items-center gap-1 px-2 py-1 rounded-lg border text-xs font-bold transition-all ${
+              isPublic
+                ? 'bg-green-500/10 border-green-500/20 text-green-400/70 hover:text-green-400'
+                : 'bg-white/5 border-white/10 text-white/30 hover:text-white/60'
+            }`}
+          >
+            {isPublic ? <Globe size={11} /> : <Lock size={11} />}
+          </button>
+        )}
         <button
           onClick={copyRoomCode}
           className="flex items-center gap-1.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg px-2.5 py-1 text-white/50 hover:text-white transition-all"
@@ -2189,6 +2366,7 @@ const ScreenSharingPage = ({ onClose, roomName }) => {
               onClick={() => {
                 setShowRating(false);
                 broadcastSync({ type: 'session_end' });
+                lobbyChannelRef.current?.untrack().catch(() => {});
                 setView('lobby');
                 setRoomStep('content');
                 setContentMode(null);
