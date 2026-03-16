@@ -41,13 +41,15 @@ const GraffitiToolbar = memo(({
   }, []);
 
   return (
+    // Positioning wrapper — separated from motion.div to avoid Framer Motion's
+    // transform overwriting Tailwind's -translate-x-1/2 centering.
+    <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-[10030]">
     <motion.div
       initial={{ opacity: 0, y: 32 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: 32 }}
       transition={{ type: 'spring', stiffness: 340, damping: 28 }}
-      className="absolute bottom-6 left-1/2 -translate-x-1/2 z-[10030]
-                 flex flex-row items-center gap-2
+      className="flex flex-row items-center gap-2
                  bg-[#0d0d14]/95 border border-white/10 rounded-2xl
                  px-3 py-2 shadow-2xl backdrop-blur-md"
     >
@@ -199,6 +201,7 @@ const GraffitiToolbar = memo(({
         )}
       </div>
     </motion.div>
+    </div>
   );
 });
 
