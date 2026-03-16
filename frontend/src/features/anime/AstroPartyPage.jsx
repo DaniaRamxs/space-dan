@@ -2431,6 +2431,8 @@ const ScreenSharingPage = ({ onClose, roomName }) => {
             <AnimatePresence mode="wait">
               {isHost ? (
                 <React.Fragment key="host-steps">
+                  {roomStep === 'content'     && <StepContent />}
+                  {roomStep === 'videolink'   && <StepVideoLink />}
                   {roomStep === 'screenshare' && <StepScreenShare />}
                 </React.Fragment>
               ) : (
