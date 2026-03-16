@@ -5,7 +5,7 @@ import React, {
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Users, MessageSquare, Copy, X, Check, Send, Crown,
-  BookOpen, Link, ExternalLink, AlertTriangle, ChevronRight,
+  BookOpen, Link, ExternalLink, AlertTriangle, ChevronLeft, ChevronRight,
   BookMarked, Brush, Play, Square,
 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -165,6 +165,10 @@ const MangaPartyPage = memo(({ onClose } = {}) => {
   const [graffitiColor, setGraffitiColor]       = useState('#ef4444');
   const [graffitiSize, setGraffitiSize]         = useState(5);
 
+  // ── Chapter navigation ────────────────────────────────────────────────────────
+  const [chapterList, setChapterList]                   = useState([]);
+  const [currentChapterIndex, setCurrentChapterIndex]   = useState(0);
+
   // ── Auto-read ─────────────────────────────────────────────────────────────────
   const [autoRead, setAutoRead]   = useState(false);
   const [autoSpeed, setAutoSpeed] = useState(15); // seconds per page
@@ -198,10 +202,14 @@ const MangaPartyPage = memo(({ onClose } = {}) => {
   const theoryNotesRef  = useRef([]);
   const graffitiModeRef = useRef(false);
   const hostUsernameRef = useRef('');
-  const autoTimerRef    = useRef(null);
-  const autoReadRef     = useRef(false);
-  const autoSpeedRef    = useRef(15);
-  const musicRef        = useRef(null);
+  const autoTimerRef          = useRef(null);
+  const autoReadRef           = useRef(false);
+  const autoSpeedRef          = useRef(15);
+  const chapterListRef        = useRef([]);
+  const currentChapterIndexRef = useRef(0);
+  const nextChapterRef        = useRef(null);
+  const skipAutoReadResetRef  = useRef(false);
+  const musicRef              = useRef(null);
 
   // Keep refs in sync
   useEffect(() => { profileRef.current  = profile; },      [profile]);
@@ -218,6 +226,9 @@ const MangaPartyPage = memo(({ onClose } = {}) => {
   useEffect(() => { hostUsernameRef.current = hostUsername; }, [hostUsername]);
   useEffect(() => { autoReadRef.current  = autoRead; },  [autoRead]);
   useEffect(() => { autoSpeedRef.current = autoSpeed; }, [autoSpeed]);
+  useEffect(() => { mangaTitleRef.current = mangaTitle; }, [mangaTitle]);
+  useEffect(() => { chapterListRef.current = chapterList; }, [chapterList]);
+  useEffect(() => { currentChapterIndexRef.current = currentChapterIndex; }, [currentChapterIndex]);
 
   // Load room history on mount
   useEffect(() => {
@@ -296,7 +307,7 @@ const MangaPartyPage = memo(({ onClose } = {}) => {
               type:         'state_snapshot',
               externalUrl:  externalUrlRef.current,
               mangaId:      mangaIdRef.current,
-              mangaTitle,
+              mangaTitle:   mangaTitleRef.current,
               chapterId:    chapterIdRef.current,
               currentPage:  currentPageRef.current,
               scrollY:      scrollYRef.current,
@@ -305,6 +316,8 @@ const MangaPartyPage = memo(({ onClose } = {}) => {
               theoryNotes:   theoryNotesRef.current,
               graffitiMode:  graffitiModeRef.current,
               hostUsername:  hostUsernameRef.current,
+              chapterList:   chapterListRef.current,
+              chapterIndex:  currentChapterIndexRef.current,
             });
           }, 600);
         });
@@ -364,6 +377,14 @@ const MangaPartyPage = memo(({ onClose } = {}) => {
               setHostUsername(payload.hostUsername);
               hostUsernameRef.current = payload.hostUsername;
             }
+            if (payload.chapterList) {
+              setChapterList(payload.chapterList);
+              chapterListRef.current = payload.chapterList;
+            }
+            if (payload.chapterIndex !== undefined) {
+              setCurrentChapterIndex(payload.chapterIndex);
+              currentChapterIndexRef.current = payload.chapterIndex;
+            }
             break;
 
           case 'url_change':
@@ -386,6 +407,14 @@ const MangaPartyPage = memo(({ onClose } = {}) => {
             setCurrentPage(0);
             currentPageRef.current = 0;
             setDrawEvents([]);
+            if (payload.chapterList) {
+              setChapterList(payload.chapterList);
+              chapterListRef.current = payload.chapterList;
+            }
+            if (payload.chapterIndex !== undefined) {
+              setCurrentChapterIndex(payload.chapterIndex);
+              currentChapterIndexRef.current = payload.chapterIndex;
+            }
             loadPages(payload.chapterId);
             toast(`📚 ${payload.mangaTitle} — Cap. ${payload.chapterNum}`, { duration: 3000 });
             break;
@@ -530,7 +559,7 @@ const MangaPartyPage = memo(({ onClose } = {}) => {
       });
 
     channelRef.current = ch;
-  }, [myUsername, broadcast, loadPages, mangaTitle]);
+  }, [myUsername, broadcast, loadPages]);
 
   // ── Cleanup on unmount ────────────────────────────────────────────────────────
   useEffect(() => () => {
@@ -541,8 +570,12 @@ const MangaPartyPage = memo(({ onClose } = {}) => {
     clearInterval(autoTimerRef.current);
   }, []);
 
-  // ── Stop auto-read on chapter change ─────────────────────────────────────────
+  // ── Stop auto-read on chapter change (skip when auto-advancing) ──────────────
   useEffect(() => {
+    if (skipAutoReadResetRef.current) {
+      skipAutoReadResetRef.current = false;
+      return;
+    }
     if (autoTimerRef.current) {
       clearInterval(autoTimerRef.current);
       autoTimerRef.current = null;
@@ -630,12 +663,20 @@ const MangaPartyPage = memo(({ onClose } = {}) => {
   // ── Manga selection ───────────────────────────────────────────────────────────
   const handleMangaSelect = useCallback(async (selection) => {
     if (!isHostRef.current) return;
-    const { mangaId: mId, mangaTitle: mTitle, chapterId: cId, chapterNum: cNum, chapterTitle: cTitle } = selection;
+    const {
+      mangaId: mId, mangaTitle: mTitle, chapterId: cId, chapterNum: cNum, chapterTitle: cTitle,
+      chapters = [], chapterIndex = 0,
+    } = selection;
 
     setMangaId(mId);
     setMangaTitle(mTitle);
+    mangaTitleRef.current = mTitle;
     setChapterId(cId);
     setChapterNum(cNum);
+    setChapterList(chapters);
+    chapterListRef.current = chapters;
+    setCurrentChapterIndex(chapterIndex);
+    currentChapterIndexRef.current = chapterIndex;
     setCurrentPage(0);
     currentPageRef.current = 0;
     setDrawEvents([]);
@@ -648,6 +689,8 @@ const MangaPartyPage = memo(({ onClose } = {}) => {
       chapterId:    cId,
       chapterNum:   cNum,
       chapterTitle: cTitle,
+      chapters,
+      chapterIndex,
     });
 
     toast.success(`📚 ${mTitle} — Cap. ${cNum}`, { duration: 3000 });
@@ -812,10 +855,15 @@ const MangaPartyPage = memo(({ onClose } = {}) => {
       if (next >= pagesRef.current.length) {
         clearInterval(autoTimerRef.current);
         autoTimerRef.current = null;
-        setAutoRead(false);
-        autoReadRef.current = false;
-        broadcast('manga_sync', { type: 'auto_toggle', enabled: false });
-        toast('📚 Autolectura completada', { duration: 3000 });
+        const canAdvance = currentChapterIndexRef.current + 1 < chapterListRef.current.length;
+        if (canAdvance) {
+          nextChapterRef.current?.(true); // autoRestart = true
+        } else {
+          setAutoRead(false);
+          autoReadRef.current = false;
+          broadcast('manga_sync', { type: 'auto_toggle', enabled: false });
+          toast('📚 Autolectura completada', { duration: 3000 });
+        }
         return;
       }
       setCurrentPage(next);
@@ -852,6 +900,84 @@ const MangaPartyPage = memo(({ onClose } = {}) => {
       broadcast('manga_sync', { type: 'auto_toggle', enabled: true, speed: s });
     }
   }, [handleStartAutoRead, broadcast]);
+
+  // ── Chapter navigation ────────────────────────────────────────────────────────
+  const handleNextChapter = useCallback(async (autoRestart = false) => {
+    if (!isHostRef.current) return;
+    const list    = chapterListRef.current;
+    const idx     = currentChapterIndexRef.current;
+    const nextIdx = idx + 1;
+    if (nextIdx >= list.length) return;
+
+    const chapter = list[nextIdx];
+    const cId     = chapter.id;
+    const cNum    = chapter.attributes?.chapter ?? String(nextIdx + 1);
+    const cTitle  = chapter.attributes?.title || '';
+    const mTitle  = mangaTitleRef.current;
+    const mId     = mangaIdRef.current;
+
+    if (autoRestart) skipAutoReadResetRef.current = true;
+    setChapterId(cId);
+    chapterIdRef.current = cId;
+    setChapterNum(cNum);
+    setCurrentChapterIndex(nextIdx);
+    currentChapterIndexRef.current = nextIdx;
+    setCurrentPage(0);
+    currentPageRef.current = 0;
+    setDrawEvents([]);
+    await loadPages(cId);
+
+    broadcast('manga_sync', {
+      type: 'chapter_change', mangaId: mId, mangaTitle: mTitle,
+      chapterId: cId, chapterNum: cNum, chapterTitle: cTitle,
+      chapters: list, chapterIndex: nextIdx,
+    });
+
+    toast.success(`📚 ${mTitle} — Cap. ${cNum}`, { duration: 3000 });
+
+    if (autoRestart) {
+      setAutoRead(true);
+      autoReadRef.current = true;
+      handleStartAutoRead(autoSpeedRef.current);
+      broadcast('manga_sync', { type: 'auto_toggle', enabled: true, speed: autoSpeedRef.current });
+    }
+  }, [broadcast, loadPages, handleStartAutoRead]);
+
+  const handlePrevChapter = useCallback(async () => {
+    if (!isHostRef.current) return;
+    const list    = chapterListRef.current;
+    const idx     = currentChapterIndexRef.current;
+    const prevIdx = idx - 1;
+    if (prevIdx < 0) return;
+
+    const chapter = list[prevIdx];
+    const cId     = chapter.id;
+    const cNum    = chapter.attributes?.chapter ?? String(prevIdx + 1);
+    const cTitle  = chapter.attributes?.title || '';
+    const mTitle  = mangaTitleRef.current;
+    const mId     = mangaIdRef.current;
+
+    setChapterId(cId);
+    chapterIdRef.current = cId;
+    setChapterNum(cNum);
+    setCurrentChapterIndex(prevIdx);
+    currentChapterIndexRef.current = prevIdx;
+    setCurrentPage(0);
+    currentPageRef.current = 0;
+    setDrawEvents([]);
+    await loadPages(cId);
+
+    broadcast('manga_sync', {
+      type: 'chapter_change', mangaId: mId, mangaTitle: mTitle,
+      chapterId: cId, chapterNum: cNum, chapterTitle: cTitle,
+      chapters: list, chapterIndex: prevIdx,
+    });
+
+    toast.success(`📚 ${mTitle} — Cap. ${cNum}`, { duration: 3000 });
+  }, [broadcast, loadPages]);
+
+  // Expose handleNextChapter to stale closures (auto-read interval)
+  nextChapterRef.current = handleNextChapter;
 
   // ── Music ─────────────────────────────────────────────────────────────────────
   const music = useMangaMusic({ isHost, myUsername, broadcast });
@@ -1143,6 +1269,34 @@ const MangaPartyPage = memo(({ onClose } = {}) => {
             <span className="hidden sm:inline">Cambiar manga</span>
             <span className="sm:hidden">Manga</span>
           </motion.button>
+        )}
+
+        {/* Prev / Next chapter (host only, when chapter list available) */}
+        {isHost && chapterList.length > 1 && (
+          <div className="flex items-center gap-1 flex-shrink-0">
+            <motion.button
+              whileTap={{ scale: 0.9 }}
+              onClick={handlePrevChapter}
+              disabled={currentChapterIndex <= 0}
+              title="Capítulo anterior"
+              className="flex items-center justify-center w-7 h-7 rounded-lg border text-xs
+                         bg-white/5 border-white/10 text-white/50 hover:text-white/80
+                         disabled:opacity-20 disabled:cursor-not-allowed transition-all"
+            >
+              <ChevronLeft size={14} />
+            </motion.button>
+            <motion.button
+              whileTap={{ scale: 0.9 }}
+              onClick={() => handleNextChapter()}
+              disabled={currentChapterIndex >= chapterList.length - 1}
+              title="Siguiente capítulo"
+              className="flex items-center justify-center w-7 h-7 rounded-lg border text-xs
+                         bg-white/5 border-white/10 text-white/50 hover:text-white/80
+                         disabled:opacity-20 disabled:cursor-not-allowed transition-all"
+            >
+              <ChevronRight size={14} />
+            </motion.button>
+          </div>
         )}
 
         {/* URL mode button (host only) */}

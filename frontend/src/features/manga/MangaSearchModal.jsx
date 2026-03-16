@@ -251,15 +251,18 @@ const MangaSearchModal = memo(({ isOpen, onClose, onSelect }) => {
 
   const handleSelectChapter = useCallback((chapter) => {
     if (!selectedManga) return;
+    const idx = filteredChapters.findIndex((c) => c.id === chapter.id);
     onSelect({
       mangaId:      selectedManga.id,
       mangaTitle:   getMangaTitle(selectedManga.attributes),
       chapterId:    chapter.id,
       chapterNum:   chapter.attributes?.chapter ?? '?',
       chapterTitle: chapter.attributes?.title || '',
+      chapters:     filteredChapters,
+      chapterIndex: idx >= 0 ? idx : 0,
     });
     onClose();
-  }, [selectedManga, onSelect, onClose]);
+  }, [selectedManga, filteredChapters, onSelect, onClose]);
 
   const handleBack = useCallback(() => {
     setSelectedManga(null);
