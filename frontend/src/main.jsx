@@ -205,6 +205,11 @@ if (Capacitor.isNativePlatform()) {
 //   });
 // }
 
+// Auto-reload when a lazy-loaded chunk 404s (stale cached index.html after deploy)
+window.addEventListener('vite:preloadError', () => {
+  window.location.reload();
+});
+
 // Render app
 createRoot(document.getElementById('root')).render(
   <StrictMode>
