@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Users, MessageSquare, Copy, X, Check, Send, Crown,
   BookOpen, Pencil, Link, ExternalLink, AlertTriangle, ChevronRight,
+  BookMarked, Brush,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuthContext } from '@/contexts/AuthContext';
@@ -152,6 +153,17 @@ const MangaPartyPage = memo(() => {
   const [drawingEnabled, setDrawingEnabled] = useState(false);
   const [drawEvents, setDrawEvents]         = useState([]);
 
+  // ── Theory mode ───────────────────────────────────────────────────────────────
+  const [theoryNotes, setTheoryNotes]           = useState([]);
+  const [theoryMode, setTheoryMode]             = useState(false);
+
+  // ── Graffiti mode ─────────────────────────────────────────────────────────────
+  const [graffitiMode, setGraffitiMode]         = useState(false);
+  const [allowEveryoneDraw, setAllowEveryoneDraw] = useState(false);
+  const [graffitiTool, setGraffitiTool]         = useState('pencil');
+  const [graffitiColor, setGraffitiColor]       = useState('#ef4444');
+  const [graffitiSize, setGraffitiSize]         = useState(5);
+
   // ── UI ────────────────────────────────────────────────────────────────────────
   const [codeCopied, setCodeCopied]   = useState(false);
   const [newArrival, setNewArrival]   = useState(null);
@@ -172,6 +184,8 @@ const MangaPartyPage = memo(() => {
   const prevNamesRef     = useRef(new Set());
   const chatEndRef    = useRef(null);
   const arrivalTimerRef = useRef(null);
+  const theoryNotesRef  = useRef([]);
+  const graffitiModeRef = useRef(false);
 
   // Keep refs in sync
   useEffect(() => { profileRef.current  = profile; },      [profile]);
@@ -183,6 +197,8 @@ const MangaPartyPage = memo(() => {
   useEffect(() => { currentPageRef.current = currentPage; }, [currentPage]);
   useEffect(() => { pagesRef.current      = pages; },       [pages]);
   useEffect(() => { externalUrlRef.current = externalUrl; }, [externalUrl]);
+  useEffect(() => { theoryNotesRef.current  = theoryNotes; },  [theoryNotes]);
+  useEffect(() => { graffitiModeRef.current = graffitiMode; }, [graffitiMode]);
 
   // Load room history on mount
   useEffect(() => {
@@ -258,15 +274,17 @@ const MangaPartyPage = memo(() => {
           // Small delay to ensure guest is subscribed
           setTimeout(() => {
             broadcast('manga_sync', {
-              type:        'state_snapshot',
-              externalUrl: externalUrlRef.current,
-              mangaId:     mangaIdRef.current,
+              type:         'state_snapshot',
+              externalUrl:  externalUrlRef.current,
+              mangaId:      mangaIdRef.current,
               mangaTitle,
-              chapterId:   chapterIdRef.current,
-              currentPage: currentPageRef.current,
-              scrollY:     scrollYRef.current,
-              zoom:        zoomRef.current,
-              pagesCount:  pagesRef.current.length,
+              chapterId:    chapterIdRef.current,
+              currentPage:  currentPageRef.current,
+              scrollY:      scrollYRef.current,
+              zoom:         zoomRef.current,
+              pagesCount:   pagesRef.current.length,
+              theoryNotes:  theoryNotesRef.current,
+              graffitiMode: graffitiModeRef.current,
             });
           }, 600);
         });
@@ -294,6 +312,8 @@ const MangaPartyPage = memo(() => {
             setCurrentPage(payload.currentPage ?? 0);
             setExternalScrollY(payload.scrollY ?? 0);
             setZoom(payload.zoom ?? 1);
+            if (payload.theoryNotes) setTheoryNotes(payload.theoryNotes);
+            if (payload.graffitiMode !== undefined) setGraffitiMode(payload.graffitiMode);
             break;
 
           case 'url_change':
@@ -347,6 +367,26 @@ const MangaPartyPage = memo(() => {
             if (!isHostRef.current) {
               setDrawingEnabled(payload.enabled);
             }
+            break;
+
+          case 'note_add':
+            setTheoryNotes((prev) =>
+              prev.some((n) => n.id === payload.note?.id) ? prev : [...prev, payload.note]
+            );
+            break;
+
+          case 'note_upvote':
+            setTheoryNotes((prev) =>
+              prev.map((n) =>
+                n.id === payload.noteId
+                  ? { ...n, upvotes: (n.upvotes || 0) + 1, upvotedBy: [...(n.upvotedBy || []), payload.by] }
+                  : n
+              )
+            );
+            break;
+
+          case 'graffiti_toggle':
+            setGraffitiMode(payload.enabled);
             break;
 
           default:
@@ -604,6 +644,45 @@ const MangaPartyPage = memo(() => {
     }, 2500);
     broadcast('manga_reaction', { emoji, x, username: myUsername });
   }, [myUsername, broadcast]);
+
+  // ── Theory note: add ─────────────────────────────────────────────────────────
+  const handleAddNote = useCallback((noteData) => {
+    const note = {
+      id:        `note-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+      ...noteData,
+      author:    myUsername,
+      upvotes:   0,
+      upvotedBy: [],
+      createdAt: Date.now(),
+    };
+    setTheoryNotes((prev) => [...prev, note]);
+    broadcast('manga_sync', { type: 'note_add', note });
+  }, [broadcast, myUsername]);
+
+  // ── Theory note: upvote ───────────────────────────────────────────────────────
+  const handleNoteUpvote = useCallback((noteId) => {
+    if (!myUsername) return;
+    setTheoryNotes((prev) => {
+      const note = prev.find((n) => n.id === noteId);
+      if (!note || note.upvotedBy?.includes(myUsername)) return prev;
+      return prev.map((n) =>
+        n.id === noteId
+          ? { ...n, upvotes: (n.upvotes || 0) + 1, upvotedBy: [...(n.upvotedBy || []), myUsername] }
+          : n
+      );
+    });
+    broadcast('manga_sync', { type: 'note_upvote', noteId, by: myUsername });
+  }, [broadcast, myUsername]);
+
+  // ── Graffiti toggle (host only) ───────────────────────────────────────────────
+  const handleGraffitiToggle = useCallback(() => {
+    if (!isHostRef.current) return;
+    setGraffitiMode((prev) => {
+      const next = !prev;
+      broadcast('manga_sync', { type: 'graffiti_toggle', enabled: next });
+      return next;
+    });
+  }, [broadcast]);
 
   // ── Memoized sidebar content ──────────────────────────────────────────────────
   const sidebarContent = useMemo(() => {
@@ -890,6 +969,38 @@ const MangaPartyPage = memo(() => {
           </motion.button>
         )}
 
+        {/* Theory mode toggle (all users) */}
+        <motion.button
+          whileTap={{ scale: 0.95 }}
+          onClick={() => setTheoryMode((p) => !p)}
+          title="Modo teoría"
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-bold transition-all ${
+            theoryMode
+              ? 'bg-violet-600/30 border-violet-500/40 text-violet-400'
+              : 'bg-white/5 border-white/10 text-white/50 hover:text-white/70'
+          }`}
+        >
+          <BookMarked size={13} />
+          <span className="hidden sm:inline">{theoryMode ? 'Teoría ON' : 'Teoría'}</span>
+        </motion.button>
+
+        {/* Graffiti toggle (host only) */}
+        {isHost && (
+          <motion.button
+            whileTap={{ scale: 0.95 }}
+            onClick={handleGraffitiToggle}
+            title="Graffiti"
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-bold transition-all ${
+              graffitiMode
+                ? 'bg-orange-600/30 border-orange-500/40 text-orange-400'
+                : 'bg-white/5 border-white/10 text-white/50 hover:text-white/70'
+            }`}
+          >
+            <Brush size={13} />
+            <span className="hidden sm:inline">{graffitiMode ? 'Graffiti ON' : 'Graffiti'}</span>
+          </motion.button>
+        )}
+
         {/* Room code */}
         <motion.button
           whileTap={{ scale: 0.95 }}
@@ -1076,6 +1187,19 @@ const MangaPartyPage = memo(() => {
             onDrawEvent={handleDrawEvent}
             reactions={reactions}
             chapterId={chapterId}
+            theoryMode={theoryMode}
+            theoryNotes={theoryNotes}
+            onAddNote={handleAddNote}
+            onNoteUpvote={handleNoteUpvote}
+            myUsername={myUsername}
+            graffitiMode={graffitiMode}
+            graffitiTool={graffitiTool}
+            graffitiColor={graffitiColor}
+            graffitiSize={graffitiSize}
+            onGraffitiToolChange={setGraffitiTool}
+            onGraffitiColorChange={setGraffitiColor}
+            onGraffitiSizeChange={setGraffitiSize}
+            canDraw={isHost || (graffitiMode && allowEveryoneDraw)}
           />
         </div>
 

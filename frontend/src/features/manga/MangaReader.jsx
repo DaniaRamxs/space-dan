@@ -7,17 +7,20 @@ import {
 } from 'lucide-react';
 import DrawingCanvas from './DrawingCanvas';
 import ReactionsOverlay from './ReactionsOverlay';
+import PanelNotesLayer from './PanelNotesLayer';
+import GraffitiToolbar from './GraffitiToolbar';
 
 // ─── MangaReader ──────────────────────────────────────────────────────────────
 // Vertical manga reader panel with zoom, scroll sync, page detection,
-// collaborative drawing overlay and floating reactions.
+// collaborative drawing overlay, floating reactions, theory notes, and
+// graffiti mode.
 //
-// Props:
+// Props (original):
 //   pages            — array of image URLs
 //   currentPage      — currently visible page index (0-based)
 //   zoom             — zoom level (0.5 – 3.0)
 //   isHost           — true = controls sync; false = receives sync
-//   drawingEnabled   — toggles drawing mode
+//   drawingEnabled   — toggles legacy drawing mode
 //   onScroll         — (scrollY: number) => void  — debounced 80ms
 //   onZoom           — (zoom: number) => void
 //   onPageChange     — (pageIndex: number) => void
@@ -26,6 +29,25 @@ import ReactionsOverlay from './ReactionsOverlay';
 //   onDrawEvent      — (event) => void
 //   reactions        — Array<{id, emoji, x, y, fromUsername}>
 //   chapterId        — used to reset draw canvas on chapter change
+//
+// Props (new — theory mode):
+//   theoryMode       — whether theory annotation mode is active
+//   theoryNotes      — array of note objects
+//   onAddNote        — (noteData) => void
+//   onNoteUpvote     — (noteId) => void
+//   myUsername       — current user's username (for upvote gating)
+//
+// Props (new — graffiti mode):
+//   graffitiMode     — whether the graffiti overlay toolbar is visible
+//   canDraw          — whether this user can draw
+//   graffitiTool     — 'pencil' | 'eraser'
+//   graffitiColor    — current stroke color
+//   graffitiSize     — current stroke width
+//   onGraffitiToolChange   — (tool) => void
+//   onGraffitiColorChange  — (color) => void
+//   onGraffitiSizeChange   — (size) => void
+//   onGraffitiUndo         — () => void  (wired to canvasRef.current.undo)
+//   onGraffitiClear        — () => void  (wired to canvasRef.current.clear)
 
 const MIN_ZOOM = 0.5;
 const MAX_ZOOM = 3.0;
@@ -40,7 +62,17 @@ PageSkeleton.displayName = 'PageSkeleton';
 
 // ─── Single page image ────────────────────────────────────────────────────────
 
-const MangaPage = memo(({ src, index, onVisible }) => {
+const MangaPage = memo(({
+  src,
+  index,
+  onVisible,
+  pageIndex,
+  theoryNotes,
+  theoryMode,
+  myUsername,
+  onAddNote,
+  onNoteUpvote,
+}) => {
   const [loaded, setLoaded] = useState(false);
   const ref = useRef(null);
 
@@ -69,6 +101,15 @@ const MangaPage = memo(({ src, index, onVisible }) => {
         draggable={false}
         loading="lazy"
       />
+      {/* Theory notes overlay per page */}
+      <PanelNotesLayer
+        pageIndex={pageIndex}
+        notes={theoryNotes}
+        theoryMode={theoryMode}
+        myUsername={myUsername}
+        onAddNote={onAddNote}
+        onUpvote={onNoteUpvote}
+      />
     </div>
   );
 });
@@ -90,14 +131,43 @@ const MangaReader = memo(({
   onDrawEvent,
   reactions = [],
   chapterId,
+  // Theory mode
+  theoryMode = false,
+  theoryNotes = [],
+  onAddNote,
+  onNoteUpvote,
+  myUsername = '',
+  // Graffiti mode
+  graffitiMode = false,
+  canDraw = false,
+  graffitiTool = 'pencil',
+  graffitiColor = '#ef4444',
+  graffitiSize = 5,
+  onGraffitiToolChange,
+  onGraffitiColorChange,
+  onGraffitiSizeChange,
+  onGraffitiUndo,
+  onGraffitiClear,
 }) => {
-  const containerRef  = useRef(null);
-  const innerRef      = useRef(null);
+  const containerRef   = useRef(null);
+  const innerRef       = useRef(null);
   const scrollTimerRef = useRef(null);
-  const suppressRef   = useRef(false); // prevent feedback loop when applying external scroll
+  const suppressRef    = useRef(false); // prevent feedback loop when applying external scroll
+  const canvasRef      = useRef(null);  // imperative handle to DrawingCanvas
 
   const [containerSize, setContainerSize] = useState({ w: 800, h: 600 });
-  const [displayPage, setDisplayPage] = useState(currentPage);
+  const [displayPage, setDisplayPage]     = useState(currentPage);
+
+  // ── Wire graffiti undo/clear through canvasRef ────────────────────────────────
+  const handleGraffitiUndo = useCallback(() => {
+    canvasRef.current?.undo();
+    onGraffitiUndo?.();
+  }, [onGraffitiUndo]);
+
+  const handleGraffitiClear = useCallback(() => {
+    canvasRef.current?.clear();
+    onGraffitiClear?.();
+  }, [onGraffitiClear]);
 
   // ── Resize observer ──────────────────────────────────────────────────────────
   useEffect(() => {
@@ -118,7 +188,7 @@ const MangaReader = memo(({
       if (!e.ctrlKey) return;
       e.preventDefault();
       const delta = e.deltaY > 0 ? -ZOOM_STEP : ZOOM_STEP;
-      const next = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, zoom + delta));
+      const next  = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, zoom + delta));
       onZoom?.(parseFloat(next.toFixed(2)));
     };
     el.addEventListener('wheel', onWheel, { passive: false });
@@ -178,9 +248,20 @@ const MangaReader = memo(({
   // ── Memoized pages list — avoid remounting images on chat/zoom state changes ─
   const pagesList = useMemo(() => (
     pages.map((src, i) => (
-      <MangaPage key={`${chapterId}-${i}`} src={src} index={i} onVisible={handlePageVisible} />
+      <MangaPage
+        key={`${chapterId}-${i}`}
+        src={src}
+        index={i}
+        onVisible={handlePageVisible}
+        pageIndex={i}
+        theoryNotes={theoryNotes}
+        theoryMode={theoryMode}
+        myUsername={myUsername}
+        onAddNote={onAddNote}
+        onNoteUpvote={onNoteUpvote}
+      />
     ))
-  ), [pages, chapterId, handlePageVisible]);
+  ), [pages, chapterId, handlePageVisible, theoryNotes, theoryMode, myUsername, onAddNote, onNoteUpvote]);
 
   const isEmpty = pages.length === 0;
 
@@ -196,11 +277,10 @@ const MangaReader = memo(({
         ref={innerRef}
         className="mx-auto transition-transform duration-150 origin-top"
         style={{
-          transform: `scale(${zoom})`,
-          transformOrigin: 'top center',
-          width: zoom > 1 ? `${100 / zoom}%` : '100%',
-          // When zoomed out, expand to fill available width
-          maxWidth: zoom <= 1 ? '800px' : undefined,
+          transform:        `scale(${zoom})`,
+          transformOrigin:  'top center',
+          width:            zoom > 1 ? `${100 / zoom}%` : '100%',
+          maxWidth:         zoom <= 1 ? '800px' : undefined,
         }}
       >
         {isEmpty ? (
@@ -282,12 +362,35 @@ const MangaReader = memo(({
         )}
       </div>
 
+      {/* Graffiti toolbar — visible when graffitiMode and canDraw */}
+      <AnimatePresence>
+        {graffitiMode && (
+          <GraffitiToolbar
+            tool={graffitiTool}
+            setTool={onGraffitiToolChange}
+            color={graffitiColor}
+            setColor={onGraffitiColorChange}
+            size={graffitiSize}
+            setSize={onGraffitiSizeChange}
+            onUndo={handleGraffitiUndo}
+            onClear={handleGraffitiClear}
+            isHost={isHost}
+            canDraw={canDraw}
+          />
+        )}
+      </AnimatePresence>
+
       {/* Drawing canvas overlay — always mounted to avoid flicker */}
       <DrawingCanvas
-        enabled={drawingEnabled}
+        ref={canvasRef}
+        enabled={graffitiMode || drawingEnabled}
         width={containerSize.w}
         height={containerSize.h}
         isHost={isHost}
+        canDraw={canDraw}
+        tool={graffitiTool}
+        color={graffitiColor}
+        strokeWidth={graffitiSize}
         remoteEvents={drawEvents}
         onEvent={onDrawEvent}
         chapterId={chapterId}
