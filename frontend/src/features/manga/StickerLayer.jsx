@@ -51,13 +51,21 @@ const StickerLayer = memo(({
   myUsername = '',
   isHost = false,
 }) => {
-  const handleContainerClick = useCallback((e) => {
-    if (!placementMode || !onPlace || !imageRect || imageRect.w === 0) return;
+  const handlePointerDown = useCallback((e) => {
+    if (!placementMode || !onPlace) return;
+    // Only react to primary button (left click / first touch)
+    if (e.button !== undefined && e.button !== 0) return;
+    e.preventDefault();
+    e.stopPropagation();
     const rect = e.currentTarget.getBoundingClientRect();
-    const px   = e.clientX - rect.left  - imageRect.x;
-    const py   = e.clientY - rect.top   - imageRect.y;
-    const rx   = Math.max(0, Math.min(1, px / imageRect.w));
-    const ry   = Math.max(0, Math.min(1, py / imageRect.h));
+    const clientX = e.clientX ?? e.touches?.[0]?.clientX ?? 0;
+    const clientY = e.clientY ?? e.touches?.[0]?.clientY ?? 0;
+    // If imageRect is available and valid, place within image bounds
+    const ir = imageRect?.w > 0 ? imageRect : { x: 0, y: 0, w: rect.width, h: rect.height };
+    const px = clientX - rect.left  - ir.x;
+    const py = clientY - rect.top   - ir.y;
+    const rx = Math.max(0, Math.min(1, px / ir.w));
+    const ry = Math.max(0, Math.min(1, py / ir.h));
     onPlace(rx, ry);
   }, [placementMode, onPlace, imageRect]);
 
@@ -70,7 +78,7 @@ const StickerLayer = memo(({
         // Individual sticker items (with their own pointerEvents:'auto') still work.
         pointerEvents: placementMode ? 'auto' : 'none',
       }}
-      onClick={handleContainerClick}
+      onPointerDown={handlePointerDown}
     >
       {visible && (
         <AnimatePresence>
