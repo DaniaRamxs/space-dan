@@ -147,6 +147,31 @@ export class LiveActivityRoom extends Room {
       }
     });
 
+    // Transfer host to another participant (current host only)
+    this.onMessage("transfer_host", (client, { newHostId }) => {
+      const sender = this.state.participants.get(client.sessionId);
+      if (!sender?.isHost && sender?.userId !== this.state.hostId) return;
+      if (!newHostId || newHostId === sender.userId) return;
+
+      let newHostParticipant = null;
+      for (const p of this.state.participants.values()) {
+        if (p.userId === newHostId) { newHostParticipant = p; break; }
+      }
+      if (!newHostParticipant) return;
+
+      sender.isHost = false;
+      newHostParticipant.isHost = true;
+      this.state.hostId = newHostId;
+
+      this.broadcast("host_changed", {
+        hostId:           newHostId,
+        hostUsername:     newHostParticipant.username,
+        prevHostId:       sender.userId,
+        prevHostUsername: sender.username,
+      });
+      log(`[LiveActivity] Host transferred: ${sender.username} → ${newHostParticipant.username}`);
+    });
+
     // Reaction (emoji/gif)
     this.onMessage("reaction", (client, { type, content, videoTimestamp }) => {
       const participant = this.state.participants.get(client.sessionId);

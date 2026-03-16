@@ -13,6 +13,7 @@ import { useAuthContext } from '@/contexts/AuthContext';
 import { supabase } from '@/supabaseClient';
 import PaginatedReader from './PaginatedReader';
 import MangaSearchModal from './MangaSearchModal';
+import HostTransferModal from './HostTransferModal';
 
 // ─── MangaDex proxy (routed through backend to avoid CORS) ────────────────────
 
@@ -164,6 +165,10 @@ const MangaPartyPage = memo(() => {
   const [graffitiColor, setGraffitiColor]       = useState('#ef4444');
   const [graffitiSize, setGraffitiSize]         = useState(5);
 
+  // ── Host transfer ─────────────────────────────────────────────────────────────
+  const [hostUsername, setHostUsername]       = useState('');
+  const [transferTarget, setTransferTarget]   = useState(null); // username to transfer to
+
   // ── UI ────────────────────────────────────────────────────────────────────────
   const [codeCopied, setCodeCopied]   = useState(false);
   const [newArrival, setNewArrival]   = useState(null);
@@ -186,6 +191,7 @@ const MangaPartyPage = memo(() => {
   const arrivalTimerRef = useRef(null);
   const theoryNotesRef  = useRef([]);
   const graffitiModeRef = useRef(false);
+  const hostUsernameRef = useRef('');
 
   // Keep refs in sync
   useEffect(() => { profileRef.current  = profile; },      [profile]);
@@ -199,6 +205,7 @@ const MangaPartyPage = memo(() => {
   useEffect(() => { externalUrlRef.current = externalUrl; }, [externalUrl]);
   useEffect(() => { theoryNotesRef.current  = theoryNotes; },  [theoryNotes]);
   useEffect(() => { graffitiModeRef.current = graffitiMode; }, [graffitiMode]);
+  useEffect(() => { hostUsernameRef.current = hostUsername; }, [hostUsername]);
 
   // Load room history on mount
   useEffect(() => {
@@ -283,10 +290,37 @@ const MangaPartyPage = memo(() => {
               scrollY:      scrollYRef.current,
               zoom:         zoomRef.current,
               pagesCount:   pagesRef.current.length,
-              theoryNotes:  theoryNotesRef.current,
-              graffitiMode: graffitiModeRef.current,
+              theoryNotes:   theoryNotesRef.current,
+              graffitiMode:  graffitiModeRef.current,
+              hostUsername:  hostUsernameRef.current,
             });
           }, 600);
+        });
+      })
+      // ── Presence leave: auto host reassignment if host disconnects ────────
+      .on('presence', { event: 'leave' }, ({ leftPresences }) => {
+        leftPresences.forEach((p) => {
+          if (p.username !== hostUsernameRef.current) return;
+          // Host left — get remaining participants from current state
+          const remaining = Object.values(ch.presenceState()).flat()
+            .filter((u) => u.username !== p.username);
+          if (remaining.length === 0) return;
+          // First remaining participant self-promotes (deterministic by Supabase order)
+          const first = remaining[0];
+          if (first.username !== myUsername) return; // only one client self-promotes
+          setIsHost(true);
+          isHostRef.current = true;
+          const newName = myUsername;
+          setHostUsername(newName);
+          hostUsernameRef.current = newName;
+          ch.track({ username: myUsername, isHost: true, avatar: profileRef.current?.avatar_url || null })
+            .catch(() => {});
+          broadcast('manga_sync', {
+            type: 'host_transfer',
+            newHostUsername: newName,
+            prevHostUsername: p.username,
+          });
+          toast.success('El host se fue. ¡Ahora eres el host! 👑', { duration: 4000 });
         });
       })
       // ── manga_sync events ──────────────────────────────────────────────────
@@ -314,6 +348,10 @@ const MangaPartyPage = memo(() => {
             setZoom(payload.zoom ?? 1);
             if (payload.theoryNotes) setTheoryNotes(payload.theoryNotes);
             if (payload.graffitiMode !== undefined) setGraffitiMode(payload.graffitiMode);
+            if (payload.hostUsername) {
+              setHostUsername(payload.hostUsername);
+              hostUsernameRef.current = payload.hostUsername;
+            }
             break;
 
           case 'url_change':
@@ -390,6 +428,31 @@ const MangaPartyPage = memo(() => {
             setGraffitiMode(payload.enabled);
             break;
 
+          case 'host_transfer': {
+            const { newHostUsername, prevHostUsername } = payload;
+            setHostUsername(newHostUsername);
+            hostUsernameRef.current = newHostUsername;
+            if (newHostUsername === myUsername) {
+              // I am the new host
+              setIsHost(true);
+              isHostRef.current = true;
+              channelRef.current
+                ?.track({ username: myUsername, isHost: true, avatar: profileRef.current?.avatar_url || null })
+                .catch(() => {});
+              toast.success('¡Ahora eres el host! 👑', { duration: 4000 });
+            } else if (prevHostUsername === myUsername) {
+              // I was the host, now I'm not
+              setIsHost(false);
+              isHostRef.current = false;
+              channelRef.current
+                ?.track({ username: myUsername, isHost: false, avatar: profileRef.current?.avatar_url || null })
+                .catch(() => {});
+            } else {
+              toast(`👑 @${newHostUsername} ahora es el host`, { duration: 3000 });
+            }
+            break;
+          }
+
           default:
             break;
         }
@@ -454,6 +517,8 @@ const MangaPartyPage = memo(() => {
     setRoomCode(code);
     setIsHost(true);
     isHostRef.current = true;
+    setHostUsername(myUsername);
+    hostUsernameRef.current = myUsername;
     setView('room');
     setMessages([]);
     setParticipants([]);
@@ -672,6 +737,26 @@ const MangaPartyPage = memo(() => {
     broadcast('manga_sync', { type: 'note_upvote', noteId, by: myUsername });
   }, [broadcast, myUsername]);
 
+  // ── Host transfer ─────────────────────────────────────────────────────────────
+  const handleTransferHost = useCallback((targetUsername) => {
+    if (!isHostRef.current || targetUsername === myUsername) return;
+    // Optimistically update self before broadcast
+    setIsHost(false);
+    isHostRef.current = false;
+    setHostUsername(targetUsername);
+    hostUsernameRef.current = targetUsername;
+    channelRef.current
+      ?.track({ username: myUsername, isHost: false, avatar: profileRef.current?.avatar_url || null })
+      .catch(() => {});
+    broadcast('manga_sync', {
+      type: 'host_transfer',
+      newHostUsername: targetUsername,
+      prevHostUsername: myUsername,
+    });
+    toast(`👑 Host transferido a @${targetUsername}`, { duration: 3000 });
+    setTransferTarget(null);
+  }, [broadcast, myUsername]);
+
   // ── Graffiti toggle (host only) ───────────────────────────────────────────────
   const handleGraffitiToggle = useCallback(() => {
     if (!isHostRef.current) return;
@@ -687,23 +772,47 @@ const MangaPartyPage = memo(() => {
     if (sideTab === 'participants') {
       return (
         <div className="flex-1 overflow-y-auto p-3 space-y-2" style={{ scrollbarWidth: 'thin', scrollbarColor: '#7c3aed33 transparent' }}>
-          {participants.map((p) => (
-            <div
-              key={p.username}
-              className="flex items-center gap-2.5 px-3 py-2 rounded-xl bg-white/5 border border-white/5"
-            >
-              <Avatar name={p.username} size={8} />
-              <div className="flex-1 min-w-0">
-                <p className="text-white/80 text-sm font-bold truncate">{p.username}</p>
-                {p.isHost && (
-                  <p className="text-violet-400 text-[10px] font-black flex items-center gap-1">
-                    <Crown size={8} />
+          {participants.map((p) => {
+            const isCurrentHost = p.username === hostUsername || p.isHost;
+            const canTransfer   = isHost && p.username !== myUsername;
+            return (
+              <div
+                key={p.username}
+                className={`flex items-center gap-2.5 px-3 py-2 rounded-xl border transition-all
+                            ${isCurrentHost
+                              ? 'bg-amber-500/10 border-amber-500/20'
+                              : 'bg-white/5 border-white/5'}`}
+              >
+                <Avatar name={p.username} size={8} />
+                <div className="flex-1 min-w-0">
+                  <p className="text-white/80 text-sm font-bold truncate">{p.username}</p>
+                  {isCurrentHost ? (
+                    <p className="text-amber-400 text-[10px] font-black flex items-center gap-1">
+                      <Crown size={8} />
+                      Host
+                    </p>
+                  ) : p.username === myUsername ? (
+                    <p className="text-white/30 text-[10px]">Tú</p>
+                  ) : null}
+                </div>
+                {/* Transfer host button — only host sees it, not for self */}
+                {canTransfer && (
+                  <motion.button
+                    whileTap={{ scale: 0.9 }}
+                    onClick={() => setTransferTarget(p.username)}
+                    title={`Transferir host a @${p.username}`}
+                    className="flex items-center gap-1 px-2 py-1 rounded-lg
+                               bg-amber-500/10 border border-amber-500/20 text-amber-400
+                               hover:bg-amber-500/20 transition-all text-[10px] font-black
+                               flex-shrink-0"
+                  >
+                    <Crown size={9} />
                     Host
-                  </p>
+                  </motion.button>
                 )}
               </div>
-            </div>
-          ))}
+            );
+          })}
           {participants.length === 0 && (
             <p className="text-white/20 text-xs text-center py-4">Esperando participantes<AnimatedDots /></p>
           )}
@@ -1249,6 +1358,14 @@ const MangaPartyPage = memo(() => {
         isOpen={showSearch}
         onClose={() => setShowSearch(false)}
         onSelect={handleMangaSelect}
+      />
+
+      {/* Host transfer confirmation modal */}
+      <HostTransferModal
+        isOpen={!!transferTarget}
+        targetUsername={transferTarget || ''}
+        onConfirm={() => handleTransferHost(transferTarget)}
+        onCancel={() => setTransferTarget(null)}
       />
     </div>
   );
