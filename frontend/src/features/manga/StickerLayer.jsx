@@ -64,7 +64,12 @@ const StickerLayer = memo(({
   return (
     <div
       className="absolute inset-0 z-[25]"
-      style={{ cursor: placementMode ? 'crosshair' : 'default' }}
+      style={{
+        cursor:        placementMode ? 'crosshair' : 'default',
+        // When NOT placing, pass all pointer events through to the canvas below.
+        // Individual sticker items (with their own pointerEvents:'auto') still work.
+        pointerEvents: placementMode ? 'auto' : 'none',
+      }}
       onClick={handleContainerClick}
     >
       {visible && (
