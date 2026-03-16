@@ -1307,6 +1307,209 @@ const ScreenSharingPage = ({ onClose, roomName }) => {
   const readyCount = participants.filter((p) => p.status === 'ready').length;
   const totalCount = participants.length;
 
+  // ─── Step: Watching ─────────────────────────────────────────────────────────
+  // Must be BEFORE the early lobby return — hooks must be called unconditionally.
+  // useMemo instead of inner component to prevent unmount/remount of <video>.
+  const stepWatchingJsx = useMemo(() => {
+    const fmt = getVideoFormat(videoUrl);
+
+    // Video link mode
+    if (contentMode === 'videolink') {
+      return (
+        <div className="flex flex-col h-full">
+          <div className="flex-1 relative min-h-0 p-3">
+            <div className="relative w-full h-full">
+              <AnimePlayer
+                source={{ url: videoUrl, format: fmt.toLowerCase() === 'hls' ? 'hls' : 'mp4', quality: 'Direct', server: 'direct' }}
+                subtitles={[]}
+                isHost={isHost}
+                externalState={externalPlayerState}
+                onPlay={(time) => broadcastSync({ type: 'play', time })}
+                onPause={(time) => broadcastSync({ type: 'pause_player', time })}
+                onSeek={(time) => broadcastSync({ type: 'seek', time })}
+                onTimeUpdate={(time) => {
+                  hostCurrentTimeRef.current = time;
+                  currentVideoTimeRef.current = time;
+                  // Only trigger re-render at most once per second to avoid flickering
+                  const now = Date.now();
+                  if (now - lastTimeUpdateRef.current >= 1000) {
+                    lastTimeUpdateRef.current = now;
+                    setCurrentVideoTime(time);
+                  }
+                }}
+                countdown={syncState === 'counting' ? countdown : null}
+                floatingEmojis={floatingEmojis}
+                gifOverlays={gifOverlays}
+              />
+              <ScreenOverlays floatingEmojis={floatingEmojis} gifOverlays={gifOverlays} />
+            </div>
+          </div>
+          <div className="px-4 py-2 flex items-center justify-between border-t border-white/5 flex-shrink-0">
+            <div className="flex items-center gap-2 min-w-0">
+              <Link size={11} className="text-violet-400 flex-shrink-0" />
+              <span className="text-white/40 text-xs truncate max-w-[200px]">{videoUrl}</span>
+              <span className="text-white/20 text-[10px] font-bold px-1.5 py-0.5 rounded bg-white/5 flex-shrink-0">{fmt}</span>
+            </div>
+            {isHost && (
+              <button onClick={() => setShowRating(true)} className="text-white/20 hover:text-white/40 text-xs transition-colors flex-shrink-0 ml-2">
+                Terminar sesion
+              </button>
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    // Screen share mode
+    if (contentMode === 'screenshare') {
+      // Guest quality badge for host
+      const hasGuestQuality = isHost && (guestQualitySummary.good + guestQualitySummary.poor + guestQualitySummary.failed) > 0;
+
+      return (
+        <div className="flex flex-col h-full bg-black">
+          <div className="flex-1 relative min-h-0">
+            {isHost ? (
+              <div className="relative w-full h-full">
+                <video
+                  ref={localVideoRefCallback}
+                  autoPlay
+                  playsInline
+                  muted
+                  className="w-full h-full object-contain"
+                />
+                <ScreenOverlays floatingEmojis={floatingEmojis} gifOverlays={gifOverlays} />
+                <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-2 bg-black/70 backdrop-blur-sm rounded-full px-4 py-2 border border-white/10">
+                  <div className="w-2 h-2 rounded-full bg-red-400 animate-pulse" />
+                  <span className="text-white text-xs font-bold">En vivo</span>
+                  {streamPaused && (
+                    <span className="text-yellow-400 text-xs font-bold ml-1">Pausado</span>
+                  )}
+                  <button
+                    onClick={toggleStreamPause}
+                    className={`ml-1 text-xs font-bold transition-colors ${streamPaused ? 'text-green-400 hover:text-green-300' : 'text-yellow-400/80 hover:text-yellow-300'}`}
+                  >
+                    {streamPaused ? 'Reanudar' : 'Pausar'}
+                  </button>
+                  <button
+                    onClick={changeDisplayWindow}
+                    className="ml-1 text-cyan-400/80 hover:text-cyan-300 text-xs font-bold transition-colors"
+                  >
+                    Cambiar ventana
+                  </button>
+                  <button
+                    onClick={requestLocalFullscreen}
+                    className="ml-1 text-white/50 hover:text-white/80 transition-colors"
+                    title="Pantalla completa"
+                  >
+                    <Maximize2 size={13} />
+                  </button>
+                  <button
+                    onClick={stopScreenShareCleanup}
+                    className="ml-1 text-red-400 hover:text-red-300 text-xs font-bold transition-colors"
+                  >
+                    Detener
+                  </button>
+                </div>
+              </div>
+            ) : remoteStream ? (
+              <div className="relative w-full h-full">
+                <video
+                  ref={remoteVideoRefCallback}
+                  autoPlay
+                  playsInline
+                  className="w-full h-full object-contain"
+                />
+                <ScreenOverlays floatingEmojis={floatingEmojis} gifOverlays={gifOverlays} />
+                {/* Stream paused badge for guests */}
+                {streamPaused && (
+                  <div className="absolute top-4 left-1/2 -translate-x-1/2 flex items-center gap-1.5 bg-black/70 backdrop-blur-sm rounded-full px-3 py-1.5 border border-yellow-500/30">
+                    <Pause size={11} className="text-yellow-400" />
+                    <span className="text-yellow-400 text-xs font-bold">Pausado</span>
+                  </div>
+                )}
+                {/* Guest video controls */}
+                <div className="absolute bottom-4 right-4 flex items-center gap-2">
+                  <button
+                    onClick={requestRemoteFullscreen}
+                    className="w-8 h-8 flex items-center justify-center bg-black/60 hover:bg-black/80 rounded-full border border-white/10 text-white/60 hover:text-white transition-all"
+                    title="Pantalla completa"
+                  >
+                    <Maximize2 size={14} />
+                  </button>
+                  {document.pictureInPictureEnabled && (
+                    <button
+                      onClick={requestPiP}
+                      className="w-8 h-8 flex items-center justify-center bg-black/60 hover:bg-black/80 rounded-full border border-white/10 text-white/60 hover:text-white transition-all"
+                      title="Picture in picture"
+                    >
+                      <PictureInPicture2 size={14} />
+                    </button>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center h-full gap-3">
+                <Loader2 size={32} className="animate-spin text-violet-400" />
+                <p className="text-white/50 text-sm">Conectando con el host...</p>
+              </div>
+            )}
+          </div>
+          <div className="px-4 py-2 flex items-center justify-between border-t border-white/5 flex-shrink-0">
+            <div className="flex items-center gap-2">
+              <Monitor size={11} className="text-cyan-400" />
+              <span className="text-white/40 text-xs">Compartiendo pantalla</span>
+              {!isHost && (
+                <WebrtcDot status={webrtcStatus} latencyMs={webrtcLatencyMs} />
+              )}
+              {!isHost && webrtcStatus === 'reconnecting' && (
+                <span className="text-yellow-400/70 text-[10px] font-semibold">Reconectando...</span>
+              )}
+              {!isHost && webrtcStatus === 'failed' && (
+                <>
+                  <span className="text-red-400/70 text-[10px] font-semibold">Fallo la conexion</span>
+                  <button
+                    onClick={manualReconnect}
+                    className="text-violet-400/80 hover:text-violet-300 text-[10px] font-bold underline transition-colors"
+                  >
+                    Reconectar
+                  </button>
+                </>
+              )}
+              {/* Host guest quality indicator */}
+              {isHost && hasGuestQuality && (
+                <div className="flex items-center gap-1 ml-2">
+                  {guestQualitySummary.good > 0 && (
+                    <span className="text-[10px] font-bold text-green-400">{guestQualitySummary.good} verde</span>
+                  )}
+                  {guestQualitySummary.poor > 0 && (
+                    <span className="text-[10px] font-bold text-yellow-400 ml-1">{guestQualitySummary.poor} amarillo</span>
+                  )}
+                  {guestQualitySummary.failed > 0 && (
+                    <span className="text-[10px] font-bold text-red-400 ml-1">{guestQualitySummary.failed} rojo</span>
+                  )}
+                </div>
+              )}
+            </div>
+            {isHost && (
+              <button onClick={stopScreenShareCleanup} className="text-red-400/60 hover:text-red-400 text-xs transition-colors">
+                Detener
+              </button>
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    return null;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [contentMode, videoUrl, isHost, externalPlayerState, syncState, countdown,
+      floatingEmojis, gifOverlays, streamPaused, remoteStream,
+      webrtcStatus, webrtcLatencyMs, guestQualitySummary,
+      broadcastSync, toggleStreamPause, changeDisplayWindow,
+      requestLocalFullscreen, stopScreenShareCleanup,
+      localVideoRefCallback, remoteVideoRefCallback,
+      requestRemoteFullscreen, requestPiP, manualReconnect]);
+
   // ─────────────────────────────────────────────────────────────────────────────
   // LOBBY VIEW
   // ─────────────────────────────────────────────────────────────────────────────
@@ -1804,209 +2007,6 @@ const ScreenSharingPage = ({ onClose, roomName }) => {
       </motion.div>
     );
   };
-
-  // ─── Step: Watching ───────────────────────────────────────────────────────────
-
-  // useMemo instead of inner component — prevents unmount/remount of <video> on every parent re-render
-  const stepWatchingJsx = useMemo(() => {
-    const fmt = getVideoFormat(videoUrl);
-
-    // Video link mode
-    if (contentMode === 'videolink') {
-      return (
-        <div className="flex flex-col h-full">
-          <div className="flex-1 relative min-h-0 p-3">
-            <div className="relative w-full h-full">
-              <AnimePlayer
-                source={{ url: videoUrl, format: fmt.toLowerCase() === 'hls' ? 'hls' : 'mp4', quality: 'Direct', server: 'direct' }}
-                subtitles={[]}
-                isHost={isHost}
-                externalState={externalPlayerState}
-                onPlay={(time) => broadcastSync({ type: 'play', time })}
-                onPause={(time) => broadcastSync({ type: 'pause_player', time })}
-                onSeek={(time) => broadcastSync({ type: 'seek', time })}
-                onTimeUpdate={(time) => {
-                  hostCurrentTimeRef.current = time;
-                  currentVideoTimeRef.current = time;
-                  // Only trigger re-render at most once per second to avoid flickering
-                  const now = Date.now();
-                  if (now - lastTimeUpdateRef.current >= 1000) {
-                    lastTimeUpdateRef.current = now;
-                    setCurrentVideoTime(time);
-                  }
-                }}
-                countdown={syncState === 'counting' ? countdown : null}
-                floatingEmojis={floatingEmojis}
-                gifOverlays={gifOverlays}
-              />
-              <ScreenOverlays floatingEmojis={floatingEmojis} gifOverlays={gifOverlays} />
-            </div>
-          </div>
-          <div className="px-4 py-2 flex items-center justify-between border-t border-white/5 flex-shrink-0">
-            <div className="flex items-center gap-2 min-w-0">
-              <Link size={11} className="text-violet-400 flex-shrink-0" />
-              <span className="text-white/40 text-xs truncate max-w-[200px]">{videoUrl}</span>
-              <span className="text-white/20 text-[10px] font-bold px-1.5 py-0.5 rounded bg-white/5 flex-shrink-0">{fmt}</span>
-            </div>
-            {isHost && (
-              <button onClick={() => setShowRating(true)} className="text-white/20 hover:text-white/40 text-xs transition-colors flex-shrink-0 ml-2">
-                Terminar sesion
-              </button>
-            )}
-          </div>
-        </div>
-      );
-    }
-
-    // Screen share mode
-    if (contentMode === 'screenshare') {
-      // Guest quality badge for host
-      const hasGuestQuality = isHost && (guestQualitySummary.good + guestQualitySummary.poor + guestQualitySummary.failed) > 0;
-
-      return (
-        <div className="flex flex-col h-full bg-black">
-          <div className="flex-1 relative min-h-0">
-            {isHost ? (
-              <div className="relative w-full h-full">
-                <video
-                  ref={localVideoRefCallback}
-                  autoPlay
-                  playsInline
-                  muted
-                  className="w-full h-full object-contain"
-                />
-                <ScreenOverlays floatingEmojis={floatingEmojis} gifOverlays={gifOverlays} />
-                <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-2 bg-black/70 backdrop-blur-sm rounded-full px-4 py-2 border border-white/10">
-                  <div className="w-2 h-2 rounded-full bg-red-400 animate-pulse" />
-                  <span className="text-white text-xs font-bold">En vivo</span>
-                  {streamPaused && (
-                    <span className="text-yellow-400 text-xs font-bold ml-1">Pausado</span>
-                  )}
-                  <button
-                    onClick={toggleStreamPause}
-                    className={`ml-1 text-xs font-bold transition-colors ${streamPaused ? 'text-green-400 hover:text-green-300' : 'text-yellow-400/80 hover:text-yellow-300'}`}
-                  >
-                    {streamPaused ? 'Reanudar' : 'Pausar'}
-                  </button>
-                  <button
-                    onClick={changeDisplayWindow}
-                    className="ml-1 text-cyan-400/80 hover:text-cyan-300 text-xs font-bold transition-colors"
-                  >
-                    Cambiar ventana
-                  </button>
-                  <button
-                    onClick={requestLocalFullscreen}
-                    className="ml-1 text-white/50 hover:text-white/80 transition-colors"
-                    title="Pantalla completa"
-                  >
-                    <Maximize2 size={13} />
-                  </button>
-                  <button
-                    onClick={stopScreenShareCleanup}
-                    className="ml-1 text-red-400 hover:text-red-300 text-xs font-bold transition-colors"
-                  >
-                    Detener
-                  </button>
-                </div>
-              </div>
-            ) : remoteStream ? (
-              <div className="relative w-full h-full">
-                <video
-                  ref={remoteVideoRefCallback}
-                  autoPlay
-                  playsInline
-                  className="w-full h-full object-contain"
-                />
-                <ScreenOverlays floatingEmojis={floatingEmojis} gifOverlays={gifOverlays} />
-                {/* Stream paused badge for guests */}
-                {streamPaused && (
-                  <div className="absolute top-4 left-1/2 -translate-x-1/2 flex items-center gap-1.5 bg-black/70 backdrop-blur-sm rounded-full px-3 py-1.5 border border-yellow-500/30">
-                    <Pause size={11} className="text-yellow-400" />
-                    <span className="text-yellow-400 text-xs font-bold">Pausado</span>
-                  </div>
-                )}
-                {/* Guest video controls */}
-                <div className="absolute bottom-4 right-4 flex items-center gap-2">
-                  <button
-                    onClick={requestRemoteFullscreen}
-                    className="w-8 h-8 flex items-center justify-center bg-black/60 hover:bg-black/80 rounded-full border border-white/10 text-white/60 hover:text-white transition-all"
-                    title="Pantalla completa"
-                  >
-                    <Maximize2 size={14} />
-                  </button>
-                  {document.pictureInPictureEnabled && (
-                    <button
-                      onClick={requestPiP}
-                      className="w-8 h-8 flex items-center justify-center bg-black/60 hover:bg-black/80 rounded-full border border-white/10 text-white/60 hover:text-white transition-all"
-                      title="Picture in picture"
-                    >
-                      <PictureInPicture2 size={14} />
-                    </button>
-                  )}
-                </div>
-              </div>
-            ) : (
-              <div className="flex flex-col items-center justify-center h-full gap-3">
-                <Loader2 size={32} className="animate-spin text-violet-400" />
-                <p className="text-white/50 text-sm">Conectando con el host...</p>
-              </div>
-            )}
-          </div>
-          <div className="px-4 py-2 flex items-center justify-between border-t border-white/5 flex-shrink-0">
-            <div className="flex items-center gap-2">
-              <Monitor size={11} className="text-cyan-400" />
-              <span className="text-white/40 text-xs">Compartiendo pantalla</span>
-              {!isHost && (
-                <WebrtcDot status={webrtcStatus} latencyMs={webrtcLatencyMs} />
-              )}
-              {!isHost && webrtcStatus === 'reconnecting' && (
-                <span className="text-yellow-400/70 text-[10px] font-semibold">Reconectando...</span>
-              )}
-              {!isHost && webrtcStatus === 'failed' && (
-                <>
-                  <span className="text-red-400/70 text-[10px] font-semibold">Fallo la conexion</span>
-                  <button
-                    onClick={manualReconnect}
-                    className="text-violet-400/80 hover:text-violet-300 text-[10px] font-bold underline transition-colors"
-                  >
-                    Reconectar
-                  </button>
-                </>
-              )}
-              {/* Host guest quality indicator */}
-              {isHost && hasGuestQuality && (
-                <div className="flex items-center gap-1 ml-2">
-                  {guestQualitySummary.good > 0 && (
-                    <span className="text-[10px] font-bold text-green-400">{guestQualitySummary.good} verde</span>
-                  )}
-                  {guestQualitySummary.poor > 0 && (
-                    <span className="text-[10px] font-bold text-yellow-400 ml-1">{guestQualitySummary.poor} amarillo</span>
-                  )}
-                  {guestQualitySummary.failed > 0 && (
-                    <span className="text-[10px] font-bold text-red-400 ml-1">{guestQualitySummary.failed} rojo</span>
-                  )}
-                </div>
-              )}
-            </div>
-            {isHost && (
-              <button onClick={stopScreenShareCleanup} className="text-red-400/60 hover:text-red-400 text-xs transition-colors">
-                Detener
-              </button>
-            )}
-          </div>
-        </div>
-      );
-    }
-
-    return null;
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [contentMode, videoUrl, isHost, externalPlayerState, syncState, countdown,
-      floatingEmojis, gifOverlays, streamPaused, remoteStream,
-      webrtcStatus, webrtcLatencyMs, guestQualitySummary,
-      broadcastSync, toggleStreamPause, changeDisplayWindow,
-      requestLocalFullscreen, stopScreenShareCleanup,
-      localVideoRefCallback, remoteVideoRefCallback,
-      requestRemoteFullscreen, requestPiP, manualReconnect]);
 
   // ─── Honor sync controls (video link mode only) ───────────────────────────────
 
