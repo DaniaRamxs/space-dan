@@ -494,7 +494,7 @@ const MangaPartyPage = memo(({ onClose } = {}) => {
         if (status === 'SUBSCRIBED') {
           await ch.track({
             username: myUsername,
-            isHost:   hosting,
+            isHost:   isHostRef.current,
             avatar:   profileRef.current?.avatar_url || null,
           }).catch(() => {});
         }
