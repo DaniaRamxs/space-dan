@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Users, MessageSquare, Copy, X, Check, Send, Crown,
   BookOpen, Link, ExternalLink, AlertTriangle, ChevronRight,
-  BookMarked, Brush,
+  BookMarked, Brush, Play, Square,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuthContext } from '@/contexts/AuthContext';
@@ -163,6 +163,10 @@ const MangaPartyPage = memo(({ onClose } = {}) => {
   const [graffitiColor, setGraffitiColor]       = useState('#ef4444');
   const [graffitiSize, setGraffitiSize]         = useState(5);
 
+  // ── Auto-read ─────────────────────────────────────────────────────────────────
+  const [autoRead, setAutoRead]   = useState(false);
+  const [autoSpeed, setAutoSpeed] = useState(15); // seconds per page
+
   // ── Host transfer ─────────────────────────────────────────────────────────────
   const [hostUsername, setHostUsername]       = useState('');
   const [transferTarget, setTransferTarget]   = useState(null); // username to transfer to
@@ -192,6 +196,9 @@ const MangaPartyPage = memo(({ onClose } = {}) => {
   const theoryNotesRef  = useRef([]);
   const graffitiModeRef = useRef(false);
   const hostUsernameRef = useRef('');
+  const autoTimerRef    = useRef(null);
+  const autoReadRef     = useRef(false);
+  const autoSpeedRef    = useRef(15);
 
   // Keep refs in sync
   useEffect(() => { profileRef.current  = profile; },      [profile]);
@@ -206,6 +213,8 @@ const MangaPartyPage = memo(({ onClose } = {}) => {
   useEffect(() => { theoryNotesRef.current  = theoryNotes; },  [theoryNotes]);
   useEffect(() => { graffitiModeRef.current = graffitiMode; }, [graffitiMode]);
   useEffect(() => { hostUsernameRef.current = hostUsername; }, [hostUsername]);
+  useEffect(() => { autoReadRef.current  = autoRead; },  [autoRead]);
+  useEffect(() => { autoSpeedRef.current = autoSpeed; }, [autoSpeed]);
 
   // Load room history on mount
   useEffect(() => {
@@ -402,9 +411,16 @@ const MangaPartyPage = memo(({ onClose } = {}) => {
             setDrawEvents((prev) => [...prev.slice(-500), payload]);
             break;
 
-          case 'drawing_toggle':
-            if (!isHostRef.current) {
-              setDrawingEnabled(payload.enabled);
+          case 'auto_toggle':
+            setAutoRead(payload.enabled);
+            if (!payload.enabled) {
+              clearInterval(autoTimerRef.current);
+              autoTimerRef.current = null;
+              autoReadRef.current = false;
+            }
+            if (payload.speed) {
+              setAutoSpeed(payload.speed);
+              autoSpeedRef.current = payload.speed;
             }
             break;
 
@@ -510,7 +526,18 @@ const MangaPartyPage = memo(({ onClose } = {}) => {
       supabase.removeChannel(channelRef.current).catch(() => {});
     }
     clearTimeout(arrivalTimerRef.current);
+    clearInterval(autoTimerRef.current);
   }, []);
+
+  // ── Stop auto-read on chapter change ─────────────────────────────────────────
+  useEffect(() => {
+    if (autoTimerRef.current) {
+      clearInterval(autoTimerRef.current);
+      autoTimerRef.current = null;
+      setAutoRead(false);
+      autoReadRef.current = false;
+    }
+  }, [chapterId]);
 
   // ── Create room ───────────────────────────────────────────────────────────────
   const handleCreateRoom = useCallback(() => {
@@ -575,6 +602,9 @@ const MangaPartyPage = memo(({ onClose } = {}) => {
     setDrawEvents([]);
     setReactions([]);
     setFloatingEmojis([]);
+    clearInterval(autoTimerRef.current);
+    autoTimerRef.current = null;
+    setAutoRead(false);
   }, []);
 
   // ── Copy room code ────────────────────────────────────────────────────────────
@@ -759,6 +789,57 @@ const MangaPartyPage = memo(({ onClose } = {}) => {
       return next;
     });
   }, [broadcast]);
+
+  // ── Auto-read ─────────────────────────────────────────────────────────────────
+  const handleStartAutoRead = useCallback((speed) => {
+    clearInterval(autoTimerRef.current);
+    setAutoRead(true);
+    autoReadRef.current = true;
+    autoTimerRef.current = setInterval(() => {
+      const next = currentPageRef.current + 1;
+      if (next >= pagesRef.current.length) {
+        clearInterval(autoTimerRef.current);
+        autoTimerRef.current = null;
+        setAutoRead(false);
+        autoReadRef.current = false;
+        broadcast('manga_sync', { type: 'auto_toggle', enabled: false });
+        toast('📚 Autolectura completada', { duration: 3000 });
+        return;
+      }
+      setCurrentPage(next);
+      currentPageRef.current = next;
+      broadcast('manga_sync', { type: 'page_change', page: next });
+    }, speed * 1000);
+  }, [broadcast]);
+
+  const handleStopAutoRead = useCallback(() => {
+    clearInterval(autoTimerRef.current);
+    autoTimerRef.current = null;
+    setAutoRead(false);
+    autoReadRef.current = false;
+  }, []);
+
+  const handleToggleAutoRead = useCallback(() => {
+    if (!isHostRef.current) return;
+    if (autoReadRef.current) {
+      handleStopAutoRead();
+      broadcast('manga_sync', { type: 'auto_toggle', enabled: false });
+      toast('⏹ Autolectura detenida', { duration: 2000 });
+    } else {
+      handleStartAutoRead(autoSpeedRef.current);
+      broadcast('manga_sync', { type: 'auto_toggle', enabled: true, speed: autoSpeedRef.current });
+      toast(`▶ Autolectura: ${autoSpeedRef.current}s por página`, { duration: 2000 });
+    }
+  }, [handleStopAutoRead, handleStartAutoRead, broadcast]);
+
+  const handleAutoSpeedChange = useCallback((s) => {
+    setAutoSpeed(s);
+    autoSpeedRef.current = s;
+    if (autoReadRef.current) {
+      handleStartAutoRead(s); // restart timer with new speed
+      broadcast('manga_sync', { type: 'auto_toggle', enabled: true, speed: s });
+    }
+  }, [handleStartAutoRead, broadcast]);
 
   // ── Memoized sidebar content ──────────────────────────────────────────────────
   const sidebarContent = useMemo(() => {
@@ -1094,6 +1175,55 @@ const MangaPartyPage = memo(({ onClose } = {}) => {
             <Brush size={13} />
             <span className="hidden sm:inline">{graffitiMode ? 'Graffiti ON' : 'Graffiti'}</span>
           </motion.button>
+        )}
+
+        {/* Auto-read (host only, only when manga is loaded) */}
+        {isHost && pages.length > 0 && (
+          <div className="flex items-center gap-1">
+            {[10, 15, 20].map((s) => (
+              <button
+                key={s}
+                onClick={() => handleAutoSpeedChange(s)}
+                className={`hidden sm:flex px-2 py-1.5 rounded-lg text-[10px] font-black border transition-all ${
+                  autoSpeed === s
+                    ? 'bg-violet-500/20 border-violet-500/40 text-violet-400'
+                    : 'bg-white/5 border-white/10 text-white/30 hover:text-white/60'
+                }`}
+              >
+                {s}s
+              </button>
+            ))}
+            <motion.button
+              whileTap={{ scale: 0.95 }}
+              onClick={handleToggleAutoRead}
+              title={autoRead ? 'Detener autolectura' : `Autolectura (${autoSpeed}s/página)`}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-bold transition-all ${
+                autoRead
+                  ? 'bg-violet-600/30 border-violet-500/40 text-violet-400'
+                  : 'bg-white/5 border-white/10 text-white/50 hover:text-white/70'
+              }`}
+            >
+              {autoRead
+                ? <Square size={11} fill="currentColor" />
+                : <Play size={11} fill="currentColor" />}
+              <span className="hidden sm:inline">{autoRead ? `Auto ${autoSpeed}s` : 'Auto'}</span>
+            </motion.button>
+          </div>
+        )}
+
+        {/* Auto-read indicator for guests */}
+        {!isHost && autoRead && (
+          <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl
+                          bg-violet-500/10 border border-violet-500/20 text-violet-400/70
+                          text-[10px] font-bold flex-shrink-0">
+            <motion.span
+              animate={{ opacity: [1, 0.3, 1] }}
+              transition={{ duration: 1.5, repeat: Infinity }}
+            >
+              ▶
+            </motion.span>
+            Auto {autoSpeed}s
+          </div>
         )}
 
         {/* Room code */}
