@@ -67,6 +67,8 @@ const PaginatedReader = memo(({
   onGraffitiSizeChange,
   onGraffitiUndo,
   onGraffitiClear,
+  graffitiVisible = true,
+  onToggleGraffitiVisible,
   // Stickers
   stickers = [],
   stickerMode = false,
@@ -240,6 +242,7 @@ const PaginatedReader = memo(({
         strokeWidth={graffitiSize}
         remoteEvents={drawEvents}
         onEvent={onDrawEvent}
+        strokesVisible={graffitiVisible}
       />
 
       {/* ── Graffiti toolbar ──────────────────────────────────────────────────── */}
@@ -256,6 +259,8 @@ const PaginatedReader = memo(({
             onClear={handleGraffitiClear}
             isHost={isHost}
             canDraw={canDraw}
+            graffitiVisible={graffitiVisible}
+            onToggleVisible={onToggleGraffitiVisible}
           />
         )}
       </AnimatePresence>

@@ -162,6 +162,7 @@ const MangaPartyPage = memo(({ onClose } = {}) => {
 
   // ── Graffiti mode ─────────────────────────────────────────────────────────────
   const [graffitiMode, setGraffitiMode]         = useState(false);
+  const [graffitiVisible, setGraffitiVisible]   = useState(true);
   const [graffitiTool, setGraffitiTool]         = useState('pencil');
   const [graffitiColor, setGraffitiColor]       = useState('#ef4444');
   const [graffitiSize, setGraffitiSize]         = useState(5);
@@ -1428,19 +1429,33 @@ const MangaPartyPage = memo(({ onClose } = {}) => {
 
         {/* Graffiti toggle (host only) */}
         {isHost && (
-          <motion.button
-            whileTap={{ scale: 0.95 }}
-            onClick={handleGraffitiToggle}
-            title="Graffiti"
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-bold transition-all ${
-              graffitiMode
-                ? 'bg-orange-600/30 border-orange-500/40 text-orange-400'
-                : 'bg-white/5 border-white/10 text-white/50 hover:text-white/70'
-            }`}
-          >
-            <Brush size={13} />
-            <span className="hidden sm:inline">{graffitiMode ? 'Graffiti ON' : 'Graffiti'}</span>
-          </motion.button>
+          <div className="flex items-center gap-1">
+            <motion.button
+              whileTap={{ scale: 0.95 }}
+              onClick={handleGraffitiToggle}
+              title="Graffiti"
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-bold transition-all ${
+                graffitiMode
+                  ? 'bg-orange-600/30 border-orange-500/40 text-orange-400'
+                  : 'bg-white/5 border-white/10 text-white/50 hover:text-white/70'
+              }`}
+            >
+              <Brush size={13} />
+              <span className="hidden sm:inline">{graffitiMode ? 'Graffiti ON' : 'Graffiti'}</span>
+            </motion.button>
+            {/* Visibility toggle — always shown when graffiti mode is on */}
+            {graffitiMode && (
+              <motion.button
+                whileTap={{ scale: 0.9 }}
+                onClick={() => setGraffitiVisible((p) => !p)}
+                title={graffitiVisible ? 'Ocultar dibujos' : 'Mostrar dibujos'}
+                className="flex items-center justify-center w-7 h-7 rounded-xl border text-xs
+                           bg-white/5 border-white/10 text-white/40 hover:text-white/70 transition-all"
+              >
+                {graffitiVisible ? <Eye size={12} /> : <EyeOff size={12} />}
+              </motion.button>
+            )}
+          </div>
         )}
 
         {/* Sticker picker button (all users, when manga loaded) */}
@@ -1736,6 +1751,8 @@ const MangaPartyPage = memo(({ onClose } = {}) => {
             onGraffitiColorChange={setGraffitiColor}
             onGraffitiSizeChange={setGraffitiSize}
             canDraw={graffitiMode}
+            graffitiVisible={graffitiVisible}
+            onToggleGraffitiVisible={() => setGraffitiVisible((p) => !p)}
             stickers={stickersByPage[currentPage] || []}
             stickerMode={stickerMode}
             onPlaceSticker={handlePlaceSticker}
