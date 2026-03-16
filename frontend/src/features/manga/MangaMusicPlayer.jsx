@@ -1,24 +1,22 @@
 // MangaMusicPlayer — ambient music panel for Manga Party
 //
 // Position: fixed top-14 right-3 (top-right corner, below the room header)
-//   On desktop (lg) it shifts left by the sidebar width so it sits inside
-//   the reader area: lg:right-[300px]
 //
-// This ensures it NEVER overlaps the GraffitiToolbar (left-4 top-1/2).
-//
-// Rendering strategy:
-//   • URL tracks  → invisible <ReactPlayer> (YouTube / MP3)
-//   NOTE: ReactPlayer must NOT use display:none — YouTube iframes require
-//   at least 1×1px in the DOM to initialize properly.
+// Playback strategy — direct YouTube IFrame API (no ReactPlayer):
+//   React state updates are async. By the time ReactPlayer processes a
+//   playing=true prop change, the browser's user-gesture window has expired
+//   and Chrome blocks autoplay. The fix: create the <iframe> synchronously
+//   inside the click handler (still within the gesture), then use postMessage
+//   for subsequent play/pause/volume commands.
 
-import React, { memo, useCallback } from 'react';
+import React, { memo, useCallback, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import ReactPlayer from 'react-player';
 import {
   Music2, ChevronDown, ChevronUp, Play, Pause, SkipForward,
   Volume2, VolumeX, RotateCcw, Plus, X, Heart, AlertCircle,
 } from 'lucide-react';
 import { ATMOSPHERE_META } from './mangaTracks';
+import { parseYoutubeUrl } from './useMangaMusic';
 
 // ── MangaMusicPlayer ──────────────────────────────────────────────────────────
 
@@ -58,13 +56,80 @@ const MangaMusicPlayer = memo(({
   // from parent
   isHost,
 }) => {
+  // ── YouTube iframe engine ──────────────────────────────────────────────────
+  // containerRef: off-screen div that holds the active <iframe>
+  // activeVideoId: tracks which video ID is currently loaded
+  const containerRef    = useRef(null);
+  const iframeRef       = useRef(null);
+  const activeVideoId   = useRef(null);
+
+  // Send a YouTube IFrame API command via postMessage
+  const ytCmd = useCallback((func, args = []) => {
+    try {
+      iframeRef.current?.contentWindow?.postMessage(
+        JSON.stringify({ event: 'command', func, args }),
+        '*',
+      );
+    } catch (_) {}
+  }, []);
+
+  // Create (or replace) the iframe — MUST be called inside a user gesture.
+  // autoplay=1 in the src fires play synchronously when the iframe loads,
+  // while the browser still considers the click gesture active.
+  const ytLoad = useCallback((videoId, vol, shouldLoop) => {
+    if (!containerRef.current || !videoId) return;
+    activeVideoId.current = videoId;
+    const loopParam = shouldLoop ? `&loop=1&playlist=${videoId}` : '';
+    const src = `https://www.youtube.com/embed/${videoId}?autoplay=1&controls=0&enablejsapi=1&playsinline=1&rel=0&fs=0${loopParam}&origin=${encodeURIComponent(window.location.origin)}`;
+    const iframe = document.createElement('iframe');
+    iframe.src   = src;
+    iframe.allow = 'autoplay; encrypted-media';
+    iframe.style.cssText = 'width:100%;height:100%;border:0;';
+    containerRef.current.innerHTML = '';
+    containerRef.current.appendChild(iframe);
+    iframeRef.current = iframe;
+    // Apply volume after a brief delay (player needs time to init)
+    setTimeout(() => ytCmd('setVolume', [Math.round(vol * 100)]), 1500);
+  }, [ytCmd]);
+
+  const ytStop = useCallback(() => {
+    if (containerRef.current) containerRef.current.innerHTML = '';
+    iframeRef.current    = null;
+    activeVideoId.current = null;
+  }, []);
+
+  // Keep volume in sync when slider changes
+  useEffect(() => {
+    if (iframeRef.current) ytCmd('setVolume', [Math.round(volume * 100)]);
+  }, [volume, ytCmd]);
+
+  // Sync play/pause state (works after initial autoplay has started)
+  useEffect(() => {
+    if (!iframeRef.current) return;
+    ytCmd(isPlaying ? 'playVideo' : 'pauseVideo');
+  }, [isPlaying, ytCmd]);
+
+  // When current track changes via sync event (guest) or is cleared
+  useEffect(() => {
+    if (!currentTrack?.url) { ytStop(); return; }
+    const vid = parseYoutubeUrl(currentTrack.url);
+    if (!vid || activeVideoId.current === vid) return;
+    // Guest received track change — load with autoplay=1 (works if user has
+    // previously interacted with the page, which is what userInteracted tracks)
+    if (isPlaying && userInteracted) ytLoad(vid, volume, loop);
+  }, [currentTrack?.id, isPlaying, userInteracted]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Interaction gate (mobile autoplay policy) ──────────────────────────────
 
   const handleInteract = useCallback(() => {
     setUserInteracted(true);
+    // User clicked "Iniciar" — create iframe now while gesture is active
+    if (currentTrack?.url) {
+      const vid = parseYoutubeUrl(currentTrack.url);
+      if (vid) ytLoad(vid, volume, loop);
+    }
     if (currentTrack && !isPlaying && isHost) handleTogglePlay();
-  }, [setUserInteracted, currentTrack, isPlaying, isHost, handleTogglePlay]);
+  }, [setUserInteracted, currentTrack, isPlaying, isHost, handleTogglePlay, ytLoad, volume, loop]);
 
   const handleUrlKeyDown = useCallback((e) => {
     if (e.key === 'Enter')  handleAddUrl();
@@ -85,40 +150,15 @@ const MangaMusicPlayer = memo(({
      */
     <div className="fixed top-14 right-3 lg:right-[300px] z-[10020]">
 
-      {/* ── Invisible ReactPlayer (URL tracks only) ──────────────────────── */}
-      {/* Must NOT use display:none — YouTube iframes need to be in the DOM  */}
-      {currentTrack?.url && (
-        <div style={{
-          position: 'absolute', width: 1, height: 1,
-          overflow: 'hidden', opacity: 0, pointerEvents: 'none',
-        }}>
-          <ReactPlayer
-            url={currentTrack.url}
-            playing={isPlaying && userInteracted}
-            volume={volume}
-            loop={loop}
-            width={1}
-            height={1}
-            onEnded={handleTrackEnded}
-            onError={handlePlayerError}
-            onReady={handlePlayerReady}
-            config={{
-              youtube: {
-                playerVars: {
-                  autoplay:    1,
-                  controls:    0,
-                  disablekb:   1,
-                  playsinline: 1,
-                  rel:         0,
-                  fs:          0,
-                  modestbranding: 1,
-                },
-              },
-              file: { forceAudio: true },
-            }}
-          />
-        </div>
-      )}
+      {/* ── Off-screen iframe container (always mounted) ─────────────────── */}
+      {/* ytLoad() injects the <iframe> here synchronously inside click handlers */}
+      <div
+        ref={containerRef}
+        style={{
+          position: 'fixed', top: '-9999px', left: '-9999px',
+          width: 480, height: 270, pointerEvents: 'none',
+        }}
+      />
 
       <AnimatePresence mode="wait">
         {!expanded ? (
@@ -299,7 +339,17 @@ const MangaMusicPlayer = memo(({
                         {/* Play / Pause */}
                         <motion.button
                           whileTap={{ scale: 0.88 }}
-                          onClick={() => { if (!userInteracted) setUserInteracted(true); handleTogglePlay(); }}
+                          onClick={() => {
+                            if (!userInteracted) setUserInteracted(true);
+                            // If paused and no iframe loaded yet, create it now (in gesture)
+                            if (!isPlaying && currentTrack?.url && !iframeRef.current) {
+                              const vid = parseYoutubeUrl(currentTrack.url);
+                              if (vid) ytLoad(vid, volume, loop);
+                            } else {
+                              ytCmd(isPlaying ? 'pauseVideo' : 'playVideo');
+                            }
+                            handleTogglePlay();
+                          }}
                           className="w-8 h-8 rounded-full bg-violet-600 hover:bg-violet-500
                                      flex items-center justify-center text-white transition-colors flex-shrink-0"
                         >
@@ -458,7 +508,13 @@ const MangaMusicPlayer = memo(({
                           {isHost && (
                             <motion.button
                               whileTap={{ scale: 0.85 }}
-                              onClick={() => { if (!userInteracted) setUserInteracted(true); playTrack(track); }}
+                              onClick={() => {
+                                if (!userInteracted) setUserInteracted(true);
+                                // Load iframe synchronously inside the gesture
+                                const vid = parseYoutubeUrl(track.url);
+                                if (vid) ytLoad(vid, volume, loop);
+                                playTrack(track);
+                              }}
                               className={`flex-shrink-0 flex items-center gap-1 px-1.5 py-1 rounded-lg text-[10px] font-black border transition-all ${
                                 isCurrentTrack && isPlaying
                                   ? 'bg-violet-600/20 border-violet-500/30 text-violet-400'
