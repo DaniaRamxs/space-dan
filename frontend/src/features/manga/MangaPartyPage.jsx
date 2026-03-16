@@ -7,7 +7,7 @@ import {
   Users, MessageSquare, Copy, X, Check, Send, Crown,
   BookOpen, Link, ExternalLink, AlertTriangle, ChevronLeft, ChevronRight,
   BookMarked, Brush, Play, Square, Sticker, Eye, EyeOff,
-  Search, Smile, Lightbulb, Music2,
+  Search, Smile, Lightbulb, Music2, Globe, Lock, Plus, Loader2,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuthContext } from '@/contexts/AuthContext';
@@ -245,6 +245,11 @@ const MangaPartyPage = memo(({ onClose } = {}) => {
   const [hostUsername, setHostUsername]       = useState('');
   const [transferTarget, setTransferTarget]   = useState(null); // username to transfer to
 
+  // ── Room privacy & lobby ──────────────────────────────────────────────────────
+  const [isPublic, setIsPublic]         = useState(true);
+  const [publicRooms, setPublicRooms]   = useState([]);
+  const [lobbyLoading, setLobbyLoading] = useState(true);
+
   // ── UI ────────────────────────────────────────────────────────────────────────
   const [codeCopied, setCodeCopied]   = useState(false);
   const [newArrival, setNewArrival]   = useState(null);
@@ -261,6 +266,7 @@ const MangaPartyPage = memo(({ onClose } = {}) => {
   const mangaIdRef    = useRef(null);
   const mangaTitleRef = useRef('');
   const chapterIdRef  = useRef(null);
+  const chapterNumRef = useRef('');
   const currentPageRef = useRef(0);
   const pagesRef         = useRef([]);
   const externalUrlRef   = useRef('');
@@ -278,6 +284,9 @@ const MangaPartyPage = memo(({ onClose } = {}) => {
   const nextChapterRef        = useRef(null);
   const skipAutoReadResetRef  = useRef(false);
   const musicRef              = useRef(null);
+  const lobbyChannelRef       = useRef(null);
+  const isPublicRef           = useRef(true);
+  const roomCodeRef           = useRef('');
 
   // Keep refs in sync
   useEffect(() => { profileRef.current  = profile; },      [profile]);
@@ -297,11 +306,62 @@ const MangaPartyPage = memo(({ onClose } = {}) => {
   useEffect(() => { mangaTitleRef.current = mangaTitle; }, [mangaTitle]);
   useEffect(() => { chapterListRef.current = chapterList; }, [chapterList]);
   useEffect(() => { currentChapterIndexRef.current = currentChapterIndex; }, [currentChapterIndex]);
+  useEffect(() => { chapterNumRef.current = chapterNum; }, [chapterNum]);
+  useEffect(() => { isPublicRef.current = isPublic; }, [isPublic]);
+  useEffect(() => { roomCodeRef.current = roomCode; }, [roomCode]);
 
   // Load room history on mount
   useEffect(() => {
     setRoomHistory(loadRoomHistory());
   }, []);
+
+  // ── Lobby discovery channel ───────────────────────────────────────────────────
+  // All users currently in a room track their room here so others can discover it.
+  useEffect(() => {
+    const ch = supabase.channel('manga-party-lobby', {
+      config: { presence: { key: myUsername } },
+    });
+    ch.on('presence', { event: 'sync' }, () => {
+      const state = ch.presenceState();
+      const allUsers = Object.values(state).flat();
+      const roomMap = {};
+      allUsers.forEach((u) => {
+        if (!u.code || !u.isPublic) return;
+        if (!roomMap[u.code]) {
+          roomMap[u.code] = {
+            code:         u.code,
+            hostUsername: u.hostUsername || '?',
+            mangaTitle:   u.mangaTitle   || '',
+            chapterNum:   u.chapterNum   || '',
+            participants: 0,
+          };
+        }
+        roomMap[u.code].participants += 1;
+      });
+      setPublicRooms(Object.values(roomMap));
+      setLobbyLoading(false);
+    }).subscribe((status) => {
+      if (status === 'SUBSCRIBED') setLobbyLoading(false);
+      if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') setLobbyLoading(false);
+    });
+    lobbyChannelRef.current = ch;
+    return () => {
+      supabase.removeChannel(ch).catch(() => {});
+      lobbyChannelRef.current = null;
+    };
+  }, [myUsername]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Track in lobby whenever relevant room state changes (while in a room)
+  useEffect(() => {
+    if (view !== 'room' || !roomCode || !lobbyChannelRef.current) return;
+    lobbyChannelRef.current.track({
+      code:         roomCode,
+      isPublic,
+      hostUsername: hostUsername || myUsername,
+      mangaTitle:   mangaTitle || '',
+      chapterNum:   chapterNum || '',
+    }).catch(() => {});
+  }, [view, roomCode, isPublic, hostUsername, mangaTitle, chapterNum, myUsername]);
 
   // Auto-scroll chat
   useEffect(() => {
@@ -697,9 +757,12 @@ const MangaPartyPage = memo(({ onClose } = {}) => {
   }, []);
 
   // ── Create room ───────────────────────────────────────────────────────────────
-  const handleCreateRoom = useCallback(() => {
+  const handleCreateRoom = useCallback((publicRoom = true) => {
     const code = generateCode();
+    setIsPublic(publicRoom);
+    isPublicRef.current = publicRoom;
     setRoomCode(code);
+    roomCodeRef.current = code;
     setIsHost(true);
     isHostRef.current = true;
     setHostUsername(myUsername);
@@ -710,11 +773,11 @@ const MangaPartyPage = memo(({ onClose } = {}) => {
     setDrawEvents([]);
     setReactions([]);
     setFloatingEmojis([]);
-    saveRoomHistory({ code, createdAt: new Date().toISOString(), role: 'host' });
+    saveRoomHistory({ code, createdAt: new Date().toISOString(), role: 'host', isPublic: publicRoom });
     setRoomHistory(loadRoomHistory());
     setupChannel(code, true);
-    toast.success(`Sala creada: ${code}`, { duration: 3000 });
-  }, [setupChannel]);
+    toast.success(`Sala ${publicRoom ? 'pública' : 'privada'} creada: ${code}`, { duration: 3000 });
+  }, [setupChannel, myUsername]);
 
   // ── Join room ─────────────────────────────────────────────────────────────────
   const handleJoinRoom = useCallback((codeArg) => {
@@ -744,6 +807,8 @@ const MangaPartyPage = memo(({ onClose } = {}) => {
       supabase.removeChannel(channelRef.current).catch(() => {});
       channelRef.current = null;
     }
+    // Remove from lobby discovery
+    lobbyChannelRef.current?.untrack().catch(() => {});
     setView('lobby');
     setRoomCode('');
     setIsHost(false);
@@ -1280,107 +1345,178 @@ const MangaPartyPage = memo(({ onClose } = {}) => {
 
   if (view === 'lobby') {
     return (
-      <div className="min-h-screen bg-[#0a0a0f] flex items-center justify-center p-4">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="w-full max-w-md"
-        >
-          {/* Header */}
-          <div className="text-center mb-8 relative">
+      <div className="min-h-screen bg-[#0a0a0f] flex flex-col">
+
+        {/* ── Top bar ───────────────────────────────────────────────────────── */}
+        <div className="flex items-center justify-between px-4 py-3 border-b border-white/10 bg-[#0d0d14] flex-shrink-0">
+          <div className="flex items-center gap-2">
+            <span className="text-xl">📚</span>
+            <h1 className="text-white font-black text-lg">Manga Party</h1>
+          </div>
+          <div className="flex items-center gap-2">
             {onClose && (
               <button
                 onClick={onClose}
-                className="absolute right-0 top-0 w-8 h-8 rounded-lg bg-white/5 border border-white/10
+                className="w-8 h-8 rounded-lg bg-white/5 border border-white/10
                            flex items-center justify-center text-white/40 hover:text-red-400
                            hover:border-red-400/30 transition-all"
               >
-                <X size={15} />
+                <X size={14} />
               </button>
             )}
-            <div className="inline-flex items-center gap-2 mb-3">
-              <span className="text-4xl">📚</span>
-              <h1 className="text-3xl font-black text-white">Manga Party</h1>
-            </div>
-            <p className="text-white/40 text-sm">
-              Lee manga sincronizado en tiempo real con tus amigos
-            </p>
+          </div>
+        </div>
+
+        {/* ── Room browser ──────────────────────────────────────────────────── */}
+        <div className="flex-1 overflow-y-auto p-4" style={{ scrollbarWidth: 'thin', scrollbarColor: '#7c3aed33 transparent' }}>
+
+          {/* Create room actions */}
+          <div className="flex flex-col sm:flex-row gap-2 mb-6">
+            <motion.button
+              whileTap={{ scale: 0.97 }}
+              onClick={() => handleCreateRoom(true)}
+              className="flex-1 py-3.5 rounded-xl bg-violet-600 hover:bg-violet-500
+                         text-white font-black text-sm transition-colors
+                         flex items-center justify-center gap-2 shadow-lg shadow-violet-500/20"
+            >
+              <Globe size={15} />
+              Nueva sala pública
+            </motion.button>
+            <motion.button
+              whileTap={{ scale: 0.97 }}
+              onClick={() => handleCreateRoom(false)}
+              className="sm:w-auto py-3.5 px-5 rounded-xl bg-white/5 border border-white/15
+                         hover:bg-white/10 text-white/60 hover:text-white/80
+                         font-black text-sm transition-all
+                         flex items-center justify-center gap-2"
+            >
+              <Lock size={14} />
+              Sala privada
+            </motion.button>
           </div>
 
-          <div className="bg-[#0d0d14] border border-white/10 rounded-2xl p-6 space-y-6">
-            {/* Create room */}
-            <div>
-              <motion.button
-                whileTap={{ scale: 0.97 }}
-                onClick={handleCreateRoom}
-                className="w-full py-4 rounded-xl bg-violet-600 hover:bg-violet-500
-                           text-white font-black text-base transition-colors
-                           flex items-center justify-center gap-2 shadow-lg shadow-violet-500/20"
-              >
-                <BookOpen size={18} />
-                Crear sala
-              </motion.button>
-            </div>
-
-            <div className="flex items-center gap-3">
-              <div className="flex-1 h-px bg-white/10" />
-              <span className="text-white/20 text-xs font-bold">o únete</span>
-              <div className="flex-1 h-px bg-white/10" />
-            </div>
-
-            {/* Join room */}
-            <div className="space-y-3">
-              <div className="flex gap-2">
-                <input
-                  value={joinCode}
-                  onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
-                  onKeyDown={(e) => e.key === 'Enter' && handleJoinRoom()}
-                  placeholder="Código de sala"
-                  maxLength={8}
-                  className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-3
-                             text-white font-mono text-sm placeholder-white/20 outline-none
-                             focus:border-violet-500/50 transition-all uppercase tracking-widest"
-                />
-                <motion.button
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => handleJoinRoom()}
-                  disabled={!joinCode.trim()}
-                  className="px-5 py-3 rounded-xl bg-pink-600 hover:bg-pink-500
-                             text-white font-black text-sm transition-colors
-                             disabled:opacity-30 flex items-center gap-1.5"
-                >
-                  Unirse
-                  <ChevronRight size={14} />
-                </motion.button>
-              </div>
-            </div>
-
-            {/* Recent rooms */}
-            {roomHistory.length > 0 && (
-              <div className="space-y-2">
-                <p className="text-white/30 text-xs font-bold uppercase tracking-wider">
-                  Salas recientes
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  {roomHistory.map((r) => (
-                    <motion.button
-                      key={r.code}
-                      whileTap={{ scale: 0.94 }}
-                      onClick={() => handleJoinRoom(r.code)}
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg
-                                 bg-white/5 border border-white/10 hover:border-white/20
-                                 text-white/50 hover:text-white/80 text-xs font-mono
-                                 transition-all"
-                    >
-                      {r.role === 'host' && <Crown size={10} className="text-violet-400" />}
-                      {r.code}
-                    </motion.button>
-                  ))}
-                </div>
-              </div>
+          {/* Active rooms */}
+          <div className="mb-3 flex items-center gap-2">
+            <p className="text-white/30 text-xs font-bold uppercase tracking-wider">Salas activas</p>
+            {!lobbyLoading && (
+              <span className="text-white/20 text-xs">— {publicRooms.length} sala{publicRooms.length !== 1 ? 's' : ''}</span>
             )}
           </div>
-        </motion.div>
+
+          {lobbyLoading ? (
+            <div className="flex items-center justify-center py-16 text-white/20">
+              <Loader2 size={20} className="animate-spin mr-2" />
+              <span className="text-sm">Buscando salas<AnimatedDots /></span>
+            </div>
+          ) : publicRooms.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 text-center">
+              <span className="text-5xl mb-4">🏮</span>
+              <p className="text-white/50 font-bold mb-1">No hay salas activas</p>
+              <p className="text-white/25 text-sm">¡Sé el primero en crear una sala pública!</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              {publicRooms.map((room) => (
+                <motion.div
+                  key={room.code}
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="bg-[#0d0d14] border border-white/10 rounded-2xl p-4
+                             hover:border-violet-500/30 transition-all group"
+                >
+                  {/* Room info */}
+                  <div className="flex items-start justify-between gap-2 mb-3">
+                    <div className="min-w-0">
+                      <p className="text-white font-black text-sm truncate">
+                        {room.mangaTitle || 'Sala de lectura'}
+                      </p>
+                      {room.chapterNum && (
+                        <p className="text-violet-400/70 text-[11px]">Cap. {room.chapterNum}</p>
+                      )}
+                    </div>
+                    <span className="flex-shrink-0 text-[10px] font-mono text-white/20 bg-white/5 rounded px-1.5 py-0.5">
+                      {room.code}
+                    </span>
+                  </div>
+
+                  {/* Host + participants */}
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-1.5">
+                      <Crown size={10} className="text-amber-400" />
+                      <span className="text-white/50 text-xs truncate max-w-[100px]">{room.hostUsername}</span>
+                    </div>
+                    <div className="flex items-center gap-1 text-white/30 text-xs">
+                      <Users size={11} />
+                      <span>{room.participants}</span>
+                    </div>
+                  </div>
+
+                  {/* Join button */}
+                  <motion.button
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => handleJoinRoom(room.code)}
+                    className="w-full py-2 rounded-xl bg-violet-600/20 border border-violet-500/30
+                               text-violet-400 font-black text-xs transition-all
+                               hover:bg-violet-600/40 hover:border-violet-500/50
+                               group-hover:bg-violet-600/30"
+                  >
+                    Unirse
+                  </motion.button>
+                </motion.div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* ── Private room join ─────────────────────────────────────────────── */}
+        <div className="border-t border-white/10 bg-[#0d0d14] p-4 flex-shrink-0">
+          <p className="text-white/25 text-[11px] text-center mb-2.5">¿Tienes un código de invitación?</p>
+          <div className="flex gap-2 max-w-sm mx-auto">
+            <input
+              value={joinCode}
+              onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
+              onKeyDown={(e) => e.key === 'Enter' && handleJoinRoom()}
+              placeholder="Código de sala"
+              maxLength={8}
+              className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-2.5
+                         text-white font-mono text-sm placeholder-white/20 outline-none
+                         focus:border-violet-500/50 transition-all uppercase tracking-widest"
+            />
+            <motion.button
+              whileTap={{ scale: 0.95 }}
+              onClick={() => handleJoinRoom()}
+              disabled={!joinCode.trim()}
+              className="px-4 py-2.5 rounded-xl bg-pink-600/80 hover:bg-pink-500
+                         text-white font-black text-sm transition-colors
+                         disabled:opacity-30 flex items-center gap-1.5 flex-shrink-0"
+            >
+              Entrar
+              <ChevronRight size={13} />
+            </motion.button>
+          </div>
+
+          {/* Recent rooms */}
+          {roomHistory.length > 0 && (
+            <div className="mt-3 flex flex-wrap gap-1.5 justify-center">
+              {roomHistory.map((r) => (
+                <motion.button
+                  key={r.code}
+                  whileTap={{ scale: 0.94 }}
+                  onClick={() => handleJoinRoom(r.code)}
+                  title={`Volver a sala ${r.code}`}
+                  className="flex items-center gap-1 px-2.5 py-1 rounded-lg
+                             bg-white/5 border border-white/8 hover:border-white/20
+                             text-white/40 hover:text-white/70 text-[10px] font-mono
+                             transition-all"
+                >
+                  {r.role === 'host' && <Crown size={8} className="text-violet-400/60" />}
+                  {r.isPublic === false && <Lock size={8} className="text-white/30" />}
+                  {r.code}
+                </motion.button>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
     );
   }
@@ -1612,6 +1748,22 @@ const MangaPartyPage = memo(({ onClose } = {}) => {
             </motion.span>
             Auto {autoSpeed}s
           </div>
+        )}
+
+        {/* Privacy toggle (host only) */}
+        {isHost && (
+          <motion.button
+            whileTap={{ scale: 0.95 }}
+            onClick={() => setIsPublic((p) => !p)}
+            title={isPublic ? 'Sala pública — click para hacer privada' : 'Sala privada — click para hacer pública'}
+            className={`flex items-center gap-1 px-2.5 py-1.5 rounded-xl border text-xs font-bold transition-all flex-shrink-0 ${
+              isPublic
+                ? 'bg-green-500/10 border-green-500/20 text-green-400/70 hover:text-green-400'
+                : 'bg-white/5 border-white/10 text-white/30 hover:text-white/60'
+            }`}
+          >
+            {isPublic ? <Globe size={11} /> : <Lock size={11} />}
+          </motion.button>
         )}
 
         {/* Room code */}
