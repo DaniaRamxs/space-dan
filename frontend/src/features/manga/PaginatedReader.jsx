@@ -72,6 +72,8 @@ const PaginatedReader = memo(({
   // Stickers
   stickers = [],
   stickerMode = false,
+  pendingGifUrl,
+  pendingGifSize = 80,
   onPlaceSticker,
   onRemoveSticker,
   stickersVisible = true,
@@ -273,6 +275,8 @@ const PaginatedReader = memo(({
         stickers={stickers}
         imageRect={imageRect}
         placementMode={stickerMode}
+        pendingGifUrl={pendingGifUrl}
+        pendingGifSize={pendingGifSize}
         onPlace={onPlaceSticker}
         onRemove={onRemoveSticker}
         visible={stickersVisible}

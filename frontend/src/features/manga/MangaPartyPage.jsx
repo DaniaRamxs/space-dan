@@ -1755,6 +1755,8 @@ const MangaPartyPage = memo(({ onClose } = {}) => {
             onToggleGraffitiVisible={() => setGraffitiVisible((p) => !p)}
             stickers={stickersByPage[currentPage] || []}
             stickerMode={stickerMode}
+            pendingGifUrl={pendingGif?.gifUrl}
+            pendingGifSize={stickerSize}
             onPlaceSticker={handlePlaceSticker}
             onRemoveSticker={handleRemoveSticker}
             stickersVisible={stickersVisible}

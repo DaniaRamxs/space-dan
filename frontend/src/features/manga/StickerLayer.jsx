@@ -1,5 +1,5 @@
-// StickerLayer — renderiza GIF stickers sobre la página del manga con posicionamiento relativo
-import React, { memo, useCallback } from 'react';
+// StickerLayer — renders GIF stickers over the manga page
+import React, { memo, useCallback, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X } from 'lucide-react';
 
@@ -29,65 +29,117 @@ export function getImageRect(containerW, containerH, imgNatW, imgNatH) {
 }
 
 // ─── StickerLayer ─────────────────────────────────────────────────────────────
-// Renders GIF stickers over the manga page.
-//
 // Props:
 //   stickers       — [{id, gifUrl, x, y, width, username}] for current page
-//   imageRect      — {x, y, w, h} displayed image bounds in container pixels
-//   placementMode  — bool: shows crosshair cursor, click places sticker
-//   onPlace        — (rx, ry) called with relative (0-1) coords when placing
+//   imageRect      — kept for API compat (not used for placement/rendering coords)
+//   placementMode  — bool: GIF selected, waiting for user to place it
+//   pendingGifUrl  — URL of the GIF being placed (for drag preview)
+//   pendingGifSize — width in px of the preview GIF
+//   onPlace        — (rx, ry) called with container-relative (0-1) coords
 //   onRemove       — (stickerId) => void
-//   visible        — bool: hides all stickers
-//   myUsername     — current user (can remove own stickers)
+//   visible        — bool: hides all placed stickers
+//   myUsername     — current user
 //   isHost         — host can remove any sticker
 
 const StickerLayer = memo(({
   stickers = [],
-  imageRect,
+  imageRect,          // API compat only
   placementMode = false,
+  pendingGifUrl,
+  pendingGifSize = 80,
   onPlace,
   onRemove,
   visible = true,
   myUsername = '',
   isHost = false,
 }) => {
+  const containerRef   = useRef(null);
+  const isDragging     = useRef(false);
+  const [dragPos, setDragPos] = useState(null); // { x, y } in % (0-1)
+
+  // ── Pointer handlers for drag-to-place ───────────────────────────────────────
+
+  const getContainerRelative = useCallback((e) => {
+    const el = containerRef.current;
+    if (!el) return null;
+    const rect = el.getBoundingClientRect();
+    if (!rect.width || !rect.height) return null;
+    return {
+      x: Math.max(0, Math.min(1, (e.clientX - rect.left)  / rect.width)),
+      y: Math.max(0, Math.min(1, (e.clientY - rect.top)   / rect.height)),
+    };
+  }, []);
+
   const handlePointerDown = useCallback((e) => {
     if (!placementMode || !onPlace) return;
-    // Only react to primary button (left click / first touch)
-    if (e.button !== undefined && e.button !== 0) return;
+    if (e.button !== 0 && e.button !== undefined) return;
     e.preventDefault();
     e.stopPropagation();
-    const rect = e.currentTarget.getBoundingClientRect();
-    const clientX = e.clientX ?? e.touches?.[0]?.clientX ?? 0;
-    const clientY = e.clientY ?? e.touches?.[0]?.clientY ?? 0;
-    // If imageRect is available and valid, place within image bounds
-    const ir = imageRect?.w > 0 ? imageRect : { x: 0, y: 0, w: rect.width, h: rect.height };
-    const px = clientX - rect.left  - ir.x;
-    const py = clientY - rect.top   - ir.y;
-    const rx = Math.max(0, Math.min(1, px / ir.w));
-    const ry = Math.max(0, Math.min(1, py / ir.h));
-    onPlace(rx, ry);
-  }, [placementMode, onPlace, imageRect]);
+    e.currentTarget.setPointerCapture(e.pointerId);
+    isDragging.current = true;
+    const pos = getContainerRelative(e);
+    if (pos) setDragPos(pos);
+  }, [placementMode, onPlace, getContainerRelative]);
+
+  const handlePointerMove = useCallback((e) => {
+    if (!isDragging.current || !placementMode) return;
+    e.preventDefault();
+    const pos = getContainerRelative(e);
+    if (pos) setDragPos(pos);
+  }, [placementMode, getContainerRelative]);
+
+  const handlePointerUp = useCallback((e) => {
+    if (!isDragging.current || !placementMode || !onPlace) return;
+    isDragging.current = false;
+    const pos = getContainerRelative(e) || dragPos;
+    setDragPos(null);
+    if (pos) onPlace(pos.x, pos.y);
+  }, [placementMode, onPlace, getContainerRelative, dragPos]);
+
+  const handlePointerCancel = useCallback(() => {
+    isDragging.current = false;
+    setDragPos(null);
+  }, []);
 
   return (
     <div
+      ref={containerRef}
       className="absolute inset-0 z-[25]"
       style={{
         cursor:        placementMode ? 'crosshair' : 'default',
-        // When NOT placing, pass all pointer events through to the canvas below.
-        // Individual sticker items (with their own pointerEvents:'auto') still work.
         pointerEvents: placementMode ? 'auto' : 'none',
       }}
       onPointerDown={handlePointerDown}
+      onPointerMove={handlePointerMove}
+      onPointerUp={handlePointerUp}
+      onPointerCancel={handlePointerCancel}
     >
+      {/* ── Drag preview (shown while placing) ───────────────────────────────── */}
+      {placementMode && dragPos && pendingGifUrl && (
+        <img
+          src={pendingGifUrl}
+          alt="preview"
+          draggable={false}
+          style={{
+            position:      'absolute',
+            left:          `${dragPos.x * 100}%`,
+            top:           `${dragPos.y * 100}%`,
+            transform:     'translate(-50%, -50%)',
+            width:         `${pendingGifSize}px`,
+            opacity:       0.85,
+            pointerEvents: 'none',
+            borderRadius:  '8px',
+            filter:        'drop-shadow(0 4px 12px rgba(0,0,0,0.6))',
+            userSelect:    'none',
+          }}
+        />
+      )}
+
+      {/* ── Placed stickers ───────────────────────────────────────────────────── */}
       {visible && (
         <AnimatePresence>
           {stickers.map((s) => {
             const canRemove = isHost || s.username === myUsername;
-            const ir = imageRect ?? { x: 0, y: 0, w: 0, h: 0 };
-            const leftPx = ir.x + s.x * ir.w;
-            const topPx  = ir.y + s.y * ir.h;
-
             return (
               <motion.div
                 key={s.id}
@@ -97,15 +149,15 @@ const StickerLayer = memo(({
                 transition={{ type: 'spring', stiffness: 440, damping: 22 }}
                 className="absolute group"
                 style={{
-                  left: `${leftPx}px`,
-                  top:  `${topPx}px`,
-                  transform: 'translate(-50%, -50%)',
-                  width: `${s.width ?? 80}px`,
+                  left:          `${s.x * 100}%`,
+                  top:           `${s.y * 100}%`,
+                  transform:     'translate(-50%, -50%)',
+                  width:         `${s.width ?? 80}px`,
                   pointerEvents: placementMode ? 'none' : 'auto',
-                  zIndex: 1,
+                  zIndex:        1,
                 }}
               >
-                {/* Floating animation wrapper */}
+                {/* Floating animation */}
                 <motion.div
                   animate={{ y: [0, -4, 0] }}
                   transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut', delay: Math.random() * 2 }}
@@ -121,36 +173,21 @@ const StickerLayer = memo(({
 
                 {/* Remove button on hover */}
                 {canRemove && (
-                  <button
+                  <motion.button
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    whileHover={{ opacity: 1, scale: 1 }}
+                    className="absolute -top-2 -right-2 w-5 h-5 rounded-full
+                               bg-red-500 border-2 border-white flex items-center justify-center
+                               opacity-0 group-hover:opacity-100 transition-opacity z-10"
                     onClick={(e) => { e.stopPropagation(); onRemove?.(s.id); }}
-                    className="absolute -top-2.5 -right-2.5 w-5 h-5 rounded-full
-                               bg-black/80 border border-white/20 text-white/60
-                               flex items-center justify-center
-                               opacity-0 group-hover:opacity-100 transition-opacity
-                               hover:bg-red-500/80 hover:text-white z-10"
                   >
-                    <X size={10} />
-                  </button>
+                    <X size={10} className="text-white" />
+                  </motion.button>
                 )}
               </motion.div>
             );
           })}
         </AnimatePresence>
-      )}
-
-      {/* Placement hint */}
-      {placementMode && (
-        <div className="absolute inset-0 pointer-events-none flex items-end justify-center pb-10">
-          <motion.div
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="bg-black/75 backdrop-blur-sm border border-violet-500/40
-                       rounded-full px-4 py-2 flex items-center gap-2 shadow-xl"
-          >
-            <span className="w-2 h-2 rounded-full bg-violet-400 animate-pulse flex-shrink-0" />
-            <span className="text-white/80 text-xs font-bold">Toca para colocar — ESC para cancelar</span>
-          </motion.div>
-        </div>
       )}
     </div>
   );
