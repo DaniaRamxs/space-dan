@@ -7,6 +7,7 @@ import {
   Users, MessageSquare, Copy, X, Check, Send, Crown,
   BookOpen, Link, ExternalLink, AlertTriangle, ChevronLeft, ChevronRight,
   BookMarked, Brush, Play, Square, Sticker, Eye, EyeOff,
+  Search, Smile, Lightbulb, Music2,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuthContext } from '@/contexts/AuthContext';
@@ -103,6 +104,63 @@ const AnimatedDots = () => (
       />
     ))}
   </span>
+);
+
+// ─── Feature mode cards (shown in empty state) ────────────────────────────────
+
+const FEATURE_CARDS = [
+  {
+    icon: Brush,
+    color: '#fb923c',
+    bg: 'bg-orange-500/10',
+    border: 'border-orange-500/20',
+    title: 'Graffiti',
+    desc: 'Dibuja sobre las páginas del manga en tiempo real con otros usuarios.',
+  },
+  {
+    icon: Play,
+    color: '#a78bfa',
+    bg: 'bg-violet-500/10',
+    border: 'border-violet-500/20',
+    title: 'Auto Read',
+    desc: 'El manga avanza automáticamente mientras todos leen juntos.',
+  },
+  {
+    icon: Lightbulb,
+    color: '#60a5fa',
+    bg: 'bg-blue-500/10',
+    border: 'border-blue-500/20',
+    title: 'Teorías',
+    desc: 'Comparte teorías, notas y comentarios sobre cada página.',
+  },
+  {
+    icon: Smile,
+    color: '#f472b6',
+    bg: 'bg-pink-500/10',
+    border: 'border-pink-500/20',
+    title: 'Stickers',
+    desc: 'Envía stickers GIF que flotan sobre el manga en tiempo real.',
+  },
+];
+
+// ─── MobileToolBtn ────────────────────────────────────────────────────────────
+
+const MobileToolBtn = ({ active, onClick, icon: Icon, label, activeColor = 'text-violet-400', activeBg = 'bg-violet-500/15 border-violet-500/30', dot }) => (
+  <motion.button
+    whileTap={{ scale: 0.88 }}
+    onClick={onClick}
+    className={`relative flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl border transition-all ${
+      active
+        ? `${activeBg} ${activeColor}`
+        : 'bg-transparent border-transparent text-white/35 hover:text-white/60'
+    }`}
+  >
+    <Icon size={17} />
+    <span className="text-[9px] font-bold leading-none">{label}</span>
+    {dot && (
+      <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-pink-500 border-2 border-[#0d0d14]" />
+    )}
+  </motion.button>
 );
 
 // ─── Main Component ───────────────────────────────────────────────────────────
@@ -1412,12 +1470,12 @@ const MangaPartyPage = memo(({ onClose } = {}) => {
         )}
 
 
-        {/* Theory mode toggle (all users) */}
+        {/* Theory mode toggle — desktop only (mobile uses bottom toolbar) */}
         <motion.button
           whileTap={{ scale: 0.95 }}
           onClick={() => setTheoryMode((p) => !p)}
           title="Modo teoría"
-          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-bold transition-all ${
+          className={`hidden lg:flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-bold transition-all ${
             theoryMode
               ? 'bg-violet-600/30 border-violet-500/40 text-violet-400'
               : 'bg-white/5 border-white/10 text-white/50 hover:text-white/70'
@@ -1427,9 +1485,9 @@ const MangaPartyPage = memo(({ onClose } = {}) => {
           <span className="hidden sm:inline">{theoryMode ? 'Teoría ON' : 'Teoría'}</span>
         </motion.button>
 
-        {/* Graffiti toggle (host only) */}
+        {/* Graffiti toggle (host only) — desktop only (mobile uses bottom toolbar) */}
         {isHost && (
-          <div className="flex items-center gap-1">
+          <div className="hidden lg:flex items-center gap-1">
             <motion.button
               whileTap={{ scale: 0.95 }}
               onClick={handleGraffitiToggle}
@@ -1458,9 +1516,9 @@ const MangaPartyPage = memo(({ onClose } = {}) => {
           </div>
         )}
 
-        {/* Sticker picker button (all users, when manga loaded) */}
+        {/* Sticker picker button — desktop only (mobile uses bottom toolbar) */}
         {pages.length > 0 && (
-          <div className="flex items-center gap-1">
+          <div className="hidden lg:flex items-center gap-1">
             <motion.button
               whileTap={{ scale: 0.95 }}
               onClick={() => {
@@ -1507,9 +1565,9 @@ const MangaPartyPage = memo(({ onClose } = {}) => {
           </div>
         )}
 
-        {/* Auto-read (host only, only when manga is loaded) */}
+        {/* Auto-read — desktop only (mobile uses bottom toolbar) */}
         {isHost && pages.length > 0 && (
-          <div className="flex items-center gap-1">
+          <div className="hidden lg:flex items-center gap-1">
             {[10, 15, 20].map((s) => (
               <button
                 key={s}
@@ -1698,34 +1756,76 @@ const MangaPartyPage = memo(({ onClose } = {}) => {
           )}
 
           {!externalUrl && !mangaId && !pagesLoading && (
-            <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 text-white/20">
-              <BookOpen size={56} className="opacity-20" />
-              <p className="text-sm font-medium">
-                {isHost
-                  ? 'Elige un manga para empezar'
-                  : 'Esperando que el host elija un manga'}
-              </p>
-              {isHost && (
-                <div className="flex items-center gap-3 mt-2">
-                  <motion.button
-                    whileTap={{ scale: 0.95 }}
-                    onClick={() => setShowSearch(true)}
-                    className="px-5 py-2.5 rounded-xl bg-violet-600 hover:bg-violet-500
-                               text-white font-black text-sm transition-colors"
-                  >
-                    Buscar manga
-                  </motion.button>
-                  <span className="text-white/20 text-xs">o</span>
-                  <motion.button
-                    whileTap={{ scale: 0.95 }}
-                    onClick={() => setShowUrlInput(true)}
-                    className="px-5 py-2.5 rounded-xl bg-cyan-600/20 border border-cyan-500/30
-                               hover:bg-cyan-600/30 text-cyan-400 font-black text-sm transition-colors"
-                  >
-                    Pegar URL
-                  </motion.button>
+            <div className="absolute inset-0 overflow-y-auto">
+              <div className="min-h-full flex flex-col items-center justify-center px-5 py-10 gap-7">
+
+                {/* Title */}
+                <div className="text-center">
+                  <div className="text-5xl mb-4">📚</div>
+                  <h2 className="text-white font-black text-xl mb-2">
+                    {isHost ? 'Elige un manga para comenzar' : 'Esperando al host…'}
+                  </h2>
+                  <p className="text-white/30 text-sm leading-relaxed max-w-xs mx-auto">
+                    {isHost
+                      ? 'Busca por título o pega una URL directa de cualquier manga.'
+                      : 'El host está eligiendo el manga. Pronto empezamos.'}
+                  </p>
                 </div>
-              )}
+
+                {/* Action buttons — host only */}
+                {isHost && (
+                  <div className="flex items-center gap-3 w-full max-w-xs">
+                    <motion.button
+                      whileTap={{ scale: 0.95 }}
+                      onClick={() => setShowSearch(true)}
+                      className="flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl
+                                 bg-violet-600 hover:bg-violet-500 text-white font-black text-sm
+                                 transition-colors shadow-lg shadow-violet-500/25"
+                    >
+                      <Search size={15} />
+                      Buscar manga
+                    </motion.button>
+                    <motion.button
+                      whileTap={{ scale: 0.95 }}
+                      onClick={() => setShowUrlInput(true)}
+                      className="flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl
+                                 bg-cyan-600/20 border border-cyan-500/30 hover:bg-cyan-600/30
+                                 text-cyan-400 font-black text-sm transition-colors"
+                    >
+                      <Link size={15} />
+                      Pegar URL
+                    </motion.button>
+                  </div>
+                )}
+
+                {/* Feature mode cards */}
+                <div className="w-full max-w-sm">
+                  <p className="text-white/20 text-[10px] font-black uppercase tracking-widest text-center mb-3">
+                    Modos de interacción
+                  </p>
+                  <div className="grid grid-cols-2 gap-2.5">
+                    {FEATURE_CARDS.map((card) => (
+                      <motion.div
+                        key={card.title}
+                        whileHover={{ scale: 1.02, y: -2 }}
+                        whileTap={{ scale: 0.97 }}
+                        className={`${card.bg} border ${card.border} rounded-2xl p-4 cursor-default`}
+                        style={{ boxShadow: `0 4px 20px ${card.color}14` }}
+                      >
+                        <div
+                          className="w-8 h-8 rounded-xl flex items-center justify-center mb-2.5"
+                          style={{ backgroundColor: `${card.color}22` }}
+                        >
+                          <card.icon size={16} style={{ color: card.color }} />
+                        </div>
+                        <p className="text-white/80 text-xs font-black mb-1">{card.title}</p>
+                        <p className="text-white/35 text-[10px] leading-relaxed">{card.desc}</p>
+                      </motion.div>
+                    ))}
+                  </div>
+                </div>
+
+              </div>
             </div>
           )}
 
@@ -1814,19 +1914,81 @@ const MangaPartyPage = memo(({ onClose } = {}) => {
       {/* ── Music player ─────────────────────────────────────────────────────── */}
       <MangaMusicPlayer {...music} isHost={isHost} />
 
-      {/* ── Mobile chat FAB (< lg) ───────────────────────────────────────────── */}
-      <div className="fixed bottom-20 right-3 z-40 lg:hidden">
-        <motion.button
-          whileTap={{ scale: 0.88 }}
-          onClick={() => { setMobilePanel((p) => !p); setMobilePanelDot(false); }}
-          className="w-12 h-12 rounded-full bg-violet-600 shadow-lg shadow-violet-500/40
-                     flex items-center justify-center text-white relative"
-        >
-          {mobilePanel ? <X size={18} /> : <MessageSquare size={19} />}
-          {!mobilePanel && mobilePanelDot && (
-            <span className="absolute -top-0.5 -right-0.5 w-3 h-3 rounded-full bg-pink-500 border-2 border-[#0a0a0f]" />
+      {/* ── Mobile bottom toolbar (< lg) ──────────────────────────────────────── */}
+      <div className="fixed bottom-0 left-0 right-0 z-[39] lg:hidden
+                      bg-[#0d0d14]/97 border-t border-white/10 backdrop-blur-md"
+           style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
+        <div className="flex items-center justify-around px-1 py-1">
+
+          {/* Graffiti — host only */}
+          {isHost && (
+            <MobileToolBtn
+              active={graffitiMode}
+              onClick={handleGraffitiToggle}
+              icon={Brush}
+              label="Dibujar"
+              activeColor="text-orange-400"
+              activeBg="bg-orange-500/15 border-orange-500/30"
+            />
           )}
-        </motion.button>
+
+          {/* Theory */}
+          <MobileToolBtn
+            active={theoryMode}
+            onClick={() => setTheoryMode((p) => !p)}
+            icon={Lightbulb}
+            label="Teorías"
+            activeColor="text-blue-400"
+            activeBg="bg-blue-500/15 border-blue-500/30"
+          />
+
+          {/* Stickers */}
+          <MobileToolBtn
+            active={stickerMode || showStickerPicker}
+            onClick={() => {
+              if (stickerMode) { setStickerMode(false); setPendingGif(null); }
+              else setShowStickerPicker((p) => !p);
+            }}
+            icon={Smile}
+            label={stickerMode ? 'Colocando' : 'Stickers'}
+            activeColor="text-pink-400"
+            activeBg="bg-pink-500/15 border-pink-500/30"
+          />
+
+          {/* Auto Read — host only */}
+          {isHost && (
+            <MobileToolBtn
+              active={autoRead}
+              onClick={handleToggleAutoRead}
+              icon={autoRead ? Square : Play}
+              label={autoRead ? `Auto ${autoSpeed}s` : 'Auto'}
+              activeColor="text-violet-400"
+              activeBg="bg-violet-500/15 border-violet-500/30"
+            />
+          )}
+
+          {/* Music */}
+          <MobileToolBtn
+            active={music.expanded}
+            onClick={() => music.setExpanded((p) => !p)}
+            icon={Music2}
+            label="Música"
+            activeColor="text-violet-400"
+            activeBg="bg-violet-500/15 border-violet-500/30"
+          />
+
+          {/* Chat */}
+          <MobileToolBtn
+            active={mobilePanel}
+            onClick={() => { setMobilePanel((p) => !p); setMobilePanelDot(false); }}
+            icon={MessageSquare}
+            label="Chat"
+            activeColor="text-violet-400"
+            activeBg="bg-violet-500/15 border-violet-500/30"
+            dot={!mobilePanel && mobilePanelDot}
+          />
+
+        </div>
       </div>
 
       {/* ── Mobile bottom panel ───────────────────────────────────────────────── */}
