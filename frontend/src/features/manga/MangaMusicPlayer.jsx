@@ -1,6 +1,6 @@
 import React, { memo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import ReactPlayer from 'react-player/lazy';
+import ReactPlayer from 'react-player';
 import {
   Music2, ChevronDown, ChevronUp, Play, Pause, SkipForward,
   Volume2, VolumeX, RotateCcw, Plus, X, Heart, Check,
