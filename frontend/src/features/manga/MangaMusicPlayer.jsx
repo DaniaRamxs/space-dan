@@ -7,9 +7,9 @@
 // This ensures it NEVER overlaps the GraffitiToolbar (left-4 top-1/2).
 //
 // Rendering strategy:
-//   • URL tracks  → hidden <ReactPlayer> (YouTube / MP3)
-//   • Generated tracks → Web Audio API (managed inside useMangaMusic)
-//   • ReactPlayer is rendered once and kept alive while a URL track is active
+//   • URL tracks  → invisible <ReactPlayer> (YouTube / MP3)
+//   NOTE: ReactPlayer must NOT use display:none — YouTube iframes require
+//   at least 1×1px in the DOM to initialize properly.
 
 import React, { memo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -17,7 +17,6 @@ import ReactPlayer from 'react-player';
 import {
   Music2, ChevronDown, ChevronUp, Play, Pause, SkipForward,
   Volume2, VolumeX, RotateCcw, Plus, X, Heart, AlertCircle,
-  Zap,
 } from 'lucide-react';
 import { ATMOSPHERE_META } from './mangaTracks';
 
@@ -74,8 +73,7 @@ const MangaMusicPlayer = memo(({
 
   // ── Computed display props ─────────────────────────────────────────────────
 
-  const trackMeta   = currentTrack ? ATMOSPHERE_META[currentTrack.category] : null;
-  const isGenerated = !!currentTrack?.generated;
+  const trackMeta = currentTrack ? ATMOSPHERE_META[currentTrack.category] : null;
 
   // ── Render ─────────────────────────────────────────────────────────────────
 
@@ -87,32 +85,39 @@ const MangaMusicPlayer = memo(({
      */
     <div className="fixed top-14 right-3 lg:right-[300px] z-[10020]">
 
-      {/* ── Hidden ReactPlayer (URL tracks only) ─────────────────────────── */}
-      {currentTrack?.url && !isGenerated && (
-        <ReactPlayer
-          url={currentTrack.url}
-          playing={isPlaying && userInteracted}
-          volume={volume}
-          loop={loop}
-          width="0"
-          height="0"
-          style={{ display: 'none' }}
-          onEnded={handleTrackEnded}
-          onError={handlePlayerError}
-          onReady={handlePlayerReady}
-          config={{
-            youtube: {
-              playerVars: {
-                autoplay:   1,
-                controls:   0,
-                disablekb:  1,
-                playsinline: 1,
-                rel:        0,
+      {/* ── Invisible ReactPlayer (URL tracks only) ──────────────────────── */}
+      {/* Must NOT use display:none — YouTube iframes need to be in the DOM  */}
+      {currentTrack?.url && (
+        <div style={{
+          position: 'absolute', width: 1, height: 1,
+          overflow: 'hidden', opacity: 0, pointerEvents: 'none',
+        }}>
+          <ReactPlayer
+            url={currentTrack.url}
+            playing={isPlaying && userInteracted}
+            volume={volume}
+            loop={loop}
+            width={1}
+            height={1}
+            onEnded={handleTrackEnded}
+            onError={handlePlayerError}
+            onReady={handlePlayerReady}
+            config={{
+              youtube: {
+                playerVars: {
+                  autoplay:    1,
+                  controls:    0,
+                  disablekb:   1,
+                  playsinline: 1,
+                  rel:         0,
+                  fs:          0,
+                  modestbranding: 1,
+                },
               },
-            },
-            file: { forceAudio: true },
-          }}
-        />
+              file: { forceAudio: true },
+            }}
+          />
+        </div>
       )}
 
       <AnimatePresence mode="wait">
@@ -149,10 +154,6 @@ const MangaMusicPlayer = memo(({
             <span className="text-white/60 text-xs max-w-[140px] truncate">
               {currentTrack?.title ?? 'Música Ambiente'}
             </span>
-
-            {isGenerated && (
-              <Zap size={10} className="text-cyan-400/70 flex-shrink-0" title="Web Audio" />
-            )}
 
             <ChevronDown size={11} className="text-white/30 flex-shrink-0" />
           </motion.button>
@@ -284,12 +285,6 @@ const MangaMusicPlayer = memo(({
                         <p className="text-white/30 text-[10px]">
                           {trackMeta?.label ?? currentTrack.category}
                         </p>
-                        {isGenerated && (
-                          <span className="flex items-center gap-0.5 text-cyan-400/60 text-[9px]">
-                            <Zap size={8} />
-                            Web Audio
-                          </span>
-                        )}
                         {currentTrack.credit && (
                           <span className="text-white/20 text-[9px] truncate">{currentTrack.credit}</span>
                         )}
@@ -432,17 +427,9 @@ const MangaMusicPlayer = memo(({
                             <p className={`text-xs truncate ${isCurrentTrack ? 'text-violet-300 font-bold' : 'text-white/60'}`}>
                               {track.title}
                             </p>
-                            <div className="flex items-center gap-1.5">
-                              {track.generated && (
-                                <span className="flex items-center gap-0.5 text-cyan-400/50 text-[9px]">
-                                  <Zap size={7} />
-                                  local
-                                </span>
-                              )}
-                              {track.custom && (
-                                <span className="text-white/20 text-[9px]">custom</span>
-                              )}
-                            </div>
+                            {track.custom && (
+                              <span className="text-white/20 text-[9px]">custom</span>
+                            )}
                           </div>
 
                           {/* Vote count badge */}

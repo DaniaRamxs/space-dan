@@ -2,7 +2,6 @@
 //
 // Manages:
 //   • URL-based tracks   — played via ReactPlayer (YouTube / MP3)
-//   • Generated tracks   — played via Web Audio API (rain, forest, city)
 //   • Voting queue       — users upvote next track
 //   • Realtime sync      — host broadcasts; guests receive via onMusicEvent()
 //
@@ -14,7 +13,6 @@
 
 import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import { MANGA_TRACKS } from './mangaTracks';
-import { AMBIENT_GENERATORS } from './WebAudioAmbience';
 
 const DEFAULT_VOLUME = 0.35;
 
@@ -69,71 +67,14 @@ export function useMangaMusic({ isHost, myUsername, broadcast }) {
   const [urlInput,       setUrlInput]       = useState('');
   const [playerError,    setPlayerError]    = useState(null); // null | string
 
-  const isHostRef    = useRef(isHost);
-  const volumeRef    = useRef(volume);
-  const audioCtxRef  = useRef(null);    // shared AudioContext
-  const generatorRef = useRef(null);    // active Web Audio generator
+  const isHostRef = useRef(isHost);
 
-  useEffect(() => { isHostRef.current = isHost; },  [isHost]);
-  useEffect(() => { volumeRef.current = volume; },  [volume]);
-
-  // ── AudioContext (lazy, only after user interaction) ──────────────────────
-
-  const getAudioCtx = useCallback(() => {
-    if (!audioCtxRef.current) {
-      audioCtxRef.current = new (window.AudioContext || window.webkitAudioContext)();
-    }
-    if (audioCtxRef.current.state === 'suspended') {
-      audioCtxRef.current.resume().catch(() => {});
-    }
-    return audioCtxRef.current;
-  }, []);
-
-  // ── Generator lifecycle ───────────────────────────────────────────────────
-
-  const stopGenerator = useCallback(() => {
-    if (generatorRef.current) {
-      generatorRef.current.stop();
-      generatorRef.current = null;
-    }
-  }, []);
-
-  const startGenerator = useCallback((track) => {
-    stopGenerator();
-    if (!track?.generated) return;
-    const factory = AMBIENT_GENERATORS[track.category];
-    if (!factory) return;
-    const ctx = getAudioCtx();
-    generatorRef.current = factory(ctx, volumeRef.current);
-  }, [getAudioCtx, stopGenerator]);
-
-  // Start/stop generator when play state or track changes
-  useEffect(() => {
-    if (!currentTrack?.generated) return;
-    if (isPlaying && userInteracted) {
-      startGenerator(currentTrack);
-    } else {
-      stopGenerator();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isPlaying, userInteracted, currentTrack?.id]);
-
-  // Live volume sync to Web Audio generator
-  useEffect(() => {
-    generatorRef.current?.setVolume(volume);
-  }, [volume]);
-
-  // Cleanup on unmount
-  useEffect(() => () => {
-    stopGenerator();
-    audioCtxRef.current?.close();
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { isHostRef.current = isHost; }, [isHost]);
 
   // ── Track lists ───────────────────────────────────────────────────────────
 
-  // Include generated (Web Audio) tracks even though they have no URL
   const allTracks = useMemo(
-    () => [...MANGA_TRACKS, ...customTracks].filter(t => t.url || t.generated),
+    () => [...MANGA_TRACKS, ...customTracks].filter(t => t.url),
     [customTracks],
   );
 
@@ -154,7 +95,7 @@ export function useMangaMusic({ isHost, myUsername, broadcast }) {
 
   const playTrack = useCallback((track) => {
     if (!isHostRef.current) return;
-    if (!track?.url && !track?.generated) return;
+    if (!track?.url) return;
     setCurrentTrack(track);
     setIsPlaying(true);
     setVotes({});
