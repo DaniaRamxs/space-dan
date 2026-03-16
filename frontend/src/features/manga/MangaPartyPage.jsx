@@ -1464,8 +1464,8 @@ const MangaPartyPage = memo(({ onClose } = {}) => {
                 : 'bg-white/5 border-white/10 text-white/50 hover:text-white/70'
             }`}
           >
-            <Link size={13} />
-            <span className="hidden sm:inline">{externalUrl ? 'URL activa' : 'URL'}</span>
+            <span className="text-sm leading-none">🔗</span>
+            <span>{externalUrl ? 'URL activa' : 'URL'}</span>
           </motion.button>
         )}
 
@@ -1911,8 +1911,10 @@ const MangaPartyPage = memo(({ onClose } = {}) => {
         )}
       </AnimatePresence>
 
-      {/* ── Music player ─────────────────────────────────────────────────────── */}
-      <MangaMusicPlayer {...music} isHost={isHost} />
+      {/* ── Music player — mobile: only when expanded or playing ───────────── */}
+      <div className={music.expanded || music.isPlaying ? '' : 'hidden lg:block'}>
+        <MangaMusicPlayer {...music} isHost={isHost} />
+      </div>
 
       {/* ── Mobile bottom toolbar (< lg) ──────────────────────────────────────── */}
       <div className="fixed bottom-0 left-0 right-0 z-[39] lg:hidden
