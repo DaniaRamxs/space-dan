@@ -69,14 +69,15 @@ const PaginatedReader = memo(({
 }) => {
   const canvasRef    = useRef(null);
   const containerRef = useRef(null);
-  const [imgLoaded, setImgLoaded]       = useState(false);
+  const [imgLoaded, setImgLoaded]   = useState(false);
+  const [imgError, setImgError]     = useState(false);
   const [containerSize, setContainerSize] = useState({ w: 0, h: 0 });
 
   const total = pages.length;
   const src   = pages[currentPage] ?? null;
 
-  // ── Reset image loaded state on page/chapter change ───────────────────────────
-  useEffect(() => { setImgLoaded(false); }, [currentPage, chapterId]);
+  // ── Reset image loaded/error state on page/chapter change ────────────────────
+  useEffect(() => { setImgLoaded(false); setImgError(false); }, [currentPage, chapterId]);
 
   // ── Preload adjacent pages ────────────────────────────────────────────────────
   useEffect(() => {
@@ -148,7 +149,7 @@ const PaginatedReader = memo(({
   // ── Empty state ───────────────────────────────────────────────────────────────
   if (!total) {
     return (
-      <div className="flex-1 flex items-center justify-center bg-[#0a0a0f]">
+      <div className="w-full h-full flex items-center justify-center bg-[#0a0a0f]">
         <div className="flex flex-col items-center gap-3 text-white/20">
           <BookOpen size={48} className="opacity-20" />
           <p className="text-sm">Selecciona un manga para comenzar</p>
@@ -161,29 +162,40 @@ const PaginatedReader = memo(({
     <div
       ref={containerRef}
       {...swipeHandlers}
-      className="relative flex-1 overflow-hidden bg-black select-none"
+      className="relative w-full h-full overflow-hidden bg-black select-none"
       style={{ touchAction: 'pan-y' }}
     >
       {/* ── Manga page image — centered, object-fit: contain ─────────────────── */}
-      <div className="absolute inset-0 flex items-center justify-center">
+      <div className="absolute inset-0 flex items-center justify-center bg-black">
         {/* Loading skeleton */}
-        {!imgLoaded && (
-          <div className="w-full h-full bg-gray-900 animate-pulse" />
+        {!imgLoaded && !imgError && (
+          <div className="absolute inset-0 bg-gray-900 animate-pulse" />
+        )}
+
+        {/* Error state */}
+        {imgError && (
+          <div className="flex flex-col items-center gap-2 text-white/30 z-10">
+            <BookOpen size={36} className="opacity-30" />
+            <p className="text-xs">No se pudo cargar la página</p>
+          </div>
         )}
 
         <AnimatePresence mode="wait">
-          <motion.img
-            key={`${chapterId ?? ''}-${currentPage}`}
-            src={src}
-            alt={`Página ${currentPage + 1}`}
-            onLoad={() => setImgLoaded(true)}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: imgLoaded ? 1 : 0 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.18 }}
-            className="absolute inset-0 w-full h-full object-contain pointer-events-none"
-            draggable={false}
-          />
+          {src && !imgError && (
+            <motion.img
+              key={`${chapterId ?? ''}-${currentPage}`}
+              src={src}
+              alt={`Página ${currentPage + 1}`}
+              onLoad={() => setImgLoaded(true)}
+              onError={() => { setImgError(true); setImgLoaded(false); }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: imgLoaded ? 1 : 0 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.18 }}
+              className="absolute inset-0 w-full h-full object-contain pointer-events-none"
+              draggable={false}
+            />
+          )}
         </AnimatePresence>
       </div>
 

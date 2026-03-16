@@ -104,7 +104,7 @@ const AnimatedDots = () => (
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 
-const MangaPartyPage = memo(() => {
+const MangaPartyPage = memo(({ onClose } = {}) => {
   const { profile } = useAuthContext();
   const myUsername  = profile?.username || profile?.email?.split('@')[0] || 'Lector';
 
@@ -916,7 +916,17 @@ const MangaPartyPage = memo(() => {
           className="w-full max-w-md"
         >
           {/* Header */}
-          <div className="text-center mb-8">
+          <div className="text-center mb-8 relative">
+            {onClose && (
+              <button
+                onClick={onClose}
+                className="absolute right-0 top-0 w-8 h-8 rounded-lg bg-white/5 border border-white/10
+                           flex items-center justify-center text-white/40 hover:text-red-400
+                           hover:border-red-400/30 transition-all"
+              >
+                <X size={15} />
+              </button>
+            )}
             <div className="inline-flex items-center gap-2 mb-3">
               <span className="text-4xl">📚</span>
               <h1 className="text-3xl font-black text-white">Manga Party</h1>
@@ -1126,10 +1136,11 @@ const MangaPartyPage = memo(() => {
           <span>{participants.length}</span>
         </div>
 
-        {/* Leave */}
+        {/* Leave / Close activity */}
         <motion.button
           whileTap={{ scale: 0.9 }}
-          onClick={handleLeaveRoom}
+          onClick={() => { handleLeaveRoom(); onClose?.(); }}
+          title="Salir de Manga Party"
           className="w-7 h-7 rounded-lg bg-white/5 border border-white/10
                      flex items-center justify-center text-white/40 hover:text-red-400
                      hover:border-red-400/30 transition-all flex-shrink-0"
@@ -1191,7 +1202,7 @@ const MangaPartyPage = memo(() => {
       <div className="flex flex-1 overflow-hidden">
 
         {/* Reader area */}
-        <div className="flex-1 relative overflow-hidden">
+        <div className="flex-1 relative overflow-hidden h-full">
           {pagesLoading && (
             <div className="absolute inset-0 flex items-center justify-center z-10 bg-[#0a0a0f]/70 backdrop-blur-sm">
               <div className="flex flex-col items-center gap-3 text-white/50">
