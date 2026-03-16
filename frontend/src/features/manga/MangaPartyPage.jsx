@@ -1329,7 +1329,7 @@ const MangaPartyPage = memo(({ onClose } = {}) => {
   // ─── Room view ────────────────────────────────────────────────────────────────
 
   return (
-    <div className="flex flex-col h-screen bg-[#0a0a0f] overflow-hidden">
+    <div className="fixed inset-0 z-[9999] flex flex-col bg-[#0a0a0f] overflow-hidden">
 
       {/* Room header */}
       <div className="flex items-center gap-3 px-4 py-3 border-b border-white/10
