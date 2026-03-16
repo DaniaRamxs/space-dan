@@ -158,12 +158,14 @@ const PaginatedReader = memo(({
     );
   }
 
+  const drawing = graffitiMode && canDraw;
+
   return (
     <div
       ref={containerRef}
-      {...swipeHandlers}
+      {...(drawing ? {} : swipeHandlers)}
       className="relative w-full h-full overflow-hidden bg-black select-none"
-      style={{ touchAction: 'pan-y' }}
+      style={{ touchAction: drawing ? 'none' : 'pan-y' }}
     >
       {/* ── Manga page image — centered, object-fit: contain ─────────────────── */}
       <div className="absolute inset-0 flex items-center justify-center bg-black">

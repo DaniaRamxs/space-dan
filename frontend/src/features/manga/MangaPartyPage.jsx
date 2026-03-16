@@ -5,7 +5,7 @@ import React, {
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Users, MessageSquare, Copy, X, Check, Send, Crown,
-  BookOpen, Pencil, Link, ExternalLink, AlertTriangle, ChevronRight,
+  BookOpen, Link, ExternalLink, AlertTriangle, ChevronRight,
   BookMarked, Brush,
 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -151,7 +151,6 @@ const MangaPartyPage = memo(({ onClose } = {}) => {
   const [urlDraft, setUrlDraft]         = useState('');
 
   // ── Drawing ───────────────────────────────────────────────────────────────────
-  const [drawingEnabled, setDrawingEnabled] = useState(false);
   const [drawEvents, setDrawEvents]         = useState([]);
 
   // ── Theory mode ───────────────────────────────────────────────────────────────
@@ -160,7 +159,6 @@ const MangaPartyPage = memo(({ onClose } = {}) => {
 
   // ── Graffiti mode ─────────────────────────────────────────────────────────────
   const [graffitiMode, setGraffitiMode]         = useState(false);
-  const [allowEveryoneDraw, setAllowEveryoneDraw] = useState(false);
   const [graffitiTool, setGraffitiTool]         = useState('pencil');
   const [graffitiColor, setGraffitiColor]       = useState('#ef4444');
   const [graffitiSize, setGraffitiSize]         = useState(5);
@@ -662,14 +660,6 @@ const MangaPartyPage = memo(({ onClose } = {}) => {
     broadcast('manga_sync', { ...ev });
   }, [broadcast]);
 
-  // ── Toggle drawing mode (host only) ──────────────────────────────────────────
-  const handleToggleDrawing = useCallback(() => {
-    if (!isHostRef.current) return;
-    const next = !drawingEnabled;
-    setDrawingEnabled(next);
-    broadcast('manga_sync', { type: 'drawing_toggle', enabled: next });
-  }, [drawingEnabled, broadcast]);
-
   // ── Send chat message ─────────────────────────────────────────────────────────
   const handleSendMessage = useCallback(() => {
     const text = chatInput.trim();
@@ -1070,21 +1060,6 @@ const MangaPartyPage = memo(({ onClose } = {}) => {
           </motion.button>
         )}
 
-        {/* Drawing toggle (host only) */}
-        {isHost && (
-          <motion.button
-            whileTap={{ scale: 0.95 }}
-            onClick={handleToggleDrawing}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-bold transition-all ${
-              drawingEnabled
-                ? 'bg-pink-600/30 border-pink-500/40 text-pink-400'
-                : 'bg-white/5 border-white/10 text-white/50 hover:text-white/70'
-            }`}
-          >
-            <Pencil size={13} />
-            <span className="hidden sm:inline">{drawingEnabled ? 'Dibujo ON' : 'Dibujar'}</span>
-          </motion.button>
-        )}
 
         {/* Theory mode toggle (all users) */}
         <motion.button
@@ -1312,7 +1287,7 @@ const MangaPartyPage = memo(({ onClose } = {}) => {
             onGraffitiToolChange={setGraffitiTool}
             onGraffitiColorChange={setGraffitiColor}
             onGraffitiSizeChange={setGraffitiSize}
-            canDraw={isHost || (graffitiMode && allowEveryoneDraw)}
+            canDraw={graffitiMode}
           />
         </div>
 

@@ -129,7 +129,7 @@ const GraffitiToolbar = memo(({
         ))}
 
         {/* Custom color picker */}
-        <label
+        <div
           className="w-5 h-5 rounded-full cursor-pointer border-2 border-white/20
                      hover:border-white/50 transition-all overflow-hidden relative"
           title="Color personalizado"
@@ -137,16 +137,15 @@ const GraffitiToolbar = memo(({
           style={{
             background: 'conic-gradient(from 0deg, #ff4d4d, #ffd43b, #51cf66, #339af0, #cc5de8, #ff4d4d)',
           }}
-        >
-          <input
-            ref={colorInputRef}
-            type="color"
-            value={color}
-            onChange={handleCustomColor}
-            className="sr-only"
-            tabIndex={-1}
-          />
-        </label>
+        />
+        <input
+          ref={colorInputRef}
+          type="color"
+          value={color}
+          onChange={handleCustomColor}
+          className="sr-only"
+          tabIndex={-1}
+        />
       </div>
 
       <div className="w-5 h-px bg-white/10" />
