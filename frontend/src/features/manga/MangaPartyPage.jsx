@@ -171,6 +171,8 @@ const MangaPartyPage = memo(({ onClose } = {}) => {
   const [codeCopied, setCodeCopied]   = useState(false);
   const [newArrival, setNewArrival]   = useState(null);
   const [showSearch, setShowSearch]   = useState(false);
+  const [mobilePanel, setMobilePanel] = useState(false);
+  const [mobilePanelDot, setMobilePanelDot] = useState(false);
 
   // ── Refs (avoid stale closures) ───────────────────────────────────────────────
   const channelRef    = useRef(null);
@@ -459,6 +461,7 @@ const MangaPartyPage = memo(({ onClose } = {}) => {
       .on('broadcast', { event: 'manga_chat' }, ({ payload }) => {
         if (!payload) return;
         setMessages((prev) => [...prev.slice(-200), payload]);
+        setMobilePanelDot(true);
       })
       // ── manga_reaction ──────────────────────────────────────────────────────
       .on('broadcast', { event: 'manga_reaction' }, ({ payload }) => {
@@ -1336,6 +1339,76 @@ const MangaPartyPage = memo(({ onClose } = {}) => {
               <span className="text-violet-400">{newArrival}</span> se unió
             </p>
           </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ── Mobile chat FAB (< lg) ───────────────────────────────────────────── */}
+      <div className="fixed bottom-20 right-3 z-40 lg:hidden">
+        <motion.button
+          whileTap={{ scale: 0.88 }}
+          onClick={() => { setMobilePanel((p) => !p); setMobilePanelDot(false); }}
+          className="w-12 h-12 rounded-full bg-violet-600 shadow-lg shadow-violet-500/40
+                     flex items-center justify-center text-white relative"
+        >
+          {mobilePanel ? <X size={18} /> : <MessageSquare size={19} />}
+          {!mobilePanel && mobilePanelDot && (
+            <span className="absolute -top-0.5 -right-0.5 w-3 h-3 rounded-full bg-pink-500 border-2 border-[#0a0a0f]" />
+          )}
+        </motion.button>
+      </div>
+
+      {/* ── Mobile bottom panel ───────────────────────────────────────────────── */}
+      <AnimatePresence>
+        {mobilePanel && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setMobilePanel(false)}
+              className="fixed inset-0 z-[45] bg-black/50 lg:hidden"
+            />
+            <motion.div
+              initial={{ y: '100%' }}
+              animate={{ y: 0 }}
+              exit={{ y: '100%' }}
+              transition={{ type: 'spring', damping: 28, stiffness: 300 }}
+              className="fixed bottom-0 left-0 right-0 z-[50] lg:hidden
+                         bg-[#0d0d14] border-t border-white/10 rounded-t-2xl
+                         flex flex-col"
+              style={{ height: '65vh' }}
+            >
+              {/* Drag handle */}
+              <div className="flex justify-center pt-2.5 pb-1 flex-shrink-0">
+                <div className="w-10 h-1 rounded-full bg-white/20" />
+              </div>
+              {/* Tabs */}
+              <div className="flex border-b border-white/10 flex-shrink-0">
+                {[
+                  { key: 'chat', label: 'Chat', icon: MessageSquare },
+                  { key: 'participants', label: `Sala (${participants.length})`, icon: Users },
+                ].map(({ key, label, icon: Icon }) => (
+                  <button
+                    key={key}
+                    onClick={() => setSideTab(key)}
+                    className={`flex-1 flex items-center justify-center gap-1.5 py-3 text-xs font-bold
+                                border-b-2 transition-all ${
+                                  sideTab === key
+                                    ? 'border-violet-500 text-violet-400'
+                                    : 'border-transparent text-white/40'
+                                }`}
+                  >
+                    <Icon size={13} />
+                    {label}
+                  </button>
+                ))}
+              </div>
+              {/* Content */}
+              <div className="flex-1 overflow-hidden flex flex-col min-h-0">
+                {sidebarContent}
+              </div>
+            </motion.div>
+          </>
         )}
       </AnimatePresence>
 
