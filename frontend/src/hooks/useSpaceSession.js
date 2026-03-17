@@ -130,6 +130,11 @@ export function useSpaceSession(spaceId, opts = {}) {
   // ── Activity controls ──────────────────────────────────────────────────────
 
   const launchActivity = useCallback((type, id, payload = {}) => {
+    // Bloquear específicamente music:chill
+    if (type === 'music' && id === 'chill') {
+      console.warn('[useSpaceSession] Blocked launchActivity for music:chill - activity not available');
+      return;
+    }
     roomRef.current?.send('set_activity', { type, id, payload });
   }, []);
 
