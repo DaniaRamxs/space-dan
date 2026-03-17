@@ -232,7 +232,7 @@ export default function SpacesPage() {
           </div>
           <h1 className="text-3xl font-black uppercase tracking-[0.12em] sm:text-4xl">Espacios</h1>
           <p className="mt-2 text-sm leading-6 text-white/50">
-            Entra directo. La voz es opcional — siempre.
+            Entra directo, habla cuando quieras.
           </p>
         </motion.div>
 
