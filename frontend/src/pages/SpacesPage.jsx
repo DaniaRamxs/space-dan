@@ -1,12 +1,15 @@
 /**
  * SpacesPage — Hub de Espacios
- * v3: prominent "Crear espacio" button + activity quick-launch catalog
+ * Diseño v4: layout tipo Figma con brand header, hero CTA y grid de actividades
  */
 
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Users, Tv, BookOpen, Gamepad2, Plus, Zap, ArrowRight, Music, Sparkles } from 'lucide-react';
+import {
+  Tv, BookOpen, Palette, Gamepad2, Crown, Dice5,
+  Swords, Music, Users, ArrowRight, Plus, Sparkles,
+} from 'lucide-react';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { supabase } from '@/supabaseClient';
 
@@ -17,12 +20,60 @@ const COLYSEUS_URL = (import.meta.env.VITE_COLYSEUS_URL || 'https://spacely-serv
 // ─── Activity catalog ─────────────────────────────────────────────────────────
 
 const ACTIVITY_CATALOG = [
-  { type: 'anime',  id: 'astro-party',  label: 'Anime',        sublabel: 'Watch party',      emoji: '📺', gradient: 'from-cyan-500/20 to-blue-600/10',    border: 'border-cyan-400/20',   accent: 'text-cyan-300',   dot: 'bg-cyan-400'   },
-  { type: 'manga',  id: 'manga-party',  label: 'Manga',        sublabel: 'Lectura grupal',    emoji: '📖', gradient: 'from-purple-500/20 to-pink-600/10',  border: 'border-purple-400/20', accent: 'text-purple-300', dot: 'bg-purple-400' },
-  { type: 'game',   id: 'pixel-galaxy', label: 'Pixel Galaxy', sublabel: 'Arte colaborativo', emoji: '🎨', gradient: 'from-green-500/20 to-teal-600/10',   border: 'border-green-400/20',  accent: 'text-green-300',  dot: 'bg-green-400'  },
-  { type: 'game',   id: 'connect4',     label: 'Connect 4',    sublabel: 'Duelo 1v1',         emoji: '🔴', gradient: 'from-amber-500/20 to-orange-600/10', border: 'border-amber-400/20',  accent: 'text-amber-300',  dot: 'bg-amber-400'  },
-  { type: 'game',   id: 'chess',        label: 'Ajedrez',      sublabel: 'Estrategia',        emoji: '♟️', gradient: 'from-slate-500/20 to-gray-600/10',   border: 'border-slate-400/20',  accent: 'text-slate-300',  dot: 'bg-slate-400'  },
-  { type: 'game',   id: 'poker',        label: 'Poker',        sublabel: "Texas Hold'em",     emoji: '🃏', gradient: 'from-red-500/20 to-rose-600/10',     border: 'border-red-400/20',    accent: 'text-red-300',    dot: 'bg-red-400'    },
+  {
+    type: 'anime',  id: 'astro-party',
+    label: 'Anime',        sublabel: 'Watch party',
+    Icon: Tv,
+    iconBg:   'bg-indigo-500',
+    cardBg:   'bg-[#161628]',
+    border:   'border-white/[0.06]',
+    glow:     'hover:border-indigo-500/30',
+  },
+  {
+    type: 'manga',  id: 'manga-party',
+    label: 'Manga',        sublabel: 'Lectura grupal',
+    Icon: BookOpen,
+    iconBg:   'bg-pink-500',
+    cardBg:   'bg-[#1a1221]',
+    border:   'border-white/[0.06]',
+    glow:     'hover:border-pink-500/30',
+  },
+  {
+    type: 'game',   id: 'pixel-galaxy',
+    label: 'Pixel Galaxy', sublabel: 'Arte colaborativo',
+    Icon: Palette,
+    iconBg:   'bg-orange-500',
+    cardBg:   'bg-[#1a1610]',
+    border:   'border-white/[0.06]',
+    glow:     'hover:border-orange-500/30',
+  },
+  {
+    type: 'game',   id: 'connect4',
+    label: 'Connect 4',    sublabel: 'Duelo 1v1',
+    Icon: Gamepad2,
+    iconBg:   'bg-rose-500',
+    cardBg:   'bg-[#1a1016]',
+    border:   'border-white/[0.06]',
+    glow:     'hover:border-rose-500/30',
+  },
+  {
+    type: 'game',   id: 'chess',
+    label: 'Ajedrez',      sublabel: 'Partidas rápidas',
+    Icon: Crown,
+    iconBg:   'bg-violet-500',
+    cardBg:   'bg-[#12102a]',
+    border:   'border-white/[0.06]',
+    glow:     'hover:border-violet-500/30',
+  },
+  {
+    type: 'game',   id: 'poker',
+    label: 'Poker',        sublabel: 'Mesa privada',
+    Icon: Dice5,
+    iconBg:   'bg-red-500',
+    cardBg:   'bg-[#1a1010]',
+    border:   'border-white/[0.06]',
+    glow:     'hover:border-red-500/30',
+  },
 ];
 
 const ACTIVITY_META = Object.fromEntries(
@@ -34,74 +85,82 @@ function getActivityMeta(type, id) {
     || ACTIVITY_CATALOG[0];
 }
 
+// ─── Activity card ─────────────────────────────────────────────────────────────
 
-// ─── Live preview card ────────────────────────────────────────────────────────
+function ActivityCard({ activity, onClick, loading }) {
+  const { Icon, iconBg, cardBg, border, glow, label, sublabel } = activity;
+
+  return (
+    <motion.button
+      initial={{ opacity: 0, y: 16 }}
+      animate={{ opacity: 1, y: 0 }}
+      whileTap={{ scale: 0.96 }}
+      onClick={onClick}
+      disabled={loading}
+      className={`relative flex flex-col gap-3 rounded-[20px] border ${border} ${cardBg} ${glow} p-4 text-left transition-all duration-200 hover:scale-[1.02] disabled:opacity-50`}
+    >
+      {/* Icon block */}
+      <div className={`flex h-11 w-11 items-center justify-center rounded-[14px] ${iconBg}`}>
+        <Icon size={20} className="text-white" strokeWidth={1.8} />
+      </div>
+
+      {/* Labels */}
+      <div>
+        <p className="text-sm font-bold text-white leading-tight">{label}</p>
+        <p className="mt-0.5 text-[11px] text-white/40 leading-snug">{sublabel}</p>
+      </div>
+
+      {/* Loading spinner */}
+      {loading && (
+        <div className="absolute inset-0 flex items-center justify-center rounded-[20px] bg-black/50">
+          <div className="h-5 w-5 animate-spin rounded-full border-2 border-white/20 border-t-white" />
+        </div>
+      )}
+    </motion.button>
+  );
+}
+
+// ─── Live space card ──────────────────────────────────────────────────────────
 
 function LiveSpaceCard({ space, onJoin, index }) {
-  const meta    = getActivityMeta(space.activity?.type, space.activity?.id);
-  const hasTrack = !!space.preview?.track;
+  const meta = getActivityMeta(space.activity?.type, space.activity?.id);
+  const { Icon, iconBg } = meta;
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 14 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: index * 0.06 }}
-      className={`group relative flex flex-col overflow-hidden rounded-[22px] border bg-gradient-to-br ${meta.gradient} ${meta.border}`}
+      transition={{ delay: index * 0.05 }}
+      className="flex items-center gap-3 rounded-[18px] border border-white/[0.06] bg-[#111120] p-3"
     >
-      <div className="relative flex h-10 items-center overflow-hidden px-4">
-        {space.preview?.thumbnail && (
-          <img
-            src={space.preview.thumbnail}
-            alt=""
-            className="absolute inset-0 h-full w-full object-cover opacity-30"
-          />
-        )}
-        <div className="relative z-10 w-full flex items-center justify-end">
-          <div className="flex items-center gap-1.5">
-            <span className={`h-1.5 w-1.5 animate-pulse rounded-full ${meta.dot}`} />
-            <span className={`text-[9px] font-black uppercase tracking-[0.22em] ${meta.accent}`}>
-              LIVE
-            </span>
-          </div>
-        </div>
+      <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-[12px] ${iconBg}`}>
+        <Icon size={18} className="text-white" strokeWidth={1.8} />
       </div>
 
-      <div className="flex flex-col gap-2 px-4 pb-4">
-        <div className="flex items-center justify-between">
-          <span className={`text-[10px] font-black uppercase tracking-[0.2em] ${meta.accent}`}>
-            {meta.emoji} {meta.label}
-          </span>
-          <div className="flex items-center gap-1 text-white/40">
-            <Users size={9} />
-            <span className="text-[10px]">{space.users || 1}</span>
-          </div>
-        </div>
-
-        <p className="truncate text-sm font-black text-white leading-tight">
-          {hasTrack ? space.preview.track : (space.spaceName || space.spaceId)}
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-sm font-bold text-white leading-tight">
+          {space.spaceName || space.spaceId}
         </p>
-
-        {space.hostUsername && (
-          <div className="flex items-center gap-1.5">
-            {space.hostAvatar && (
-              <img src={space.hostAvatar} alt="" className="h-4 w-4 rounded-full object-cover opacity-80" />
-            )}
-            <span className="text-[10px] text-white/45">{space.hostUsername}</span>
-          </div>
-        )}
-
-        <button
-          onClick={() => onJoin(space)}
-          className="mt-1 flex w-full items-center justify-center gap-1.5 rounded-xl border border-white/10 bg-white/[0.06] py-2 text-[11px] font-black uppercase tracking-[0.16em] text-white transition hover:bg-white/[0.14] group-hover:border-white/20"
-        >
-          Entrar <ArrowRight size={11} />
-        </button>
+        <div className="flex items-center gap-1.5 mt-0.5">
+          <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-red-400" />
+          <span className="text-[10px] text-white/40">{meta.label}</span>
+          <span className="text-[10px] text-white/25">·</span>
+          <Users size={9} className="text-white/30" />
+          <span className="text-[10px] text-white/40">{space.users || 1}</span>
+        </div>
       </div>
+
+      <button
+        onClick={() => onJoin(space)}
+        className="shrink-0 flex items-center gap-1 rounded-xl border border-white/10 bg-white/[0.06] px-3 py-1.5 text-[11px] font-bold text-white transition hover:bg-white/[0.12]"
+      >
+        Entrar <ArrowRight size={10} />
+      </button>
     </motion.div>
   );
 }
 
-// ─── Hook: live space previews ────────────────────────────────────────────────
+// ─── Hook: live previews ──────────────────────────────────────────────────────
 
 function useSpacePreviews() {
   const [spaces,  setSpaces]  = useState([]);
@@ -116,8 +175,7 @@ function useSpacePreviews() {
         signal: abortRef.current.signal,
       });
       if (!res.ok) throw new Error('not ok');
-      const data = await res.json();
-      setSpaces(data || []);
+      setSpaces((await res.json()) || []);
     } catch (err) {
       if (err.name === 'AbortError') return;
       try {
@@ -127,7 +185,7 @@ function useSpacePreviews() {
           .eq('status', 'active')
           .order('participant_count', { ascending: false })
           .limit(12);
-        const mapped = (data || []).map(s => ({
+        setSpaces((data || []).map(s => ({
           spaceId:      s.room_name,
           spaceName:    s.title,
           hostId:       s.host_id,
@@ -136,8 +194,7 @@ function useSpacePreviews() {
           activity:     { type: s.type, id: '' },
           users:        s.participant_count || 1,
           preview:      { thumbnail: null, track: null, timestamp: 0 },
-        }));
-        setSpaces(mapped);
+        })));
       } catch { /* silent */ }
     } finally {
       setLoading(false);
@@ -147,16 +204,11 @@ function useSpacePreviews() {
   useEffect(() => {
     fetchPreviews();
     const interval = setInterval(fetchPreviews, 12000);
-    return () => {
-      clearInterval(interval);
-      abortRef.current?.abort();
-    };
+    return () => { clearInterval(interval); abortRef.current?.abort(); };
   }, []);
 
-  return { spaces, loading, refresh: fetchPreviews };
+  return { spaces, loading };
 }
-
-// ─── Quick-launch ID generator (activity in the URL, not the ID) ──────────────
 
 function generateSpaceId(profile) {
   const slug   = (profile?.username || 'user').toLowerCase().replace(/[^a-z0-9]/g, '');
@@ -164,15 +216,14 @@ function generateSpaceId(profile) {
   return `${slug}-${suffix}`;
 }
 
-// ─── Main component ───────────────────────────────────────────────────────────
+// ─── Main ──────────────────────────────────────────────────────────────────────
 
 export default function SpacesPage() {
-  const navigate  = useNavigate();
+  const navigate = useNavigate();
   const { profile, user } = useAuthContext();
   const { spaces, loading } = useSpacePreviews();
   const [creating, setCreating] = useState(null);
 
-  // Quick-launch: go directly to a space with an activity pre-selected
   const handleQuickLaunch = (activity) => {
     if (!user) { navigate('/'); return; }
     setCreating(activity.id);
@@ -180,106 +231,130 @@ export default function SpacesPage() {
     navigate(`/spaces/${spaceId}?activity=${activity.type}:${activity.id}&new=1`);
   };
 
-  const handleJoin = (space) => {
-    navigate(`/spaces/${space.spaceId}`);
-  };
+  const handleJoin = (space) => navigate(`/spaces/${space.spaceId}`);
 
   return (
     <div className="min-h-full text-white">
+      <div className="mx-auto max-w-lg px-4 pb-24 pt-5">
 
-      <div className="mx-auto max-w-5xl px-4 pb-20 pt-6 sm:px-6">
-
-        {/* Header */}
-        <motion.div initial={{ opacity: 0, y: -12 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
-          <div className="inline-flex items-center gap-2 rounded-full border border-cyan-300/20 bg-cyan-500/10 px-3 py-1 mb-3">
-            <Zap size={11} className="text-cyan-400" />
-            <span className="text-[10px] font-black uppercase tracking-[0.28em] text-cyan-300">Espacios</span>
+        {/* ── Brand header ──────────────────────────────────────────────────── */}
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mb-6"
+        >
+          {/* Logo row */}
+          <div className="flex items-center gap-2 mb-0.5">
+            <span className="text-xl font-black tracking-tight text-white">SPACELY</span>
+            <Sparkles size={14} className="text-cyan-400" />
           </div>
-          <h1 className="text-3xl font-black uppercase tracking-[0.12em] sm:text-4xl">Espacios</h1>
-          <p className="mt-2 text-sm leading-6 text-white/50">
+          <p className="text-[10px] font-bold uppercase tracking-[0.28em] text-white/35 mb-4">
+            Tu universo, a tu manera.
+          </p>
+
+          {/* Section pill */}
+          <div className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.05] px-3 py-1">
+            <span className="h-1.5 w-1.5 rounded-full bg-cyan-400" />
+            <span className="text-[10px] font-black uppercase tracking-[0.22em] text-white/60">
+              Espacios
+            </span>
+          </div>
+        </motion.div>
+
+        {/* ── Page title ────────────────────────────────────────────────────── */}
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.04 }}
+          className="mb-6"
+        >
+          <h1 className="text-[2rem] font-black uppercase tracking-[0.1em] leading-none text-white">
+            ESPACIOS
+          </h1>
+          <p className="mt-2 text-sm text-white/45 leading-snug">
             Entra directo, habla cuando quieras.
           </p>
         </motion.div>
 
-        {/* ── Prominent create button ─────────────────────────────────────── */}
-        <section className="mb-10">
-          <motion.button
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.05 }}
-            whileTap={{ scale: 0.98 }}
+        {/* ── Create CTA ────────────────────────────────────────────────────── */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.08 }}
+          className="mb-2"
+        >
+          <button
             onClick={() => navigate('/spaces/new')}
-            className="w-full flex items-center justify-center gap-3 rounded-[22px] bg-gradient-to-r from-cyan-500 to-blue-600 py-5 text-base font-black uppercase tracking-[0.18em] text-white shadow-lg shadow-cyan-500/20 hover:brightness-110 transition"
+            className="group relative w-full overflow-hidden rounded-[22px] bg-gradient-to-r from-cyan-400 via-purple-500 to-purple-600 p-[1px] transition hover:brightness-110 active:scale-[0.98]"
           >
-            <Sparkles size={20} />
-            ✨ Crear espacio
-          </motion.button>
-          <p className="mt-3 text-center text-[11px] text-white/35">
-            o elige una actividad para lanzar directo
-          </p>
-        </section>
+            <div className="flex flex-col items-center justify-center gap-1 rounded-[21px] bg-gradient-to-r from-cyan-500/90 via-purple-500/90 to-purple-600/90 px-6 py-5">
+              <div className="flex items-center gap-2">
+                <Sparkles size={18} className="text-white" />
+                <Plus size={18} className="text-white" strokeWidth={2.5} />
+                <span className="text-base font-black uppercase tracking-[0.18em] text-white">
+                  Crear espacio
+                </span>
+              </div>
+            </div>
+          </button>
+        </motion.div>
 
-        {/* ── Quick-launch activity cards ─────────────────────────────────── */}
+        <motion.p
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.12 }}
+          className="mb-8 text-center text-[11px] text-white/30"
+        >
+          o elige una actividad para lanzar directo
+        </motion.p>
+
+        {/* ── Activity grid ─────────────────────────────────────────────────── */}
         <section className="mb-10">
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+          <div className="grid grid-cols-2 gap-3">
             {ACTIVITY_CATALOG.map((activity, i) => (
-              <motion.button
+              <motion.div
                 key={activity.id}
-                initial={{ opacity: 0, scale: 0.88 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: i * 0.04 + 0.1 }}
-                onClick={() => handleQuickLaunch(activity)}
-                disabled={creating === activity.id}
-                className={`group relative flex flex-col items-center gap-2 overflow-hidden rounded-[20px] border bg-gradient-to-br ${activity.gradient} ${activity.border} p-4 text-center transition hover:scale-[1.03] active:scale-[0.97] disabled:opacity-60`}
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.1 + i * 0.05 }}
               >
-                <span className="text-2xl">{activity.emoji}</span>
-                <div>
-                  <div className={`text-xs font-black ${activity.accent}`}>{activity.label}</div>
-                  <div className="mt-0.5 text-[10px] text-white/40 leading-none">{activity.sublabel}</div>
-                </div>
-                {creating === activity.id && (
-                  <div className="absolute inset-0 flex items-center justify-center rounded-[20px] bg-black/40 backdrop-blur-sm">
-                    <div className="h-5 w-5 animate-spin rounded-full border-2 border-white/20 border-t-white" />
-                  </div>
-                )}
-              </motion.button>
+                <ActivityCard
+                  activity={activity}
+                  onClick={() => handleQuickLaunch(activity)}
+                  loading={creating === activity.id}
+                />
+              </motion.div>
             ))}
           </div>
         </section>
 
-        {/* ── Live spaces ─────────────────────────────────────────────────── */}
+        {/* ── Live spaces ───────────────────────────────────────────────────── */}
         <section>
-          <div className="mb-4 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-red-400" />
-              <h2 className="text-[11px] font-black uppercase tracking-[0.24em] text-white/50">En vivo ahora</h2>
-            </div>
+          <div className="mb-4 flex items-center gap-2">
+            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-red-400" />
+            <h2 className="text-[11px] font-black uppercase tracking-[0.24em] text-white/40">
+              En vivo ahora
+            </h2>
             {!loading && spaces.length > 0 && (
-              <span className="text-[10px] text-white/30">{spaces.length} espacios</span>
+              <span className="ml-auto text-[10px] text-white/25">{spaces.length}</span>
             )}
           </div>
 
           {loading ? (
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              {Array.from({ length: 3 }).map((_, i) => (
-                <div key={i} className="h-[170px] animate-pulse rounded-[22px] border border-white/5 bg-white/[0.03]" />
+            <div className="flex flex-col gap-2">
+              {Array.from({ length: 2 }).map((_, i) => (
+                <div key={i} className="h-16 animate-pulse rounded-[18px] border border-white/[0.04] bg-white/[0.02]" />
               ))}
             </div>
           ) : spaces.length === 0 ? (
-            <div className="flex flex-col items-center justify-center gap-3 rounded-[24px] border border-dashed border-white/10 bg-white/[0.02] py-14 text-center">
-              <Users size={28} className="text-white/20" />
-              <p className="text-sm font-bold text-white/40">Sin espacios activos</p>
-              <p className="text-xs text-white/25">Crea el primero con el botón de arriba</p>
+            <div className="flex flex-col items-center gap-2 rounded-[20px] border border-dashed border-white/[0.08] bg-white/[0.02] py-10 text-center">
+              <Users size={24} className="text-white/15" />
+              <p className="text-xs text-white/30">Sin espacios activos</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="flex flex-col gap-2">
               {spaces.map((space, i) => (
-                <LiveSpaceCard
-                  key={space.spaceId}
-                  space={space}
-                  onJoin={handleJoin}
-                  index={i}
-                />
+                <LiveSpaceCard key={space.spaceId} space={space} onJoin={handleJoin} index={i} />
               ))}
             </div>
           )}
