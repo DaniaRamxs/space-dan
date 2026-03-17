@@ -79,6 +79,8 @@ const SpotifyCallback = lazy(() => import("./pages/SpotifyCallback"));
 const AuthCallback = lazy(() => import("./pages/AuthCallback"));
 const AnimeSpacePage = lazy(() => import("./features/anime/AstroPartyPage"));
 const MangaPartyPage = lazy(() => import("./features/manga/MangaPartyPage"));
+const SpacesPage = lazy(() => import("./pages/SpacesPage"));
+const SpaceSessionPage = lazy(() => import("./pages/SpaceSessionPage"));
 
 const NAV_TRACE_KEY = "spacely_nav_trace_v1";
 const FORCE_NAV_TRACE = false
@@ -358,6 +360,8 @@ function PresenceTracker() {
       if (path === '/cabina') return 'EN LA CABINA DE MANDO 🚀';
       if (path === '/desktop') return 'OPERANDO SPACE-OS 💻';
       if (path === '/tienda') return 'EN EL MERCADO ESTELAR 🛍️';
+      if (path === '/spaces') return 'EXPLORANDO ESPACIOS 🌐';
+      if (path.startsWith('/spaces/')) return 'EN UN ESPACIO 🚀';
       if (path === '/games') return 'EN EL SECTOR DE JUEGOS 🎮';
       if (path === '/universo') return 'OBSERVANDO EL COSMOS 🌌';
       if (path === '/explorar') return 'EXPLORANDO EL SISTEMA 🧭';
@@ -400,7 +404,7 @@ function RoutePrefetcher() {
   useEffect(() => {
     const timer = setTimeout(() => {
       import('./pages/PostsPage').catch(() => { });
-      import('./pages/GamesPage').catch(() => { });
+      import('./pages/SpacesPage').catch(() => { });
       import('./pages/GlobalChatPage').catch(() => { });
       import('./pages/SpaceCabinPage').catch(() => { });
     }, 3000);
@@ -595,6 +599,18 @@ function AnimatedRoutes() {
         <Route path="/universo" element={<StellarMap />} />
         <Route path="/arquitectura" element={<Layout><ArquitecturaPage /></Layout>} />
         <Route path="/guestbook" element={<Layout><GuestbookPage /></Layout>} />
+        {/* ── Espacios ── */}
+        <Route path="/spaces" element={
+          loading ? <Layout><RouteLoader /></Layout> :
+            user ? <Layout><SpacesPage /></Layout> :
+              <Layout><LoginGate /></Layout>
+        } />
+        <Route path="/spaces/:spaceId" element={
+          loading ? <Layout><RouteLoader /></Layout> :
+            user ? <Layout><SpaceSessionPage /></Layout> :
+              <Layout><LoginGate /></Layout>
+        } />
+
         <Route path="/anime" element={
           loading ? <Layout><RouteLoader /></Layout> :
             user ? <Layout><AnimeSpacePage /></Layout> :

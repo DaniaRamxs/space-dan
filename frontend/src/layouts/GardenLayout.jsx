@@ -137,7 +137,33 @@ export default function GardenLayout({ children }) {
                   </div>
                 </div>
 
-                <NavLink to="/games" className="desktopNavLink">Arcade</NavLink>
+                {/* Espacios con dropdown */}
+                <div className="relative group/nav py-4">
+                  <NavLink to="/spaces" className="desktopNavLink flex items-center gap-1.5 px-2">
+                    <span>Espacios</span>
+                    <span className="text-[10px] opacity-40">▼</span>
+                  </NavLink>
+                  <div className="absolute top-[80%] left-0 w-52 pt-4 opacity-0 translate-y-2 pointer-events-none group-hover/nav:opacity-100 group-hover/nav:translate-y-0 group-hover/nav:pointer-events-auto transition-all duration-300 z-[100]">
+                    <div className="bg-[#0a0a1a]/95 backdrop-blur-2xl border border-white/5 rounded-2xl p-2 shadow-2xl flex flex-col gap-1">
+                      <NavLink to="/spaces" className={({ isActive }) => `flex items-center justify-between px-4 py-3 rounded-xl transition-all ${isActive ? 'bg-cyan-500/10 text-cyan-400' : 'text-white/40 hover:bg-white/5 hover:text-white'}`} end>
+                        <span className="text-[10px] font-black uppercase tracking-widest">Hub de Espacios</span>
+                        <span className="text-[10px]">🌐</span>
+                      </NavLink>
+                      <NavLink to="/anime" className={({ isActive }) => `flex items-center justify-between px-4 py-3 rounded-xl transition-all ${isActive ? 'bg-cyan-500/10 text-cyan-400' : 'text-white/40 hover:bg-white/5 hover:text-white'}`}>
+                        <span className="text-[10px] font-black uppercase tracking-widest">Anime Watch Party</span>
+                        <span className="text-[10px]">📺</span>
+                      </NavLink>
+                      <NavLink to="/manga-party" className={({ isActive }) => `flex items-center justify-between px-4 py-3 rounded-xl transition-all ${isActive ? 'bg-purple-500/10 text-purple-400' : 'text-white/40 hover:bg-white/5 hover:text-white'}`}>
+                        <span className="text-[10px] font-black uppercase tracking-widest">Manga Party</span>
+                        <span className="text-[10px]">📖</span>
+                      </NavLink>
+                      <NavLink to="/games" className={({ isActive }) => `flex items-center justify-between px-4 py-3 rounded-xl transition-all ${isActive ? 'bg-amber-500/10 text-amber-400' : 'text-white/40 hover:bg-white/5 hover:text-white'}`}>
+                        <span className="text-[10px] font-black uppercase tracking-widest">Arcade</span>
+                        <span className="text-[10px]">🕹️</span>
+                      </NavLink>
+                    </div>
+                  </div>
+                </div>
                 <NavLink to="/tienda" className="desktopNavLink">Tienda</NavLink>
                 <button onClick={() => setMobileMenuOpen(true)} className="desktopNavLink moreBtn">
                   <span>Sístema</span>
@@ -263,20 +289,17 @@ export default function GardenLayout({ children }) {
           <span className="mobileNavIcon">🏘️</span>
           <span className="mobileNavLabel">Comunidades</span>
         </NavLink>
+        {/* Espacios — posición central, máxima prominencia */}
+        <NavLink to="/spaces" className={({ isActive }) => `mobileNavLink ${isActive ? 'active' : ''}`}>
+          <span className="mobileNavIcon">🚀</span>
+          <span className="mobileNavLabel">Espacios</span>
+        </NavLink>
         <NavLink to="/chat" className={({ isActive }) => `mobileNavLink ${isActive ? 'active' : ''}`}>
           <div className="relative">
             <span className="mobileNavIcon">💬</span>
             {activeChatters > 0 && <span className="absolute -top-1 -right-1 w-2 h-2 bg-cyan-400 rounded-full animate-pulse border-2 border-[#050510]" />}
           </div>
           <span className="mobileNavLabel">Chat {activeChatters > 0 && <span className="text-[7px] text-cyan-400 ml-0.5">●</span>}</span>
-        </NavLink>
-        <NavLink to="/games" className={({ isActive }) => `mobileNavLink ${isActive ? 'active' : ''}`}>
-          <span className="mobileNavIcon icon-spin-slow">🕹️</span>
-          <span className="mobileNavLabel">Arcade</span>
-        </NavLink>
-        <NavLink to="/tienda" className={({ isActive }) => `mobileNavLink ${isActive ? 'active' : ''}`}>
-          <span className="mobileNavIcon icon-float">🛍️</span>
-          <span className="mobileNavLabel">Tienda</span>
         </NavLink>
         <NavLink to="/profile" className={({ isActive }) => `mobileNavLink ${isActive ? 'active' : ''}`}>
           <span className="mobileNavIcon">👤</span>
@@ -362,9 +385,11 @@ export default function GardenLayout({ children }) {
               >
                 {[
                   { to: '/explorar', icon: '🧭', label: 'Explorar Centro', className: 'hub-item-premium' },
-                  { to: '/cabina', icon: '🚀', label: 'Cabina' },
-                  { to: '/cartas', icon: '✉️', label: 'Mensajería' },
-                  { to: '/download', icon: '💻', label: 'Descargar App' },
+                  { to: '/games',    icon: '🕹️', label: 'Arcade' },
+                  { to: '/tienda',   icon: '🛍️', label: 'Tienda' },
+                  { to: '/cabina',   icon: '🛸',  label: 'Cabina' },
+                  { to: '/cartas',   icon: '✉️',  label: 'Mensajería' },
+                  { to: '/download', icon: '💻',  label: 'Descargar App' },
                 ].map((item) => (
                   <motion.div
                     key={item.to}

@@ -41,6 +41,7 @@ import socialRoutes from "./modules/social/index.mjs";
 import audioRoutes from "./modules/audio/audioRoutes.mjs";
 import animeRoutes from "./modules/anime/animeRoutes.mjs";
 import { AnimeRoom } from "./rooms/AnimeRoom.mjs";
+import { SpaceSessionRoom } from "./rooms/SpaceSessionRoom.mjs";
 
 const PORT = process.env.PORT || 2567;
 const IS_PROD = process.env.NODE_ENV === "production";
@@ -248,6 +249,7 @@ gameServer.define("puzzle", PuzzleRoom).filterBy(['roomName']);
 gameServer.define("ludo", LudoRoom).filterBy(['roomName']);
 gameServer.define("beat_sound", BeatSoundRoom).filterBy(['roomName']);
 gameServer.define("live_activity", LiveActivityRoom).filterBy(['instanceId']);
+gameServer.define("space_session", SpaceSessionRoom).filterBy(['spaceId']);
 
 
 /* ==================== 404 HANDLER ==================== */
