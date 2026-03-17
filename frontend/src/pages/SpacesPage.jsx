@@ -114,7 +114,7 @@ function ActivityCard({ activity, onClick, loading }) {
       onClick={onClick}
       disabled={loading}
       style={{ background: gradient }}
-      className={`group relative flex flex-col gap-3 overflow-hidden rounded-[22px] border ${border} ${glow} p-4 text-left transition-all duration-300 hover:scale-[1.03] disabled:opacity-50 h-full min-h-[140px]`}
+      className={`group relative flex flex-col gap-4 overflow-hidden rounded-[24px] border ${border} ${glow} p-5 text-left transition-all duration-300 hover:scale-[1.03] disabled:opacity-50 h-full min-h-[160px] shadow-lg`}
     >
       {/* Top shimmer line */}
       <div
@@ -131,20 +131,20 @@ function ActivityCard({ activity, onClick, loading }) {
       {/* Icon block */}
       <div
         style={{ background: iconGradient }}
-        className="flex h-11 w-11 items-center justify-center rounded-[14px] shadow-lg"
+        className="flex h-12 w-12 items-center justify-center rounded-[16px] shadow-lg"
       >
-        <Icon size={20} className="text-white drop-shadow-sm" strokeWidth={1.8} />
+        <Icon size={22} className="text-white drop-shadow-sm" strokeWidth={2} />
       </div>
 
       {/* Labels + arrow */}
-      <div className="flex items-end justify-between gap-1 mt-auto">
+      <div className="flex items-end justify-between gap-2 mt-auto">
         <div className="min-w-0 flex-1">
-          <p className="text-sm lg:text-base font-bold text-white leading-tight truncate">{label}</p>
-          <p className="mt-0.5 text-[11px] lg:text-xs text-white/40 leading-snug line-clamp-2">{sublabel}</p>
+          <p className="text-base lg:text-lg font-bold text-white leading-tight truncate">{label}</p>
+          <p className="mt-1 text-xs lg:text-sm text-white/50 leading-snug line-clamp-2">{sublabel}</p>
         </div>
         <ArrowRight
-          size={13}
-          className="mb-0.5 shrink-0 text-white/20 transition-all duration-200 group-hover:translate-x-0.5 group-hover:text-white/50"
+          size={16}
+          className="mb-1 shrink-0 text-white/30 transition-all duration-200 group-hover:translate-x-1 group-hover:text-white/60"
         />
       </div>
 
@@ -169,7 +169,7 @@ function LiveSpaceCard({ space, onJoin, index }) {
       initial={{ opacity: 0, y: 14 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.05 }}
-      className="flex items-center gap-3 rounded-[18px] border border-white/[0.06] bg-[#111120] p-3"
+      className="flex items-center gap-4 rounded-[20px] border border-white/[0.08] bg-gradient-to-r from-white/[0.03] to-white/[0.01] p-4 backdrop-blur-sm hover:border-white/[0.12] transition-all duration-200"
     >
       <div
         style={{ background: iconGradient }}
@@ -179,23 +179,30 @@ function LiveSpaceCard({ space, onJoin, index }) {
       </div>
 
       <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-bold text-white leading-tight">
+        <p className="truncate text-sm font-bold text-white leading-tight mb-1">
           {space.spaceName || space.spaceId}
         </p>
-        <div className="flex items-center gap-1.5 mt-0.5">
-          <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-red-400" />
-          <span className="text-[10px] text-white/40">{meta.label}</span>
-          <span className="text-[10px] text-white/25">·</span>
-          <Users size={9} className="text-white/30" />
-          <span className="text-[10px] text-white/40">{space.users || 1}</span>
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1">
+            <span className="relative flex h-2 w-2">
+              <span className="h-2 w-2 rounded-full bg-red-400"></span>
+              <span className="absolute inset-0 h-2 w-2 rounded-full bg-red-400 animate-ping opacity-75"></span>
+            </span>
+            <span className="text-xs font-medium text-white/60">{meta.label}</span>
+          </div>
+          <span className="text-white/20">·</span>
+          <div className="flex items-center gap-1">
+            <Users size={12} className="text-white/40" />
+            <span className="text-xs text-white/60">{space.users || 1}</span>
+          </div>
         </div>
       </div>
 
       <button
         onClick={() => onJoin(space)}
-        className="shrink-0 flex items-center gap-1 rounded-xl border border-white/10 bg-white/[0.06] px-3 py-1.5 text-[11px] font-bold text-white transition hover:bg-white/[0.12]"
+        className="shrink-0 flex items-center gap-2 rounded-xl border border-white/15 bg-white/[0.08] px-4 py-2 text-xs font-bold text-white transition-all duration-200 hover:bg-white/[0.15] hover:border-white/[0.25] hover:scale-[1.05]"
       >
-        Entrar <ArrowRight size={10} />
+        Entrar <ArrowRight size={12} />
       </button>
     </motion.div>
   );
@@ -282,12 +289,16 @@ export default function SpacesPage() {
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.04 }}
-          className="mb-6"
+          className="mb-8 text-center lg:text-left"
         >
-          <h1 className="text-[2.5rem] lg:text-[3rem] font-black uppercase tracking-[0.1em] leading-none text-white">
-            ESPACIOS
-          </h1>
-          <p className="mt-2 text-sm lg:text-base text-white/45 leading-snug">
+          <div className="inline-flex items-center gap-3 mb-4">
+            <div className="h-1 w-8 rounded-full bg-gradient-to-r from-cyan-400 to-purple-500"></div>
+            <h1 className="text-[2.5rem] lg:text-[3.5rem] font-black uppercase tracking-[0.05em] leading-none text-white">
+              ESPACIOS
+            </h1>
+            <div className="h-1 w-8 rounded-full bg-gradient-to-r from-purple-500 to-cyan-400"></div>
+          </div>
+          <p className="text-sm lg:text-lg text-white/60 leading-relaxed max-w-2xl">
             Entra directo, habla cuando quieras.
           </p>
         </motion.div>
@@ -297,39 +308,54 @@ export default function SpacesPage() {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.08 }}
-          className="mb-2 lg:mb-4"
+          className="mb-8 lg:mb-12"
         >
-          <div className="flex justify-center">
-            <button
-              onClick={() => navigate('/spaces/new')}
-              className="group relative w-full max-w-md overflow-hidden rounded-[22px] bg-gradient-to-r from-cyan-400 via-purple-500 to-purple-600 p-[1px] shadow-[0_0_32px_rgba(34,211,238,0.18),0_0_60px_rgba(139,92,246,0.12)] transition hover:shadow-[0_0_44px_rgba(34,211,238,0.3),0_0_80px_rgba(139,92,246,0.2)] hover:brightness-110 active:scale-[0.98]"
-          >
-            <div className="relative flex flex-col items-center justify-center gap-1 overflow-hidden rounded-[21px] bg-gradient-to-r from-cyan-500/90 via-purple-500/90 to-purple-600/90 px-6 py-5">
-              {/* Shine overlay */}
-              <div className="pointer-events-none absolute inset-0 translate-x-[-100%] bg-gradient-to-r from-transparent via-white/10 to-transparent transition-transform duration-500 group-hover:translate-x-[100%]" />
-              <div className="flex items-center gap-2">
-                <Plus size={18} className="text-white" strokeWidth={2.5} />
-                <span className="text-base font-black uppercase tracking-[0.18em] text-white">
-                  Crear espacio
-                </span>
-              </div>
+          <div className="relative">
+            <div className="absolute inset-0 bg-gradient-to-r from-cyan-400/20 to-purple-500/20 rounded-[28px] blur-xl"></div>
+            <div className="relative flex justify-center">
+              <button
+                onClick={() => navigate('/spaces/new')}
+                className="group relative w-full max-w-lg overflow-hidden rounded-[24px] bg-gradient-to-r from-cyan-400 via-purple-500 to-purple-600 p-[2px] shadow-[0_0_40px_rgba(34,211,238,0.25),0_0_80px_rgba(139,92,246,0.15)] transition-all duration-300 hover:shadow-[0_0_60px_rgba(34,211,238,0.4),0_0_120px_rgba(139,92,246,0.25)] hover:scale-[1.02] active:scale-[0.98]"
+              >
+                <div className="relative flex flex-col items-center justify-center gap-2 overflow-hidden rounded-[22px] bg-gradient-to-r from-cyan-500/95 via-purple-500/95 to-purple-600/95 px-8 py-6">
+                  {/* Shine overlay */}
+                  <div className="pointer-events-none absolute inset-0 translate-x-[-100%] bg-gradient-to-r from-transparent via-white/15 to-transparent transition-transform duration-700 group-hover:translate-x-[100%]" />
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white/20">
+                      <Plus size={20} className="text-white" strokeWidth={2.5} />
+                    </div>
+                    <span className="text-lg lg:text-xl font-black uppercase tracking-[0.15em] text-white">
+                      Crear espacio
+                    </span>
+                  </div>
+                </div>
+              </button>
             </div>
-          </button>
           </div>
         </motion.div>
 
-        <motion.p
+        <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.12 }}
-          className="mb-8 text-center text-[11px] lg:text-sm text-white/30"
+          className="mb-12 text-center"
         >
-          o elige una actividad para lanzar directo
-        </motion.p>
+          <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2">
+            <div className="h-1 w-1 rounded-full bg-white/40"></div>
+            <span className="text-xs lg:text-sm font-medium text-white/50">
+              o elige una actividad para lanzar directo
+            </span>
+            <div className="h-1 w-1 rounded-full bg-white/40"></div>
+          </div>
+        </motion.div>
 
         {/* ── Activity grid ─────────────────────────────────────────────────── */}
-        <section className="mb-10">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 lg:gap-4">
+        <section className="mb-16">
+          <div className="mb-8">
+            <h2 className="text-xl lg:text-2xl font-bold text-white mb-2">Actividades disponibles</h2>
+            <p className="text-sm text-white/50">Elige tu actividad favorita y comparte con amigos</p>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 lg:gap-6">
             {ACTIVITY_CATALOG.map((activity, i) => (
               <motion.div
                 key={activity.id}
@@ -348,15 +374,22 @@ export default function SpacesPage() {
         </section>
 
         {/* ── Live spaces ───────────────────────────────────────────────────── */}
-        <section>
-          <div className="mb-4 flex items-center gap-2">
-            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-red-400" />
-            <h2 className="text-[11px] font-black uppercase tracking-[0.24em] text-white/40">
-              En vivo ahora
-            </h2>
-            {!loading && spaces.length > 0 && (
-              <span className="ml-auto text-[10px] text-white/25">{spaces.length}</span>
-            )}
+        <section className="mb-16">
+          <div className="mb-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="relative">
+                <span className="h-3 w-3 rounded-full bg-red-500 animate-pulse"></span>
+                <span className="absolute inset-0 h-3 w-3 rounded-full bg-red-500 animate-ping opacity-75"></span>
+              </div>
+              <h2 className="text-xl lg:text-2xl font-bold text-white">
+                En vivo ahora
+              </h2>
+              {!loading && spaces.length > 0 && (
+                <span className="ml-auto inline-flex items-center px-3 py-1 rounded-full border border-red-500/20 bg-red-500/10 text-xs font-medium text-red-400">
+                  {spaces.length} activos
+                </span>
+              )}
+            </div>
           </div>
 
           {loading ? (
@@ -366,9 +399,21 @@ export default function SpacesPage() {
               ))}
             </div>
           ) : spaces.length === 0 ? (
-            <div className="flex flex-col items-center gap-2 rounded-[20px] border border-dashed border-white/[0.08] bg-white/[0.02] py-10 text-center">
-              <Users size={24} className="text-white/15" />
-              <p className="text-xs text-white/30">Sin espacios activos</p>
+            <div className="flex flex-col items-center gap-4 rounded-[24px] border border-dashed border-white/[0.12] bg-gradient-to-br from-white/[0.03] to-white/[0.01] py-16 text-center backdrop-blur-sm">
+              <div className="flex h-16 w-16 items-center justify-center rounded-full border border-white/[0.08] bg-white/[0.02]">
+                <Users size={28} className="text-white/20" />
+              </div>
+              <div>
+                <p className="text-base font-medium text-white/60 mb-1">Sin espacios activos</p>
+                <p className="text-sm text-white/40">Sé el primero en crear un espacio</p>
+              </div>
+              <button
+                onClick={() => navigate('/spaces/new')}
+                className="mt-2 inline-flex items-center gap-2 rounded-full border border-cyan-500/30 bg-cyan-500/10 px-4 py-2 text-sm font-medium text-cyan-400 transition hover:bg-cyan-500/20 hover:border-cyan-500/50"
+              >
+                <Plus size={16} />
+                Crear espacio
+              </button>
             </div>
           ) : (
             <div className="flex flex-col gap-2">
