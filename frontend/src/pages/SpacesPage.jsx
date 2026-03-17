@@ -1,12 +1,12 @@
 /**
  * SpacesPage — Hub de Espacios
- * v2: live animated preview cards via /api/spaces/active + Supabase fallback
+ * v3: prominent "Crear espacio" button + activity quick-launch catalog
  */
 
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Users, Tv, BookOpen, Gamepad2, Plus, Zap, ArrowRight, Music } from 'lucide-react';
+import { Users, Tv, BookOpen, Gamepad2, Plus, Zap, ArrowRight, Music, Sparkles } from 'lucide-react';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { supabase } from '@/supabaseClient';
 
@@ -34,7 +34,7 @@ function getActivityMeta(type, id) {
     || ACTIVITY_CATALOG[0];
 }
 
-// ─── Animated waveform — pure CSS, conveys "alive" without real audio ─────────
+// ─── Animated waveform ────────────────────────────────────────────────────────
 
 function Waveform({ color = 'cyan', bars = 12 }) {
   return (
@@ -57,7 +57,7 @@ function Waveform({ color = 'cyan', bars = 12 }) {
 // ─── Live preview card ────────────────────────────────────────────────────────
 
 function LiveSpaceCard({ space, onJoin, index }) {
-  const meta = getActivityMeta(space.activity?.type, space.activity?.id);
+  const meta    = getActivityMeta(space.activity?.type, space.activity?.id);
   const hasTrack = !!space.preview?.track;
 
   return (
@@ -67,9 +67,7 @@ function LiveSpaceCard({ space, onJoin, index }) {
       transition={{ delay: index * 0.06 }}
       className={`group relative flex flex-col overflow-hidden rounded-[22px] border bg-gradient-to-br ${meta.gradient} ${meta.border}`}
     >
-      {/* Animated top strip — simulates "live" activity */}
       <div className="relative flex h-[72px] items-end overflow-hidden px-4 pb-3">
-        {/* Thumbnail bg if available */}
         {space.preview?.thumbnail && (
           <img
             src={space.preview.thumbnail}
@@ -77,7 +75,6 @@ function LiveSpaceCard({ space, onJoin, index }) {
             className="absolute inset-0 h-full w-full object-cover opacity-30"
           />
         )}
-        {/* Animated waveform or grid pattern */}
         <div className="relative z-10 w-full flex items-end justify-between">
           <Waveform color={meta.dot.replace('bg-', '').split('/')[0].replace('-400', '')} />
           <div className="flex items-center gap-1.5">
@@ -89,9 +86,7 @@ function LiveSpaceCard({ space, onJoin, index }) {
         </div>
       </div>
 
-      {/* Card body */}
       <div className="flex flex-col gap-2 px-4 pb-4">
-        {/* Activity label + users */}
         <div className="flex items-center justify-between">
           <span className={`text-[10px] font-black uppercase tracking-[0.2em] ${meta.accent}`}>
             {meta.emoji} {meta.label}
@@ -102,12 +97,10 @@ function LiveSpaceCard({ space, onJoin, index }) {
           </div>
         </div>
 
-        {/* Track name or space name */}
         <p className="truncate text-sm font-black text-white leading-tight">
           {hasTrack ? space.preview.track : (space.spaceName || space.spaceId)}
         </p>
 
-        {/* Host */}
         {space.hostUsername && (
           <div className="flex items-center gap-1.5">
             {space.hostAvatar && (
@@ -117,7 +110,6 @@ function LiveSpaceCard({ space, onJoin, index }) {
           </div>
         )}
 
-        {/* Join */}
         <button
           onClick={() => onJoin(space)}
           className="mt-1 flex w-full items-center justify-center gap-1.5 rounded-xl border border-white/10 bg-white/[0.06] py-2 text-[11px] font-black uppercase tracking-[0.16em] text-white transition hover:bg-white/[0.14] group-hover:border-white/20"
@@ -129,12 +121,8 @@ function LiveSpaceCard({ space, onJoin, index }) {
   );
 }
 
-// ─── Hooks ────────────────────────────────────────────────────────────────────
+// ─── Hook: live space previews ────────────────────────────────────────────────
 
-/**
- * Polls the Colyseus-backed /api/spaces/active endpoint for live previews.
- * Falls back to Supabase live_activities if the endpoint is unreachable.
- */
 function useSpacePreviews() {
   const [spaces,  setSpaces]  = useState([]);
   const [loading, setLoading] = useState(true);
@@ -152,7 +140,6 @@ function useSpacePreviews() {
       setSpaces(data || []);
     } catch (err) {
       if (err.name === 'AbortError') return;
-      // Supabase fallback
       try {
         const { data } = await supabase
           .from('live_activities')
@@ -179,7 +166,7 @@ function useSpacePreviews() {
 
   useEffect(() => {
     fetchPreviews();
-    const interval = setInterval(fetchPreviews, 12000); // refresh every 12s
+    const interval = setInterval(fetchPreviews, 12000);
     return () => {
       clearInterval(interval);
       abortRef.current?.abort();
@@ -189,13 +176,15 @@ function useSpacePreviews() {
   return { spaces, loading, refresh: fetchPreviews };
 }
 
-// ─── Main component ───────────────────────────────────────────────────────────
+// ─── Quick-launch ID generator (activity in the URL, not the ID) ──────────────
 
-function generateSpaceId(profile, activityId) {
+function generateSpaceId(profile) {
   const slug   = (profile?.username || 'user').toLowerCase().replace(/[^a-z0-9]/g, '');
   const suffix = Math.random().toString(36).slice(2, 6);
-  return `${slug}-${activityId}-${suffix}`;
+  return `${slug}-${suffix}`;
 }
+
+// ─── Main component ───────────────────────────────────────────────────────────
 
 export default function SpacesPage() {
   const navigate  = useNavigate();
@@ -203,10 +192,11 @@ export default function SpacesPage() {
   const { spaces, loading } = useSpacePreviews();
   const [creating, setCreating] = useState(null);
 
-  const handleCreate = (activity) => {
+  // Quick-launch: go directly to a space with an activity pre-selected
+  const handleQuickLaunch = (activity) => {
     if (!user) { navigate('/'); return; }
     setCreating(activity.id);
-    const spaceId = generateSpaceId(profile, activity.id);
+    const spaceId = generateSpaceId(profile);
     navigate(`/spaces/${spaceId}?activity=${activity.type}:${activity.id}&new=1`);
   };
 
@@ -216,7 +206,6 @@ export default function SpacesPage() {
 
   return (
     <div className="min-h-full text-white">
-      {/* Waveform keyframe — injected once */}
       <style>{`
         @keyframes waveBar {
           0%, 100% { transform: scaleY(0.4); opacity: 0.5; }
@@ -238,20 +227,34 @@ export default function SpacesPage() {
           </p>
         </motion.div>
 
-        {/* Quick-launch */}
+        {/* ── Prominent create button ─────────────────────────────────────── */}
         <section className="mb-10">
-          <div className="mb-4 flex items-center gap-2">
-            <Plus size={14} className="text-white/40" />
-            <h2 className="text-[11px] font-black uppercase tracking-[0.24em] text-white/50">Crear espacio</h2>
-          </div>
+          <motion.button
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.05 }}
+            whileTap={{ scale: 0.98 }}
+            onClick={() => navigate('/spaces/new')}
+            className="w-full flex items-center justify-center gap-3 rounded-[22px] bg-gradient-to-r from-cyan-500 to-blue-600 py-5 text-base font-black uppercase tracking-[0.18em] text-white shadow-lg shadow-cyan-500/20 hover:brightness-110 transition"
+          >
+            <Sparkles size={20} />
+            ✨ Crear espacio
+          </motion.button>
+          <p className="mt-3 text-center text-[11px] text-white/35">
+            o elige una actividad para lanzar directo
+          </p>
+        </section>
+
+        {/* ── Quick-launch activity cards ─────────────────────────────────── */}
+        <section className="mb-10">
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
             {ACTIVITY_CATALOG.map((activity, i) => (
               <motion.button
                 key={activity.id}
                 initial={{ opacity: 0, scale: 0.88 }}
                 animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: i * 0.04 }}
-                onClick={() => handleCreate(activity)}
+                transition={{ delay: i * 0.04 + 0.1 }}
+                onClick={() => handleQuickLaunch(activity)}
                 disabled={creating === activity.id}
                 className={`group relative flex flex-col items-center gap-2 overflow-hidden rounded-[20px] border bg-gradient-to-br ${activity.gradient} ${activity.border} p-4 text-center transition hover:scale-[1.03] active:scale-[0.97] disabled:opacity-60`}
               >
@@ -270,7 +273,7 @@ export default function SpacesPage() {
           </div>
         </section>
 
-        {/* Live spaces */}
+        {/* ── Live spaces ─────────────────────────────────────────────────── */}
         <section>
           <div className="mb-4 flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -292,7 +295,7 @@ export default function SpacesPage() {
             <div className="flex flex-col items-center justify-center gap-3 rounded-[24px] border border-dashed border-white/10 bg-white/[0.02] py-14 text-center">
               <Users size={28} className="text-white/20" />
               <p className="text-sm font-bold text-white/40">Sin espacios activos</p>
-              <p className="text-xs text-white/25">Crea el primero 👆</p>
+              <p className="text-xs text-white/25">Crea el primero con el botón de arriba</p>
             </div>
           ) : (
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">

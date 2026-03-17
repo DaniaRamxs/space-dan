@@ -78,6 +78,9 @@ export class SpaceSessionState extends Schema {
     this.activity     = new SpaceActivity();
     this.voice        = new SpaceVoice();
     this.createdAt    = Date.now();
+    this.isPublic     = true;
+    this.bgType       = "stars";
+    this.bgValue      = "";
   }
 }
 
@@ -88,3 +91,6 @@ type({ map: SpaceParticipant })(SpaceSessionState.prototype, "participants");
 type(SpaceActivity)(SpaceSessionState.prototype, "activity");
 type(SpaceVoice)(SpaceSessionState.prototype, "voice");
 type("number")(SpaceSessionState.prototype, "createdAt");
+type("boolean")(SpaceSessionState.prototype, "isPublic");
+type("string")(SpaceSessionState.prototype, "bgType");
+type("string")(SpaceSessionState.prototype, "bgValue");

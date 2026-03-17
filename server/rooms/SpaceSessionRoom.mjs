@@ -39,6 +39,9 @@ export class SpaceSessionRoom extends Room {
     state.spaceName    = options.spaceName || "Space";
     state.hostId       = options.hostId    || "";
     state.voice.livekitRoom = options.spaceId || this.roomId;
+    state.isPublic     = options.isPublic !== false;
+    state.bgType       = "stars";
+    state.bgValue      = "";
     this.setState(state);
 
     this.autoDispose = true;
@@ -195,6 +198,19 @@ export class SpaceSessionRoom extends Room {
         timestamp: Date.now(),
       });
     });
+
+    // ── Background sync ───────────────────────────────────────────────────────
+
+    this.onMessage("SET_BACKGROUND", (client, { type, value }) => {
+      if (!this._isHost(client)) return;
+      this.state.bgType  = ["stars", "image", "gif"].includes(type) ? type : "stars";
+      this.state.bgValue = String(value || "").slice(0, 500);
+      // Broadcast so all clients update immediately (schema patch also propagates)
+      this.broadcast("BACKGROUND_UPDATE", {
+        type:  this.state.bgType,
+        value: this.state.bgValue,
+      });
+    });
   }
 
   onJoin(client, options) {
@@ -340,6 +356,7 @@ export class SpaceSessionRoom extends Room {
       hostId:       this.state.hostId,
       hostUsername: host?.username || "",
       hostAvatar:   host?.avatar   || "",
+      isPublic:     this.state.isPublic,
       activity: {
         type:  this.state.activity.type  || "",
         id:    this.state.activity.id    || "",

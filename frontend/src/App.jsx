@@ -80,6 +80,7 @@ const AuthCallback = lazy(() => import("./pages/AuthCallback"));
 const AnimeSpacePage = lazy(() => import("./features/anime/AstroPartyPage"));
 const MangaPartyPage = lazy(() => import("./features/manga/MangaPartyPage"));
 const SpacesPage = lazy(() => import("./pages/SpacesPage"));
+const SpaceCreatePage = lazy(() => import("./pages/SpaceCreatePage"));
 const SpaceSessionPage = lazy(() => import("./pages/SpaceSessionPage"));
 
 const NAV_TRACE_KEY = "spacely_nav_trace_v1";
@@ -603,6 +604,11 @@ function AnimatedRoutes() {
         <Route path="/spaces" element={
           loading ? <Layout><RouteLoader /></Layout> :
             user ? <Layout><SpacesPage /></Layout> :
+              <Layout><LoginGate /></Layout>
+        } />
+        <Route path="/spaces/new" element={
+          loading ? <Layout><RouteLoader /></Layout> :
+            user ? <Layout><SpaceCreatePage /></Layout> :
               <Layout><LoginGate /></Layout>
         } />
         <Route path="/spaces/:spaceId" element={
