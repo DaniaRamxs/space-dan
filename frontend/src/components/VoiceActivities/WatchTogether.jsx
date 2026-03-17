@@ -12,7 +12,6 @@ import {
     Film, Tv, Share2, Clock, Eye, EyeOff, Menu, Crown,
     Heart, Laugh, Ghost, Zap, Smile, Send
 } from 'lucide-react';
-import { useLocalParticipant, useParticipants as useLiveKitParticipants } from '@livekit/components-react';
 import { supabase } from '@/supabaseClient';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { usePlaybackSync } from '@/hooks/usePlaybackSync';
@@ -48,7 +47,6 @@ const QUICK_REACTIONS = [
 export default function WatchTogether({ roomName, onClose, isMinimized = false, isPanelOpen = false }) {
     // ── 1. Context ───────────────────────────────────────────────────────────────
     const { user, profile } = useAuthContext();
-    const livekitParticipants = useLiveKitParticipants();
 
     // ── 2. Service hooks (order matters: service hooks only depend on props/context) ─
     const [room, setRoom] = useState(null);
