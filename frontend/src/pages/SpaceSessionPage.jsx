@@ -447,40 +447,10 @@ function FabPill({ icon, label, onClick, active = false, className = '' }) {
 
 // ─── FloatingFABs ─────────────────────────────────────────────────────────────
 
-function FloatingFABs({
-  isHost,
-  voiceActive,
-  showReactions,
-  onToggleReactions,
-  onToggleVoice,
-  onOpenActivity,
-  onOpenPersonalize,
-  onOpenOverlay,
-  onReact,
-  sendReaction,
-}) {
+function FabStack({ isHost, onOpenActivity }) {
   return (
     <div className="fixed bottom-6 right-4 z-50 flex flex-col items-end gap-2">
-      {/* Reaction bar — shown above FABs when toggled */}
-      <AnimatePresence>
-        {showReactions && (
-          <ReactionBar onReact={sendReaction} />
-        )}
-      </AnimatePresence>
-
-      {/* FAB stack — bottom to top: Reacciones, Voz, Actividad (host), Capas, Personalizar */}
-      <FabPill
-        icon={<Heart size={15} />}
-        label="Reacciones"
-        onClick={onToggleReactions}
-        active={showReactions}
-      />
-      <FabPill
-        icon={<Mic size={15} />}
-        label="Voz"
-        onClick={onToggleVoice}
-        active={voiceActive}
-      />
+      {/* FAB stack — bottom to top: Actividad (host) */}
       {isHost && (
         <FabPill
           icon={<Plus size={15} />}
@@ -488,16 +458,6 @@ function FloatingFABs({
           onClick={onOpenActivity}
         />
       )}
-      <FabPill
-        icon={<Layers size={15} />}
-        label="Capas"
-        onClick={onOpenOverlay}
-      />
-      <FabPill
-        icon={<Palette size={15} />}
-        label="Personalizar"
-        onClick={onOpenPersonalize}
-      />
     </div>
   );
 }
@@ -795,14 +755,7 @@ export default function SpaceSessionPage() {
       {/* ── z-50: Floating FABs ──────────────────────────────────────────────── */}
       <FloatingFABs
         isHost={isHost}
-        voiceActive={voiceState.active}
-        showReactions={showReactions}
-        onToggleReactions={() => setShowReactions(v => !v)}
-        onToggleVoice={() => toggleVoice(!voiceState.active)}
         onOpenActivity={() => setShowActivityPicker(true)}
-        onOpenPersonalize={() => setShowPersonalize(true)}
-        onOpenOverlay={() => setShowOverlayPanel(true)}
-        sendReaction={sendReaction}
       />
 
       {/* ── z-[400]: Panels ──────────────────────────────────────────────────── */}
