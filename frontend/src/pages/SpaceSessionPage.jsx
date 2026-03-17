@@ -449,13 +449,14 @@ function FabPill({ icon, label, onClick, active = false, className = '' }) {
 
 function FabStack({ isHost, onOpenActivity }) {
   return (
-    <div className="fixed bottom-6 right-4 z-50 flex flex-col items-end gap-2">
-      {/* FAB stack — bottom to top: Actividad (host) */}
+    <div className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-50">
+      {/* FAB centrado — Actividad (host) */}
       {isHost && (
         <FabPill
           icon={<Plus size={15} />}
           label="Actividad"
           onClick={onOpenActivity}
+          className="shadow-[0_0_40px_rgba(34,211,238,0.3),0_0_80px_rgba(139,92,246,0.2)]"
         />
       )}
     </div>
