@@ -42,6 +42,7 @@ import audioRoutes from "./modules/audio/audioRoutes.mjs";
 import animeRoutes from "./modules/anime/animeRoutes.mjs";
 import { AnimeRoom } from "./rooms/AnimeRoom.mjs";
 import { SpaceSessionRoom } from "./rooms/SpaceSessionRoom.mjs";
+import { getActiveSpaces } from "./spacesRegistry.mjs";
 
 const PORT = process.env.PORT || 2567;
 const IS_PROD = process.env.NODE_ENV === "production";
@@ -118,6 +119,11 @@ app.use('/api/anime-test', animeTestRoutes);
 /* ---------------- HEALTH CHECK ---------------- */
 
 app.get("/", (req, res) => res.json({ status: "ok", uptime: process.uptime() }));
+// Live spaces preview — consumed by SpacesPage hub
+app.get("/api/spaces/active", (_req, res) => {
+  res.json(getActiveSpaces());
+});
+
 app.get("/health", (req, res) => {
   const mem = process.memoryUsage();
   res.json({
