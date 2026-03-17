@@ -14,13 +14,16 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { useParams, useSearchParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Crown, Users, ChevronLeft, Zap, Sparkles, Palette, Mic, Heart, Plus, X, Check } from 'lucide-react';
+import { Crown, Users, ChevronLeft, Zap, Sparkles, Palette, Mic, Heart, Plus, X, Check, Layers } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { useSpaceSession } from '@/hooks/useSpaceSession';
 import { usePresenceLayer } from '@/hooks/usePresenceLayer';
 import { ActivityRouter } from '@/components/spaces/ActivityRouter';
 import { VoiceModule } from '@/components/spaces/VoiceModule';
+import { OverlayProvider } from '@/contexts/OverlayContext';
+import OverlayLayer from '@/components/overlay/OverlayLayer';
+import OverlayPanel from '@/components/overlay/OverlayPanel';
 
 // ─── Pre-seeded stars for background (80 items, deterministic) ────────────────
 
@@ -452,6 +455,7 @@ function FloatingFABs({
   onToggleVoice,
   onOpenActivity,
   onOpenPersonalize,
+  onOpenOverlay,
   onReact,
   sendReaction,
 }) {
@@ -464,7 +468,7 @@ function FloatingFABs({
         )}
       </AnimatePresence>
 
-      {/* FAB stack — bottom to top: Reacciones, Voz, Actividad (host), Personalizar */}
+      {/* FAB stack — bottom to top: Reacciones, Voz, Actividad (host), Capas, Personalizar */}
       <FabPill
         icon={<Heart size={15} />}
         label="Reacciones"
@@ -484,6 +488,11 @@ function FloatingFABs({
           onClick={onOpenActivity}
         />
       )}
+      <FabPill
+        icon={<Layers size={15} />}
+        label="Capas"
+        onClick={onOpenOverlay}
+      />
       <FabPill
         icon={<Palette size={15} />}
         label="Personalizar"
@@ -610,6 +619,7 @@ export default function SpaceSessionPage() {
   const [showReactions,     setShowReactions]     = useState(false);
   const [showPersonalize,   setShowPersonalize]   = useState(false);
   const [showActivityPicker, setShowActivityPicker] = useState(false);
+  const [showOverlayPanel,  setShowOverlayPanel]  = useState(false);
 
   // ── Refs ───────────────────────────────────────────────────────────────────
   const autoLaunchDone = useRef(false);
@@ -684,6 +694,12 @@ export default function SpaceSessionPage() {
   }
 
   return (
+    <OverlayProvider
+      spaceId={spaceId}
+      colyseusRoom={room}
+      userId={profile?.id || ''}
+      isHost={isHost}
+    >
     <div ref={containerRef} className="relative min-h-full text-white">
       <style>{KEYFRAMES}</style>
 
@@ -767,6 +783,9 @@ export default function SpaceSessionPage() {
         </AnimatePresence>
       </div>
 
+      {/* ── z-[150]: Overlay Layer ────────────────────────────────────────────── */}
+      <OverlayLayer containerRef={containerRef} colyseusRoom={room} />
+
       {/* ── z-[250]: Remote cursors ──────────────────────────────────────────── */}
       <CursorOverlay cursors={cursors} containerRef={containerRef} />
 
@@ -782,6 +801,7 @@ export default function SpaceSessionPage() {
         onToggleVoice={() => toggleVoice(!voiceState.active)}
         onOpenActivity={() => setShowActivityPicker(true)}
         onOpenPersonalize={() => setShowPersonalize(true)}
+        onOpenOverlay={() => setShowOverlayPanel(true)}
         sendReaction={sendReaction}
       />
 
@@ -801,6 +821,10 @@ export default function SpaceSessionPage() {
         onClose={() => setShowActivityPicker(false)}
         onSelect={(type, id) => launchActivity(type, id)}
       />
+      <OverlayPanel
+        open={showOverlayPanel}
+        onClose={() => setShowOverlayPanel(false)}
+      />
 
       {/* Hidden VoiceModule manages LiveKit connection internally */}
       <div className="hidden">
@@ -814,5 +838,6 @@ export default function SpaceSessionPage() {
         />
       </div>
     </div>
+    </OverlayProvider>
   );
 }
