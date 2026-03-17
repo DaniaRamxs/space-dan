@@ -8,7 +8,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
   Tv, BookOpen, Palette, Gamepad2, Crown, Dice5,
-  Swords, Music, Users, ArrowRight, Plus,
+  Swords, Users, ArrowRight, Plus,
 } from 'lucide-react';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { supabase } from '@/supabaseClient';
@@ -89,16 +89,6 @@ const ACTIVITY_CATALOG = [
     glowColor:    'rgba(245,158,11,0.25)',
     border:       'border-yellow-500/20',
     glow:         'hover:shadow-[0_0_36px_rgba(245,158,11,0.22)]',
-  },
-  {
-    type: 'game',   id: 'music',
-    label: 'Música',       sublabel: 'Escucha en grupo',
-    Icon: Music,
-    gradient:     'linear-gradient(135deg, #0e1a28 0%, #102030 50%, #143040 100%)',
-    iconGradient: 'linear-gradient(135deg, #00cec9 0%, #0984e3 100%)',
-    glowColor:    'rgba(34,211,238,0.25)',
-    border:       'border-cyan-500/20',
-    glow:         'hover:shadow-[0_0_36px_rgba(34,211,238,0.22)]',
   },
 ];
 
