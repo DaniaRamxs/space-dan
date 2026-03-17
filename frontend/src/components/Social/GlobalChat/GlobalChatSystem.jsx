@@ -19,7 +19,6 @@ import { useUniverse } from '../../../contexts/UniverseContext';
 import { missionService } from '../../../services/missionService';
 import { Trophy, Map, Calendar, Palette } from 'lucide-react';
 import ChatSidebar from './ChatSidebar';
-import { cosmicEventsService } from '../../../services/cosmicEventsService';
 import '../../../styles/GlobalChat.css';
 
 // Lazy: solo se cargan cuando el usuario los abre (no al entrar al chat)
@@ -76,49 +75,14 @@ export default function GlobalChat({ initialActivity = null }) {
     const [selectedProfile, setSelectedProfile] = useState(null);
     const [replyingTo, setReplyingTo] = useState(null);
     const [sidebarOpen, setSidebarOpen] = useState(false);
-    const [activeEvents, setActiveEvents] = useState({ meteor: false, eclipse: false });
-    const [recentCosmicEvents, setRecentCosmicEvents] = useState([]);
     const [channelStats, setChannelStats] = useState({ messageCount: 0, activityLevel: 0 });
 
-    // Polling de Eventos Cósmicos Globales
+    // Estadísticas del canal
     useEffect(() => {
-        const checkEvents = async () => {
-            const active = await cosmicEventsService.getActiveEvent();
-            if (active) {
-                const name = active.name.toLowerCase();
-                const status = {
-                    meteor: name.includes('meteor'),
-                    eclipse: name.includes('eclipse')
-                };
-                setActiveEvents(status);
-                activeEventsRef.current.eclipse = status.eclipse;
-            } else {
-                setActiveEvents({ meteor: false, eclipse: false });
-                activeEventsRef.current.eclipse = false;
-            }
-        };
-
-        checkEvents();
-        const interval = setInterval(checkEvents, 30000);
-        return () => clearInterval(interval);
-    }, []);
-
-    // Sidebar: Cargar eventos recientes y estadísticas
-    useEffect(() => {
-        const loadSidebarData = async () => {
-            const evs = await cosmicEventsService.getUniverseEvents(5);
-            setRecentCosmicEvents(evs);
-
-            // Stats ficticias o reales
-            setChannelStats({
-                messageCount: messages.length * 12, // Simulando día
-                activityLevel: (messages.length / 10).toFixed(1)
-            });
-        };
-
-        loadSidebarData();
-        const interval = setInterval(loadSidebarData, 60000);
-        return () => clearInterval(interval);
+        setChannelStats({
+            messageCount: messages.length * 12,
+            activityLevel: (messages.length / 10).toFixed(1)
+        });
     }, [messages.length]);
 
     const scrollRef = useRef(null);
@@ -1874,26 +1838,6 @@ export default function GlobalChat({ initialActivity = null }) {
                                 </div>
                             </motion.div>
                         )}
-                        {activeEvents.eclipse && (
-                            <motion.div
-                                initial={{ opacity: 0, scale: 0.95 }}
-                                animate={{ opacity: 1, scale: 1 }}
-                                className="mx-4 mt-2 mb-1 shrink-0"
-                            >
-                                <div className="bg-indigo-900/40 backdrop-blur-md border border-indigo-500/30 rounded-2xl p-3 shadow-[0_0_20px_rgba(99,102,241,0.2)] flex items-center justify-between">
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-8 h-8 rounded-full bg-black flex items-center justify-center border border-indigo-500/50 shadow-[0_0_15px_rgba(99,102,241,0.5)]">
-                                            <div className="w-5 h-5 rounded-full bg-indigo-500 blur-[2px] animate-pulse" />
-                                        </div>
-                                        <div>
-                                            <h4 className="text-[10px] font-black text-white uppercase tracking-tighter italic">Eclipse Galáctico Activo</h4>
-                                            <p className="text-[8px] text-indigo-300 font-bold uppercase tracking-widest">Recompensas ×3 Activadas</p>
-                                        </div>
-                                    </div>
-                                    <div className="text-[10px] font-black text-indigo-400 opacity-50 px-3 py-1 bg-black/40 rounded-lg">LIVE</div>
-                                </div>
-                            </motion.div>
-                        )}
                     </AnimatePresence>
 
                     <div className="chat-fade-top" />
@@ -1950,7 +1894,7 @@ export default function GlobalChat({ initialActivity = null }) {
             <div className="hidden lg:block lg:col-start-3 h-full">
                 <ChatSidebar
                     onlineUsers={onlineUsers}
-                    recentEvents={recentCosmicEvents}
+                    recentEvents={[]}
                     channelStats={channelStats}
                 />
             </div>

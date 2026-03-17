@@ -1,55 +1,13 @@
-import React, { useEffect, useCallback, useRef, useState } from 'react';
+import React, { useEffect, useCallback, useRef } from 'react';
 import { useActivityFeed } from '../../hooks/useActivityFeed';
 import ActivityCard from './ActivityCard';
-import CosmicEventCard from './CosmicEventCard';
 import MeteoriteEntrance from '../Effects/MeteoriteEntrance';
 import { PostSkeleton } from '../Skeletons/Skeleton';
 import LivenessSignals from './LivenessSignals';
-import { cosmicEventsService } from '../../services/cosmicEventsService';
-
-// Mezcla posts y eventos del universo
-function mergeFeedWithUniverse(posts, universeEvents) {
-    const all = [
-        ...posts.map(p => ({ ...p, kind: 'post', _ts: new Date(p.created_at).getTime() })),
-        ...universeEvents.map(e => ({ ...e, kind: 'universe_event', _ts: new Date(e.created_at).getTime() })),
-    ];
-
-    all.sort((a, b) => b._ts - a._ts);
-
-    const result = [];
-    let eventCountSinceLastPost = 0;
-    for (const item of all) {
-        if (item.kind === 'universe_event') {
-            if (eventCountSinceLastPost >= 2 || result.filter(r => r.kind === 'post').length === 0) {
-                result.push(item);
-                eventCountSinceLastPost = 0;
-            }
-        } else {
-            result.push(item);
-            eventCountSinceLastPost++;
-        }
-    }
-    return result;
-}
-
-export default function ActivityFeed({ userId, filter = 'all', category = null, showCosmicEvents = false }) {
+export default function ActivityFeed({ userId, filter = 'all', category = null }) {
     const { feed, setFeed, loading, loadingMore, hasMore, loadMore } = useActivityFeed(filter, 20, category, userId);
-    const [universeEvents, setUniverseEvents] = useState([]);
     const sentinelRef = useRef(null);
     const isGlobalFeed = !userId;
-
-    // Cargar eventos del universo (solo si showCosmicEvents está activado)
-    useEffect(() => {
-        if (!isGlobalFeed || !showCosmicEvents) return;
-        
-        let mounted = true;
-        cosmicEventsService.getUniverseEvents(30)
-            .then(events => {
-                if (mounted) setUniverseEvents(events);
-            })
-            .catch(err => console.error('[ActivityFeed] Error loading universe events:', err));
-        return () => { mounted = false; };
-    }, [isGlobalFeed, showCosmicEvents]);
 
     // ... resto del componente (handleUpdatePost, handleNewPost, etc.)
     const handleUpdatePost = useCallback((updatedPost) => {
@@ -90,7 +48,7 @@ export default function ActivityFeed({ userId, filter = 'all', category = null, 
         );
     }
 
-    const mixedFeed = isGlobalFeed && showCosmicEvents ? mergeFeedWithUniverse(feed, universeEvents) : feed;
+    const mixedFeed = feed;
 
     return (
         <div className="w-full flex flex-col items-center">

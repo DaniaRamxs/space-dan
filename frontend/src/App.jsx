@@ -22,7 +22,6 @@ import { AuthProvider, useAuthContext } from "./contexts/AuthContext";
 import { EconomyProvider } from "./contexts/EconomyContext";
 import { UniverseProvider, useUniverse } from "./contexts/UniverseContext.jsx";
 import { spotifyService } from "./services/spotifyService";
-import CosmicEventBanner from "./components/Social/CosmicEventBanner";
 import WelcomeExperience from "./components/WelcomeExperience";
 import StarfieldBg from "./components/StarfieldBg";
 import ClickRipple from "./components/ClickRipple";
@@ -31,7 +30,6 @@ import { CosmicProvider } from "./components/Effects/CosmicProvider";
 
 // Lazy Pages
 const PostsPage = lazy(() => import("./pages/PostsPage"));
-const EventsPage = lazy(() => import("./pages/EventsPage"));
 const CreatePostPage = lazy(() => import("./pages/CreatePostPage"));
 const PostPage = lazy(() => import("./pages/PostPage"));
 const MusicPage = lazy(() => import("./pages/MusicPage"));
@@ -514,11 +512,6 @@ function AnimatedRoutes() {
             user ? <Layout><PostsPage /></Layout> :
               <Layout><LoginGate /></Layout>
         } />
-        <Route path="/events" element={
-          loading ? <Layout><RouteLoader /></Layout> :
-            user ? <Layout><EventsPage /></Layout> :
-              <Layout><LoginGate /></Layout>
-        } />
         <Route path="/transmission/:postId" element={
           loading ? <Layout><RouteLoader /></Layout> :
             user ? <Layout><PostDetailPage /></Layout> :
@@ -774,7 +767,6 @@ export default function App() {
               <ActivityRadar />
               <NavTraceOverlay />
               <WelcomeExperience />
-              <CosmicEventBanner />
               <PresenceTracker />
               <MusicSyncTracker />
               <RoutePrefetcher />

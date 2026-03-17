@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { echoesService } from '../../services/echoesService';
-import { cosmicEventsService } from '../../services/cosmicEventsService';
 import { useAuthContext } from '../../contexts/AuthContext';
 import { useEconomy } from '../../contexts/EconomyContext';
 import { Link } from 'react-router-dom';
@@ -56,18 +55,8 @@ export default function EchoesSection({ profileId, isOwnProfile, autoOpenStar = 
             setIsFleeting(false);
             onStarModalClose?.(); // Notificar al padre que el modal cerró
 
-            // Increase Bond
-            cosmicEventsService.incrementBond(user.id, profileId, 5);
-
-            // Event effect for Stars
-            const activeEvent = await cosmicEventsService.getActiveEvent();
-            let reward = 10;
-            let message = 'Dejaste un eco';
-
-            if (activeEvent && activeEvent.event_type === 'star_shower' && modalType === 'star') {
-                reward *= 2; // Evento Lluvia de estrellas x2
-                message = `Dejaste un eco ⭐ (Bonus x2 por ${activeEvent.name})`;
-            }
+            const reward = 10;
+            const message = 'Dejaste un eco';
 
             if (!isOwnProfile && awardCoins) {
                 // Give some starlys to the sender as incentive too
@@ -99,9 +88,6 @@ export default function EchoesSection({ profileId, isOwnProfile, autoOpenStar = 
                 return e;
             }));
             await echoesService.toggleStar(echoId, isStarred);
-            if (!isStarred && user.id !== profileId) { // only increase bond if setting star, not removing
-                cosmicEventsService.incrementBond(user.id, profileId, 2);
-            }
         } catch (err) {
             console.error(err);
             fetchEchoes(); // rollback
