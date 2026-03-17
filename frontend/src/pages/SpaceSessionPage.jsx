@@ -593,6 +593,16 @@ export default function SpaceSessionPage() {
     if (!actParam || !isNew) return;
     const [type, id] = actParam.split(':');
     if (!type || !id) return;
+    
+    // Validar que la actividad exista en el catálogo
+    const validActivities = ['watch:watch-together', 'anime:astro-party', 'manga:manga-party', 'game:pixel-galaxy', 'game:connect4', 'game:chess', 'game:poker', 'game:battles'];
+    const activityKey = `${type}:${id}`;
+    if (!validActivities.includes(activityKey)) {
+      console.warn(`[SpaceSession] Invalid activity: ${activityKey}, skipping auto-launch`);
+      autoLaunchDone.current = true;
+      return;
+    }
+    
     autoLaunchDone.current = true;
     launchActivity(type, id);
     toast.success('Espacio creado — ¡invita a tus amigos!', { duration: 4000 });
