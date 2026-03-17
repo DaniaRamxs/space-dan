@@ -786,10 +786,12 @@ export default function SpaceSessionPage() {
       <FloatingReactions reactions={reactions} />
 
       {/* ── z-50: Floating FABs ──────────────────────────────────────────────── */}
-      <FabStack
-        isHost={isHost}
-        onOpenActivity={() => setShowActivityPicker(true)}
-      />
+      {!hasActivity && (
+        <FabStack
+          isHost={isHost}
+          onOpenActivity={() => setShowActivityPicker(true)}
+        />
+      )}
 
       {/* ── z-[400]: Panels ──────────────────────────────────────────────────── */}
       <PersonalizePanel
