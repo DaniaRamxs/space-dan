@@ -10,7 +10,9 @@ import { Users, Tv, BookOpen, Gamepad2, Plus, Zap, ArrowRight, Music } from 'luc
 import { useAuthContext } from '@/contexts/AuthContext';
 import { supabase } from '@/supabaseClient';
 
-const COLYSEUS_URL = import.meta.env.VITE_COLYSEUS_URL || 'https://spacely-server-production.up.railway.app';
+const COLYSEUS_URL = (import.meta.env.VITE_COLYSEUS_URL || 'https://spacely-server-production.up.railway.app')
+  .replace(/^wss:\/\//, 'https://')
+  .replace(/^ws:\/\//, 'http://');
 
 // ─── Activity catalog ─────────────────────────────────────────────────────────
 
