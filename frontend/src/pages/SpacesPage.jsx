@@ -8,7 +8,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
   Tv, BookOpen, Palette, Gamepad2, Crown, Dice5,
-  Swords, Music, Users, ArrowRight, Plus, Sparkles,
+  Swords, Music, Users, ArrowRight, Plus,
 } from 'lucide-react';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { supabase } from '@/supabaseClient';
@@ -287,31 +287,6 @@ export default function SpacesPage() {
   return (
     <div className="min-h-full bg-[radial-gradient(ellipse_80%_40%_at_50%_0%,rgba(34,211,238,0.06),transparent),radial-gradient(ellipse_60%_30%_at_80%_60%,rgba(139,92,246,0.05),transparent),linear-gradient(180deg,#04040c_0%,#06060f_60%,#030308_100%)] text-white">
       <div className="mx-auto max-w-lg px-4 pb-24 pt-5">
-
-        {/* ── Brand header ──────────────────────────────────────────────────── */}
-        <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mb-6"
-        >
-          {/* Logo row */}
-          <div className="flex items-center gap-2 mb-0.5">
-            <span className="text-xl font-black tracking-tight text-white">SPACELY</span>
-            <Sparkles size={14} className="text-cyan-400" />
-          </div>
-          <p className="text-[10px] font-bold uppercase tracking-[0.28em] text-white/35 mb-4">
-            Tu universo, a tu manera.
-          </p>
-
-          {/* Section pill */}
-          <div className="inline-flex items-center gap-1.5 rounded-full border border-cyan-400/25 bg-cyan-500/10 px-3 py-1 shadow-[0_0_12px_rgba(34,211,238,0.1)]">
-            <span className="h-1.5 w-1.5 rounded-full bg-cyan-400 shadow-[0_0_6px_rgba(34,211,238,0.8)]" />
-            <span className="text-[10px] font-black uppercase tracking-[0.22em] text-cyan-300/80">
-              Espacios
-            </span>
-          </div>
-        </motion.div>
-
         {/* ── Page title ────────────────────────────────────────────────────── */}
         <motion.div
           initial={{ opacity: 0, y: 8 }}
