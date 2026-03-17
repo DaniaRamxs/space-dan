@@ -445,7 +445,7 @@ function FabPill({ icon, label, onClick, active = false, className = '' }) {
   );
 }
 
-// ─── FloatingFABs ─────────────────────────────────────────────────────────────
+// ─── FabStack ─────────────────────────────────────────────────────────────
 
 function FabStack({ isHost, onOpenActivity }) {
   return (
@@ -753,7 +753,7 @@ export default function SpaceSessionPage() {
       <FloatingReactions reactions={reactions} />
 
       {/* ── z-50: Floating FABs ──────────────────────────────────────────────── */}
-      <FloatingFABs
+      <FabStack
         isHost={isHost}
         onOpenActivity={() => setShowActivityPicker(true)}
       />
