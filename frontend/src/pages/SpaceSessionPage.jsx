@@ -784,7 +784,7 @@ export default function SpaceSessionPage() {
       </div>
 
       {/* ── z-[150]: Overlay Layer ────────────────────────────────────────────── */}
-      <OverlayLayer containerRef={containerRef} colyseusRoom={room} />
+      <OverlayLayer containerRef={containerRef} />
 
       {/* ── z-[250]: Remote cursors ──────────────────────────────────────────── */}
       <CursorOverlay cursors={cursors} containerRef={containerRef} />

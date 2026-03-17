@@ -73,7 +73,7 @@ export default function OverlayPanel({ open, onClose }) {
     setEditMode,
     setGraffiti,
     addOverlay,
-    removeOverlay,
+    clearOverlays,
   } = useOverlay();
 
   const handleAddGif = (url) => {
@@ -97,9 +97,7 @@ export default function OverlayPanel({ open, onClose }) {
   };
 
   const handleClearAll = () => {
-    elements
-      .filter(el => !el.isPersistent)
-      .forEach(el => removeOverlay(el.id));
+    clearOverlays();
   };
 
   const activeCount = elements.length;

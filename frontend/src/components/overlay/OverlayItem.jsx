@@ -92,6 +92,7 @@ function OverlayItem({ element, containerRef }) {
     updateOverlay,
     removeOverlay,
     setSelected,
+    sendDragging,
     userId,
     isHost,
   } = useOverlay();
@@ -119,6 +120,10 @@ function OverlayItem({ element, containerRef }) {
     setSelected(element.id);
   }, [element.id, setSelected]);
 
+  const handleDrag = useCallback(() => {
+    sendDragging(element.id, motionX.get(), motionY.get());
+  }, [element.id, sendDragging, motionX, motionY]);
+
   const handleDragEnd = useCallback(() => {
     updateOverlay(element.id, {
       position: { x: motionX.get(), y: motionY.get() },
@@ -144,6 +149,7 @@ function OverlayItem({ element, containerRef }) {
         dragMomentum={false}
         dragElastic={0}
         dragConstraints={containerRef}
+        onDrag={handleDrag}
         onDragEnd={handleDragEnd}
         onClick={handleClick}
         onContextMenu={handleContextMenu}

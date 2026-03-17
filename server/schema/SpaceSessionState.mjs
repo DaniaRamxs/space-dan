@@ -6,6 +6,46 @@
 
 import { Schema, MapSchema, type } from "@colyseus/schema";
 
+// ─── OverlayElement ──────────────────────────────────────────────────────────
+// Persistent visual elements layered on top of the space (gifs, stickers, etc.)
+
+export class OverlayElement extends Schema {
+  constructor() {
+    super();
+    this.id          = "";
+    this.type        = "";   // "gif" | "sticker" | "drawing" | "text"
+    this.src         = "";   // URL or base64 dataURL
+    this.text        = "";   // only for type="text"
+    this.x           = 0;   // px from container top-left
+    this.y           = 0;
+    this.scale       = 1;
+    this.rotation    = 0;   // degrees
+    this.zIndex      = 0;
+    this.isPersistent = false;
+    this.createdBy   = "";
+    this.createdAt   = 0;
+    this.updatedAt   = 0;
+    this.width       = 0;   // for drawings
+    this.height      = 0;
+  }
+}
+
+type("string")(OverlayElement.prototype,  "id");
+type("string")(OverlayElement.prototype,  "type");
+type("string")(OverlayElement.prototype,  "src");
+type("string")(OverlayElement.prototype,  "text");
+type("number")(OverlayElement.prototype,  "x");
+type("number")(OverlayElement.prototype,  "y");
+type("number")(OverlayElement.prototype,  "scale");
+type("number")(OverlayElement.prototype,  "rotation");
+type("number")(OverlayElement.prototype,  "zIndex");
+type("boolean")(OverlayElement.prototype, "isPersistent");
+type("string")(OverlayElement.prototype,  "createdBy");
+type("number")(OverlayElement.prototype,  "createdAt");
+type("number")(OverlayElement.prototype,  "updatedAt");
+type("number")(OverlayElement.prototype,  "width");
+type("number")(OverlayElement.prototype,  "height");
+
 // ─── Participant ─────────────────────────────────────────────────────────────
 
 export class SpaceParticipant extends Schema {
@@ -81,6 +121,7 @@ export class SpaceSessionState extends Schema {
     this.isPublic     = true;
     this.bgType       = "stars";
     this.bgValue      = "";
+    this.overlays     = new MapSchema(); // id → OverlayElement
   }
 }
 
@@ -94,3 +135,4 @@ type("number")(SpaceSessionState.prototype, "createdAt");
 type("boolean")(SpaceSessionState.prototype, "isPublic");
 type("string")(SpaceSessionState.prototype, "bgType");
 type("string")(SpaceSessionState.prototype, "bgValue");
+type({ map: OverlayElement })(SpaceSessionState.prototype, "overlays");

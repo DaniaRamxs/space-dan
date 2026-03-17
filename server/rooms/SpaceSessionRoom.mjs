@@ -8,11 +8,17 @@
  */
 
 import { Room } from "colyseus";
-import { SpaceSessionState, SpaceParticipant } from "../schema/SpaceSessionState.mjs";
+import { SpaceSessionState, SpaceParticipant, OverlayElement } from "../schema/SpaceSessionState.mjs";
 import { registerSpace, unregisterSpace } from "../spacesRegistry.mjs";
 
 const IS_PROD = process.env.NODE_ENV === "production";
 const log = (...args) => { if (!IS_PROD) console.log(...args); };
+
+// ── Overlay rate-limit config ──────────────────────────────────────────────────
+const OVERLAY_THROTTLE_MS  = 50;    // minimum ms between updates per client
+const OVERLAY_MAX_PER_MIN  = 120;   // max overlay updates per client per minute
+const OVERLAY_DRAG_THROTTLE = 100;  // ghost cursor broadcast throttle
+const MAX_OVERLAYS         = 50;    // mirror frontend constant
 
 // ── Chill track list for auto-start ──────────────────────────────────────────
 const CHILL_TRACKS = [
@@ -51,6 +57,10 @@ export class SpaceSessionRoom extends Room {
     this._userPreferences = new Map(); // userId → "type:id"
     // Last cursor broadcast time per client (for throttle)
     this._cursorLastSent  = new Map(); // sessionId → timestamp
+    // Overlay rate-limit tracking: sessionId → { lastMs, count, windowStart }
+    this._overlayRateLimits = new Map();
+    // Overlay drag ghost throttle: sessionId → lastMs
+    this._overlayDragLast  = new Map();
     // Auto-start timer
     this._autoStartTimer  = null;
     this._disposeTimer    = null;
@@ -199,6 +209,98 @@ export class SpaceSessionRoom extends Room {
       });
     });
 
+    // ── Overlay engine ────────────────────────────────────────────────────────
+
+    this.onMessage("overlay:add", (client, data) => {
+      if (!this._checkOverlayRate(client)) return;
+      if (this.state.overlays.size >= MAX_OVERLAYS) {
+        client.send("overlay:error", { code: "LIMIT_REACHED", max: MAX_OVERLAYS });
+        return;
+      }
+
+      const p = this._getParticipant(client);
+      if (!p) return;
+
+      const id = data.id || `${client.sessionId}-${Date.now()}`;
+      // Validate + clamp position
+      const x = typeof data.x === "number" ? Math.max(-2000, Math.min(10000, data.x)) : 0;
+      const y = typeof data.y === "number" ? Math.max(-2000, Math.min(10000, data.y)) : 0;
+
+      const el = this._makeOverlayElement(id, data, p.userId, x, y);
+      if (!el) return;
+
+      this.state.overlays.set(id, el);
+      log(`[SpaceSession] overlay:add ${id} by ${p.username}`);
+    });
+
+    this.onMessage("overlay:update", (client, { id, patch }) => {
+      if (!id || !patch) return;
+      if (!this._checkOverlayRate(client)) return;
+
+      const el = this.state.overlays.get(id);
+      if (!el) return;
+
+      const p = this._getParticipant(client);
+      if (!p) return;
+
+      // Only creator or host can update
+      if (el.createdBy !== p.userId && !p.isHost) return;
+
+      // Apply patch — only allow safe fields
+      if (typeof patch.x        === "number") el.x        = Math.max(-2000, Math.min(10000, patch.x));
+      if (typeof patch.y        === "number") el.y        = Math.max(-2000, Math.min(10000, patch.y));
+      if (typeof patch.scale    === "number") el.scale    = Math.max(0.1, Math.min(10, patch.scale));
+      if (typeof patch.rotation === "number") el.rotation = patch.rotation;
+      if (typeof patch.zIndex   === "number") el.zIndex   = patch.zIndex;
+      if (typeof patch.isPersistent === "boolean") el.isPersistent = patch.isPersistent;
+      el.updatedAt = Date.now();
+    });
+
+    this.onMessage("overlay:remove", (client, { id }) => {
+      if (!id) return;
+      const el = this.state.overlays.get(id);
+      if (!el) return;
+
+      const p = this._getParticipant(client);
+      if (!p) return;
+
+      // Only creator or host can remove
+      if (el.createdBy !== p.userId && !p.isHost) return;
+
+      this.state.overlays.delete(id);
+      log(`[SpaceSession] overlay:remove ${id}`);
+    });
+
+    this.onMessage("overlay:clear", (client) => {
+      // Host-only: clear all non-persistent overlays
+      if (!this._isHost(client)) return;
+      const toDelete = [];
+      this.state.overlays.forEach((el, id) => {
+        if (!el.isPersistent) toDelete.push(id);
+      });
+      toDelete.forEach(id => this.state.overlays.delete(id));
+      log(`[SpaceSession] overlay:clear — removed ${toDelete.length} elements`);
+    });
+
+    this.onMessage("overlay:dragging", (client, { id, x, y }) => {
+      // Ghost cursor: throttled broadcast, no schema change
+      const now = Date.now();
+      const last = this._overlayDragLast.get(client.sessionId) || 0;
+      if (now - last < OVERLAY_DRAG_THROTTLE) return;
+      this._overlayDragLast.set(client.sessionId, now);
+
+      const p = this._getParticipant(client);
+      if (!p) return;
+
+      this.broadcast("overlay:ghost", {
+        id,
+        userId:   p.userId,
+        username: p.username,
+        x: typeof x === "number" ? x : 0,
+        y: typeof y === "number" ? y : 0,
+      }, { except: client });
+    });
+
     // ── Background sync ───────────────────────────────────────────────────────
 
     this.onMessage("SET_BACKGROUND", (client, { type, value }) => {
@@ -260,6 +362,8 @@ export class SpaceSessionRoom extends Room {
     const wasHost = p.userId === this.state.hostId;
     this.state.participants.delete(client.sessionId);
     this._cursorLastSent.delete(client.sessionId);
+    this._overlayRateLimits.delete(client.sessionId);
+    this._overlayDragLast.delete(client.sessionId);
 
     // Tell others cursor is gone
     this.broadcast("CURSOR_GONE", { sessionId: client.sessionId });
@@ -382,6 +486,55 @@ export class SpaceSessionRoom extends Room {
     this.state.activity.payload   = "{}";
     this.state.activity.hostId    = "";
     this.state.activity.startedAt = 0;
+  }
+
+  _makeOverlayElement(id, data, createdBy, x, y) {
+    const VALID_TYPES = ["gif", "sticker", "drawing", "text"];
+    if (!VALID_TYPES.includes(data.type)) return null;
+
+    const el = new OverlayElement();
+    el.id           = String(id).slice(0, 64);
+    el.type         = data.type;
+    el.src          = typeof data.src  === "string" ? data.src.slice(0, 2048)  : "";
+    el.text         = typeof data.text === "string" ? data.text.slice(0, 500)  : "";
+    el.x            = x;
+    el.y            = y;
+    el.scale        = typeof data.scale    === "number" ? Math.max(0.1, Math.min(10, data.scale))  : 1;
+    el.rotation     = typeof data.rotation === "number" ? data.rotation : 0;
+    el.zIndex       = typeof data.zIndex   === "number" ? data.zIndex   : 1;
+    el.isPersistent = false;
+    el.createdBy    = String(createdBy).slice(0, 64);
+    el.createdAt    = Date.now();
+    el.updatedAt    = el.createdAt;
+    el.width        = typeof data.width  === "number" ? data.width  : 0;
+    el.height       = typeof data.height === "number" ? data.height : 0;
+    return el;
+  }
+
+  _checkOverlayRate(client) {
+    const now = Date.now();
+    const sid = client.sessionId;
+    let rec = this._overlayRateLimits.get(sid);
+
+    if (!rec) {
+      rec = { lastMs: 0, count: 0, windowStart: now };
+      this._overlayRateLimits.set(sid, rec);
+    }
+
+    // Throttle: minimum interval between calls
+    if (now - rec.lastMs < OVERLAY_THROTTLE_MS) return false;
+
+    // Sliding window: reset count each minute
+    if (now - rec.windowStart >= 60_000) {
+      rec.count = 0;
+      rec.windowStart = now;
+    }
+
+    if (rec.count >= OVERLAY_MAX_PER_MIN) return false;
+
+    rec.lastMs = now;
+    rec.count++;
+    return true;
   }
 
   _getParticipant(client) {
