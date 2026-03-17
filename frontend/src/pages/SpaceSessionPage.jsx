@@ -623,6 +623,11 @@ export default function SpaceSessionPage() {
   useEffect(() => {
     if (!room) return;
     const unsub = room.onMessage('activity_auto_started', ({ type, id }) => {
+      // Bloquear específicamente music:chill
+      if (type === 'music' && id === 'chill') {
+        console.warn('[SpaceSession] Blocked server auto-start for music:chill - activity not available');
+        return;
+      }
       toast(`▶ Auto-start: ${id}`, { icon: '⚡', duration: 3000 });
     });
     return () => { if (typeof unsub === 'function') unsub(); };
