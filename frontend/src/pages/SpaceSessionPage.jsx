@@ -401,31 +401,37 @@ function ActivityPickerSheet({ open, onClose, onSelect }) {
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
             transition={{ type: 'spring', damping: 28, stiffness: 300 }}
-            className="fixed bottom-0 left-0 right-0 z-[400] bg-[#0c0c1e] rounded-t-[28px] border-t border-white/10 p-6"
+            className="fixed bottom-0 left-0 right-0 z-[400] bg-[#0c0c1e] rounded-t-[28px] border-t border-white/10 max-h-[80vh] flex flex-col"
           >
-            <div className="mb-5 flex items-center justify-between">
-              <h3 className="text-sm font-black uppercase tracking-[0.2em] text-white">
-                Elegir actividad
-              </h3>
-              <button
-                onClick={onClose}
-                className="rounded-full border border-white/10 bg-white/[0.05] p-1.5 text-white/50 hover:text-white transition"
-              >
-                <X size={14} />
-              </button>
+            {/* Header fijo */}
+            <div className="flex-shrink-0 p-6 pb-3">
+              <div className="mb-5 flex items-center justify-between">
+                <h3 className="text-sm font-black uppercase tracking-[0.2em] text-white">
+                  Elegir actividad
+                </h3>
+                <button
+                  onClick={onClose}
+                  className="rounded-full border border-white/10 bg-white/[0.05] p-1.5 text-white/50 hover:text-white transition"
+                >
+                  <X size={14} />
+                </button>
+              </div>
             </div>
 
-            <div className="grid grid-cols-3 gap-2">
-              {QUICK_ACTIVITIES.map(a => (
-                <button
-                  key={`${a.type}:${a.id}`}
-                  onClick={() => { onSelect(a.type, a.id); onClose(); }}
-                  className={`flex flex-col items-center gap-1.5 rounded-[18px] border bg-white/[0.03] p-3 text-center transition hover:bg-white/[0.07] ${a.accent}`}
-                >
-                  <span className="text-xl">{a.emoji}</span>
-                  <span className="text-[10px] font-black uppercase tracking-[0.16em]">{a.label}</span>
-                </button>
-              ))}
+            {/* Contenedor con scroll para las actividades */}
+            <div className="flex-1 overflow-y-auto overscroll-contain px-6 pb-6">
+              <div className="grid grid-cols-3 gap-2">
+                {QUICK_ACTIVITIES.map(a => (
+                  <button
+                    key={`${a.type}:${a.id}`}
+                    onClick={() => { onSelect(a.type, a.id); onClose(); }}
+                    className={`flex flex-col items-center gap-1.5 rounded-[18px] border bg-white/[0.03] p-3 text-center transition hover:bg-white/[0.07] ${a.accent}`}
+                  >
+                    <span className="text-xl">{a.emoji}</span>
+                    <span className="text-[10px] font-black uppercase tracking-[0.16em]">{a.label}</span>
+                  </button>
+                ))}
+              </div>
             </div>
           </motion.div>
         </>
