@@ -595,7 +595,12 @@ export default function SpaceSessionPage() {
     if (!type || !id) return;
     
     // Validar que la actividad exista en el catálogo
-    const validActivities = ['watch:watch-together', 'anime:astro-party', 'manga:manga-party', 'game:pixel-galaxy', 'game:connect4', 'game:chess', 'game:poker', 'game:battles'];
+    const validActivities = [
+      'watch:watch-together', 'game:pixel-galaxy', 'game:puzzle', 'game:connect4', 
+      'game:snake', 'game:tetris', 'game:poker', 'game:starboard', 'game:dj', 
+      'game:blackjack', 'game:chess', 'game:ludo', 'game:beat-sound', 
+      'anime:astro-party', 'manga:manga-party'
+    ];
     const activityKey = `${type}:${id}`;
     if (!validActivities.includes(activityKey)) {
       console.warn(`[SpaceSession] Invalid activity: ${activityKey}, skipping auto-launch`);
