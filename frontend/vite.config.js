@@ -1,6 +1,5 @@
 import { defineConfig, loadEnv } from 'vite'
 import react from '@vitejs/plugin-react'
-import { AccessToken } from 'livekit-server-sdk'
 import { VitePWA } from 'vite-plugin-pwa'
 import path from 'path'
 
@@ -64,9 +63,7 @@ export default defineConfig(({ mode }) => {
           background_color: '#050510',
           display: 'standalone',
           icons: [
-            { src: '/favicon.svg', sizes: '64x64', type: 'image/svg+xml' },
-            { src: '/favicon.svg', sizes: '192x192', type: 'image/svg+xml' },
-            { src: '/favicon.svg', sizes: '512x512', type: 'image/svg+xml' }
+            { src: '/favicon.svg', sizes: 'any', type: 'image/svg+xml', purpose: 'any maskable' }
           ]
         },
         devOptions: {
@@ -128,6 +125,7 @@ export default defineConfig(({ mode }) => {
             req.on('end', async () => {
               try {
                 const { roomName, participantName, userAvatar, nicknameStyle, frameId } = JSON.parse(body);
+                const { AccessToken } = await import('livekit-server-sdk');
 
                 const at = new AccessToken(
                   env.LIVEKIT_API_KEY || 'APIjSWriRpvkSbS',

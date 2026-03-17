@@ -14,14 +14,14 @@ const MangaPartyPage  = React.lazy(() => import('@/features/manga/MangaPartyPage
 
 // VoiceActivities games — these still work standalone
 const Connect4Game    = React.lazy(() => import('@/components/VoiceActivities/Connect4Game'));
-const PixelGalaxy     = React.lazy(() => import('@/components/VoiceActivities/PixelGalaxyGame'));
-const StarboardGame   = React.lazy(() => import('@/components/VoiceActivities/StarboardGame'));
-const ChessGame       = React.lazy(() => import('@/components/VoiceActivities/ChessGame'));
+const PixelGalaxy     = React.lazy(() => import('@/components/VoiceActivities/PixelGalaxy/PixelGalaxyGame'));
+const StarboardGame   = React.lazy(() => import('@/components/VoiceActivities/Starboard'));
+const ChessGame       = React.lazy(() => import('@/components/VoiceActivities/Chess/ChessGame'));
 const PokerGame       = React.lazy(() => import('@/components/VoiceActivities/PokerGame'));
-const BlackjackGame   = React.lazy(() => import('@/components/VoiceActivities/BlackjackGame'));
-const SnakeDuel       = React.lazy(() => import('@/components/VoiceActivities/SnakeDuel'));
-const TetrisDuel      = React.lazy(() => import('@/components/VoiceActivities/TetrisDuel'));
-const AsteroidBattle  = React.lazy(() => import('@/components/VoiceActivities/AsteroidBattle'));
+const BlackjackGame   = React.lazy(() => import('@/components/VoiceActivities/Blackjack/BlackjackGame'));
+const SnakeDuel       = React.lazy(() => import('@/components/VoiceActivities/SnakeDuelGame'));
+const TetrisDuel      = React.lazy(() => import('@/components/VoiceActivities/TetrisDuelGame'));
+const AsteroidBattle  = React.lazy(() => import('@/components/VoiceActivities/AsteroidBattleGame'));
 
 // ─── Registry ─────────────────────────────────────────────────────────────────
 // key: "${activity.type}:${activity.id}"
