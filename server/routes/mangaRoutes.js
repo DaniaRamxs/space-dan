@@ -118,4 +118,113 @@ router.get('/image', async (req, res) => {
   }
 });
 
+// ── GET /api/manga/scrape?url=... — extract chapter images from any manga site ──
+router.get('/scrape', async (req, res) => {
+  try {
+    const { url } = req.query;
+    if (!url) return res.status(400).json({ error: 'Missing url' });
+
+    const decoded = decodeURIComponent(url);
+    let parsed;
+    try { parsed = new URL(decoded); } catch { return res.status(400).json({ error: 'Invalid URL' }); }
+    if (!['http:', 'https:'].includes(parsed.protocol)) {
+      return res.status(400).json({ error: 'Invalid URL protocol' });
+    }
+
+    const { data: html } = await axios.get(decoded, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,*/*;q=0.8',
+        'Accept-Language': 'es-ES,es;q=0.9,en;q=0.8',
+        'Referer': parsed.origin + '/',
+      },
+      timeout: 15000,
+    });
+
+    const pages = extractMangaImages(html, decoded);
+    if (pages.length === 0) return res.json({ pages: [] });
+
+    const API_BASE = process.env.API_BASE_URL || 'https://spacely-server-production.up.railway.app';
+    const proxied = pages.map(
+      (u) => `${API_BASE}/api/manga/ext-image?url=${encodeURIComponent(u)}&ref=${encodeURIComponent(parsed.origin)}`,
+    );
+    res.json({ pages: proxied });
+  } catch (err) {
+    console.error('[MangaProxy] scrape error:', err.message);
+    res.status(502).json({ error: 'Scrape failed', detail: err.message });
+  }
+});
+
+function extractMangaImages(html, pageUrl) {
+  const base = new URL(pageUrl).origin;
+  const images = [];
+  const seen = new Set();
+
+  const add = (src) => {
+    const resolved = resolveUrl(src?.trim(), base);
+    if (resolved && isMangaImage(resolved) && !seen.has(resolved)) {
+      seen.add(resolved);
+      images.push(resolved);
+    }
+  };
+
+  // img tags with src or data-src / data-lazy-src / data-original
+  const imgRe = /<img[^>]+?(?:data-lazy-src|data-original|data-src|src)\s*=\s*["']([^"'>\s]+)["'][^>]*>/gi;
+  let m;
+  while ((m = imgRe.exec(html)) !== null) add(m[1]);
+
+  // JSON / JS string literals with image extensions
+  const jsRe = /["'`](https?:\/\/[^"'`\s<>]+\.(?:jpe?g|png|webp)(?:\?[^"'`\s<>]*)?)["'`]/gi;
+  while ((m = jsRe.exec(html)) !== null) add(m[1]);
+
+  return images;
+}
+
+function isMangaImage(src) {
+  if (!src || src.startsWith('data:')) return false;
+  const lower = src.toLowerCase();
+  if (/avatar|logo|icon|banner|sprite|pixel|blank|placeholder|favicon|button|bg-/.test(lower)) return false;
+  return /\.(jpe?g|png|webp)(\?.*)?$/i.test(lower);
+}
+
+function resolveUrl(src, base) {
+  if (!src) return null;
+  if (src.startsWith('http')) return src;
+  if (src.startsWith('//')) return `https:${src}`;
+  if (src.startsWith('/')) return `${base}${src}`;
+  return null;
+}
+
+// ── GET /api/manga/ext-image?url=...&ref=... — proxy any external manga image ──
+router.get('/ext-image', async (req, res) => {
+  try {
+    const { url, ref } = req.query;
+    if (!url) return res.status(400).send('Missing url');
+
+    const decoded = decodeURIComponent(url);
+    let parsed;
+    try { parsed = new URL(decoded); } catch { return res.status(400).send('Invalid url'); }
+    if (!['http:', 'https:'].includes(parsed.protocol)) return res.status(400).send('Invalid URL');
+
+    const referer = ref ? decodeURIComponent(ref) + '/' : parsed.origin + '/';
+    const response = await axios.get(decoded, {
+      responseType: 'stream',
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'image/webp,image/apng,image/*,*/*;q=0.8',
+        'Referer': referer,
+      },
+      timeout: 20000,
+    });
+
+    res.set('Content-Type', response.headers['content-type'] || 'image/jpeg');
+    res.set('Cache-Control', 'public, max-age=3600');
+    res.set('Access-Control-Allow-Origin', '*');
+    response.data.pipe(res);
+  } catch (err) {
+    console.error('[MangaProxy] ext-image error:', err.message);
+    res.status(502).send('Image proxy failed');
+  }
+});
+
 export default router;

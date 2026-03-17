@@ -208,6 +208,7 @@ const MangaPartyPage = memo(({ onClose } = {}) => {
 
   // ── URL mode ──────────────────────────────────────────────────────────────────
   const [externalUrl, setExternalUrl]   = useState('');  // active URL for all
+  const [scrapedUrl, setScrapedUrl]     = useState('');  // URL loaded in paginated mode
   const [showUrlInput, setShowUrlInput] = useState(false);
   const [urlDraft, setUrlDraft]         = useState('');
 
@@ -270,6 +271,7 @@ const MangaPartyPage = memo(({ onClose } = {}) => {
   const currentPageRef = useRef(0);
   const pagesRef         = useRef([]);
   const externalUrlRef   = useRef('');
+  const scrapedUrlRef    = useRef('');
   const prevNamesRef     = useRef(new Set());
   const chatEndRef    = useRef(null);
   const arrivalTimerRef = useRef(null);
@@ -297,6 +299,7 @@ const MangaPartyPage = memo(({ onClose } = {}) => {
   useEffect(() => { chapterIdRef.current = chapterId; },   [chapterId]);
   useEffect(() => { currentPageRef.current = currentPage; }, [currentPage]);
   useEffect(() => { pagesRef.current      = pages; },       [pages]);
+  useEffect(() => { scrapedUrlRef.current = scrapedUrl; }, [scrapedUrl]);
   useEffect(() => { externalUrlRef.current = externalUrl; }, [externalUrl]);
   useEffect(() => { theoryNotesRef.current  = theoryNotes; },  [theoryNotes]);
   useEffect(() => { graffitiModeRef.current = graffitiMode; }, [graffitiMode]);
@@ -434,6 +437,8 @@ const MangaPartyPage = memo(({ onClose } = {}) => {
             broadcast('manga_sync', {
               type:         'state_snapshot',
               externalUrl:  externalUrlRef.current,
+              scrapedUrl:   scrapedUrlRef.current,
+              scrapedPages: scrapedUrlRef.current ? pagesRef.current : undefined,
               mangaId:      mangaIdRef.current,
               mangaTitle:   mangaTitleRef.current,
               chapterId:    chapterIdRef.current,
@@ -484,7 +489,12 @@ const MangaPartyPage = memo(({ onClose } = {}) => {
           case 'state_snapshot':
             // Guest receives host's current state
             if (isHostRef.current) return;
-            if (payload.externalUrl) {
+            if (payload.scrapedUrl && payload.scrapedPages?.length > 0) {
+              setScrapedUrl(payload.scrapedUrl);
+              setExternalUrl('');
+              setPages(payload.scrapedPages);
+              pagesRef.current = payload.scrapedPages;
+            } else if (payload.externalUrl) {
               setExternalUrl(payload.externalUrl);
             }
             if (payload.mangaId && payload.mangaId !== mangaIdRef.current) {
@@ -518,12 +528,28 @@ const MangaPartyPage = memo(({ onClose } = {}) => {
           case 'url_change':
             if (isHostRef.current) return;
             setExternalUrl(payload.url || '');
+            setScrapedUrl('');
             if (payload.url) toast(`🔗 El host abrió una URL`, { duration: 3000 });
+            break;
+
+          case 'scraped_url':
+            if (isHostRef.current) return;
+            setScrapedUrl(payload.url || '');
+            setExternalUrl('');
+            setPages(payload.pages || []);
+            pagesRef.current = payload.pages || [];
+            setCurrentPage(0);
+            currentPageRef.current = 0;
+            setDrawEvents([]);
+            toast(`📖 ${(payload.pages || []).length} páginas`, { duration: 3000 });
             break;
 
           case 'url_clear':
             if (isHostRef.current) return;
             setExternalUrl('');
+            setScrapedUrl('');
+            setPages([]);
+            pagesRef.current = [];
             break;
 
           case 'chapter_change':
@@ -874,14 +900,37 @@ const MangaPartyPage = memo(({ onClose } = {}) => {
   }, [broadcast, loadPages]);
 
   // ── URL mode ──────────────────────────────────────────────────────────────────
-  const handleUrlSet = useCallback(() => {
+  const handleUrlSet = useCallback(async () => {
     if (!isHostRef.current) return;
     const raw = urlDraft.trim();
     if (!raw) return;
     const url = raw.startsWith('http') ? raw : `https://${raw}`;
-    setExternalUrl(url);
     setShowUrlInput(false);
     setUrlDraft('');
+
+    // Try to scrape manga pages — if successful, use PaginatedReader mode
+    try {
+      setPagesLoading(true);
+      const res = await fetch(`${MANGA_API}/scrape?url=${encodeURIComponent(url)}`);
+      const data = await res.json();
+      if (data.pages?.length > 0) {
+        setScrapedUrl(url);
+        setExternalUrl('');
+        setPages(data.pages);
+        pagesRef.current = data.pages;
+        setCurrentPage(0);
+        currentPageRef.current = 0;
+        setDrawEvents([]);
+        broadcast('manga_sync', { type: 'scraped_url', url, pages: data.pages });
+        toast.success(`📖 ${data.pages.length} páginas cargadas`);
+        return;
+      }
+    } catch { /* ignore — fall through to iframe */ } finally {
+      setPagesLoading(false);
+    }
+
+    // Fallback: embed as iframe
+    setExternalUrl(url);
     broadcast('manga_sync', { type: 'url_change', url });
     toast.success('URL compartida con la sala');
   }, [urlDraft, broadcast]);
@@ -889,6 +938,9 @@ const MangaPartyPage = memo(({ onClose } = {}) => {
   const handleUrlClear = useCallback(() => {
     if (!isHostRef.current) return;
     setExternalUrl('');
+    setScrapedUrl('');
+    setPages([]);
+    pagesRef.current = [];
     setShowUrlInput(false);
     setUrlDraft('');
     broadcast('manga_sync', { type: 'url_clear' });
@@ -1593,15 +1645,15 @@ const MangaPartyPage = memo(({ onClose } = {}) => {
         {isHost && (
           <motion.button
             whileTap={{ scale: 0.95 }}
-            onClick={() => { setShowUrlInput((p) => !p); setUrlDraft(externalUrl); }}
+            onClick={() => { setShowUrlInput((p) => !p); setUrlDraft(externalUrl || scrapedUrl); }}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-bold transition-all ${
-              externalUrl
+              externalUrl || scrapedUrl
                 ? 'bg-cyan-600/30 border-cyan-500/40 text-cyan-400'
                 : 'bg-white/5 border-white/10 text-white/50 hover:text-white/70'
             }`}
           >
             <span className="text-sm leading-none">🔗</span>
-            <span>{externalUrl ? 'URL activa' : 'URL'}</span>
+            <span>{externalUrl || scrapedUrl ? 'URL activa' : 'URL'}</span>
           </motion.button>
         )}
 
@@ -1828,7 +1880,7 @@ const MangaPartyPage = memo(({ onClose } = {}) => {
               >
                 Compartir
               </motion.button>
-              {externalUrl && (
+              {(externalUrl || scrapedUrl) && (
                 <motion.button
                   whileTap={{ scale: 0.95 }}
                   onClick={handleUrlClear}
