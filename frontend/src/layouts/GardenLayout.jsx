@@ -151,10 +151,6 @@ export default function GardenLayout({ children }) {
                         <span className="text-[10px] font-black uppercase tracking-widest">Hub de Espacios</span>
                         <span className="text-[10px]">🌐</span>
                       </NavLink>
-                      <NavLink to="/anime" className={({ isActive }) => `flex items-center justify-between px-4 py-3 rounded-xl transition-all ${isActive ? 'bg-cyan-500/10 text-cyan-400' : 'text-white/40 hover:bg-white/5 hover:text-white'}`}>
-                        <span className="text-[10px] font-black uppercase tracking-widest">Anime Watch Party</span>
-                        <span className="text-[10px]">📺</span>
-                      </NavLink>
                       <NavLink to="/manga-party" className={({ isActive }) => `flex items-center justify-between px-4 py-3 rounded-xl transition-all ${isActive ? 'bg-purple-500/10 text-purple-400' : 'text-white/40 hover:bg-white/5 hover:text-white'}`}>
                         <span className="text-[10px] font-black uppercase tracking-widest">Manga Party</span>
                         <span className="text-[10px]">📖</span>
