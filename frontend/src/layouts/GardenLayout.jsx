@@ -18,6 +18,7 @@ import { Capacitor } from '@capacitor/core';
 
 const PERSONAL_PATHS = ['/kinnies', '/tests', '/universo', '/dreamscape'];
 const FIXED_LAYOUT_PATHS = ['/cartas', '/desktop', '/chat'];
+const SPACE_SESSION_RE = /^\/spaces\/[^/]+$/;
 const isNative = Capacitor.isNativePlatform();
 
 export default function GardenLayout({ children }) {
@@ -39,6 +40,7 @@ export default function GardenLayout({ children }) {
   // Close HUB & scroll to top on every navigation
   useEffect(() => {
     setMobileMenuOpen(false);
+    if (SPACE_SESSION_RE.test(location.pathname)) setChatOpen(false);
     window.scrollTo({ top: 0, behavior: 'instant' });
   }, [location.pathname]);
 
@@ -192,7 +194,7 @@ export default function GardenLayout({ children }) {
           <div className="gardenContent" style={{ contain: 'layout paint', transform: 'translateZ(0)' }}>{children}</div>
 
           {/* Botón flotante de Chat (Desktop Fast Access) */}
-          {!isFixedLayout && !isNative && (
+          {!isFixedLayout && !isNative && !SPACE_SESSION_RE.test(location.pathname) && (
             <motion.button
               initial={{ scale: 0, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
