@@ -9,6 +9,7 @@ import DrawingCanvas from './DrawingCanvas';
 import ReactionsOverlay from './ReactionsOverlay';
 import PanelNotesLayer from './PanelNotesLayer';
 import GraffitiToolbar from './GraffitiToolbar';
+import StickerLayer from './StickerLayer';
 
 // ─── MangaReader ──────────────────────────────────────────────────────────────
 // Vertical manga reader panel with zoom, scroll sync, page detection,
@@ -72,6 +73,15 @@ const MangaPage = memo(({
   myUsername,
   onAddNote,
   onNoteUpvote,
+  // stickers
+  stickers = [],
+  stickerMode = false,
+  pendingGifUrl,
+  pendingGifSize = 80,
+  onPlaceSticker,
+  onRemoveSticker,
+  stickersVisible = true,
+  isHost = false,
 }) => {
   const [loaded, setLoaded] = useState(false);
   const ref = useRef(null);
@@ -109,6 +119,17 @@ const MangaPage = memo(({
         myUsername={myUsername}
         onAddNote={onAddNote}
         onUpvote={onNoteUpvote}
+      />
+      <StickerLayer
+        stickers={stickers}
+        placementMode={stickerMode}
+        pendingGifUrl={pendingGifUrl}
+        pendingGifSize={pendingGifSize}
+        onPlace={(rx, ry) => onPlaceSticker?.(index, rx, ry)}
+        onRemove={onRemoveSticker}
+        visible={stickersVisible}
+        myUsername={myUsername}
+        isHost={isHost}
       />
     </div>
   );
@@ -148,6 +169,14 @@ const MangaReader = memo(({
   onGraffitiSizeChange,
   onGraffitiUndo,
   onGraffitiClear,
+  // Stickers
+  stickersByPage = {},
+  stickerMode = false,
+  pendingGifUrl,
+  pendingGifSize = 80,
+  onPlaceSticker,
+  onRemoveSticker,
+  stickersVisible = true,
 }) => {
   const containerRef   = useRef(null);
   const innerRef       = useRef(null);
@@ -259,9 +288,18 @@ const MangaReader = memo(({
         myUsername={myUsername}
         onAddNote={onAddNote}
         onNoteUpvote={onNoteUpvote}
+        stickers={stickersByPage[i] || []}
+        stickerMode={stickerMode}
+        pendingGifUrl={pendingGifUrl}
+        pendingGifSize={pendingGifSize}
+        onPlaceSticker={onPlaceSticker}
+        onRemoveSticker={onRemoveSticker}
+        stickersVisible={stickersVisible}
+        isHost={isHost}
       />
     ))
-  ), [pages, chapterId, handlePageVisible, theoryNotes, theoryMode, myUsername, onAddNote, onNoteUpvote]);
+  ), [pages, chapterId, handlePageVisible, theoryNotes, theoryMode, myUsername, onAddNote, onNoteUpvote,
+      stickersByPage, stickerMode, pendingGifUrl, pendingGifSize, onPlaceSticker, onRemoveSticker, stickersVisible, isHost]);
 
   const isEmpty = pages.length === 0;
 

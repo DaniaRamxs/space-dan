@@ -13,6 +13,7 @@ import { toast } from 'sonner';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { supabase } from '@/supabaseClient';
 import PaginatedReader from './PaginatedReader';
+import MangaReader from './MangaReader';
 import MangaSearchModal from './MangaSearchModal';
 import HostTransferModal from './HostTransferModal';
 import { useMangaMusic } from './useMangaMusic';
@@ -2033,8 +2034,48 @@ const MangaPartyPage = memo(({ onClose } = {}) => {
             </div>
           )}
 
+          {/* Scroll mode — scraped external URL */}
+          {scrapedUrl && pages.length > 0 && (
+            <div className="absolute inset-0 z-10">
+              <MangaReader
+                pages={pages}
+                currentPage={currentPage}
+                zoom={zoom}
+                isHost={isHost}
+                onScroll={(sy) => { scrollYRef.current = sy; broadcast('manga_sync', { type: 'scroll', scrollY: sy }); }}
+                onZoom={(z) => { setZoom(z); broadcast('manga_sync', { type: 'zoom', zoom: z }); }}
+                onPageChange={handlePageChange}
+                externalScrollY={isHost ? null : externalScrollY}
+                drawEvents={drawEvents}
+                onDrawEvent={handleDrawEvent}
+                reactions={reactions}
+                chapterId={scrapedUrl}
+                theoryMode={theoryMode}
+                theoryNotes={theoryNotes}
+                onAddNote={handleAddNote}
+                onNoteUpvote={handleNoteUpvote}
+                myUsername={myUsername}
+                graffitiMode={graffitiMode}
+                canDraw={graffitiMode}
+                graffitiTool={graffitiTool}
+                graffitiColor={graffitiColor}
+                graffitiSize={graffitiSize}
+                onGraffitiToolChange={setGraffitiTool}
+                onGraffitiColorChange={setGraffitiColor}
+                onGraffitiSizeChange={setGraffitiSize}
+                stickersByPage={stickersByPage}
+                stickerMode={stickerMode}
+                pendingGifUrl={pendingGif?.gifUrl}
+                pendingGifSize={stickerSize}
+                onPlaceSticker={handlePlaceSticker}
+                onRemoveSticker={handleRemoveSticker}
+                stickersVisible={stickersVisible}
+              />
+            </div>
+          )}
+
           <PaginatedReader
-            pages={pages}
+            pages={scrapedUrl ? [] : pages}
             currentPage={currentPage}
             isHost={isHost}
             onPageChange={handlePageChange}

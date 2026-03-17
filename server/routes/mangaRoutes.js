@@ -168,14 +168,23 @@ function extractMangaImages(html, pageUrl) {
     }
   };
 
-  // img tags with src or data-src / data-lazy-src / data-original
+  // img tags with src or data-* lazy-load attributes
   const imgRe = /<img[^>]+?(?:data-lazy-src|data-original|data-src|src)\s*=\s*["']([^"'>\s]+)["'][^>]*>/gi;
   let m;
   while ((m = imgRe.exec(html)) !== null) add(m[1]);
 
-  // JSON / JS string literals with image extensions
-  const jsRe = /["'`](https?:\/\/[^"'`\s<>]+\.(?:jpe?g|png|webp)(?:\?[^"'`\s<>]*)?)["'`]/gi;
-  while ((m = jsRe.exec(html)) !== null) add(m[1]);
+  // Script tags — JSON-embedded image URLs (common in React/Next manga sites)
+  const scriptRe = /<script[^>]*>([\s\S]*?)<\/script>/gi;
+  while ((m = scriptRe.exec(html)) !== null) {
+    const sc = m[1];
+    const jsonImgRe = /["'`](https?:\/\/[^"'`<>\s]+\.(?:jpe?g|png|webp)(?:\?[^"'`<>\s]*)?)["'`]/gi;
+    let jm;
+    while ((jm = jsonImgRe.exec(sc)) !== null) add(jm[1]);
+  }
+
+  // Any remaining https image literals anywhere in HTML
+  const anyRe = /["'`](https?:\/\/[^"'`<>\s]+\.(?:jpe?g|png|webp)(?:\?[^"'`<>\s]*)?)["'`]/gi;
+  while ((m = anyRe.exec(html)) !== null) add(m[1]);
 
   return images;
 }
