@@ -317,7 +317,6 @@ export default function SpacesPage() {
               {/* Shine overlay */}
               <div className="pointer-events-none absolute inset-0 translate-x-[-100%] bg-gradient-to-r from-transparent via-white/10 to-transparent transition-transform duration-500 group-hover:translate-x-[100%]" />
               <div className="flex items-center gap-2">
-                <Sparkles size={18} className="text-white" />
                 <Plus size={18} className="text-white" strokeWidth={2.5} />
                 <span className="text-base font-black uppercase tracking-[0.18em] text-white">
                   Crear espacio
