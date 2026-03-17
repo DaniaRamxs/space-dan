@@ -114,7 +114,7 @@ function ActivityCard({ activity, onClick, loading }) {
       onClick={onClick}
       disabled={loading}
       style={{ background: gradient }}
-      className={`group relative flex flex-col gap-4 overflow-hidden rounded-[24px] border ${border} ${glow} p-5 text-left transition-all duration-300 hover:scale-[1.03] disabled:opacity-50 h-full min-h-[160px] shadow-lg`}
+      className={`group relative flex flex-col gap-4 overflow-hidden rounded-[24px] border ${border} ${glow} p-5 text-left transition-all duration-300 hover:scale-[1.03] disabled:opacity-50 h-full min-h-[160px] shadow-lg w-full`}
     >
       {/* Top shimmer line */}
       <div
@@ -137,14 +137,14 @@ function ActivityCard({ activity, onClick, loading }) {
       </div>
 
       {/* Labels + arrow */}
-      <div className="flex items-end justify-between gap-2 mt-auto">
+      <div className="flex items-start justify-between gap-2 mt-auto">
         <div className="min-w-0 flex-1">
-          <p className="text-base lg:text-lg font-bold text-white leading-tight truncate">{label}</p>
-          <p className="mt-1 text-xs lg:text-sm text-white/50 leading-snug line-clamp-2">{sublabel}</p>
+          <p className="text-base lg:text-lg font-bold text-white leading-tight truncate mb-1">{label}</p>
+          <p className="text-xs lg:text-sm text-white/50 leading-snug line-clamp-3 hyphens-auto break-words">{sublabel}</p>
         </div>
         <ArrowRight
           size={16}
-          className="mb-1 shrink-0 text-white/30 transition-all duration-200 group-hover:translate-x-1 group-hover:text-white/60"
+          className="shrink-0 text-white/30 transition-all duration-200 group-hover:translate-x-1 group-hover:text-white/60 mt-1"
         />
       </div>
 
@@ -283,7 +283,7 @@ export default function SpacesPage() {
 
   return (
     <div className="min-h-full bg-[radial-gradient(ellipse_80%_40%_at_50%_0%,rgba(34,211,238,0.06),transparent),radial-gradient(ellipse_60%_30%_at_80%_60%,rgba(139,92,246,0.05),transparent),linear-gradient(180deg,#04040c_0%,#06060f_60%,#030308_100%)] text-white">
-      <div className="mx-auto max-w-6xl px-4 pb-24 pt-5 lg:px-8">
+      <div className="mx-auto max-w-4xl px-4 pb-24 pt-5 sm:max-w-5xl lg:max-w-6xl xl:max-w-7xl lg:px-6 xl:px-8">
         {/* ── Page title ────────────────────────────────────────────────────── */}
         <motion.div
           initial={{ opacity: 0, y: 8 }}
@@ -351,11 +351,12 @@ export default function SpacesPage() {
 
         {/* ── Activity grid ─────────────────────────────────────────────────── */}
         <section className="mb-16">
-          <div className="mb-8">
+          <div className="mb-8 text-center sm:text-left">
             <h2 className="text-xl lg:text-2xl font-bold text-white mb-2">Actividades disponibles</h2>
             <p className="text-sm text-white/50">Elige tu actividad favorita y comparte con amigos</p>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 lg:gap-6">
+          <div className="flex justify-center sm:justify-start">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 lg:gap-6 w-full max-w-2xl sm:max-w-full lg:max-w-full xl:max-w-full">
             {ACTIVITY_CATALOG.map((activity, i) => (
               <motion.div
                 key={activity.id}
@@ -370,6 +371,7 @@ export default function SpacesPage() {
                 />
               </motion.div>
             ))}
+            </div>
           </div>
         </section>
 
