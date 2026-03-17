@@ -98,6 +98,11 @@ const MangaMusicPlayer = memo(({
     activeVideoId.current = null;
   }, []);
 
+  // Auto-expand panel when music starts and guest hasn't interacted yet
+  useEffect(() => {
+    if (isPlaying && !userInteracted && currentTrack) setExpanded(true);
+  }, [isPlaying, userInteracted, currentTrack, setExpanded]);
+
   // Keep volume in sync when slider changes
   useEffect(() => {
     if (iframeRef.current) ytCmd('setVolume', [Math.round(volume * 100)]);
