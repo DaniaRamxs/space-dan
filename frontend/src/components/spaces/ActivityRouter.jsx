@@ -50,6 +50,26 @@ export function ActivityRouter({ activity, session, onClose }) {
   if (!activity?.type || !activity?.id) return null;
 
   const key = `${activity.type}:${activity.id}`;
+  
+  // Bloquear específicamente music:chill para evitar error
+  if (key === 'music:chill') {
+    console.warn('[ActivityRouter] Blocked music:chill activity - not available');
+    return (
+      <div className="flex flex-col items-center justify-center gap-3 py-16 text-white/40">
+        <span className="text-2xl">🎵</span>
+        <p className="text-sm">Actividad no disponible</p>
+        {session.isHost && (
+          <button
+            onClick={() => session.stopActivity()}
+            className="mt-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs hover:bg-white/10"
+          >
+            Volver al lobby
+          </button>
+        )}
+      </div>
+    );
+  }
+  
   const Component = ACTIVITY_MAP[key];
 
   if (!Component) {
