@@ -5,7 +5,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import {
   Tv, BookOpen, Palette, Gamepad2, Crown, Dice5,
   Swords, Music, Users, ArrowRight, Plus, Sparkles,
@@ -24,55 +24,81 @@ const ACTIVITY_CATALOG = [
     type: 'anime',  id: 'astro-party',
     label: 'Anime',        sublabel: 'Watch party',
     Icon: Tv,
-    iconBg:   'bg-indigo-500',
-    cardBg:   'bg-[#161628]',
-    border:   'border-white/[0.06]',
-    glow:     'hover:border-indigo-500/30',
+    gradient:     'linear-gradient(135deg, #0a1628 0%, #152340 50%, #1e3a5f 100%)',
+    iconGradient: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+    glowColor:    'rgba(99,102,241,0.25)',
+    border:       'border-indigo-500/20',
+    glow:         'hover:shadow-[0_0_36px_rgba(99,102,241,0.22)]',
   },
   {
     type: 'manga',  id: 'manga-party',
     label: 'Manga',        sublabel: 'Lectura grupal',
     Icon: BookOpen,
-    iconBg:   'bg-pink-500',
-    cardBg:   'bg-[#1a1221]',
-    border:   'border-white/[0.06]',
-    glow:     'hover:border-pink-500/30',
+    gradient:     'linear-gradient(135deg, #2a1035 0%, #3d1a50 50%, #5c2a70 100%)',
+    iconGradient: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+    glowColor:    'rgba(236,72,153,0.25)',
+    border:       'border-pink-500/20',
+    glow:         'hover:shadow-[0_0_36px_rgba(236,72,153,0.22)]',
   },
   {
     type: 'game',   id: 'pixel-galaxy',
     label: 'Pixel Galaxy', sublabel: 'Arte colaborativo',
     Icon: Palette,
-    iconBg:   'bg-orange-500',
-    cardBg:   'bg-[#1a1610]',
-    border:   'border-white/[0.06]',
-    glow:     'hover:border-orange-500/30',
+    gradient:     'linear-gradient(135deg, #0d2018 0%, #163326 50%, #1e4d2e 100%)',
+    iconGradient: 'linear-gradient(135deg, #ffeaa7 0%, #fdcb6e 100%)',
+    glowColor:    'rgba(249,115,22,0.25)',
+    border:       'border-amber-500/20',
+    glow:         'hover:shadow-[0_0_36px_rgba(249,115,22,0.22)]',
   },
   {
     type: 'game',   id: 'connect4',
     label: 'Connect 4',    sublabel: 'Duelo 1v1',
     Icon: Gamepad2,
-    iconBg:   'bg-rose-500',
-    cardBg:   'bg-[#1a1016]',
-    border:   'border-white/[0.06]',
-    glow:     'hover:border-rose-500/30',
+    gradient:     'linear-gradient(135deg, #2a100e 0%, #421a18 50%, #5e2620 100%)',
+    iconGradient: 'linear-gradient(135deg, #fd79a8 0%, #e84393 100%)',
+    glowColor:    'rgba(244,63,94,0.25)',
+    border:       'border-rose-500/20',
+    glow:         'hover:shadow-[0_0_36px_rgba(244,63,94,0.22)]',
   },
   {
     type: 'game',   id: 'chess',
     label: 'Ajedrez',      sublabel: 'Partidas rápidas',
     Icon: Crown,
-    iconBg:   'bg-violet-500',
-    cardBg:   'bg-[#12102a]',
-    border:   'border-white/[0.06]',
-    glow:     'hover:border-violet-500/30',
+    gradient:     'linear-gradient(135deg, #18182a 0%, #252538 50%, #323250 100%)',
+    iconGradient: 'linear-gradient(135deg, #a29bfe 0%, #6c5ce7 100%)',
+    glowColor:    'rgba(139,92,246,0.25)',
+    border:       'border-violet-500/20',
+    glow:         'hover:shadow-[0_0_36px_rgba(139,92,246,0.22)]',
   },
   {
     type: 'game',   id: 'poker',
     label: 'Poker',        sublabel: 'Mesa privada',
     Icon: Dice5,
-    iconBg:   'bg-red-500',
-    cardBg:   'bg-[#1a1010]',
-    border:   'border-white/[0.06]',
-    glow:     'hover:border-red-500/30',
+    gradient:     'linear-gradient(135deg, #28100e 0%, #3e1818 50%, #581e1e 100%)',
+    iconGradient: 'linear-gradient(135deg, #ff7675 0%, #d63031 100%)',
+    glowColor:    'rgba(239,68,68,0.25)',
+    border:       'border-red-500/20',
+    glow:         'hover:shadow-[0_0_36px_rgba(239,68,68,0.22)]',
+  },
+  {
+    type: 'game',   id: 'battles',
+    label: 'Batallas',     sublabel: 'PvP en tiempo real',
+    Icon: Swords,
+    gradient:     'linear-gradient(135deg, #1a1208 0%, #2e2010 50%, #433018 100%)',
+    iconGradient: 'linear-gradient(135deg, #f9ca24 0%, #f0932b 100%)',
+    glowColor:    'rgba(245,158,11,0.25)',
+    border:       'border-yellow-500/20',
+    glow:         'hover:shadow-[0_0_36px_rgba(245,158,11,0.22)]',
+  },
+  {
+    type: 'game',   id: 'music',
+    label: 'Música',       sublabel: 'Escucha en grupo',
+    Icon: Music,
+    gradient:     'linear-gradient(135deg, #0e1a28 0%, #102030 50%, #143040 100%)',
+    iconGradient: 'linear-gradient(135deg, #00cec9 0%, #0984e3 100%)',
+    glowColor:    'rgba(34,211,238,0.25)',
+    border:       'border-cyan-500/20',
+    glow:         'hover:shadow-[0_0_36px_rgba(34,211,238,0.22)]',
   },
 ];
 
@@ -88,7 +114,7 @@ function getActivityMeta(type, id) {
 // ─── Activity card ─────────────────────────────────────────────────────────────
 
 function ActivityCard({ activity, onClick, loading }) {
-  const { Icon, iconBg, cardBg, border, glow, label, sublabel } = activity;
+  const { Icon, gradient, iconGradient, glowColor, border, glow, label, sublabel } = activity;
 
   return (
     <motion.button
@@ -97,22 +123,44 @@ function ActivityCard({ activity, onClick, loading }) {
       whileTap={{ scale: 0.96 }}
       onClick={onClick}
       disabled={loading}
-      className={`relative flex flex-col gap-3 rounded-[20px] border ${border} ${cardBg} ${glow} p-4 text-left transition-all duration-200 hover:scale-[1.02] disabled:opacity-50`}
+      style={{ background: gradient }}
+      className={`group relative flex flex-col gap-3 overflow-hidden rounded-[22px] border ${border} ${glow} p-4 text-left transition-all duration-300 hover:scale-[1.03] disabled:opacity-50`}
     >
+      {/* Top shimmer line */}
+      <div
+        className="absolute inset-x-0 top-0 h-px opacity-60"
+        style={{ background: `linear-gradient(90deg, transparent, ${glowColor}, transparent)` }}
+      />
+
+      {/* Bottom glow bloom */}
+      <div
+        className="pointer-events-none absolute -bottom-6 -right-6 h-24 w-24 rounded-full opacity-20 blur-2xl transition-opacity duration-300 group-hover:opacity-40"
+        style={{ background: iconGradient }}
+      />
+
       {/* Icon block */}
-      <div className={`flex h-11 w-11 items-center justify-center rounded-[14px] ${iconBg}`}>
-        <Icon size={20} className="text-white" strokeWidth={1.8} />
+      <div
+        style={{ background: iconGradient }}
+        className="flex h-11 w-11 items-center justify-center rounded-[14px] shadow-lg"
+      >
+        <Icon size={20} className="text-white drop-shadow-sm" strokeWidth={1.8} />
       </div>
 
-      {/* Labels */}
-      <div>
-        <p className="text-sm font-bold text-white leading-tight">{label}</p>
-        <p className="mt-0.5 text-[11px] text-white/40 leading-snug">{sublabel}</p>
+      {/* Labels + arrow */}
+      <div className="flex items-end justify-between gap-1">
+        <div>
+          <p className="text-sm font-bold text-white leading-tight">{label}</p>
+          <p className="mt-0.5 text-[11px] text-white/40 leading-snug">{sublabel}</p>
+        </div>
+        <ArrowRight
+          size={13}
+          className="mb-0.5 shrink-0 text-white/20 transition-all duration-200 group-hover:translate-x-0.5 group-hover:text-white/50"
+        />
       </div>
 
       {/* Loading spinner */}
       {loading && (
-        <div className="absolute inset-0 flex items-center justify-center rounded-[20px] bg-black/50">
+        <div className="absolute inset-0 flex items-center justify-center rounded-[22px] bg-black/50">
           <div className="h-5 w-5 animate-spin rounded-full border-2 border-white/20 border-t-white" />
         </div>
       )}
@@ -124,7 +172,7 @@ function ActivityCard({ activity, onClick, loading }) {
 
 function LiveSpaceCard({ space, onJoin, index }) {
   const meta = getActivityMeta(space.activity?.type, space.activity?.id);
-  const { Icon, iconBg } = meta;
+  const { Icon, iconGradient } = meta;
 
   return (
     <motion.div
@@ -133,7 +181,10 @@ function LiveSpaceCard({ space, onJoin, index }) {
       transition={{ delay: index * 0.05 }}
       className="flex items-center gap-3 rounded-[18px] border border-white/[0.06] bg-[#111120] p-3"
     >
-      <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-[12px] ${iconBg}`}>
+      <div
+        style={{ background: iconGradient }}
+        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[12px] shadow-md"
+      >
         <Icon size={18} className="text-white" strokeWidth={1.8} />
       </div>
 
@@ -234,7 +285,7 @@ export default function SpacesPage() {
   const handleJoin = (space) => navigate(`/spaces/${space.spaceId}`);
 
   return (
-    <div className="min-h-full text-white">
+    <div className="min-h-full bg-[radial-gradient(ellipse_80%_40%_at_50%_0%,rgba(34,211,238,0.06),transparent),radial-gradient(ellipse_60%_30%_at_80%_60%,rgba(139,92,246,0.05),transparent),linear-gradient(180deg,#04040c_0%,#06060f_60%,#030308_100%)] text-white">
       <div className="mx-auto max-w-lg px-4 pb-24 pt-5">
 
         {/* ── Brand header ──────────────────────────────────────────────────── */}
@@ -253,9 +304,9 @@ export default function SpacesPage() {
           </p>
 
           {/* Section pill */}
-          <div className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.05] px-3 py-1">
-            <span className="h-1.5 w-1.5 rounded-full bg-cyan-400" />
-            <span className="text-[10px] font-black uppercase tracking-[0.22em] text-white/60">
+          <div className="inline-flex items-center gap-1.5 rounded-full border border-cyan-400/25 bg-cyan-500/10 px-3 py-1 shadow-[0_0_12px_rgba(34,211,238,0.1)]">
+            <span className="h-1.5 w-1.5 rounded-full bg-cyan-400 shadow-[0_0_6px_rgba(34,211,238,0.8)]" />
+            <span className="text-[10px] font-black uppercase tracking-[0.22em] text-cyan-300/80">
               Espacios
             </span>
           </div>
@@ -285,9 +336,11 @@ export default function SpacesPage() {
         >
           <button
             onClick={() => navigate('/spaces/new')}
-            className="group relative w-full overflow-hidden rounded-[22px] bg-gradient-to-r from-cyan-400 via-purple-500 to-purple-600 p-[1px] transition hover:brightness-110 active:scale-[0.98]"
+            className="group relative w-full overflow-hidden rounded-[22px] bg-gradient-to-r from-cyan-400 via-purple-500 to-purple-600 p-[1px] shadow-[0_0_32px_rgba(34,211,238,0.18),0_0_60px_rgba(139,92,246,0.12)] transition hover:shadow-[0_0_44px_rgba(34,211,238,0.3),0_0_80px_rgba(139,92,246,0.2)] hover:brightness-110 active:scale-[0.98]"
           >
-            <div className="flex flex-col items-center justify-center gap-1 rounded-[21px] bg-gradient-to-r from-cyan-500/90 via-purple-500/90 to-purple-600/90 px-6 py-5">
+            <div className="relative flex flex-col items-center justify-center gap-1 overflow-hidden rounded-[21px] bg-gradient-to-r from-cyan-500/90 via-purple-500/90 to-purple-600/90 px-6 py-5">
+              {/* Shine overlay */}
+              <div className="pointer-events-none absolute inset-0 translate-x-[-100%] bg-gradient-to-r from-transparent via-white/10 to-transparent transition-transform duration-500 group-hover:translate-x-[100%]" />
               <div className="flex items-center gap-2">
                 <Sparkles size={18} className="text-white" />
                 <Plus size={18} className="text-white" strokeWidth={2.5} />
