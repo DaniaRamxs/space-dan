@@ -34,25 +34,6 @@ function getActivityMeta(type, id) {
     || ACTIVITY_CATALOG[0];
 }
 
-// ─── Animated waveform ────────────────────────────────────────────────────────
-
-function Waveform({ color = 'cyan', bars = 12 }) {
-  return (
-    <div className="flex items-end gap-[2px] h-5">
-      {Array.from({ length: bars }).map((_, i) => (
-        <div
-          key={i}
-          className={`w-[3px] rounded-full bg-${color}-400/60`}
-          style={{
-            height: `${25 + Math.sin(i * 1.3) * 40 + 35}%`,
-            animation: `waveBar 1.2s ease-in-out infinite`,
-            animationDelay: `${(i * 80) % 600}ms`,
-          }}
-        />
-      ))}
-    </div>
-  );
-}
 
 // ─── Live preview card ────────────────────────────────────────────────────────
 
@@ -67,7 +48,7 @@ function LiveSpaceCard({ space, onJoin, index }) {
       transition={{ delay: index * 0.06 }}
       className={`group relative flex flex-col overflow-hidden rounded-[22px] border bg-gradient-to-br ${meta.gradient} ${meta.border}`}
     >
-      <div className="relative flex h-[72px] items-end overflow-hidden px-4 pb-3">
+      <div className="relative flex h-10 items-center overflow-hidden px-4">
         {space.preview?.thumbnail && (
           <img
             src={space.preview.thumbnail}
@@ -75,8 +56,7 @@ function LiveSpaceCard({ space, onJoin, index }) {
             className="absolute inset-0 h-full w-full object-cover opacity-30"
           />
         )}
-        <div className="relative z-10 w-full flex items-end justify-between">
-          <Waveform color={meta.dot.replace('bg-', '').split('/')[0].replace('-400', '')} />
+        <div className="relative z-10 w-full flex items-center justify-end">
           <div className="flex items-center gap-1.5">
             <span className={`h-1.5 w-1.5 animate-pulse rounded-full ${meta.dot}`} />
             <span className={`text-[9px] font-black uppercase tracking-[0.22em] ${meta.accent}`}>
@@ -206,12 +186,6 @@ export default function SpacesPage() {
 
   return (
     <div className="min-h-full text-white">
-      <style>{`
-        @keyframes waveBar {
-          0%, 100% { transform: scaleY(0.4); opacity: 0.5; }
-          50%       { transform: scaleY(1);   opacity: 1;   }
-        }
-      `}</style>
 
       <div className="mx-auto max-w-5xl px-4 pb-20 pt-6 sm:px-6">
 

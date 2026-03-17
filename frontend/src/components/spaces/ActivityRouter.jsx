@@ -11,7 +11,6 @@ import React, { Suspense } from 'react';
 // ─── Lazy activity components ─────────────────────────────────────────────────
 const AstroPartyPage  = React.lazy(() => import('@/features/anime/AstroPartyPage'));
 const MangaPartyPage  = React.lazy(() => import('@/features/manga/MangaPartyPage'));
-const JukeboxDJ       = React.lazy(() => import('@/components/VoiceActivities/JukeboxDJ'));
 
 // VoiceActivities games — these still work standalone
 const Connect4Game    = React.lazy(() => import('@/components/VoiceActivities/Connect4Game'));
@@ -27,7 +26,6 @@ const AsteroidBattle  = React.lazy(() => import('@/components/VoiceActivities/As
 // ─── Registry ─────────────────────────────────────────────────────────────────
 // key: "${activity.type}:${activity.id}"
 const ACTIVITY_MAP = {
-  'music:chill':           JukeboxDJ,
   'anime:astro-party':     AstroPartyPage,
   'manga:manga-party':     MangaPartyPage,
   'game:connect4':         Connect4Game,
