@@ -47,15 +47,21 @@ const KEYFRAMES = `
 // ─── Quick activities for the picker sheet ───────────────────────────────────
 
 const QUICK_ACTIVITIES = [
-  { type: 'anime',  id: 'astro-party',  label: 'Anime',        emoji: '📺', accent: 'border-cyan-400/30 text-cyan-300'    },
-  { type: 'manga',  id: 'manga-party',  label: 'Manga',        emoji: '📖', accent: 'border-purple-400/30 text-purple-300' },
-  { type: 'game',   id: 'pixel-galaxy', label: 'Pixel Galaxy', emoji: '🎨', accent: 'border-green-400/30 text-green-300'   },
-  { type: 'game',   id: 'connect4',     label: 'Connect 4',    emoji: '🔴', accent: 'border-amber-400/30 text-amber-300'   },
-  { type: 'game',   id: 'chess',        label: 'Ajedrez',      emoji: '♟️', accent: 'border-slate-400/30 text-slate-300'   },
-  { type: 'game',   id: 'poker',        label: 'Poker',        emoji: '🃏', accent: 'border-red-400/30 text-red-300'       },
-  { type: 'game',   id: 'starboard',    label: 'Pizarra',      emoji: '✏️', accent: 'border-sky-400/30 text-sky-300'       },
-  { type: 'game',   id: 'blackjack',    label: 'Blackjack',    emoji: '🃏', accent: 'border-yellow-400/30 text-yellow-300' },
-  { type: 'game',   id: 'snake',        label: 'Snake',        emoji: '🐍', accent: 'border-lime-400/30 text-lime-300'     },
+  { type: 'watch',  id: 'watch-together', label: 'Mirar Juntos',   emoji: '📺', accent: 'border-blue-400/30 text-blue-300'     },
+  { type: 'game',   id: 'pixel-galaxy', label: 'Pixel Galaxy',  emoji: '🎨', accent: 'border-yellow-400/30 text-yellow-300'   },
+  { type: 'game',   id: 'puzzle',        label: 'Co-Op Puzzle',  emoji: '🧩', accent: 'border-green-400/30 text-green-300'     },
+  { type: 'game',   id: 'connect4',      label: 'Cosmic 4',     emoji: '🔴', accent: 'border-pink-400/30 text-pink-300'     },
+  { type: 'game',   id: 'snake',         label: 'Snake Duel',    emoji: '🐍', accent: 'border-emerald-400/30 text-emerald-300' },
+  { type: 'game',   id: 'tetris',        label: 'Tetris Duel',   emoji: '📱', accent: 'border-blue-400/30 text-blue-300'     },
+  { type: 'game',   id: 'poker',         label: 'Poker',         emoji: '🃏', accent: 'border-emerald-400/30 text-emerald-300' },
+  { type: 'game',   id: 'starboard',     label: 'Starboard',     emoji: '✏️', accent: 'border-cyan-400/30 text-cyan-300'      },
+  { type: 'game',   id: 'dj',            label: 'Jukebox DJ',    emoji: '🎵', accent: 'border-orange-400/30 text-orange-300'   },
+  { type: 'game',   id: 'blackjack',     label: 'Blackjack',     emoji: '🃏', accent: 'border-rose-400/30 text-rose-300'      },
+  { type: 'game',   id: 'chess',         label: 'Realtime Chess',emoji: '♟️', accent: 'border-purple-400/30 text-purple-300'   },
+  { type: 'game',   id: 'ludo',          label: 'Ludo Classic', emoji: '🎲', accent: 'border-amber-400/30 text-amber-300'     },
+  { type: 'game',   id: 'beat-sound',    label: 'BeatSound',     emoji: '🎵', accent: 'border-cyan-400/30 text-cyan-300'      },
+  { type: 'anime',  id: 'astro-party',  label: 'Screen Sharing',emoji: '📺', accent: 'border-pink-400/30 text-pink-300'     },
+  { type: 'manga',  id: 'manga-party',  label: 'Manga Party',   emoji: '�', accent: 'border-pink-400/30 text-pink-300'     },
 ];
 
 // ─── Quick reactions ──────────────────────────────────────────────────────────
