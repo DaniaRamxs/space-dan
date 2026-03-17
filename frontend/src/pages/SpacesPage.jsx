@@ -149,8 +149,8 @@ function ActivityCard({ activity, onClick, loading }) {
       {/* Labels + arrow */}
       <div className="flex items-end justify-between gap-1 mt-auto">
         <div className="min-w-0 flex-1">
-          <p className="text-sm font-bold text-white leading-tight truncate">{label}</p>
-          <p className="mt-0.5 text-[11px] text-white/40 leading-snug line-clamp-2">{sublabel}</p>
+          <p className="text-sm lg:text-base font-bold text-white leading-tight truncate">{label}</p>
+          <p className="mt-0.5 text-[11px] lg:text-xs text-white/40 leading-snug line-clamp-2">{sublabel}</p>
         </div>
         <ArrowRight
           size={13}
@@ -286,7 +286,7 @@ export default function SpacesPage() {
 
   return (
     <div className="min-h-full bg-[radial-gradient(ellipse_80%_40%_at_50%_0%,rgba(34,211,238,0.06),transparent),radial-gradient(ellipse_60%_30%_at_80%_60%,rgba(139,92,246,0.05),transparent),linear-gradient(180deg,#04040c_0%,#06060f_60%,#030308_100%)] text-white">
-      <div className="mx-auto max-w-lg px-4 pb-24 pt-5">
+      <div className="mx-auto max-w-6xl px-4 pb-24 pt-5 lg:px-8">
         {/* ── Page title ────────────────────────────────────────────────────── */}
         <motion.div
           initial={{ opacity: 0, y: 8 }}
@@ -294,10 +294,10 @@ export default function SpacesPage() {
           transition={{ delay: 0.04 }}
           className="mb-6"
         >
-          <h1 className="text-[2rem] font-black uppercase tracking-[0.1em] leading-none text-white">
+          <h1 className="text-[2.5rem] lg:text-[3rem] font-black uppercase tracking-[0.1em] leading-none text-white">
             ESPACIOS
           </h1>
-          <p className="mt-2 text-sm text-white/45 leading-snug">
+          <p className="mt-2 text-sm lg:text-base text-white/45 leading-snug">
             Entra directo, habla cuando quieras.
           </p>
         </motion.div>
@@ -307,11 +307,12 @@ export default function SpacesPage() {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.08 }}
-          className="mb-2"
+          className="mb-2 lg:mb-4"
         >
-          <button
-            onClick={() => navigate('/spaces/new')}
-            className="group relative w-full overflow-hidden rounded-[22px] bg-gradient-to-r from-cyan-400 via-purple-500 to-purple-600 p-[1px] shadow-[0_0_32px_rgba(34,211,238,0.18),0_0_60px_rgba(139,92,246,0.12)] transition hover:shadow-[0_0_44px_rgba(34,211,238,0.3),0_0_80px_rgba(139,92,246,0.2)] hover:brightness-110 active:scale-[0.98]"
+          <div className="flex justify-center">
+            <button
+              onClick={() => navigate('/spaces/new')}
+              className="group relative w-full max-w-md overflow-hidden rounded-[22px] bg-gradient-to-r from-cyan-400 via-purple-500 to-purple-600 p-[1px] shadow-[0_0_32px_rgba(34,211,238,0.18),0_0_60px_rgba(139,92,246,0.12)] transition hover:shadow-[0_0_44px_rgba(34,211,238,0.3),0_0_80px_rgba(139,92,246,0.2)] hover:brightness-110 active:scale-[0.98]"
           >
             <div className="relative flex flex-col items-center justify-center gap-1 overflow-hidden rounded-[21px] bg-gradient-to-r from-cyan-500/90 via-purple-500/90 to-purple-600/90 px-6 py-5">
               {/* Shine overlay */}
@@ -324,20 +325,21 @@ export default function SpacesPage() {
               </div>
             </div>
           </button>
+          </div>
         </motion.div>
 
         <motion.p
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.12 }}
-          className="mb-8 text-center text-[11px] text-white/30"
+          className="mb-8 text-center text-[11px] lg:text-sm text-white/30"
         >
           o elige una actividad para lanzar directo
         </motion.p>
 
         {/* ── Activity grid ─────────────────────────────────────────────────── */}
         <section className="mb-10">
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 lg:gap-4">
             {ACTIVITY_CATALOG.map((activity, i) => (
               <motion.div
                 key={activity.id}
