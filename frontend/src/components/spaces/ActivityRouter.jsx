@@ -22,21 +22,30 @@ const BlackjackGame   = React.lazy(() => import('@/components/VoiceActivities/Bl
 const SnakeDuel       = React.lazy(() => import('@/components/VoiceActivities/SnakeDuelGame'));
 const TetrisDuel      = React.lazy(() => import('@/components/VoiceActivities/TetrisDuelGame'));
 const AsteroidBattle  = React.lazy(() => import('@/components/VoiceActivities/AsteroidBattleGame'));
+const WatchTogether   = React.lazy(() => import('@/components/VoiceActivities/WatchTogether'));
+const CoOpPuzzleGame  = React.lazy(() => import('@/components/VoiceActivities/CoOpPuzzle/CoOpPuzzleGame'));
+const LudoGame        = React.lazy(() => import('@/components/VoiceActivities/Ludo/LudoGame'));
+const BeatSound       = React.lazy(() => import('@/components/VoiceActivities/BeatSound'));
+const JukeboxDJ       = React.lazy(() => import('@/components/VoiceActivities/JukeboxDJ'));
 
 // ─── Registry ─────────────────────────────────────────────────────────────────
 // key: "${activity.type}:${activity.id}"
 const ACTIVITY_MAP = {
+  'watch:watch-together':  WatchTogether,
   'anime:astro-party':     AstroPartyPage,
   'manga:manga-party':     MangaPartyPage,
-  'game:connect4':         Connect4Game,
   'game:pixel-galaxy':     PixelGalaxy,
-  'game:starboard':        StarboardGame,
-  'game:chess':            ChessGame,
-  'game:poker':            PokerGame,
-  'game:blackjack':        BlackjackGame,
+  'game:puzzle':           CoOpPuzzleGame,
+  'game:connect4':         Connect4Game,
   'game:snake':            SnakeDuel,
   'game:tetris':           TetrisDuel,
-  'game:asteroid-battle':  AsteroidBattle,
+  'game:poker':            PokerGame,
+  'game:starboard':        StarboardGame,
+  'game:dj':               JukeboxDJ,
+  'game:blackjack':        BlackjackGame,
+  'game:chess':            ChessGame,
+  'game:ludo':             LudoGame,
+  'game:beat-sound':       BeatSound,
 };
 
 // ─── Component ────────────────────────────────────────────────────────────────
