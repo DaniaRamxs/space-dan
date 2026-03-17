@@ -21,8 +21,8 @@ const COLYSEUS_URL = (import.meta.env.VITE_COLYSEUS_URL || 'https://spacely-serv
 
 const ACTIVITY_CATALOG = [
   {
-    type: 'anime',  id: 'astro-party',
-    label: 'Anime',        sublabel: 'Watch party',
+    type: 'watch',  id: 'watch-together',
+    label: 'Mirar Juntos',        sublabel: 'Mira shorts o videos largos de youtube con tus amigos',
     Icon: Tv,
     gradient:     'linear-gradient(135deg, #0a1628 0%, #152340 50%, #1e3a5f 100%)',
     iconGradient: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
@@ -124,7 +124,7 @@ function ActivityCard({ activity, onClick, loading }) {
       onClick={onClick}
       disabled={loading}
       style={{ background: gradient }}
-      className={`group relative flex flex-col gap-3 overflow-hidden rounded-[22px] border ${border} ${glow} p-4 text-left transition-all duration-300 hover:scale-[1.03] disabled:opacity-50`}
+      className={`group relative flex flex-col gap-3 overflow-hidden rounded-[22px] border ${border} ${glow} p-4 text-left transition-all duration-300 hover:scale-[1.03] disabled:opacity-50 h-full min-h-[140px]`}
     >
       {/* Top shimmer line */}
       <div
@@ -147,10 +147,10 @@ function ActivityCard({ activity, onClick, loading }) {
       </div>
 
       {/* Labels + arrow */}
-      <div className="flex items-end justify-between gap-1">
-        <div>
-          <p className="text-sm font-bold text-white leading-tight">{label}</p>
-          <p className="mt-0.5 text-[11px] text-white/40 leading-snug">{sublabel}</p>
+      <div className="flex items-end justify-between gap-1 mt-auto">
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-bold text-white leading-tight truncate">{label}</p>
+          <p className="mt-0.5 text-[11px] text-white/40 leading-snug line-clamp-2">{sublabel}</p>
         </div>
         <ArrowRight
           size={13}
