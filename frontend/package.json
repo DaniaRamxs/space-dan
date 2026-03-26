@@ -4,7 +4,7 @@
   "version": "0.0.0",
   "type": "module",
   "engines": {
-    "node": "20.x"
+    "node": ">=20.x"
   },
   "scripts": {
     "dev": "vite",
@@ -21,10 +21,10 @@
     "tauri:icon": "tauri icon"
   },
   "dependencies": {
-    "@capacitor/android": "^8.1.0",
+    "@capacitor/android": "^8.3.0",
     "@capacitor/app": "^8.0.1",
     "@capacitor/browser": "^8.0.1",
-    "@capacitor/core": "^8.1.0",
+    "@capacitor/core": "^8.3.0",
     "@capacitor/haptics": "^8.0.1",
     "@capacitor/keyboard": "^8.0.1",
     "@capacitor/preferences": "^8.0.1",
@@ -36,7 +36,7 @@
     "@mediapipe/camera_utils": "^0.3.1675466862",
     "@mediapipe/face_mesh": "^0.4.1633559619",
     "@supabase/supabase-js": "^2.97.0",
-    "@tauri-apps/api": "^2",
+    "@tauri-apps/api": "^2.10.1",
     "animejs": "^4.3.6",
     "chess.js": "^1.4.0",
     "colyseus.js": "^0.16.22",
@@ -71,15 +71,15 @@
     "use-image": "^1.1.4",
     "vite": "^7.2.4",
     "web-vitals": "^5.1.0",
-    "yt-search": "^2.13.1"
+    "yt-search": "^0.0.2"
   },
   "devDependencies": {
-    "@capacitor/cli": "^8.1.0",
+    "@capacitor/cli": "^8.3.0",
     "@eslint/js": "^9.39.1",
     "@playwright/test": "^1.58.2",
     "@resvg/resvg-js": "^2.6.2",
     "@tailwindcss/typography": "^0.5.19",
-    "@tauri-apps/cli": "^2",
+    "@tauri-apps/cli": "^2.10.1",
     "@types/react": "^19.2.5",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^5.1.4",
@@ -91,6 +91,6 @@
     "playwright": "^1.58.2",
     "postcss": "^8.5.6",
     "tailwindcss": "^3.4.19",
-    "vite-plugin-pwa": "^1.2.0"
+    "vite-plugin-pwa": "^0.19.8"
   }
 }
