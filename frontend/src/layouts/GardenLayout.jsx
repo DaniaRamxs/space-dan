@@ -100,7 +100,10 @@ export default function GardenLayout({ children }) {
   }
 
   return (
-    <div className={`gardenPage ${isFixedLayout ? 'gardenPage--fixed' : ''}`}>
+    <div
+      className={`gardenPage ${isFixedLayout ? 'gardenPage--fixed' : ''}`}
+      style={isTauri ? { paddingTop: 36 } : undefined}
+    >
       <KonamiEasterEgg />
       <RadioPlayer />
 

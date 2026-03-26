@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
+import { createPortal } from 'react-dom';
 
 export default function TauriTitleBar() {
   const [isMaximized, setIsMaximized] = useState(false);
@@ -55,7 +56,7 @@ export default function TauriTitleBar() {
     </button>
   );
 
-  return (
+  return createPortal(
     <div
       style={{
         position: 'fixed',
@@ -99,6 +100,7 @@ export default function TauriTitleBar() {
         </WinBtn>
         <WinBtn onClick={() => appWindowRef.current?.close()} danger>✕</WinBtn>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
