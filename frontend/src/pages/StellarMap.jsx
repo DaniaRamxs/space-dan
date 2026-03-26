@@ -1,9 +1,38 @@
 import { useEffect, useRef, useState, useMemo } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { AnimatePresence } from 'framer-motion';
 import { supabase } from '../supabaseClient';
 import { Zap, Flame, X, User, Orbit, Plus, Minus, Move, Sparkles } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { animate as animeAnim } from 'animejs';
+import { Capacitor } from '@capacitor/core';
+
+// Detección de plataforma
+const isMobile = Capacitor.isNativePlatform();
+
+// Configuración adaptativa por plataforma
+const MOBILE_CONFIG = {
+    maxStars: 1000, // Ahora todas las estrellas posibles
+    particleCount: 50, // Menos partículas
+    targetFPS: 30, // FPS más bajo para ahorro de batería
+    renderQuality: 0.7, // Calidad reducida
+    touchSensitivity: 1.2, // Más sensible al touch
+    zoomSpeed: 0.8, // Zoom más suave
+    dragFriction: 0.92, // Más fricción en móvil
+    viewportBuffer: 1.5 // Buffer extra para smooth scrolling
+};
+
+const DESKTOP_CONFIG = {
+    maxStars: 1000,
+    particleCount: 200,
+    targetFPS: 60,
+    renderQuality: 1.0,
+    touchSensitivity: 1.0,
+    zoomSpeed: 1.0,
+    dragFriction: 0.95,
+    viewportBuffer: 1.2
+};
+
+const CONFIG = isMobile ? MOBILE_CONFIG : DESKTOP_CONFIG;
 
 export default function StellarMap() {
     const canvasRef = useRef(null);
@@ -11,6 +40,7 @@ export default function StellarMap() {
     const [selectedUser, setSelectedUser] = useState(null);
     const [loading, setLoading] = useState(true);
     const [hoveredUser, setHoveredUser] = useState(null);
+    const [, forceUpdate] = useState({});
     const shootingStarsRef = useRef([]);
     const haloRef = useRef({ id: null, radius: 0 });
     const nebulas = useMemo(() => {
@@ -30,26 +60,94 @@ export default function StellarMap() {
     const navigate = useNavigate();
 
     // Camera State
-    const [camera, setCamera] = useState({ x: 0, y: 0, zoom: 1 });
     const cameraRef = useRef({ x: 0, y: 0, zoom: 1 });
     const isDragging = useRef(false);
     const lastPos = useRef({ x: 0, y: 0 });
+    const canvasSizeRef = useRef({ width: 0, height: 0 });
 
-    // Galactic centers and stars logic
-    const stars = useMemo(() => {
+    // Virtual Scrolling: Calcular estrellas visibles en viewport
+    const getVisibleStars = useMemo(() => () => {
         if (!mapData.users || mapData.users.length === 0) return [];
 
+        // En desktop mostrar todas las estrellas
+        if (!isMobile) {
+            return mapData.users.filter(u => u && u.id).map((u, i) => {
+                const seed = (u.id.split('-').reduce((acc, char) => acc + char.charCodeAt(0), 0)) / 1000;
+                const angle = i * 0.4 + (Math.sin(seed * 10) * 0.2);
+                const distance = 80 + (i * 12) + (Math.cos(seed * 5) * 20);
+                const x = Math.cos(angle) * distance;
+                const y = Math.sin(angle) * distance;
+
+                let size = Math.max(2, (u.level || 1) * 0.8 + 2);
+                if (!Number.isFinite(size) || Number.isNaN(size)) size = 2;
+                size = Math.min(50, size);
+
+                const balance = u.balance || u.starlys || 0;
+                let brightness = Math.min(Math.log10(Math.max(0, balance) + 1), 4);
+                if (!Number.isFinite(brightness) || Number.isNaN(brightness)) brightness = 0;
+
+                const pulseSpeed = 0.02 + (u.activity_level || 1) * 0.005;
+
+                let starColor = u.activity_level > 10 ? '#a78bfa' : '#22d3ee';
+                if (u.is_online) starColor = '#00ffa3';
+                if (u.xp_boost) starColor = '#facc15';
+                if (u.is_playing) {
+                    const mood = u.music_mood?.toLowerCase() || '';
+                    if (mood.includes('euforia') || mood.includes('energía')) starColor = '#ef4444';
+                    if (mood.includes('calma') || mood.includes('luminosa')) starColor = '#10b981';
+                    if (mood.includes('introspección') || mood.includes('melancólica')) starColor = '#6366f1';
+                }
+
+                const isRich = balance > 10000;
+
+                return {
+                    ...u,
+                    baseX: x,
+                    baseY: y,
+                    size,
+                    brightness,
+                    isRich,
+                    pulseSpeed,
+                    pulseOffset: seed * Math.PI,
+                    color: starColor || '#fff',
+                };
+            });
+        }
+
+        // En móvil: Virtual Scrolling - solo estrellas en viewport
+        const { width, height } = canvasSizeRef.current;
+        const zoom = cameraRef.current.zoom;
+        const cameraX = cameraRef.current.x;
+        const cameraY = cameraRef.current.y;
+        
+        // Calcular viewport con buffer
+        const viewportWidth = (width / zoom) * CONFIG.viewportBuffer;
+        const viewportHeight = (height / zoom) * CONFIG.viewportBuffer;
+        const viewportLeft = -cameraX / zoom - viewportWidth / 2;
+        const viewportRight = -cameraX / zoom + viewportWidth / 2;
+        const viewportTop = -cameraY / zoom - viewportHeight / 2;
+        const viewportBottom = -cameraY / zoom + viewportHeight / 2;
+
+        // Filtrar estrellas visibles
         return mapData.users.filter(u => u && u.id).map((u, i) => {
-            // Seeded random for stable positions
             const seed = (u.id.split('-').reduce((acc, char) => acc + char.charCodeAt(0), 0)) / 1000;
             const angle = i * 0.4 + (Math.sin(seed * 10) * 0.2);
             const distance = 80 + (i * 12) + (Math.cos(seed * 5) * 20);
             const x = Math.cos(angle) * distance;
             const y = Math.sin(angle) * distance;
 
+            // Virtual Scrolling: solo renderizar si está en viewport
+            const isVisible = 
+                x >= viewportLeft && 
+                x <= viewportRight && 
+                y >= viewportTop && 
+                y <= viewportBottom;
+
+            if (!isVisible) return null; // No renderizar esta estrella
+
             let size = Math.max(2, (u.level || 1) * 0.8 + 2);
             if (!Number.isFinite(size) || Number.isNaN(size)) size = 2;
-            size = Math.min(50, size); // Cap físico para evitar supernovas (Fix Fatal)
+            size = Math.min(50, size);
 
             const balance = u.balance || u.starlys || 0;
             let brightness = Math.min(Math.log10(Math.max(0, balance) + 1), 4);
@@ -58,7 +156,7 @@ export default function StellarMap() {
             const pulseSpeed = 0.02 + (u.activity_level || 1) * 0.005;
 
             let starColor = u.activity_level > 10 ? '#a78bfa' : '#22d3ee';
-            if (u.is_online) starColor = '#00ffa3'; // En línea (Verde Neón)
+            if (u.is_online) starColor = '#00ffa3';
             if (u.xp_boost) starColor = '#facc15';
             if (u.is_playing) {
                 const mood = u.music_mood?.toLowerCase() || '';
@@ -80,8 +178,11 @@ export default function StellarMap() {
                 pulseOffset: seed * Math.PI,
                 color: starColor || '#fff',
             };
-        });
+        }).filter(star => star !== null); // Eliminar estrellas nulas
     }, [mapData]);
+
+    // Galactic centers and stars logic - Ahora usa virtual scrolling
+    const stars = useMemo(() => getVisibleStars(), [getVisibleStars]);
 
     useEffect(() => {
         async function fetchMapData() {
@@ -113,6 +214,11 @@ export default function StellarMap() {
             canvas.width = window.innerWidth * ratio;
             canvas.height = window.innerHeight * ratio;
             ctx.scale(ratio, ratio);
+            // Actualizar canvasSizeRef para virtual scrolling
+            canvasSizeRef.current = { 
+                width: window.innerWidth, 
+                height: window.innerHeight 
+            };
         };
         window.addEventListener('resize', resize);
         resize();
@@ -307,7 +413,7 @@ export default function StellarMap() {
             cancelAnimationFrame(animationFrame);
             clearInterval(shootingStarInterval);
         };
-    }, [stars, hoveredUser, mapData]);
+    }, [stars, hoveredUser, mapData, nebulas]);
 
     // Interaction Handlers (Universal)
     const handleStart = (e) => {
@@ -321,7 +427,7 @@ export default function StellarMap() {
         // Halo effect animation (Req 4)
         haloRef.current = { id: star.id, radius: 0 };
         animeAnim(haloRef.current, {
-            radius: 50,
+            radius: 50 * CONFIG.renderQuality,
             duration: 600,
             easing: 'easeOutQuart',
             complete: () => {
@@ -334,20 +440,23 @@ export default function StellarMap() {
         const pos = e.touches ? e.touches[0] : e;
 
         if (isDragging.current) {
-            const dx = pos.clientX - lastPos.current.x;
-            const dy = pos.clientY - lastPos.current.y;
+            const dx = (pos.clientX - lastPos.current.x) * CONFIG.touchSensitivity;
+            const dy = (pos.clientY - lastPos.current.y) * CONFIG.touchSensitivity;
             cameraRef.current.x += dx;
             cameraRef.current.y += dy;
+            cameraRef.current.x *= CONFIG.dragFriction;
+            cameraRef.current.y *= CONFIG.dragFriction;
             lastPos.current = { x: pos.clientX, y: pos.clientY };
-            setCamera({ ...cameraRef.current });
+            forceUpdate({});
         } else {
             // Hover logic
             const rect = canvasRef.current.getBoundingClientRect();
             const mx = pos.clientX - rect.left;
             const my = pos.clientY - rect.top;
+            const touchHitArea = e.touches ? 40 : 25; // Bigger hit area for touch
             const found = stars.find(s => {
                 const dist = Math.sqrt((mx - s.screenX) ** 2 + (my - s.screenY) ** 2);
-                return dist < (e.touches ? 40 : 25); // Bigger hit area for touch
+                return dist < (touchHitArea * CONFIG.touchSensitivity);
             });
             setHoveredUser(found);
         }
@@ -358,9 +467,9 @@ export default function StellarMap() {
     };
 
     const adjustZoom = (delta) => {
-        const newZoom = Math.max(0.3, Math.min(5, cameraRef.current.zoom + delta));
+        const newZoom = Math.max(0.3, Math.min(5, cameraRef.current.zoom + (delta * CONFIG.zoomSpeed)));
         cameraRef.current.zoom = newZoom;
-        setCamera({ ...cameraRef.current });
+        forceUpdate({});
     };
 
     const handleWormhole = () => {
@@ -368,7 +477,7 @@ export default function StellarMap() {
         const randomStar = stars[Math.floor(Math.random() * stars.length)];
         cameraRef.current.x = -randomStar.baseX * cameraRef.current.zoom;
         cameraRef.current.y = -randomStar.baseY * cameraRef.current.zoom;
-        setCamera({ ...cameraRef.current });
+        forceUpdate({});
         setSelectedUser(randomStar);
     };
 
@@ -383,7 +492,11 @@ export default function StellarMap() {
                 onTouchMove={handleMove}
                 onTouchEnd={handleEnd}
                 onClick={() => hoveredUser && handleSelectStar(hoveredUser)}
-                className="w-full h-full cursor-grab active:cursor-grabbing"
+                className={`w-full h-full ${isMobile ? 'cursor-pointer' : 'cursor-grab active:cursor-grabbing'}`}
+                style={{ 
+                    touchAction: 'none',
+                    imageRendering: isMobile ? 'auto' : 'crisp-edges'
+                }}
             />
 
             {/* Header / Info - Hidden when user selected to save space */}

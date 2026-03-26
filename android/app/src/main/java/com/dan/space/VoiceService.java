@@ -37,11 +37,7 @@ public class VoiceService extends Service {
             .build();
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            int types = ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE;
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                types |= ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION;
-            }
-            startForeground(NOTIF_ID, notification, types);
+            startForeground(NOTIF_ID, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE);
         } else {
             startForeground(NOTIF_ID, notification);
         }

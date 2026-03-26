@@ -1,5 +1,5 @@
 import React, { Suspense, lazy } from 'react';
-const StellarMap = lazy(() => import('../components/Effects/StellarMap'));
+const StellarMap = lazy(() => import('../pages/StellarMap'));
 
 /**
  * UniversoPage: La vista del ecosistema social de Spacely.

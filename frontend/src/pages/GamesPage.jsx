@@ -689,6 +689,33 @@ export default function GamesPage() {
             exit={{ opacity: 0 }}
             transition={{ duration: 0.12 }}
           >
+            {/* Botón de volver universal para juegos inmersivos (siempre visible en Tauri) */}
+            {activeGame.isImmersive && (
+              <button
+                onClick={() => { arcadeAudio.play('close'); navigate('/games'); }}
+                style={{
+                  position: 'absolute',
+                  top: 16, left: 16,
+                  zIndex: 100001,
+                  width: 40, height: 40,
+                  borderRadius: '50%',
+                  background: 'rgba(5,5,20,0.75)',
+                  border: '1px solid rgba(255,255,255,0.18)',
+                  color: 'rgba(255,255,255,0.85)',
+                  cursor: 'pointer',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  backdropFilter: 'blur(10px)',
+                  WebkitBackdropFilter: 'blur(10px)',
+                  fontSize: 18,
+                  transition: 'background 0.15s',
+                  flexShrink: 0,
+                }}
+                title="Volver al Arcade"
+              >
+                ←
+              </button>
+            )}
+
             {/* Header always hidden if immersive or if big screen (where sidebar handles info) */}
             {!activeGame.isImmersive && (
               <div className={`gameOverlayHeader ${window.innerWidth >= 1024 ? 'hidden' : ''}`} style={{ background: 'rgba(5,5,20,0.95)', display: window.innerWidth >= 1024 ? 'none' : 'flex' }}>

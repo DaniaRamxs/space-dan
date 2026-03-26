@@ -7,9 +7,6 @@ import CabinPomodoro from '../components/CabinPomodoro';
 import CabinTodo from '../components/CabinTodo';
 import CabinIdeas from '../components/CabinIdeas';
 import { useSeason } from '../hooks/useSeason';
-import * as FaceMeshLib from '@mediapipe/face_mesh';
-import * as CameraLib from '@mediapipe/camera_utils';
-
 import { Link } from 'react-router-dom';
 import RadioPlayer from '../components/RadioPlayer';
 
@@ -498,6 +495,11 @@ export function FocusGuardSystem({ onTelemetry }) {
     const initGuard = async () => {
         setIsAwaitingCamera(true);
         try {
+            // Dynamic import to avoid loading heavy MediaPipe WASM at module init time
+            const [FaceMeshLib, CameraLib] = await Promise.all([
+                import('@mediapipe/face_mesh').catch(() => ({})),
+                import('@mediapipe/camera_utils').catch(() => ({})),
+            ]);
             // Handle different export patterns in FaceMesh/Camera
             const FaceMeshConstructor = FaceMeshLib.FaceMesh || (FaceMeshLib.default && FaceMeshLib.default.FaceMesh) || FaceMeshLib.default || window.FaceMesh;
             const CameraConstructor = CameraLib.Camera || (CameraLib.default && CameraLib.default.Camera) || CameraLib.default || window.Camera;

@@ -1,5 +1,5 @@
 // Trigger build 2026-03-06
-import { StrictMode } from 'react'
+import { StrictMode, Component } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
 import './profile-v2.css'
@@ -228,12 +228,32 @@ window.addEventListener('vite:preloadError', () => {
   window.location.reload();
 });
 
+class GlobalErrorBoundary extends Component {
+  constructor(props) { super(props); this.state = { crashed: false }; }
+  static getDerivedStateFromError() { return { crashed: true }; }
+  componentDidCatch(err) { console.error('[GlobalErrorBoundary]', err); }
+  render() {
+    if (this.state.crashed) {
+      return (
+        <div style={{ display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', minHeight:'100vh', background:'#030308', color:'#fff', gap:16, padding:24, textAlign:'center' }}>
+          <div style={{ fontSize:48 }}>⚠️</div>
+          <p style={{ opacity:0.6, fontSize:14 }}>Algo salió mal. Reinicia la app.</p>
+          <button onClick={() => this.setState({ crashed: false })} style={{ padding:'10px 24px', background:'#06b6d4', color:'#000', border:'none', borderRadius:8, fontWeight:'bold', cursor:'pointer' }}>Reintentar</button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 // Render app
 createRoot(document.getElementById('root')).render(
   <StrictMode>
-    <YouTubeProvider>
-      <App />
-    </YouTubeProvider>
+    <GlobalErrorBoundary>
+      <YouTubeProvider>
+        <App />
+      </YouTubeProvider>
+    </GlobalErrorBoundary>
   </StrictMode>
 )
 

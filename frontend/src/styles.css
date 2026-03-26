@@ -9133,7 +9133,7 @@ textarea,
 
 .gameScale canvas {
   max-width: 100%;
-  height: auto !important;
+  max-height: 100%;
   display: block;
 }
 

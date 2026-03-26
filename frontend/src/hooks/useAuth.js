@@ -25,31 +25,58 @@ export default function useAuth() {
 
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session }, error }) => {
-      if (error) {
-        console.warn('[useAuth] Error recuperando sesión inicial:', error.message);
-        // Si el error es de refresh token o similar, forzamos un logout para limpiar
-        if (error.message.includes('refresh_token') || error.status === 400) {
-          supabase.auth.signOut();
+    const initializeAuth = async () => {
+      try {
+        // Detectar si estamos en Tauri para logging
+        const isTauri = typeof window !== 'undefined' && (
+          window.__TAURI_INTERNALS__ !== undefined ||
+          window.__TAURI__ !== undefined ||
+          window.location.hostname === 'tauri.localhost' ||
+          window.location.protocol === 'tauri:'
+        );
+
+        console.log('[useAuth] Inicializando auth en entorno:', { isTauri, platform: Capacitor.getPlatform() });
+
+        // Para Tauri, esperar un poco más para asegurar que el storage esté listo
+        if (isTauri) {
+          await new Promise(resolve => setTimeout(resolve, 100));
         }
+
+        const { data: { session }, error } = await supabase.auth.getSession();
+
+        if (error) {
+          // Solo logueamos el error — NO hacemos signOut automático.
+          // Un error de red al arrancar (token expirado + sin conexión) no debe borrar la sesión guardada.
+          // El usuario seguirá en su pantalla de inicio; si el token no se puede refrescar,
+          // el servidor rechazará las llamadas y el app puede pedir re-login cuando sea necesario.
+          console.warn('[useAuth] Error recuperando sesión inicial (no se fuerza logout):', error.message);
+        }
+        
+        setSession(session);
+        if (!session) setProfileLoading(false);
+        setLoading(false);
+      } catch (err) {
+        console.error('[useAuth] Error crítico en getSession:', err);
+        setProfileLoading(false);
+        setLoading(false);
       }
-      setSession(session);
-      if (!session) setProfileLoading(false);
-      setLoading(false);
-    }).catch(err => {
-      console.error('[useAuth] Error crítico en getSession:', err);
-      setProfileLoading(false);
-      setLoading(false);
-    });
+    };
+
+    initializeAuth();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      console.log('[useAuth] Cambio de estado de auth:', _event, session ? 'Sesión activa' : 'Sin sesión');
+      
+      if (_event === 'TOKEN_REFRESHED') {
+        console.log('[useAuth] Token refrescado exitosamente');
+      }
+      
       setSession(session);
       if (!session) {
         setProfile(null);
         setProfileLoading(false);
       }
     });
-
 
     return () => subscription.unsubscribe();
   }, []);
