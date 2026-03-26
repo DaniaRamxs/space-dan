@@ -27,6 +27,7 @@ import StarfieldBg from "./components/StarfieldBg";
 import ClickRipple from "./components/ClickRipple";
 import ActivityRadar from "./components/ActivityRadar";
 import { CosmicProvider } from "./components/Effects/CosmicProvider";
+import TauriTitleBar from './components/TauriTitleBar';
 
 // Lazy Pages
 const PostsPage = lazy(() => import("./pages/PostsPage"));
@@ -80,6 +81,13 @@ const MangaPartyPage = lazy(() => import("./features/manga/MangaPartyPage"));
 const SpacesPage = lazy(() => import("./pages/SpacesPage"));
 const SpaceCreatePage = lazy(() => import("./pages/SpaceCreatePage"));
 const SpaceSessionPage = lazy(() => import("./pages/SpaceSessionPage"));
+
+const isTauri = typeof window !== 'undefined' && (
+  window.__TAURI_INTERNALS__ !== undefined ||
+  window.__TAURI__ !== undefined ||
+  window.location.hostname === 'tauri.localhost' ||
+  window.location.protocol === 'tauri:'
+);
 
 const NAV_TRACE_KEY = "spacely_nav_trace_v1";
 const FORCE_NAV_TRACE = false
@@ -492,157 +500,110 @@ function AnimatedRoutes() {
   if (shouldRedirectToOnboarding) return <Navigate to="/onboarding" replace />;
   if (shouldRedirectToAffinity) return <Navigate to="/afinidad" replace />;
 
+  if (isTauri) {
+    return (
+      <AnimatePresence mode="popLayout">
+        <Routes location={location} key={location.pathname}>
+          <Route path="/onboarding" element={<Layout><OnboardingPage /></Layout>} />
+          <Route path="/afinidad" element={<Layout><AffinityPage /></Layout>} />
+          <Route path="/" element={<Navigate to="/posts" replace />} />
+          <Route path="/descargar" element={<Layout><DownloadPage /></Layout>} />
+          <Route path="/download" element={<Layout><DownloadPage /></Layout>} />
+          <Route path="/descargas" element={<Layout><DownloadPage /></Layout>} />
+          <Route path="/explorar" element={<Layout><ExplorePage /></Layout>} />
+          <Route path="/communities" element={<Layout><CommunitiesPage /></Layout>} />
+          <Route path="/community/:slug" element={<Layout><CommunityChannelsPage /></Layout>} />
+          <Route path="/posts" element={<Layout><PostsPage /></Layout>} />
+          <Route path="/transmission/:postId" element={<Layout><PostDetailPage /></Layout>} />
+          <Route path="/bulletin" element={<Layout><BulletinPage /></Layout>} />
+          <Route path="/games" element={<Layout><GamesPage /></Layout>} />
+          <Route path="/game/:gameId" element={<Layout><GamesPage /></Layout>} />
+          <Route path="/tienda" element={<Layout><ShopPage /></Layout>} />
+          <Route path="/banco" element={<Layout><BankPage /></Layout>} />
+          <Route path="/mercado-negro" element={<Layout><BlackMarketPage /></Layout>} />
+          <Route path="/chat" element={<Layout><GlobalChatPage /></Layout>} />
+          <Route path="/cabina" element={<Layout><SpaceCabinPage /></Layout>} />
+          <Route path="/inventory" element={<Layout><InventoryPage /></Layout>} />
+          <Route path="/logros" element={<Layout><AchievementsPage /></Layout>} />
+          <Route path="/leaderboard" element={<Layout><GlobalLeaderboardPage /></Layout>} />
+          <Route path="/tienda-galactica" element={<Layout><GalacticStore /></Layout>} />
+          <Route path="/pase-estelar" element={<Layout><StellarPassPage /></Layout>} />
+          <Route path="/vault" element={<Layout><VaultPage /></Layout>} />
+          <Route path="/cartas" element={<Layout><OrbitLettersPage /></Layout>} />
+          <Route path="/foco" element={<Layout><FocusRoom /></Layout>} />
+          <Route path="/vinculos" element={<Layout><VinculosPage /></Layout>} />
+          <Route path="/universo" element={<Layout><UniversoPage /></Layout>} />
+          <Route path="/arquitectura" element={<Layout><ArquitecturaPage /></Layout>} />
+          <Route path="/guestbook" element={<Layout><GuestbookPage /></Layout>} />
+          <Route path="/spaces" element={<Layout><SpacesPage /></Layout>} />
+          <Route path="/spaces/new" element={<Layout><SpaceCreatePage /></Layout>} />
+          <Route path="/spaces/:spaceId" element={<Layout><SpaceSessionPage /></Layout>} />
+          <Route path="/anime" element={<Layout><AnimeSpacePage /></Layout>} />
+          <Route path="/manga-party" element={<Layout><MangaPartyPage /></Layout>} />
+          <Route path="/desktop" element={<Layout><DesktopPage /></Layout>} />
+          <Route path="/spotify-callback" element={<Suspense fallback={null}><SpotifyCallback /></Suspense>} />
+          <Route path="/auth/callback" element={<Suspense fallback={null}><AuthCallback /></Suspense>} />
+          <Route path="/@:username" element={<Layout><ProfileRedesign /></Layout>} />
+          <Route path="/profile/:userId" element={<Layout><ProfileRedesign /></Layout>} />
+          <Route path="/profile" element={<Layout><ProfileRedesign /></Layout>} />
+          <Route path="/:username" element={<Layout><ProfileRedesign /></Layout>} />
+          <Route path="*" element={<RouteNotFoundRedirect />} />
+        </Routes>
+      </AnimatePresence>
+    );
+  }
+
   return (
     <AnimatePresence mode="popLayout">
       <Routes location={location} key={location.pathname}>
         <Route path="/onboarding" element={<Layout><OnboardingPage /></Layout>} />
-        <Route path="/afinidad" element={<Layout><AffinityPage /></Layout>} />
-        <Route path="/" element={<Navigate to="/posts" replace />} />
+        <Route path="/afinidad" element={<Navigate to="/descargas" replace />} />
+        <Route path="/" element={<Navigate to="/descargas" replace />} />
         <Route path="/descargar" element={<Layout><DownloadPage /></Layout>} />
         <Route path="/download" element={<Layout><DownloadPage /></Layout>} />
-        <Route path="/explorar" element={<Layout><ExplorePage /></Layout>} />
-        <Route path="/communities" element={<Layout><CommunitiesPage /></Layout>} />
-        <Route path="/community/:slug" element={
-          loading ? <Layout><RouteLoader /></Layout> :
-            user ? <Layout><CommunityChannelsPage /></Layout> :
-              <Layout><LoginGate /></Layout>
-        } />
-        <Route path="/posts" element={
-          loading ? <Layout><RouteLoader /></Layout> :
-            user ? <Layout><PostsPage /></Layout> :
-              <Layout><LoginGate /></Layout>
-        } />
-        <Route path="/transmission/:postId" element={
-          loading ? <Layout><RouteLoader /></Layout> :
-            user ? <Layout><PostDetailPage /></Layout> :
-              <Layout><LoginGate /></Layout>
-        } />
-        <Route path="/bulletin" element={
-          loading ? <Layout><RouteLoader /></Layout> :
-            user ? <Layout><BulletinPage /></Layout> :
-              <Layout><LoginGate /></Layout>
-        } />
-        <Route path="/games" element={<Layout><GamesPage /></Layout>} />
-        <Route path="/game/:gameId" element={<Layout><GamesPage /></Layout>} />
-        <Route path="/tienda" element={
-          loading ? <Layout><RouteLoader /></Layout> :
-            user ? <Layout><ShopPage /></Layout> :
-              <Layout><LoginGate /></Layout>
-        } />
-        <Route path="/banco" element={
-          loading ? <Layout><RouteLoader /></Layout> :
-            user ? <Layout><BankPage /></Layout> :
-              <Layout><LoginGate /></Layout>
-        } />
-        <Route path="/mercado-negro" element={
-          loading ? <Layout><RouteLoader /></Layout> :
-            user ? <Layout><BlackMarketPage /></Layout> :
-              <Layout><LoginGate /></Layout>
-        } />
-        <Route path="/chat" element={
-          loading ? <Layout><RouteLoader /></Layout> :
-            user ? <Layout><GlobalChatPage /></Layout> :
-              <Layout><LoginGate /></Layout>
-        } />
-        <Route path="/cabina" element={
-          loading ? <Layout><RouteLoader /></Layout> :
-            user ? <Layout><SpaceCabinPage /></Layout> :
-              <Layout><LoginGate /></Layout>
-        } />
-        <Route path="/inventory" element={
-          loading ? <Layout><RouteLoader /></Layout> :
-            user ? <Layout><InventoryPage /></Layout> :
-              <Layout><LoginGate /></Layout>
-        } />
-        <Route path="/logros" element={
-          loading ? <Layout><RouteLoader /></Layout> :
-            user ? <Layout><AchievementsPage /></Layout> :
-              <Layout><LoginGate /></Layout>
-        } />
-        <Route path="/leaderboard" element={<Layout><GlobalLeaderboardPage /></Layout>} />
-        <Route path="/tienda-galactica" element={
-          loading ? <Layout><RouteLoader /></Layout> :
-            user ? <Layout><GalacticStore /></Layout> :
-              <Layout><LoginGate /></Layout>
-        } />
-        <Route path="/pase-estelar" element={
-          loading ? <Layout><RouteLoader /></Layout> :
-            user ? <Layout><StellarPassPage /></Layout> :
-              <Layout><LoginGate /></Layout>
-        } />
-        <Route path="/vault" element={
-          loading ? <Layout><RouteLoader /></Layout> :
-            user ? <Layout><VaultPage /></Layout> :
-              <Layout><LoginGate /></Layout>
-        } />
-        <Route path="/cartas" element={
-          loading ? <Layout><RouteLoader /></Layout> :
-            user ? <Layout><OrbitLettersPage /></Layout> :
-              <Layout><LoginGate /></Layout>
-        } />
-        <Route path="/foco" element={
-          loading ? <Layout><RouteLoader /></Layout> :
-            user ? <Layout><FocusRoom /></Layout> :
-              <Layout><LoginGate /></Layout>
-        } />
-        <Route path="/vinculos" element={
-          loading ? <Layout><RouteLoader /></Layout> :
-            user ? <Layout><VinculosPage /></Layout> :
-              <Layout><LoginGate /></Layout>
-        } />
-        <Route path="/universo" element={<StellarMap />} />
-        <Route path="/arquitectura" element={<Layout><ArquitecturaPage /></Layout>} />
-        <Route path="/guestbook" element={<Layout><GuestbookPage /></Layout>} />
-        {/* ── Espacios ── */}
-        <Route path="/spaces" element={
-          loading ? <Layout><RouteLoader /></Layout> :
-            user ? <Layout><SpacesPage /></Layout> :
-              <Layout><LoginGate /></Layout>
-        } />
-        <Route path="/spaces/new" element={
-          loading ? <Layout><RouteLoader /></Layout> :
-            user ? <Layout><SpaceCreatePage /></Layout> :
-              <Layout><LoginGate /></Layout>
-        } />
-        <Route path="/spaces/:spaceId" element={
-          loading ? <Layout><RouteLoader /></Layout> :
-            user ? <Layout><SpaceSessionPage /></Layout> :
-              <Layout><LoginGate /></Layout>
-        } />
-
-        <Route path="/anime" element={
-          loading ? <Layout><RouteLoader /></Layout> :
-            user ? <Layout><AnimeSpacePage /></Layout> :
-              <Layout><LoginGate /></Layout>
-        } />
-        <Route path="/manga-party" element={
-          loading ? <Layout><RouteLoader /></Layout> :
-            user ? <Layout><MangaPartyPage /></Layout> :
-              <Layout><LoginGate /></Layout>
-        } />
-        <Route path="/desktop" element={<Layout><DesktopPage /></Layout>} />
+        <Route path="/descargas" element={<Layout><DownloadPage /></Layout>} />
+        <Route path="/explorar" element={<Navigate to="/descargas" replace />} />
+        <Route path="/communities" element={<Navigate to="/descargas" replace />} />
+        <Route path="/community/:slug" element={<Navigate to="/descargas" replace />} />
+        <Route path="/posts" element={<Navigate to="/descargas" replace />} />
+        <Route path="/transmission/:postId" element={<Navigate to="/descargas" replace />} />
+        <Route path="/bulletin" element={<Navigate to="/descargas" replace />} />
+        <Route path="/games" element={<Navigate to="/descargas" replace />} />
+        <Route path="/game/:gameId" element={<Navigate to="/descargas" replace />} />
+        <Route path="/tienda" element={<Navigate to="/descargas" replace />} />
+        <Route path="/banco" element={<Navigate to="/descargas" replace />} />
+        <Route path="/mercado-negro" element={<Navigate to="/descargas" replace />} />
+        <Route path="/chat" element={<Navigate to="/descargas" replace />} />
+        <Route path="/cabina" element={<Navigate to="/descargas" replace />} />
+        <Route path="/inventory" element={<Navigate to="/descargas" replace />} />
+        <Route path="/logros" element={<Navigate to="/descargas" replace />} />
+        <Route path="/leaderboard" element={<Navigate to="/descargas" replace />} />
+        <Route path="/tienda-galactica" element={<Navigate to="/descargas" replace />} />
+        <Route path="/pase-estelar" element={<Navigate to="/descargas" replace />} />
+        <Route path="/vault" element={<Navigate to="/descargas" replace />} />
+        <Route path="/cartas" element={<Navigate to="/descargas" replace />} />
+        <Route path="/foco" element={<Navigate to="/descargas" replace />} />
+        <Route path="/vinculos" element={<Navigate to="/descargas" replace />} />
+        <Route path="/universo" element={<Navigate to="/descargas" replace />} />
+        <Route path="/arquitectura" element={<Navigate to="/descargas" replace />} />
+        <Route path="/guestbook" element={<Navigate to="/descargas" replace />} />
+        <Route path="/spaces" element={<Navigate to="/descargas" replace />} />
+        <Route path="/spaces/new" element={<Navigate to="/descargas" replace />} />
+        <Route path="/spaces/:spaceId" element={<Navigate to="/descargas" replace />} />
+        <Route path="/anime" element={<Navigate to="/descargas" replace />} />
+        <Route path="/manga-party" element={<Navigate to="/descargas" replace />} />
+        <Route path="/desktop" element={<Navigate to="/descargas" replace />} />
         <Route path="/spotify-callback" element={<Suspense fallback={null}><SpotifyCallback /></Suspense>} />
         <Route path="/auth/callback" element={<Suspense fallback={null}><AuthCallback /></Suspense>} />
-        <Route path="/@:username" element={<Layout><ProfileRedesign /></Layout>} />
-        <Route path="/:username" element={<Layout><ProfileRedesign /></Layout>} />
-        <Route path="/profile/:userId" element={<Layout><ProfileRedesign /></Layout>} />
-        <Route path="/profile" element={
-          loading ? <Layout><RouteLoader /></Layout> :
-            user ? <Layout><ProfileRedesign /></Layout> :
-              <Layout><LoginGate /></Layout>
-        } />
+        <Route path="/@:username" element={<Navigate to="/descargas" replace />} />
+        <Route path="/:username" element={<Navigate to="/descargas" replace />} />
+        <Route path="/profile/:userId" element={<Navigate to="/descargas" replace />} />
+        <Route path="/profile" element={<Navigate to="/descargas" replace />} />
         <Route path="*" element={<RouteNotFoundRedirect />} />
       </Routes>
     </AnimatePresence>
   );
 }
-
-const isTauri = typeof window !== 'undefined' && (
-  window.__TAURI_INTERNALS__ !== undefined ||
-  window.__TAURI__ !== undefined ||
-  window.location.hostname === 'tauri.localhost' ||
-  window.location.protocol === 'tauri:'
-);
 
 // Tauri Desktop oAuth Recovery: HashRouter completely ignores window.location.pathname 
 // and window.location.search, resolving them as the root `/`. 
@@ -756,6 +717,7 @@ export default function App() {
         <UniverseProvider>
           <CosmicProvider>
             <AppRouter>
+              {isTauri && <TauriTitleBar />}
               <DomainGuard />
               <DarkSideManager />
               <div className="scanline-overlay opacity-[0.03] fixed inset-0 pointer-events-none z-[99999]" />

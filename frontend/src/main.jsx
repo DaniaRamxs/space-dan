@@ -241,7 +241,6 @@ createRoot(document.getElementById('root')).render(
 if (import.meta.env.PROD) {
   import('web-vitals').then(({ onCLS, onINP, onLCP, onFCP, onTTFB }) => {
     const report = ({ name, value, rating }) => {
-      // En producción: loguea en consola. Para enviar a analytics, reemplaza con fetch/supabase.
       console.debug(`[Vitals] ${name}: ${Math.round(value)}ms (${rating})`);
     };
     onCLS(report);
@@ -260,4 +259,29 @@ if (isTauriEnv || window.location.hostname === 'localhost' || window.location.ho
       regs.forEach(reg => reg.unregister().then(() => console.log('[Dev/Tauri] SW purgado para evitar redirecciones de caché')));
     });
   }
+}
+
+// ── Tauri desktop enhancements ────────────────────────────────────────────────
+if (isTauriEnv) {
+  // Deshabilitar menú contextual del browser
+  document.addEventListener('contextmenu', (e) => e.preventDefault());
+
+  // F11 → fullscreen nativo vía Tauri window API
+  import('@tauri-apps/api/window').then(({ getCurrentWindow }) => {
+    const win = getCurrentWindow();
+    document.addEventListener('keydown', async (e) => {
+      if (e.key === 'F11') {
+        e.preventDefault();
+        await win.setFullscreen(!(await win.isFullscreen()));
+      }
+    });
+  });
+
+  // Mostrar ventana después del primer render para evitar flash negro
+  // (la ventana arranca con visible:false en tauri.conf.json)
+  setTimeout(() => {
+    import('@tauri-apps/api/window').then(({ getCurrentWindow }) => {
+      getCurrentWindow().show();
+    });
+  }, 80);
 }

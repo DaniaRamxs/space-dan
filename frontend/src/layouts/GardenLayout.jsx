@@ -20,6 +20,13 @@ const PERSONAL_PATHS = ['/kinnies', '/tests', '/universo', '/dreamscape'];
 const FIXED_LAYOUT_PATHS = ['/cartas', '/desktop', '/chat'];
 const SPACE_SESSION_RE = /^\/spaces\/[^/]+$/;
 const isNative = Capacitor.isNativePlatform();
+const isTauri = typeof window !== 'undefined' && (
+  window.__TAURI_INTERNALS__ !== undefined ||
+  window.__TAURI__ !== undefined ||
+  window.location.hostname === 'tauri.localhost' ||
+  window.location.protocol === 'tauri:'
+);
+const isWebOnly = !isNative && !isTauri;
 
 export default function GardenLayout({ children }) {
   const { user, profile: ownProfile } = useAuthContext();
@@ -77,6 +84,11 @@ export default function GardenLayout({ children }) {
     () => location.pathname.startsWith('/game/'),
     [location.pathname]
   );
+
+  // En web (no nativo, no Tauri) solo mostrar el contenido — sin nav ni hub
+  if (isWebOnly) {
+    return <>{children}</>;
+  }
 
   if (isGameRoute) {
     return (
