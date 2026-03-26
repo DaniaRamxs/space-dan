@@ -500,7 +500,12 @@ function AnimatedRoutes() {
   if (shouldRedirectToOnboarding) return <Navigate to="/onboarding" replace />;
   if (shouldRedirectToAffinity) return <Navigate to="/afinidad" replace />;
 
-  if (isTauri) {
+  // Auth guard para Tauri y Android — sin sesión, mostrar login
+  const isNativeApp = isTauri || Capacitor.isNativePlatform();
+  if (isNativeApp && loading) return <FallbackLoader />;
+  if (isNativeApp && !loading && !user) return <LoginGate />;
+
+  if (isTauri || Capacitor.isNativePlatform()) {
     return (
       <AnimatePresence mode="popLayout">
         <Routes location={location} key={location.pathname}>
