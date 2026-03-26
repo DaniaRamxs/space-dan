@@ -505,7 +505,10 @@ function AnimatedRoutes() {
     // Si nunca vio el welcome, WelcomeExperience (z-100000) aparece primero.
     // Al cerrarlo guarda la clave → siguiente render muestra LoginGate.
     const hasSeenWelcome = localStorage.getItem('has_seen_welcome_experience_v1');
-    if (hasSeenWelcome) return <LoginGate />;
+    // No mostrar LoginGate durante el callback de OAuth (evita doble login
+    // cuando la página recarga tras el redirect y getSession() aún es null).
+    const isAuthCallback = location.pathname === '/auth/callback';
+    if (hasSeenWelcome && !isAuthCallback) return <LoginGate />;
   }
 
   if (isTauri || Capacitor.isNativePlatform()) {

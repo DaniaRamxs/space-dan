@@ -69,7 +69,7 @@ export default function TauriTitleBar() {
         userSelect: 'none',
         WebkitUserSelect: 'none',
         borderBottom: '1px solid rgba(255,255,255,0.06)',
-        zIndex: 9999,
+        zIndex: 999999,
       }}
     >
       {/* Zona de arrastre — flex-1, nunca superpuesta con los botones */}
