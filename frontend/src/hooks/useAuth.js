@@ -150,8 +150,12 @@ export default function useAuth() {
       const isNative = Capacitor.isNativePlatform();
       const redirectUrl = getRedirectUrl();
 
+      console.log(`[OAuth] Iniciando login con ${provider}`);
+      console.log(`[OAuth] Es nativo: ${isNative}`);
+      console.log(`[OAuth] Redirect URL: ${redirectUrl}`);
+
       if (isNative) {
-        console.log(`[OAuth] Iniciando con ${provider}. Redirect: ${redirectUrl}`);
+        console.log(`[OAuth] Configurando para mobile con redirect a: ${redirectUrl}`);
       }
 
       // Validar que Supabase esté configurado
@@ -159,6 +163,7 @@ export default function useAuth() {
         throw new Error('Supabase Auth no está inicializado.');
       }
 
+      console.log(`[OAuth] Llamando a signInWithOAuth...`);
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider,
         options: {
@@ -170,18 +175,22 @@ export default function useAuth() {
         },
       });
 
+      console.log(`[OAuth] Respuesta de Supabase:`, { data, error });
+
       if (error) {
+        console.error(`[OAuth] Error en signInWithOAuth:`, error);
         if (isNative) alert(`Error Supabase OAuth: ${error.message}`);
         throw error;
       }
 
       if (isNative) {
         if (data?.url) {
-          console.log(`[OAuth] Abriendo navegador: ${data.url}`);
+          console.log(`[OAuth] Abriendo navegador con URL: ${data.url}`);
           if (Browser) {
             await Browser.open({ url: data.url });
           } else {
             // Fallback: try to import again if not ready
+            console.log(`[OAuth] Browser no está listo, importando dinámicamente...`);
             const { Browser: B } = await import('@capacitor/browser');
             await B.open({ url: data.url });
           }
@@ -189,6 +198,8 @@ export default function useAuth() {
           console.error('[OAuth] No se recibió URL de Supabase');
           alert('Error: Supabase no devolvió una URL para el login móvil.');
         }
+      } else {
+        console.log(`[OAuth] Login web iniciado, esperando redirect...`);
       }
 
     } catch (err) {

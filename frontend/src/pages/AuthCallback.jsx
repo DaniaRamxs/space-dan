@@ -19,7 +19,18 @@ export default function AuthCallback() {
 
                 if (code) {
                     hasExchanged.current = true;
-                    console.log('[AuthCallback] Intercambiando código...');
+                    console.log('[AuthCallback] Código detectado, verificando si ya hay sesión...');
+                    
+                    // Primero verificar si ya hay sesión (posiblemente establecida por main.jsx)
+                    let sessionCheck = await supabase.auth.getSession();
+                    
+                    if (sessionCheck.data?.session) {
+                        console.log('[AuthCallback] Sesión ya establecida, omitiendo intercambio');
+                        setTimeout(() => navigate('/posts', { replace: true }), 300);
+                        return;
+                    }
+                    
+                    console.log('[AuthCallback] Sin sesión previa, intercambiando código...');
                     const { data: exchangeData, error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
 
                     if (exchangeError) {
@@ -27,24 +38,27 @@ export default function AuthCallback() {
                     } else if (exchangeData?.session) {
                         console.log('[AuthCallback] Intercambio exitoso, sesión ID:', exchangeData.session.user.id);
                     }
-                }
 
-                // Esperar a que Supabase confirme la persistencia
-                let sessionCheck = await supabase.auth.getSession();
-
-                // Reintento rápido si falló (a veces hay lag en la escritura a storage en producción)
-                if (!sessionCheck.data.session && code) {
-                    await new Promise(r => setTimeout(r, 800));
+                    // Esperar a que Supabase confirme la persistencia
                     sessionCheck = await supabase.auth.getSession();
-                }
 
-                if (sessionCheck.data?.session) {
-                    console.log('[AuthCallback] Sesión lista. Redirigiendo a /posts...');
-                    // Redirigimos, y gracias a los nuevos guards en App.jsx, 
-                    // si aún está cargando el estado de React, el usuario verá el loader.
-                    setTimeout(() => navigate('/posts', { replace: true }), 300);
+                    // Reintento rápido si falló (a veces hay lag en la escritura a storage en producción)
+                    if (!sessionCheck.data.session && code) {
+                        console.log('[AuthCallback] Primer intento falló, reintentando...');
+                        await new Promise(r => setTimeout(r, 800));
+                        sessionCheck = await supabase.auth.getSession();
+                    }
+
+                    if (sessionCheck.data?.session) {
+                        console.log('[AuthCallback] Sesión lista. Redirigiendo a /posts...');
+                        setTimeout(() => navigate('/posts', { replace: true }), 300);
+                    } else {
+                        console.warn('[AuthCallback] No se detectó sesión activa tras intercambio.');
+                        navigate('/posts', { replace: true });
+                    }
                 } else {
-                    console.warn('[AuthCallback] No se detectó sesión activa tras intercambio.');
+                    // No hay código, redirigir directamente
+                    console.log('[AuthCallback] Sin código de autorización, redirigiendo...');
                     navigate('/posts', { replace: true });
                 }
             } catch (err) {

@@ -95,20 +95,38 @@ async function initMobileAuth() {
         const code = codeMatch ? codeMatch[1] : null;
 
         if (code) {
-          const { error } = await supabase.auth.exchangeCodeForSession(code);
+          console.log('[MobileAuth] Código extraído, intercambiando...');
+          const { data, error } = await supabase.auth.exchangeCodeForSession(code);
+          
           if (error) {
             console.error('[MobileAuth] Error exchangeCodeForSession:', error);
-          } else {
-            console.log('[MobileAuth] Sesión establecida correctamente');
+          } else if (data?.session) {
+            console.log('[MobileAuth] Sesión establecida correctamente, User ID:', data.session.user.id);
+            
+            // Esperar a que la sesión se guarde completamente
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
+            // Verificar que la sesión persistió
+            const { data: sessionCheck } = await supabase.auth.getSession();
+            if (sessionCheck?.session) {
+              console.log('[MobileAuth] Sesión persistida correctamente');
+            } else {
+              console.warn('[MobileAuth] La sesión no persistió, puede haber race condition');
+            }
           }
         }
       } catch (err) {
         console.error('[MobileAuth] Error procesando el deep link:', err);
       } finally {
+        // Cerrar browser después de un delay para asegurar que todo se procese
         setTimeout(async () => {
-          await Browser.close();
+          try {
+            await Browser.close();
+          } catch (e) {
+            console.warn('[MobileAuth] Error cerrando browser:', e);
+          }
           isExchanging = false;
-        }, 800);
+        }, 1200);
       }
     };
 
