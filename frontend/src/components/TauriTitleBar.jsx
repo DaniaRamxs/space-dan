@@ -65,42 +65,34 @@ export default function TauriTitleBar() {
         backdropFilter: 'blur(16px)',
         WebkitBackdropFilter: 'blur(16px)',
         display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
+        alignItems: 'stretch',
         userSelect: 'none',
         WebkitUserSelect: 'none',
         borderBottom: '1px solid rgba(255,255,255,0.06)',
         zIndex: 9999,
       }}
     >
-      {/* Zona de arrastre — ocupa todo el espacio menos los botones */}
+      {/* Zona de arrastre — flex-1, nunca superpuesta con los botones */}
       <div
         data-tauri-drag-region
-        style={{
-          position: 'absolute',
-          inset: 0,
-          right: 138, // 3 botones × 46px
-        }}
-      />
-
-      {/* Branding */}
-      <span
-        style={{
-          paddingLeft: 14,
-          fontSize: '0.6rem',
-          fontWeight: 800,
-          letterSpacing: 4,
-          color: 'rgba(255,110,180,0.7)',
-          textTransform: 'uppercase',
-          pointerEvents: 'none',
-          position: 'relative',
-        }}
+        style={{ flex: 1, display: 'flex', alignItems: 'center', paddingLeft: 14, cursor: 'default' }}
       >
-        SPACELY
-      </span>
+        <span
+          style={{
+            fontSize: '0.6rem',
+            fontWeight: 800,
+            letterSpacing: 4,
+            color: 'rgba(255,110,180,0.7)',
+            textTransform: 'uppercase',
+            pointerEvents: 'none',
+          }}
+        >
+          SPACELY
+        </span>
+      </div>
 
-      {/* Window controls — fuera de la zona de drag */}
-      <div style={{ display: 'flex', height: '100%', position: 'relative' }}>
+      {/* Window controls — elemento hermano del drag region, nunca solapado */}
+      <div style={{ display: 'flex' }}>
         <WinBtn onClick={() => appWindowRef.current?.minimize()}>─</WinBtn>
         <WinBtn onClick={() => appWindowRef.current?.toggleMaximize()}>
           {isMaximized ? '❐' : '□'}
