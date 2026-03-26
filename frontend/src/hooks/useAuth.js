@@ -131,7 +131,22 @@ export default function useAuth() {
 
 
   const getRedirectUrl = () => {
-    const { origin } = window.location;
+    const origin = typeof window !== 'undefined' ? window.location.origin : '';
+
+    // Detectar si estamos en Tauri
+    const isTauri = typeof window !== 'undefined' && (
+      window.__TAURI_INTERNALS__ !== undefined ||
+      window.__TAURI__ !== undefined ||
+      window.location.hostname === 'tauri.localhost' ||
+      window.location.protocol === 'tauri:'
+    );
+
+    // Si estamos en Tauri, usamos el redirect especial
+    if (isTauri) {
+      const tauriUrl = 'http://tauri.localhost/auth/callback';
+      console.log('[Auth] Entorno Tauri detectado, redirect a:', tauriUrl);
+      return tauriUrl;
+    }
 
     // Si estamos en NATIVO (APK), usamos el esquema personalizado
     if (Capacitor.isNativePlatform() && (Capacitor.getPlatform() === 'android' || Capacitor.getPlatform() === 'ios')) {
@@ -150,12 +165,22 @@ export default function useAuth() {
       const isNative = Capacitor.isNativePlatform();
       const redirectUrl = getRedirectUrl();
 
+      // Detectar si estamos en Tauri
+      const isTauri = typeof window !== 'undefined' && (
+        window.__TAURI_INTERNALS__ !== undefined ||
+        window.__TAURI__ !== undefined ||
+        window.location.hostname === 'tauri.localhost' ||
+        window.location.protocol === 'tauri:'
+      );
+
       console.log(`[OAuth] Iniciando login con ${provider}`);
-      console.log(`[OAuth] Es nativo: ${isNative}`);
+      console.log(`[OAuth] Entorno detectado:`, { isNative, isTauri });
       console.log(`[OAuth] Redirect URL: ${redirectUrl}`);
 
       if (isNative) {
         console.log(`[OAuth] Configurando para mobile con redirect a: ${redirectUrl}`);
+      } else if (isTauri) {
+        console.log(`[OAuth] Configurando para Tauri con redirect a: ${redirectUrl}`);
       }
 
       // Validar que Supabase esté configurado
@@ -199,7 +224,7 @@ export default function useAuth() {
           alert('Error: Supabase no devolvió una URL para el login móvil.');
         }
       } else {
-        console.log(`[OAuth] Login web iniciado, esperando redirect...`);
+        console.log(`[OAuth] Login ${isTauri ? 'Tauri' : 'web'} iniciado, esperando redirect...`);
       }
 
     } catch (err) {
