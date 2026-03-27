@@ -13,6 +13,7 @@ import { ProfileHeader } from '../../components/ProfileRedesign/ProfileHeader';
 import { BlocksRenderer } from '../../components/ProfileRedesign/BlocksRenderer';
 import { ThemeConfigModal } from '../../components/ProfileRedesign/ThemeConfigModal';
 import { SpotifyBlock } from '../../components/ProfileRedesign/SpotifyBlock';
+import SpotifyStreamingPanel from '../../components/SpotifyStreamingPanel';
 import { AffinityMapBlock } from '../../components/ProfileRedesign/AffinityMapBlock';
 import { ResonanciaBlock } from '../../components/ProfileRedesign/ResonanciaBlock';
 import { MysterySignals } from '../../components/ProfileRedesign/MysterySignals';
@@ -557,6 +558,11 @@ export default function ProfileRedesignPage() {
                                         {/* Radar Sonoro Spotify */}
                                         {(hasSpotifyBlock || isOwn) && (
                                             <SpotifyBlock userId={profile?.id} isOwn={isOwn} />
+                                        )}
+
+                                        {/* Estadísticas de Streaming (solo dueño) */}
+                                        {isOwn && (
+                                            <SpotifyStreamingPanel />
                                         )}
 
                                         {/* Galería Estelar (Blocks) */}
