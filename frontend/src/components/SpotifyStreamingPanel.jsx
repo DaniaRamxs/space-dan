@@ -270,10 +270,12 @@ function TopTracks({ tracks }) {
           <div className="track-details">
             <h6 className="track-title">{track.name}</h6>
             <p className="track-artists">{track.artists.map(a => a.name).join(', ')}</p>
-            <div className="track-stats">
-              <span className="track-hours">🎵 {track.hoursPlayed || 0}h</span>
-              <span className="track-plays">▶️ {track.playCount || 0} reproducciones</span>
-            </div>
+            {(track.hoursPlayed || track.playCount) && (
+              <div className="track-stats">
+                {track.hoursPlayed != null && <span className="track-hours">🎵 {track.hoursPlayed}h</span>}
+                {track.playCount != null && <span className="track-plays">▶️ {track.playCount} reproducciones</span>}
+              </div>
+            )}
           </div>
           <div className="track-popularity">
             <div className="popularity-bar">

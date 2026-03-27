@@ -41,7 +41,7 @@ export function useSpotify({ userId = null, isOwn = true } = {}) {
         setIsConnected(true);
         await fetchSpotifyData();
       }
-    } catch (error) {
+    } catch {
       console.log('[Spotify] Tauri: No hay conexión guardada');
     }
   };
@@ -152,7 +152,7 @@ export function useSpotify({ userId = null, isOwn = true } = {}) {
     }
   };
 
-  const fetchSpotifyData = useCallback(async () => {
+  const fetchSpotifyData = async () => {
     try {
       const [playing, artists, tracks, stats] = await Promise.all([
         fetchCurrentlyPlaying(),
@@ -168,16 +168,23 @@ export function useSpotify({ userId = null, isOwn = true } = {}) {
     } catch (error) {
       console.error('[Spotify] Error fetching data:', error);
     }
-  }, []);
+  };
+
+  const resolveUserId = async () => {
+    if (userId) return userId;
+    const { data: { user } } = await supabase.auth.getUser();
+    return user?.id || null;
+  };
 
   const fetchCurrentlyPlaying = async () => {
     try {
+      const targetId = await resolveUserId();
+      if (!targetId) return null;
       const { data, error } = await supabase.functions.invoke('spotify-api', {
-        body: { endpoint: '/me/player/currently-playing', ...(userId && { userId }) }
+        body: { action: 'current-playing', userId: targetId }
       });
-
       if (error) throw error;
-      return data;
+      return data?.item ? { ...data.item, is_playing: data.is_playing, progress_ms: data.progress_ms } : null;
     } catch (error) {
       console.error('[Spotify] Error fetching currently playing:', error);
       return null;
@@ -186,10 +193,11 @@ export function useSpotify({ userId = null, isOwn = true } = {}) {
 
   const fetchTopArtists = async () => {
     try {
+      const targetId = await resolveUserId();
+      if (!targetId) return [];
       const { data, error } = await supabase.functions.invoke('spotify-api', {
-        body: { endpoint: '/me/top/artists', params: { limit: 10, time_range: 'short_term' }, ...(userId && { userId }) }
+        body: { action: 'top-artists', userId: targetId, limit: 10 }
       });
-
       if (error) throw error;
       return data?.items || [];
     } catch (error) {
@@ -200,10 +208,11 @@ export function useSpotify({ userId = null, isOwn = true } = {}) {
 
   const fetchTopTracks = async () => {
     try {
+      const targetId = await resolveUserId();
+      if (!targetId) return [];
       const { data, error } = await supabase.functions.invoke('spotify-api', {
-        body: { endpoint: '/me/top/tracks', params: { limit: 10, time_range: 'short_term' }, ...(userId && { userId }) }
+        body: { action: 'top-tracks', userId: targetId, limit: 10 }
       });
-
       if (error) throw error;
       return data?.items || [];
     } catch (error) {
@@ -214,25 +223,20 @@ export function useSpotify({ userId = null, isOwn = true } = {}) {
 
   const fetchStreamingStats = async () => {
     try {
-      // Simular estadísticas (en producción vendrían de Spotify API o análisis locales)
-      const mockStats = {
-        weeklyHours: 24.5,
-        uniqueTracks: 342,
-        newArtists: 18,
-        genresExplored: 12,
-        topGenres: [
-          { name: 'Electronic', weight: 1.0 },
-          { name: 'Pop', weight: 0.8 },
-          { name: 'Indie', weight: 0.6 },
-          { name: 'Rock', weight: 0.5 },
-          { name: 'Hip Hop', weight: 0.4 },
-          { name: 'Jazz', weight: 0.3 },
-          { name: 'Classical', weight: 0.2 },
-          { name: 'R&B', weight: 0.3 }
-        ]
-      };
-
-      return mockStats;
+      const targetId = await resolveUserId();
+      if (!targetId) return null;
+      // Derivar géneros desde los top artistas (Spotify no expone estadísticas de horas)
+      const { data } = await supabase.functions.invoke('spotify-api', {
+        body: { action: 'top-artists', userId: targetId, limit: 20 }
+      });
+      const artists = data?.items || [];
+      const genreCount = {};
+      artists.forEach(a => a.genres?.forEach(g => { genreCount[g] = (genreCount[g] || 0) + 1; }));
+      const topGenres = Object.entries(genreCount)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 8)
+        .map(([name, count], _, arr) => ({ name, weight: count / arr[0][1] }));
+      return { topGenres, uniqueTracks: null, weeklyHours: null };
     } catch (error) {
       console.error('[Spotify] Error fetching stats:', error);
       return null;
