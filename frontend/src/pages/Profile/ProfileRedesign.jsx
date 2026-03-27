@@ -560,9 +560,9 @@ export default function ProfileRedesignPage() {
                                             <SpotifyBlock userId={profile?.id} isOwn={isOwn} />
                                         )}
 
-                                        {/* Estadísticas de Streaming (solo dueño) */}
-                                        {isOwn && (
-                                            <SpotifyStreamingPanel />
+                                        {/* Estadísticas de Streaming */}
+                                        {(hasSpotifyBlock || isOwn) && (
+                                            <SpotifyStreamingPanel userId={profile?.id} isOwn={isOwn} />
                                         )}
 
                                         {/* Galería Estelar (Blocks) */}

@@ -9,7 +9,7 @@ const isTauri = typeof window !== 'undefined' && (
   window.location.protocol === 'tauri:'
 );
 
-export function useSpotify() {
+export function useSpotify({ userId = null, isOwn = true } = {}) {
   const [isConnected, setIsConnected] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [currentlyPlaying, setCurrentlyPlaying] = useState(null);
@@ -25,9 +25,14 @@ export function useSpotify() {
     } else {
       checkSpotifyConnection();
     }
-  }, []);
+  }, [userId]);
 
   const checkSpotifyConnectionTauri = async () => {
+    // When viewing someone else's profile, skip the local token check
+    // and fall through to the database-backed connection check instead
+    if (!isOwn) {
+      return checkSpotifyConnection();
+    }
     try {
       // Verificar si hay un token guardado en localStorage
       const savedToken = localStorage.getItem('spotify_access_token');
@@ -43,12 +48,13 @@ export function useSpotify() {
   const checkSpotifyConnection = async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      const targetId = userId || user?.id;
+      if (!targetId) return;
 
       const { data: profile } = await supabase
         .from('profiles')
         .select('spotify_connected, spotify_access_token, spotify_refresh_token')
-        .eq('id', user.id)
+        .eq('id', targetId)
         .single();
 
       if (profile?.spotify_connected) {
@@ -61,6 +67,7 @@ export function useSpotify() {
   };
 
   const connectSpotify = async () => {
+    if (!isOwn) return;
     setIsLoading(true);
     try {
       if (isTauri) {
@@ -94,6 +101,7 @@ export function useSpotify() {
   };
 
   const disconnectSpotify = async () => {
+    if (!isOwn) return;
     try {
       if (isTauri) {
         // Limpiar localStorage en Tauri
@@ -252,7 +260,7 @@ export function useSpotify() {
   const fetchCurrentlyPlaying = async () => {
     try {
       const { data, error } = await supabase.functions.invoke('spotify-api', {
-        body: { endpoint: '/me/player/currently-playing' }
+        body: { endpoint: '/me/player/currently-playing', ...(userId && { userId }) }
       });
 
       if (error) throw error;
@@ -266,7 +274,7 @@ export function useSpotify() {
   const fetchTopArtists = async () => {
     try {
       const { data, error } = await supabase.functions.invoke('spotify-api', {
-        body: { endpoint: '/me/top/artists', params: { limit: 10, time_range: 'short_term' } }
+        body: { endpoint: '/me/top/artists', params: { limit: 10, time_range: 'short_term' }, ...(userId && { userId }) }
       });
 
       if (error) throw error;
@@ -280,7 +288,7 @@ export function useSpotify() {
   const fetchTopTracks = async () => {
     try {
       const { data, error } = await supabase.functions.invoke('spotify-api', {
-        body: { endpoint: '/me/top/tracks', params: { limit: 10, time_range: 'short_term' } }
+        body: { endpoint: '/me/top/tracks', params: { limit: 10, time_range: 'short_term' }, ...(userId && { userId }) }
       });
 
       if (error) throw error;

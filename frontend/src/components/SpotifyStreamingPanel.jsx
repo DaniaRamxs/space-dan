@@ -22,18 +22,18 @@ const isTauri = typeof window !== 'undefined' && (
   window.location.protocol === 'tauri:'
 );
 
-export default function SpotifyStreamingPanel() {
-  const { 
-    isConnected, 
-    connectSpotify, 
-    disconnectSpotify, 
-    currentlyPlaying, 
-    topArtists, 
-    topTracks, 
+export default function SpotifyStreamingPanel({ userId = null, isOwn = true }) {
+  const {
+    isConnected,
+    connectSpotify,
+    disconnectSpotify,
+    currentlyPlaying,
+    topArtists,
+    topTracks,
     streamingStats,
     refreshData,
-    isLoading 
-  } = useSpotify();
+    isLoading
+  } = useSpotify({ userId, isOwn });
 
   const [activeTab, setActiveTab] = useState('nowplaying');
 
@@ -45,6 +45,7 @@ export default function SpotifyStreamingPanel() {
   }, []);
 
   if (!isConnected) {
+    if (!isOwn) return null;
     return (
       <div className="spotify-connect-panel">
         <motion.div 
