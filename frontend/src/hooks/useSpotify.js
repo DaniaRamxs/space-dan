@@ -20,31 +20,8 @@ export function useSpotify({ userId = null, isOwn = true } = {}) {
 
   // Verificar conexión existente
   useEffect(() => {
-    // En Tauri, hacer una verificación más segura
-    if (isTauri) {
-      checkSpotifyConnectionTauri();
-    } else {
-      checkSpotifyConnection();
-    }
+    checkSpotifyConnection();
   }, [userId]);
-
-  const checkSpotifyConnectionTauri = async () => {
-    // When viewing someone else's profile, skip the local token check
-    // and fall through to the database-backed connection check instead
-    if (!isOwn) {
-      return checkSpotifyConnection();
-    }
-    try {
-      // Verificar si hay un token guardado en localStorage
-      const savedToken = localStorage.getItem('spotify_access_token');
-      if (savedToken) {
-        setIsConnected(true);
-        await fetchSpotifyData();
-      }
-    } catch {
-      console.log('[Spotify] Tauri: No hay conexión guardada');
-    }
-  };
 
   const checkSpotifyConnection = async () => {
     try {
