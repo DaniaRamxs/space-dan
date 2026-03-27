@@ -1,6 +1,7 @@
 import React, { Suspense, lazy, useEffect, useRef } from "react";
 import { BrowserRouter, HashRouter, Routes, Route, useLocation, Navigate } from "react-router-dom";
 import { AnimatePresence } from "framer-motion";
+import { spacelyMusic } from './utils/spacelyMusic';
 import { Capacitor } from "@capacitor/core";
 
 import "./styles.css";
@@ -33,6 +34,7 @@ const CreatePostPage = lazy(() => import("./pages/CreatePostPage"));
 const PostPage = lazy(() => import("./pages/PostPage"));
 const MusicPage = lazy(() => import("./pages/MusicPage"));
 const GamesPage = lazy(() => import("./pages/GamesPage"));
+const SnakeGame = lazy(() => import("./components/SnakeGame"));
 const GlobalLeaderboardPage = lazy(() => import("./pages/GlobalLeaderboardPage"));
 const GardenLayout = lazy(() => import("./layouts/GardenLayout"));
 const BulletinPage = lazy(() => import("./pages/BulletinPage"));
@@ -526,6 +528,7 @@ function AnimatedRoutes() {
           <Route path="/bulletin" element={<Layout><BulletinPage /></Layout>} />
           <Route path="/games" element={<Layout><GamesPage /></Layout>} />
           <Route path="/game/:gameId" element={<Layout><GamesPage /></Layout>} />
+          <Route path="/snake" element={<SnakeGame />} />
           <Route path="/tienda" element={<Layout><ShopPage /></Layout>} />
           <Route path="/banco" element={<Layout><BankPage /></Layout>} />
           <Route path="/mercado-negro" element={<Layout><BlackMarketPage /></Layout>} />
@@ -626,6 +629,17 @@ const AppRouter = isTauri ? HashRouter : BrowserRouter;
 
 export default function App() {
   useEffect(() => {
+    if (!isTauri) return;
+    const onKeyDown = (e) => {
+      if (e.key === 'F12') {
+        window.__TAURI_INTERNALS__?.invoke('plugin:webview|internal_toggle_devtools').catch(() => {});
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, []);
+
+  useEffect(() => {
     // Global drag-to-scroll logic for .mobile-scroll-x
     let activeEl = null;
     let startX = 0;
@@ -674,6 +688,8 @@ export default function App() {
       window.removeEventListener('mousedown', onMouseDown);
       window.removeEventListener('mousemove', onMouseMove);
       window.removeEventListener('mouseup', onMouseUp);
+      // Detener música global al salir de la app
+      spacelyMusic.stop();
     };
   }, []);
 
