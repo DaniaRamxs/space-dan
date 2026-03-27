@@ -554,6 +554,11 @@ export default function ProfileRedesignPage() {
                                             <BioCard bio={profile.bio} />
                                         )}
 
+                                        {/* Radar Sonoro Spotify */}
+                                        {(hasSpotifyBlock || isOwn) && (
+                                            <SpotifyBlock userId={profile?.id} isOwn={isOwn} />
+                                        )}
+
                                         {/* Galería Estelar (Blocks) */}
                                         {contentBlocks.length > 0 && (
                                             <BlocksRenderer
