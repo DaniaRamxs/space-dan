@@ -60,9 +60,11 @@ const app = express();
 
 const allowedOrigins = [
   "https://www.joinspacely.com",
-  "https://joinspacely.com", 
+  "https://joinspacely.com",
   "http://localhost:5173",
-  "http://localhost:3000"
+  "http://localhost:3000",
+  "http://tauri.localhost",  // Tauri desktop app (production build)
+  "tauri://localhost"        // Tauri desktop app (macOS/Linux)
 ];
 
 const corsOptions = {
@@ -103,14 +105,14 @@ app.use(express.urlencoded({ extended: true }));
 
 // Add CORS for anime-multi routes
 app.use('/api/anime-multi', cors({
-  origin: ['https://www.joinspacely.com', 'https://space-dan.vercel.app', 'http://localhost:5173', 'http://localhost:3000'],
+  origin: ['https://www.joinspacely.com', 'https://space-dan.vercel.app', 'http://localhost:5173', 'http://localhost:3000', 'http://tauri.localhost', 'tauri://localhost'],
   methods: ['GET', 'OPTIONS'],
   credentials: true
 }));
 
 app.use('/api/anime-multi', animeMultiRoutes);
 app.use('/api/anime-test', cors({
-  origin: ['https://www.joinspacely.com', 'https://space-dan.vercel.app', 'http://localhost:5173', 'http://localhost:3000'],
+  origin: ['https://www.joinspacely.com', 'https://space-dan.vercel.app', 'http://localhost:5173', 'http://localhost:3000', 'http://tauri.localhost', 'tauri://localhost'],
   methods: ['GET', 'OPTIONS'],
   credentials: true
 }));
