@@ -75,9 +75,9 @@ export function useSpotify({ userId = null, isOwn = true } = {}) {
         // En Tauri, abrir URL directamente
         const authUrl = `https://accounts.spotify.com/authorize?${new URLSearchParams({
           response_type: 'code',
-          client_id: 'YOUR_CLIENT_ID', // Necesitarás configurar esto
+          client_id: import.meta.env.VITE_SPOTIFY_CLIENT_ID,
           scope: 'user-read-currently-playing user-read-playback-state user-top-read user-read-recently-played user-read-playback-position',
-          redirect_uri: `${window.location.origin}/auth/spotify/callback`,
+          redirect_uri: import.meta.env.VITE_SPOTIFY_REDIRECT_URI,
           state: 'tauri_connection'
         })}`;
         
