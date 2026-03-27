@@ -33,6 +33,7 @@ const PostsPage = lazy(() => import("./pages/PostsPage"));
 const CreatePostPage = lazy(() => import("./pages/CreatePostPage"));
 const PostPage = lazy(() => import("./pages/PostPage"));
 const MusicPage = lazy(() => import("./pages/MusicPage"));
+const GlobalMusicFeedPage = lazy(() => import("./pages/GlobalMusicFeedPage"));
 const GamesPage = lazy(() => import("./pages/GamesPage"));
 const SnakeGame = lazy(() => import("./components/SnakeGame"));
 const GlobalLeaderboardPage = lazy(() => import("./pages/GlobalLeaderboardPage"));
@@ -534,6 +535,7 @@ function AnimatedRoutes() {
           <Route path="/mercado-negro" element={<Layout><BlackMarketPage /></Layout>} />
           <Route path="/chat" element={<Layout><GlobalChatPage /></Layout>} />
           <Route path="/cabina" element={<Layout><SpaceCabinPage /></Layout>} />
+          <Route path="/ahora-suena" element={<Layout><GlobalMusicFeedPage /></Layout>} />
           <Route path="/inventory" element={<Layout><InventoryPage /></Layout>} />
           <Route path="/logros" element={<Layout><AchievementsPage /></Layout>} />
           <Route path="/leaderboard" element={<Layout><GlobalLeaderboardPage /></Layout>} />
@@ -586,6 +588,7 @@ function AnimatedRoutes() {
         <Route path="/mercado-negro" element={<Navigate to="/descargas" replace />} />
         <Route path="/chat" element={<Navigate to="/descargas" replace />} />
         <Route path="/cabina" element={<Navigate to="/descargas" replace />} />
+        <Route path="/ahora-suena" element={<Navigate to="/descargas" replace />} />
         <Route path="/inventory" element={<Navigate to="/descargas" replace />} />
         <Route path="/logros" element={<Navigate to="/descargas" replace />} />
         <Route path="/leaderboard" element={<Navigate to="/descargas" replace />} />
