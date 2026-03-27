@@ -326,116 +326,17 @@ export default function RhythmDash() {
     setHealth(100); setDifficulty(1); notesRef.current = [];
   };
 
-  // ── MENU ───────────────────────────────────────────────────────────────────
-  if (gameState === 'menu') {
-    return (
-      <div style={{ width:'100%', maxWidth:600, margin:'0 auto', padding:20, textAlign:'center', color:'#fff' }}>
-        <motion.div initial={{ scale:0.8, opacity:0 }} animate={{ scale:1, opacity:1 }}
-          style={{ background:'linear-gradient(135deg,rgba(236,72,153,.1),rgba(0,229,255,.1))', borderRadius:24, padding:'32px 24px', border:'1px solid rgba(236,72,153,.2)' }}>
-          <div style={{ fontSize:'3rem', marginBottom:12 }}>🎵</div>
-          <h1 style={{ fontSize:'clamp(1.8rem,6vw,2.5rem)', fontWeight:900, background:'linear-gradient(135deg,#ec4899,#00e5ff)', WebkitBackgroundClip:'text', WebkitTextFillColor:'transparent', marginBottom:8 }}>
-            RHYTHM DASH
-          </h1>
-          <p style={{ opacity:0.6, marginBottom:24, fontSize:'0.85rem' }}>
-            Toca cada carril al ritmo de las notas
-          </p>
-
-          {/* Difficulty selector */}
-          <div style={{ marginBottom:28 }}>
-            <div style={{ fontSize:'0.7rem', opacity:0.5, marginBottom:10, textTransform:'uppercase', letterSpacing:2 }}>Dificultad</div>
-            <div style={{ display:'flex', gap:8, justifyContent:'center', flexWrap:'wrap' }}>
-              {Object.entries(DIFFICULTY_PRESETS).map(([key, p]) => (
-                <button key={key} onClick={() => setSelectedPreset(key)}
-                  style={{ padding:'12px 18px', borderRadius:12, border:`2px solid ${selectedPreset === key ? p.color : 'rgba(255,255,255,0.15)'}`, background:selectedPreset === key ? `${p.color}22` : 'transparent', color:selectedPreset === key ? p.color : 'rgba(255,255,255,0.5)', cursor:'pointer', fontWeight:700, fontSize:'0.9rem', transition:'all 0.15s', touchAction:'manipulation' }}>
-                  {p.emoji} {p.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Lane preview */}
-          <div style={{ marginBottom:28, display:'flex', justifyContent:'center', gap:8 }}>
-            {LANE_COLORS.map((c, i) => (
-              <div key={i} style={{ width:60, height:60, background:`${c}22`, border:`2px solid ${c}66`, borderRadius:14, display:'flex', alignItems:'center', justifyContent:'center', flexDirection:'column', gap:2 }}>
-                <div style={{ width:20, height:20, borderRadius:'50%', background:c, opacity:0.85 }} />
-                <span style={{ fontSize:'0.65rem', color:c, fontWeight:700, opacity:0.7 }}>{KEYS[i].toUpperCase()}</span>
-              </div>
-            ))}
-          </div>
-
-          <button onClick={startGame}
-            style={{ background:'linear-gradient(135deg,#ec4899,#00e5ff)', border:'none', padding:'18px 52px', borderRadius:16, fontSize:'1.2rem', fontWeight:900, color:'#fff', cursor:'pointer', textTransform:'uppercase', boxShadow:'0 10px 30px rgba(236,72,153,.3)', touchAction:'manipulation' }}>
-            JUGAR
-          </button>
-        </motion.div>
-      </div>
-    );
-  }
-
-  // ── GAMEOVER ───────────────────────────────────────────────────────────────
-  if (gameState === 'gameover') {
-    const s   = statsRef.current;
-    const total    = s.perfect + s.good + s.ok + s.miss;
-    const accuracy = total > 0 ? Math.round(((s.perfect + s.good) / total) * 100) : 0;
-
-    return (
-      <div style={{ width:'100%', maxWidth:600, margin:'0 auto', padding:20, textAlign:'center', color:'#fff' }}>
-        <motion.div initial={{ scale:0.8, opacity:0 }} animate={{ scale:1, opacity:1 }}
-          style={{ background:'linear-gradient(135deg,rgba(236,72,153,.1),rgba(0,229,255,.1))', borderRadius:24, padding:'32px 20px', border:'1px solid rgba(236,72,153,.2)' }}>
-          <div style={{ fontSize:'3rem', marginBottom:12 }}>🎮</div>
-          <h2 style={{ fontSize:'2rem', fontWeight:900, marginBottom:16 }}>GAME OVER</h2>
-
-          <div style={{ fontSize:'0.7rem', opacity:0.5, marginBottom:4 }}>SCORE FINAL</div>
-          <div style={{ fontSize:'3rem', fontWeight:900, color:'#00e5ff', marginBottom:20 }}>{score.toLocaleString()}</div>
-
-          <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:8, marginBottom:20 }}>
-            {[
-              { label:'PERFECT', val:s.perfect, color:'#00ff88' },
-              { label:'GOOD',    val:s.good,    color:'#00e5ff' },
-              { label:'OK',      val:s.ok,      color:'#ffd700' },
-              { label:'MISS',    val:s.miss,    color:'#ff4444' },
-            ].map(x => (
-              <div key={x.label} style={{ background:'rgba(255,255,255,0.05)', borderRadius:10, padding:'10px 4px' }}>
-                <div style={{ fontSize:'0.5rem', opacity:0.5, marginBottom:4 }}>{x.label}</div>
-                <div style={{ fontSize:'1.3rem', fontWeight:'bold', color:x.color }}>{x.val}</div>
-              </div>
-            ))}
-          </div>
-
-          <div style={{ display:'flex', gap:16, justifyContent:'center', flexWrap:'wrap', marginBottom:24 }}>
-            <div>
-              <div style={{ fontSize:'0.65rem', opacity:0.5 }}>PRECISIÓN</div>
-              <div style={{ fontSize:'1.4rem', fontWeight:'bold', color:accuracy >= 80 ? '#00ff88' : accuracy >= 50 ? '#ffd700' : '#ff4444' }}>{accuracy}%</div>
-            </div>
-            <div>
-              <div style={{ fontSize:'0.65rem', opacity:0.5 }}>MAX COMBO</div>
-              <div style={{ fontSize:'1.4rem', fontWeight:'bold', color:'#ec4899' }}>{maxCombo}x</div>
-            </div>
-            <div>
-              <div style={{ fontSize:'0.65rem', opacity:0.5 }}>DIFICULTAD</div>
-              <div style={{ fontSize:'1.4rem', fontWeight:'bold', color:presetRef.current.color }}>{presetRef.current.label}</div>
-            </div>
-          </div>
-
-          <div style={{ display:'flex', gap:12, justifyContent:'center' }}>
-            <button onClick={startGame}
-              style={{ background:'linear-gradient(135deg,#ec4899,#00e5ff)', border:'none', padding:'14px 40px', borderRadius:14, fontSize:'1.1rem', fontWeight:900, color:'#fff', cursor:'pointer', touchAction:'manipulation' }}>REPETIR</button>
-            <button onClick={resetGame}
-              style={{ background:'rgba(255,255,255,.08)', border:'2px solid rgba(255,255,255,.18)', padding:'14px 24px', borderRadius:14, fontSize:'1rem', fontWeight:700, color:'#fff', cursor:'pointer', touchAction:'manipulation' }}>MENÚ</button>
-          </div>
-        </motion.div>
-      </div>
-    );
-  }
-
-  // ── PLAYING ────────────────────────────────────────────────────────────────
+  // ── Computed layout (always needed so containerSize is always tracked) ──────
   const { w: CW, h: CH } = containerSize;
-  // Hit zone: centered at HIT_FRAC of container height, 10% tall (min 60px)
-  const hitZoneH    = Math.max(60, CH * 0.10);
-  const hitZoneTop  = CH * HIT_FRAC - hitZoneH / 2;
-  // Button zone: bottom BTN_FRAC of container (min 70px)
-  const btnH        = Math.max(70, CH * BTN_FRAC);
-  const laneW       = CW / LANES;
+  const hitZoneH   = Math.max(60, CH * 0.10);
+  const hitZoneTop = CH * HIT_FRAC - hitZoneH / 2;
+  const btnH       = Math.max(70, CH * BTN_FRAC);
+  const laneW      = CW / LANES;
+
+  // Gameover stats (computed here so we don't repeat in JSX)
+  const s          = statsRef.current;
+  const total      = s.perfect + s.good + s.ok + s.miss;
+  const accuracy   = total > 0 ? Math.round(((s.perfect + s.good) / total) * 100) : 0;
 
   return (
     <div ref={containerRef}
@@ -443,6 +344,98 @@ export default function RhythmDash() {
         background:'linear-gradient(180deg,rgba(0,0,0,.9),rgba(20,0,40,.98))',
         borderRadius:16, border:'2px solid rgba(236,72,153,.3)',
         minHeight:400, userSelect:'none' }}>
+
+      {/* ── MENU ────────────────────────────────────────────────────────────── */}
+      {gameState === 'menu' && (
+        <div style={{ position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center', padding:20, color:'#fff' }}>
+          <div style={{ width:'100%', maxWidth:500, textAlign:'center' }}>
+            <motion.div initial={{ scale:0.8, opacity:0 }} animate={{ scale:1, opacity:1 }}
+              style={{ background:'linear-gradient(135deg,rgba(236,72,153,.1),rgba(0,229,255,.1))', borderRadius:24, padding:'32px 24px', border:'1px solid rgba(236,72,153,.2)' }}>
+              <div style={{ fontSize:'3rem', marginBottom:12 }}>🎵</div>
+              <h1 style={{ fontSize:'clamp(1.8rem,6vw,2.5rem)', fontWeight:900, background:'linear-gradient(135deg,#ec4899,#00e5ff)', WebkitBackgroundClip:'text', WebkitTextFillColor:'transparent', marginBottom:8 }}>
+                RHYTHM DASH
+              </h1>
+              <p style={{ opacity:0.6, marginBottom:24, fontSize:'0.85rem' }}>
+                Toca cada carril al ritmo de las notas
+              </p>
+              <div style={{ marginBottom:28 }}>
+                <div style={{ fontSize:'0.7rem', opacity:0.5, marginBottom:10, textTransform:'uppercase', letterSpacing:2 }}>Dificultad</div>
+                <div style={{ display:'flex', gap:8, justifyContent:'center', flexWrap:'wrap' }}>
+                  {Object.entries(DIFFICULTY_PRESETS).map(([key, p]) => (
+                    <button key={key} onClick={() => setSelectedPreset(key)}
+                      style={{ padding:'12px 18px', borderRadius:12, border:`2px solid ${selectedPreset === key ? p.color : 'rgba(255,255,255,0.15)'}`, background:selectedPreset === key ? `${p.color}22` : 'transparent', color:selectedPreset === key ? p.color : 'rgba(255,255,255,0.5)', cursor:'pointer', fontWeight:700, fontSize:'0.9rem', transition:'all 0.15s', touchAction:'manipulation' }}>
+                      {p.emoji} {p.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div style={{ marginBottom:28, display:'flex', justifyContent:'center', gap:8 }}>
+                {LANE_COLORS.map((c, i) => (
+                  <div key={i} style={{ width:60, height:60, background:`${c}22`, border:`2px solid ${c}66`, borderRadius:14, display:'flex', alignItems:'center', justifyContent:'center', flexDirection:'column', gap:2 }}>
+                    <div style={{ width:20, height:20, borderRadius:'50%', background:c, opacity:0.85 }} />
+                    <span style={{ fontSize:'0.65rem', color:c, fontWeight:700, opacity:0.7 }}>{KEYS[i].toUpperCase()}</span>
+                  </div>
+                ))}
+              </div>
+              <button onClick={startGame}
+                style={{ background:'linear-gradient(135deg,#ec4899,#00e5ff)', border:'none', padding:'18px 52px', borderRadius:16, fontSize:'1.2rem', fontWeight:900, color:'#fff', cursor:'pointer', textTransform:'uppercase', boxShadow:'0 10px 30px rgba(236,72,153,.3)', touchAction:'manipulation' }}>
+                JUGAR
+              </button>
+            </motion.div>
+          </div>
+        </div>
+      )}
+
+      {/* ── GAMEOVER ────────────────────────────────────────────────────────── */}
+      {gameState === 'gameover' && (
+        <div style={{ position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center', padding:20, color:'#fff' }}>
+          <div style={{ width:'100%', maxWidth:500, textAlign:'center' }}>
+            <motion.div initial={{ scale:0.8, opacity:0 }} animate={{ scale:1, opacity:1 }}
+              style={{ background:'linear-gradient(135deg,rgba(236,72,153,.1),rgba(0,229,255,.1))', borderRadius:24, padding:'32px 20px', border:'1px solid rgba(236,72,153,.2)' }}>
+              <div style={{ fontSize:'3rem', marginBottom:12 }}>🎮</div>
+              <h2 style={{ fontSize:'2rem', fontWeight:900, marginBottom:16 }}>GAME OVER</h2>
+              <div style={{ fontSize:'0.7rem', opacity:0.5, marginBottom:4 }}>SCORE FINAL</div>
+              <div style={{ fontSize:'3rem', fontWeight:900, color:'#00e5ff', marginBottom:20 }}>{score.toLocaleString()}</div>
+              <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:8, marginBottom:20 }}>
+                {[
+                  { label:'PERFECT', val:s.perfect, color:'#00ff88' },
+                  { label:'GOOD',    val:s.good,    color:'#00e5ff' },
+                  { label:'OK',      val:s.ok,      color:'#ffd700' },
+                  { label:'MISS',    val:s.miss,    color:'#ff4444' },
+                ].map(x => (
+                  <div key={x.label} style={{ background:'rgba(255,255,255,0.05)', borderRadius:10, padding:'10px 4px' }}>
+                    <div style={{ fontSize:'0.5rem', opacity:0.5, marginBottom:4 }}>{x.label}</div>
+                    <div style={{ fontSize:'1.3rem', fontWeight:'bold', color:x.color }}>{x.val}</div>
+                  </div>
+                ))}
+              </div>
+              <div style={{ display:'flex', gap:16, justifyContent:'center', flexWrap:'wrap', marginBottom:24 }}>
+                <div>
+                  <div style={{ fontSize:'0.65rem', opacity:0.5 }}>PRECISIÓN</div>
+                  <div style={{ fontSize:'1.4rem', fontWeight:'bold', color:accuracy >= 80 ? '#00ff88' : accuracy >= 50 ? '#ffd700' : '#ff4444' }}>{accuracy}%</div>
+                </div>
+                <div>
+                  <div style={{ fontSize:'0.65rem', opacity:0.5 }}>MAX COMBO</div>
+                  <div style={{ fontSize:'1.4rem', fontWeight:'bold', color:'#ec4899' }}>{maxCombo}x</div>
+                </div>
+                <div>
+                  <div style={{ fontSize:'0.65rem', opacity:0.5 }}>DIFICULTAD</div>
+                  <div style={{ fontSize:'1.4rem', fontWeight:'bold', color:presetRef.current.color }}>{presetRef.current.label}</div>
+                </div>
+              </div>
+              <div style={{ display:'flex', gap:12, justifyContent:'center' }}>
+                <button onClick={startGame}
+                  style={{ background:'linear-gradient(135deg,#ec4899,#00e5ff)', border:'none', padding:'14px 40px', borderRadius:14, fontSize:'1.1rem', fontWeight:900, color:'#fff', cursor:'pointer', touchAction:'manipulation' }}>REPETIR</button>
+                <button onClick={resetGame}
+                  style={{ background:'rgba(255,255,255,.08)', border:'2px solid rgba(255,255,255,.18)', padding:'14px 24px', borderRadius:14, fontSize:'1rem', fontWeight:700, color:'#fff', cursor:'pointer', touchAction:'manipulation' }}>MENÚ</button>
+              </div>
+            </motion.div>
+          </div>
+        </div>
+      )}
+
+      {/* ── PLAYING ─────────────────────────────────────────────────────────── */}
+      {gameState === 'playing' && (<>
 
       {/* Milestone flash */}
       <AnimatePresence>
@@ -453,24 +446,67 @@ export default function RhythmDash() {
       </AnimatePresence>
 
       {/* HUD */}
-      <div style={{ position:'absolute', top:0, left:0, right:0, height:52, display:'flex', alignItems:'center', justifyContent:'space-between', padding:'0 14px', zIndex:10, color:'#fff', background:'linear-gradient(180deg,rgba(0,0,0,.5),transparent)' }}>
-        <div>
-          <div style={{ fontSize:'0.55rem', opacity:0.5, lineHeight:1 }}>SCORE</div>
-          <div style={{ fontSize:'1.2rem', fontWeight:'bold', color:'#00e5ff', lineHeight:1.2 }}>{score.toLocaleString()}</div>
-        </div>
-        <div style={{ textAlign:'center' }}>
-          <div style={{ fontSize:'0.55rem', opacity:0.5, lineHeight:1 }}>COMBO</div>
-          <motion.div key={combo} animate={combo > 0 ? { scale:[1.3,1] } : {}} transition={{ duration:0.15 }}
-            style={{ fontSize:'1.2rem', fontWeight:'bold', color:combo >= 25 ? '#ffd700' : combo >= 10 ? '#ec4899' : '#fff', lineHeight:1.2 }}>
-            {combo}x
-          </motion.div>
-        </div>
-        <div style={{ textAlign:'right', minWidth:80 }}>
-          <div style={{ fontSize:'0.55rem', opacity:0.5, lineHeight:1, marginBottom:4 }}>HP</div>
-          <div style={{ width:80, height:7, background:'rgba(255,255,255,.1)', borderRadius:4, overflow:'hidden' }}>
-            <motion.div animate={{ width:`${health}%` }} transition={{ duration:0.3 }}
-              style={{ height:'100%', background:health > 50 ? '#00ff88' : health > 25 ? '#ffd700' : '#ff4444', borderRadius:4 }} />
+      <div style={{
+        position:'absolute', top:0, left:0, right:0, zIndex:10, color:'#fff',
+        padding:'10px 16px 14px',
+        background:'linear-gradient(180deg,rgba(0,0,0,.85) 0%,rgba(0,0,0,.4) 70%,transparent 100%)',
+        display:'flex', flexDirection:'column', gap:8,
+      }}>
+        {/* Top row: score | combo | difficulty */}
+        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+          {/* Score */}
+          <div style={{ display:'flex', flexDirection:'column' }}>
+            <span style={{ fontSize:'0.55rem', fontWeight:700, letterSpacing:'0.15em', opacity:0.45, textTransform:'uppercase' }}>Score</span>
+            <span style={{ fontSize:'clamp(1.1rem,3vw,1.5rem)', fontWeight:900, color:'#00e5ff', lineHeight:1, textShadow:'0 0 16px #00e5ff88' }}>
+              {score.toLocaleString()}
+            </span>
           </div>
+
+          {/* Combo — center, bigger */}
+          <div style={{ textAlign:'center' }}>
+            <span style={{ fontSize:'0.55rem', fontWeight:700, letterSpacing:'0.15em', opacity:0.45, textTransform:'uppercase', display:'block' }}>Combo</span>
+            <motion.span key={combo}
+              animate={combo > 0 ? { scale:[1.4,1] } : {}}
+              transition={{ duration:0.18 }}
+              style={{
+                display:'block',
+                fontSize:'clamp(1.3rem,4vw,2rem)', fontWeight:900, lineHeight:1,
+                color: combo >= 25 ? '#ffd700' : combo >= 10 ? '#ec4899' : '#fff',
+                textShadow: combo >= 10 ? `0 0 20px ${combo >= 25 ? '#ffd700' : '#ec4899'}` : 'none',
+              }}>
+              {combo > 0 ? `${combo}×` : '—'}
+            </motion.span>
+          </div>
+
+          {/* Difficulty badge */}
+          <div style={{ textAlign:'right' }}>
+            <span style={{ fontSize:'0.55rem', fontWeight:700, letterSpacing:'0.15em', opacity:0.45, textTransform:'uppercase', display:'block' }}>Nivel</span>
+            <span style={{ fontSize:'0.8rem', fontWeight:900, color: presetRef.current.color, textShadow:`0 0 10px ${presetRef.current.color}88` }}>
+              {presetRef.current.emoji} {presetRef.current.label}
+            </span>
+          </div>
+        </div>
+
+        {/* HP bar — full width */}
+        <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+          <span style={{ fontSize:'0.5rem', fontWeight:700, letterSpacing:'0.12em', opacity:0.5, textTransform:'uppercase', whiteSpace:'nowrap' }}>HP</span>
+          <div style={{ flex:1, height:6, background:'rgba(255,255,255,.1)', borderRadius:99, overflow:'hidden', boxShadow:'inset 0 1px 3px rgba(0,0,0,.4)' }}>
+            <motion.div
+              animate={{ width:`${health}%` }}
+              transition={{ duration:0.3 }}
+              style={{
+                height:'100%', borderRadius:99,
+                background: health > 60
+                  ? 'linear-gradient(90deg,#00c97a,#00ff88)'
+                  : health > 30
+                  ? 'linear-gradient(90deg,#e6a800,#ffd700)'
+                  : 'linear-gradient(90deg,#cc2200,#ff4444)',
+                boxShadow: health > 60 ? '0 0 8px #00ff8877' : health > 30 ? '0 0 8px #ffd70077' : '0 0 8px #ff444477',
+              }} />
+          </div>
+          <span style={{ fontSize:'0.65rem', fontWeight:700, color: health > 60 ? '#00ff88' : health > 30 ? '#ffd700' : '#ff4444', minWidth:26, textAlign:'right' }}>
+            {health}
+          </span>
         </div>
       </div>
 
@@ -534,37 +570,48 @@ export default function RhythmDash() {
       </AnimatePresence>
 
       {/* Tap buttons — bottom BTN_FRAC of container */}
-      <div style={{ position:'absolute', bottom:0, left:0, right:0, height:btnH, display:'flex', zIndex:10, gap:3, padding:'3px 3px 6px' }}>
-        {LANE_COLORS.map((color, i) => (
-          <button key={i}
-            onPointerDown={e => { e.preventDefault(); handleLanePress(i); }}
-            style={{
-              flex:1,
-              height:'100%',
-              background: pressedKeys[KEYS[i]]
-                ? `${color}44`
-                : `${color}11`,
-              border: `2px solid ${pressedKeys[KEYS[i]] ? color : `${color}44`}`,
-              borderRadius:12,
-              cursor:'pointer',
-              touchAction:'manipulation',
-              WebkitTapHighlightColor:'transparent',
-              transition:'background 0.08s, border-color 0.08s',
-              display:'flex',
-              flexDirection:'column',
-              alignItems:'center',
-              justifyContent:'center',
-              gap:4,
-            }}>
-            {/* Colored indicator dot */}
-            <div style={{ width: Math.max(18, btnH * 0.25), height: Math.max(18, btnH * 0.25), borderRadius:'50%', background:pressedKeys[KEYS[i]] ? color : `${color}66`, transition:'background 0.08s', boxShadow:pressedKeys[KEYS[i]] ? `0 0 12px ${color}` : 'none' }} />
-            {/* Key label (visible on desktop) */}
-            <span style={{ fontSize:'clamp(0.65rem,2.5vw,0.85rem)', fontWeight:700, color:pressedKeys[KEYS[i]] ? color : `${color}88`, textTransform:'uppercase' }}>
-              {KEYS[i]}
-            </span>
-          </button>
-        ))}
+      <div style={{
+        position:'absolute', bottom:0, left:0, right:0, height:btnH,
+        display:'flex', zIndex:10, gap:4, padding:'4px 4px 8px',
+        background:'linear-gradient(0deg,rgba(0,0,0,.7) 0%,transparent 100%)',
+      }}>
+        {LANE_COLORS.map((color, i) => {
+          const pressed = pressedKeys[KEYS[i]];
+          return (
+            <button key={i}
+              onPointerDown={e => { e.preventDefault(); handleLanePress(i); }}
+              style={{
+                flex:1, height:'100%',
+                background: pressed ? `${color}33` : `${color}0d`,
+                border: `1.5px solid ${pressed ? color : `${color}33`}`,
+                borderRadius:14,
+                cursor:'pointer', touchAction:'manipulation',
+                WebkitTapHighlightColor:'transparent',
+                transition:'background 0.08s, border-color 0.08s, box-shadow 0.08s',
+                boxShadow: pressed ? `0 0 18px ${color}66, inset 0 0 12px ${color}22` : 'none',
+                display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:6,
+              }}>
+              <div style={{
+                width: Math.max(14, btnH * 0.22), height: Math.max(14, btnH * 0.22),
+                borderRadius:'50%',
+                background: pressed ? color : `${color}55`,
+                boxShadow: pressed ? `0 0 14px ${color}, 0 0 28px ${color}66` : `0 0 6px ${color}44`,
+                transition:'all 0.08s',
+              }} />
+              <span style={{
+                fontSize:'clamp(0.6rem,2vw,0.8rem)', fontWeight:900,
+                letterSpacing:'0.08em', textTransform:'uppercase',
+                color: pressed ? color : `${color}66`,
+                textShadow: pressed ? `0 0 8px ${color}` : 'none',
+                transition:'color 0.08s',
+              }}>
+                {KEYS[i]}
+              </span>
+            </button>
+          );
+        })}
       </div>
+      </>)}
     </div>
   );
 }

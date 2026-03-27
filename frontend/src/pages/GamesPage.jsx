@@ -13,6 +13,7 @@ import { ErrorBoundary } from '../components/ErrorBoundary';
 import { useSeason } from '../hooks/useSeason';
 import SeasonMiniBadge from '../components/SeasonMiniBadge';
 import { arcadeAudio } from '../utils/arcadeAudio';
+import { spacelyMusic } from '../utils/spacelyMusic';
 import { supabase } from '../supabaseClient';
 
 const TicTacToe = lazy(() => import('../components/TicTacToe'));
@@ -82,8 +83,8 @@ const BubbleBlast = lazy(() => import('../components/BubbleBlast'));
 
 
 const GAMES = [
-  { id: 'rhythm-dash', icon: '🎵', title: 'rhythm dash', component: RhythmDash, category: 'Arcade', isImmersive: false },
-  { id: 'bubble-blast', icon: '🫧', title: 'bubble blast', component: BubbleBlast, category: 'Puzzle', isImmersive: false },
+  { id: 'rhythm-dash', icon: '🎵', title: 'rhythm dash', component: RhythmDash, category: 'Arcade', isImmersive: true },
+  { id: 'bubble-blast', icon: '🫧', title: 'bubble blast', component: BubbleBlast, category: 'Puzzle', isImmersive: true },
   { id: 'snake', icon: '🐍', title: 'snake', component: SnakeGame, category: 'Arcade', isImmersive: true },
   { id: 'memory', icon: '🃏', title: 'memory', component: MemoryGame, category: 'Puzzle', isImmersive: true },
   { id: 'ttt', icon: '❌', title: 'tic tac toe', component: TicTacToe, category: 'Table', isImmersive: true },
@@ -294,7 +295,12 @@ export default function GamesPage() {
     };
     window.addEventListener('resize', handleResize);
     handleResize();
-    return () => window.removeEventListener('resize', handleResize);
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      // Detener cualquier música de juegos al salir del arcade
+      spacelyMusic.stop();
+      console.log('🔇 Música de arcade detenida al salir');
+    };
   }, []);
 
   // Fetch ticker items (simulated from DB)

@@ -84,6 +84,13 @@ export default function GardenLayout({ children }) {
     () => location.pathname.startsWith('/game/'),
     [location.pathname]
   );
+  // Juego abierto dentro del arcade (/games/:id)
+  const isInGame = useMemo(
+    () => /^\/games\/.+/.test(location.pathname),
+    [location.pathname]
+  );
+  const isChatRoute = location.pathname.startsWith('/chat');
+  const isUniversoRoute = location.pathname.startsWith('/universo');
 
   // En web (no nativo, no Tauri) solo mostrar el contenido — sin nav ni hub
   if (isWebOnly) {
@@ -101,11 +108,11 @@ export default function GardenLayout({ children }) {
 
   return (
     <div
-      className={`gardenPage ${isFixedLayout ? 'gardenPage--fixed' : ''}`}
-      style={isTauri ? { paddingTop: 36 } : undefined}
+      className={`gardenPage ${isFixedLayout ? 'gardenPage--fixed' : ''} ${isChatRoute ? 'gardenPage--chat' : ''}`}
+      style={isTauri ? (isFixedLayout ? { paddingTop: 36, height: 'calc(100dvh - 36px)' } : { paddingTop: 36 }) : undefined}
     >
       <KonamiEasterEgg />
-      <RadioPlayer />
+      {!isInGame && <RadioPlayer />}
 
       <div className={`gardenShell ${isFixedLayout ? 'gardenShell--fixed' : ''}`}>
         <main className={`gardenMain ${isFixedLayout ? 'gardenMain--fixed' : ''}`}>
@@ -202,7 +209,11 @@ export default function GardenLayout({ children }) {
             </div>
           </header>
 
-          <div className="gardenContent" style={{ contain: 'layout paint', transform: 'translateZ(0)' }}>{children}</div>
+          <div className="gardenContent" style={
+            isUniversoRoute || isInGame
+              ? { position: 'relative', zIndex: 1 }
+              : { contain: 'layout paint', transform: 'translateZ(0)', position: 'relative', zIndex: 1 }
+          }>{children}</div>
 
           {/* Botón flotante de Chat (Desktop Fast Access) */}
           {!isFixedLayout && !isNative && !SPACE_SESSION_RE.test(location.pathname) && (

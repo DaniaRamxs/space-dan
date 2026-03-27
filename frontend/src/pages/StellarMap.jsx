@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, useMemo } from 'react';
-import { AnimatePresence } from 'framer-motion';
+// eslint-disable-next-line no-unused-vars
+import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../supabaseClient';
 import { Zap, Flame, X, User, Orbit, Plus, Minus, Move, Sparkles } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -34,7 +35,7 @@ const DESKTOP_CONFIG = {
 
 const CONFIG = isMobile ? MOBILE_CONFIG : DESKTOP_CONFIG;
 
-export default function StellarMap() {
+export default function StellarMap({ onClose }) {
     const canvasRef = useRef(null);
     const [mapData, setMapData] = useState({ users: [], hall_of_fame: [] });
     const [selectedUser, setSelectedUser] = useState(null);
@@ -481,8 +482,16 @@ export default function StellarMap() {
         setSelectedUser(randomStar);
     };
 
+    const isTauri = typeof window !== 'undefined' && (
+        window.__TAURI_INTERNALS__ !== undefined ||
+        window.__TAURI__ !== undefined ||
+        window.location.hostname === 'tauri.localhost' ||
+        window.location.protocol === 'tauri:'
+    );
+
     return (
-        <div className="fixed inset-0 bg-[#020205] overflow-hidden select-none touch-none">
+        <div className="fixed inset-0 z-[9999] bg-[#020205] overflow-hidden select-none touch-none"
+            style={isTauri ? { top: 36 } : undefined}>
             <canvas
                 ref={canvasRef}
                 onMouseDown={handleStart}
@@ -518,7 +527,7 @@ export default function StellarMap() {
                         </div>
 
                         <div className="flex gap-2 pointer-events-auto">
-                            <button onClick={() => navigate('/posts')} className="w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center bg-white/5 border border-white/10 rounded-2xl text-white/40 hover:text-white transition-all active:scale-90">
+                            <button onClick={() => onClose ? onClose() : navigate('/posts')} className="w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center bg-white/5 border border-white/10 rounded-2xl text-white/40 hover:text-white transition-all active:scale-90">
                                 <X size={20} />
                             </button>
                         </div>

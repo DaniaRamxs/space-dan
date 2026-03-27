@@ -1,0 +1,70 @@
+/* Snake Espacial - Estilos retro arcade */
+
+@keyframes fadeOut {
+  0%   { opacity: 0.8; transform: scale(1) translate(-50%, -50%); }
+  100% { opacity: 0;   transform: scale(2.5) translate(-50%, -50%); }
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1;   box-shadow: 0 0 8px #ff2200, 0 0 20px #ff2200; }
+  50%       { opacity: 0.4; box-shadow: 0 0 4px #ff2200; }
+}
+
+@keyframes headPulse {
+  0%, 100% { box-shadow: 0 0 12px #fff, 0 0 24px rgba(255,255,255,0.6); }
+  50%       { box-shadow: 0 0 6px #fff,  0 0 12px rgba(255,255,255,0.3); }
+}
+
+@keyframes twinkle {
+  0%, 100% { opacity: 0.2; }
+  50%       { opacity: 0.9; }
+}
+
+/* Celdas de la serpiente */
+.snake-cell-head {
+  animation: headPulse 0.8s ease-in-out infinite;
+}
+
+.snake-cell-food {
+  animation: blink 0.5s ease-in-out infinite;
+}
+
+/* Estrellitas de fondo */
+.snake-star {
+  position: fixed;
+  background: #ffffff;
+  border-radius: 50%;
+  pointer-events: none;
+  animation: twinkle var(--dur, 3s) ease-in-out infinite var(--delay, 0s);
+  z-index: 0;
+}
+
+/* Overlay de scanlines CRT */
+.snake-scanlines {
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0, 0, 0, 0.18) 2px,
+    rgba(0, 0, 0, 0.18) 4px
+  );
+  pointer-events: none;
+  z-index: 5;
+  border-radius: inherit;
+}
+
+/* Brillo de esquina CRT */
+.snake-crt-vignette {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    ellipse at center,
+    transparent 60%,
+    rgba(0, 0, 0, 0.55) 100%
+  );
+  pointer-events: none;
+  z-index: 6;
+  border-radius: inherit;
+}

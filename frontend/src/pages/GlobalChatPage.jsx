@@ -55,9 +55,10 @@ export default function GlobalChatPage() {
         );
     }
 
-    // Desktop: Layout simplificado - deja que GlobalChat maneje su propio layout interno
+    // Desktop: position:absolute para anclarse al gardenContent (containing block via transform)
+    // y evitar depender de la cadena flex/% que se rompe en Tauri en rutas fijas.
     return (
-        <main className="w-full h-dvh bg-[#070710] text-white font-sans overflow-hidden">
+        <main className="absolute inset-0 bg-[#070710] text-white font-sans overflow-hidden flex flex-col">
             <GlobalChat initialActivity={initialActivity} />
         </main>
     );

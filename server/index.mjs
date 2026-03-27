@@ -64,17 +64,15 @@ const allowedOrigins = [
   "http://localhost:5173",
   "http://localhost:3000",
   "http://tauri.localhost",  // Tauri desktop app (production build)
-  "tauri://localhost"        // Tauri desktop app (macOS/Linux)
+  "tauri://localhost",        // Tauri desktop app (macOS/Linux)
+  // Temporarily allow all origins for development
+  "*" 
 ];
 
 const corsOptions = {
   origin: function (origin, callback) {
-    if (!origin) return callback(null, true);
-    if (allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      callback(new Error("Not allowed by CORS"));
-    }
+    // Allow all origins temporarily for development
+    return callback(null, true);
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],

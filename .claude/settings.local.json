@@ -54,7 +54,11 @@
       "Bash(grep -oE \"embed\\\\.[^''''\"\"<]{0,100}\")",
       "Bash(curl -s \"https://latanime.org/public/js/capitulo.js?v=2.55\" --max-time 8 -A \"Mozilla/5.0\")",
       "Bash(curl -s \"https://filemoon.sx/e/lfns48dyxk9p\" --max-time 10 -A \"Mozilla/5.0\" -H \"Referer: https://latanime.org/\")",
-      "Bash(curl -s \"https://doodstream.com/e/q3hzqu4wm6jw\" --max-time 10 -A \"Mozilla/5.0\" -L)"
+      "Bash(curl -s \"https://doodstream.com/e/q3hzqu4wm6jw\" --max-time 10 -A \"Mozilla/5.0\" -L)",
+      "mcp__Desktop_Commander__list_directory",
+      "Bash(powershell -Command \"Expand-Archive -Path ''Redesign this.zip'' -DestinationPath ''Redesign_extracted'' -Force\")",
+      "Bash(dir:*)",
+      "Bash(findstr:*)"
     ]
   }
 }

@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { useAuthContext } from '../../contexts/AuthContext';
 import { useEconomy } from '../../contexts/EconomyContext';
@@ -24,9 +24,50 @@ import { getUserDisplayName, getNicknameClass } from '../../utils/user';
 import { useUniverse } from '../../contexts/UniverseContext.jsx';
 import { universeService } from '../../services/universe';
 import { motion, AnimatePresence } from 'framer-motion';
+import SpotifyStreamingPanel from '../../components/SpotifyStreamingPanel';
+import { Spotify } from 'lucide-react';
 import '../../banner-effects.css';
 import '../../styles/NicknameStyles.css';
+import '../../styles/spotify-stats.css';
 import SafeAvatar from '../../components/SafeAvatar';
+
+// Error Boundary Component
+class ErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error, errorInfo) {
+    console.error('[Spotify] Error en SpotifyStreamingPanel:', error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="spotify-error-fallback">
+          <div className="error-card">
+            <Spotify size={48} className="spotify-icon" />
+            <h3>Spotify no disponible</h3>
+            <p>Hubo un error al cargar el panel de Spotify. Intenta recargar la página.</p>
+            <button 
+              onClick={() => window.location.reload()}
+              className="retry-btn"
+            >
+              Reintentar
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    return this.props.children;
+  }
+}
 
 const GAME_NAMES = {
   asteroids: 'Asteroids', tetris: 'Tetris', snake: 'Snake', pong: 'Pong',
@@ -820,7 +861,12 @@ export default function ProfileOwn() {
   const [bio, setBio] = useState('');
   const [isEditingBio, setIsEditingBio] = useState(false);
   const [fetching, setFetching] = useState(false);
-  const [activeTab, setActiveTab] = useState('records');
+  const [activeTab, setActiveTab] = useState('spotify');
+  
+  // Debug para activeTab
+  useEffect(() => {
+    console.log('[Profile] activeTab cambiado a:', activeTab);
+  }, [activeTab]);
   const [activityFilter, setActivityFilter] = useState('all');
   const [posts, setPosts] = useState([]);
   const [followCounts, setFollowCounts] = useState({ followers: 0, following: 0 });
@@ -1237,6 +1283,18 @@ export default function ProfileOwn() {
           {/* Main Content */}
           <main className="lg:col-span-8 space-y-12">
             <nav className="flex gap-8 border-b border-white/5 overflow-x-auto no-scrollbar">
+              {/* Debug: Forzar visibilidad de la tab de Spotify */}
+              {console.log('[Profile] Renderizando navegación de tabs') || null}
+              <TabButton
+                active={activeTab === 'spotify'}
+                onClick={() => {
+                  console.log('[Profile] Click en tab Spotify');
+                  setActiveTab('spotify');
+                }}
+                className="bg-green-500/10 border border-green-500/30"
+              >
+                🎵 Spotify
+              </TabButton>
               <TabButton
                 active={activeTab === 'activity'}
                 onClick={() => setActiveTab('activity')}
@@ -1268,6 +1326,15 @@ export default function ProfileOwn() {
                   transition={{ duration: 0.2 }}
                   className="space-y-12"
                 >
+                  {activeTab === 'spotify' && (
+                    <div className="space-y-8">
+                      {console.log('[Profile] Renderizando tab de Spotify') || null}
+                      <ErrorBoundary>
+                        <SpotifyStreamingPanel />
+                      </ErrorBoundary>
+                    </div>
+                  )}
+
                   {activeTab === 'activity' && (
                     <div className="space-y-12">
                       <PostComposer onPostCreated={(newPost) => window.dispatchEvent(new CustomEvent('activity:new-post', { detail: newPost }))} />
@@ -1405,6 +1472,11 @@ function StatCard({ title, value, icon, highlight = 'text-white' }) {
 }
 
 function TabButton({ active, onClick, onMouseEnter, children }) {
+  // Debug para Spotify tab
+  if (typeof children === 'string' && children.includes('Spotify')) {
+    console.log('[Profile] Renderizando TabButton de Spotify:', { active, children });
+  }
+  
   return (
     <button
       onClick={onClick}

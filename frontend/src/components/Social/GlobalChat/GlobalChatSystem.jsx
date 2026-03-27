@@ -2,7 +2,7 @@
 import { useState, useEffect, useRef, useCallback, lazy, Suspense } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 import { useAuthContext } from '../../../contexts/AuthContext';
 import { useEconomy } from '../../../contexts/EconomyContext';
 import * as economyService from '../../../services/economy';
@@ -26,6 +26,7 @@ const VoiceRoomUI  = lazy(() => import('../../VoiceRoom/VoiceRoomUI'));
 const MissionsPanel  = lazy(() => import('../MissionsPanel'));
 const StellarCalendar = lazy(() => import('../StellarCalendar'));
 const BadgePicker    = lazy(() => import('../BadgePicker'));
+const StellarMap     = lazy(() => import('../../../pages/StellarMap'));
 
 // Spinner reutilizable para los Suspense del chat
 function ChatSpinner() {
@@ -51,7 +52,7 @@ const CHANNELS = [
 ];
 
 export default function GlobalChat({ initialActivity = null }) {
-    const navigate = useNavigate();
+
     const [searchParams, setSearchParams] = useSearchParams();
     const auth = useAuthContext();
     const user = auth?.user;
@@ -72,6 +73,7 @@ export default function GlobalChat({ initialActivity = null }) {
     const [showMissions, setShowMissions] = useState(false);
     const [showCalendar, setShowCalendar] = useState(false);
     const [showBadgePicker, setShowBadgePicker] = useState(false);
+    const [showStellarMap, setShowStellarMap] = useState(false);
     const [selectedProfile, setSelectedProfile] = useState(null);
     const [replyingTo, setReplyingTo] = useState(null);
     const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -1769,7 +1771,7 @@ export default function GlobalChat({ initialActivity = null }) {
                             <Palette size={18} />
                         </button>
                         <button
-                            onClick={() => navigate('/universo')}
+                            onClick={() => setShowStellarMap(true)}
                             className="p-2.5 bg-white/5 border border-white/10 rounded-xl text-cyan-400 hover:bg-cyan-400/10 hover:border-cyan-400/30 transition-all active:scale-95"
                             title="Mapa Estelar"
                         >
@@ -1898,6 +1900,13 @@ export default function GlobalChat({ initialActivity = null }) {
                     channelStats={channelStats}
                 />
             </div>
+
+            {showStellarMap && createPortal(
+                <Suspense fallback={null}>
+                    <StellarMap onClose={() => setShowStellarMap(false)} />
+                </Suspense>,
+                document.body
+            )}
 
             <AnimatePresence>
                 {selectedProfile && <HoloCard key="holocard" profile={selectedProfile} onClose={() => setSelectedProfile(null)} />}
