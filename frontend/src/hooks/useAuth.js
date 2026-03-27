@@ -130,7 +130,7 @@ export default function useAuth() {
         schema: 'public',
         table: 'profiles',
         filter: `id=eq.${session.user.id}`
-      }, (payload) => {
+      }, () => {
         fetchProfile();
       })
       .subscribe();
@@ -170,8 +170,13 @@ export default function useAuth() {
 
     // Si estamos en Tauri, usamos el redirect especial
     if (isTauri) {
-      const tauriUrl = 'http://tauri.localhost/auth/callback';
-      console.log('[Auth] Entorno Tauri detectado, redirect a:', tauriUrl);
+      // En dev mode (localhost:XXXX), el WebView sirve desde localhost, no tauri.localhost.
+      // En producción el WebView usa tauri.localhost como origen.
+      const isDev = typeof import.meta !== 'undefined' && import.meta.env?.DEV;
+      const tauriUrl = isDev
+        ? `${origin}/auth/callback`
+        : 'http://tauri.localhost/auth/callback';
+      console.log('[Auth] Entorno Tauri detectado, redirect a:', tauriUrl, isDev ? '(dev)' : '(prod)');
       return tauriUrl;
     }
 
@@ -220,7 +225,8 @@ export default function useAuth() {
         provider,
         options: {
           redirectTo: redirectUrl,
-          skipBrowserRedirect: isNative,
+          // Para Tauri y Native: skipBrowserRedirect=true para controlar la navegación manualmente
+          skipBrowserRedirect: isTauri || isNative,
           queryParams: {
             prompt: 'select_account'
           }
@@ -231,7 +237,7 @@ export default function useAuth() {
 
       if (error) {
         console.error(`[OAuth] Error en signInWithOAuth:`, error);
-        if (isNative) alert(`Error Supabase OAuth: ${error.message}`);
+        if (isNative || isTauri) alert(`Error Supabase OAuth: ${error.message}`);
         throw error;
       }
 
@@ -250,8 +256,19 @@ export default function useAuth() {
           console.error('[OAuth] No se recibió URL de Supabase');
           alert('Error: Supabase no devolvió una URL para el login móvil.');
         }
+      } else if (isTauri) {
+        // Para Tauri: navegar explícitamente dentro del WebView.
+        // Usar window.location.href directo (no el redirect automático de Supabase)
+        // para asegurar que la navegación ocurre DENTRO del WebView y no en el browser del sistema.
+        if (data?.url) {
+          console.log(`[OAuth] Tauri: navegando WebView a OAuth URL: ${data.url}`);
+          window.location.href = data.url;
+        } else {
+          console.error('[OAuth] Tauri: no se recibió URL de Supabase');
+          alert('Error: Supabase no devolvió una URL para el login.');
+        }
       } else {
-        console.log(`[OAuth] Login ${isTauri ? 'Tauri' : 'web'} iniciado, esperando redirect...`);
+        console.log(`[OAuth] Login web iniciado, esperando redirect...`);
       }
 
     } catch (err) {
@@ -270,7 +287,8 @@ export default function useAuth() {
   const logout = async () => {
     try {
       await supabase.auth.signOut();
-    } catch (e) {
+    } catch (error) {
+      console.error('Logout error:', error);
       // Fallback: clear local storage if sign out fails
       localStorage.removeItem('sb-dwhobtphhacmoogullxk-auth-token');
       window.location.href = '/';
