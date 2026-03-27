@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeRaw from 'rehype-raw';
-import { SpotifyBlock } from './SpotifyBlock';
+import SpotifyStreamingPanel from '../SpotifyStreamingPanel';
 import { MusicOdysseyBlock } from './MusicOdysseyBlock';
 import { RandomFactsBlock } from './RandomFactsBlock';
 import { TimeCapsuleBlock } from './TimeCapsuleBlock';
@@ -40,7 +40,7 @@ export const BlocksRenderer = ({ blocks, userId, isOwn, onEdit, profileData }) =
     const renderBlock = (block) => {
         switch (block.block_type) {
             case 'spotify':
-                return <SpotifyBlock userId={userId} isOwn={isOwn} />;
+                return <SpotifyStreamingPanel userId={userId} isOwn={isOwn} />;
             case 'thought':
                 return (
                     <div className="p-6 md:p-12 rounded-3xl md:rounded-[2.5rem] bg-white/[0.02] border border-white/5 space-y-4 group">

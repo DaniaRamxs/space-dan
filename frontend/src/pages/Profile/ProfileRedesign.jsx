@@ -12,7 +12,6 @@ import { ProfileLayout } from '../../components/ProfileRedesign/ProfileLayout';
 import { ProfileHeader } from '../../components/ProfileRedesign/ProfileHeader';
 import { BlocksRenderer } from '../../components/ProfileRedesign/BlocksRenderer';
 import { ThemeConfigModal } from '../../components/ProfileRedesign/ThemeConfigModal';
-import { SpotifyBlock } from '../../components/ProfileRedesign/SpotifyBlock';
 import SpotifyStreamingPanel from '../../components/SpotifyStreamingPanel';
 import { AffinityMapBlock } from '../../components/ProfileRedesign/AffinityMapBlock';
 import { ResonanciaBlock } from '../../components/ProfileRedesign/ResonanciaBlock';
@@ -555,12 +554,7 @@ export default function ProfileRedesignPage() {
                                             <BioCard bio={profile.bio} />
                                         )}
 
-                                        {/* Radar Sonoro Spotify */}
-                                        {(hasSpotifyBlock || isOwn) && (
-                                            <SpotifyBlock userId={profile?.id} isOwn={isOwn} />
-                                        )}
-
-                                        {/* Estadísticas de Streaming */}
+                                        {/* Frecuencia Spotify */}
                                         {(hasSpotifyBlock || isOwn) && (
                                             <SpotifyStreamingPanel userId={profile?.id} isOwn={isOwn} />
                                         )}
