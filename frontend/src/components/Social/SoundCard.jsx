@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion';
 import { Play, Pause, Music, ExternalLink } from 'lucide-react';
 import { useAudioController } from '../../hooks/useAudioController';
+import { openUrl } from '../../utils/openUrl';
 
 export default function SoundCard({ track }) {
     if (!track) return null;
@@ -20,7 +21,7 @@ export default function SoundCard({ track }) {
             onClick={(e) => {
                 e.stopPropagation();
                 if (!track.preview_url) {
-                    if (spotifyUrl) window.open(spotifyUrl, '_blank', 'noopener,noreferrer');
+                    if (spotifyUrl) openUrl(spotifyUrl);
                     return;
                 }
                 togglePlay();

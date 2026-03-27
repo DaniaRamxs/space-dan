@@ -12,6 +12,7 @@ const Spotify = ({ size = 24, className = '' }) => (
   </svg>
 );
 import { useSpotify } from '../hooks/useSpotify';
+import { openUrl } from '../utils/openUrl';
 import '../styles/spotify-stats.css';
 
 // Detección de plataforma
@@ -149,11 +150,17 @@ function NowPlayingCard({ track }) {
     );
   }
 
+  const spotifyUrl = track.external_urls?.spotify
+    || `https://open.spotify.com/track/${track.id}`;
+
   return (
-    <motion.div 
+    <motion.div
       className="now-playing-card"
       initial={{ opacity: 0, scale: 0.9 }}
       animate={{ opacity: 1, scale: 1 }}
+      onClick={() => openUrl(spotifyUrl)}
+      style={{ cursor: 'pointer' }}
+      title="Abrir en Spotify"
     >
       <div className="track-artwork">
         <img 
@@ -209,12 +216,15 @@ function TopArtists({ artists }) {
   return (
     <div className="top-artists-grid">
       {artists?.slice(0, 6).map((artist, index) => (
-        <motion.div 
+        <motion.div
           key={artist.id}
           className="artist-card"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: index * 0.1 }}
+          onClick={() => openUrl(artist.external_urls?.spotify || `https://open.spotify.com/artist/${artist.id}`)}
+          style={{ cursor: 'pointer' }}
+          title="Abrir en Spotify"
         >
           <div className="artist-rank">#{index + 1}</div>
           <img 
@@ -241,12 +251,15 @@ function TopTracks({ tracks }) {
   return (
     <div className="top-tracks-list">
       {tracks?.slice(0, 10).map((track, index) => (
-        <motion.div 
+        <motion.div
           key={track.id}
           className="track-row"
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ delay: index * 0.05 }}
+          onClick={() => openUrl(track.external_urls?.spotify || `https://open.spotify.com/track/${track.id}`)}
+          style={{ cursor: 'pointer' }}
+          title="Abrir en Spotify"
         >
           <div className="track-rank">{index + 1}</div>
           <img 
@@ -398,7 +411,7 @@ function StreamingStats({ stats }) {
       >
         <h5>Géneros más escuchados</h5>
         <div className="genre-tags">
-          {stats?.topGenres?.map((genre, index) => (
+          {stats?.topGenres?.map((genre) => (
             <span 
               key={genre.name}
               className="genre-tag"

@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../supabaseClient';
+import { openUrl } from '../utils/openUrl';
 
 // Detección de Tauri
 const isTauri = typeof window !== 'undefined' && (
@@ -81,7 +82,7 @@ export function useSpotify({ userId = null, isOwn = true } = {}) {
         })}`;
         
         // Abrir en navegador del sistema
-        window.open(authUrl, '_blank');
+        openUrl(authUrl);
       } else {
         // Web normal - usar Supabase
         const { data, error } = await supabase.functions.invoke('spotify-auth', {
