@@ -72,31 +72,60 @@ export function useSpotify({ userId = null, isOwn = true } = {}) {
     setIsLoading(true);
     try {
       if (isTauri) {
-        // En Tauri, abrir URL directamente
+        // En Tauri: redirigir al sitio web de producción como callback.
+        // No usamos 127.0.0.1 porque el navegador externo no puede conectarse
+        // al proceso Tauri. La web procesa el código y guarda los tokens en Supabase,
+        // y luego detectamos la conexión vía polling.
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error('No hay sesión activa');
+
+        const TAURI_REDIRECT = 'https://www.joinspacely.com/spotify-callback';
         const authUrl = `https://accounts.spotify.com/authorize?${new URLSearchParams({
           response_type: 'code',
           client_id: import.meta.env.VITE_SPOTIFY_CLIENT_ID,
-          scope: 'user-read-currently-playing user-read-playback-state user-top-read user-read-recently-played user-read-playback-position',
-          redirect_uri: import.meta.env.VITE_SPOTIFY_REDIRECT_URI,
-          state: 'tauri_connection'
+          scope: 'user-read-currently-playing user-top-read user-read-private user-read-playback-state user-read-recently-played',
+          redirect_uri: TAURI_REDIRECT,
+          state: user.id
         })}`;
-        
-        // Abrir en navegador del sistema
-        openUrl(authUrl);
-      } else {
-        // Web normal - usar Supabase
-        const { data, error } = await supabase.functions.invoke('spotify-auth', {
-          body: { action: 'connect' }
-        });
 
-        if (error) throw error;
-        
-        window.location.href = data.authUrl;
+        openUrl(authUrl);
+
+        // Polling: detectar cuando la web procesa el callback y guarda la conexión
+        const poll = setInterval(async () => {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('spotify_connected')
+            .eq('id', user.id)
+            .single();
+          if (profile?.spotify_connected) {
+            clearInterval(poll);
+            setIsConnected(true);
+            setIsLoading(false);
+            await fetchSpotifyData();
+          }
+        }, 3000);
+
+        // Cancelar polling tras 3 minutos
+        setTimeout(() => {
+          clearInterval(poll);
+          setIsLoading(false);
+        }, 180000);
+
+        return; // El polling maneja setIsLoading(false) cuando termina
       }
+
+      // Web normal - usar Supabase
+      const { data, error } = await supabase.functions.invoke('spotify-auth', {
+        body: { action: 'connect' }
+      });
+
+      if (error) throw error;
+
+      window.location.href = data.authUrl;
+      setIsLoading(false);
     } catch (error) {
       console.error('[Spotify] Error connecting:', error);
       alert('Error al conectar con Spotify');
-    } finally {
       setIsLoading(false);
     }
   };
