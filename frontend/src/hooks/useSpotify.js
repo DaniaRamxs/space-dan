@@ -52,13 +52,14 @@ export function useSpotify({ userId = null, isOwn = true } = {}) {
       const targetId = userId || user?.id;
       if (!targetId) return;
 
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('spotify_connected, spotify_access_token, spotify_refresh_token')
-        .eq('id', targetId)
-        .single();
+      // El edge function guarda en spotify_connections, no en profiles
+      const { data: connection } = await supabase
+        .from('spotify_connections')
+        .select('user_id, access_token')
+        .eq('user_id', targetId)
+        .maybeSingle();
 
-      if (profile?.spotify_connected) {
+      if (connection?.access_token) {
         setIsConnected(true);
         await fetchSpotifyData();
       }
@@ -92,12 +93,12 @@ export function useSpotify({ userId = null, isOwn = true } = {}) {
 
         // Polling: detectar cuando la web procesa el callback y guarda la conexión
         const poll = setInterval(async () => {
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('spotify_connected')
-            .eq('id', user.id)
-            .single();
-          if (profile?.spotify_connected) {
+          const { data: connection } = await supabase
+            .from('spotify_connections')
+            .select('access_token')
+            .eq('user_id', user.id)
+            .maybeSingle();
+          if (connection?.access_token) {
             clearInterval(poll);
             setIsConnected(true);
             setIsLoading(false);
