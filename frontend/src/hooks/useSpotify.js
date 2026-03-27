@@ -134,24 +134,13 @@ export function useSpotify({ userId = null, isOwn = true } = {}) {
   const disconnectSpotify = async () => {
     if (!isOwn) return;
     try {
-      if (isTauri) {
-        // Limpiar localStorage en Tauri
-        localStorage.removeItem('spotify_access_token');
-        localStorage.removeItem('spotify_refresh_token');
-      } else {
-        // Web normal - usar Supabase
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return;
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
 
-        await supabase
-          .from('profiles')
-          .update({ 
-            spotify_connected: false,
-            spotify_access_token: null,
-            spotify_refresh_token: null 
-          })
-          .eq('id', user.id);
-      }
+      await supabase
+        .from('spotify_connections')
+        .delete()
+        .eq('user_id', user.id);
 
       setIsConnected(false);
       setCurrentlyPlaying(null);
@@ -165,124 +154,17 @@ export function useSpotify({ userId = null, isOwn = true } = {}) {
 
   const fetchSpotifyData = useCallback(async () => {
     try {
-      // En Tauri, usar datos simulados más realistas
-      if (isTauri) {
-        const mockData = {
-          currentlyPlaying: {
-            name: "Swim",
-            artists: [{ name: "BTS" }],
-            album: { name: "Wings", images: [{ url: "/default-album.png" }] },
-            is_playing: true,
-            progress_ms: 45000,
-            duration_ms: 180000
-          },
-          topArtists: [
-            { id: '1', name: 'BTS', images: [{ url: '/default-artist.png' }], followers: { total: 50000000 }, genres: ['K-Pop', 'Pop', 'Hip Hop'] },
-            { id: '2', name: 'Coldplay', images: [{ url: '/default-artist.png' }], followers: { total: 35000000 }, genres: ['Pop', 'Rock', 'Alternative'] },
-            { id: '3', name: 'Billie Eilish', images: [{ url: '/default-artist.png' }], followers: { total: 28000000 }, genres: ['Pop', 'Electronic', 'Alternative'] }
-          ],
-          topTracks: [
-            { 
-              id: '1', 
-              name: 'Swim', 
-              artists: [{ name: 'BTS' }], 
-              album: { images: [{ url: '/default-album.png' }] }, 
-              popularity: 95,
-              hoursPlayed: 80.5,
-              playCount: 1247,
-              firstPlayed: '2024-03-01',
-              lastPlayed: '2024-03-27'
-            },
-            { 
-              id: '2', 
-              name: 'Dynamite', 
-              artists: [{ name: 'BTS' }], 
-              album: { images: [{ url: '/default-album.png' }] }, 
-              popularity: 90,
-              hoursPlayed: 45.2,
-              playCount: 892,
-              firstPlayed: '2024-03-05',
-              lastPlayed: '2024-03-26'
-            },
-            { 
-              id: '3', 
-              name: 'Yellow', 
-              artists: [{ name: 'Coldplay' }], 
-              album: { images: [{ url: '/default-album.png' }] }, 
-              popularity: 88,
-              hoursPlayed: 32.8,
-              playCount: 523,
-              firstPlayed: '2024-03-10',
-              lastPlayed: '2024-03-25'
-            },
-            { 
-              id: '4', 
-              name: 'Bad Guy', 
-              artists: [{ name: 'Billie Eilish' }], 
-              album: { images: [{ url: '/default-album.png' }] }, 
-              popularity: 92,
-              hoursPlayed: 28.4,
-              playCount: 467,
-              firstPlayed: '2024-03-12',
-              lastPlayed: '2024-03-27'
-            }
-          ],
-          streamingStats: {
-            weeklyHours: 24.5,
-            totalHours: 186.7,
-            uniqueTracks: 342,
-            newArtists: 18,
-            genresExplored: 12,
-            topGenres: [
-              { name: 'K-Pop', weight: 1.0, hours: 89.3 },
-              { name: 'Pop', weight: 0.8, hours: 45.2 },
-              { name: 'Alternative', weight: 0.6, hours: 28.7 },
-              { name: 'Electronic', weight: 0.5, hours: 15.8 },
-              { name: 'Rock', weight: 0.4, hours: 7.7 }
-            ],
-            mostPlayedTrack: {
-              name: 'Swim',
-              artists: ['BTS'],
-              hoursPlayed: 80.5,
-              playCount: 1247,
-              percentage: 43.1
-            },
-            mostPlayedArtist: {
-              name: 'BTS',
-              hoursPlayed: 125.8,
-              trackCount: 8,
-              percentage: 67.4
-            },
-            dailyAverage: 6.7,
-            peakDay: '2024-03-15',
-            peakDayHours: 12.4,
-            listeningStreak: 12,
-            topSessions: [
-              { date: '2024-03-15', hours: 12.4, tracks: 156 },
-              { date: '2024-03-22', hours: 8.7, tracks: 98 },
-              { date: '2024-03-20', hours: 7.2, tracks: 87 }
-            ]
-          }
-        };
+      const [playing, artists, tracks, stats] = await Promise.all([
+        fetchCurrentlyPlaying(),
+        fetchTopArtists(),
+        fetchTopTracks(),
+        fetchStreamingStats()
+      ]);
 
-        setCurrentlyPlaying(mockData.currentlyPlaying);
-        setTopArtists(mockData.topArtists);
-        setTopTracks(mockData.topTracks);
-        setStreamingStats(mockData.streamingStats);
-      } else {
-        // Web normal - usar API real
-        const [playing, artists, tracks, stats] = await Promise.all([
-          fetchCurrentlyPlaying(),
-          fetchTopArtists(),
-          fetchTopTracks(),
-          fetchStreamingStats()
-        ]);
-
-        setCurrentlyPlaying(playing);
-        setTopArtists(artists);
-        setTopTracks(tracks);
-        setStreamingStats(stats);
-      }
+      setCurrentlyPlaying(playing);
+      setTopArtists(artists);
+      setTopTracks(tracks);
+      setStreamingStats(stats);
     } catch (error) {
       console.error('[Spotify] Error fetching data:', error);
     }
