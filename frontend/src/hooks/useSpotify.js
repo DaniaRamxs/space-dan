@@ -27,14 +27,16 @@ export function useSpotify({ userId = null, isOwn = true } = {}) {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       const targetId = userId || user?.id;
+      console.log('[Spotify] checkConnection — targetId:', targetId);
       if (!targetId) return;
 
-      // El edge function guarda en spotify_connections, no en profiles
-      const { data: connection } = await supabase
+      const { data: connection, error: connErr } = await supabase
         .from('spotify_connections')
         .select('user_id, access_token')
         .eq('user_id', targetId)
         .maybeSingle();
+
+      console.log('[Spotify] connection row:', connection, 'error:', connErr);
 
       if (connection?.access_token) {
         setIsConnected(true);
@@ -153,14 +155,32 @@ export function useSpotify({ userId = null, isOwn = true } = {}) {
     return user?.id || null;
   };
 
+  // Usar fetch directo con anon key — igual que handleCallback en spotifyService.
+  // supabase.functions.invoke envía el JWT del usuario que el gateway rechaza con 401.
+  const invokeSpotifyApi = async (body) => {
+    const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+    const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
+    const res = await fetch(`${SUPABASE_URL}/functions/v1/spotify-api`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+        'apikey': SUPABASE_ANON_KEY,
+      },
+      body: JSON.stringify(body),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || `HTTP ${res.status}`);
+    }
+    return res.json();
+  };
+
   const fetchCurrentlyPlaying = async () => {
     try {
       const targetId = await resolveUserId();
       if (!targetId) return null;
-      const { data, error } = await supabase.functions.invoke('spotify-api', {
-        body: { action: 'current-playing', userId: targetId }
-      });
-      if (error) throw error;
+      const data = await invokeSpotifyApi({ action: 'current-playing', userId: targetId });
       return data?.item ? { ...data.item, is_playing: data.is_playing, progress_ms: data.progress_ms } : null;
     } catch (error) {
       console.error('[Spotify] Error fetching currently playing:', error);
@@ -172,10 +192,7 @@ export function useSpotify({ userId = null, isOwn = true } = {}) {
     try {
       const targetId = await resolveUserId();
       if (!targetId) return [];
-      const { data, error } = await supabase.functions.invoke('spotify-api', {
-        body: { action: 'top-artists', userId: targetId, limit: 10 }
-      });
-      if (error) throw error;
+      const data = await invokeSpotifyApi({ action: 'top-artists', userId: targetId, limit: 10 });
       return data?.items || [];
     } catch (error) {
       console.error('[Spotify] Error fetching top artists:', error);
@@ -187,10 +204,7 @@ export function useSpotify({ userId = null, isOwn = true } = {}) {
     try {
       const targetId = await resolveUserId();
       if (!targetId) return [];
-      const { data, error } = await supabase.functions.invoke('spotify-api', {
-        body: { action: 'top-tracks', userId: targetId, limit: 10 }
-      });
-      if (error) throw error;
+      const data = await invokeSpotifyApi({ action: 'top-tracks', userId: targetId, limit: 10 });
       return data?.items || [];
     } catch (error) {
       console.error('[Spotify] Error fetching top tracks:', error);
@@ -202,10 +216,7 @@ export function useSpotify({ userId = null, isOwn = true } = {}) {
     try {
       const targetId = await resolveUserId();
       if (!targetId) return null;
-      // Derivar géneros desde los top artistas (Spotify no expone estadísticas de horas)
-      const { data } = await supabase.functions.invoke('spotify-api', {
-        body: { action: 'top-artists', userId: targetId, limit: 20 }
-      });
+      const data = await invokeSpotifyApi({ action: 'top-artists', userId: targetId, limit: 20 });
       const artists = data?.items || [];
       const genreCount = {};
       artists.forEach(a => a.genres?.forEach(g => { genreCount[g] = (genreCount[g] || 0) + 1; }));
