@@ -625,6 +625,11 @@ if (typeof window !== 'undefined' && isTauri && window.location.pathname === '/a
   window.history.replaceState(null, '', recoveredUrl);
 }
 
+if (typeof window !== 'undefined' && isTauri && window.location.pathname === '/spotify-callback') {
+  const recoveredUrl = `/#/spotify-callback${window.location.search}`;
+  window.history.replaceState(null, '', recoveredUrl);
+}
+
 const AppRouter = isTauri ? HashRouter : BrowserRouter;
 
 export default function App() {
