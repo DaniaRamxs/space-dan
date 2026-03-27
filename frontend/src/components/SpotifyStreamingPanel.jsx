@@ -292,113 +292,73 @@ function TopTracks({ tracks }) {
   );
 }
 
-// Componente: Streaming Stats mejorado
+// Componente: Streaming Stats
 function StreamingStats({ stats }) {
   const statCards = [
-    {
-      icon: Clock,
-      label: "Horas esta semana",
-      value: `${stats?.weeklyHours || 0}h`,
-      change: "+12%",
-      positive: true
-    },
-    {
-      icon: Clock,
-      label: "Horas totales",
-      value: `${stats?.totalHours || 0}h`,
-      change: "+24%",
-      positive: true
-    },
-    {
-      icon: Music,
-      label: "Canciones únicas",
-      value: stats?.uniqueTracks || 0,
-      change: "+8%",
-      positive: true
-    },
-    {
-      icon: Users,
-      label: "Artistas descubiertos",
-      value: stats?.newArtists || 0,
-      change: "+15%",
-      positive: true
-    }
+    { icon: Users,     label: "Artistas top",      value: stats?.uniqueArtists ?? '—' },
+    { icon: Music,     label: "Canciones top",      value: stats?.uniqueTracks  ?? '—' },
+    { icon: TrendingUp,label: "Géneros explorados", value: stats?.genresCount   ?? '—' },
+    { icon: Clock,     label: "Popularidad media",  value: stats?.avgPopularity ? `${stats.avgPopularity}%` : '—' },
   ];
 
   return (
     <div className="streaming-stats-grid">
       {statCards.map((stat, index) => (
-        <motion.div 
+        <motion.div
           key={stat.label}
           className="stat-card"
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ delay: index * 0.1 }}
         >
-          <div className="stat-icon">
-            <stat.icon size={24} />
-          </div>
+          <div className="stat-icon"><stat.icon size={24} /></div>
           <div className="stat-content">
             <p className="stat-label">{stat.label}</p>
             <h4 className="stat-value">{stat.value}</h4>
-            <div className={`stat-change ${stat.positive ? 'positive' : 'negative'}`}>
-              <TrendingUp size={16} />
-              <span>{stat.change}</span>
-            </div>
           </div>
         </motion.div>
       ))}
-      
-      {/* Canción Más Escuchada */}
-      {stats?.mostPlayedTrack && (
-        <motion.div 
+
+      {/* Top Artista */}
+      {stats?.topArtist && (
+        <motion.div
           className="most-played-card"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.4 }}
+          initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.4 }}
+          onClick={() => stats.topArtist.url && openUrl(stats.topArtist.url)}
+          style={{ cursor: stats.topArtist.url ? 'pointer' : 'default' }}
         >
-          <h5>🏆 Canción Más Escuchada</h5>
+          <h5>🎤 Artista #1</h5>
           <div className="most-played-content">
+            {stats.topArtist.image && (
+              <img src={stats.topArtist.image} alt={stats.topArtist.name} className="artist-avatar" style={{ width: 48, height: 48, borderRadius: '50%', objectFit: 'cover' }} />
+            )}
             <div className="most-played-info">
-              <h6 className="most-played-name">{stats.mostPlayedTrack.name}</h6>
-              <p className="most-played-artist">{stats.mostPlayedTrack.artists.join(', ')}</p>
-            </div>
-            <div className="most-played-stats">
-              <div className="most-played-hours">
-                <span className="hours-number">{stats.mostPlayedTrack.hoursPlayed}</span>
-                <span className="hours-label">horas</span>
-              </div>
-              <div className="most-played-details">
-                <span>▶️ {stats.mostPlayedTrack.playCount} reproducciones</span>
-                <span>{stats.mostPlayedTrack.percentage}% del total</span>
-              </div>
+              <h6 className="most-played-name">{stats.topArtist.name}</h6>
+              {stats.topArtist.genres && <p className="most-played-artist">{stats.topArtist.genres}</p>}
             </div>
           </div>
         </motion.div>
       )}
 
-      {/* Artista Más Escuchado */}
-      {stats?.mostPlayedArtist && (
-        <motion.div 
-          className="most-played-card artist-card"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.5 }}
+      {/* Top Canción */}
+      {stats?.topTrack && (
+        <motion.div
+          className="most-played-card"
+          initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }}
+          onClick={() => stats.topTrack.url && openUrl(stats.topTrack.url)}
+          style={{ cursor: stats.topTrack.url ? 'pointer' : 'default' }}
         >
-          <h5>🎤 Artista Más Escuchado</h5>
+          <h5>🏆 Canción #1</h5>
           <div className="most-played-content">
+            {stats.topTrack.image && (
+              <img src={stats.topTrack.image} alt={stats.topTrack.name} className="track-thumbnail" style={{ width: 48, height: 48, borderRadius: 8, objectFit: 'cover' }} />
+            )}
             <div className="most-played-info">
-              <h6 className="most-played-name">{stats.mostPlayedArtist.name}</h6>
-              <p className="most-played-artist">{stats.mostPlayedArtist.trackCount} canciones</p>
-            </div>
-            <div className="most-played-stats">
-              <div className="most-played-hours">
-                <span className="hours-number">{stats.mostPlayedArtist.hoursPlayed}</span>
-                <span className="hours-label">horas</span>
-              </div>
-              <div className="most-played-details">
-                <span>{stats.mostPlayedArtist.percentage}% del total</span>
-              </div>
+              <h6 className="most-played-name">{stats.topTrack.name}</h6>
+              <p className="most-played-artist">{stats.topTrack.artist}</p>
+              {stats.topTrack.popularity != null && (
+                <p className="most-played-artist">Popularidad: {stats.topTrack.popularity}%</p>
+              )}
             </div>
           </div>
         </motion.div>

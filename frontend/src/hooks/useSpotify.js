@@ -216,15 +216,48 @@ export function useSpotify({ userId = null, isOwn = true } = {}) {
     try {
       const targetId = await resolveUserId();
       if (!targetId) return null;
-      const data = await invokeSpotifyApi({ action: 'top-artists', userId: targetId, limit: 20 });
-      const artists = data?.items || [];
+
+      const [artistsData, tracksData] = await Promise.all([
+        invokeSpotifyApi({ action: 'top-artists', userId: targetId, limit: 20 }),
+        invokeSpotifyApi({ action: 'top-tracks', userId: targetId, limit: 20 }),
+      ]);
+
+      const artists = artistsData?.items || [];
+      const tracks = tracksData?.items || [];
+
       const genreCount = {};
       artists.forEach(a => a.genres?.forEach(g => { genreCount[g] = (genreCount[g] || 0) + 1; }));
       const topGenres = Object.entries(genreCount)
         .sort((a, b) => b[1] - a[1])
         .slice(0, 8)
         .map(([name, count], _, arr) => ({ name, weight: count / arr[0][1] }));
-      return { topGenres, uniqueTracks: null, weeklyHours: null };
+
+      const topArtist = artists[0] || null;
+      const topTrack = tracks[0] || null;
+      const avgPopularity = tracks.length
+        ? Math.round(tracks.reduce((s, t) => s + (t.popularity || 0), 0) / tracks.length)
+        : 0;
+
+      return {
+        topGenres,
+        uniqueArtists: artists.length,
+        uniqueTracks: tracks.length,
+        genresCount: Object.keys(genreCount).length,
+        avgPopularity,
+        topArtist: topArtist ? {
+          name: topArtist.name,
+          image: topArtist.images?.[0]?.url,
+          genres: topArtist.genres?.slice(0, 2).join(', '),
+          url: topArtist.external_urls?.spotify,
+        } : null,
+        topTrack: topTrack ? {
+          name: topTrack.name,
+          artist: topTrack.artists?.map(a => a.name).join(', '),
+          image: topTrack.album?.images?.[0]?.url,
+          popularity: topTrack.popularity,
+          url: topTrack.external_urls?.spotify,
+        } : null,
+      };
     } catch (error) {
       console.error('[Spotify] Error fetching stats:', error);
       return null;
