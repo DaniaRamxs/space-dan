@@ -381,9 +381,8 @@ function StreamingStats({ stats }) {
                 fontSize: `${0.8 + (genre.weight * 0.4)}rem`,
                 opacity: 0.6 + (genre.weight * 0.4)
               }}
-              title={`${genre.hours} horas`}
             >
-              {genre.name} ({genre.hours}h)
+              {genre.name}
             </span>
           ))}
         </div>
