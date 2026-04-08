@@ -1,6 +1,0 @@
-[build]
-builder = "RAILPACK"
-root = "server"
-
-[deploy]
-startCommand = "node index.mjs"

@@ -6,10 +6,7 @@
 import { supabase, supabaseAdmin, createClientForUser } from '../../../supabaseClient.mjs';
 import WelcomeBot from '../../bots/WelcomeBot.mjs';
 
-const welcomeBot = new WelcomeBot(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_KEY
-);
+const welcomeBot = new WelcomeBot();
 
 export const communitiesService = {
   /**
