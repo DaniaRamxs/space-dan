@@ -10,19 +10,17 @@ export default function RootPage() {
   const router = useRouter()
 
   useEffect(() => {
-    let isNative = false
-    try {
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      const { Capacitor } = require('@capacitor/core')
-      isNative = Capacitor.isNativePlatform()
-    } catch {}
+    // Detect Capacitor native platform (Android/iOS)
+    // Capacitor sets window.Capacitor.isNative = true when running in native WebView
+    const isNative =
+      (typeof (window as any).Capacitor !== 'undefined' && (window as any).Capacitor.isNative === true) ||
+      (typeof (window as any).Capacitor !== 'undefined' && (window as any).Capacitor.isNativePlatform?.())
 
     const isTauri =
-      typeof window !== 'undefined' &&
-      ((window as any).__TAURI_INTERNALS__ !== undefined ||
-        (window as any).__TAURI__ !== undefined ||
-        window.location.hostname === 'tauri.localhost' ||
-        window.location.protocol === 'tauri:')
+      (window as any).__TAURI_INTERNALS__ !== undefined ||
+      (window as any).__TAURI__ !== undefined ||
+      window.location.hostname === 'tauri.localhost' ||
+      window.location.protocol === 'tauri:'
 
     if (isNative || isTauri) {
       router.replace('/posts')
