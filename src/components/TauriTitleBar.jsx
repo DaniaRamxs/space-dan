@@ -3,12 +3,22 @@ import { createPortal } from 'react-dom';
 
 export default function TauriTitleBar() {
   const [isMaximized, setIsMaximized] = useState(false);
+  const [isTauri, setIsTauri] = useState(false);
   const appWindowRef = useRef(null);
 
   useEffect(() => {
     let unlisten = null;
 
     const setup = async () => {
+      const tauriDetected =
+        (window).__TAURI_INTERNALS__ !== undefined ||
+        (window).__TAURI__ !== undefined ||
+        window.location.hostname === 'tauri.localhost' ||
+        window.location.protocol === 'tauri:';
+
+      if (!tauriDetected) return;
+      setIsTauri(true);
+
       const { getCurrentWindow } = await import('@tauri-apps/api/window');
       const appWindow = getCurrentWindow();
       appWindowRef.current = appWindow;
@@ -55,6 +65,8 @@ export default function TauriTitleBar() {
       {children}
     </button>
   );
+
+  if (!isTauri) return null;
 
   return createPortal(
     <div
