@@ -7,7 +7,7 @@ import { supabase } from '@/lib/supabase/client'
  * Ruta raíz — redirige según plataforma y estado de sesión.
  *
  * Web:    → /download  (página de descarga)
- * Nativo/Tauri sin sesión: → /onboarding  (login)
+ * Nativo/Tauri sin sesión: → /login       (pantalla de bienvenida)
  * Nativo/Tauri con sesión: → /posts       (feed principal)
  */
 export default function HomePageClient() {
@@ -36,7 +36,7 @@ export default function HomePageClient() {
         router.replace(session ? '/posts' : '/login')
       } catch {
         // Sin conexión o error — enviar a login por seguridad
-        router.replace('/onboarding')
+        router.replace('/login')
       }
     }
 
