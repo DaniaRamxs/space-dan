@@ -10,18 +10,21 @@
  * useSearchParams, BrowserRouter, HashRouter, Routes, Route (no-ops en Next.js).
  *
  * ─── STATIC EXPORT (Capacitor/Tauri) ─────────────────────────────────────────
- * En `output: 'export'` Next.js solo genera el shell HTML para el placeholder '_'.
- * Ej: transmission/_/index.html  community/_/index.html  _/index.html
+ * En `output: 'export'` Next.js solo genera shells HTML para el placeholder '_'.
+ * Ej: out/transmission/_/index.html   out/community/_/index.html
  *
- * Problema: router.push('/transmission/abc123') intenta cargar el RSC payload
+ * Problema: router.push('/transmission/abc123') intenta cargar RSC payload
  * de esa ruta → no existe → pantalla en blanco.
  *
- * Solución aplicada:
- *   1. useNavigate intercepta rutas dinámicas y navega al placeholder correspondiente
- *      (/transmission/abc123 → /transmission/_) guardando la ruta real en
- *      window.history.state.__realPath ANTES de la navegación.
- *   2. useParams lee __realPath del history.state para obtener el ID real.
- *   3. useLocation también devuelve la ruta real cuando existe __realPath.
+ * Solución: navegar al placeholder con el ID real en query param `_id`:
+ *   navigate('/transmission/abc123')
+ *   → router.push('/transmission/_?_id=abc123&_r=<ts>')
+ *
+ * useParams() lee ?_id del query cuando el param Next.js es '_'.
+ * useLocation() devuelve la ruta lógica reconstruida desde el prefijo + _id.
+ *
+ * Para usernames (/danilord → /_?_u=danilord):
+ *   useParams() devuelve { username: 'danilord' }
  */
 
 import NextLink from 'next/link'
@@ -31,11 +34,10 @@ import {
   useParams as useNextParams,
   useSearchParams as useNextSearchParams,
 } from 'next/navigation'
-import { useEffect, type ComponentProps, type ReactNode } from 'react'
+import { useEffect, useMemo, type ComponentProps, type ReactNode } from 'react'
 
-// ─── Helpers para static export ──────────────────────────────────────────────
+// ─── Constantes de rutas ──────────────────────────────────────────────────────
 
-// Prefijos de rutas estáticas conocidas (no son [username] dinámico)
 const STATIC_PREFIXES = new Set([
   'posts', 'communities', 'community', 'transmission', 'profile', 'game',
   'games', 'spaces', 'chat', 'explorar', 'download', 'login', 'onboarding',
@@ -46,12 +48,10 @@ const STATIC_PREFIXES = new Set([
   'spotify-callback',
 ])
 
-// Prefijos de rutas dinámicas con segundo segmento
 const DYNAMIC_PREFIXES = new Set([
   'transmission', 'community', 'profile', 'game', 'spaces',
 ])
 
-// Mapa prefijo → nombre del parámetro
 const DYNAMIC_ROUTE_MAP: Record<string, string> = {
   transmission: 'postId',
   community: 'slug',
@@ -60,7 +60,8 @@ const DYNAMIC_ROUTE_MAP: Record<string, string> = {
   spaces: 'spaceId',
 }
 
-/** ¿Estamos corriendo dentro de Capacitor o Tauri? */
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
 function isNativePlatform(): boolean {
   if (typeof window === 'undefined') return false
   return (
@@ -73,79 +74,49 @@ function isNativePlatform(): boolean {
 }
 
 /**
- * Convierte una ruta dinámica real al placeholder correcto.
+ * Convierte una ruta dinámica real en la URL del placeholder con query params.
  * Solo actúa en entornos nativos (static export).
- * Devuelve null si no es necesario reescribir.
  *
- * /transmission/abc123  →  /transmission/_
- * /community/tech       →  /community/_
- * /danilord             →  /_
+ * /transmission/abc123  →  /transmission/_?_id=abc123&_r=<ts>
+ * /community/tech       →  /community/_?_id=tech&_r=<ts>
+ * /danilord             →  /_?_u=danilord&_r=<ts>
+ *
+ * Devuelve null si no es necesario reescribir.
  */
-function toPlaceholderPath(to: string): string | null {
+function toPlaceholderUrl(to: string): string | null {
   if (!isNativePlatform()) return null
 
-  const clean = to.split('?')[0].split('#')[0].replace(/\/$/, '')
+  const [pathPart, queryPart] = to.split('?')
+  const clean = pathPart.replace(/\/$/, '')
   const parts = clean.split('/').filter(Boolean)
 
+  const ts = `_r=${Date.now()}`
+  const extra = queryPart ? `&${queryPart}` : ''
+
+  // /transmission/abc123  →  /transmission/_?_id=abc123&_r=<ts>
   if (parts.length >= 2 && DYNAMIC_PREFIXES.has(parts[0]) && parts[1] !== '_') {
-    return `/${parts[0]}/_`
+    return `/${parts[0]}/_?_id=${encodeURIComponent(parts[1])}&${ts}${extra}`
   }
 
+  // /danilord  →  /_?_u=danilord&_r=<ts>
   if (parts.length === 1 && parts[0] !== '_' && !STATIC_PREFIXES.has(parts[0])) {
-    return '/_'
+    return `/_?_u=${encodeURIComponent(parts[0])}&${ts}${extra}`
   }
 
   return null
 }
 
-/**
- * Lee los parámetros reales desde history.state.__realPath o window.location.
- * Se usa como fallback cuando Next.js devuelve el placeholder '_'.
- */
-function parseParamsFromRealPath(): Record<string, string> {
-  if (typeof window === 'undefined') return {}
-
-  // Prioridad: ruta real guardada por useNavigate/Link antes de navegar al placeholder
-  const realPath: string | undefined = (window.history.state as any)?.__realPath
-  const raw = (realPath ?? window.location.pathname).replace(/\/$/, '')
-  const parts = raw.split('/').filter(Boolean)
-
-  if (parts.length === 0) return {}
-
-  const prefix = parts[0]
-
-  // /transmission/abc123 → { postId: 'abc123' }
-  if (parts.length >= 2 && DYNAMIC_ROUTE_MAP[prefix]) {
-    const value = parts[1]
-    if (value && value !== '_') return { [DYNAMIC_ROUTE_MAP[prefix]]: value }
-  }
-
-  // /danilord → { username: 'danilord' }
-  if (parts.length === 1 && !STATIC_PREFIXES.has(prefix) && prefix !== '_') {
-    return { username: prefix }
-  }
-
-  return {}
-}
-
-// ─── Link ────────────────────────────────────────────────────────────────────
+// ─── Link ─────────────────────────────────────────────────────────────────────
 
 type LinkProps = Omit<ComponentProps<typeof NextLink>, 'href'> & { to: string }
 
 export function Link({ to, children, onClick, ...props }: LinkProps) {
+  const placeholder = useMemo(() => toPlaceholderUrl(to), [to])
+
   const handleClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
-    const placeholder = toPlaceholderPath(to)
-    if (placeholder) {
-      // Guardar la ruta real antes de que Next.js navegue al placeholder
-      window.history.replaceState(
-        { ...(window.history.state ?? {}), __realPath: to },
-        '',
-        window.location.href,
-      )
-    }
     onClick?.(e)
   }
-  const placeholder = toPlaceholderPath(to)
+
   return (
     <NextLink href={placeholder ?? to} onClick={handleClick} {...props}>
       {children}
@@ -153,7 +124,7 @@ export function Link({ to, children, onClick, ...props }: LinkProps) {
   )
 }
 
-// ─── NavLink ─────────────────────────────────────────────────────────────────
+// ─── NavLink ──────────────────────────────────────────────────────────────────
 
 type ClassNameFn = (arg: { isActive: boolean }) => string
 type ChildrenFn = (arg: { isActive: boolean }) => ReactNode
@@ -176,89 +147,109 @@ export function NavLink({ to, end, className, children, ...props }: NavLinkProps
   )
 }
 
-// ─── Navigate ────────────────────────────────────────────────────────────────
+// ─── Navigate ─────────────────────────────────────────────────────────────────
 
 export function Navigate({ to, replace }: { to: string; replace?: boolean }) {
   const router = useRouter()
   useEffect(() => {
-    const placeholder = toPlaceholderPath(to)
-    if (placeholder) {
-      window.history.replaceState(
-        { ...(window.history.state ?? {}), __realPath: to },
-        '',
-        window.location.href,
-      )
-      if (replace) router.replace(placeholder)
-      else router.push(placeholder)
-    } else {
-      if (replace) router.replace(to)
-      else router.push(to)
-    }
+    const placeholder = toPlaceholderUrl(to)
+    if (replace) router.replace(placeholder ?? to)
+    else router.push(placeholder ?? to)
   }, [to, replace, router])
   return null
 }
 
-// ─── useLocation ─────────────────────────────────────────────────────────────
+// ─── useLocation ──────────────────────────────────────────────────────────────
 
 export function useLocation() {
   const pathname = usePathname()
-  let search = ''
+  let sp: ReturnType<typeof useNextSearchParams> | null = null
   try {
     // eslint-disable-next-line react-hooks/rules-of-hooks
-    const sp = useNextSearchParams()
-    search = sp?.toString() ? `?${sp.toString()}` : ''
+    sp = useNextSearchParams()
   } catch {
     // fallback when Suspense boundary not present
   }
-  // En native static export, devolver la ruta real si está guardada en history.state
-  const realPath: string | undefined =
-    typeof window !== 'undefined'
-      ? (window.history.state as any)?.__realPath
-      : undefined
-  return { pathname: realPath ?? pathname, search, hash: '' }
+
+  // Reconstruir pathname lógico si venimos de una ruta dinámica reescrita
+  let logicalPathname = pathname
+  if (sp) {
+    const id = sp.get('_id')
+    const u = sp.get('_u')
+    // /transmission/_?_id=abc  → /transmission/abc
+    const segments = (pathname ?? '').replace(/\/$/, '').split('/').filter(Boolean)
+    if (id && segments.length >= 2 && segments[1] === '_') {
+      logicalPathname = `/${segments[0]}/${id}`
+    } else if (u && segments.length === 1 && segments[0] === '_') {
+      logicalPathname = `/${u}`
+    }
+  }
+
+  // Filtrar query params internos (_id, _u, _r) del search visible
+  const search = sp
+    ? (() => {
+        const filtered = new URLSearchParams()
+        sp.forEach((v, k) => { if (!['_id', '_u', '_r'].includes(k)) filtered.set(k, v) })
+        const str = filtered.toString()
+        return str ? `?${str}` : ''
+      })()
+    : ''
+
+  return { pathname: logicalPathname, search, hash: '' }
 }
 
-// ─── useNavigate ─────────────────────────────────────────────────────────────
+// ─── useNavigate ──────────────────────────────────────────────────────────────
 
 export function useNavigate() {
   const router = useRouter()
   return (to: string, options?: { replace?: boolean }) => {
-    const placeholder = toPlaceholderPath(to)
-    if (placeholder) {
-      // Guardar la ruta real en el estado del historial ANTES de navegar al placeholder
-      window.history.replaceState(
-        { ...(window.history.state ?? {}), __realPath: to },
-        '',
-        window.location.href,
-      )
-      // Añadir ?_r=<timestamp> para forzar re-render si ya estamos en el mismo placeholder
-      const sep = placeholder.includes('?') ? '&' : '?'
-      const placeholderWithTs = `${placeholder}${sep}_r=${Date.now()}`
-      if (options?.replace) router.replace(placeholderWithTs)
-      else router.push(placeholderWithTs)
-    } else {
-      if (options?.replace) router.replace(to)
-      else router.push(to)
-    }
+    const placeholder = toPlaceholderUrl(to)
+    if (options?.replace) router.replace(placeholder ?? to)
+    else router.push(placeholder ?? to)
   }
 }
 
-// ─── useParams ───────────────────────────────────────────────────────────────
+// ─── useParams ────────────────────────────────────────────────────────────────
 
 export function useParams<T extends Record<string, string>>() {
   const nextParams = useNextParams() as Record<string, string>
 
-  // Si algún valor es el placeholder '_', intentar obtener el ID real
-  const hasPlaceholder = Object.values(nextParams).some(v => v === '_')
-  if (hasPlaceholder) {
-    const real = parseParamsFromRealPath()
-    if (Object.keys(real).length > 0) return real as T
+  let sp: ReturnType<typeof useNextSearchParams> | null = null
+  try {
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    sp = useNextSearchParams()
+  } catch {
+    // no Suspense boundary — sp permanece null
   }
+
+  // Si algún param es el placeholder '_', leer el ID real del query
+  const hasPlaceholder = Object.values(nextParams).some(v => v === '_')
+  if (!hasPlaceholder || !sp) return nextParams as T
+
+  // Caso: /transmission/_?_id=abc123
+  const id = sp.get('_id')
+  if (id) {
+    // Determinar qué param corresponde según el pathname
+    if (typeof window !== 'undefined') {
+      const segments = window.location.pathname.replace(/\/$/, '').split('/').filter(Boolean)
+      const prefix = segments[0]
+      if (prefix && DYNAMIC_ROUTE_MAP[prefix]) {
+        return { [DYNAMIC_ROUTE_MAP[prefix]]: id } as T
+      }
+    }
+    // Fallback: devolver el primer param con el valor real
+    const firstKey = Object.keys(nextParams)[0]
+    if (firstKey) return { [firstKey]: id } as T
+  }
+
+  // Caso: /_?_u=danilord (username)
+  const u = sp.get('_u')
+  if (u) return { username: u } as unknown as T
 
   return nextParams as T
 }
 
-// ─── useSearchParams ─────────────────────────────────────────────────────────
+// ─── useSearchParams ──────────────────────────────────────────────────────────
 
 export { useNextSearchParams as useSearchParams }
 
@@ -276,7 +267,6 @@ export function MemoryRouter({ children }: { children: ReactNode }) {
   return <>{children}</>
 }
 
-// Routes y Route son no-ops: Next.js gestiona el routing por filesystem.
 export function Routes({ children }: { children: ReactNode }) {
   return <>{children}</>
 }
@@ -285,5 +275,4 @@ export function Route({ element }: { path?: string; element?: ReactNode; childre
   return <>{element}</>
 }
 
-// AnimatePresence re-export (framer-motion) — usado en App.jsx junto a Routes
 export { AnimatePresence } from 'framer-motion'
