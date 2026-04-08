@@ -24,17 +24,20 @@ export function Link({ to, children, ...props }: LinkProps) {
 
 // ─── NavLink ─────────────────────────────────────────────────────────────────
 
+type ClassNameFn = (arg: { isActive: boolean }) => string
+type ChildrenFn = (arg: { isActive: boolean }) => ReactNode
+
 type NavLinkProps = LinkProps & {
   end?: boolean
-  className?: string | (({ isActive }: { isActive: boolean }) => string)
-  children?: ReactNode | (({ isActive }: { isActive: boolean }) => ReactNode)
+  className?: string | ClassNameFn
+  children?: ReactNode | ChildrenFn
 }
 
 export function NavLink({ to, end, className, children, ...props }: NavLinkProps) {
   const pathname = usePathname()
-  const isActive = end ? pathname === to : pathname.startsWith(to)
-  const resolvedClass = typeof className === 'function' ? className({ isActive }) : className
-  const resolvedChildren = typeof children === 'function' ? children({ isActive }) : children
+  const isActive = end ? pathname === to : (pathname?.startsWith(to) ?? false)
+  const resolvedClass = typeof className === 'function' ? (className as ClassNameFn)({ isActive }) : className
+  const resolvedChildren = typeof children === 'function' ? (children as ChildrenFn)({ isActive }) : children
   return (
     <NextLink href={to} className={resolvedClass} {...props}>
       {resolvedChildren}
@@ -62,7 +65,7 @@ export function useLocation() {
   try {
     // eslint-disable-next-line react-hooks/rules-of-hooks
     const sp = useNextSearchParams()
-    search = sp.toString() ? `?${sp.toString()}` : ''
+    search = sp?.toString() ? `?${sp.toString()}` : ''
   } catch {
     // fallback when Suspense boundary not present
   }

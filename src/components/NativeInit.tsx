@@ -99,7 +99,7 @@ async function initMobileAuth() {
 async function initNative() {
   try {
     const { StatusBar, Style } = await import('@capacitor/status-bar')
-    const { Keyboard } = await import('@capacitor/keyboard')
+    const { Keyboard, KeyboardResize } = await import('@capacitor/keyboard')
     const { SplashScreen } = await import('@capacitor/splash-screen')
     const { App: CapacitorApp } = await import('@capacitor/app')
 
@@ -107,7 +107,7 @@ async function initNative() {
     await StatusBar.setBackgroundColor({ color: '#050510' })
     await StatusBar.setOverlaysWebView({ overlay: false })
 
-    Keyboard.setResizeMode({ mode: 'body' })
+    Keyboard.setResizeMode({ mode: KeyboardResize.Body })
 
     setTimeout(() => SplashScreen.hide({ fadeOutDuration: 300 }), 400)
 

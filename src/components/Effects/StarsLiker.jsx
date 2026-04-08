@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useEffect } from 'react';
 import { animate } from 'animejs';
 
 const StarsLiker = () => {
@@ -50,7 +50,9 @@ const StarsLiker = () => {
         });
     }, []);
 
-    window.triggerLikeStar = triggerStar;
+    useEffect(() => {
+        window.triggerLikeStar = triggerStar;
+    }, [triggerStar]);
 
     return null;
 };

@@ -1,25 +1,26 @@
 'use client'
 /**
  * Layout del área principal de Spacely.
- * Envuelve todas las rutas con GardenLayout (sidebar, nav, chat flotante, trackers).
+ * force-dynamic: evita prerender estático — estos componentes son client-only.
+ * Todos los componentes son ssr:false porque usan window/navigator al inicializar.
  */
+export const dynamic = 'force-dynamic'
 import { Suspense } from 'react'
-import GardenLayout from '@/layouts/GardenLayout'
-import AchievementToast from '@/components/AchievementToast'
-import StellarOnboarding from '@/components/Social/StellarOnboarding'
-import RedemptionInvite from '@/components/Social/RedemptionInvite'
-import TycoonInvite from '@/components/Social/TycoonInvite'
-import ScrollToTop from '@/components/ScrollToTop'
-import StarfieldBg from '@/components/StarfieldBg'
-import ClickRipple from '@/components/ClickRipple'
-import ActivityRadar from '@/components/ActivityRadar'
-import WelcomeExperience from '@/components/WelcomeExperience'
-import PageTransition from '@/components/PageTransition'
-import { isTauri } from '@/lib/supabase/client'
+import loadDynamic from 'next/dynamic'
 import { AppTrackers } from './AppTrackers'
-import dynamic from 'next/dynamic'
 
-const TauriTitleBar = dynamic(() => import('@/components/TauriTitleBar'), { ssr: false })
+const GardenLayout      = loadDynamic(() => import('@/layouts/GardenLayout'),                        { ssr: false })
+const AchievementToast  = loadDynamic(() => import('@/components/AchievementToast'),                 { ssr: false })
+const StellarOnboarding = loadDynamic(() => import('@/components/Social/StellarOnboarding'),         { ssr: false })
+const RedemptionInvite  = loadDynamic(() => import('@/components/Social/RedemptionInvite'),          { ssr: false })
+const TycoonInvite      = loadDynamic(() => import('@/components/Social/TycoonInvite'),              { ssr: false })
+const ScrollToTop       = loadDynamic(() => import('@/components/ScrollToTop'),                      { ssr: false })
+const ActivityRadar     = loadDynamic(() => import('@/components/ActivityRadar'),                    { ssr: false })
+const WelcomeExperience = loadDynamic(() => import('@/components/WelcomeExperience'),                { ssr: false })
+const PageTransition    = loadDynamic(() => import('@/components/PageTransition'),                   { ssr: false })
+const StarfieldBg       = loadDynamic(() => import('@/components/StarfieldBg'),                      { ssr: false })
+const ClickRipple       = loadDynamic(() => import('@/components/ClickRipple'),                      { ssr: false })
+const TauriTitleBar     = loadDynamic(() => import('@/components/TauriTitleBar'),                    { ssr: false })
 
 function FallbackLoader() {
   return (
@@ -36,7 +37,7 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
       <ClickRipple />
       <div className="scanline-overlay opacity-[0.03] fixed inset-0 pointer-events-none z-[99999]" />
 
-      {isTauri && <TauriTitleBar />}
+      <TauriTitleBar />
 
       <AchievementToast />
       <ActivityRadar />
