@@ -3,7 +3,8 @@
   "appName": "Spacely",
   "webDir": "out",
   "server": {
-    "androidScheme": "https"
+    "url": "https://joinspacely.com",
+    "cleartext": false
   },
   "android": {
     "path": "android"
