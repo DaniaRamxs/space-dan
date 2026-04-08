@@ -1,8 +1,5 @@
-'use client'
-import dynamic from 'next/dynamic'
-
-const DesktopPage = dynamic(() => import('@/pages/DesktopPage'), { ssr: false })
+import DesktopPageClient from './client'
 
 export default function Page() {
-  return <DesktopPage />
+  return <DesktopPageClient />
 }

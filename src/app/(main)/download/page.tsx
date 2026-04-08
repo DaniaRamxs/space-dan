@@ -1,8 +1,5 @@
-'use client'
-import dynamic from 'next/dynamic'
-
-const DownloadPage = dynamic(() => import('@/pages/DownloadPage'), { ssr: false })
+import DownloadPageClient from './client'
 
 export default function Page() {
-  return <DownloadPage />
+  return <DownloadPageClient />
 }

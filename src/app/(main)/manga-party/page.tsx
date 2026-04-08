@@ -1,8 +1,5 @@
-'use client'
-import dynamic from 'next/dynamic'
-
-const MangaPartyPage = dynamic(() => import('@/spacely-features/manga/MangaPartyPage'), { ssr: false })
+import MangaPartyPageClient from './client'
 
 export default function Page() {
-  return <MangaPartyPage />
+  return <MangaPartyPageClient />
 }

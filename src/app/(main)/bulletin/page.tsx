@@ -1,8 +1,5 @@
-'use client'
-import dynamic from 'next/dynamic'
-
-const BulletinPage = dynamic(() => import('@/pages/BulletinPage'), { ssr: false })
+import BulletinPageClient from './client'
 
 export default function Page() {
-  return <BulletinPage />
+  return <BulletinPageClient />
 }

@@ -1,8 +1,5 @@
-'use client'
-import dynamic from 'next/dynamic'
-
-const SpotifyCallback = dynamic(() => import('@/pages/SpotifyCallback'), { ssr: false })
+import SpotifyCallbackPageClient from './client'
 
 export default function Page() {
-  return <SpotifyCallback />
+  return <SpotifyCallbackPageClient />
 }

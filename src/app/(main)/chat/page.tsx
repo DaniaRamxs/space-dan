@@ -1,8 +1,5 @@
-'use client'
-import dynamic from 'next/dynamic'
-
-const GlobalChatPage = dynamic(() => import('@/pages/GlobalChatPage'), { ssr: false })
+import ChatPageClient from './client'
 
 export default function Page() {
-  return <GlobalChatPage />
+  return <ChatPageClient />
 }

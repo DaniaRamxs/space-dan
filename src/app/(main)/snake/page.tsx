@@ -1,8 +1,5 @@
-'use client'
-import dynamic from 'next/dynamic'
-
-const SnakeGame = dynamic(() => import('@/components/SnakeGame'), { ssr: false })
+import SnakePageClient from './client'
 
 export default function Page() {
-  return <SnakeGame />
+  return <SnakePageClient />
 }

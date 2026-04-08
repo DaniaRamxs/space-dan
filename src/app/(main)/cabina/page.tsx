@@ -1,8 +1,5 @@
-'use client'
-import dynamic from 'next/dynamic'
-
-const SpaceCabinPage = dynamic(() => import('@/pages/SpaceCabinPage'), { ssr: false })
+import CabinaPageClient from './client'
 
 export default function Page() {
-  return <SpaceCabinPage />
+  return <CabinaPageClient />
 }

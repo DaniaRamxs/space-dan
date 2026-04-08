@@ -1,8 +1,5 @@
-'use client'
-import dynamic from 'next/dynamic'
-
-const InventoryPage = dynamic(() => import('@/pages/InventoryPage'), { ssr: false })
+import InventoryPageClient from './client'
 
 export default function Page() {
-  return <InventoryPage />
+  return <InventoryPageClient />
 }

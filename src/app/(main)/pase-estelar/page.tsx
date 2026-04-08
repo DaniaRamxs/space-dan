@@ -1,8 +1,5 @@
-'use client'
-import dynamic from 'next/dynamic'
-
-const StellarPassPage = dynamic(() => import('@/pages/StellarPassPage'), { ssr: false })
+import PaseEstelarPageClient from './client'
 
 export default function Page() {
-  return <StellarPassPage />
+  return <PaseEstelarPageClient />
 }

@@ -1,8 +1,5 @@
-'use client'
-import dynamic from 'next/dynamic'
-
-const BlackMarketPage = dynamic(() => import('@/pages/BlackMarketPage'), { ssr: false })
+import MercadoNegroPageClient from './client'
 
 export default function Page() {
-  return <BlackMarketPage />
+  return <MercadoNegroPageClient />
 }

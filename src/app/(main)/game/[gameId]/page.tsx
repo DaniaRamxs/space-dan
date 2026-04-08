@@ -1,8 +1,11 @@
-'use client'
-import dynamic from 'next/dynamic'
+import GamePageClient from './client'
 
-const GamesPage = dynamic(() => import('@/pages/GamesPage'), { ssr: false })
+export function generateStaticParams() {
+  return [{ gameId: '_' }]
+}
+
+export const dynamicParams = false
 
 export default function Page() {
-  return <GamesPage />
+  return <GamePageClient />
 }

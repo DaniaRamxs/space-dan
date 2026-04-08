@@ -1,8 +1,5 @@
-'use client'
-import dynamic from 'next/dynamic'
-
-const ProfileRedesign = dynamic(() => import('@/pages/Profile/ProfileRedesign'), { ssr: false })
+import ProfilePageClient from './client'
 
 export default function Page() {
-  return <ProfileRedesign />
+  return <ProfilePageClient />
 }

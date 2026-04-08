@@ -1,8 +1,5 @@
-'use client'
-import dynamic from 'next/dynamic'
-
-const OrbitLettersPage = dynamic(() => import('@/pages/OrbitLettersPage'), { ssr: false })
+import CartasPageClient from './client'
 
 export default function Page() {
-  return <OrbitLettersPage />
+  return <CartasPageClient />
 }

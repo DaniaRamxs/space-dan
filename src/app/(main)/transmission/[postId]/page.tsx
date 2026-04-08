@@ -1,8 +1,11 @@
-'use client'
-import dynamic from 'next/dynamic'
+import TransmissionPageClient from './client'
 
-const PostDetailPage = dynamic(() => import('@/pages/PostDetailPage'), { ssr: false })
+export function generateStaticParams() {
+  return [{ postId: '_' }]
+}
+
+export const dynamicParams = false
 
 export default function Page() {
-  return <PostDetailPage />
+  return <TransmissionPageClient />
 }

@@ -1,8 +1,11 @@
-'use client'
-import dynamic from 'next/dynamic'
+import SpacesPageClient from './client'
 
-const SpaceSessionPage = dynamic(() => import('@/pages/SpaceSessionPage'), { ssr: false })
+export function generateStaticParams() {
+  return [{ spaceId: '_' }]
+}
+
+export const dynamicParams = false
 
 export default function Page() {
-  return <SpaceSessionPage />
+  return <SpacesPageClient />
 }

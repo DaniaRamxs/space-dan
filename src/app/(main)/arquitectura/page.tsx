@@ -1,8 +1,5 @@
-'use client'
-import dynamic from 'next/dynamic'
-
-const ArquitecturaPage = dynamic(() => import('@/pages/ArquitecturaPage'), { ssr: false })
+import ArquitecturaPageClient from './client'
 
 export default function Page() {
-  return <ArquitecturaPage />
+  return <ArquitecturaPageClient />
 }

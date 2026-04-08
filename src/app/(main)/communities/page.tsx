@@ -1,8 +1,5 @@
-'use client'
-import dynamic from 'next/dynamic'
-
-const CommunitiesPage = dynamic(() => import('@/pages/CommunitiesPage'), { ssr: false })
+import CommunitiesPageClient from './client'
 
 export default function Page() {
-  return <CommunitiesPage />
+  return <CommunitiesPageClient />
 }

@@ -1,8 +1,5 @@
-'use client'
-import dynamic from 'next/dynamic'
-
-const ExplorePage = dynamic(() => import('@/pages/ExplorePage'), { ssr: false })
+import ExplorarPageClient from './client'
 
 export default function Page() {
-  return <ExplorePage />
+  return <ExplorarPageClient />
 }

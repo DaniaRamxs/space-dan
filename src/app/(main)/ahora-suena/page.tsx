@@ -1,8 +1,5 @@
-'use client'
-import dynamic from 'next/dynamic'
-
-const GlobalMusicFeedPage = dynamic(() => import('@/pages/GlobalMusicFeedPage'), { ssr: false })
+import AhoraSuenaPageClient from './client'
 
 export default function Page() {
-  return <GlobalMusicFeedPage />
+  return <AhoraSuenaPageClient />
 }

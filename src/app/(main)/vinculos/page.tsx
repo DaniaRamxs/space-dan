@@ -1,8 +1,5 @@
-'use client'
-import dynamic from 'next/dynamic'
-
-const VinculosPage = dynamic(() => import('@/pages/VinculosPage'), { ssr: false })
+import VinculosPageClient from './client'
 
 export default function Page() {
-  return <VinculosPage />
+  return <VinculosPageClient />
 }

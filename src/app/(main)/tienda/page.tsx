@@ -1,8 +1,5 @@
-'use client'
-import dynamic from 'next/dynamic'
-
-const ShopPage = dynamic(() => import('@/pages/ShopPage'), { ssr: false })
+import TiendaPageClient from './client'
 
 export default function Page() {
-  return <ShopPage />
+  return <TiendaPageClient />
 }

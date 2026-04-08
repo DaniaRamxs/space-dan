@@ -1,8 +1,5 @@
-'use client'
-import dynamic from 'next/dynamic'
-
-const FocusRoom = dynamic(() => import('@/pages/FocusRoom'), { ssr: false })
+import FocoPageClient from './client'
 
 export default function Page() {
-  return <FocusRoom />
+  return <FocoPageClient />
 }

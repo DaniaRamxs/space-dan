@@ -1,8 +1,5 @@
-'use client'
-import dynamic from 'next/dynamic'
-
-const VaultPage = dynamic(() => import('@/pages/VaultPage'), { ssr: false })
+import VaultPageClient from './client'
 
 export default function Page() {
-  return <VaultPage />
+  return <VaultPageClient />
 }

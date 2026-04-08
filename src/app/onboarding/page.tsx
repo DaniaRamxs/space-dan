@@ -1,8 +1,5 @@
-'use client'
-import dynamic from 'next/dynamic'
-
-const OnboardingPage = dynamic(() => import('@/pages/OnboardingPage'), { ssr: false })
+import OnboardingPageClient from './client'
 
 export default function Page() {
-  return <OnboardingPage />
+  return <OnboardingPageClient />
 }

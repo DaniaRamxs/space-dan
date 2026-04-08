@@ -43,7 +43,10 @@ const capacitorStorage = {
 
 function buildClient() {
   if (typeof window === 'undefined') {
-    // SSR: cliente mínimo sin storage
+    // SSR/static build: return null-safe stub; all real usage is client-side
+    if (!supabaseUrl || !supabaseAnonKey) {
+      return null as unknown as ReturnType<typeof _createClient>
+    }
     return _createClient(supabaseUrl, supabaseAnonKey)
   }
 

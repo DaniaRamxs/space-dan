@@ -1,8 +1,5 @@
-'use client'
-import dynamic from 'next/dynamic'
-
-const AffinityPage = dynamic(() => import('@/pages/AffinityPage'), { ssr: false })
+import AfinidadPageClient from './client'
 
 export default function Page() {
-  return <AffinityPage />
+  return <AfinidadPageClient />
 }

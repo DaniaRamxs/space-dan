@@ -1,8 +1,11 @@
-'use client'
-import dynamic from 'next/dynamic'
+import CommunityPageClient from './client'
 
-const CommunityChannelsPage = dynamic(() => import('@/pages/CommunityChannelsPage'), { ssr: false })
+export function generateStaticParams() {
+  return [{ slug: '_' }]
+}
+
+export const dynamicParams = false
 
 export default function Page() {
-  return <CommunityChannelsPage />
+  return <CommunityPageClient />
 }

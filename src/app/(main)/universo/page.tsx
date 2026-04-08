@@ -1,8 +1,5 @@
-'use client'
-import dynamic from 'next/dynamic'
-
-const UniversoPage = dynamic(() => import('@/pages/UniversoPage'), { ssr: false })
+import UniversoPageClient from './client'
 
 export default function Page() {
-  return <UniversoPage />
+  return <UniversoPageClient />
 }

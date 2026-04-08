@@ -1,8 +1,5 @@
-'use client'
-import dynamic from 'next/dynamic'
-
-const AnimeSpacePage = dynamic(() => import('@/spacely-features/anime/AstroPartyPage'), { ssr: false })
+import AnimePageClient from './client'
 
 export default function Page() {
-  return <AnimeSpacePage onClose={() => {}} roomName="" />
+  return <AnimePageClient />
 }
