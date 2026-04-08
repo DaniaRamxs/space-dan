@@ -3,8 +3,9 @@
   "appName": "Spacely",
   "webDir": "out",
   "server": {
-    "url": "https://joinspacely.com",
-    "cleartext": false
+    "url": "https://joinspacely.com/posts",
+    "cleartext": false,
+    "allowNavigation": ["joinspacely.com", "*.joinspacely.com"]
   },
   "android": {
     "path": "android"
