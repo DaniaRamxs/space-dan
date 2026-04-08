@@ -35,6 +35,7 @@ function PresenceTracker() {
   useEffect(() => {
     if (!profile || !isPresenceReady || !updatePresence) return
     const getBaseStatus = () => {
+      if (!pathname) return 'NAVEGANDO POR SPACELY'
       if (pathname === '/chat') return 'EN EL CHAT GLOBAL 💬'
       if (pathname === '/cabina') return 'EN LA CABINA DE MANDO 🚀'
       if (pathname === '/desktop') return 'OPERANDO SPACE-OS 💻'
