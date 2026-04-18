@@ -3526,6 +3526,13 @@ textarea,
   box-shadow: 0 0 10px rgba(255, 0, 255, 0.22);
 }
 
+.watchFilterCount {
+  opacity: 0.5;
+  font-size: 10px;
+  font-weight: 500;
+  margin-left: 3px;
+}
+
 .watchGrid {
   display: grid;
   grid-template-columns: 1fr;

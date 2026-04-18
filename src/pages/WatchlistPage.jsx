@@ -158,6 +158,12 @@ const WATCHLIST = [
 
 const FILTERS = ['todos', 'serie', 'manga', 'pelicula'];
 
+function countFor(type) {
+  return type === 'todos'
+    ? WATCHLIST.length
+    : WATCHLIST.filter(w => w.type === type).length;
+}
+
 function Stars({ n }) {
   if (n === 0) return null;
   return <span className="watchStars">★ {n}</span>;
@@ -184,7 +190,7 @@ export default function WatchlistPage() {
             className={`watchFilterBtn${filter === f ? ' active' : ''}`}
             onClick={() => setFilter(f)}
           >
-            {f}
+            {f} <span className="watchFilterCount">{countFor(f)}</span>
           </button>
         ))}
       </div>
