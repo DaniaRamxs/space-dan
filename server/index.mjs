@@ -65,14 +65,18 @@ const allowedOrigins = [
   "http://localhost:3000",
   "http://tauri.localhost",  // Tauri desktop app (production build)
   "tauri://localhost",        // Tauri desktop app (macOS/Linux)
-  // Temporarily allow all origins for development
-  "*" 
 ];
 
 const corsOptions = {
   origin: function (origin, callback) {
-    // Allow all origins temporarily for development
-    return callback(null, true);
+    // No origin = curl / Postman / mobile native app — allow in dev, block in prod
+    if (!origin) {
+      return IS_PROD
+        ? callback(new Error('CORS: origin header required in production'))
+        : callback(null, true);
+    }
+    if (allowedOrigins.includes(origin)) return callback(null, true);
+    return callback(new Error(`CORS: origin '${origin}' not allowed`));
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
@@ -197,29 +201,6 @@ app.use("/api/manga", mangaRoutes);
 
 console.log('[ROUTES] Social API mounted: /api/communities, /api/activities');
 console.log('[ROUTES] Audio API mounted: /api/audio');
-
-// Debug endpoint to list all routes
-app.get("/api/debug/routes", (req, res) => {
-  const routes = [];
-  app._router.stack.forEach((middleware) => {
-    if (middleware.route) {
-      routes.push({
-        path: middleware.route.path,
-        methods: Object.keys(middleware.route.methods)
-      });
-    } else if (middleware.name === 'router') {
-      middleware.handle.stack.forEach((handler) => {
-        if (handler.route) {
-          routes.push({
-            path: handler.route.path,
-            methods: Object.keys(handler.route.methods)
-          });
-        }
-      });
-    }
-  });
-  res.json({ routes, socialModuleLoaded: !!socialRoutes });
-});
 
 /* ==================== HTTP SERVER ==================== */
 
