@@ -1304,15 +1304,12 @@ textarea,
   
   /* Fixed input container for mobile */
   .chat-input-fixed {
-    position: fixed !important;
-    bottom: 0 !important;
-    left: 0 !important;
-    right: 0 !important;
+    /* position:fixed removed — breaks flex layout and causes gray gap when keyboard opens.
+       shrink-0 on the parent element keeps this anchored to bottom of the flex column.
+       resize:"native" in capacitor.config.json shrinks the WebView above the keyboard. */
     background: rgba(15, 15, 19, 0.98) !important;
-    backdrop-filter: blur(10px) !important;
     border-top: 1px solid rgba(255, 255, 255, 0.1) !important;
     padding: 8px 12px !important;
-    z-index: 30 !important;
   }
   
   /* Adjust input container on mobile */
