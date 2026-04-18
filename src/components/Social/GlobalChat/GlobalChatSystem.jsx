@@ -20,6 +20,7 @@ import { missionService } from '../../../services/missionService';
 import { Trophy, Map, Calendar, Palette } from 'lucide-react';
 import ChatSidebar from './ChatSidebar';
 import '../../../styles/GlobalChat.css';
+import { ErrorBoundary } from '../../ErrorBoundary';
 
 // Lazy: solo se cargan cuando el usuario los abre (no al entrar al chat)
 const VoiceRoomUI  = lazy(() => import('../../VoiceRoom/VoiceRoomUI'));
@@ -33,6 +34,21 @@ function ChatSpinner() {
     return (
         <div className="flex items-center justify-center p-8">
             <div className="w-6 h-6 border-2 border-cyan-500/20 border-t-cyan-500 rounded-full animate-spin" />
+        </div>
+    );
+}
+
+// Auto-retry cuando VoiceRoomUI crashea — reconecta sin sacar al usuario
+function VoiceRoomAutoRetry({ reset }) {
+    useEffect(() => {
+        const timer = setTimeout(reset, 3000);
+        return () => clearTimeout(timer);
+    }, [reset]);
+
+    return (
+        <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-[10000] flex items-center gap-2 bg-[#0a0a1a]/90 border border-cyan-500/20 rounded-xl px-4 py-2 backdrop-blur-md">
+            <div className="w-3 h-3 border border-cyan-500/40 border-t-cyan-400 rounded-full animate-spin flex-shrink-0" />
+            <span className="text-cyan-400 text-xs font-bold">Reconectando sala de voz...</span>
         </div>
     );
 }
@@ -269,10 +285,10 @@ export default function GlobalChat({ initialActivity = null }) {
     }, [initialActivity, user, hasJoinedVoice]);
 
     useEffect(() => {
-        loadMessages(activeChannel);
-
+        let isMounted = true;
         // Limpiar IDs procesados al cambiar de canal para recargar
         processedIds.current = new Set();
+        loadMessages(activeChannel, isMounted);
 
         const channel = supabase
             .channel(`global-chat-${activeChannel}`)
@@ -282,11 +298,12 @@ export default function GlobalChat({ initialActivity = null }) {
                 table: 'global_chat',
                 filter: `channel_id=eq.${activeChannel}`
             }, (payload) => {
-                handleNewMessage(payload.new.id);
+                if (isMounted) handleNewMessage(payload.new.id);
             })
             .subscribe();
 
         return () => {
+            isMounted = false;
             supabase.removeChannel(channel);
         };
     }, [user?.id, activeChannel]);
@@ -307,17 +324,18 @@ export default function GlobalChat({ initialActivity = null }) {
         return () => clearInterval(interval);
     }, [user]); // eslint-disable-line react-hooks/exhaustive-deps
 
-    const loadMessages = async (chanId) => {
+    const loadMessages = async (chanId, isMounted = true) => {
         setLoading(true);
         try {
             const data = await chatService.getRecentMessages(50, chanId);
+            if (!isMounted) return;
             const msgs = Array.isArray(data) ? data : [];
             setMessages(msgs);
             msgs.forEach(m => processedIds.current.add(m.id));
         } catch (err) {
             console.error('[GlobalChat] Load Error:', err);
         } finally {
-            setLoading(false);
+            if (isMounted) setLoading(false);
         }
     };
 
@@ -1929,23 +1947,25 @@ export default function GlobalChat({ initialActivity = null }) {
 
             {/* VoiceRoomUI fuera de AnimatePresence para evitar desmontaje accidental */}
             {hasJoinedVoice && (
-                <Suspense fallback={<ChatSpinner />}>
-                    <VoiceRoomUI
-                        key="voice-room"
-                        roomName={voiceRoomName}
-                        isOpen={showVoiceRoom}
-                        onMinimize={() => setShowVoiceRoom(false)}
-                        onExpand={() => setShowVoiceRoom(true)}
-                        onLeave={handleLeaveVoice}
-                        onConnected={() => { setInVoiceRoom(true); updatePresence({ inVoice: true, voiceRoom: voiceRoomName }); }}
-                        userAvatar={userProfile?.avatar_url}
-                        nicknameStyle={userProfile?.equipped_nickname_style}
-                        frameId={userProfile?.frame_item_id}
-                        userName={userProfile?.username}
-                        activityLevel={userProfile?.activity_level}
-                        initialPersonalActivity={initialActivity}
-                    />
-                </Suspense>
+                <ErrorBoundary fallback={({ reset }) => <VoiceRoomAutoRetry reset={reset} />}>
+                    <Suspense fallback={<ChatSpinner />}>
+                        <VoiceRoomUI
+                            key="voice-room"
+                            roomName={voiceRoomName}
+                            isOpen={showVoiceRoom}
+                            onMinimize={() => setShowVoiceRoom(false)}
+                            onExpand={() => setShowVoiceRoom(true)}
+                            onLeave={handleLeaveVoice}
+                            onConnected={() => { setInVoiceRoom(true); updatePresence({ inVoice: true, voiceRoom: voiceRoomName }); }}
+                            userAvatar={userProfile?.avatar_url}
+                            nicknameStyle={userProfile?.equipped_nickname_style}
+                            frameId={userProfile?.frame_item_id}
+                            userName={userProfile?.username}
+                            activityLevel={userProfile?.activity_level}
+                            initialPersonalActivity={initialActivity}
+                        />
+                    </Suspense>
+                </ErrorBoundary>
             )}
         </div>
     );

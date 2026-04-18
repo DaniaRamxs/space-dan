@@ -42,14 +42,16 @@ export default function useAuth() {
           await new Promise(resolve => setTimeout(resolve, 100));
         }
 
-        const { data: { session }, error } = await supabase.auth.getSession();
+        // Timeout de 6s para Capacitor: si getSession() cuelga (Preferences API lenta),
+        // no quedarse en pantalla negra — asumir sin sesión y dejar que el usuario haga login.
+        const sessionPromise = supabase.auth.getSession();
+        const timeoutPromise = new Promise((resolve) =>
+          setTimeout(() => resolve({ data: { session: null }, error: new Error('getSession timeout') }), 6000)
+        );
+        const { data: { session }, error } = await Promise.race([sessionPromise, timeoutPromise]);
 
         if (error) {
-          // Solo logueamos el error — NO hacemos signOut automático.
-          // Un error de red al arrancar (token expirado + sin conexión) no debe borrar la sesión guardada.
-          // El usuario seguirá en su pantalla de inicio; si el token no se puede refrescar,
-          // el servidor rechazará las llamadas y el app puede pedir re-login cuando sea necesario.
-          console.warn('[useAuth] Error recuperando sesión inicial (no se fuerza logout):', error.message);
+          console.warn('[useAuth] Error recuperando sesión inicial:', error.message);
         }
         
         setSession(session);

@@ -90,18 +90,34 @@ export default function TauriTitleBar() {
         data-tauri-drag-region
         style={{ flex: 1, display: 'flex', alignItems: 'center', paddingLeft: 14, cursor: 'default' }}
       >
-        <span
-          style={{
-            fontSize: '0.6rem',
-            fontWeight: 800,
-            letterSpacing: 4,
-            color: 'rgba(255,110,180,0.7)',
-            textTransform: 'uppercase',
-            pointerEvents: 'none',
-          }}
-        >
-          SPACELY
-        </span>
+        <div style={{ display: 'flex', alignItems: 'center', pointerEvents: 'none' }}>
+          <svg
+            viewBox="55 30 175 165"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+            style={{ width: 14, height: 14, overflow: 'visible', filter: 'drop-shadow(0 0 3px rgba(62,217,237,0.4))' }}
+          >
+            <defs>
+              <linearGradient id="iconGradTauri" x1="0%" y1="100%" x2="100%" y2="0%">
+                <stop offset="0%" stopColor="#4B76F7" />
+                <stop offset="100%" stopColor="#3ED9ED" />
+              </linearGradient>
+            </defs>
+            <g transform="translate(30, 20)">
+              <path d="M190 40 L160 160" stroke="#3ED9ED" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round" opacity="0.9" fill="none" />
+              <path d="M190 40 L90 70" stroke="#3ED9ED" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round" opacity="0.9" fill="none" />
+              <path d="M160 160 L90 70" stroke="#3ED9ED" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round" opacity="0.9" fill="none" />
+              <path d="M90 70 L50 110" stroke="#3ED9ED" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round" opacity="0.9" fill="none" />
+              <path d="M160 160 L50 110" stroke="#3ED9ED" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round" opacity="0.9" fill="none" />
+              <path d="M22 135 C 25 180, 100 170, 195 45 C 130 110, 50 160, 22 135 Z" fill="url(#iconGradTauri)" />
+              <path d="M22 135 C 15 110, 40 100, 65 105" stroke="url(#iconGradTauri)" strokeWidth="4" fill="none" strokeLinecap="round" />
+              <circle cx="190" cy="40" r="14" fill="url(#iconGradTauri)" />
+              <circle cx="90" cy="70" r="10" fill="url(#iconGradTauri)" />
+              <circle cx="160" cy="160" r="11" fill="url(#iconGradTauri)" />
+              <circle cx="50" cy="110" r="7" fill="url(#iconGradTauri)" />
+            </g>
+          </svg>
+        </div>
       </div>
 
       {/* Window controls — elemento hermano del drag region, nunca solapado */}

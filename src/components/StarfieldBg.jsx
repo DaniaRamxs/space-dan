@@ -2,16 +2,18 @@ import { useEffect, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { cosmicEventsService } from '../services/cosmicEventsService';
 
-const isMobile = () => window.innerWidth < 768 || ('ontouchstart' in window);
+const isMobile = () => typeof window !== 'undefined' && (window.innerWidth < 768 || ('ontouchstart' in window));
 
 // Detección de dispositivo low-end (≤4 núcleos o ≤2GB RAM)
 const isLowEnd = () => {
+  if (typeof navigator === 'undefined') return false;
   const cores = navigator.hardwareConcurrency ?? 4;
   const mem = navigator.deviceMemory ?? 4; // API experimental, no en todos los browsers
   return cores <= 4 || mem <= 2;
 };
 
 function getStarConfig() {
+  if (typeof window === 'undefined') return { stars: 150, nebulas: 3, fps: 60 };
   const mobile = isMobile();
   const lowEnd = isLowEnd();
   if (mobile && lowEnd) return { stars: 30, nebulas: 0, fps: 20 };

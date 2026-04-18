@@ -18,9 +18,6 @@ import cors from "cors";
 import { Server } from "colyseus";
 import { WebSocketTransport } from "@colyseus/ws-transport";
 
-// Importar rutas de anime multi-fuente
-import animeMultiRoutes from './routes/animeMulti.js';
-import animeTestRoutes from './routes/animeTest.js';
 import mangaRoutes from './routes/mangaRoutes.js';
 
 import { BlackjackRoom } from "./rooms/BlackjackRoom.mjs";
@@ -39,8 +36,6 @@ import { LiveActivityRoom } from "./rooms/LiveActivityRoom.mjs";
 import youtubeRoutes from "./youtubeSearch.mjs";
 import socialRoutes from "./modules/social/index.mjs";
 import audioRoutes from "./modules/audio/audioRoutes.mjs";
-import animeRoutes from "./modules/anime/animeRoutes.mjs";
-import { AnimeRoom } from "./rooms/AnimeRoom.mjs";
 import { SpaceSessionRoom } from "./rooms/SpaceSessionRoom.mjs";
 import { getActiveSpaces } from "./spacesRegistry.mjs";
 
@@ -85,13 +80,6 @@ const corsOptions = {
   optionsSuccessStatus: 200
 };
 
-// ── Open CORS for the anime proxy — must come BEFORE the whitelist middleware ──
-// The HLS stream proxy needs to be accessible from any origin because:
-//   1. HLS.js requests segments directly (not through fetch with credentials)
-//   2. The browser's hls.js instance may not send an Origin header
-//   3. We need *, not a specific origin, for the player to work
-app.use('/api/anime/proxy', cors({ origin: '*', methods: ['GET', 'OPTIONS'] }));
-app.options('/api/anime/proxy', cors({ origin: '*' }));
 app.use('/api/manga', cors({ origin: '*', methods: ['GET', 'OPTIONS'] }));
 app.options('/api/manga', cors({ origin: '*' }));
 
@@ -102,23 +90,6 @@ app.options(/.*/, cors(corsOptions));
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-
-/* ---------------- ANIME MULTI-SOURCE ROUTES ---------------- */
-
-// Add CORS for anime-multi routes
-app.use('/api/anime-multi', cors({
-  origin: ['https://www.joinspacely.com', 'https://space-dan.vercel.app', 'http://localhost:5173', 'http://localhost:3000', 'http://tauri.localhost', 'tauri://localhost'],
-  methods: ['GET', 'OPTIONS'],
-  credentials: true
-}));
-
-app.use('/api/anime-multi', animeMultiRoutes);
-app.use('/api/anime-test', cors({
-  origin: ['https://www.joinspacely.com', 'https://space-dan.vercel.app', 'http://localhost:5173', 'http://localhost:3000', 'http://tauri.localhost', 'tauri://localhost'],
-  methods: ['GET', 'OPTIONS'],
-  credentials: true
-}));
-app.use('/api/anime-test', animeTestRoutes);
 
 /* ---------------- HEALTH CHECK ---------------- */
 
@@ -196,7 +167,6 @@ app.use("/api/activities", authenticateSupabase);
 app.use("/api", youtubeRoutes);
 app.use("/api", socialRoutes);
 app.use("/api/audio", audioRoutes);
-app.use("/api/anime", animeRoutes);
 app.use("/api/manga", mangaRoutes);
 
 console.log('[ROUTES] Social API mounted: /api/communities, /api/activities');
@@ -247,7 +217,7 @@ app.use((req, res, next) => {
     error: 'Not Found',
     path: req.path,
     method: req.method,
-    message: 'This endpoint does not exist. Check /api/debug/routes for available routes.'
+    message: 'This endpoint does not exist.'
   });
 });
 

@@ -151,16 +151,6 @@ const ACTIVITY_CATALOG = [
     glow:         'hover:shadow-[0_0_36px_rgba(34,211,238,0.22)]',
   },
   {
-    type: 'anime',  id: 'astro-party',
-    label: 'Screen Sharing',        sublabel: 'Comparte tu pantalla en tiempo real con toda la sala',
-    Icon: Tv,
-    gradient:     'linear-gradient(135deg, #2a1035 0%, #3d1a50 50%, #5c2a70 100%)',
-    iconGradient: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
-    glowColor:    'rgba(236,72,153,0.25)',
-    border:       'border-pink-500/20',
-    glow:         'hover:shadow-[0_0_36px_rgba(236,72,153,0.22)]',
-  },
-  {
     type: 'manga',  id: 'manga-party',
     label: 'Manga Party',        sublabel: 'Lee manga sincronizado con tus amigos en tiempo real',
     Icon: BookOpen,

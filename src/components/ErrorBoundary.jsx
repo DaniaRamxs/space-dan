@@ -11,16 +11,22 @@ export class ErrorBoundary extends React.Component {
     }
 
     componentDidCatch(error, errorInfo) {
-        console.error('[ErrorBoundary] Error capturado en el juego:', error, errorInfo);
+        console.error('[ErrorBoundary] Error capturado:', error, errorInfo);
     }
 
     handleReset = () => {
-        // Si el usuario quiere reintentar, limpiamos el error para forzar un re-render
         this.setState({ hasError: false, error: null });
     };
 
     render() {
         if (this.state.hasError) {
+            // Si se provee un fallback personalizado, usarlo
+            if (this.props.fallback) {
+                return typeof this.props.fallback === 'function'
+                    ? this.props.fallback({ reset: this.handleReset, error: this.state.error })
+                    : this.props.fallback;
+            }
+
             return (
                 <div style={{
                     padding: '40px 20px',
@@ -42,7 +48,6 @@ export class ErrorBoundary extends React.Component {
                     <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
                         <button
                             onClick={() => {
-                                // Limpiamos los datos locales posiblemente corruptos relacionados con juegos
                                 Object.keys(localStorage).forEach(key => {
                                     if (key.includes('space-dan') && key.includes('-data')) {
                                         localStorage.removeItem(key);

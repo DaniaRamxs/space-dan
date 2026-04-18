@@ -244,7 +244,7 @@ function ProfileSkeleton() {
 // ─── Main page ──────────────────────────────────────────────────────────────
 export default function ProfileRedesignPage() {
     const { username, userId } = useParams();
-    const { user } = useAuthContext();
+    const { user, loading: authLoading } = useAuthContext();
 
     const [loading, setLoading] = useState(true);
     const [notFound, setNotFound] = useState(false);
@@ -261,10 +261,15 @@ export default function ProfileRedesignPage() {
     const [openEchoAsStar, setOpenEchoAsStar] = useState(false);
 
     useEffect(() => {
-        load();
-    }, [username, userId, user?.id]);
+        // Si no hay userId/username específico y la auth aún está cargando,
+        // esperar a que resuelva para no mostrar "perfil no encontrado" prematuramente
+        if (!userId && !username && authLoading) return;
+        let isMounted = true;
+        load(isMounted);
+        return () => { isMounted = false; };
+    }, [username, userId, user?.id, authLoading]);
 
-    async function load() {
+    async function load(isMounted = true) {
         setLoading(true);
         setNotFound(false);
         try {
@@ -295,11 +300,10 @@ export default function ProfileRedesignPage() {
             }
 
             if (!prof) {
-                setNotFound(true);
-                setLoading(false);
+                if (isMounted) { setNotFound(true); setLoading(false); }
                 return;
             }
-            setProfile(prof);
+            if (isMounted) setProfile(prof);
 
             const [levelData, themeData, blocksData, postsData, countsData] = await Promise.allSettled([
                 newProfileService.getLevelData(prof.id),
@@ -312,6 +316,8 @@ export default function ProfileRedesignPage() {
                 newProfileService.getBlogPosts(prof.id).catch(() => []),
                 profileSocialService.getFollowCounts(prof.id).catch(() => null),
             ]);
+
+            if (!isMounted) return;
 
             if (levelData.status === 'fulfilled') {
                 setProfile(prev => ({
@@ -327,7 +333,7 @@ export default function ProfileRedesignPage() {
 
             if (user && user.id !== prof.id) {
                 const following = await profileSocialService.isFollowing(prof.id).catch(() => false);
-                setIsFollowing(following);
+                if (isMounted) setIsFollowing(following);
                 signalsService.trackVisit(user.id, prof.id);
             }
 
@@ -336,6 +342,7 @@ export default function ProfileRedesignPage() {
                 supabase.from('space_echoes').select('stars_count').eq('user_id', prof.id),
                 supabase.from('space_echoes').select('id', { count: 'exact', head: true }).eq('user_id', prof.id)
             ]).then(([starsRes, echoesRes]) => {
+                if (!isMounted) return;
                 const totalStars = starsRes.data?.reduce((acc, curr) => acc + (curr.stars_count || 0), 0) || 0;
                 const totalEchoes = echoesRes.count || 0;
 
@@ -358,9 +365,9 @@ export default function ProfileRedesignPage() {
             });
         } catch (e) {
             console.error('Profile load error:', e);
-            setNotFound(true);
+            if (isMounted) setNotFound(true);
         } finally {
-            setLoading(false);
+            if (isMounted) setLoading(false);
         }
     }
 

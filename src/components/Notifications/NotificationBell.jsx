@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Bell, Check, Trash2, Volume2, MessageCircle, Target, AtSign, AlertCircle, X } from 'lucide-react';
 import { 
@@ -27,6 +28,7 @@ const typeColors = {
 };
 
 export default function NotificationBell() {
+  const navigate = useNavigate();
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [isOpen, setIsOpen] = useState(false);
@@ -129,9 +131,9 @@ export default function NotificationBell() {
       setUnreadCount(prev => Math.max(0, prev - 1));
     }
 
-    // Navigate if action_url exists
+    // Navigate if action_url exists (soft navigation only)
     if (notification.action_url) {
-      window.location.href = notification.action_url;
+      navigate(notification.action_url);
     }
     
     setIsOpen(false);
@@ -310,9 +312,8 @@ export default function NotificationBell() {
               <div className="px-4 py-2 border-t border-white/[0.06] text-center">
                 <button
                   onClick={() => {
-                    // Navigate to all notifications page
-                    window.location.href = '/notifications';
                     setIsOpen(false);
+                    navigate('/notifications');
                   }}
                   className="text-xs text-cyan-400 hover:text-cyan-300 transition-colors"
                 >

@@ -35,12 +35,16 @@ export default function GardenLayout({ children }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
 
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+
   // Calcula usuarios activos en chat global (incluidos los de voz)
   const activeChatters = useMemo(() => {
+    if (!mounted) return 0; // Prevenir Hydration Mismatch
     return Object.values(onlineUsers || {}).filter(u =>
       u?.status?.includes('CHAT GLOBAL') || u?.voiceRoom
     ).length;
-  }, [onlineUsers]);
+  }, [onlineUsers, mounted]);
 
   const closeMenu = useCallback(() => setMobileMenuOpen(false), []);
 
@@ -310,27 +314,35 @@ export default function GardenLayout({ children }) {
       {/* Mobile Bottom Nav */}
       <nav className="gardenMobileNav">
         <NavLink to="/posts" className={({ isActive }) => `mobileNavLink ${isActive ? 'active' : ''}`} end>
-          <span className="mobileNavIcon icon-pulse">🌌</span>
+          <div className="mobileNavIconWrap">
+            <span className="mobileNavIcon">🌌</span>
+          </div>
           <span className="mobileNavLabel">Feed</span>
         </NavLink>
         <NavLink to="/communities" className={({ isActive }) => `mobileNavLink ${isActive ? 'active' : ''}`}>
-          <span className="mobileNavIcon">🏘️</span>
+          <div className="mobileNavIconWrap">
+            <span className="mobileNavIcon">🏘️</span>
+          </div>
           <span className="mobileNavLabel">Comunidades</span>
         </NavLink>
         {/* Espacios — posición central, máxima prominencia */}
         <NavLink to="/spaces" className={({ isActive }) => `mobileNavLink ${isActive ? 'active' : ''}`}>
-          <span className="mobileNavIcon">🚀</span>
+          <div className="mobileNavIconWrap">
+            <span className="mobileNavIcon">🚀</span>
+          </div>
           <span className="mobileNavLabel">Espacios</span>
         </NavLink>
         <NavLink to="/chat" className={({ isActive }) => `mobileNavLink ${isActive ? 'active' : ''}`}>
-          <div className="relative">
+          <div className="mobileNavIconWrap">
             <span className="mobileNavIcon">💬</span>
-            {activeChatters > 0 && <span className="absolute -top-1 -right-1 w-2 h-2 bg-cyan-400 rounded-full animate-pulse border-2 border-[#050510]" />}
+            {activeChatters > 0 && <span className="mobileNavBadge" />}
           </div>
-          <span className="mobileNavLabel">Chat {activeChatters > 0 && <span className="text-[7px] text-cyan-400 ml-0.5">●</span>}</span>
+          <span className="mobileNavLabel">Chat</span>
         </NavLink>
         <NavLink to="/profile" className={({ isActive }) => `mobileNavLink ${isActive ? 'active' : ''}`}>
-          <span className="mobileNavIcon">👤</span>
+          <div className="mobileNavIconWrap">
+            <span className="mobileNavIcon">👤</span>
+          </div>
           <span className="mobileNavLabel">Perfil</span>
         </NavLink>
         <button
@@ -338,7 +350,9 @@ export default function GardenLayout({ children }) {
           className={`mobileNavLink ${mobileMenuOpen ? 'active' : ''}`}
           style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
         >
-          <span className="mobileNavIcon text-[20px] mb-[-4px]">≡</span>
+          <div className="mobileNavIconWrap">
+            <span className="mobileNavIcon">✦</span>
+          </div>
           <span className="mobileNavLabel">Más</span>
         </button>
       </nav>

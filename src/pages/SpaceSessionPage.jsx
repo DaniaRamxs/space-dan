@@ -60,8 +60,7 @@ const QUICK_ACTIVITIES = [
   { type: 'game',   id: 'chess',         label: 'Realtime Chess',emoji: '♟️', accent: 'border-purple-400/30 text-purple-300'   },
   { type: 'game',   id: 'ludo',          label: 'Ludo Classic', emoji: '🎲', accent: 'border-amber-400/30 text-amber-300'     },
   { type: 'game',   id: 'beat-sound',    label: 'BeatSound',     emoji: '🎵', accent: 'border-cyan-400/30 text-cyan-300'      },
-  { type: 'anime',  id: 'astro-party',  label: 'Screen Sharing',emoji: '📺', accent: 'border-pink-400/30 text-pink-300'     },
-  { type: 'manga',  id: 'manga-party',  label: 'Manga Party',   emoji: '�', accent: 'border-pink-400/30 text-pink-300'     },
+  { type: 'manga',  id: 'manga-party',  label: 'Manga Party',   emoji: '📖', accent: 'border-pink-400/30 text-pink-300'     },
 ];
 
 // ─── Quick reactions ──────────────────────────────────────────────────────────

@@ -41,11 +41,11 @@ import { useEffect, useMemo, type ComponentProps, type ReactNode } from 'react'
 const STATIC_PREFIXES = new Set([
   'posts', 'communities', 'community', 'transmission', 'profile', 'game',
   'games', 'spaces', 'chat', 'explorar', 'download', 'login', 'onboarding',
-  'auth', 'afinidad', 'ahora-suena', 'anime', 'arquitectura', 'banco',
+  'auth', 'afinidad', 'ahora-suena', 'arquitectura', 'banco',
   'bulletin', 'cabina', 'cartas', 'desktop', 'foco', 'guestbook', 'inventory',
   'leaderboard', 'logros', 'manga-party', 'mercado-negro', 'pase-estelar',
   'snake', 'tienda', 'tienda-galactica', 'universo', 'vault', 'vinculos',
-  'spotify-callback',
+  'spotify-callback', 'notifications',
 ])
 
 const DYNAMIC_PREFIXES = new Set([
@@ -110,15 +110,11 @@ function toPlaceholderUrl(to: string): string | null {
 
 type LinkProps = Omit<ComponentProps<typeof NextLink>, 'href'> & { to: string }
 
-export function Link({ to, children, onClick, ...props }: LinkProps) {
+export function Link({ to, children, ...props }: LinkProps) {
   const placeholder = useMemo(() => toPlaceholderUrl(to), [to])
 
-  const handleClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
-    onClick?.(e)
-  }
-
   return (
-    <NextLink href={placeholder ?? to} onClick={handleClick} {...props}>
+    <NextLink href={placeholder ?? to} {...props}>
       {children}
     </NextLink>
   )
@@ -140,6 +136,7 @@ export function NavLink({ to, end, className, children, ...props }: NavLinkProps
   const isActive = end ? pathname === to : (pathname?.startsWith(to) ?? false)
   const resolvedClass = typeof className === 'function' ? (className as ClassNameFn)({ isActive }) : className
   const resolvedChildren = typeof children === 'function' ? (children as ChildrenFn)({ isActive }) : children
+
   return (
     <NextLink href={to} className={resolvedClass} {...props}>
       {resolvedChildren}
@@ -250,8 +247,45 @@ export function useParams<T extends Record<string, string>>() {
 }
 
 // ─── useSearchParams ──────────────────────────────────────────────────────────
+// Retorna una tupla [URLSearchParams, setFn] compatible con React Router v6.
+// Los componentes usan: const [searchParams, setSearchParams] = useSearchParams()
+// Next.js useSearchParams() solo retorna el objeto — no una tupla.
 
-export { useNextSearchParams as useSearchParams }
+type SetSearchParamsArg =
+  | Record<string, string>
+  | URLSearchParams
+  | ((prev: URLSearchParams) => Record<string, string> | URLSearchParams)
+
+export function useSearchParams(): [URLSearchParams, (params: SetSearchParamsArg) => void] {
+  const sp = useNextSearchParams()
+  const router = useRouter()
+  const pathname = usePathname()
+
+  const params = useMemo(
+    () => new URLSearchParams(sp?.toString() ?? ''),
+    [sp]
+  )
+
+  function setParams(newParams: SetSearchParamsArg) {
+    let resolved: Record<string, string> | URLSearchParams
+    if (typeof newParams === 'function') {
+      resolved = newParams(new URLSearchParams(sp?.toString() ?? ''))
+    } else {
+      resolved = newParams
+    }
+
+    let search: string
+    if (resolved instanceof URLSearchParams) {
+      search = resolved.toString()
+    } else {
+      search = new URLSearchParams(resolved as Record<string, string>).toString()
+    }
+
+    router.replace(`${pathname}${search ? `?${search}` : ''}`)
+  }
+
+  return [params, setParams]
+}
 
 // ─── Router stubs (no-ops en Next.js App Router) ─────────────────────────────
 
