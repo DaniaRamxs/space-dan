@@ -1,7 +1,33 @@
 import express from 'express';
 import axios from 'axios';
+import dns from 'node:dns/promises';
 
 const router = express.Router();
+
+// ── SSRF protection helpers ───────────────────────────────────────────────────
+function isPrivateHost(ip) {
+  return (
+    /^127\./.test(ip) ||
+    /^10\./.test(ip) ||
+    /^172\.(1[6-9]|2\d|3[01])\./.test(ip) ||
+    /^192\.168\./.test(ip) ||
+    /^169\.254\./.test(ip) ||
+    ip === '::1' ||
+    ip === '0.0.0.0'
+  );
+}
+
+async function isPrivateHostByDns(hostname) {
+  // Literal IP — check directly without DNS
+  if (/^\d{1,3}(\.\d{1,3}){3}$/.test(hostname)) return isPrivateHost(hostname);
+  try {
+    const addresses = await dns.lookup(hostname, { all: true });
+    return addresses.some(({ address }) => isPrivateHost(address));
+  } catch {
+    // DNS resolution failed — block by default
+    return true;
+  }
+}
 
 const MANGADEX = 'https://api.mangadex.org';
 
@@ -205,6 +231,8 @@ function resolveUrl(src, base) {
 }
 
 // ── GET /api/manga/ext-image?url=...&ref=... — proxy any external manga image ──
+// Security: blocks SSRF via private-IP check + DNS resolution + manual redirect handling.
+// Domain whitelist intentionally omitted — scraped sites use arbitrary CDN hostnames.
 router.get('/ext-image', async (req, res) => {
   try {
     const { url, ref } = req.query;
@@ -215,16 +243,48 @@ router.get('/ext-image', async (req, res) => {
     try { parsed = new URL(decoded); } catch { return res.status(400).send('Invalid url'); }
     if (!['http:', 'https:'].includes(parsed.protocol)) return res.status(400).send('Invalid URL');
 
+    // Block requests targeting private/internal IP ranges (SSRF protection)
+    if (await isPrivateHostByDns(parsed.hostname)) {
+      return res.status(403).send('URL not allowed');
+    }
+
     const referer = ref ? decodeURIComponent(ref) + '/' : parsed.origin + '/';
-    const response = await axios.get(decoded, {
-      responseType: 'stream',
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        'Accept': 'image/webp,image/apng,image/*,*/*;q=0.8',
-        'Referer': referer,
-      },
-      timeout: 20000,
-    });
+    const reqHeaders = {
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+      'Accept': 'image/webp,image/apng,image/*,*/*;q=0.8',
+      'Referer': referer,
+    };
+
+    let response;
+    try {
+      response = await axios.get(decoded, {
+        responseType: 'stream',
+        headers: reqHeaders,
+        timeout: 20000,
+        // Disable automatic redirect following — validate redirect targets manually
+        maxRedirects: 0,
+      });
+    } catch (err) {
+      // axios throws on 3xx when maxRedirects:0 — handle one redirect hop
+      if (err.response && err.response.status >= 300 && err.response.status < 400) {
+        const location = err.response.headers['location'];
+        if (!location) return res.status(403).send('Redirect without Location header');
+
+        let locParsed;
+        try { locParsed = new URL(location); } catch { return res.status(403).send('Invalid redirect target'); }
+        if (!['http:', 'https:'].includes(locParsed.protocol)) return res.status(403).send('Invalid redirect protocol');
+        if (await isPrivateHostByDns(locParsed.hostname)) return res.status(403).send('Redirect target not allowed');
+
+        response = await axios.get(location, {
+          responseType: 'stream',
+          headers: reqHeaders,
+          timeout: 20000,
+          maxRedirects: 0,
+        });
+      } else {
+        throw err;
+      }
+    }
 
     res.set('Content-Type', response.headers['content-type'] || 'image/jpeg');
     res.set('Cache-Control', 'public, max-age=3600');

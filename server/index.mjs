@@ -80,6 +80,8 @@ const corsOptions = {
   optionsSuccessStatus: 200
 };
 
+// Manga proxy CORS: wildcard origin is safe here because credentials:true is absent.
+// These endpoints return public CDN images / MangaDex API data — no auth cookies involved.
 app.use('/api/manga', cors({ origin: '*', methods: ['GET', 'OPTIONS'] }));
 app.options('/api/manga', cors({ origin: '*' }));
 
