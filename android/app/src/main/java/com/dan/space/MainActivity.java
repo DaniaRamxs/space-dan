@@ -38,10 +38,15 @@ public class MainActivity extends BridgeActivity {
      * el conflicto de estado que causaba el crash.
      */
 
+    /** Keep the WebView JS engine alive when radio or voice is active in background. */
+    private boolean shouldKeepWebViewAlive() {
+        return RadioService.isRunning || VoiceService.isRunning;
+    }
+
     @Override
     public void onPause() {
         super.onPause();
-        if (RadioService.isRunning) {
+        if (shouldKeepWebViewAlive()) {
             new Handler(Looper.getMainLooper()).post(() -> {
                 try {
                     getBridge().getWebView().onResume();
@@ -53,7 +58,7 @@ public class MainActivity extends BridgeActivity {
     @Override
     public void onStop() {
         super.onStop();
-        if (RadioService.isRunning) {
+        if (shouldKeepWebViewAlive()) {
             new Handler(Looper.getMainLooper()).post(() -> {
                 try {
                     getBridge().getWebView().onResume();

@@ -16,8 +16,12 @@ public class VoiceService extends Service {
     static final String CHANNEL_ID   = "space_dan_voice_channel";
     static final int    NOTIF_ID     = 1001;
 
+    /** Checked by MainActivity to keep the WebView alive during background. */
+    public static boolean isRunning = false;
+
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
+        isRunning = true;
         createNotificationChannel();
 
         Intent openApp = new Intent(this, MainActivity.class);
@@ -52,6 +56,7 @@ public class VoiceService extends Service {
 
     @Override
     public void onDestroy() {
+        isRunning = false;
         super.onDestroy();
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
             stopForeground(STOP_FOREGROUND_REMOVE);
