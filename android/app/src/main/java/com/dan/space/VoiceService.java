@@ -40,8 +40,16 @@ public class VoiceService extends Service {
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .build();
 
+        // Android 14+ (API 34) throws if RECORD_AUDIO permission is not yet granted
+        // when calling startForeground with FOREGROUND_SERVICE_TYPE_MICROPHONE.
+        // Fall back to a plain foreground notification so the service still runs
+        // and keeps the WebView alive — the mic permission dialog will appear separately.
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            startForeground(NOTIF_ID, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE);
+            try {
+                startForeground(NOTIF_ID, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE);
+            } catch (Exception e) {
+                startForeground(NOTIF_ID, notification);
+            }
         } else {
             startForeground(NOTIF_ID, notification);
         }
