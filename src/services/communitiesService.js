@@ -26,7 +26,7 @@ export const communitiesService = {
     const response = await fetch(`${API_URL}/api/communities`, {
       method: 'POST',
       headers,
-      credentials: 'include',
+      credentials: 'omit',
       body: JSON.stringify({ name, slug, description, category, avatar, banner })
     });
 
@@ -49,7 +49,7 @@ export const communitiesService = {
     const headers = await getAuthHeaders();
     const response = await fetch(`${API_URL}/api/communities?${params}`, {
       headers,
-      credentials: 'include'
+      credentials: 'omit'
     });
 
     if (!response.ok) throw new Error('Failed to fetch communities');
@@ -63,7 +63,7 @@ export const communitiesService = {
     const headers = await getAuthHeaders();
     const response = await fetch(`${API_URL}/api/communities/${slug}`, {
       headers,
-      credentials: 'include'
+      credentials: 'omit'
     });
 
     if (!response.ok) throw new Error('Failed to fetch community');
@@ -78,7 +78,7 @@ export const communitiesService = {
     const response = await fetch(`${API_URL}/api/communities/${communityId}/join`, {
       method: 'POST',
       headers,
-      credentials: 'include'
+      credentials: 'omit'
     });
 
     if (!response.ok) throw new Error('Failed to join community');
@@ -93,7 +93,7 @@ export const communitiesService = {
     const response = await fetch(`${API_URL}/api/communities/${communityId}/leave`, {
       method: 'POST',
       headers,
-      credentials: 'include'
+      credentials: 'omit'
     });
 
     if (!response.ok) throw new Error('Failed to leave community');
@@ -108,7 +108,7 @@ export const communitiesService = {
     const headers = await getAuthHeaders();
     const response = await fetch(`${API_URL}/api/communities/${communityId}/members?${params}`, {
       headers,
-      credentials: 'include'
+      credentials: 'omit'
     });
 
     if (!response.ok) throw new Error('Failed to fetch members');

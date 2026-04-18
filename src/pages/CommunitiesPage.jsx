@@ -16,7 +16,6 @@ import StellarScrollBg from '../components/Effects/StellarScrollBg';
 const CATEGORIES = [
   { id: 'all', label: 'Todo', icon: '🌌' },
   { id: 'gaming', label: 'Gaming', icon: '🎮' },
-  { id: 'anime', label: 'Anime', icon: '🎌' },
   { id: 'music', label: 'Música', icon: '🎵' },
   { id: 'tech', label: 'Tech', icon: '💻' },
   { id: 'art', label: 'Arte', icon: '🎨' }
@@ -77,22 +76,22 @@ export default function CommunitiesPage() {
       <motion.div
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
-        className="mb-8 flex items-start justify-between gap-4"
+        className="mb-8 flex flex-wrap items-start justify-between gap-3"
       >
-        <div>
-          <h1 className="text-4xl md:text-5xl font-black uppercase tracking-tight text-white/90 glitch-text">
+        <div className="min-w-0">
+          <h1 className="text-3xl md:text-5xl font-black uppercase tracking-tight text-white/90 glitch-text">
             Comunidades
           </h1>
           <p className="text-[10px] font-bold uppercase tracking-widest text-cyan-400/40 mt-1">
             Descubre espacios
           </p>
         </div>
-        
+
         <motion.button
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
           onClick={() => setShowCreateModal(true)}
-          className="flex-shrink-0 px-6 py-3 bg-gradient-to-r from-purple-500/20 to-cyan-500/20 hover:from-purple-500/30 hover:to-cyan-500/30 border border-purple-500/30 rounded-xl text-xs font-black uppercase tracking-wider text-purple-300 transition-all shadow-lg"
+          className="shrink-0 px-4 py-2.5 bg-gradient-to-r from-purple-500/20 to-cyan-500/20 hover:from-purple-500/30 hover:to-cyan-500/30 border border-purple-500/30 rounded-xl text-[11px] font-black uppercase tracking-wider text-purple-300 transition-all shadow-lg whitespace-nowrap"
         >
           + Crear Comunidad
         </motion.button>
