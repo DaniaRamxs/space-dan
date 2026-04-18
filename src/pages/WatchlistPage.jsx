@@ -154,27 +154,9 @@ const WATCHLIST = [
     stars: 4.7,
     review: '',
   },
-  {
-    id: 18,
-    type: 'anime',
-    title: 'The Promised Neverland',
-    img: 'https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx101759-8UR7r9MNVpz2.jpg',
-    status: 'terminado',
-    stars: 4.3,
-    review: '',
-  },
-  {
-    id: 19,
-    type: 'anime',
-    title: 'Sword Art Online',
-    img: 'https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx11757-SxYDUzdr9rh2.jpg',
-    status: 'terminado',
-    stars: 4,
-    review: '',
-  },
 ];
 
-const FILTERS = ['todos', 'anime', 'serie', 'manga', 'pelicula'];
+const FILTERS = ['todos', 'serie', 'manga', 'pelicula'];
 
 function Stars({ n }) {
   if (n === 0) return null;
