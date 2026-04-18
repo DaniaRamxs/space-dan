@@ -20,6 +20,41 @@ import { WebSocketTransport } from "@colyseus/ws-transport";
 
 import mangaRoutes from './routes/mangaRoutes.js';
 
+// ── Simple IP-based rate limiter (no external dep) ────────────────────────────
+// Tracks request counts per IP in a sliding window. Cleans up stale entries to
+// avoid memory growth. Not a replacement for a proper WAF, but stops casual abuse.
+function makeRateLimiter({ windowMs, max, message = 'Too many requests' }) {
+  const hits = new Map(); // ip → { count, resetAt }
+  // Cleanup stale entries every window
+  setInterval(() => {
+    const now = Date.now();
+    for (const [ip, entry] of hits) {
+      if (now >= entry.resetAt) hits.delete(ip);
+    }
+  }, windowMs).unref();
+
+  return (req, res, next) => {
+    const ip = req.ip || req.socket.remoteAddress || 'unknown';
+    const now = Date.now();
+    const entry = hits.get(ip);
+    if (!entry || now >= entry.resetAt) {
+      hits.set(ip, { count: 1, resetAt: now + windowMs });
+      return next();
+    }
+    entry.count++;
+    if (entry.count > max) {
+      res.set('Retry-After', Math.ceil((entry.resetAt - now) / 1000));
+      return res.status(429).json({ error: message });
+    }
+    next();
+  };
+}
+
+// 60 req / 15 min para endpoints de proxy público (manga, youtube search)
+const publicApiLimiter = makeRateLimiter({ windowMs: 15 * 60 * 1000, max: 60, message: 'Rate limit exceeded — try again later' });
+// 20 req / 15 min para scrape (operación más costosa)
+const scrapeLimiter = makeRateLimiter({ windowMs: 15 * 60 * 1000, max: 20, message: 'Scrape rate limit exceeded' });
+
 import { BlackjackRoom } from "./rooms/BlackjackRoom.mjs";
 import { Connect4Room } from "./rooms/Connect4Room.mjs";
 import { SnakeDuelRoom } from "./rooms/SnakeDuelRoom.mjs";
@@ -166,9 +201,11 @@ app.use("/api/activities", authenticateSupabase);
 
 /* ---------------- API ROUTES ---------------- */
 
-app.use("/api", youtubeRoutes);
+app.use("/api", publicApiLimiter, youtubeRoutes);
 app.use("/api", socialRoutes);
 app.use("/api/audio", audioRoutes);
+app.use("/api/manga/scrape", scrapeLimiter);
+app.use("/api/manga/ext-image", publicApiLimiter);
 app.use("/api/manga", mangaRoutes);
 
 console.log('[ROUTES] Social API mounted: /api/communities, /api/activities');

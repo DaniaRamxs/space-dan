@@ -1,11 +1,22 @@
 import express from "express";
 import ytSearch from "yt-search";
-import NodeCache from "node-cache";
 
 const router = express.Router();
 
-// Cache 20 minutos
-const cache = new NodeCache({ stdTTL: 1200 });
+// Simple TTL cache — replaces node-cache (removed with anime cleanup)
+const _cache = new Map();
+const CACHE_TTL_MS = 20 * 60 * 1000; // 20 minutos
+
+function cacheGet(key) {
+  const entry = _cache.get(key);
+  if (!entry) return undefined;
+  if (Date.now() > entry.expires) { _cache.delete(key); return undefined; }
+  return entry.value;
+}
+
+function cacheSet(key, value) {
+  _cache.set(key, { value, expires: Date.now() + CACHE_TTL_MS });
+}
 
 router.get("/youtube/search", async (req, res) => {
     const query = req.query.q;
@@ -19,7 +30,7 @@ router.get("/youtube/search", async (req, res) => {
     const cacheKey = `yt_${query.toLowerCase().trim()}`;
 
     // 1️⃣ Revisar cache
-    const cached = cache.get(cacheKey);
+    const cached = cacheGet(cacheKey);
     if (cached) {
         console.log(`[YouTube Search] Cache hit for: ${query}`);
         return res.json({
@@ -44,7 +55,7 @@ router.get("/youtube/search", async (req, res) => {
         }));
 
         // 3️⃣ Guardar cache
-        cache.set(cacheKey, videos);
+        cacheSet(cacheKey, videos);
 
         res.json({
             source: "youtube",
