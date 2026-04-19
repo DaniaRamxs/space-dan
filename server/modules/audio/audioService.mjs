@@ -5,10 +5,43 @@
  */
 
 import play from 'play-dl';
-import NodeCache from 'node-cache';
 
-// Cache audio URLs for 1 hour (3600 seconds)
-const audioCache = new NodeCache({ stdTTL: 3600 });
+// Simple TTL cache — replaces node-cache (removed with anime cleanup)
+const CACHE_TTL_MS = 60 * 60 * 1000; // 1 hora
+const audioCache = {
+  _store: new Map(),
+  _stats: { hits: 0, misses: 0, keys: 0 },
+  get(key) {
+    const entry = this._store.get(key);
+    if (!entry) { this._stats.misses++; return undefined; }
+    if (Date.now() > entry.expires) {
+      this._store.delete(key);
+      this._stats.keys = this._store.size;
+      this._stats.misses++;
+      return undefined;
+    }
+    this._stats.hits++;
+    return entry.value;
+  },
+  set(key, value) {
+    this._store.set(key, { value, expires: Date.now() + CACHE_TTL_MS });
+    this._stats.keys = this._store.size;
+  },
+  del(key) {
+    this._store.delete(key);
+    this._stats.keys = this._store.size;
+  },
+  flushAll() {
+    this._store.clear();
+    this._stats.keys = 0;
+  },
+  keys() {
+    return Array.from(this._store.keys());
+  },
+  getStats() {
+    return { ...this._stats };
+  },
+};
 
 export const audioService = {
   /**
