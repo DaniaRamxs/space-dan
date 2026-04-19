@@ -93,7 +93,8 @@ const allowedOrigins = [
   "https://joinspacely.com",
   "http://localhost:5173",
   "http://localhost:3000",
-  "http://localhost",         // Capacitor Android WebView (no port)
+  "http://localhost",         // Capacitor Android WebView (androidScheme=http)
+  "https://localhost",        // Capacitor Android WebView (androidScheme=https, default v5+)
   "capacitor://localhost",    // Capacitor iOS WebView
   "http://tauri.localhost",   // Tauri desktop app (production build)
   "tauri://localhost",        // Tauri desktop app (macOS/Linux)
