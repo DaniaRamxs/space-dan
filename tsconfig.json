@@ -23,8 +23,7 @@
       }
     ],
     "paths": {
-      "@/*": ["./src/*"],
-      "react-router-dom": ["./src/shims/react-router-dom.tsx"]
+      "@/*": ["./src/*"]
     }
   },
   "include": [

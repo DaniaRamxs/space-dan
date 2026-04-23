@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm ls *)",
+      "Read(//c/Users/USUARIO/.claude/**)",
+      "Read(//c/Users/USUARIO/**)",
+      "Bash(ruflo --help)",
+      "Bash(ruflo init *)"
+    ]
+  }
+}

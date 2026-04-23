@@ -142,11 +142,14 @@ Chat en tiempo real disponible para todos los usuarios autenticados.
 - Mensajes con efectos visuales equipados
 - **Tabla:** `messages` (realtime via Supabase)
 
-### 9. Música & Medios
-- **YouTube Integration:** Pre-carga el IFrame API para reproducción sin delay
-- **Global Music Feed:** Feed de música compartida por usuarios
-- **Space Cabin:** Sala de enfoque con música ambiente
-- **Radios Equipables:** Items de tienda que cambian la música de fondo del perfil
+### 9. Música & Medios (Jukebox DJ v2)
+Centro de entretenimiento sincronizado para espacios sociales.
+
+- **Sync de Estado (Colyseus):** Sincronización nativa de alta fidelidad. Los late-joiners se sincronizan al milisegundo.
+- **Queue por Prioridad (Stellar Boost):** Los usuarios pueden usar ◈ para inyectar "energía" a una canción. La canción con más ◈ acumulados sube al primer puesto de la cola.
+- **Sistema de Propinas:** Los oyentes pueden enviar ◈ al DJ que añadió la canción actual.
+- **YouTube Integration:** Pre-carga el IFrame API para reproducción fluida.
+- **Radios Equipables:** Items de tienda que cambian la música de fondo del perfil de forma privada.
 
 ### 10. Universo / Mapa Estelar
 - Mapa interactivo que representa el ecosistema social
@@ -160,6 +163,15 @@ Sistema de préstamos de moneda virtual.
 - Existe un sistema de elegibilidad (`check_stellar_pact_eligibility` RPC)
 - Monto mínimo: 100 ◈
 - **Tablas:** `user_loans`, `transactions`
+
+### 12. Facebook Sharing (Social Cinema)
+Actividad interactiva para descubrir y compartir videos/reels de Facebook.
+
+- **Discovery Feed:** Un muro de videos curados (Mocked API / Curated List) para cuando el usuario no sabe qué ver.
+- **Direct Input:** Campo para pegar enlaces directos de Reels o Videos.
+- **Integración:** Uso de SDK de Facebook para embebido nativo.
+- **Modo Social:** Posibilidad de compartir el video actual al Chat Global.
+- **Estética:** Liquid Glass con fondos dinámicos.
 
 ---
 
@@ -236,4 +248,5 @@ npm run lint       # ESLint
 - Comunidades: ✅ Con canales
 - Chat Global: ✅ Realtime
 - Música/YouTube: ✅ IFrame API precargado
+- Facebook Sharing: 🏗️ En construcción (Phase: Design)
 - Apps nativas: ✅ Tauri Desktop + Capacitor Android

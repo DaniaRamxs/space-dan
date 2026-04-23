@@ -48,6 +48,7 @@ const KEYFRAMES = `
 
 const QUICK_ACTIVITIES = [
   { type: 'watch',  id: 'watch-together', label: 'Mirar Juntos',   emoji: '📺', accent: 'border-blue-400/30 text-blue-300'     },
+  { type: 'watch',  id: 'facebook-sharing', label: 'FB Cinema',    emoji: '🎬', accent: 'border-blue-500/30 text-blue-400'     },
   { type: 'game',   id: 'pixel-galaxy', label: 'Pixel Galaxy',  emoji: '🎨', accent: 'border-yellow-400/30 text-yellow-300'   },
   { type: 'game',   id: 'puzzle',        label: 'Co-Op Puzzle',  emoji: '🧩', accent: 'border-green-400/30 text-green-300'     },
   { type: 'game',   id: 'connect4',      label: 'Cosmic 4',     emoji: '🔴', accent: 'border-pink-400/30 text-pink-300'     },
@@ -55,7 +56,7 @@ const QUICK_ACTIVITIES = [
   { type: 'game',   id: 'tetris',        label: 'Tetris Duel',   emoji: '📱', accent: 'border-blue-400/30 text-blue-300'     },
   { type: 'game',   id: 'poker',         label: 'Poker',         emoji: '🃏', accent: 'border-emerald-400/30 text-emerald-300' },
   { type: 'game',   id: 'starboard',     label: 'Starboard',     emoji: '✏️', accent: 'border-cyan-400/30 text-cyan-300'      },
-  { type: 'game',   id: 'dj',            label: 'Jukebox DJ',    emoji: '🎵', accent: 'border-orange-400/30 text-orange-300'   },
+  { type: 'music',  id: 'jukebox',       label: 'Jukebox DJ v2', emoji: '🎧', accent: 'border-purple-400/30 text-purple-300'   },
   { type: 'game',   id: 'blackjack',     label: 'Blackjack',     emoji: '🃏', accent: 'border-rose-400/30 text-rose-300'      },
   { type: 'game',   id: 'chess',         label: 'Realtime Chess',emoji: '♟️', accent: 'border-purple-400/30 text-purple-300'   },
   { type: 'game',   id: 'ludo',          label: 'Ludo Classic', emoji: '🎲', accent: 'border-amber-400/30 text-amber-300'     },

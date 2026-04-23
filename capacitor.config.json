@@ -1,7 +1,7 @@
 {
   "appId": "com.dan.space",
   "appName": "Spacely",
-  "webDir": "out",
+  "webDir": "dist",
   "android": {
     "path": "android"
   },
