@@ -1,6 +1,6 @@
 ﻿import { memo, useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, toPlaceholderUrl } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeRaw from 'rehype-raw';
@@ -89,10 +89,14 @@ const ActivityCard = memo(({ post, onUpdate, onNewPost, onHeightChange }) => {
     const reactions = post.reactions_metadata || { total_count: 0 };
     const totalReactions = parseInt(reactions.total_count) || 0;
     const popularityIntensity = Math.min(10, Math.floor(totalReactions / 5));
-    const profilePath = post.author?.username
-        ? `/@${encodeURIComponent(post.author.username)}`
-        : (post.author_id || post.user_id || post.author?.id)
-            ? `/profile/${post.author_id || post.user_id || post.author?.id}`
+    // Prefer /profile/:id over /@username — la ruta por user_id tiene shell propio
+    // en static export (out/profile/_/index.html), mientras /@username depende del
+    // fallback global 404 que el WebView Android no siempre resuelve.
+    const authorId = post.author_id || post.user_id || post.author?.id;
+    const profilePath = authorId
+        ? `/profile/${authorId}`
+        : post.author?.username
+            ? `/@${encodeURIComponent(post.author.username)}`
             : '/profile';
 
     const stopCardNavigation = (e) => {
@@ -111,6 +115,7 @@ const ActivityCard = memo(({ post, onUpdate, onNewPost, onHeightChange }) => {
             path: profilePath,
             extra: String(post?.id || '')
         });
+        // navigate() del shim hace hard nav + trailing slash + placeholder rewrite en native
         navigate(profilePath);
     };
 

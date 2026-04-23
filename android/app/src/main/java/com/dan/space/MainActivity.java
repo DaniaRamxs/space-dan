@@ -1,5 +1,6 @@
 package com.dan.space;
 
+import android.content.pm.ApplicationInfo;
 import android.os.Handler;
 import android.os.Looper;
 import android.webkit.PermissionRequest;
@@ -13,6 +14,13 @@ public class MainActivity extends BridgeActivity {
     public void onCreate(android.os.Bundle savedInstanceState) {
         registerPlugin(VoiceServicePlugin.class);
         registerPlugin(RadioServicePlugin.class);
+
+        // Habilitar inspección remota del WebView en builds debug.
+        // Sin esta línea chrome://inspect no lista el WebView aunque el USB debug esté ok.
+        if ((getApplicationInfo().flags & ApplicationInfo.FLAG_DEBUGGABLE) != 0) {
+            WebView.setWebContentsDebuggingEnabled(true);
+        }
+
         super.onCreate(savedInstanceState);
 
         // Habilitar soporte para compartir pantalla (getDisplayMedia) en la WebView

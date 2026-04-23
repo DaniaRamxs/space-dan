@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef, useMemo, useCallback, lazy, Suspense } from 'react';
-import { NavLink, Link, useLocation } from "react-router-dom";
+import { NavLink, Link, useLocation, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from 'framer-motion';
 import KonamiEasterEgg from "../components/KonamiEasterEgg.jsx";
 import { SpacelyLogo } from "../components/SpacelyLogo.jsx";
@@ -32,6 +32,7 @@ export default function GardenLayout({ children }) {
   const { user, profile: ownProfile } = useAuthContext();
   const { onlineUsers } = useUniverse();
   const location = useLocation();
+  const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
 
@@ -357,26 +358,15 @@ export default function GardenLayout({ children }) {
         </button>
       </nav>
 
-      <AnimatePresence>
-        {mobileMenuOpen && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="hubOverlay"
-          >
-            <div className="hubContainer">
+      {mobileMenuOpen && (
+        <div className="hubOverlay">
+          <div className="hubContainer">
               <div className="hubHeader">
                 <div className="hubTitle">Explorar Sistema</div>
                 <button className="hubClose" onClick={closeMenu}>✕</button>
               </div>
 
-              <motion.div
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.1 }}
-                className="hubUserCard"
-              >
+              <div className="hubUserCard">
                 <div className="flex items-center gap-4 flex-1">
                   <img
                     src={ownProfile?.avatar_url || '/default-avatar.png'}
@@ -403,28 +393,16 @@ export default function GardenLayout({ children }) {
                 <div className="hubUserActions">
                   <NotificationBell />
                 </div>
-              </motion.div>
+              </div>
 
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.15 }}
-                className="hubStats"
-              >
+              <div className="hubStats">
                 <div className="hubStatItem">
                   <span className="hubStatLabel">Starlys</span>
                   <StarlysCounter value={balance} className="hubStatValue text-amber-400" />
                 </div>
-              </motion.div>
+              </div>
 
-              <motion.div
-                variants={{
-                  show: { transition: { staggerChildren: 0.05, delayChildren: 0.2 } }
-                }}
-                initial="hidden"
-                animate="show"
-                className="hubGrid"
-              >
+              <div className="hubGrid">
                 {[
                   { to: '/explorar',     icon: '🧭', label: 'Explorar Centro', className: 'hub-item-premium' },
                   { to: '/ahora-suena', icon: '🎵', label: 'Ahora Suena', isLive: true },
@@ -434,14 +412,8 @@ export default function GardenLayout({ children }) {
                   { to: '/cartas',   icon: '✉️',  label: 'Mensajería' },
                   { to: '/download', icon: '💻',  label: 'Descargar App' },
                 ].map((item) => (
-                  <motion.div
-                    key={item.to}
-                    variants={{
-                      hidden: { opacity: 0, scale: 0.8, y: 20 },
-                      show: { opacity: 1, scale: 1, y: 0 }
-                    }}
-                  >
-                    <NavLink to={item.to} onClick={closeMenu} className={`hubItem ${item.className || ''} relative`}>
+                  <div key={item.to}>
+                    <NavLink to={item.to} className={`hubItem ${item.className || ''} relative`}>
                       <span className="hubItemIcon">{item.icon}</span>
                       <span className="hubItemLabel">{item.label}</span>
                       {item.badge && (
@@ -453,17 +425,16 @@ export default function GardenLayout({ children }) {
                         <span className="absolute bottom-2 right-2 w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse" />
                       )}
                     </NavLink>
-                  </motion.div>
+                  </div>
                 ))}
-              </motion.div>
+              </div>
 
               <div className="mt-12 pb-6 text-center opacity-10 text-[7px] font-black uppercase tracking-[1em] text-white">
                 Sincronización Estelar v2.5
               </div>
             </div>
-          </motion.div>
+          </div>
         )}
-      </AnimatePresence>
     </div>
   );
 }

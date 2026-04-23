@@ -65,7 +65,9 @@ body,
 #root {
   width: 100%;
   height: 100%;
-  min-height: 100dvh;
+  /* min-height:100dvh removido — bloqueaba el resize del WebView en Capacitor
+     Android cuando aparecía el teclado, dejando una franja gris enorme en el
+     chat. height:100% + la cadena flex de los layouts es suficiente. */
   margin: 0;
   padding: 0;
   overflow-x: hidden;
@@ -1653,10 +1655,10 @@ textarea,
 .hubOverlay {
   position: fixed;
   inset: 0;
-  background: radial-gradient(circle at top right, rgba(255, 0, 255, 0.1), transparent 40%),
-    radial-gradient(circle at bottom left, rgba(0, 255, 255, 0.1), transparent 40%),
-    var(--bg);
-  backdrop-filter: blur(50px) saturate(220%);
+  background: radial-gradient(circle at top right, rgba(255, 0, 255, 0.12), transparent 40%),
+    radial-gradient(circle at bottom left, rgba(0, 255, 255, 0.12), transparent 40%),
+    #05050a;
+  /* backdrop-filter removed: causes blank render on Android WebView */
   z-index: 5000;
   display: flex;
   flex-direction: column;

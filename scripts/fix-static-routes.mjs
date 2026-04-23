@@ -3,51 +3,37 @@
  *
  * Post-build script para output:export con Capacitor/Tauri.
  *
- * Problema: Las rutas dinámicas (/transmission/[postId], /community/[slug], etc.)
- * solo generan un shell HTML para el placeholder '_'.
- * Cuando el WebView busca /transmission/abc123/index.html → 404.
+ * Estrategia SPA pura (último recurso — replica modelo Vite):
+ * ─────────────────────────────────────────────────────────
+ * Capacitor WebView no maneja bien los múltiples HTMLs de Next App Router
+ * (RSC fetch falla, client router se confunde con placeholders).
  *
- * Solución:
- * 1. Para cada ruta dinámica sin index.html propio, copiar _/index.html como
- *    index.html raíz del padre (ej: transmission/index.html) para que Capacitor
- *    sirva el shell para cualquier subruta. El JS de Next.js maneja el routing.
- * 2. Copiar el shell de [username] (/_/index.html) como 404.html global.
- *    Capacitor usa 404.html cuando no encuentra ningún archivo → SPA fallback.
+ * Solución: sobrescribir cada index.html de subruta con el index.html raíz
+ * que carga HomePageClient. HomePageClient actúa como router manual:
+ * detecta pathname y renderiza el componente lazy correspondiente dentro
+ * del GardenLayout.
+ *
+ * Pasos:
+ *   1. Case-fix Profile/ → profile/ (Windows NTFS)
+ *   2. Sobrescribir out/*\/index.html con out/index.html
+ *   3. Copiar out/index.html como 404.html (SPA fallback)
  */
 
-import { copyFileSync, existsSync, renameSync } from 'fs'
+import { copyFileSync, existsSync, renameSync, readdirSync, statSync } from 'fs'
 import { join, dirname } from 'path'
 import { fileURLToPath } from 'url'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const OUT = join(__dirname, '..', 'out')
+const ROOT_INDEX = join(OUT, 'index.html')
 
-// Rutas dinámicas: carpeta en out/ que tiene subcarpeta '_/'
-const DYNAMIC_DIRS = [
-  'transmission',   // /transmission/[postId]
-  'community',      // /community/[slug]
-  'game',           // /game/[gameId]
-  // 'profile' y 'spaces' tienen su propio index.html (ruta mixta static+dynamic)
-  // → su own-page sirve como fallback suficiente
-]
-
-// La ruta [username] es la raíz: out/_/index.html → se usa como fallback global
-const USERNAME_SHELL = join(OUT, '_', 'index.html')
+// Top-level dirs que NO se deben tocar (Next assets)
+const KEEP_TOP_LEVEL = new Set(['_next', '_not-found'])
 
 let fixed = 0
 
-// ─── Fix case collision: Windows NTFS merges Profile/ + profile/ ─────────────
-// Pages Router generates /Profile/ProfileRedesign etc. (capital P).
-// On Windows (case-insensitive), that directory merges with App Router's
-// /profile (lowercase). The directory's canonical name becomes Profile/ (capital)
-// which breaks Android's case-sensitive filesystem when Capacitor copies assets.
-//
-// Solution: two-step rename to force lowercase.
-//   Profile/ → profile_RENAME_TEMP/ → profile/
-const CASE_FIXES = [
-  { from: 'Profile', to: 'profile' },
-]
-
+// ─── 1. Fix case collision Profile/ → profile/ (Windows NTFS) ────────────────
+const CASE_FIXES = [{ from: 'Profile', to: 'profile' }]
 for (const { from, to } of CASE_FIXES) {
   const srcDir  = join(OUT, from)
   const tempDir = join(OUT, `${to}_RENAME_TEMP`)
@@ -64,34 +50,39 @@ for (const { from, to } of CASE_FIXES) {
   }
 }
 
-// 1. Copiar shells para rutas dinámicas que NO tienen index.html propio
-for (const dir of DYNAMIC_DIRS) {
-  const shellSrc = join(OUT, dir, '_', 'index.html')
-  const shellDst = join(OUT, dir, 'index.html')
+// ─── 2. Sobrescribir cada index.html con el root ────────────────────────────
+if (!existsSync(ROOT_INDEX)) {
+  console.error(`❌ No encontrado: ${ROOT_INDEX}`)
+  process.exit(1)
+}
 
-  if (!existsSync(shellSrc)) {
-    console.warn(`⚠️  No encontrado shell dinámico: ${shellSrc}`)
-    continue
-  }
+function walkAndOverwrite(dir, depth = 0) {
+  let entries
+  try { entries = readdirSync(dir) } catch { return }
+  for (const entry of entries) {
+    const full = join(dir, entry)
+    let st
+    try { st = statSync(full) } catch { continue }
+    if (!st.isDirectory()) continue
+    if (depth === 0 && KEEP_TOP_LEVEL.has(entry)) continue
 
-  if (existsSync(shellDst)) {
-    // No sobreescribir si ya existe (ej: /profile tiene su propia página)
-    console.log(`  ℹ️  ${dir}/index.html ya existe — no se sobreescribe`)
-  } else {
-    copyFileSync(shellSrc, shellDst)
-    console.log(`✓ ${dir}/index.html ← ${dir}/_/index.html (shell dinámico)`)
-    fixed++
+    // Sobrescribir el index.html de este directorio si existe
+    const indexFile = join(full, 'index.html')
+    if (existsSync(indexFile)) {
+      copyFileSync(ROOT_INDEX, indexFile)
+      fixed++
+    }
+
+    walkAndOverwrite(full, depth + 1)
   }
 }
 
-// 2. Copiar el shell de [username] como 404.html global
-//    Capacitor usa 404.html cuando no encuentra ningún archivo
-if (existsSync(USERNAME_SHELL)) {
-  copyFileSync(USERNAME_SHELL, join(OUT, '404.html'))
-  console.log(`✓ 404.html (fallback global para /username y rutas desconocidas)`)
-  fixed++
-} else {
-  console.warn(`⚠️  No encontrado shell de [username]: ${USERNAME_SHELL}`)
-}
+walkAndOverwrite(OUT)
+console.log(`✓ SPA shell aplicado a ${fixed - CASE_FIXES.length} subrutas`)
 
-console.log(`\n✅ fix-static-routes: ${fixed} archivos copiados`)
+// ─── 3. 404.html como fallback SPA ─────────────────────────────────────────
+copyFileSync(ROOT_INDEX, join(OUT, '404.html'))
+console.log(`✓ 404.html ← root index.html (SPA fallback)`)
+fixed++
+
+console.log(`\n✅ fix-static-routes: ${fixed} archivos procesados`)

@@ -26,7 +26,7 @@ export const liveActivitiesService = {
     const response = await fetch(`${API_URL}/api/activities`, {
       method: 'POST',
       headers,
-      credentials: 'include',
+      credentials: 'omit',
       body: JSON.stringify({ type, title, communityId, roomName, metadata })
     });
 
@@ -48,7 +48,7 @@ export const liveActivitiesService = {
     const headers = await getAuthHeaders();
     const response = await fetch(`${API_URL}/api/activities/trending?${params}`, {
       headers,
-      credentials: 'include'
+      credentials: 'omit'
     });
 
     if (!response.ok) throw new Error('Failed to fetch trending activities');
@@ -62,7 +62,7 @@ export const liveActivitiesService = {
     const headers = await getAuthHeaders();
     const response = await fetch(`${API_URL}/api/activities/${id}`, {
       headers,
-      credentials: 'include'
+      credentials: 'omit'
     });
 
     if (!response.ok) throw new Error('Activity not found');
@@ -77,7 +77,7 @@ export const liveActivitiesService = {
     const response = await fetch(`${API_URL}/api/activities/${activityId}/join`, {
       method: 'POST',
       headers,
-      credentials: 'include',
+      credentials: 'omit',
       body: JSON.stringify({ isSpectator })
     });
 
@@ -93,7 +93,7 @@ export const liveActivitiesService = {
     const response = await fetch(`${API_URL}/api/activities/${activityId}/leave`, {
       method: 'POST',
       headers,
-      credentials: 'include'
+      credentials: 'omit'
     });
 
     if (!response.ok) throw new Error('Failed to leave activity');
@@ -108,7 +108,7 @@ export const liveActivitiesService = {
     const response = await fetch(`${API_URL}/api/activities/${activityId}/end`, {
       method: 'POST',
       headers,
-      credentials: 'include'
+      credentials: 'omit'
     });
 
     if (!response.ok) throw new Error('Failed to end activity');
@@ -122,7 +122,7 @@ export const liveActivitiesService = {
     const headers = await getAuthHeaders();
     const response = await fetch(`${API_URL}/api/activities/user/current`, {
       headers,
-      credentials: 'include'
+      credentials: 'omit'
     });
 
     if (!response.ok) throw new Error('Failed to fetch current activity');

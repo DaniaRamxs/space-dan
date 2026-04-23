@@ -46,7 +46,7 @@ export default function useAuth() {
         // no quedarse en pantalla negra — asumir sin sesión y dejar que el usuario haga login.
         const sessionPromise = supabase.auth.getSession();
         const timeoutPromise = new Promise((resolve) =>
-          setTimeout(() => resolve({ data: { session: null }, error: new Error('getSession timeout') }), 6000)
+          setTimeout(() => resolve({ data: { session: null }, error: new Error('getSession timeout') }), 2500)
         );
         const { data: { session }, error } = await Promise.race([sessionPromise, timeoutPromise]);
 

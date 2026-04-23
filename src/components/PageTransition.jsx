@@ -1,17 +1,9 @@
-import { motion } from 'framer-motion';
-
-// Solo fade-in rápido. Sin animación de salida para que la nueva página
-// aparezca de inmediato sin esperar que la anterior termine de irse.
+// Render directo — sin framer-motion. En Capacitor hard-nav la animación de
+// opacity:0→1 a veces queda atascada en opacity:0 y la página nunca aparece.
 export default function PageTransition({ children }) {
     return (
-        <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.15, ease: 'easeOut' }}
-            style={{ willChange: 'opacity' }}
-            className="w-full min-h-full"
-        >
+        <div className="w-full min-h-full">
             {children}
-        </motion.div>
+        </div>
     );
 }

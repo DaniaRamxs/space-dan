@@ -67,17 +67,37 @@ export default function GlobalChatPage() {
 /**
  * MobileChatLayout - Layout específico para móvil en GlobalChat
  */
-function MobileChatLayout({ 
-    children, 
+function MobileChatLayout({
+    children,
     channels,
     activeChannel,
     onChannelChange,
     onNavigate
 }) {
     const [showChannels, setShowChannels] = useState(false);
+    // En Capacitor Android, Keyboard.resize:"native" reduce el WebView pero el
+    // repaint de 100dvh se atrasa → queda un bloque gris donde estaba el chat.
+    // visualViewport emite resize en cuanto el teclado aparece; usar su height
+    // directo vía CSS variable garantiza re-render sincronizado.
+    const [layoutHeight, setLayoutHeight] = useState('100dvh');
+    useEffect(() => {
+        if (typeof window === 'undefined' || !window.visualViewport) return;
+        const vv = window.visualViewport;
+        const update = () => setLayoutHeight(`${vv.height}px`);
+        update();
+        vv.addEventListener('resize', update);
+        vv.addEventListener('scroll', update);
+        return () => {
+            vv.removeEventListener('resize', update);
+            vv.removeEventListener('scroll', update);
+        };
+    }, []);
 
     return (
-        <div className="h-dvh bg-[#070710] text-white font-sans flex flex-col overflow-hidden">
+        <div
+            className="bg-[#070710] text-white font-sans flex flex-col overflow-hidden"
+            style={{ height: layoutHeight }}
+        >
             
             {/* Selector de Canales Desplegable */}
             {showChannels && (

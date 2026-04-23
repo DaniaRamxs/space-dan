@@ -83,7 +83,7 @@ function isNativePlatform(): boolean {
  *
  * Devuelve null si no es necesario reescribir.
  */
-function toPlaceholderUrl(to: string): string | null {
+export function toPlaceholderUrl(to: string): string | null {
   if (!isNativePlatform()) return null
 
   const [pathPart, queryPart] = to.split('?')
@@ -93,28 +93,49 @@ function toPlaceholderUrl(to: string): string | null {
   const ts = `_r=${Date.now()}`
   const extra = queryPart ? `&${queryPart}` : ''
 
-  // /transmission/abc123  →  /transmission/_?_id=abc123&_r=<ts>
+  // /transmission/abc123  →  /transmission/_/?_id=abc123&_r=<ts>
   if (parts.length >= 2 && DYNAMIC_PREFIXES.has(parts[0]) && parts[1] !== '_') {
-    return `/${parts[0]}/_?_id=${encodeURIComponent(parts[1])}&${ts}${extra}`
+    return `/${parts[0]}/_/?_id=${encodeURIComponent(parts[1])}&${ts}${extra}`
   }
 
-  // /danilord  →  /_?_u=danilord&_r=<ts>
+  // /danilord  →  /_/?_u=danilord&_r=<ts>
   if (parts.length === 1 && parts[0] !== '_' && !STATIC_PREFIXES.has(parts[0])) {
-    return `/_?_u=${encodeURIComponent(parts[0])}&${ts}${extra}`
+    return `/_/?_u=${encodeURIComponent(parts[0])}&${ts}${extra}`
   }
 
   return null
 }
 
+// Asegura trailing slash en paths estáticos para native (Next exige trailingSlash:true)
+function withTrailingSlash(url: string): string {
+  const [path, query] = url.split('?')
+  if (path.endsWith('/')) return url
+  // No tocar archivos con extensión ni el root "/"
+  if (path === '/' || /\.[a-z0-9]+$/i.test(path)) return url
+  return `${path}/${query ? `?${query}` : ''}`
+}
+
 // ─── Link ─────────────────────────────────────────────────────────────────────
+//
+// En Capacitor/Tauri WebView el client-side routing del App Router falla al hacer
+// fetch del RSC payload ("This page couldn't load"). Para evitarlo, en native
+// renderizamos un <a> nativo — el click dispara hard nav que sí resuelve bien
+// contra los archivos estáticos de `out/`.
 
 type LinkProps = Omit<ComponentProps<typeof NextLink>, 'href'> & { to: string }
 
 export function Link({ to, children, ...props }: LinkProps) {
   const placeholder = useMemo(() => toPlaceholderUrl(to), [to])
+  const href = placeholder ?? to
+
+  // Rutas dinámicas: usar <a> nativo (hard nav) porque Next client router no
+  // maneja bien los placeholders en static export. Rutas estáticas siguen con NextLink.
+  if (placeholder && typeof window !== 'undefined' && isNativePlatform()) {
+    return <a href={withTrailingSlash(href)} {...(props as any)}>{children}</a>
+  }
 
   return (
-    <NextLink href={placeholder ?? to} {...props}>
+    <NextLink href={href} {...props}>
       {children}
     </NextLink>
   )
@@ -137,8 +158,11 @@ export function NavLink({ to, end, className, children, ...props }: NavLinkProps
   const resolvedClass = typeof className === 'function' ? (className as ClassNameFn)({ isActive }) : className
   const resolvedChildren = typeof children === 'function' ? (children as ChildrenFn)({ isActive }) : children
 
+  const placeholder = useMemo(() => toPlaceholderUrl(to), [to])
+  const href = placeholder ?? to
+
   return (
-    <NextLink href={to} className={resolvedClass} {...props}>
+    <NextLink href={href} className={resolvedClass} {...props}>
       {resolvedChildren}
     </NextLink>
   )
@@ -150,8 +174,9 @@ export function Navigate({ to, replace }: { to: string; replace?: boolean }) {
   const router = useRouter()
   useEffect(() => {
     const placeholder = toPlaceholderUrl(to)
-    if (replace) router.replace(placeholder ?? to)
-    else router.push(placeholder ?? to)
+    const url = placeholder ?? to
+    if (replace) router.replace(url)
+    else router.push(url)
   }, [to, replace, router])
   return null
 }
@@ -201,8 +226,19 @@ export function useNavigate() {
   const router = useRouter()
   return (to: string, options?: { replace?: boolean }) => {
     const placeholder = toPlaceholderUrl(to)
-    if (options?.replace) router.replace(placeholder ?? to)
-    else router.push(placeholder ?? to)
+    const url = placeholder ?? to
+    ;(window as any).__navLog?.('NAV', `useNavigate to="${to}" placeholder="${placeholder}"`)
+    // Rutas dinámicas (reescritas al placeholder "_") no funcionan con el client
+    // router de Next en static export — el pushState no dispara. Fallback a hard nav
+    // SOLO para esos casos. Rutas estáticas siguen yendo por router.push normal.
+    if (placeholder && isNativePlatform()) {
+      const final = withTrailingSlash(url)
+      if (options?.replace) window.location.replace(final)
+      else window.location.assign(final)
+      return
+    }
+    if (options?.replace) router.replace(url)
+    else router.push(url)
   }
 }
 

@@ -119,7 +119,7 @@ export default function BeatSound({ roomName, onClose }) {
     // Conectar a Colyseus
     useEffect(() => {
         const colyseusClient = new Colyseus.Client(
-            process.env.NEXT_PUBLIC_COLYSEUS_URL || 'ws://localhost:2567'
+            process.env.NEXT_PUBLIC_COLYSEUS_URL || 'wss://spacely-server-production.up.railway.app'
         );
         setClient(colyseusClient);
         

@@ -149,6 +149,9 @@ export default function VoiceRoomUI({
     const [token,      setToken]      = useState(null);
     const [connecting, setConnecting] = useState(true);
     const [error,      setError]      = useState(null);
+    // En native (Capacitor), LiveKitRoom no debe montarse hasta que RECORD_AUDIO
+    // sea concedido — si no, getUserMedia falla y el mic queda permanentemente bloqueado.
+    const [micReady,   setMicReady]   = useState(typeof window !== 'undefined' && !Capacitor.isNativePlatform?.());
 
     // Tab activa en el panel: 'participants' | 'chat'
     const [activeTab,  setActiveTab]  = useState('participants');
@@ -334,23 +337,50 @@ export default function VoiceRoomUI({
         };
     }, [activeActivity, roomName, isOpen, userName]);
 
-    // ── Plugin nativo: notificar al SO que hay una sesión de voz activa ──────
-    // IMPORTANTE: este useEffect debe ir ANTES del early return para
-    // respetar las Rules of Hooks (orden estable entre renders).
+    // ── Solicitar permiso RECORD_AUDIO antes de montar LiveKit ──
+    // En Android 14+, si getUserMedia corre sin permiso previo, LiveKit deja
+    // el track silenciado sin forma de recuperarlo. Plan:
+    //   1. Si VoiceServicePlugin está registrado → plugin.start() (pide permiso + FGS)
+    //   2. Si no → fallback con navigator.mediaDevices.getUserMedia para disparar el prompt
+    //   3. Al fallar cualquiera → error visible
     useEffect(() => {
-        if (!token) return;
-
-        // Iniciar servicio de audio en background (Android)
-        if (Capacitor.isNativePlatform() && VoiceServicePlugin) {
-            VoiceServicePlugin.start().catch(() => { });
+        if (!isOpen) return;
+        if (!Capacitor.isNativePlatform?.()) {
+            setMicReady(true);
+            return;
         }
-        // Evento global: otros componentes pueden reaccionar a la conexión de voz
-        window.dispatchEvent(new CustomEvent('voice:connect'));
+
+        let cancelled = false;
+        const requestMic = async () => {
+            try {
+                if (VoiceServicePlugin) {
+                    await VoiceServicePlugin.start();
+                } else {
+                    // Fallback: forzar prompt de permiso vía web API
+                    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    stream.getTracks().forEach(t => t.stop());
+                }
+                if (!cancelled) setMicReady(true);
+            } catch (err) {
+                console.error('[VoiceRoom] Permiso de micrófono denegado', err);
+                if (!cancelled) {
+                    setError('Permiso de micrófono denegado. Activalo en Ajustes → Apps → Spacely.');
+                    setConnecting(false);
+                }
+            }
+        };
+        requestMic();
 
         return () => {
-            if (Capacitor.isNativePlatform() && VoiceServicePlugin) {
-                VoiceServicePlugin.stop().catch(() => { });
-            }
+            cancelled = true;
+            if (VoiceServicePlugin) VoiceServicePlugin.stop().catch(() => { });
+        };
+    }, [isOpen]);
+
+    useEffect(() => {
+        if (!token) return;
+        window.dispatchEvent(new CustomEvent('voice:connect'));
+        return () => {
             window.dispatchEvent(new CustomEvent('voice:disconnect'));
         };
     }, [token]);
@@ -383,7 +413,7 @@ export default function VoiceRoomUI({
     };
 
     // ── Estado de carga / error ───────────────────────────────────────────────
-    if (!token && (connecting || error)) {
+    if (!micReady || (!token && (connecting || error))) {
         if (!isOpen) return null;
         return createPortal(
             <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4">
