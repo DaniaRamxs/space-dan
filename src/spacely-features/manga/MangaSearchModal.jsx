@@ -4,11 +4,12 @@ import React, {
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, X, BookOpen, ChevronRight, Loader2, Globe } from 'lucide-react';
 
-// ─── API proxy (backend) — avoids CORS from browser ──────────────────────────
+// ─── MangaDex API (directo; antes usábamos un proxy backend que está caído) ──
+// En Capacitor WebView no hay restricciones CORS estrictas. En navegador
+// web sí hay CORS pero MangaDex lo permite desde dominios conocidos.
 
-const API_URL   = process.env.NEXT_PUBLIC_API_URL || '';
-const MANGA_API = `${API_URL}/api/manga`;
-const UPLOADS   = 'https://uploads.mangadex.org';
+const MANGADEX_API = 'https://api.mangadex.org';
+const UPLOADS      = 'https://uploads.mangadex.org';
 
 const STATUS_COLORS = {
   ongoing:   'text-green-400 bg-green-400/10 border-green-400/20',
@@ -23,7 +24,7 @@ const STATUS_LABELS = {
   cancelled: 'Cancelado',
 };
 
-const LANG_LABELS = { es: 'ES', en: 'EN', 'es-la': 'ES' };
+const LANG_LABELS = { es: 'ES', en: 'EN', 'es-la': 'ES', 'es-419': 'ES' };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -31,9 +32,8 @@ function getCoverUrl(mangaId, relationships) {
   const coverRel = relationships?.find((r) => r.type === 'cover_art');
   const fileName = coverRel?.attributes?.fileName;
   if (!mangaId || !fileName) return null;
-  // Proxy through backend to avoid any CDN CORS issues on cover images
-  const direct = `https://uploads.mangadex.org/covers/${mangaId}/${fileName}.256.jpg`;
-  return `${MANGA_API}/image?url=${encodeURIComponent(direct)}`;
+  // Directo al CDN de MangaDex (permite CORS).
+  return `${UPLOADS}/covers/${mangaId}/${fileName}.256.jpg`;
 }
 
 function getMangaTitle(attributes) {
@@ -200,12 +200,23 @@ const MangaSearchModal = memo(({ isOpen, onClose, onSelect }) => {
     setError(null);
     debounceRef.current = setTimeout(async () => {
       try {
-        const url = `${MANGA_API}/search?title=${encodeURIComponent(query)}&limit=20`;
-        const res = await fetch(url);
+        // MangaDex directo: title + includes cover_art + contentRating safe+suggestive
+        const params = new URLSearchParams();
+        params.append('title', query);
+        params.append('limit', '20');
+        params.append('includes[]', 'cover_art');
+        params.append('contentRating[]', 'safe');
+        params.append('contentRating[]', 'suggestive');
+        // MangaDex no acepta %5B%5D encoded; decodificamos manualmente
+        const url = `${MANGADEX_API}/manga?${params.toString().replace(/%5B%5D/g, '[]')}`;
+        const res = await fetch(url, {
+          headers: { Accept: 'application/json' },
+        });
         if (!res.ok) throw new Error('Error al buscar manga');
         const data = await res.json();
         setResults(data.data || []);
       } catch (e) {
+        console.error('[MangaSearch] fetch error:', e);
         setError('No se pudo conectar a MangaDex. Intenta de nuevo.');
         setResults([]);
       } finally {
@@ -214,18 +225,47 @@ const MangaSearchModal = memo(({ isOpen, onClose, onSelect }) => {
     }, 500);
   }, [query]);
 
-  // Fetch chapters when manga is selected
+  // Fetch chapters when manga is selected — PRIORIZA ES, con fallback a EN
   const handleSelectManga = useCallback(async (manga) => {
     setSelectedManga(manga);
     setChapters([]);
     setChaptersLoading(true);
     try {
-      const url = `${MANGA_API}/${manga.id}/chapters?lang=es&limit=100`;
-      const res = await fetch(url);
+      // Pedimos capítulos en español (es, es-la, es-419) Y inglés como fallback.
+      // Si solo pedimos es, mangas sin traducción ES aparecerían vacíos.
+      const params = new URLSearchParams();
+      params.append('manga', manga.id);
+      params.append('limit', '500');
+      params.append('order[chapter]', 'desc');
+      params.append('translatedLanguage[]', 'es');
+      params.append('translatedLanguage[]', 'es-la');
+      params.append('translatedLanguage[]', 'es-419');
+      params.append('translatedLanguage[]', 'en');
+      params.append('contentRating[]', 'safe');
+      params.append('contentRating[]', 'suggestive');
+      params.append('includeExternalUrl', '0');
+      const url = `${MANGADEX_API}/chapter?${params.toString().replace(/%5B%5D/g, '[]')}`;
+      const res = await fetch(url, {
+        headers: { Accept: 'application/json' },
+      });
       if (!res.ok) throw new Error('Error al cargar capítulos');
       const data = await res.json();
-      setChapters(data.data || []);
-    } catch {
+      // Ordenar: español primero, inglés después
+      const sorted = (data.data || []).sort((a, b) => {
+        const langA = a.attributes?.translatedLanguage || '';
+        const langB = b.attributes?.translatedLanguage || '';
+        const isSpanishA = langA.startsWith('es');
+        const isSpanishB = langB.startsWith('es');
+        if (isSpanishA && !isSpanishB) return -1;
+        if (!isSpanishA && isSpanishB) return 1;
+        // Ambos del mismo idioma → por número de capítulo descendente
+        const chA = parseFloat(a.attributes?.chapter) || 0;
+        const chB = parseFloat(b.attributes?.chapter) || 0;
+        return chB - chA;
+      });
+      setChapters(sorted);
+    } catch (err) {
+      console.error('[MangaSearch] chapters fetch error:', err);
       setChapters([]);
     } finally {
       setChaptersLoading(false);

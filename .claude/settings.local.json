@@ -17,7 +17,9 @@
       "Bash(adb devices:*)",
       "Bash(./gradlew.bat clean assembleDebug:*)",
       "Bash(./gradlew.bat:*)",
-      "Bash(\"/c/Program Files/Android/Android Studio/jbr/bin/java\" -version)"
+      "Bash(\"/c/Program Files/Android/Android Studio/jbr/bin/java\" -version)",
+      "Bash(grep:*)",
+      "Bash(curl:*)"
     ]
   }
 }

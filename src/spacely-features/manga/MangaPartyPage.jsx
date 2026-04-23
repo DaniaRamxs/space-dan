@@ -20,16 +20,30 @@ import { useMangaMusic } from './useMangaMusic';
 import MangaMusicPlayer from './MangaMusicPlayer';
 import GifStickerPicker from './GifStickerPicker';
 
-// ─── MangaDex proxy (routed through backend to avoid CORS) ────────────────────
+// ─── MangaDex directo (antes usábamos un proxy que está caído en Railway) ───
 
-const API_URL   = process.env.NEXT_PUBLIC_API_URL || '';
-const MANGA_API = `${API_URL}/api/manga`;
+const MANGADEX_API = 'https://api.mangadex.org';
+const API_URL      = process.env.NEXT_PUBLIC_API_URL || '';
+// Mantenemos MANGA_API solo para el endpoint /scrape (web scraping, no tiene
+// alternativa directa). Si el proxy está caído, el scrape fallará gracefully.
+const MANGA_API    = `${API_URL}/api/manga`;
 
 async function getChapterPages(chapterId) {
-  const res  = await fetch(`${MANGA_API}/pages/${chapterId}`);
+  // Endpoint oficial de MangaDex para servir páginas:
+  // https://api.mangadex.org/docs/get-at-home-server-chapterId/
+  // Devuelve { baseUrl, chapter: { hash, data: [...filenames], dataSaver: [...] } }
+  // Las URLs reales son: `${baseUrl}/data/${hash}/${filename}`
+  const res  = await fetch(`${MANGADEX_API}/at-home/server/${chapterId}`, {
+    headers: { Accept: 'application/json' },
+  });
   if (!res.ok) throw new Error(`Pages fetch failed: ${res.status}`);
   const data = await res.json();
-  return data.pages;
+  const { baseUrl, chapter } = data;
+  if (!baseUrl || !chapter?.data) {
+    throw new Error('Respuesta de MangaDex inválida');
+  }
+  // Construimos las URLs completas (calidad normal; usa dataSaver para baja calidad)
+  return chapter.data.map((filename) => `${baseUrl}/data/${chapter.hash}/${filename}`);
 }
 
 // ─── Constants ────────────────────────────────────────────────────────────────
