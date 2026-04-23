@@ -4,8 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FacebookVideo } from '../types';
 import { FacebookPlayer } from './FacebookPlayer';
-import { VideoFeed } from './VideoFeed';
-import { Sparkles, Play, Monitor, Users, X, Search, Clapperboard } from 'lucide-react';
+import { Sparkles, Play, Monitor, X, Search, Clapperboard } from 'lucide-react';
 
 interface FacebookSharingProps {
   roomName: string;
@@ -61,13 +60,7 @@ export const FacebookSharingContainer: React.FC<FacebookSharingProps> = ({
     });
   };
 
-  const handleSelectFromFeed = (video: FacebookVideo) => {
-    if (!isHost) return;
-    onPayloadChange({ url: video.url, type: video.type });
-    setCurrentVideo(video);
-    setUrl(video.url);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
+  // (Eliminada handleSelectFromFeed — quitamos el Discovery Estelar mock.)
 
   return (
     <div className="w-full min-h-screen flex flex-col items-center p-4 md:p-10 relative overflow-x-hidden select-none">
@@ -175,26 +168,16 @@ export const FacebookSharingContainer: React.FC<FacebookSharingProps> = ({
                                 </div>
                             </div>
 
-                            <div className="flex items-center gap-3">
-                                <div className="flex -space-x-2 mr-4">
-                                    {[1,2,3].map(i => (
-                                        <div key={i} className="w-8 h-8 rounded-full border-2 border-[#0a0a0c] bg-white/10 overflow-hidden">
-                                             <div className="w-full h-full bg-gradient-to-br from-blue-500/20 to-purple-500/20" />
-                                        </div>
-                                    ))}
-                                    <div className="w-8 h-8 rounded-full border-2 border-[#0a0a0c] bg-white/5 flex items-center justify-center text-[10px] text-white/50">
-                                        +5
-                                    </div>
-                                </div>
-                                {isHost && (
-                                    <button 
+                            {isHost && (
+                                <div className="flex items-center gap-3">
+                                    <button
                                         onClick={() => { setCurrentVideo(null); setUrl(''); onPayloadChange({}); }}
                                         className="h-12 px-6 bg-red-500/10 border border-red-500/20 text-red-500 rounded-xl text-xs font-bold hover:bg-red-500 hover:text-white transition-all shadow-lg"
                                     >
                                         Detener
                                     </button>
-                                )}
-                            </div>
+                                </div>
+                            )}
                         </div>
                     </motion.div>
                 ) : (
@@ -223,35 +206,30 @@ export const FacebookSharingContainer: React.FC<FacebookSharingProps> = ({
             </AnimatePresence>
         </div>
 
-        {/* Recommendations Section */}
-        <div className="w-full flex flex-col mt-4">
-             <div className="w-full flex items-center justify-between mb-8 px-2">
-                <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-400">
-                        <Sparkles size={20} />
-                    </div>
-                    <div>
-                        <h3 className="text-lg font-bold text-white">Discovery Estelar</h3>
-                        <p className="text-white/30 text-[10px] font-black uppercase tracking-widest">Lo mejor de Facebook</p>
-                    </div>
-                </div>
-                <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/[0.02] border border-white/5 text-white/40 text-[10px] font-black tracking-widest">
-                    <Users size={12} /> {isHost ? "EL HOST DECIDE" : "SOLO LECTURA"}
-                </div>
-             </div>
+        {/* Info para el usuario si no hay video cargado */}
+        {!currentVideo && isHost && (
+          <div className="w-full max-w-2xl mx-auto mt-4 p-5 rounded-2xl border border-blue-500/10 bg-blue-500/5 text-center">
+            <p className="text-[11px] text-blue-400/80 font-bold leading-relaxed">
+              💡 Pega el link de un video o reel de Facebook
+              <br />
+              <span className="text-white/40 text-[10px] font-medium">
+                Ejemplo: https://www.facebook.com/watch?v=123456 o un enlace de share
+              </span>
+            </p>
+            <p className="mt-3 text-[10px] text-white/30 leading-relaxed">
+              Nota: Facebook puede requerir que inicies sesión en el iframe para reproducir
+              contenido con restricciones.
+            </p>
+          </div>
+        )}
 
-             <div className={isHost ? "opacity-100" : "opacity-30 pointer-events-none grayscale-[50%]"}>
-                <VideoFeed onSelect={handleSelectFromFeed} />
-             </div>
-             
-             {!isHost && (
-                <div className="mt-8 p-4 rounded-xl border border-blue-500/10 bg-blue-500/5 text-center">
-                    <p className="text-[10px] text-blue-400/60 font-black uppercase tracking-[0.2em]">
-                        Pide al host que cambie de canal si quieres ver algo nuevo
-                    </p>
-                </div>
-             )}
-        </div>
+        {!isHost && !currentVideo && (
+          <div className="w-full max-w-2xl mx-auto mt-4 p-4 rounded-xl border border-blue-500/10 bg-blue-500/5 text-center">
+            <p className="text-[10px] text-blue-400/60 font-black uppercase tracking-[0.2em]">
+              Esperando a que el host elija un video
+            </p>
+          </div>
+        )}
       </motion.div>
 
       {/* styled-jsx era de Next.js; con Vite/React usamos <style> plano */}
