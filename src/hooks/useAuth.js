@@ -225,60 +225,54 @@ export default function useAuth() {
 
       console.log(`[OAuth] Iniciando login con ${provider}`, { isNative, isTauri, redirectUrl });
 
-      // ─── CAMINO NATIVO (APK): URL OAuth manual (no signInWithOAuth) ──────
-      // signInWithOAuth hacía un fetch que se colgaba en WebView. La URL
-      // de OAuth de Supabase es pública: la construimos a mano y abrimos.
+      // ─── CAMINO NATIVO (APK): NAVEGACIÓN INTERNA DEL WEBVIEW ─────────────
+      // Estrategia correcta para OAuth en Capacitor/Android:
+      //
+      // PROBLEMA anterior: abríamos el OAuth en Chrome externo → Supabase
+      // guardaba el PKCE `code_verifier` en el WebView de la app (cookies)
+      // pero el callback llegaba a Chrome → cuando intentábamos volver a la
+      // app con el `code`, Supabase no tenía el `code_verifier` (contextos
+      // distintos) → error "state error" / "invalid request".
+      //
+      // SOLUCIÓN: navegar el MISMO WebView a la URL OAuth. Capacitor permite
+      // navegar entre dominios sin problema. Google hace su redirect hacia
+      // la bridge `auth-bridge.html` (que también se sirve en el mismo
+      // WebView porque Vercel responde joinspacely.com). La bridge detecta
+      // `hostname === 'localhost'` y salta a `/#/auth/callback?code=...`.
+      // El `code` llega al React Router, que llama `exchangeCodeForSession`.
+      // Como todo sucede en el mismo WebView, las cookies de PKCE están
+      // disponibles → ✅ login exitoso.
       if (isNative) {
-        const supabaseUrl =
-          supabase?.supabaseUrl ||
-          supabase?.auth?.url?.replace(/\/auth\/v1$/, '') ||
-          (typeof process !== 'undefined' && process?.env?.NEXT_PUBLIC_SUPABASE_URL) ||
-          '';
+        if (!supabase.auth) {
+          throw new Error('Supabase Auth no está inicializado.');
+        }
 
-        if (!supabaseUrl) {
-          alert('Error: Supabase URL no disponible. Revisa tu .env');
+        console.log(`[OAuth] Nativo: llamando signInWithOAuth con redirect interno`);
+        const { data, error } = await supabase.auth.signInWithOAuth({
+          provider,
+          options: {
+            redirectTo: redirectUrl,
+            skipBrowserRedirect: true, // Nosotros hacemos el redirect manual abajo
+            queryParams: {
+              prompt: 'select_account'
+            }
+          },
+        });
+
+        if (error) {
+          console.error('[OAuth] Error signInWithOAuth:', error);
+          alert('Error OAuth: ' + error.message);
           return;
         }
 
-        const authUrl =
-          `${supabaseUrl}/auth/v1/authorize` +
-          `?provider=${encodeURIComponent(provider)}` +
-          `&redirect_to=${encodeURIComponent(redirectUrl)}` +
-          `&prompt=select_account`;
-
-        // Intento 1: Capacitor Browser (import estático → no se cuelga como el dynamic)
-        // Intento 1 (PRIORITARIO): window.open con _system.
-        // Abre Chrome NATIVO del sistema — NO el navegador in-app de Capacitor.
-        // Esto es CRUCIAL porque los schemes custom (com.dan.space://) solo se
-        // manejan bien desde el navegador del sistema, no desde un WebView embebido.
-        // Después del OAuth, Android detecta el scheme y abre automáticamente tu app.
-        try {
-          const w = window.open(authUrl, '_system');
-          if (w) return;
-        } catch (e) {
-          console.error('[OAuth] window.open(_system) falló:', e);
-        }
-
-        // Intento 2: Capacitor Browser con windowName='_system' (fuerza sistema)
-        try {
-          const Browser = getCapacitorBrowser();
-          if (Browser) {
-            await Browser.open({ url: authUrl, windowName: '_system' });
-            return;
-          }
-        } catch (e) {
-          console.error('[OAuth] Capacitor Browser falló:', e);
-        }
-
-        // Intento 3: navegación directa del WebView (último recurso)
-        try {
-          window.location.href = authUrl;
+        if (!data?.url) {
+          alert('Error: Supabase no devolvió URL OAuth');
           return;
-        } catch (e) {
-          console.error('[OAuth] window.location falló:', e);
         }
 
-        alert('No se pudo abrir el login OAuth. Revisa conectividad y config de Supabase.');
+        console.log('[OAuth] Navegando WebView a:', data.url);
+        // Navegación del MISMO WebView a la URL OAuth. Preserva cookies/PKCE.
+        window.location.href = data.url;
         return;
       }
 

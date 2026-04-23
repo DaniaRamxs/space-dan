@@ -16,7 +16,8 @@
       "Bash(git commit:*)",
       "Bash(adb devices:*)",
       "Bash(./gradlew.bat clean assembleDebug:*)",
-      "Bash(./gradlew.bat:*)"
+      "Bash(./gradlew.bat:*)",
+      "Bash(\"/c/Program Files/Android/Android Studio/jbr/bin/java\" -version)"
     ]
   }
 }

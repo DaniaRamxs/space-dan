@@ -46,6 +46,7 @@ const PostDetailPage = lazy(() => import('@/pages/PostDetailPage'));
 const CommunityPage = lazy(() => import('@/pages/CommunityPage'));
 const SpaceSessionPage = lazy(() => import('@/pages/SpaceSessionPage'));
 const SpotifyCallback = lazy(() => import('@/pages/SpotifyCallback'));
+const AuthCallbackPage = lazy(() => import('@/pages/AuthCallbackPage'));
 
 function LoadingSpinner() {
   // Fondo `#0b0d20` (no negro puro) + label textual para distinguir
@@ -83,6 +84,7 @@ const App: React.FC = () => {
           <Route path="/onboarding" element={<OnboardingPage />} />
           <Route path="/download" element={<DownloadPage />} />
           <Route path="/spotify-callback" element={<SpotifyCallback />} />
+          <Route path="/auth/callback" element={<AuthCallbackPage />} />
 
           {/* Main App Layout Wrapper — protegido por AuthGuard */}
           <Route
