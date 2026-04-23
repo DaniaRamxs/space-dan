@@ -23,16 +23,21 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
-            <!-- Deep Link para OAuth -->
-            <intent-filter>
+            <!-- Deep Link para OAuth (con host específico) -->
+            <intent-filter android:autoVerify="false">
                 <action android:name="android.intent.action.VIEW" />
-
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="com.dan.space" />
+                <data android:host="auth" />
+            </intent-filter>
 
-                <data
-                    android:scheme="com.dan.space"
-                    android:host="auth" />
+            <!-- Deep Link para OAuth (sin host, fallback universal: com.dan.space://*) -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="com.dan.space" />
             </intent-filter>
 
         </activity>
