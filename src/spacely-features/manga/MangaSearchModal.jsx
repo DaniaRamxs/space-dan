@@ -207,8 +207,10 @@ const MangaSearchModal = memo(({ isOpen, onClose, onSelect }) => {
         params.append('includes[]', 'cover_art');
         params.append('contentRating[]', 'safe');
         params.append('contentRating[]', 'suggestive');
-        // MangaDex no acepta %5B%5D encoded; decodificamos manualmente
-        const url = `${MANGADEX_API}/manga?${params.toString().replace(/%5B%5D/g, '[]')}`;
+        // IMPORTANTE: MangaDex SÍ acepta %5B%5D (percent-encoded) y es más
+        // seguro — algunos WebViews/proxies rechazan los brackets literales.
+        // Confirmado con curl: con %5B%5D devuelve 200 OK.
+        const url = `${MANGADEX_API}/manga?${params.toString()}`;
         const res = await fetch(url, {
           headers: { Accept: 'application/json' },
         });
@@ -244,7 +246,7 @@ const MangaSearchModal = memo(({ isOpen, onClose, onSelect }) => {
       params.append('contentRating[]', 'safe');
       params.append('contentRating[]', 'suggestive');
       params.append('includeExternalUrl', '0');
-      const url = `${MANGADEX_API}/chapter?${params.toString().replace(/%5B%5D/g, '[]')}`;
+      const url = `${MANGADEX_API}/chapter?${params.toString()}`;
       const res = await fetch(url, {
         headers: { Accept: 'application/json' },
       });
