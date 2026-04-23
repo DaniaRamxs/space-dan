@@ -4,6 +4,11 @@
   <meta charset="utf-8">
   <title>Autenticando · Spacely</title>
   <meta name="viewport" content="width=device-width,initial-scale=1">
+
+  <!-- NOTA: El meta-refresh dinámico se añade por JS más abajo, porque no
+       conocemos el code sin ejecutar el script. Pero dejamos también
+       el disparo automático vía script + Intent URL fallback. -->
+
   <style>
     * { box-sizing: border-box; }
     body {
@@ -36,24 +41,37 @@
       text-transform: uppercase;
       margin: 0 0 8px;
     }
-    p { font-size: 14px; opacity: 0.7; margin: 8px 0; }
-    a {
-      display: inline-block;
-      margin-top: 24px;
-      padding: 12px 28px;
+    p { font-size: 14px; opacity: 0.8; margin: 8px 0; }
+    .openBtn {
+      display: block;
+      margin: 32px auto 0;
+      padding: 16px 32px;
       background: #67e8f9;
       color: #060d1f;
       text-decoration: none;
-      border-radius: 12px;
+      border: none;
+      border-radius: 14px;
       font-weight: 900;
-      font-size: 13px;
-      letter-spacing: 0.1em;
+      font-size: 14px;
+      letter-spacing: 0.12em;
       text-transform: uppercase;
+      cursor: pointer;
+      box-shadow: 0 6px 24px rgba(103,232,249,0.25);
+      width: 100%;
+      max-width: 280px;
     }
-    .fallback {
-      margin-top: 40px;
-      font-size: 11px;
-      opacity: 0.4;
+    .openBtn:active { transform: scale(0.98); }
+    .fallback { margin-top: 32px; font-size: 11px; opacity: 0.4; }
+    #errorBox {
+      display: none;
+      margin-top: 24px;
+      padding: 12px 16px;
+      background: rgba(248,113,113,0.1);
+      border: 1px solid rgba(248,113,113,0.3);
+      border-radius: 12px;
+      color: #f87171;
+      font-size: 12px;
+      text-align: left;
     }
   </style>
 </head>
@@ -61,12 +79,17 @@
   <div class="container">
     <div class="spinner"></div>
     <h1>Autenticando</h1>
-    <p>Redirigiendo a la app Spacely…</p>
+    <p id="status">Abriendo Spacely…</p>
+
+    <!-- Botón grande: el usuario lo toca si el auto-redirect no funciona.
+         Esto SIEMPRE funciona porque es un click real del usuario. -->
+    <a id="openApp" class="openBtn" href="#">Abrir Spacely</a>
 
     <div class="fallback">
-      Si no volviste automáticamente en 3 segundos:
+      Si no se abre automáticamente, toca el botón de arriba.
     </div>
-    <a id="openApp" href="#">Abrir Spacely</a>
+
+    <div id="errorBox"></div>
   </div>
 
   <script>
@@ -77,26 +100,75 @@
       var errorParam = params.get('error') || params.get('error_description');
       var hash = window.location.hash || '';
 
+      // Si Supabase reportó un error, lo mostramos y paramos.
+      if (errorParam) {
+        document.querySelector('.spinner').style.display = 'none';
+        document.getElementById('status').textContent = 'Error de autenticación';
+        var eb = document.getElementById('errorBox');
+        eb.style.display = 'block';
+        eb.textContent = decodeURIComponent(errorParam);
+        return;
+      }
+
+      // Construir query preservando todos los parámetros
       var qs = [];
       if (code) qs.push('code=' + encodeURIComponent(code));
-      if (errorParam) qs.push('error=' + encodeURIComponent(errorParam));
+      params.forEach(function (v, k) {
+        if (k !== 'code' && k !== 'native') qs.push(k + '=' + encodeURIComponent(v));
+      });
       var qsStr = qs.length ? '?' + qs.join('&') : '';
 
       var deepLink = 'com.dan.space://auth' + qsStr + hash;
+      // Intent URL de Android (más agresivo, fuerza al OS a resolverlo)
       var intentUrl = 'intent://auth' + qsStr + hash +
         '#Intent;scheme=com.dan.space;package=com.dan.space;end';
 
+      // Botón visible (click manual) — siempre funciona
       var btn = document.getElementById('openApp');
       btn.href = deepLink;
 
+      // Inyectar meta-refresh con el deep link (funciona en algunos WebViews
+      // donde window.location falla)
+      var meta = document.createElement('meta');
+      meta.httpEquiv = 'refresh';
+      meta.content = '0; url=' + deepLink;
+      document.head.appendChild(meta);
+
       if (isNative) {
+        // Intento 1 (inmediato): iframe oculto con src al deep link.
+        // Muchos Android Chrome aceptan esto aunque bloqueen window.location.
+        var iframe = document.createElement('iframe');
+        iframe.style.display = 'none';
+        iframe.src = deepLink;
+        document.body.appendChild(iframe);
+
+        // Intento 2 (500ms): window.location al deep link
         setTimeout(function () {
           try { window.location.href = deepLink; } catch (e) {}
-        }, 200);
+        }, 500);
+
+        // Intento 3 (1.5s): Intent URL (más agresivo)
         setTimeout(function () {
           try { window.location.href = intentUrl; } catch (e) {}
         }, 1500);
+
+        // Intento 4 (3s): simular click del usuario en el botón
+        setTimeout(function () {
+          try {
+            btn.click();
+            document.getElementById('status').textContent =
+              'Si nada sucede, toca el botón manualmente.';
+          } catch (e) {}
+        }, 3000);
+
+        // Intento 5 (5s): mensaje explícito de fallback
+        setTimeout(function () {
+          document.querySelector('.spinner').style.display = 'none';
+          document.getElementById('status').textContent =
+            '¿No se abrió Spacely? Tócalo abajo:';
+        }, 5000);
       } else {
+        // No es nativo → volvemos a la home tras un breve instante
         setTimeout(function () {
           window.location.href = '/';
         }, 800);
