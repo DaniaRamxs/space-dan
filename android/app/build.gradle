@@ -7,14 +7,12 @@ android {
         applicationId "com.dan.space"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1
-        versionName "1.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
             ignoreAssetsPattern '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~:!*.apk'
         }
-        versionCode 2
-        versionName "1.3"
+        versionCode 10
+        versionName "2.0"
     }
     buildTypes {
         release {

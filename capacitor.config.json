@@ -2,8 +2,12 @@
   "appId": "com.dan.space",
   "appName": "Spacely",
   "webDir": "dist",
+  "server": {
+    "androidScheme": "https"
+  },
   "android": {
-    "path": "android"
+    "path": "android",
+    "webContentsDebuggingEnabled": true
   },
   "plugins": {
     "SplashScreen": {

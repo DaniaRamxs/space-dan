@@ -5,7 +5,18 @@
       "Read(//c/Users/USUARIO/.claude/**)",
       "Read(//c/Users/USUARIO/**)",
       "Bash(ruflo --help)",
-      "Bash(ruflo init *)"
+      "Bash(ruflo init *)",
+      "Bash(dir:*)",
+      "Bash(npx cap sync:*)",
+      "Bash(ls:*)",
+      "Bash(./gradlew.bat assembleDebug:*)",
+      "Bash(git add:*)",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nfix\\(apk\\): resolve black screen + login flow for Capacitor Android\n\n- Convert dynamic @capacitor/* imports to static \\(were hanging unbundled\\)\n- Replace next/script in YouTubeContext with vanilla IFrame API loader\n- Merge duplicated build blocks in vite.config.ts, target es2019\n- Replace unsafe ''process.env'': ''import.meta.env'' define with per-key injection\n- Add GlobalErrorBoundary + AuthGuard + visible LoadingSpinner\n- Fix GardenLayout to use <Outlet /> instead of undefined children prop\n- Remove orphaned Next.js residuals \\(_app.tsx, server.ts\\)\n- Purge legacy service workers and caches on boot to unblock APK interactions\n- Remove React.StrictMode to avoid doubled event listeners in WebView\n- Add default-avatar.png/svg placeholders\n- Add public/auth/callback bridge page for OAuth deep link on Android\n- Switch native OAuth redirect to HTTPS bridge \\(joinspacely.com/auth/callback\\)\nEOF\n\\)\")",
+      "Bash(git push:*)",
+      "Bash(git commit:*)",
+      "Bash(adb devices:*)",
+      "Bash(./gradlew.bat clean assembleDebug:*)",
+      "Bash(./gradlew.bat:*)"
     ]
   }
 }

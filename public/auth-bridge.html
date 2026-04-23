@@ -135,24 +135,46 @@
       document.head.appendChild(meta);
 
       if (isNative) {
-        // Intento 1 (inmediato): iframe oculto con src al deep link.
-        // Muchos Android Chrome aceptan esto aunque bloqueen window.location.
+        // Detecta si esta página se cargó DENTRO del WebView de Capacitor
+        // (el OAuth se hizo navegando el WebView, no en Chrome externo).
+        // Si sí, solo tenemos que redirigir el WebView a la ruta interna
+        // `/#/auth/callback?code=XXX` y React Router hará el resto.
+        // Si no (Chrome externo), disparamos el deep link a la app.
+        var isInWebView = /wv/i.test(navigator.userAgent) ||
+          /Version\/\d+.*Chrome\/\d+.*Mobile/i.test(navigator.userAgent) &&
+          window.location.hostname === 'localhost';
+
+        // De cualquier modo, probamos ambas rutas en secuencia:
+
+        // Intento A (inmediato): URL hash al WebView (si estamos en él)
+        // Esto navega de /auth-bridge.html a /#/auth/callback dentro de la misma app
+        if (window.location.hostname === 'localhost' || isInWebView) {
+          btn.textContent = 'Continuando…';
+          setTimeout(function () {
+            try {
+              window.location.href = '/#/auth/callback' + qsStr + hash;
+            } catch (e) {}
+          }, 100);
+          return;
+        }
+
+        // Intento B: iframe oculto con src al deep link (bypass de algunos bloqueos)
         var iframe = document.createElement('iframe');
         iframe.style.display = 'none';
         iframe.src = deepLink;
         document.body.appendChild(iframe);
 
-        // Intento 2 (500ms): window.location al deep link
+        // Intento C (500ms): window.location al deep link
         setTimeout(function () {
           try { window.location.href = deepLink; } catch (e) {}
         }, 500);
 
-        // Intento 3 (1.5s): Intent URL (más agresivo)
+        // Intento D (1.5s): Intent URL (más agresivo)
         setTimeout(function () {
           try { window.location.href = intentUrl; } catch (e) {}
         }, 1500);
 
-        // Intento 4 (3s): simular click del usuario en el botón
+        // Intento E (3s): simular click programático
         setTimeout(function () {
           try {
             btn.click();
@@ -161,7 +183,7 @@
           } catch (e) {}
         }, 3000);
 
-        // Intento 5 (5s): mensaje explícito de fallback
+        // Intento F (5s): mensaje explícito
         setTimeout(function () {
           document.querySelector('.spinner').style.display = 'none';
           document.getElementById('status').textContent =
