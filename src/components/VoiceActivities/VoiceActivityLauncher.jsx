@@ -50,6 +50,7 @@ const LudoGame           = lazy(() => import('./Ludo/LudoGame'));
 const WatchTogether      = lazy(() => import('./WatchTogether'));
 const BeatSound          = lazy(() => import('./BeatSound'));
 const MangaParty         = lazy(() => import('../../features/manga/MangaPartyPage'));
+const FacebookSharing    = lazy(() => import('../../features/facebook-sharing/components/FacebookSharingContainer'));
 
 // ─── Catálogo de actividades ──────────────────────────────────────────────────
 // Cada actividad define su ID, nombre, tag de categoría, modo de red
@@ -212,20 +213,21 @@ const ALL_TAGS = ['Todos', 'Duelo', 'Co-op', 'Social', 'Casino', 'Musica'];
 
 // Mapa de ID → componente (evita un switch largo en el render)
 const ACTIVITY_COMPONENTS = {
-    poker:          PokerGame,
-    connect4:       Connect4Game,
-    snake:          SnakeDuelGame,
-    tetris:         TetrisDuelGame,
-    starboard:      Starboard,
-    'asteroid-battle': AsteroidBattleGame,
-    blackjack:      BlackjackGame,
-    chess:          ChessGame,
-    'pixel-galaxy': PixelGalaxyGame,
-    puzzle:         CoOpPuzzleGame,
-    ludo:           LudoGame,
-    watch:          WatchTogether,
-    'beat-sound':   BeatSound,
-    manga:          MangaParty,
+    poker:              PokerGame,
+    connect4:           Connect4Game,
+    snake:              SnakeDuelGame,
+    tetris:             TetrisDuelGame,
+    starboard:          Starboard,
+    'asteroid-battle':  AsteroidBattleGame,
+    blackjack:          BlackjackGame,
+    chess:              ChessGame,
+    'pixel-galaxy':     PixelGalaxyGame,
+    puzzle:             CoOpPuzzleGame,
+    ludo:               LudoGame,
+    watch:              WatchTogether,
+    'beat-sound':       BeatSound,
+    manga:              MangaParty,
+    'facebook-sharing': FacebookSharing,
 };
 
 // Actividades que gestionan su propio botón de minimizar (no mostrar el genérico)
