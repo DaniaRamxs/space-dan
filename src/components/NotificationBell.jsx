@@ -320,26 +320,40 @@ export default function NotificationBell() {
 
         getRecentNotifications(40).then(data => setNotifications(data || []));
 
-        const channel = supabase.channel(`notif_bell_${user.id}`)
-            .on('postgres_changes', {
-                event: 'INSERT',
-                schema: 'public',
-                table: 'notifications',
-                filter: `user_id=eq.${user.id}`
-            }, (payload) => {
-                setNotifications(prev => [payload.new, ...prev].slice(0, 40));
-                // Feedback háptico al recibir notificación en background
-                if (Capacitor.isNativePlatform()) {
-                    import('@capacitor/haptics').then(({ Haptics, ImpactStyle }) => {
-                        Haptics.impact({ style: ImpactStyle.Medium });
-                    }).catch(() => { });
-                } else if ('vibrate' in navigator && document.hidden) {
-                    navigator.vibrate(100);
-                }
-            })
-            .subscribe();
+        // Unique channel name to avoid colliding with a stale channel still alive
+        // in Supabase's internal registry after re-mount. Supabase throws
+        // "cannot add postgres_changes callbacks after subscribe()" when the
+        // same channel name is already in use.
+        const channelName = `notif_bell_${user.id}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+        let channel;
+        try {
+            channel = supabase.channel(channelName)
+                .on('postgres_changes', {
+                    event: 'INSERT',
+                    schema: 'public',
+                    table: 'notifications',
+                    filter: `user_id=eq.${user.id}`
+                }, (payload) => {
+                    setNotifications(prev => [payload.new, ...prev].slice(0, 40));
+                    if (Capacitor.isNativePlatform()) {
+                        import('@capacitor/haptics').then(({ Haptics, ImpactStyle }) => {
+                            Haptics.impact({ style: ImpactStyle.Medium });
+                        }).catch(() => { });
+                    } else if ('vibrate' in navigator && document.hidden) {
+                        navigator.vibrate(100);
+                    }
+                })
+                .subscribe();
+        } catch (err) {
+            // No dejamos que un error de realtime crashee el árbol de la app.
+            console.warn('[NotificationBell] No se pudo subscribir a cambios realtime:', err);
+        }
 
-        return () => supabase.removeChannel(channel);
+        return () => {
+            if (channel) {
+                try { supabase.removeChannel(channel); } catch { /* noop */ }
+            }
+        };
     }, [user?.id]);
 
     // Click fuera para cerrar (solo desktop)
