@@ -48,7 +48,7 @@ const KEYFRAMES = `
 
 const QUICK_ACTIVITIES = [
   { type: 'watch',  id: 'watch-together', label: 'Mirar Juntos',   emoji: '📺', accent: 'border-blue-400/30 text-blue-300'     },
-  { type: 'watch',  id: 'facebook-sharing', label: 'FB Cinema',    emoji: '🎬', accent: 'border-blue-500/30 text-blue-400'     },
+  { type: 'watch',  id: 'facebook-sharing', label: 'Social Cinema', emoji: '🎬', accent: 'border-blue-500/30 text-blue-400'     },
   { type: 'game',   id: 'pixel-galaxy', label: 'Pixel Galaxy',  emoji: '🎨', accent: 'border-yellow-400/30 text-yellow-300'   },
   { type: 'game',   id: 'puzzle',        label: 'Co-Op Puzzle',  emoji: '🧩', accent: 'border-green-400/30 text-green-300'     },
   { type: 'game',   id: 'connect4',      label: 'Cosmic 4',     emoji: '🔴', accent: 'border-pink-400/30 text-pink-300'     },

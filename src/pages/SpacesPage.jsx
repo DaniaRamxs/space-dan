@@ -32,7 +32,7 @@ const ACTIVITY_CATALOG = [
   },
   {
     type: 'watch',  id: 'facebook-sharing',
-    label: 'FB Cinema',           sublabel: 'Reproduce videos y reels de Facebook sincronizados con la sala',
+    label: 'Social Cinema',       sublabel: 'Ve videos de FB, Instagram, TikTok, Twitter, Twitch y más — sincronizados en tu sala',
     Icon: Clapperboard,
     gradient:     'linear-gradient(135deg, #0a1428 0%, #12263f 50%, #1d3a66 100%)',
     iconGradient: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',

@@ -197,9 +197,9 @@ const ACTIVITIES = [
         tagBg: 'bg-pink-500/20 text-pink-400',
     },
     {
-        id: 'facebook-sharing', name: 'FB Cinema', tag: 'Social', mode: 'api',
+        id: 'facebook-sharing', name: 'Social Cinema', tag: 'Social', mode: 'api',
         icon: Film,
-        description: 'Reproduce videos y reels de Facebook sincronizados con la sala',
+        description: 'Ve videos de FB, IG, TikTok, Twitter, Twitch, Vimeo — sincronizados con tu sala',
         reward: null,
         border: 'border-blue-500/30', bg: 'bg-blue-500/5',
         hover: 'hover:bg-blue-500/10 hover:border-blue-500/50',
