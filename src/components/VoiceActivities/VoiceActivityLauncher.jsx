@@ -195,6 +195,16 @@ const ACTIVITIES = [
         accent: 'bg-pink-500', text: 'text-pink-400',
         tagBg: 'bg-pink-500/20 text-pink-400',
     },
+    {
+        id: 'facebook-sharing', name: 'FB Cinema', tag: 'Social', mode: 'api',
+        icon: Film,
+        description: 'Reproduce videos y reels de Facebook sincronizados con la sala',
+        reward: null,
+        border: 'border-blue-500/30', bg: 'bg-blue-500/5',
+        hover: 'hover:bg-blue-500/10 hover:border-blue-500/50',
+        accent: 'bg-blue-500', text: 'text-blue-400',
+        tagBg: 'bg-blue-500/20 text-blue-400',
+    },
 ];
 
 // Categorías de filtro disponibles en el catálogo

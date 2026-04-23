@@ -40,6 +40,7 @@ const MangaPartyPage = lazy(() => import('@/spacely-features/manga/MangaPartyPag
 const KinniesPage = lazy(() => import('@/pages/KinniesPage'));
 const TestsPage = lazy(() => import('@/pages/TestsPage'));
 const ProfileOwn = lazy(() => import('@/pages/Profile/ProfileOwn'));
+const ProfileOwnRedirect = lazy(() => import('@/pages/Profile/ProfileOwnRedirect'));
 const ProfilePublic = lazy(() => import('@/pages/Profile/ProfilePublic'));
 const ProfileRedesign = lazy(() => import('@/pages/Profile/ProfileRedesign'));
 const PostDetailPage = lazy(() => import('@/pages/PostDetailPage'));
@@ -127,7 +128,10 @@ const App: React.FC = () => {
             <Route path="/notifications" element={<PostsPage />} />
             
             {/* Dynamic Routes */}
-            <Route path="/profile" element={<ProfileOwn />} />
+            {/* /profile redirige a /:miUsername usando ProfileRedesign (la nueva
+                versión con portada, GIFs, bloques). ProfileOwn queda como
+                fallback por si algún link antiguo lo usaba con /profile/xxx. */}
+            <Route path="/profile" element={<ProfileOwnRedirect />} />
             <Route path="/profile/:userId" element={<ProfilePublic />} />
             <Route path="/transmission/:postId" element={<PostDetailPage />} />
             <Route path="/log/:postId" element={<PostDetailPage />} />
