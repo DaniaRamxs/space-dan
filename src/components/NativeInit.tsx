@@ -158,28 +158,28 @@ export function NativeInit() {
     let isNative = false
 
     try {
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      const { Capacitor } = require('@capacitor/core')
-      isNative = Capacitor.isNativePlatform()
+      import('@capacitor/core').then(({ Capacitor }) => {
+        isNative = Capacitor.isNativePlatform()
 
-      if (isNative) {
-        document.documentElement.classList.add('native')
-        initMobileAuth()
-        initNative().then(() => {
-          setTimeout(async () => {
-            try {
-              const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: true })
-              stream.getTracks().forEach(t => t.stop())
-            } catch {
+        if (isNative) {
+          document.documentElement.classList.add('native')
+          initMobileAuth()
+          initNative().then(() => {
+            setTimeout(async () => {
               try {
-                const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: true })
                 stream.getTracks().forEach(t => t.stop())
-              } catch {}
-            }
-          }, 1200)
-        })
-        setTimeout(initOneSignal, 1400)
-      }
+              } catch {
+                try {
+                  const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+                  stream.getTracks().forEach(t => t.stop())
+                } catch {}
+              }
+            }, 1200)
+          })
+          setTimeout(initOneSignal, 1400)
+        }
+      })
     } catch {}
 
     if (isTauri) {

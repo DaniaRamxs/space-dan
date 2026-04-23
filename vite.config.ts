@@ -6,6 +6,13 @@ import path from 'path';
 export default defineConfig({
   plugins: [react()],
   base: './',
+  envPrefix: ['VITE_', 'NEXT_PUBLIC_'],
+  define: {
+    'process.env': 'import.meta.env'
+  },
+  build: {
+    target: 'es2015'
+  },
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),

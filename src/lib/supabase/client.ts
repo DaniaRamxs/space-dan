@@ -53,14 +53,9 @@ function buildClient() {
   let storageAdapter: any = localStorage
 
   // Detectar Capacitor nativo sin romper si no está instalado
-  try {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const { Capacitor } = require('@capacitor/core')
-    if (Capacitor.isNativePlatform()) {
-      storageAdapter = capacitorStorage
-    }
-  } catch {
-    // Capacitor no disponible (build web puro)
+  const isCapacitorNative = typeof window !== 'undefined' && (window as any).Capacitor?.isNativePlatform?.();
+  if (isCapacitorNative) {
+    storageAdapter = capacitorStorage
   }
 
   return _createClient(supabaseUrl, supabaseAnonKey, {
