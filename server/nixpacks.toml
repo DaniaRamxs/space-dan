@@ -1,0 +1,22 @@
+# Nixpacks config para Railway — añade yt-dlp al runtime
+# Este archivo hace que Nixpacks instale yt-dlp (además de Node.js que ya detecta
+# automáticamente por el package.json). yt-dlp es un binario escrito en Python
+# que extrae URLs de video directas de Facebook/IG/TikTok/Twitter/etc.
+
+[phases.setup]
+# Paquetes del NixOS a instalar durante el build
+# - yt-dlp: binario principal para extracción
+# - python3: requerido por yt-dlp
+# - nodejs_20: match con package.json engines (Railway ya lo detecta, pero lo fijamos)
+nixPkgs = ["nodejs_20", "yt-dlp", "python3"]
+
+[phases.install]
+# Instalar deps de npm (igual que antes)
+cmds = ["npm ci"]
+
+[phases.build]
+# No necesitamos build step (es un servidor Node plain)
+cmds = ["echo 'Skipping build'"]
+
+[start]
+cmd = "node index.mjs"

@@ -19,6 +19,7 @@ import { Server } from "colyseus";
 import { WebSocketTransport } from "@colyseus/ws-transport";
 
 import mangaRoutes from './routes/mangaRoutes.js';
+import videoExtractRoutes from './routes/videoExtractRoutes.mjs';
 
 // ── Simple IP-based rate limiter (no external dep) ────────────────────────────
 // Tracks request counts per IP in a sliding window. Cleans up stale entries to
@@ -123,6 +124,11 @@ const corsOptions = {
 app.use('/api/manga', cors({ origin: '*', methods: ['GET', 'OPTIONS'] }));
 app.options('/api/manga', cors({ origin: '*' }));
 
+// Video extraction / proxy CORS: wildcard — endpoint devuelve metadata pública
+// y streams de CDN que el usuario ya puede acceder directamente.
+app.use('/api/video', cors({ origin: '*', methods: ['GET', 'OPTIONS', 'HEAD'] }));
+app.options('/api/video', cors({ origin: '*' }));
+
 app.use(cors(corsOptions));
 app.options(/.*/, cors(corsOptions));
 
@@ -210,6 +216,11 @@ app.use("/api/audio", audioRoutes);
 app.use("/api/manga/scrape", scrapeLimiter);
 app.use("/api/manga/ext-image", publicApiLimiter);
 app.use("/api/manga", mangaRoutes);
+
+// Video extractor (yt-dlp wrapper para FB, IG, TikTok, Twitter, Twitch, etc.)
+// /api/video/extract?url=...  → { mp4_url, title, duration, thumbnail }
+// /api/video/proxy?url=...    → stream passthrough con CORS permisivo
+app.use("/api/video", scrapeLimiter, videoExtractRoutes);
 
 console.log('[ROUTES] Social API mounted: /api/communities, /api/activities');
 console.log('[ROUTES] Audio API mounted: /api/audio');
