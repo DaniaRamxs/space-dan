@@ -269,6 +269,16 @@ export default function VoiceActivityLauncher({
         onToggleTheater,
         onClose:         handleClose,
         activityChannelRef, // NEW: Pass activity-specific channel for sync
+        // En voice rooms de comunidad todos los usuarios son "host" (todos
+        // pueden cambiar el video/canal). La sincronización se hace por el
+        // activityChannelRef, no por distinción de host.
+        // Sin esto, FacebookSharingContainer arrancaba en modo espectador con
+        // datos mock (reels hardcoded) porque isHost era undefined.
+        isHost:            true,
+        // El payload inicial lo mantenemos vacío; cada actividad interpreta
+        // null/undefined como "pedir al usuario que configure".
+        initialPayload:    undefined,
+        onPayloadChange:   () => { /* handled internally via activityChannelRef */ },
     };
 
     // ── Cerrar actividad activa ───────────────────────────────────────────────
