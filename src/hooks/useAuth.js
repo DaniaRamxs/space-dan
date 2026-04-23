@@ -193,14 +193,11 @@ export default function useAuth() {
       return tauriUrl;
     }
 
-    // Si estamos en NATIVO (APK), usamos la página web como PUENTE.
-    // Google OAuth en WebView Android no maneja bien los redirects directos a
-    // custom schemes (com.dan.space://). En cambio, enviamos el redirect a
-    // un HTML estático (auth-bridge.html) que dispara el scheme.
-    // Usamos ".html" explícito para que Vercel lo sirva como archivo estático
-    // SIN ambigüedad con el SPA router (que respondería la app Spacely).
+    // APK: redirigir directo al custom scheme. En Chrome Custom Tab,
+    // Android respeta intent-filters del scheme (no como cuando estábamos
+    // en el WebView, que Google bloqueaba por disallowed_useragent).
     if (Capacitor.isNativePlatform() && (Capacitor.getPlatform() === 'android' || Capacitor.getPlatform() === 'ios')) {
-      return 'https://www.joinspacely.com/auth-bridge.html?native=1';
+      return 'com.dan.space://auth';
     }
 
     // Para cualquier entorno web (localhost, IPs locales o producción), 
@@ -225,34 +222,36 @@ export default function useAuth() {
 
       console.log(`[OAuth] Iniciando login con ${provider}`, { isNative, isTauri, redirectUrl });
 
-      // ─── CAMINO NATIVO (APK): NAVEGACIÓN INTERNA DEL WEBVIEW ─────────────
-      // Estrategia correcta para OAuth en Capacitor/Android:
+      // ─── CAMINO NATIVO (APK): Chrome Custom Tab + Deep Link ──────────────
+      // Google bloquea WebViews para OAuth desde 2021 (error 403
+      // "disallowed_useragent"). Por política, necesitamos abrir OAuth en
+      // Chrome Custom Tab (que Google sí acepta como "navegador seguro").
       //
-      // PROBLEMA anterior: abríamos el OAuth en Chrome externo → Supabase
-      // guardaba el PKCE `code_verifier` en el WebView de la app (cookies)
-      // pero el callback llegaba a Chrome → cuando intentábamos volver a la
-      // app con el `code`, Supabase no tenía el `code_verifier` (contextos
-      // distintos) → error "state error" / "invalid request".
+      // El PKCE `code_verifier` se guarda con el storageAdapter configurado
+      // en lib/supabase/client.ts → en APK usa Capacitor Preferences, no
+      // cookies del WebView. Esto significa que el verifier SÍ está
+      // disponible cuando la app vuelve a abrirse por el deep link del
+      // callback y llamamos `exchangeCodeForSession` — NO más state error.
       //
-      // SOLUCIÓN: navegar el MISMO WebView a la URL OAuth. Capacitor permite
-      // navegar entre dominios sin problema. Google hace su redirect hacia
-      // la bridge `auth-bridge.html` (que también se sirve en el mismo
-      // WebView porque Vercel responde joinspacely.com). La bridge detecta
-      // `hostname === 'localhost'` y salta a `/#/auth/callback?code=...`.
-      // El `code` llega al React Router, que llama `exchangeCodeForSession`.
-      // Como todo sucede en el mismo WebView, las cookies de PKCE están
-      // disponibles → ✅ login exitoso.
+      // Flow completo:
+      //   1. signInWithOAuth(skipBrowserRedirect=true) — guarda verifier en Preferences
+      //   2. Browser.open() → abre Chrome Custom Tab con la URL OAuth
+      //   3. Google acepta el Custom Tab (navegador "seguro")
+      //   4. Usuario autentica → Supabase → redirect a com.dan.space://auth?code=XXX
+      //   5. Android abre la app por el intent-filter (ya configurado)
+      //   6. NativeInit.initMobileAuth recibe el deep link
+      //   7. exchangeCodeForSession(code) — verifier viene de Preferences → ✅ sesión
       if (isNative) {
         if (!supabase.auth) {
           throw new Error('Supabase Auth no está inicializado.');
         }
 
-        console.log(`[OAuth] Nativo: llamando signInWithOAuth con redirect interno`);
+        console.log(`[OAuth] Nativo: generando URL OAuth`);
         const { data, error } = await supabase.auth.signInWithOAuth({
           provider,
           options: {
             redirectTo: redirectUrl,
-            skipBrowserRedirect: true, // Nosotros hacemos el redirect manual abajo
+            skipBrowserRedirect: true,
             queryParams: {
               prompt: 'select_account'
             }
@@ -270,9 +269,13 @@ export default function useAuth() {
           return;
         }
 
-        console.log('[OAuth] Navegando WebView a:', data.url);
-        // Navegación del MISMO WebView a la URL OAuth. Preserva cookies/PKCE.
-        window.location.href = data.url;
+        console.log('[OAuth] Abriendo Custom Tab:', data.url);
+        const Browser = getCapacitorBrowser();
+        if (Browser) {
+          await Browser.open({ url: data.url });
+        } else {
+          window.open(data.url, '_system');
+        }
         return;
       }
 
