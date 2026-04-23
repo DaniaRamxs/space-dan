@@ -135,26 +135,34 @@
       document.head.appendChild(meta);
 
       if (isNative) {
-        // Detecta si esta página se cargó DENTRO del WebView de Capacitor
-        // (el OAuth se hizo navegando el WebView, no en Chrome externo).
-        // Si sí, solo tenemos que redirigir el WebView a la ruta interna
-        // `/#/auth/callback?code=XXX` y React Router hará el resto.
-        // Si no (Chrome externo), disparamos el deep link a la app.
-        var isInWebView = /wv/i.test(navigator.userAgent) ||
-          /Version\/\d+.*Chrome\/\d+.*Mobile/i.test(navigator.userAgent) &&
-          window.location.hostname === 'localhost';
+        // Detectar si esta página está corriendo DENTRO del WebView de la app.
+        // El UA del WebView de Capacitor/Android típicamente contiene "; wv)"
+        // o "Capacitor". Si estamos ahí, PKCE state se preserva al navegar
+        // directamente al WebView de nuestra app en localhost.
+        //
+        // IMPORTANTE: ahora el OAuth se inicia navegando el WebView (no
+        // Chrome externo), por lo que cuando esta bridge carga, estamos
+        // dentro del WebView. Aquí solo necesitamos "saltar" de
+        // joinspacely.com/auth-bridge.html a localhost/#/auth/callback para
+        // que React Router intercepte.
+        var isInWebView = /wv\)/i.test(navigator.userAgent) ||
+          /Capacitor/i.test(navigator.userAgent);
 
-        // De cualquier modo, probamos ambas rutas en secuencia:
-
-        // Intento A (inmediato): URL hash al WebView (si estamos en él)
-        // Esto navega de /auth-bridge.html a /#/auth/callback dentro de la misma app
-        if (window.location.hostname === 'localhost' || isInWebView) {
-          btn.textContent = 'Continuando…';
+        // Intento A: Si estamos en WebView, saltar al callback interno.
+        // Usamos protocolo + host relativo para que funcione tanto con
+        // androidScheme=https como con http.
+        if (isInWebView) {
+          btn.textContent = 'Completando…';
           setTimeout(function () {
             try {
-              window.location.href = '/#/auth/callback' + qsStr + hash;
+              // Navegar al WebView de la app (https://localhost/)
+              window.location.href = 'https://localhost/#/auth/callback' + qsStr + hash;
             } catch (e) {}
           }, 100);
+          // También intentar deep link como redundancia
+          setTimeout(function () {
+            try { window.location.href = deepLink; } catch (e) {}
+          }, 1000);
           return;
         }
 
