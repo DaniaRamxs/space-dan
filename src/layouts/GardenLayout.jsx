@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef, useMemo, useCallback, lazy, Suspense } from 'react';
-import { NavLink, Link, useLocation, useNavigate } from "react-router-dom";
+import { NavLink, Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from 'framer-motion';
 import KonamiEasterEgg from "../components/KonamiEasterEgg.jsx";
 import { SpacelyLogo } from "../components/SpacelyLogo.jsx";
@@ -28,7 +28,7 @@ const isTauri = typeof window !== 'undefined' && (
 );
 const isWebOnly = !isNative && !isTauri;
 
-export default function GardenLayout({ children }) {
+export default function GardenLayout() {
   const { user, profile: ownProfile } = useAuthContext();
   const { onlineUsers } = useUniverse();
   const location = useLocation();
@@ -99,14 +99,14 @@ export default function GardenLayout({ children }) {
 
   // En web (no nativo, no Tauri) solo mostrar el contenido — sin nav ni hub
   if (isWebOnly) {
-    return <>{children}</>;
+    return <Outlet />;
   }
 
   if (isGameRoute) {
     return (
       <div className="gardenPage w-screen h-screen overflow-hidden" style={{ backgroundColor: '#030305' }}>
         <RadioPlayer />
-        {children}
+        <Outlet />
       </div>
     );
   }
@@ -222,7 +222,9 @@ export default function GardenLayout({ children }) {
             isUniversoRoute || isInGame
               ? { position: 'relative', zIndex: 1 }
               : { contain: 'layout paint', transform: 'translateZ(0)', position: 'relative', zIndex: 1 }
-          }>{children}</div>
+          }>
+            <Outlet />
+          </div>
 
           {/* Botón flotante de Chat (Desktop Fast Access) */}
           {!isFixedLayout && !isNative && !SPACE_SESSION_RE.test(location.pathname) && (

@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useAuthContext } from '../contexts/AuthContext';
@@ -113,13 +113,56 @@ function SpacelyIconAnimated({ size = 56 }) {
 }
 
 export default function LoginPage() {
-  const { user, loading, loginWithGoogle, loginWithDiscord } = useAuthContext();
+  const auth = useAuthContext();
+  const { user, loading, loginWithGoogle, loginWithDiscord } = auth || {};
   const navigate = useNavigate();
+
+  // Marcador visual para distinguir builds — busca "v5-STEPS" en el footer
+  console.log('[LoginPage] render — build v5 con STEPS numerados');
+
+  // Guardas contra doble-trigger (onPointerUp + onClick podrían disparar ambos en desktop).
+  const googleFiredRef = useRef(false);
+  const discordFiredRef = useRef(false);
+
+  const handleGoogle = async () => {
+    if (googleFiredRef.current) return;
+    googleFiredRef.current = true;
+    setTimeout(() => { googleFiredRef.current = false; }, 1500);
+
+    try {
+      if (typeof loginWithGoogle !== 'function') {
+        alert('Error: Auth no inicializado todavía. Intenta de nuevo en un momento.');
+        return;
+      }
+      await loginWithGoogle();
+    } catch (err) {
+      console.error('[LoginPage] Google login error:', err);
+      alert('Google login error: ' + (err?.message || err));
+    }
+  };
+
+  const handleDiscord = async () => {
+    if (discordFiredRef.current) return;
+    discordFiredRef.current = true;
+    setTimeout(() => { discordFiredRef.current = false; }, 1500);
+
+    try {
+      if (typeof loginWithDiscord !== 'function') {
+        alert('Error: Auth no inicializado todavía. Intenta de nuevo en un momento.');
+        return;
+      }
+      await loginWithDiscord();
+    } catch (err) {
+      console.error('[LoginPage] Discord login error:', err);
+      alert('Discord login error: ' + (err?.message || err));
+    }
+  };
 
   useEffect(() => {
     if (loading) return;
     if (user) navigate('/posts', { replace: true });
   }, [user, loading, navigate]);
+
 
   if (loading) {
     return (
@@ -131,7 +174,6 @@ export default function LoginPage() {
 
   return (
     <div className="fixed inset-0 flex flex-col items-center justify-center bg-[#060d1f] px-6" style={{ paddingBottom: '10vh' }}>
-
       {/* Estrellas de fondo */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
         <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[400px] rounded-full bg-blue-600/8 blur-[140px]" />
@@ -153,7 +195,7 @@ export default function LoginPage() {
 
       {/* Ícono SVG con círculo decorativo */}
       <motion.div
-        className="relative flex items-center justify-center mb-8 z-10 w-36 h-36 overflow-visible"
+        className="relative flex items-center justify-center mb-8 z-10 w-36 h-36 overflow-visible pointer-events-none"
         initial={{ opacity: 0, scale: 0.8 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.5, ease: 'easeOut' }}
@@ -176,7 +218,7 @@ export default function LoginPage() {
 
       {/* Título y subtítulo */}
       <motion.div
-        className="text-center mb-10 z-10"
+        className="text-center mb-10 z-10 pointer-events-none"
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6, delay: 0.3 }}
@@ -192,17 +234,17 @@ export default function LoginPage() {
         </p>
       </motion.div>
 
-      {/* Botones de login */}
-      <motion.div
-        className="flex flex-col gap-3 w-full max-w-[300px] z-10"
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6, delay: 0.45 }}
+      {/* Botones de login — SIN framer-motion wrapper (sospechoso de bloquear clicks en WebView) */}
+      <div
+        className="flex flex-col gap-3 w-full max-w-[300px]"
+        style={{ position: 'relative', zIndex: 20 }}
       >
         {/* Google */}
         <button
-          onClick={loginWithGoogle}
-          className="flex items-center justify-between w-full py-4 px-5 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/8 hover:border-white/20 active:scale-95 transition-all duration-150 text-white font-medium text-sm"
+          type="button"
+          onClick={handleGoogle}
+          style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'rgba(255,255,255,0.1)' }}
+          className="flex items-center justify-between w-full py-4 px-5 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/8 active:bg-white/10 transition-colors duration-150 text-white font-medium text-sm cursor-pointer"
         >
           <div className="flex items-center gap-3">
             <svg viewBox="0 0 24 24" className="w-5 h-5 shrink-0">
@@ -218,8 +260,10 @@ export default function LoginPage() {
 
         {/* Discord */}
         <button
-          onClick={loginWithDiscord}
-          className="flex items-center justify-between w-full py-4 px-5 rounded-2xl bg-white/5 border border-white/10 hover:bg-[#5865F2]/10 hover:border-[#5865F2]/30 active:scale-95 transition-all duration-150 text-white font-medium text-sm"
+          type="button"
+          onClick={handleDiscord}
+          style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'rgba(88,101,242,0.15)' }}
+          className="flex items-center justify-between w-full py-4 px-5 rounded-2xl bg-white/5 border border-white/10 hover:bg-[#5865F2]/10 active:bg-[#5865F2]/15 transition-colors duration-150 text-white font-medium text-sm cursor-pointer"
         >
           <div className="flex items-center gap-3">
             <svg viewBox="0 0 24 24" className="w-5 h-5 shrink-0">
@@ -229,7 +273,7 @@ export default function LoginPage() {
           </div>
           <span className="text-white/30 text-base">›</span>
         </button>
-      </motion.div>
+      </div>
 
       {/* Footer */}
       <motion.p

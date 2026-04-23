@@ -2,6 +2,8 @@ import React, { Suspense, lazy } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { Providers } from './providers';
 import { NativeInit } from '@/components/NativeInit';
+import { GlobalErrorBoundary } from '@/components/GlobalErrorBoundary';
+import { AuthGuard } from '@/components/AuthGuard';
 import GardenLayout from '@/layouts/GardenLayout';
 
 // -- Lazy Loading Pages --
@@ -46,18 +48,35 @@ const SpaceSessionPage = lazy(() => import('@/pages/SpaceSessionPage'));
 const SpotifyCallback = lazy(() => import('@/pages/SpotifyCallback'));
 
 function LoadingSpinner() {
+  // Fondo `#0b0d20` (no negro puro) + label textual para distinguir
+  // "suspense activo" de "pantalla negra por crash" en el APK.
   return (
-    <div className="fixed inset-0 flex items-center justify-center bg-[#030308]">
-      <div className="w-10 h-10 border-2 border-cyan-500/20 border-t-cyan-500 rounded-full animate-spin" />
+    <div
+      className="fixed inset-0 flex flex-col items-center justify-center gap-4"
+      style={{ backgroundColor: '#0b0d20' }}
+    >
+      <div className="w-12 h-12 border-2 border-cyan-500/20 border-t-cyan-500 rounded-full animate-spin" />
+      <span
+        style={{
+          color: '#67e8f9',
+          fontSize: 10,
+          fontWeight: 900,
+          letterSpacing: '0.3em',
+          textTransform: 'uppercase',
+        }}
+      >
+        Cargando Spacely…
+      </span>
     </div>
   );
 }
 
 const App: React.FC = () => {
   return (
-    <Providers>
-      <NativeInit />
-      <Suspense fallback={<LoadingSpinner />}>
+    <GlobalErrorBoundary>
+      <Providers>
+        <NativeInit />
+        <Suspense fallback={<LoadingSpinner />}>
         <Routes>
           {/* Public / Auth Routes */}
           <Route path="/login" element={<LoginPage />} />
@@ -65,8 +84,14 @@ const App: React.FC = () => {
           <Route path="/download" element={<DownloadPage />} />
           <Route path="/spotify-callback" element={<SpotifyCallback />} />
 
-          {/* Main App Layout Wrapper */}
-          <Route element={<GardenLayout />}>
+          {/* Main App Layout Wrapper — protegido por AuthGuard */}
+          <Route
+            element={
+              <AuthGuard>
+                <GardenLayout />
+              </AuthGuard>
+            }
+          >
             <Route path="/" element={<Navigate to="/posts" replace />} />
             <Route path="/posts" element={<PostsPage />} />
             <Route path="/communities" element={<CommunitiesPage />} />
@@ -115,8 +140,9 @@ const App: React.FC = () => {
           {/* Catch-all redirect */}
           <Route path="*" element={<Navigate to="/posts" replace />} />
         </Routes>
-      </Suspense>
-    </Providers>
+        </Suspense>
+      </Providers>
+    </GlobalErrorBoundary>
   );
 };
 

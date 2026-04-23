@@ -2,12 +2,23 @@ import { useEffect, useState, useCallback } from 'react';
 import { supabase } from '../supabaseClient';
 import { ensureProfile, syncAchievementToDb } from '../services/supabaseScores';
 import { Capacitor } from '@capacitor/core';
+// IMPORT ESTÁTICO (no dinámico): Vite empaqueta @capacitor/browser dentro del
+// bundle principal. El import dinámico se colgaba en APK porque Rolldown no
+// empaquetaba el chunk (verificado: no existía `capacitor-browser-*.js` en dist)
+// y el fetch del chunk inexistente devolvía el index.html (fallback SPA),
+// produciendo un parse error silencioso → promesa pending eterna → cuelgue.
+// El módulo es seguro de cargar también en web (solo expone Browser.open, etc.).
+import { Browser as CapacitorBrowser } from '@capacitor/browser';
 
-// Safe import for Browser (avoids issues in some environments)
-let Browser = null;
-if (Capacitor.isNativePlatform()) {
-  import('@capacitor/browser').then(m => { Browser = m.Browser; });
-}
+const getCapacitorBrowser = () => {
+  try {
+    if (!Capacitor.isNativePlatform?.()) return null;
+    return CapacitorBrowser;
+  } catch (err) {
+    console.warn('[useAuth] Capacitor no disponible:', err);
+    return null;
+  }
+};
 
 const ACH_KEY = 'space-dan-achievements';
 
@@ -182,9 +193,14 @@ export default function useAuth() {
       return tauriUrl;
     }
 
-    // Si estamos en NATIVO (APK), usamos el esquema personalizado
+    // Si estamos en NATIVO (APK), usamos la página web como PUENTE.
+    // Google OAuth en WebView Android no maneja bien los redirects directos a
+    // custom schemes (com.dan.space://). En cambio, enviamos el redirect a una
+    // página HTTPS que SÍ es aceptada, y desde esa página disparamos el scheme
+    // hacia Android (window.location = 'com.dan.space://auth?code=...').
+    // La página vive en https://www.joinspacely.com/auth/callback.
     if (Capacitor.isNativePlatform() && (Capacitor.getPlatform() === 'android' || Capacitor.getPlatform() === 'ios')) {
-      return 'com.dan.space://auth';
+      return 'https://www.joinspacely.com/auth/callback?native=1';
     }
 
     // Para cualquier entorno web (localhost, IPs locales o producción), 
@@ -207,17 +223,66 @@ export default function useAuth() {
         window.location.protocol === 'tauri:'
       );
 
-      console.log(`[OAuth] Iniciando login con ${provider}`);
-      console.log(`[OAuth] Entorno detectado:`, { isNative, isTauri });
-      console.log(`[OAuth] Redirect URL: ${redirectUrl}`);
+      console.log(`[OAuth] Iniciando login con ${provider}`, { isNative, isTauri, redirectUrl });
 
+      // ─── CAMINO NATIVO (APK): URL OAuth manual (no signInWithOAuth) ──────
+      // signInWithOAuth hacía un fetch que se colgaba en WebView. La URL
+      // de OAuth de Supabase es pública: la construimos a mano y abrimos.
       if (isNative) {
-        console.log(`[OAuth] Configurando para mobile con redirect a: ${redirectUrl}`);
-      } else if (isTauri) {
-        console.log(`[OAuth] Configurando para Tauri con redirect a: ${redirectUrl}`);
+        const supabaseUrl =
+          supabase?.supabaseUrl ||
+          supabase?.auth?.url?.replace(/\/auth\/v1$/, '') ||
+          (typeof process !== 'undefined' && process?.env?.NEXT_PUBLIC_SUPABASE_URL) ||
+          '';
+
+        if (!supabaseUrl) {
+          alert('Error: Supabase URL no disponible. Revisa tu .env');
+          return;
+        }
+
+        const authUrl =
+          `${supabaseUrl}/auth/v1/authorize` +
+          `?provider=${encodeURIComponent(provider)}` +
+          `&redirect_to=${encodeURIComponent(redirectUrl)}` +
+          `&prompt=select_account`;
+
+        // Intento 1: Capacitor Browser (import estático → no se cuelga como el dynamic)
+        // Intento 1 (PRIORITARIO): window.open con _system.
+        // Abre Chrome NATIVO del sistema — NO el navegador in-app de Capacitor.
+        // Esto es CRUCIAL porque los schemes custom (com.dan.space://) solo se
+        // manejan bien desde el navegador del sistema, no desde un WebView embebido.
+        // Después del OAuth, Android detecta el scheme y abre automáticamente tu app.
+        try {
+          const w = window.open(authUrl, '_system');
+          if (w) return;
+        } catch (e) {
+          console.error('[OAuth] window.open(_system) falló:', e);
+        }
+
+        // Intento 2: Capacitor Browser con windowName='_system' (fuerza sistema)
+        try {
+          const Browser = getCapacitorBrowser();
+          if (Browser) {
+            await Browser.open({ url: authUrl, windowName: '_system' });
+            return;
+          }
+        } catch (e) {
+          console.error('[OAuth] Capacitor Browser falló:', e);
+        }
+
+        // Intento 3: navegación directa del WebView (último recurso)
+        try {
+          window.location.href = authUrl;
+          return;
+        } catch (e) {
+          console.error('[OAuth] window.location falló:', e);
+        }
+
+        alert('No se pudo abrir el login OAuth. Revisa conectividad y config de Supabase.');
+        return;
       }
 
-      // Validar que Supabase esté configurado
+      // ─── CAMINO TAURI / WEB: signInWithOAuth normal ──────────────────────
       if (!supabase.auth) {
         throw new Error('Supabase Auth no está inicializado.');
       }
@@ -227,8 +292,7 @@ export default function useAuth() {
         provider,
         options: {
           redirectTo: redirectUrl,
-          // Para Tauri y Native: skipBrowserRedirect=true para controlar la navegación manualmente
-          skipBrowserRedirect: isTauri || isNative,
+          skipBrowserRedirect: isTauri,
           queryParams: {
             prompt: 'select_account'
           }
@@ -239,26 +303,11 @@ export default function useAuth() {
 
       if (error) {
         console.error(`[OAuth] Error en signInWithOAuth:`, error);
-        if (isNative || isTauri) alert(`Error Supabase OAuth: ${error.message}`);
+        if (isTauri) alert(`Error Supabase OAuth: ${error.message}`);
         throw error;
       }
 
-      if (isNative) {
-        if (data?.url) {
-          console.log(`[OAuth] Abriendo navegador con URL: ${data.url}`);
-          if (Browser) {
-            await Browser.open({ url: data.url });
-          } else {
-            // Fallback: try to import again if not ready
-            console.log(`[OAuth] Browser no está listo, importando dinámicamente...`);
-            const { Browser: B } = await import('@capacitor/browser');
-            await B.open({ url: data.url });
-          }
-        } else {
-          console.error('[OAuth] No se recibió URL de Supabase');
-          alert('Error: Supabase no devolvió una URL para el login móvil.');
-        }
-      } else if (isTauri) {
+      if (isTauri) {
         // Para Tauri: navegar explícitamente dentro del WebView.
         // Usar window.location.href directo (no el redirect automático de Supabase)
         // para asegurar que la navegación ocurre DENTRO del WebView y no en el browser del sistema.
