@@ -3,7 +3,19 @@
   "appName": "Spacely",
   "webDir": "dist",
   "server": {
-    "androidScheme": "https"
+    "androidScheme": "https",
+    "allowNavigation": [
+      "*.supabase.co",
+      "*.supabase.in",
+      "accounts.google.com",
+      "*.googleusercontent.com",
+      "discord.com",
+      "*.discord.com",
+      "discordapp.com",
+      "*.discordapp.com",
+      "joinspacely.com",
+      "*.joinspacely.com"
+    ]
   },
   "android": {
     "path": "android",
