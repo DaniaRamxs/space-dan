@@ -14,13 +14,13 @@
  * Respuesta error (4xx / 5xx):
  *   { ok: false, error, detail? }
  *
- * Requiere el binario `yt-dlp` disponible en PATH del servidor. En Railway:
- *   nixpacks.toml → [phases.setup] nixPkgs = ["yt-dlp"]
- * O como fallback instalamos youtube-dl-exec que descarga el binary on-demand.
+ * Implementación: usamos `youtube-dl-exec` que trae su propio binario de
+ * yt-dlp y no depende del entorno del host. Funciona en Railway, Docker,
+ * Windows, Linux, macOS sin configuración adicional.
  */
 
 import express from 'express';
-import { spawn } from 'node:child_process';
+import youtubeDl from 'youtube-dl-exec';
 
 const router = express.Router();
 
@@ -58,53 +58,6 @@ function isAllowedUrl(raw) {
   }
 }
 
-// ── yt-dlp extraction ────────────────────────────────────────────────────────
-// Corre yt-dlp con --dump-json para obtener metadata + URL directa sin descargar.
-// Si yt-dlp no está en PATH, probamos con `npx yt-dlp-exec` como fallback.
-function extractWithYtDlp(url, timeoutMs = 30000) {
-  return new Promise((resolve, reject) => {
-    const args = [
-      '--dump-single-json',
-      '--no-warnings',
-      '--no-playlist',
-      '--format', 'best[ext=mp4]/best',
-      '--no-check-certificate',
-      '--user-agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-      url,
-    ];
-
-    const child = spawn('yt-dlp', args, { stdio: ['ignore', 'pipe', 'pipe'] });
-
-    let stdout = '';
-    let stderr = '';
-    const timer = setTimeout(() => {
-      try { child.kill('SIGKILL'); } catch {}
-      reject(new Error('yt-dlp timeout'));
-    }, timeoutMs);
-
-    child.stdout.on('data', (c) => { stdout += c.toString(); });
-    child.stderr.on('data', (c) => { stderr += c.toString(); });
-
-    child.on('error', (err) => {
-      clearTimeout(timer);
-      reject(new Error(`yt-dlp spawn error: ${err.message}`));
-    });
-
-    child.on('close', (code) => {
-      clearTimeout(timer);
-      if (code !== 0) {
-        return reject(new Error(`yt-dlp exited ${code}: ${stderr.slice(0, 500)}`));
-      }
-      try {
-        const json = JSON.parse(stdout);
-        resolve(json);
-      } catch (err) {
-        reject(new Error(`yt-dlp parse error: ${err.message}`));
-      }
-    });
-  });
-}
-
 // ── GET /api/video/extract?url=... ────────────────────────────────────────────
 router.get('/extract', async (req, res) => {
   const url = String(req.query.url || '').trim();
@@ -120,7 +73,15 @@ router.get('/extract', async (req, res) => {
   }
 
   try {
-    const info = await extractWithYtDlp(url, 30000);
+    const info = await youtubeDl(url, {
+      dumpSingleJson: true,
+      noWarnings: true,
+      noPlaylist: true,
+      format: 'best[ext=mp4]/best',
+      noCheckCertificates: true,
+      userAgent:
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+    });
 
     // yt-dlp devuelve muchos campos; extraemos los útiles
     const mp4_url = info.url || info.requested_formats?.[0]?.url;
@@ -141,33 +102,34 @@ router.get('/extract', async (req, res) => {
       provider: info.extractor_key || info.extractor || 'unknown',
       width: info.width || null,
       height: info.height || null,
-      // Expiration clue: most providers signed URLs expire in ~1-6h
       expires_hint_sec: 3600,
     });
   } catch (err) {
     const msg = err?.message || String(err);
-    console.error('[videoExtract] error:', msg);
+    const stderr = err?.stderr || '';
+    const combined = `${msg}\n${stderr}`;
+    console.error('[videoExtract] error:', combined.slice(0, 1000));
 
     // Heurística para dar mejor error al frontend
-    if (/ENOENT|spawn yt-dlp/.test(msg)) {
-      return res.status(500).json({
-        ok: false,
-        error: 'yt-dlp not installed on server',
-        detail: 'Install yt-dlp in Railway nixpacks.toml or Dockerfile',
-      });
-    }
-    if (/private|login|sign in/i.test(msg)) {
+    if (/private|login|sign in|cookies/i.test(combined)) {
       return res.status(403).json({
         ok: false,
         error: 'Video requires login',
-        detail: 'This video is private or needs authentication',
+        detail: 'This video is private or the provider wants authentication',
       });
     }
-    if (/DRM|protected/i.test(msg)) {
+    if (/DRM|protected/i.test(combined)) {
       return res.status(451).json({
         ok: false,
         error: 'Video is DRM-protected',
         detail: 'Cannot extract DRM-protected content',
+      });
+    }
+    if (/unsupported URL|no video formats/i.test(combined)) {
+      return res.status(400).json({
+        ok: false,
+        error: 'Unsupported URL',
+        detail: 'Could not find a video at this link',
       });
     }
     return res.status(502).json({
@@ -207,14 +169,22 @@ router.get('/proxy', async (req, res) => {
   try {
     const range = req.headers.range;
     const upstreamHeaders = {
-      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+      'User-Agent':
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
     };
     if (range) upstreamHeaders.Range = range;
 
     const upstream = await fetch(url, { headers: upstreamHeaders });
 
     // Copiar headers relevantes
-    const passHeaders = ['content-type', 'content-length', 'content-range', 'accept-ranges', 'last-modified', 'etag'];
+    const passHeaders = [
+      'content-type',
+      'content-length',
+      'content-range',
+      'accept-ranges',
+      'last-modified',
+      'etag',
+    ];
     passHeaders.forEach((h) => {
       const v = upstream.headers.get(h);
       if (v) res.setHeader(h, v);
@@ -226,13 +196,13 @@ router.get('/proxy', async (req, res) => {
     if (!upstream.body) {
       return res.end();
     }
-    // Stream body al cliente
     const reader = upstream.body.getReader();
-    const pump = () => reader.read().then(({ done, value }) => {
-      if (done) return res.end();
-      res.write(Buffer.from(value));
-      return pump();
-    });
+    const pump = () =>
+      reader.read().then(({ done, value }) => {
+        if (done) return res.end();
+        res.write(Buffer.from(value));
+        return pump();
+      });
     await pump();
   } catch (err) {
     console.error('[videoProxy] error:', err?.message || err);
