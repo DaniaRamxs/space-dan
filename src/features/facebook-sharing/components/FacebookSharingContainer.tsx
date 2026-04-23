@@ -254,7 +254,8 @@ export const FacebookSharingContainer: React.FC<FacebookSharingProps> = ({
         </div>
       </motion.div>
 
-      <style jsx global>{`
+      {/* styled-jsx era de Next.js; con Vite/React usamos <style> plano */}
+      <style>{`
         .animate-pulse-slow {
           animation: pulse 12s cubic-bezier(0.4, 0, 0.6, 1) infinite;
         }
