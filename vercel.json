@@ -1,14 +1,7 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "cleanUrls": true,
-  "rewrites": [
-    {
-      "source": "/auth/callback",
-      "destination": "/auth/callback/index.html"
-    },
-    {
-      "source": "/auth/callback/",
-      "destination": "/auth/callback/index.html"
-    }
-  ]
+  "framework": "vite",
+  "buildCommand": "vite build",
+  "outputDirectory": "dist",
+  "cleanUrls": true
 }

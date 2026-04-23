@@ -195,12 +195,12 @@ export default function useAuth() {
 
     // Si estamos en NATIVO (APK), usamos la página web como PUENTE.
     // Google OAuth en WebView Android no maneja bien los redirects directos a
-    // custom schemes (com.dan.space://). En cambio, enviamos el redirect a una
-    // página HTTPS que SÍ es aceptada, y desde esa página disparamos el scheme
-    // hacia Android (window.location = 'com.dan.space://auth?code=...').
-    // La página vive en https://www.joinspacely.com/auth/callback.
+    // custom schemes (com.dan.space://). En cambio, enviamos el redirect a
+    // un HTML estático (auth-bridge.html) que dispara el scheme.
+    // Usamos ".html" explícito para que Vercel lo sirva como archivo estático
+    // SIN ambigüedad con el SPA router (que respondería la app Spacely).
     if (Capacitor.isNativePlatform() && (Capacitor.getPlatform() === 'android' || Capacitor.getPlatform() === 'ios')) {
-      return 'https://www.joinspacely.com/auth/callback?native=1';
+      return 'https://www.joinspacely.com/auth-bridge.html?native=1';
     }
 
     // Para cualquier entorno web (localhost, IPs locales o producción), 

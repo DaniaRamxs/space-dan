@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <title>Autenticando · Spacely</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: #060d1f;
+      color: #67e8f9;
+      font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      text-align: center;
+      padding: 20px;
+    }
+    .container { max-width: 360px; }
+    .spinner {
+      width: 48px;
+      height: 48px;
+      border: 3px solid rgba(103, 232, 249, 0.15);
+      border-top-color: #67e8f9;
+      border-radius: 50%;
+      animation: spin 0.9s linear infinite;
+      margin: 0 auto 24px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    h1 {
+      font-size: 16px;
+      font-weight: 900;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      margin: 0 0 8px;
+    }
+    p { font-size: 14px; opacity: 0.7; margin: 8px 0; }
+    a {
+      display: inline-block;
+      margin-top: 24px;
+      padding: 12px 28px;
+      background: #67e8f9;
+      color: #060d1f;
+      text-decoration: none;
+      border-radius: 12px;
+      font-weight: 900;
+      font-size: 13px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+    .fallback {
+      margin-top: 40px;
+      font-size: 11px;
+      opacity: 0.4;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="spinner"></div>
+    <h1>Autenticando</h1>
+    <p>Redirigiendo a la app Spacely…</p>
+
+    <div class="fallback">
+      Si no volviste automáticamente en 3 segundos:
+    </div>
+    <a id="openApp" href="#">Abrir Spacely</a>
+  </div>
+
+  <script>
+    (function () {
+      var params = new URLSearchParams(window.location.search);
+      var isNative = params.get('native') === '1';
+      var code = params.get('code');
+      var errorParam = params.get('error') || params.get('error_description');
+      var hash = window.location.hash || '';
+
+      var qs = [];
+      if (code) qs.push('code=' + encodeURIComponent(code));
+      if (errorParam) qs.push('error=' + encodeURIComponent(errorParam));
+      var qsStr = qs.length ? '?' + qs.join('&') : '';
+
+      var deepLink = 'com.dan.space://auth' + qsStr + hash;
+      var intentUrl = 'intent://auth' + qsStr + hash +
+        '#Intent;scheme=com.dan.space;package=com.dan.space;end';
+
+      var btn = document.getElementById('openApp');
+      btn.href = deepLink;
+
+      if (isNative) {
+        setTimeout(function () {
+          try { window.location.href = deepLink; } catch (e) {}
+        }, 200);
+        setTimeout(function () {
+          try { window.location.href = intentUrl; } catch (e) {}
+        }, 1500);
+      } else {
+        setTimeout(function () {
+          window.location.href = '/';
+        }, 800);
+      }
+    })();
+  </script>
+</body>
+</html>
