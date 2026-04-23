@@ -14,21 +14,30 @@ import NotificationBell from "../components/NotificationBell.jsx";
 import StarlysCounter from "../components/StarlysCounter.jsx";
 import { useAuthContext } from "../contexts/AuthContext";
 import { useUniverse } from "../contexts/UniverseContext";
-import { Capacitor } from '@capacitor/core';
+// Nota: no importamos `Capacitor` directamente — lo leemos de `window` en runtime
+// para evitar que el valor quede "congelado" a nivel de módulo antes de que el
+// bridge nativo esté listo.
 
 const PERSONAL_PATHS = ['/kinnies', '/tests', '/universo', '/dreamscape'];
 const FIXED_LAYOUT_PATHS = ['/cartas', '/desktop', '/chat'];
 const SPACE_SESSION_RE = /^\/spaces\/[^/]+$/;
-const isNative = Capacitor.isNativePlatform();
-const isTauri = typeof window !== 'undefined' && (
-  window.__TAURI_INTERNALS__ !== undefined ||
-  window.__TAURI__ !== undefined ||
-  window.location.hostname === 'tauri.localhost' ||
-  window.location.protocol === 'tauri:'
-);
-const isWebOnly = !isNative && !isTauri;
 
 export default function GardenLayout() {
+  // Evaluar flags en cada render para que capten correctamente el estado
+  // de Capacitor después de que el bridge nativo esté inyectado en window.
+  // Antes estaban a nivel de módulo y se evaluaban cuando el módulo cargaba,
+  // lo cual podía ser ANTES de que Capacitor.isNativePlatform() funcionara.
+  const isNative = typeof window !== 'undefined' && !!window.Capacitor?.isNativePlatform?.();
+  const isTauri = typeof window !== 'undefined' && (
+    window.__TAURI_INTERNALS__ !== undefined ||
+    window.__TAURI__ !== undefined ||
+    window.location.hostname === 'tauri.localhost' ||
+    window.location.protocol === 'tauri:'
+  );
+  // En web pura el hostname es el dominio real (joinspacely.com, etc).
+  // En Capacitor es 'localhost'. Si es ninguno de los 2 → web (desktop/browser).
+  const isWebOnly = !isNative && !isTauri;
+
   const { user, profile: ownProfile } = useAuthContext();
   const { onlineUsers } = useUniverse();
   const location = useLocation();
