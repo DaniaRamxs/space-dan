@@ -8,7 +8,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
   Tv, BookOpen, Palette, Gamepad2, Crown, Dice5,
-  Swords, Users, ArrowRight, Plus, Zap, Music,
+  Swords, Users, ArrowRight, Plus, Zap, Music, Clapperboard,
 } from 'lucide-react';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { supabase } from '@/supabaseClient';
@@ -29,6 +29,16 @@ const ACTIVITY_CATALOG = [
     glowColor:    'rgba(99,102,241,0.25)',
     border:       'border-indigo-500/20',
     glow:         'hover:shadow-[0_0_36px_rgba(99,102,241,0.22)]',
+  },
+  {
+    type: 'watch',  id: 'facebook-sharing',
+    label: 'FB Cinema',           sublabel: 'Reproduce videos y reels de Facebook sincronizados con la sala',
+    Icon: Clapperboard,
+    gradient:     'linear-gradient(135deg, #0a1428 0%, #12263f 50%, #1d3a66 100%)',
+    iconGradient: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
+    glowColor:    'rgba(59,130,246,0.25)',
+    border:       'border-blue-500/20',
+    glow:         'hover:shadow-[0_0_36px_rgba(59,130,246,0.22)]',
   },
   {
     type: 'game',   id: 'pixel-galaxy',
