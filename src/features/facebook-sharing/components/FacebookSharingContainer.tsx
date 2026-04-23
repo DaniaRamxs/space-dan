@@ -168,16 +168,40 @@ export const FacebookSharingContainer: React.FC<FacebookSharingProps> = ({
                                 </div>
                             </div>
 
-                            {isHost && (
-                                <div className="flex items-center gap-3">
+                            <div className="flex items-center gap-3">
+                                {/* Abrir en Facebook (sirve para todos: host y espectadores).
+                                    Útil cuando FB bloquea el embed (películas con copyright,
+                                    videos privados, etc). El link se abre en Chrome/app FB. */}
+                                <a
+                                    href={currentVideo.url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="h-12 px-5 bg-blue-500/10 border border-blue-500/30 text-blue-400 rounded-xl text-xs font-bold hover:bg-blue-500 hover:text-white transition-all shadow-lg inline-flex items-center gap-2"
+                                >
+                                    Abrir en Facebook
+                                </a>
+                                {isHost && (
                                     <button
                                         onClick={() => { setCurrentVideo(null); setUrl(''); onPayloadChange({}); }}
                                         className="h-12 px-6 bg-red-500/10 border border-red-500/20 text-red-500 rounded-xl text-xs font-bold hover:bg-red-500 hover:text-white transition-all shadow-lg"
                                     >
                                         Detener
                                     </button>
-                                </div>
-                            )}
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Aviso de limitación del embed de Facebook */}
+                        <div className="mt-4 p-4 rounded-2xl border border-amber-500/10 bg-amber-500/5 text-center">
+                            <p className="text-[11px] text-amber-400/80 font-bold leading-relaxed">
+                                ⚠️ Facebook bloquea el embed de películas, videos con copyright,
+                                contenido privado o Reels largos.
+                            </p>
+                            <p className="mt-2 text-[10px] text-white/40">
+                                Si ves "Video no disponible", usa <strong>"Abrir en Facebook"</strong> para
+                                verlo en la app. Para ver películas <strong>juntos</strong>, prueba
+                                <strong> Watch Together</strong> con YouTube (soporta sincronización completa).
+                            </p>
                         </div>
                     </motion.div>
                 ) : (
