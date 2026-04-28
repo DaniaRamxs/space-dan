@@ -316,12 +316,10 @@ export default function GlobalChat({ initialActivity = null }) {
         }
     }, [messages, user?.id]);
 
-    // ── Auto-eventos: cargar estado y timer ──────────────────────
+    // ── Auto-eventos: solo carga estado activo, NO lanza nuevos ──
     useEffect(() => {
         if (!user) return;
         loadActiveEvents();
-        const interval = setInterval(maybeStartAutoEvent, 12 * 60 * 1000);
-        return () => clearInterval(interval);
     }, [user]); // eslint-disable-line react-hooks/exhaustive-deps
 
     const loadMessages = async (chanId, isMounted = true) => {
